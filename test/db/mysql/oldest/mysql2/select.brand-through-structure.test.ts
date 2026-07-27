@@ -213,7 +213,7 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
     /*
     test('recursive-union-all-preserves-custom-brand', async () => {
         // `recursiveUnionAll(...)` carries the anchor's branded value type onto the
@@ -246,7 +246,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
     /*
     test('recursive-union-all-preserves-enum-brand', async () => {
         // The enum-brand sibling: `activity` (enum) stays the `WorklogActivity`

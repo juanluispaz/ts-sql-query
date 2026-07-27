@@ -15,7 +15,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('aggregate-as-array-use-empty-array-for-no-value-explicit', async () => {
         ctx.mockNext([{ pid: 1, titles: ['Update hero copy', 'Redesign navbar'] }])
@@ -43,7 +43,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('aggregate-as-array-as-optional-non-empty-array', async () => {
         ctx.mockNext([{ pid: 1, titles: ['Update hero copy', 'Redesign navbar'] }])
@@ -70,7 +70,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('aggregate-as-array-only-when-or-null-true-is-passthrough', async () => {
         // `onlyWhenOrNull(true)` returns the same regular value source —
@@ -99,7 +99,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('aggregate-as-array-ignore-when-as-null-false-is-passthrough', async () => {
         // `ignoreWhenAsNull(false)` returns the same regular value source.
@@ -152,7 +152,7 @@ describe(ctx.label, () => {
         expect((thrown as Error).message).toContain('aggregate-disallow-when-blocks')
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('aggregate-as-array-disallow-when-false-emits-transparently', async () => {
         // `disallowWhen(false, …)` leaves the value source allowed.
@@ -183,7 +183,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('aggregate-as-array-projecting-optional-values-as-nullable', async () => {
         // The object aggregate has an optional `body` column. By default it
@@ -250,7 +250,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ pid: 1, titles: [] }])
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('aggregate-as-array-as-required-in-optional-object', async () => {
         // `asRequiredInOptionalObject()` makes the aggregate the gate of an
@@ -329,7 +329,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ pid: 3 }, { pid: 4 }])
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('aggregate-as-array-element-default-projector-required-leaf-stays-required', async () => {
         // Without `projectingOptionalValuesAsNullable()` the aggregate element
@@ -368,7 +368,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('null-projector-aggregate-as-array-as-required-in-optional-object', async () => {
         // With `.projectingOptionalValuesAsNullable()`, the
@@ -410,7 +410,7 @@ describe(ctx.label, () => {
         ])
     })
     */
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('aggregate-as-array-element-level-rule-1-required-in-optional-object', async () => {
         // A column marked `.asRequiredInOptionalObject()` (`ref`) is REQUIRED in
@@ -457,7 +457,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('aggregate-as-array-element-level-rule-1-under-projecting-optional-values-as-nullable', async () => {
         // Under `projectingOptionalValuesAsNullable()` the
@@ -503,7 +503,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('aggregate-as-array-element-level-rule-4-all-optional-not-left-join', async () => {
         // Every array-element column is genuinely optional and NOT from a left
@@ -539,7 +539,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('aggregate-as-array-element-level-rule-4-under-projecting-optional-values-as-nullable', async () => {
         // Under `projectingOptionalValuesAsNullable()` the all-optional,
@@ -576,7 +576,7 @@ describe(ctx.label, () => {
     */
 
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('aggregate-as-array-projecting-optional-values-as-nullable-then-use-empty-array-for-no-value', async () => {
         // Regression: an array-shape modifier chained AFTER
@@ -615,7 +615,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('aggregate-as-array-projecting-optional-values-as-nullable-then-as-optional-non-empty-array', async () => {
         // The same regression on `asOptionalNonEmptyArray()`: it flips the array to
@@ -650,7 +650,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('aggregate-as-array-projecting-optional-values-as-nullable-then-as-required-in-optional-object', async () => {
         // The same regression on `asRequiredInOptionalObject()`: the array becomes
@@ -688,7 +688,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('aggregate-as-array-projecting-optional-values-as-nullable-then-allow-when', async () => {
         // The `allowWhen(true, …)` gate also reconstructs the value source; the
@@ -725,7 +725,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('inline-aggregated-array-projecting-optional-values-as-nullable-then-use-empty-array-for-no-value', async () => {
         // The inline (`forUseAsInlineAggregatedArrayValue()`) sibling: the SELECT
@@ -759,7 +759,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('inline-aggregated-array-projecting-optional-values-as-nullable-then-as-optional-non-empty-array', async () => {
         // An inline aggregated array (`forUseAsInlineAggregatedArrayValue()`) built with
@@ -794,7 +794,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('inline-aggregated-array-projecting-optional-values-as-nullable-then-as-required-in-optional-object', async () => {
         // An inline aggregated array (`forUseAsInlineAggregatedArrayValue()`) built with
@@ -830,7 +830,7 @@ describe(ctx.label, () => {
     */
 
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('inline-query-value-one-column-projecting-optional-values-as-nullable', async () => {
         // Regression: a one-column select whose single column is a projecting
@@ -864,7 +864,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('inline-query-value-one-column-projecting-optional-values-as-nullable-then-allow-when', async () => {
         // The `allowWhen(true, …)` gate wraps the inline value; the present-null
@@ -898,7 +898,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('inline-query-value-one-column-projecting-optional-values-as-nullable-then-disallow-when', async () => {
         // The `disallowWhen(false, …)` gate is the mirror of `allowWhen(true, …)`:
@@ -932,7 +932,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('aggregate-as-array-projecting-optional-values-as-nullable-then-disallow-when', async () => {
         // `disallowWhen(false, …)` leaves the value source allowed. The gate rebuilds the
@@ -969,7 +969,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('inline-aggregated-array-projecting-optional-values-as-nullable-then-allow-when', async () => {
         // An inline aggregated array (`forUseAsInlineAggregatedArrayValue()`) built with
@@ -1005,7 +1005,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('inline-aggregated-array-projecting-optional-values-as-nullable-then-disallow-when', async () => {
         // An inline aggregated array (`forUseAsInlineAggregatedArrayValue()`) built with

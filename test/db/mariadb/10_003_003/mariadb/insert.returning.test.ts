@@ -46,7 +46,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('insert-project-returning-row', async () => {
         const expectedMock = { id: 100, name: 'Mobile app', slug: 'mobile' }
@@ -88,7 +88,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('insert-returning-object-computed-expression', async () => {
         // Object-form RETURNING projecting a COMPUTED expression (`name || ' [new]'`)
@@ -125,7 +125,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('insert-many-organizations', async () => {
         const expectedMock = [{ id: 100 }, { id: 101 }]
@@ -157,7 +157,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('insert-returning-projecting-optional-values-as-nullable', async () => {
         // optional RETURNING columns become a present `| null` via
@@ -193,7 +193,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('insert-returning-without-helper-keeps-optional', async () => {
         // contrast: the SAME returning WITHOUT the helper keeps the optional
@@ -224,7 +224,7 @@ describe(ctx.label, () => {
         })
     })
     */
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('insert-returning-nested-object-projecting-optional-values-as-nullable', async () => {
         // A nested-object returning under projectingOptionalValuesAsNullable.
@@ -265,7 +265,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('insert-on-conflict-do-nothing-returning-projecting-optional-values-as-nullable', async () => {
         // `projectingOptionalValuesAsNullable()` on the ON CONFLICT DO NOTHING
@@ -302,7 +302,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('insert-on-conflict-do-nothing-returning-object-execute-insert-many', async () => {
         // The multi-row execute arm of the ON CONFLICT DO NOTHING
@@ -344,7 +344,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('insert-on-conflict-do-nothing-returning-one-column-execute-insert-many', async () => {
         // The one-column arity twin of the object-returning sibling above: the
@@ -380,7 +380,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('insert-returning-one-column-many-coerces-undefined-to-null', async () => {
         // `returningOneColumn(<optional col>)` consumed by `executeInsertMany()`
@@ -425,7 +425,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('insert-returning-one-column-nullable', async () => {
         // `returningOneColumn(<nullable column>)` — the scalar single-column
@@ -454,7 +454,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('insert-returning-rule1-gate-null-drops-object-default', async () => {
         // Object-form RETURNING with a RULE-1 gate on INSERT: `meta.gate` is
@@ -489,7 +489,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('insert-returning-rule1-gate-null-drops-object-as-nullable', async () => {
         // The same INSERT rule-1 gate under `projectingOptionalValuesAsNullable()`: the
@@ -522,7 +522,7 @@ describe(ctx.label, () => {
         })
     })
     */
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('insert-returning-nested-object-optional-leaf-default', async () => {
         // Object-form RETURNING whose nested `meta` group holds a SINGLE OPTIONAL leaf
@@ -568,7 +568,7 @@ describe(ctx.label, () => {
         })
     })
     */
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('insert-on-conflict-do-nothing-returning-nested-object-optional-leaf-default', async () => {
         // the same optional-leaf-inside-optional-object shape on the ON CONFLICT DO
@@ -603,7 +603,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('insert-returning-temporal-plain-kinds-round-trip', async () => {
         // RETURNING the plain temporal kinds — localDate (reviewDate, optional) and
@@ -645,7 +645,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('insert-returning-temporal-custom-kinds-round-trip', async () => {
         // RETURNING the branded custom temporal kinds on INSERT — customLocalDate
@@ -698,7 +698,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('insert-returning-one-column-temporal-real-value', async () => {
         // `returningOneColumn(<localTime>)` on INSERT returns a REAL (non-null) Date —
@@ -727,6 +727,6 @@ describe(ctx.label, () => {
     */
 })
 
-// Tests referencing these are commented out above with TODO[LIMITATION]
+// Tests referencing these are commented out above with NOT-SUPPORTED
 // markers; keep the bindings referenced so noUnusedLocals stays green.
 void tIssue; void tProject; void tProjectRelease; void tProjectReview

@@ -107,9 +107,10 @@ Then read the file. For every test() block in it, check:
 
   4. DESIGN § Symmetry rule + § Full-canonical-body discipline.
      The audit (commented-test-reason rule) blocks any /* */ block
-     without one of the three first-class reason markers above it
-     (`// NOT-APPLICABLE: …`, `// TODO[LIMITATION]: …`,
-     `// TODO[BUG]: …`), so the **missing-reason path is mechanical**.
+     without one of the four first-class reason markers above it
+     (`// NOT-APPLICABLE: …`, `// NOT-SUPPORTED: …`,
+     `// TODO[LIMITATION]: …`, `// TODO[BUG]: …`), so the
+     **missing-reason path is mechanical**.
      Your unique value here is the call the audit cannot make:
      - **Is the body inside /* */ the FULL canonical, or a stub?**
        (The audit cannot tell — a 3-line legitimate one-liner and a
@@ -117,15 +118,20 @@ Then read the file. For every test() block in it, check:
        even when the reason header IS present. See
        ANTIPATTERNS § stub-as-commented-test.
      - **Is the marker the right category?**
-       `NOT-APPLICABLE` = permanent dialect boundary (test runs in
-       other cells); `TODO[LIMITATION]` = lib hasn't covered yet (in
-       LIMITATIONS.md); `TODO[BUG]` = lib defect (in BUGS.md). Flag
-       cross-category misuses (e.g. `NOT-APPLICABLE` for something
-       that actually has a BUGS.md entry).
+       `NOT-APPLICABLE` = permanent dialect boundary drawn by the TYPE
+       SURFACE (test runs in other cells); `NOT-SUPPORTED` = the call
+       compiles but the ENGINE / this engine version / its build / the
+       driver can't run it (in ENGINE_SUPPORT.md — permanent here, NOT
+       a TODO); `TODO[LIMITATION]` = lib hasn't covered yet, and a
+       change in THIS repo would close it on every connector of the
+       dialect (in LIMITATIONS.md); `TODO[BUG]` = lib defect (in
+       BUGS.md). Flag cross-category misuses (e.g. `NOT-APPLICABLE`
+       for something that actually has a BUGS.md entry, or a
+       `TODO[LIMITATION]` on an old engine version nobody can fix).
      - **Is the reason genuine?** It must identify the dialect /
-       engine / driver / BUGS.md or LIMITATIONS.md entry — a generic
-       reason that names nothing passes the audit but should be
-       tightened.
+       engine (+ version) / driver / BUGS.md, LIMITATIONS.md or
+       ENGINE_SUPPORT.md entry — a generic reason that names nothing
+       passes the audit but should be tightened.
 
   5. DESIGN § Principles 10 (Realistic, shared domain):
      - Test scenarios should read like real product code on the

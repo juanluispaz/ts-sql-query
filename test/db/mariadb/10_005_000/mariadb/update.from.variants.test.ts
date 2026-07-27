@@ -25,7 +25,7 @@ class VOrgNameList extends Values<DBConnection, 'orgNames'> {
 }
 
 // VOrgNameList is referenced only by the CTE-on-DML test commented out in this
-// tier (see the TODO[LIMITATION] below); live cells use it for real.
+// tier (see the NOT-SUPPORTED marker below); live cells use it for real.
 void VOrgNameList
 
 describe(ctx.label, () => {
@@ -87,7 +87,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — a WITH clause prefixing an UPDATE/DELETE (CTE-on-DML) is only accepted on MariaDB 12.3+; every earlier release rejects it with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — a WITH clause prefixing an UPDATE/DELETE (CTE-on-DML) is only accepted on MariaDB 12.3+; every earlier release rejects it with ER_PARSE_ERROR (1064).
     /*
     test('update-from-cte-source', async () => {
         // FROM target is a `.forUseInQueryAs(...)` view (a CTE). The
@@ -127,7 +127,7 @@ describe(ctx.label, () => {
     // RETURNING needs MariaDB 13.0.1+ (the mariadb:latest image still
     // ships 12.x), and RETURNING on a multi-table UPDATE is not accepted
     // even where single-table UPDATE RETURNING is.
-    // TODO[LIMITATION]: see LIMITATIONS.md — UPDATE ... RETURNING needs MariaDB 13.0.1+ and is not accepted on a multi-table UPDATE as of 12.3.2
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING needs MariaDB 13.0.1+ and is not accepted on a multi-table UPDATE as of 12.3.2
     /*
     test('update-from-with-returning-one-row', async () => {
         // RETURNING combined with FROM; the emitted form is pinned by
@@ -178,7 +178,7 @@ describe(ctx.label, () => {
     // RETURNING needs MariaDB 13.0.1+ (the mariadb:latest image still
     // ships 12.x), and RETURNING on a multi-table UPDATE is not accepted
     // even where single-table UPDATE RETURNING is.
-    // TODO[LIMITATION]: see LIMITATIONS.md — UPDATE ... RETURNING needs MariaDB 13.0.1+ and is not accepted on a multi-table UPDATE as of 12.3.2
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING needs MariaDB 13.0.1+ and is not accepted on a multi-table UPDATE as of 12.3.2
     /*
     test('update-from-shaped-set-with-returning-one-row', async () => {
         // The three-way cross: a SHAPED set (`shapedAs({...}).set({...})` on renamed
@@ -234,7 +234,7 @@ describe(ctx.label, () => {
     // RETURNING needs MariaDB 13.0.1+ (the mariadb:latest image still
     // ships 12.x), and RETURNING on a multi-table UPDATE is not accepted
     // even where single-table UPDATE RETURNING is.
-    // TODO[LIMITATION]: see LIMITATIONS.md — UPDATE ... RETURNING needs MariaDB 13.0.1+ and is not accepted on a multi-table UPDATE as of 12.3.2
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING needs MariaDB 13.0.1+ and is not accepted on a multi-table UPDATE as of 12.3.2
     /*
     test('update-from-returning-scaled-adapter-column', async () => {
         // An adapter column driven through UPDATE … FROM … RETURNING: the SET
@@ -261,7 +261,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — a WITH clause prefixing an UPDATE/DELETE (CTE-on-DML) is only accepted on MariaDB 12.3+; every earlier release rejects it with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — a WITH clause prefixing an UPDATE/DELETE (CTE-on-DML) is only accepted on MariaDB 12.3+; every earlier release rejects it with ER_PARSE_ERROR (1064).
     /*
     test('update-from-values-source', async () => {
         // The FROM target is a `Values` source (vs a table or a forUseInQueryAs CTE).
@@ -293,7 +293,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — UPDATE ... RETURNING needs MariaDB 13.0.1+ and is not accepted on a multi-table UPDATE as of 12.3.2
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING needs MariaDB 13.0.1+ and is not accepted on a multi-table UPDATE as of 12.3.2
     /*
     test('update-from-returning-one-column-from-table-column', async () => {
         // `returningOneColumn(organization.name)` returns a column of the FROM-joined table, not

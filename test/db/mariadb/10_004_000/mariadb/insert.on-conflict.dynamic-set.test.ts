@@ -702,7 +702,7 @@ describe(ctx.label, () => {
     // pin that the trailing RETURNING / returningLastInsertedId clause and the
     // CONSTRAINT-target opener survive the degrade.
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('empty-on-conflict-update-set-degrades-to-conflict-noop-preserving-returning-id', async () => {
         // `doUpdateDynamicSet({archivedAt:null})` then `ignoreAnySetWithNoValue()`
@@ -734,7 +734,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('empty-on-conflict-update-set-degrades-to-conflict-noop-preserving-returning-object-many', async () => {
         // The one-shot `doUpdateSetIfValue({archivedAt:undefined})` empties the
@@ -766,7 +766,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('empty-on-conflict-update-set-degrades-to-conflict-noop-preserving-returning-last-inserted-id', async () => {
         // Emptying the update-set degrades to `… do nothing`, and a trailing
@@ -824,7 +824,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('empty-on-conflict-update-set-degrade-on-colliding-row-throws-mandatory-value-not-received', async () => {
         // Emptying the update-set degrades to the conflict no-op (`insert ignore …`); the
@@ -858,7 +858,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('conflict-do-nothing-returning-last-inserted-id-on-colliding-row-resolves-null', async () => {
         // The control twin for the degrade throw above: a plain
@@ -948,7 +948,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('empty-on-conflict-update-set-degrades-preserving-returning-one-column-none-or-one', async () => {
         // `doUpdateDynamicSet({archivedAt:null}).ignoreAnySetWithNoValue()` empties the
@@ -978,7 +978,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('empty-on-conflict-update-set-degrades-preserving-returning-one-column-many', async () => {
         // The `executeInsertMany()` shape of the empty-degrade + `returningOneColumn`: the
@@ -1007,7 +1007,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('empty-on-conflict-update-set-degrades-preserving-returning-one-column-one-throws-no-result', async () => {
         // The `executeInsertOne()` shape: the degrade suppresses the colliding row, so the
@@ -1037,7 +1037,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('empty-on-conflict-update-set-degrades-preserving-returning-under-shaped', async () => {
         // A SHAPED insert (`shapedAs({...}).set({...})` on renamed keys) with an empty-degrade
@@ -1104,6 +1104,6 @@ describe(ctx.label, () => {
     */
 })
 
-// Tests referencing these are commented out above with TODO[LIMITATION]
+// Tests referencing these are commented out above with NOT-SUPPORTED
 // markers; keep the bindings referenced so noUnusedLocals stays green.
 void TsSqlError

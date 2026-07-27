@@ -102,7 +102,7 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
     /*
     test('docs:aggregate-as-object-array/inline-aggregated-array', async () => {
         const expected = {
@@ -157,7 +157,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
     /*
     test('docs:aggregate-as-object-array/inline-aggregated-of-one-column', async () => {
         // orderBy('result') → real DB returns the names alphabetically.
@@ -241,7 +241,7 @@ describe(ctx.label, () => {
         expect(row?.priorities).toEqual(expect.arrayContaining([1, 2]))
     })
     */
-    // TODO[LIMITATION]: see LIMITATIONS.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
     /*
     test('docs:aggregate-as-object-array/recursive-query-as-inline-array', async () => {
         // A recursive query used as an inline aggregated array: walk an issue's
@@ -296,6 +296,6 @@ describe(ctx.label, () => {
 
 })
 
-// Tests referencing these are commented out above with TODO[LIMITATION]
+// Tests referencing these are commented out above with NOT-SUPPORTED
 // markers; keep the bindings referenced so noUnusedLocals stays green.
 void tIssue

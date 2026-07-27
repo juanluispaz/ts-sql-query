@@ -85,7 +85,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-cast-per-numeric-and-boolean-kind', async () => {
         // One VALUES row carrying one column per numeric/boolean base kind. Each
@@ -111,7 +111,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
     */
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-cast-per-branded-text-kind', async () => {
         // One VALUES row per branded text-collapsing kind: customComparable
@@ -137,7 +137,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-column-with-type-adapter-scales-write-and-read', async () => {
         // The `Values.column(type, adapter)` adapter-object arm: `score` carries
@@ -161,7 +161,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-boolean-column-with-custom-boolean-adapter', async () => {
         // The boolean × CustomBooleanTypeAdapter arm of `Values.column(type, adapter)`:
@@ -187,7 +187,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-custom-kind-column-with-type-adapter-shifts-write-and-read', async () => {
         // The CUSTOM-kind arm of `Values.column(type, typeName, adapter)` — the
@@ -218,7 +218,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-optional-custom-kind-column-with-type-adapter-shifts-and-passes-null', async () => {
         // An OPTIONAL VALUES-tuple column of a custom kind (customInt / ReleaseTag)
@@ -260,7 +260,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-cast-per-temporal-kind-via-null-value', async () => {
         // Temporal kinds (localDate / localTime / localDateTime) each emit their
@@ -293,7 +293,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-cast-per-uuid-kind', async () => {
         // A plain uuid and a branded customUuid (SigningKey) as real VALUES-tuple
@@ -324,7 +324,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-cast-per-custom-temporal-kind-via-null-value', async () => {
         // Branded custom-temporal kinds as VALUES-tuple columns —
@@ -361,7 +361,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-virtual-column-from-fragment-per-kind', async () => {
         // `Values.virtualColumnFromFragment` / `optionalVirtualColumnFromFragment`
@@ -396,7 +396,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-optional-column-with-type-adapter-scales-and-passes-null', async () => {
         // The `Values.optionalColumn(type, adapter)` adapter-object arm — the
@@ -437,7 +437,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-virtual-column-from-fragment-with-type-adapter-brackets-read', async () => {
         // A Values `virtualColumnFromFragment` (required) and
@@ -482,7 +482,7 @@ describe(ctx.label, () => {
         },
     }
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-required-column-per-remaining-kind-no-adapter', async () => {
         // Required `column(kind)` (no adapter) for the base/custom kinds not yet a
@@ -514,7 +514,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-required-column-per-kind-with-passthrough-adapter', async () => {
         // The trailing-adapter arm `column(kind, adapter)` per required kind not yet
@@ -555,7 +555,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-required-uuid-and-custom-uuid-column-with-passthrough-adapter', async () => {
         // The trailing-adapter arm of `column('uuid' | 'customUuid', …, adapter)`.
@@ -585,7 +585,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-optional-column-per-kind-no-adapter', async () => {
         // `optionalColumn(kind)` (no adapter) per kind not yet an optional
@@ -632,7 +632,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-optional-uuid-and-custom-uuid-column-no-adapter', async () => {
         // `optionalColumn('uuid')` / `optionalColumn('customUuid', 'SigningKey')`.
@@ -662,7 +662,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-optional-column-per-kind-with-passthrough-adapter', async () => {
         // The optional trailing-adapter arm `optionalColumn(kind, adapter)` per kind
@@ -703,7 +703,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-optional-uuid-and-custom-uuid-column-with-passthrough-adapter', async () => {
         // The optional uuid / customUuid trailing-adapter arm. passthroughAdapter is
@@ -732,7 +732,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-required-virtual-column-from-fragment-per-kind', async () => {
         // Required `virtualColumnFromFragment(kind, fn)` per kind not yet a
@@ -772,7 +772,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-required-virtual-uuid-and-custom-uuid-column-from-fragment', async () => {
         // Required uuid / customUuid virtual columns computed from a const fragment.
@@ -803,7 +803,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-optional-virtual-column-from-fragment-per-kind', async () => {
         // Optional `optionalVirtualColumnFromFragment(kind, fn)` per kind —
@@ -844,7 +844,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-optional-virtual-uuid-and-custom-uuid-column-from-fragment', async () => {
         // Optional uuid / customUuid virtual columns computed from a const fragment.
@@ -875,7 +875,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-optional-virtual-temporal-column-from-fragment-via-null-value', async () => {
         // Optional virtual temporal columns (localDate / localTime / localDateTime)
@@ -908,7 +908,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-required-virtual-column-from-fragment-per-kind-with-passthrough-adapter', async () => {
         // The required virtual-column trailing-adapter arm per kind (mirror of the
@@ -947,7 +947,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-required-virtual-uuid-and-custom-uuid-column-from-fragment-with-passthrough-adapter', async () => {
         // Required uuid / customUuid virtual columns with an inert passthroughAdapter.
@@ -977,7 +977,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-optional-virtual-column-from-fragment-per-kind-with-passthrough-adapter', async () => {
         // The optional virtual-column trailing-adapter arm per kind (mirror of the
@@ -1016,7 +1016,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-optional-virtual-uuid-and-custom-uuid-column-from-fragment-with-passthrough-adapter', async () => {
         // Optional uuid / customUuid virtual columns with an inert passthroughAdapter.
@@ -1046,7 +1046,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-optional-virtual-temporal-column-from-fragment-with-passthrough-adapter-via-null-value', async () => {
         // Optional virtual temporal columns with an inert passthroughAdapter, each
@@ -1075,7 +1075,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ n: 7 }])
     })
     */
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-required-cell-is-a-no-table-value-source-expression', async () => {
         // A VALUES row CELL may itself be a no-table-required ValueSource, not
@@ -1107,7 +1107,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-optional-cell-is-a-no-table-value-source-expression', async () => {
         // An OPTIONAL `id` column whose cell is a no-table-required ValueSource
@@ -1136,7 +1136,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Tests referencing these are commented out above with TODO[LIMITATION]
+    // Tests referencing these are commented out above with NOT-SUPPORTED
     // markers; keep the bindings referenced so noUnusedLocals stays green.
     void VBoolAdapterSampler; void VBrandedSampler; void VKindSampler; void VScaledSampler; void assertType; void bracketAdapter; void expect; void passthroughAdapter; void plusOffsetAdapter; void test
 })

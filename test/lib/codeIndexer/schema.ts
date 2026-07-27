@@ -374,10 +374,12 @@ CREATE INDEX idx_sql_emit_module ON sql_emit(module_id);
 
 -- ── todo_marker (schema v4): ALL // TODO[...] markers across the test matrix ──
 -- One row per // TODO comment, with its bracketed MODIFIER captured as tag (e.g. 'BUG',
--- 'PERF', …; NULL for a plain // TODO), plus the two first-class NON-TODO markers stored
+-- 'PERF', …; NULL for a plain // TODO), plus the three first-class NON-TODO markers stored
 -- under their own tag: 'NOT-APPLICABLE' (a permanent dialect boundary — surfaced by
--- --not-applicable) and 'MOCK-ONLY' (a live test that asks for ctx.mockOnlyConnection()
--- because its scenario needs the mock as an input device — surfaced by --mock-only).
+-- --not-applicable), 'NOT-SUPPORTED' (the engine / this engine version / its build / the
+-- driver cannot run it — surfaced by --not-supported) and 'MOCK-ONLY' (a live test that asks
+-- for ctx.mockOnlyConnection() because its scenario needs the mock as an input device —
+-- surfaced by --mock-only).
 -- TODO[BUG] is the channel the test-generator uses to flag a real-DB divergence to the
 -- bug-fixer (test/BUGS.md itself is read directly; it's tiny) and is surfaced by --bugs
 -- (tag='BUG'); the remaining TODO tags are indexed for completeness even though nothing

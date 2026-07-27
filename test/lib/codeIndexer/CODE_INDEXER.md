@@ -259,16 +259,19 @@ The first three reuse the `extractSrc` declMap; `bug_marker` is a plain comment 
   lookup and the reconcile/coverage audit). The shape follows the *use*, not the role name — they are
   deliberately not the same table.
 - **todo_marker** — one row per reason marker in a test cell (`file`, `line`, `tag`, `text`).
-  Three forms are recognised: a `// TODO[<TAG>]` (the bracketed modifier → `tag`: `BUG`, `LIMITATION`, … or
-  NULL for a bare `// TODO`) **and** the two first-class non-TODO markers, each under its own tag —
-  **`// NOT-APPLICABLE: <reason>`** and **`// MOCK-ONLY: <reason>`** (matching the audit's
-  `NOT_APPLICABLE_REASON` / `MOCK_ONLY_REASON`). The searcher classifies by tag into **four distinct
+  Four forms are recognised: a `// TODO[<TAG>]` (the bracketed modifier → `tag`: `BUG`, `LIMITATION`, … or
+  NULL for a bare `// TODO`) **and** the three first-class non-TODO markers, each under its own tag —
+  **`// NOT-SUPPORTED: <reason>`**, **`// NOT-APPLICABLE: <reason>`** and **`// MOCK-ONLY: <reason>`**
+  (matching the audit's `NOT_SUPPORTED_REASON` / `NOT_APPLICABLE_REASON` / `MOCK_ONLY_REASON`). The
+  searcher classifies by tag into **five distinct
   categories**: `--bugs` (`tag='BUG'` — a src/ defect; `test/BUGS.md`), `--limitation`
-  (`tag='LIMITATION'` — not covered yet / env; `test/LIMITATIONS.md`), **`--not-applicable`**
+  (`tag='LIMITATION'` — not covered yet / harness; `test/LIMITATIONS.md`), **`--not-supported`**
+  (`tag='NOT-SUPPORTED'` — the engine / this engine version / its build / the driver can't run it;
+  `test/ENGINE_SUPPORT.md`), **`--not-applicable`**
   (`tag='NOT-APPLICABLE'` — a *permanent dialect boundary*, the test runs in the cells whose dialect
   supports it) and **`--mock-only`** (`tag='MOCK-ONLY'` — a **live, fully-running** test whose INPUT is
   mocked). None is ever merged into another (different cause, different future). `--cell-caveats`
-  surfaces the three DISABLED-test categories by cell, counted per category; MOCK-ONLY is excluded there
+  surfaces the four DISABLED-test categories by cell, counted per category; MOCK-ONLY is excluded there
   (it blocks no wave and repeats identically across every cell).
 
     **Extraction scans `test/db/` only.** It used to scan all of `test/`, and that swept up the tooling's

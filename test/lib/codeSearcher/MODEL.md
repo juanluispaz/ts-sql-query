@@ -91,19 +91,23 @@ These recurred across the cases and shaped the model. Each notes how it landed.
   because it **names the symbol** you're touching (a known bug on `virtualColumnFromFragment`) or because
   it's declared on the **cell** you're writing into (MariaDB UPDATE…RETURNING needs 13.0.1+ — true of *any*
   work in that cell, whatever the symbol). The feature-centric intents catch the first; coverage-gap /
-  propagation are blocked by the second. *Built:* **name-scoped** `--bugs`/`--limitation`/`--not-applicable`
+  propagation are blocked by the second. *Built:* **name-scoped** `--bugs`/`--limitation`/`--not-supported`/`--not-applicable`
   (markers mentioning the symbol, in the feature-centric presets) **and** **coord-scoped** `--cell-caveats`
   (markers in the `--coord` cells, in coverage-gap/propagation). A wave is invalidated by a cell caveat the
   name filter alone is blind to (case G). *Discovered post-A–F by building case G before deciding.*
-- **L10 — Three first-class caveat CATEGORIES, not two.** A disabled test carries `TODO[BUG]` (src/ defect,
-  re-enabled when fixed), `TODO[LIMITATION]` (not covered yet / env, *might* re-enable), or **`NOT-APPLICABLE`**
+- **L10 — Four first-class caveat CATEGORIES, not two.** A disabled test carries `TODO[BUG]` (src/ defect,
+  re-enabled when fixed), `TODO[LIMITATION]` (not covered yet / harness, *might* re-enable — the fix is
+  ours), **`NOT-SUPPORTED`** (the engine / this engine version / its build / the driver can't run it — the
+  call compiles, the runtime refuses) or **`NOT-APPLICABLE`**
   (a *permanent dialect boundary* — never runs here, by design; the test runs+validates in the cells whose
-  dialect supports it). The third is **not** a `TODO`: the word implies pending work, which is exactly wrong
-  for a boundary, and folding it into LIMITATION would mislabel a deliberate `never` as actionable debt.
-  *Built:* the indexer stores `tag='NOT-APPLICABLE'` separately; the searcher gives it its own name-scoped
-  section `--not-applicable` and a distinct `[NOT-APPLICABLE]` category in `--cell-caveats` — never merged
-  into limitations. *(Added per a second agent's feedback; the audit `tests:audit` enforces the marker, the
-  searcher classifies it.)*
+  dialect supports it). The last two are **not** `TODO`s: the word implies pending work, which is exactly
+  wrong for a boundary, and folding either into LIMITATION would mislabel a deliberate `never` — or an old
+  engine release — as actionable debt. That mislabelling is what buried the real debt: before the split,
+  ~94% of the `TODO[LIMITATION]` markers in the matrix were engine/driver facts nobody could close.
+  *Built:* the indexer stores `tag='NOT-APPLICABLE'` and `tag='NOT-SUPPORTED'` separately; the searcher
+  gives each its own name-scoped section (`--not-applicable`, `--not-supported`) and a distinct category in
+  `--cell-caveats` — never merged into limitations. *(Added per a second agent's feedback; the audit
+  `tests:audit` enforces the marker, the searcher classifies it.)*
 
 ---
 
@@ -162,8 +166,9 @@ flag).
 | `--neg-types` | none·**summary**·full | `@ts-expect-error` assertions — `summary` = count per db; `full` = each rule comment + rejected snippet + file:line (to model a new lock, cases H/I) |
 | `--bugs` | **none**·summary·full | `// TODO[BUG]` markers **naming the symbol** — a src/ defect (→ `test/BUGS.md`); name-scoped |
 | `--limitation` | **none**·summary·full | `// TODO[LIMITATION]` markers **naming the symbol** — not covered yet / env (→ `test/LIMITATIONS.md`); name-scoped |
+| `--not-supported` | **none**·summary·full | `// NOT-SUPPORTED` markers **naming the symbol** — the engine / this engine version / its build / the driver can't run it (→ `test/ENGINE_SUPPORT.md`); name-scoped, permanent, never folded into limitation |
 | `--not-applicable` | **none**·summary·full | `// NOT-APPLICABLE` markers **naming the symbol** — a *permanent dialect boundary* (runs in the cells whose dialect supports it); name-scoped, a DISTINCT category from limitation (L10) |
-| `--cell-caveats` | **none**·summary·full | BUG/LIMITATION declared on cells — coord-scoped, *not* by symbol. **Level = view:** `summary` = per-cell map (each cell + counts), `full` = the markers (cell-prefixed); `--coord` only filters which cells. Case G |
+| `--cell-caveats` | **none**·summary·full | BUG/LIMITATION/NOT-SUPPORTED/NOT-APPLICABLE declared on cells — coord-scoped, *not* by symbol. **Level = view:** `summary` = per-cell map (each cell + counts), `full` = the markers (cell-prefixed); `--coord` only filters which cells. Case G |
 | `--name-search` | **none**·full | name-based discovery across every dimension (high recall) |
 | `--refs` | none·summary·full | **shortcut, not a section:** sets the whole `--ref-*` family (`--ref-return` + `--ref-implements`) at one level; explicit per-role flag overrides, and `--refs` itself beats a `--for` preset |
 
@@ -232,7 +237,7 @@ asserted in `verify.ts`):
 | `version_gate` | `--version-gates` | `compatibilityVersion <op> <breakpoint>` comparisons in the SqlBuilders (AST) |
 | `sql_emit` | `--emits-keyword` | SQL string literals in the SqlBuilders (substring match on `literal_lc`) |
 | `producer` | `--ref-return` | members whose return type resolves (checker) to an indexed interface/class |
-| `todo_marker` | `--bugs` (`tag='BUG'`), `--limitation` (`tag='LIMITATION'`), `--not-applicable` (`tag='NOT-APPLICABLE'`) — all name-scoped; `--cell-caveats` (all three, coord-scoped, counted per category) | every `// TODO[<tag>]` **and** `// NOT-APPLICABLE:` in `test/` |
+| `todo_marker` | `--bugs` (`tag='BUG'`), `--limitation` (`tag='LIMITATION'`), `--not-supported` (`tag='NOT-SUPPORTED'`), `--not-applicable` (`tag='NOT-APPLICABLE'`) — all name-scoped; `--cell-caveats` (all four, coord-scoped, counted per category) | every `// TODO[<tag>]` **and** `// NOT-SUPPORTED:` / `// NOT-APPLICABLE:` in `test/` |
 | `emitted_sql` | `--emitted-sql` | `toMatchInlineSnapshot` SQL in test + documentation cells; the searcher joins it to the block by file + line-containment |
 | `reference` (v5) | `--ref-type-arg`/`--ref-param`/`--ref-field`/`--ref-new`/`--ref-property` (roles `type-arg`/`param`/`field`/`new`/`property`) | checker-resolved references to an indexed element by syntactic role; resolution-gated (empty under `--no-resolve`) |
 

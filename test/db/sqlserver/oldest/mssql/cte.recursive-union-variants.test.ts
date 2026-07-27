@@ -189,7 +189,7 @@ describe(ctx.label, () => {
         }>>>()
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
 //     test('recursive-union-all-customize-query-outer-select-hooks', async () => {
 //         // The customizeQuery hooks that DON'T bracket the whole statement or
 //         // the CTE body (beforeQuery/afterQuery/beforeWithQuery/afterWithQuery,

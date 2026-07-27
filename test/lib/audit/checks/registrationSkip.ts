@@ -6,10 +6,11 @@
 //                            `test.todo` / `it.todo`, plus the identifier forms
 //                            `xit` / `xtest` / `xdescribe` — a disabled test. It
 //                            carries the SAME obligation as a commented-out test
-//                            (the `commented-test-reason` twin): one of the three
+//                            (the `commented-test-reason` twin): one of the four
 //                            first-class markers — `TODO[BUG]:` /
-//                            `TODO[LIMITATION]:` / `NOT-APPLICABLE:` (see
-//                            `../reasons.ts`) — saying why it is off. The skip is
+//                            `TODO[LIMITATION]:` / `NOT-SUPPORTED:` /
+//                            `NOT-APPLICABLE:` (see `../reasons.ts`) — saying why
+//                            it is off. The skip is
 //                            live code (AST), the reason lives in a comment within
 //                            3 lines above (or on the call's own line).
 //   - `skip-real-db`         `test.skipIf(ctx.realDbEnabled)` /

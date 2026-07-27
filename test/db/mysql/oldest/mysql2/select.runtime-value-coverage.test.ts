@@ -76,7 +76,7 @@ describe(ctx.label, () => {
         expect(result.hi).toBeUndefined()
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
     /*
     test('optional-non-empty-array-over-empty-aggregate-is-absent', async () => {
         // `asOptionalNonEmptyArray()` over a GENUINELY empty inline aggregate ->
@@ -253,6 +253,6 @@ describe(ctx.label, () => {
     })
 })
 
-// Tests referencing these are commented out above with TODO[LIMITATION]
+// Tests referencing these are commented out above with NOT-SUPPORTED
 // markers; keep the bindings referenced so noUnusedLocals stays green.
 void tOrganization

@@ -197,7 +197,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB rejects `RETURNING` on a multi-table `UPDATE a, b SET ...`; single-table `UPDATE ... RETURNING` works from 13.0.1+, but the multi-table form is not accepted on any current MariaDB (mariadb:latest 12.x → ER_PARSE_ERROR). Snapshot pre-baked; uncomment if a MariaDB release adds it.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB rejects `RETURNING` on a multi-table `UPDATE a, b SET ...`; single-table `UPDATE ... RETURNING` works from 13.0.1+, but the multi-table form is not accepted on any current MariaDB (mariadb:latest 12.x → ER_PARSE_ERROR). Snapshot pre-baked; uncomment if a MariaDB release adds it.
     /*
     test('update-from-join-all-gates-open-with-allowed-returning-walks-to-end', async () => {
         // The same all-open FROM+JOIN as the sibling above, plus an OPEN-gated

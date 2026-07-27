@@ -14,6 +14,7 @@ shows how to apply them.
 - [Extending the shared domain](#extending-the-shared-domain)
 - [When the canonical cell can't compile the body](#when-the-canonical-cell-cant-compile-the-body)
 - [Imports used only from commented-out blocks](#imports-used-only-from-commented-out-blocks)
+- [When the canonical body contains `*/`](#when-the-canonical-body-contains-)
 - [Docs snippets — `docs:` and `docs-extra:`](#docs-snippets)
 - [When a test surfaces a bug in `src/`](#when-a-test-surfaces-a-bug-in-src)
 
@@ -497,6 +498,33 @@ The `void identifier` is a zero-cost expression statement that satisfies
 the unused-locals rule without affecting runtime. Drop it when the test
 gets uncommented in that cell, or leave it — it is harmless either way.
 
+## When the canonical body contains `*/`
+
+A body that itself holds `*/` (a `rawFragment` emitting a SQL comment, for
+instance) cannot be wrapped in `/* … */` — the block would end early. Keep
+it as `//` line comments instead, in this exact shape:
+
+```ts
+    // NOT-SUPPORTED: <reason>. Canonical body kept as line comments below — it contains `*/`, so a /* … */ wrap is impossible.
+
+    //     test('the-test-name', async () => {
+    //         // … full canonical body, verbatim, one `//` per line …
+    //     })
+```
+
+The **blank line between the marker and the body is load-bearing**: the
+indexer reads a marker's reason as the marker line plus the `//` lines that
+follow it, so without the gap the whole test body is absorbed into the
+reason and `tests:where-is` prints an unreadable wall of code instead of a
+one-line caveat. (The indexer also stops at a line that starts a
+`test(`/`it(`/`describe(` call, as a second line of defence — do not rely on
+it.) Keep the gap to **one** blank line: the audit splits comment runs on a
+gap of more than one, and a wider gap detaches the marker from the test,
+tripping `misplaced-marker`.
+
+The name still counts for symmetry: the audit detects a commented-out test
+in `//` lines exactly as it does inside a `/* … */` block.
+
 ## Docs snippets
 
 Every public feature shown or described in a `docs/queries/*.md` or
@@ -650,14 +678,15 @@ three different questions in one report — paste the output into the
 entry as the verifiable artifact:
 
 ```bash
-npm run tests:where-is -- --search <api> --bugs summary --limitation summary --not-applicable summary --declared full
+npm run tests:where-is -- --search <api> --bugs summary --limitation summary --not-supported summary --not-applicable summary --declared full
 ```
 
-- `--bugs / --limitation / --not-applicable` → if any of the three
-  first-class reason markers (`// TODO[BUG]`, `// TODO[LIMITATION]`,
-  `// NOT-APPLICABLE`) already names the API, reuse the existing reason
-  header instead of opening a duplicate. The three categories are
-  distinct (see [`LIMITATIONS.md`](./LIMITATIONS.md) for the comparison).
+- `--bugs / --limitation / --not-supported / --not-applicable` → if any of
+  the four first-class reason markers (`// TODO[BUG]`, `// TODO[LIMITATION]`,
+  `// NOT-SUPPORTED`, `// NOT-APPLICABLE`) already names the API, reuse the
+  existing reason header instead of opening a duplicate. The four categories
+  are distinct (see [`LIMITATIONS.md` § The decision
+  rule](./LIMITATIONS.md#the-decision-rule) for the comparison).
 - `--declared full` → every declaration site of the symbol. Do **not**
   trust a previously-opened entry's "Where:" line as exhaustive — that
   field reflects what the original author saw. Recent miss: an entry on
@@ -668,7 +697,7 @@ npm run tests:where-is -- --search <api> --bugs summary --limitation summary --n
 If the bug is in the type system (overload, variance, assignability),
 swap the preset: `--for type-bug` bundles `declared full · signature
 full · ref-type-arg full · neg-types full · bugs summary · limitation
-summary · not-applicable summary · chain none` — the route is the
+summary · not-supported summary · not-applicable summary · chain none` — the route is the
 signature, not the call-chain, and a `never` typing often means
 `NOT-APPLICABLE` (a deliberate dialect boundary, not a bug). Before
 inventing a new helper or type alias to work around the bug, check
@@ -683,17 +712,25 @@ hand.) Full guide in [`CODE_SEARCH.md` § "This tool vs. textual search"](./CODE
 
 **Test author's checklist** (this is all you do when you find a suspect):
 
-1. Two-minute triage — three buckets, three first-class reason markers
-   (full distinction in [`LIMITATIONS.md`](./LIMITATIONS.md)):
-   - **Dialect boundary by design** (the dialect doesn't support the
-     feature, will never run this test here, the same test runs live in
-     the cells whose dialect supports it) → block-comment with
+1. Two-minute triage — four buckets, four first-class reason markers
+   (full distinction in [`LIMITATIONS.md` § The decision
+   rule](./LIMITATIONS.md#the-decision-rule)):
+   - **Dialect boundary by design** (the TYPE SURFACE doesn't expose the
+     call here, so it can't be written; the same test runs live in the
+     cells whose dialect supports it) → block-comment with
      `// NOT-APPLICABLE: <reason>` and, if the constraint is new in the
      matrix, add an entry to [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md).
      A paired `types.negative/` assertion on the unsupported dialect is
      usually warranted.
+   - **The RUNTIME can't run it** (the call compiles and the library emits
+     SQL, but this engine — or this engine *version*, or its build, or the
+     driver — rejects, lacks or mis-evaluates it) → block-comment with
+     `// NOT-SUPPORTED: see ENGINE_SUPPORT.md — <one-line>` and, if the fact
+     is new, add an entry to [`ENGINE_SUPPORT.md`](./ENGINE_SUPPORT.md).
+     **Not a TODO**: nothing in this repo re-enables it.
    - **Known library limitation per the author** (lib hasn't covered the
-     path yet, or the environment can't) →
+     path yet, or this harness can't drive it — and a change HERE would
+     close it, on every connector of the dialect) →
      [`LIMITATIONS.md`](./LIMITATIONS.md) already covers it; block-comment
      with `// TODO[LIMITATION]: see LIMITATIONS.md — <one-line>` and move on.
    - **Anything else** (the lib *should* support the call and is broken)

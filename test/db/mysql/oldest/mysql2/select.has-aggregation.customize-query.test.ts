@@ -150,7 +150,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — window functions and the named WINDOW clause require MySQL 8.0.2+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — window functions and the named WINDOW clause require MySQL 8.0.2+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     // test('has-aggregation/customize-query-custom-window-hook-without-an-aggregate-reports-false', async () => {
     //     // The negative half of the `customWindow` pair, and the only other test
     //     // that mentions that slot: the control's eight companions plus an inert
@@ -398,7 +398,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — window functions and the named WINDOW clause require MySQL 8.0.2+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — window functions and the named WINDOW clause require MySQL 8.0.2+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     // test('has-aggregation/customize-query-custom-window-hook-with-an-aggregate-reports-aggregation', async () => {
     //     // The positive half of the `customWindow` pair: the same nine slots as
     //     // its negative twin, with the aggregate added inside a comment in the

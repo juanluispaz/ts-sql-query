@@ -171,7 +171,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('insert-project-release-returning-branded-custom-column', async () => {
         // INSERT … RETURNING of a branded custom column:
@@ -280,6 +280,6 @@ describe(ctx.label, () => {
 
 })
 
-// Tests referencing these are commented out above with TODO[LIMITATION]
+// Tests referencing these are commented out above with NOT-SUPPORTED
 // markers; keep the bindings referenced so noUnusedLocals stays green.
 export type { ReleaseChannel }

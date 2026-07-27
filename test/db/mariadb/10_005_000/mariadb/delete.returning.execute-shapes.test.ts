@@ -35,7 +35,7 @@ import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 // tProject is referenced only by the CTE-on-DML test commented out in this
-// tier (see the TODO[LIMITATION] below); live cells use it for real.
+// tier (see the NOT-SUPPORTED marker below); live cells use it for real.
 void tProject
 
 function reasonOf(e: unknown): string | undefined {
@@ -181,7 +181,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — a WITH clause prefixing an UPDATE/DELETE (CTE-on-DML) is only accepted on MariaDB 12.3+; every earlier release rejects it with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — a WITH clause prefixing an UPDATE/DELETE (CTE-on-DML) is only accepted on MariaDB 12.3+; every earlier release rejects it with ER_PARSE_ERROR (1064).
     /*
     test('delete-cte-in-where-in-subquery-with-returning', async () => {
         // The DELETE consumes a `.forUseInQueryAs(...)` CTE inside a

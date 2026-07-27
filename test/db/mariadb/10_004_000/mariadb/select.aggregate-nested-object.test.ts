@@ -21,7 +21,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('aggregate-element-with-required-nested-object', async () => {
         // The aggregate element carries an inner `header` object of two own-table
@@ -61,7 +61,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('aggregate-element-with-left-joined-nested-object-makes-it-optional', async () => {
         // The inner `header` object is built from a LEFT-JOINED issue, so the
@@ -108,7 +108,7 @@ describe(ctx.label, () => {
     // OPTIONAL leaf under the nullable projector, and a DEEP (depth-3) nested object
     // inside the aggregate element under both projectors.
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('aggregate-element-with-required-nested-object-optional-leaf-as-nullable', async () => {
         // The inner `header` object has a REQUIRED leaf (`title`) so it stays required
@@ -154,7 +154,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('aggregate-element-with-depth-3-nested-object-default', async () => {
         // The aggregate element carries a DEPTH-3 nested object
@@ -194,7 +194,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('aggregate-element-with-depth-3-nested-object-as-nullable', async () => {
         // The same DEPTH-3 nested object under projectingOptionalValuesAsNullable(),
@@ -244,7 +244,7 @@ describe(ctx.label, () => {
     // level required and the optional leaf under the nullable projector still surfaces
     // present-null at the bottom.
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('aggregate-element-with-depth-4-nested-object-default', async () => {
         // The aggregate element carries a DEPTH-4 nested object
@@ -284,7 +284,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('aggregate-element-with-depth-4-nested-object-as-nullable', async () => {
         // The same DEPTH-4 nested object under projectingOptionalValuesAsNullable(),
@@ -328,7 +328,7 @@ describe(ctx.label, () => {
         expect(issue1.outer.mid.inner.body).toBe(null)
     })
     */
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('aggregate-element-with-required-nested-object-optional-leaf-default-drops-null', async () => {
         // The DEFAULT-projector analog of
@@ -379,7 +379,7 @@ describe(ctx.label, () => {
     */
 })
 
-// Tests referencing these are commented out above with TODO[LIMITATION]
+// Tests referencing these are commented out above with NOT-SUPPORTED
 // markers; keep the bindings referenced so noUnusedLocals stays green.
 void assertType; void expect; void tIssue; void tProject; void test
 export type { Exact }

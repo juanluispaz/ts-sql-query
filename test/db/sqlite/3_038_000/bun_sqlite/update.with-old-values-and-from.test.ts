@@ -79,8 +79,8 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: SQLite has no `OLD`/`OLD_VALUE`/`OUTPUT deleted` equivalent for returning pre-update column snapshots from a single UPDATE, so `oldValues()` is typed `never` on `SqliteConnection`; audit-style RETURNING with old/new must be emulated via a separate SELECT before the UPDATE.
-    // (NOT-APPLICABLE — canonical body preserved as line comments; contains */):
+    // NOT-APPLICABLE: SQLite has no `OLD`/`OLD_VALUE`/`OUTPUT deleted` equivalent for returning pre-update column snapshots from a single UPDATE, so `oldValues()` is typed `never` on `SqliteConnection`; audit-style RETURNING with old/new must be emulated via a separate SELECT before the UPDATE. Canonical body kept as line comments below — it contains `*/`, so a /* … */ wrap is impossible.
+
     //     test('returning-old-and-new-with-from-and-customize-query-three-way-stack', async () => {
     //         // UPDATE … FROM combined with `oldValues()` in RETURNING and `customizeQuery`
     //         // hooks: the `beforeQuery` / `afterUpdateKeyword` / `afterQuery` comment fragments

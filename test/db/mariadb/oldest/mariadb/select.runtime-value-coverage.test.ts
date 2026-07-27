@@ -76,7 +76,7 @@ describe(ctx.label, () => {
         expect(result.hi).toBeUndefined()
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('optional-non-empty-array-over-empty-aggregate-is-absent', async () => {
         // `asOptionalNonEmptyArray()` over a GENUINELY empty inline aggregate ->
@@ -143,7 +143,7 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('aggregate-as-array-left-join-miss-inner-object-is-absent', async () => {
         // `aggregateAsArray({ marker, issue: {...} })` over a left join: the
@@ -183,7 +183,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('aggregate-as-array-null-projector-left-join-miss-inner-object-is-null', async () => {
         // `.projectingOptionalValuesAsNullable()` on the aggregate makes the
@@ -222,7 +222,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('aggregate-as-array-null-projector-single-leaf-inner-object-is-null', async () => {
         // `projectingOptionalValuesAsNullable()` over an aggregate array whose
@@ -262,6 +262,6 @@ describe(ctx.label, () => {
     */
 })
 
-// Tests referencing these are commented out above with TODO[LIMITATION]
+// Tests referencing these are commented out above with NOT-SUPPORTED
 // markers; keep the bindings referenced so noUnusedLocals stays green.
 void tOrganization; void tProject

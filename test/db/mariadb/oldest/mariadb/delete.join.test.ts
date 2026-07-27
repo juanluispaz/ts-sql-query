@@ -50,7 +50,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[LIMITATION]: MariaDB rejects RETURNING on a multi-table DELETE (delete … using …, ER_PARSE_ERROR 1064); single-table DELETE … RETURNING works. The library types and emits the clause, but the engine has no grammar for it on a multi-table delete.
+    // NOT-SUPPORTED: MariaDB rejects RETURNING on a multi-table DELETE (delete … using …, ER_PARSE_ERROR 1064); single-table DELETE … RETURNING works. The library types and emits the clause, but the engine has no grammar for it on a multi-table delete.
     /*
     test('delete-using-table-then-inner-join-returning-nested', async () => {
         // `.returning({ id, meta: {...} })` composed onto the using-then-join
@@ -143,7 +143,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[LIMITATION]: MariaDB rejects RETURNING on a multi-table DELETE (delete … using …, ER_PARSE_ERROR 1064); single-table DELETE … RETURNING works. The library types and emits the clause, but the engine has no grammar for it on a multi-table delete.
+    // NOT-SUPPORTED: MariaDB rejects RETURNING on a multi-table DELETE (delete … using …, ER_PARSE_ERROR 1064); single-table DELETE … RETURNING works. The library types and emits the clause, but the engine has no grammar for it on a multi-table delete.
     /*
     test('delete-using-table-then-left-join-returning-nullable-joined-column', async () => {
         // `.returning({...})` projecting the LEFT-joined `organization.name` — a
@@ -181,7 +181,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: MariaDB rejects RETURNING on a multi-table DELETE (delete … using …, ER_PARSE_ERROR 1064); single-table DELETE … RETURNING works. The library types and emits the clause, but the engine has no grammar for it on a multi-table delete.
+    // NOT-SUPPORTED: MariaDB rejects RETURNING on a multi-table DELETE (delete … using …, ER_PARSE_ERROR 1064); single-table DELETE … RETURNING works. The library types and emits the clause, but the engine has no grammar for it on a multi-table delete.
     /*
     test('delete-using-table-then-left-join-returning-left-join-optional-column-as-nullable-surfaces-present-null', async () => {
         // A using-then-left-join DELETE returning a LEFT-joined

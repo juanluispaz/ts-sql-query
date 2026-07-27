@@ -4,9 +4,10 @@
 // still counts its name (so it cannot be silently dropped — it must stay
 // commented in every cell). But a bare commented-out test reads as "someone
 // gave up here" with no trace of why. The project rule: every commented-out
-// test carries one of the three first-class reason markers — `// TODO[BUG]:
-// <reason>`, `// TODO[LIMITATION]: <reason>`, or `// NOT-APPLICABLE: <reason>`
-// (see `../reasons.ts` for the semantics of each) — explaining why it is off.
+// test carries one of the four first-class reason markers — `// TODO[BUG]:
+// <reason>`, `// TODO[LIMITATION]: <reason>`, `// NOT-SUPPORTED: <reason>` or
+// `// NOT-APPLICABLE: <reason>` (see `../reasons.ts` for the semantics of each)
+// — explaining why it is off.
 // The reason is mandatory.
 //
 // Detection is comment-scoped (TS scanner, so strings/code that merely contain

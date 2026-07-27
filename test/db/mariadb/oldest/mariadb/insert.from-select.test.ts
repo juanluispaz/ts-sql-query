@@ -12,7 +12,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('insert-from-select-with-returning', async () => {
         // project 3 has exactly one issue (issue 4), so one row is
@@ -54,7 +54,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('insert-from-select-returning-last-inserted-id-array', async () => {
         // `from(select).returningLastInsertedId()` returns `number[]` (the
@@ -94,7 +94,7 @@ describe(ctx.label, () => {
     */
 })
 
-// Tests referencing these are commented out above with TODO[LIMITATION]
+// Tests referencing these are commented out above with NOT-SUPPORTED
 // markers; keep the bindings referenced so noUnusedLocals stays green.
 void assertType; void expect; void tIssue; void test
 export type { Exact }

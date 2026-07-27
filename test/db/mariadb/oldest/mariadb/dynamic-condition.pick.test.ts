@@ -360,7 +360,7 @@ describe(ctx.label, () => {
     // other picked key is optional in the result type; each field's own value
     // source keeps its element / optional semantics.
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('pick/aggregate-as-array-field-default', async () => {
         // The availableFields carries an `aggregateAsArray` field. The picked
@@ -406,7 +406,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('pick/aggregate-as-array-field-projecting-optional-values-as-nullable', async () => {
         // The same picked aggregate, but the nullable flag is carried BY THE AGGREGATE

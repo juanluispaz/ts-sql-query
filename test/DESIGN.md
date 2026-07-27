@@ -265,19 +265,28 @@ with the same `test(...)` blocks in the same order.**
   signal we want.
 
 The disabled test carries a **first-class reason marker** on the line
-above the `/* */` block. Three categories, one marker each (see
-[`LIMITATIONS.md`](./LIMITATIONS.md) for the full distinction):
+above the `/* */` block. Four categories, one marker each (see
+[`LIMITATIONS.md` § The decision rule](./LIMITATIONS.md#the-decision-rule)
+for the full distinction):
 
-- `// NOT-APPLICABLE: <reason>` — a deliberate **dialect boundary**;
-  the test will never run in this cell because the dialect doesn't
-  support the feature. The same test runs live in the cells whose
-  dialect supports it (and often pairs with a `types.negative/`
-  assertion on this dialect).
+- `// NOT-APPLICABLE: <reason>` — a deliberate **dialect boundary**: the
+  **type surface** doesn't expose the call here, so it can't even be
+  written. The same test runs live in the cells whose dialect supports it
+  (and often pairs with a `types.negative/` assertion on this dialect).
+- `// NOT-SUPPORTED: <reason>` — the call compiles and the library emits
+  SQL, but the **runtime** can't run it: the engine has no such feature at
+  any version, or this cell's engine version predates it, or its build
+  lacks the function, or the driver has no API for it. Permanent here —
+  only an external upgrade changes it; see
+  [`ENGINE_SUPPORT.md`](./ENGINE_SUPPORT.md).
 - `// TODO[BUG]: <reason>` — the lib has a defect to fix; see
   [`BUGS.md`](./BUGS.md).
 - `// TODO[LIMITATION]: <reason>` — the lib hasn't covered the path
-  yet, or the environment can't; see
+  yet, or this harness can't drive it; see
   [`LIMITATIONS.md`](./LIMITATIONS.md).
+
+The two TODOs mean pending work **in this repo**; the other two are
+permanent and must never be spelled `TODO[…]`.
 
 ```ts
 // NOT-APPLICABLE: MariaDB has no FULL OUTER JOIN.
@@ -405,7 +414,7 @@ Every call site carries a `// MOCK-ONLY: <reason>` marker naming what the real
 engine cannot supply; `// NOT-APPLICABLE: <reason>` (a permanent dialect
 boundary) and `// TODO[BUG]: <reason>` (a repro that stays mock-only until
 fixed) license it too. `tests:audit`'s `mock-only` rule gates that. The marker
-is deliberately NOT one of the three disabled-test markers: it describes a
+is deliberately NOT one of the four disabled-test markers: it describes a
 LIVE, fully-running test, and unlike NOT-APPLICABLE it does not mean "validated
 in the dialects that support it" — a MOCK-ONLY case is validated against no
 engine anywhere.
@@ -577,9 +586,9 @@ uncomment + re-bake mechanical. A stub strips both properties:
 
 The discipline applies in two situations:
 
-1. **Test not applicable on this cell** (`// NOT-APPLICABLE: <reason>`
-   marker). The canonical body comes from any cell that DOES support
-   the test (typically the dialect canonical).
+1. **Test disabled on this cell** (`// NOT-APPLICABLE:` /
+   `// NOT-SUPPORTED:` / `// TODO[…]:` marker). The canonical body comes
+   from any cell that DOES run the test (typically the dialect canonical).
 2. **Canonical can't compile the body** (e.g. a feature only typed on
    PG/MariaDB/SqlServer being tested from a canonical that lives on
    sqlite). Write the test directly into the canonical as a commented-out
@@ -645,10 +654,14 @@ Two anti-patterns:
 
 Outside this exact use, `as any` IS NOT permitted in test bodies. If TS
 rejects an API your test wants to call, pick the right reason marker
-(see [Symmetry rule](#symmetry-rule) for the three categories):
+(see [Symmetry rule](#symmetry-rule) for the four categories):
 
-- The dialect doesn't support the feature by design — block-comment the
-  test with `// NOT-APPLICABLE: <reason>`.
+- The dialect doesn't support the feature by design (the type surface
+  doesn't even expose the call here) — block-comment the test with
+  `// NOT-APPLICABLE: <reason>`.
+- The call compiles but the engine / this engine version / its build / the
+  driver can't run it — block-comment with
+  `// NOT-SUPPORTED: see ENGINE_SUPPORT.md — <one-line>`.
 - The lib has not covered this path yet — block-comment with
   `// TODO[LIMITATION]: see LIMITATIONS.md — <one-line>`.
 - The lib has a bug (typer narrower than runtime, runtime narrower than
@@ -710,7 +723,10 @@ This file states **rules**. Operational details live next to them:
 - [`BENCHMARKS.md`](./BENCHMARKS.md) — wall-time numbers under each
   invocation, bun vs vitest.
 - [`BUGS.md`](./BUGS.md) — bugs in `src/` the suite surfaced.
-- [`LIMITATIONS.md`](./LIMITATIONS.md) — deliberate gaps in `src/`.
+- [`LIMITATIONS.md`](./LIMITATIONS.md) — deliberate gaps in `src/` (and
+  harness gaps) — the ones this repo could close.
+- [`ENGINE_SUPPORT.md`](./ENGINE_SUPPORT.md) — what the engine, this engine
+  version, its build or the driver cannot run; permanent, not our backlog.
 - [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md) — caveats per driver /
   engine / runtime (Bun, pglite-PG18, MariaDB 13, etc.).
 - [`ANTIPATTERNS.md`](./ANTIPATTERNS.md) — catalogue of past

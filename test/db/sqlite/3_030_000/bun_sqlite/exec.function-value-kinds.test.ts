@@ -29,7 +29,7 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     // ── int (cm_int) ────────────────────────────────────────────────────
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('int-required', async () => {
         ctx.mockNext(42)
@@ -40,7 +40,7 @@ describe(ctx.label, () => {
         expect(v).toBe(42)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('int-optional', async () => {
         ctx.mockNext(42)
@@ -51,7 +51,7 @@ describe(ctx.label, () => {
         expect(v).toBe(42)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('int-required-adapter', async () => {
         ctx.mockNext(42)
@@ -62,7 +62,7 @@ describe(ctx.label, () => {
         expect(v).toBe(420)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('int-optional-adapter', async () => {
         ctx.mockNext(42)
@@ -75,7 +75,7 @@ describe(ctx.label, () => {
     */
 
     // ── bigint (cm_bigint) ──────────────────────────────────────────────
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('bigint-required', async () => {
         ctx.mockNext(5000n)
@@ -86,7 +86,7 @@ describe(ctx.label, () => {
         expect(v).toBe(5000n)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('bigint-optional', async () => {
         ctx.mockNext(5000n)
@@ -97,7 +97,7 @@ describe(ctx.label, () => {
         expect(v).toBe(5000n)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('bigint-required-adapter', async () => {
         ctx.mockNext(5000n)
@@ -108,7 +108,7 @@ describe(ctx.label, () => {
         expect(v).toBe(50000n)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('bigint-optional-adapter', async () => {
         ctx.mockNext(5000n)
@@ -121,7 +121,7 @@ describe(ctx.label, () => {
     */
 
     // ── double (cm_double) ──────────────────────────────────────────────
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('double-required', async () => {
         ctx.mockNext(3.5)
@@ -132,7 +132,7 @@ describe(ctx.label, () => {
         expect(v).toBe(3.5)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('double-optional', async () => {
         ctx.mockNext(3.5)
@@ -143,7 +143,7 @@ describe(ctx.label, () => {
         expect(v).toBe(3.5)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('double-required-adapter', async () => {
         ctx.mockNext(3.5)
@@ -154,7 +154,7 @@ describe(ctx.label, () => {
         expect(v).toBe(35)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('double-optional-adapter', async () => {
         ctx.mockNext(3.5)
@@ -167,7 +167,7 @@ describe(ctx.label, () => {
     */
 
     // ── boolean (cm_bool) ───────────────────────────────────────────────
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('boolean-required', async () => {
         ctx.mockNext(true)
@@ -178,7 +178,7 @@ describe(ctx.label, () => {
         expect(v).toBe(true)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('boolean-optional', async () => {
         ctx.mockNext(true)
@@ -189,7 +189,7 @@ describe(ctx.label, () => {
         expect(v).toBe(true)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('boolean-required-adapter', async () => {
         ctx.mockNext(true)
@@ -200,7 +200,7 @@ describe(ctx.label, () => {
         expect(v).toBe(false)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('boolean-optional-adapter', async () => {
         ctx.mockNext(true)
@@ -213,7 +213,7 @@ describe(ctx.label, () => {
     */
 
     // ── uuid (cm_uuid) ──────────────────────────────────────────────────
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('uuid-required', async () => {
         ctx.mockNext(UUID)
@@ -224,7 +224,7 @@ describe(ctx.label, () => {
         expect(v).toBe(UUID)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('uuid-optional', async () => {
         ctx.mockNext(UUID)
@@ -235,7 +235,7 @@ describe(ctx.label, () => {
         expect(v).toBe(UUID)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('uuid-required-adapter', async () => {
         ctx.mockNext(UUID)
@@ -246,7 +246,7 @@ describe(ctx.label, () => {
         expect(v).toBe(BRACKET_UUID)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('uuid-optional-adapter', async () => {
         ctx.mockNext(UUID)
@@ -259,7 +259,7 @@ describe(ctx.label, () => {
     */
 
     // ── localDate (cm_date) — temporal: base structural, adapter guarded ──
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('local-date-required', async () => {
         ctx.mockNext(CM_DATE)
@@ -270,7 +270,7 @@ describe(ctx.label, () => {
         expect(v).toBeInstanceOf(Date)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('local-date-optional', async () => {
         ctx.mockNext(CM_DATE)
@@ -281,7 +281,7 @@ describe(ctx.label, () => {
         expect(v).toBeInstanceOf(Date)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('local-date-required-adapter', async () => {
         ctx.mockNext(CM_DATE)
@@ -292,7 +292,7 @@ describe(ctx.label, () => {
         expect(v).toEqual(CM_DATE_1H)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('local-date-optional-adapter', async () => {
         ctx.mockNext(CM_DATE)
@@ -305,7 +305,7 @@ describe(ctx.label, () => {
     */
 
     // ── localTime (cm_time) ─────────────────────────────────────────────
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('local-time-required', async () => {
         ctx.mockNext(CM_TIME)
@@ -316,7 +316,7 @@ describe(ctx.label, () => {
         expect(v).toBeInstanceOf(Date)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('local-time-optional', async () => {
         ctx.mockNext(CM_TIME)
@@ -327,7 +327,7 @@ describe(ctx.label, () => {
         expect(v).toBeInstanceOf(Date)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('local-time-required-adapter', async () => {
         ctx.mockNext(CM_TIME)
@@ -338,7 +338,7 @@ describe(ctx.label, () => {
         expect(v).toEqual(CM_TIME_1H)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('local-time-optional-adapter', async () => {
         ctx.mockNext(CM_TIME)
@@ -351,7 +351,7 @@ describe(ctx.label, () => {
     */
 
     // ── localDateTime (cm_datetime) ─────────────────────────────────────
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('local-date-time-required', async () => {
         ctx.mockNext(CM_DATETIME)
@@ -362,7 +362,7 @@ describe(ctx.label, () => {
         expect(v).toBeInstanceOf(Date)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('local-date-time-optional', async () => {
         ctx.mockNext(CM_DATETIME)
@@ -373,7 +373,7 @@ describe(ctx.label, () => {
         expect(v).toBeInstanceOf(Date)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('local-date-time-required-adapter', async () => {
         ctx.mockNext(CM_DATETIME)
@@ -384,7 +384,7 @@ describe(ctx.label, () => {
         expect(v).toEqual(CM_DATETIME_1H)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('local-date-time-optional-adapter', async () => {
         ctx.mockNext(CM_DATETIME)
@@ -397,7 +397,7 @@ describe(ctx.label, () => {
     */
 
     // ── string (cm_str) ─────────────────────────────────────────────────
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('string-required', async () => {
         ctx.mockNext('hello')
@@ -408,7 +408,7 @@ describe(ctx.label, () => {
         expect(v).toBe('hello')
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('string-optional', async () => {
         ctx.mockNext('hello')
@@ -419,7 +419,7 @@ describe(ctx.label, () => {
         expect(v).toBe('hello')
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('string-required-adapter', async () => {
         ctx.mockNext('hello')
@@ -430,7 +430,7 @@ describe(ctx.label, () => {
         expect(v).toBe('[hello]')
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('string-optional-adapter', async () => {
         ctx.mockNext('hello')
@@ -446,7 +446,7 @@ describe(ctx.label, () => {
     // The identity enum read passes the raw 'hello' through — not a declared
     // WorklogActivity member, but the library does not validate enum values, so
     // the marshalled string reaches the caller unchanged.
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('enum-required', async () => {
         ctx.mockNext('hello')
@@ -457,7 +457,7 @@ describe(ctx.label, () => {
         expect(v).toBe('hello')
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('enum-optional', async () => {
         ctx.mockNext('hello')
@@ -468,7 +468,7 @@ describe(ctx.label, () => {
         expect(v).toBe('hello')
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('enum-required-adapter', async () => {
         ctx.mockNext('hello')
@@ -479,7 +479,7 @@ describe(ctx.label, () => {
         expect(v).toBe('[hello]')
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('enum-optional-adapter', async () => {
         ctx.mockNext('hello')
@@ -492,7 +492,7 @@ describe(ctx.label, () => {
     */
 
     // ── custom (cm_str, ReleaseChannel) ─────────────────────────────────
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-required', async () => {
         ctx.mockNext('hello')
@@ -503,7 +503,7 @@ describe(ctx.label, () => {
         expect(v).toBe('hello')
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-optional', async () => {
         ctx.mockNext('hello')
@@ -514,7 +514,7 @@ describe(ctx.label, () => {
         expect(v).toBe('hello')
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-required-adapter', async () => {
         ctx.mockNext('hello')
@@ -525,7 +525,7 @@ describe(ctx.label, () => {
         expect(v).toBe('[hello]')
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-optional-adapter', async () => {
         ctx.mockNext('hello')
@@ -538,7 +538,7 @@ describe(ctx.label, () => {
     */
 
     // ── customComparable (cm_str, Semver) ───────────────────────────────
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-comparable-required', async () => {
         ctx.mockNext('hello')
@@ -549,7 +549,7 @@ describe(ctx.label, () => {
         expect(v).toBe('hello')
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-comparable-optional', async () => {
         ctx.mockNext('hello')
@@ -560,7 +560,7 @@ describe(ctx.label, () => {
         expect(v).toBe('hello')
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-comparable-required-adapter', async () => {
         ctx.mockNext('hello')
@@ -571,7 +571,7 @@ describe(ctx.label, () => {
         expect(v).toBe('[hello]')
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-comparable-optional-adapter', async () => {
         ctx.mockNext('hello')
@@ -584,7 +584,7 @@ describe(ctx.label, () => {
     */
 
     // ── customInt (cm_int, Cents) ───────────────────────────────────────
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-int-required', async () => {
         ctx.mockNext(42)
@@ -595,7 +595,7 @@ describe(ctx.label, () => {
         expect(v).toBe(42)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-int-optional', async () => {
         ctx.mockNext(42)
@@ -606,7 +606,7 @@ describe(ctx.label, () => {
         expect(v).toBe(42)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-int-required-adapter', async () => {
         ctx.mockNext(42)
@@ -617,7 +617,7 @@ describe(ctx.label, () => {
         expect(v).toBe(420)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-int-optional-adapter', async () => {
         ctx.mockNext(42)
@@ -630,7 +630,7 @@ describe(ctx.label, () => {
     */
 
     // ── customUuid (cm_uuid, SigningKey) ────────────────────────────────
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-uuid-required', async () => {
         ctx.mockNext(UUID)
@@ -641,7 +641,7 @@ describe(ctx.label, () => {
         expect(v).toBe(UUID)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-uuid-optional', async () => {
         ctx.mockNext(UUID)
@@ -652,7 +652,7 @@ describe(ctx.label, () => {
         expect(v).toBe(UUID)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-uuid-required-adapter', async () => {
         ctx.mockNext(UUID)
@@ -663,7 +663,7 @@ describe(ctx.label, () => {
         expect(v).toBe(BRACKET_UUID)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-uuid-optional-adapter', async () => {
         ctx.mockNext(UUID)
@@ -676,7 +676,7 @@ describe(ctx.label, () => {
     */
 
     // ── customDouble (cm_double, Money) ─────────────────────────────────
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-double-required', async () => {
         ctx.mockNext(3.5)
@@ -687,7 +687,7 @@ describe(ctx.label, () => {
         expect(v).toBe(3.5)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-double-optional', async () => {
         ctx.mockNext(3.5)
@@ -698,7 +698,7 @@ describe(ctx.label, () => {
         expect(v).toBe(3.5)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-double-required-adapter', async () => {
         ctx.mockNext(3.5)
@@ -709,7 +709,7 @@ describe(ctx.label, () => {
         expect(v).toBe(35)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-double-optional-adapter', async () => {
         ctx.mockNext(3.5)
@@ -722,7 +722,7 @@ describe(ctx.label, () => {
     */
 
     // ── customLocalDate (cm_date, ReleaseDay) — temporal ────────────────
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-local-date-required', async () => {
         ctx.mockNext(CM_DATE)
@@ -733,7 +733,7 @@ describe(ctx.label, () => {
         expect(v).toBeInstanceOf(Date)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-local-date-optional', async () => {
         ctx.mockNext(CM_DATE)
@@ -744,7 +744,7 @@ describe(ctx.label, () => {
         expect(v).toBeInstanceOf(Date)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-local-date-required-adapter', async () => {
         ctx.mockNext(CM_DATE)
@@ -755,7 +755,7 @@ describe(ctx.label, () => {
         expect(v).toEqual(CM_DATE_1H)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-local-date-optional-adapter', async () => {
         ctx.mockNext(CM_DATE)
@@ -768,7 +768,7 @@ describe(ctx.label, () => {
     */
 
     // ── customLocalTime (cm_time, CutoffClock) ──────────────────────────
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-local-time-required', async () => {
         ctx.mockNext(CM_TIME)
@@ -779,7 +779,7 @@ describe(ctx.label, () => {
         expect(v).toBeInstanceOf(Date)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-local-time-optional', async () => {
         ctx.mockNext(CM_TIME)
@@ -790,7 +790,7 @@ describe(ctx.label, () => {
         expect(v).toBeInstanceOf(Date)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-local-time-required-adapter', async () => {
         ctx.mockNext(CM_TIME)
@@ -801,7 +801,7 @@ describe(ctx.label, () => {
         expect(v).toEqual(CM_TIME_1H)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-local-time-optional-adapter', async () => {
         ctx.mockNext(CM_TIME)
@@ -814,7 +814,7 @@ describe(ctx.label, () => {
     */
 
     // ── customLocalDateTime (cm_datetime, SignOffStamp) ─────────────────
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-local-date-time-required', async () => {
         ctx.mockNext(CM_DATETIME)
@@ -825,7 +825,7 @@ describe(ctx.label, () => {
         expect(v).toBeInstanceOf(Date)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-local-date-time-optional', async () => {
         ctx.mockNext(CM_DATETIME)
@@ -836,7 +836,7 @@ describe(ctx.label, () => {
         expect(v).toBeInstanceOf(Date)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-local-date-time-required-adapter', async () => {
         ctx.mockNext(CM_DATETIME)
@@ -847,7 +847,7 @@ describe(ctx.label, () => {
         expect(v).toEqual(CM_DATETIME_1H)
     })
     */
-    // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
+    // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('custom-local-date-time-optional-adapter', async () => {
         ctx.mockNext(CM_DATETIME)

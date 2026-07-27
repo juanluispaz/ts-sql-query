@@ -413,7 +413,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     // test('has-aggregation/insert-returning-plain-columns-reports-false', async () => {
     //     // The portable control's statement plus a RETURNING projection of plain
     //     // columns. The walker now has to OPEN that projection — the clause the
@@ -977,7 +977,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
     // test('has-aggregation/update-returning-plain-columns-reports-false', async () => {
     //     // The update control's statement plus a RETURNING projection of plain
     //     // columns. The walker now has to OPEN that projection — the clause the

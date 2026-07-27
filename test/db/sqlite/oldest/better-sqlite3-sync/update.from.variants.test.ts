@@ -262,7 +262,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[LIMITATION]: SQLite's UPDATE … RETURNING can only reference the target table's row, not a FROM-joined table's columns.
+    // NOT-SUPPORTED: SQLite's UPDATE … RETURNING can only reference the target table's row, not a FROM-joined table's columns.
     /*
     test('update-from-returning-one-column-from-table-column', async () => {
         // `returningOneColumn(organization.name)` returns a column of the FROM-joined table, not

@@ -698,7 +698,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
 //     test('customize-recursive-select-hooks-render-in-inline-aggregated-array-value', async () => {
 //         // A recursive select carrying its own `customizeQuery` used as an inline
 //         // AGGREGATED-ARRAY value via `.forUseAsInlineAggregatedArrayValue()`. The six
@@ -812,7 +812,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
 //     test('customize-recursive-one-column-custom-window-and-ordering-in-inline-aggregated-array-value', async () => {
 //         // A one-column recursive select consumed as an inline AGGREGATED-ARRAY value
 //         // via `.forUseAsInlineAggregatedArrayValue()`, carrying BOTH `orderBy` and
@@ -850,7 +850,7 @@ describe(ctx.label, () => {
 //         expect(result).toEqual(expected)
 //     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('customize-recursive-one-column-ordering-in-inline-aggregated-array-value', async () => {
         // A one-column recursive select carrying `orderBy` and consumed as an inline
@@ -965,7 +965,7 @@ describe(ctx.label, () => {
         expect(result).toEqual([{ id: 1 }])
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
 //     test('customize-select-plain-inline-value-renders-query-hooks-but-drops-with-query-hooks', async () => {
 //         // The inline-value sibling of the plain no-op boundary above: a PLAIN
 //         // (non-recursive, non-CTE) select consumed as an INLINE VALUE renders

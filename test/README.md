@@ -64,6 +64,7 @@ uses.
 | Handle an import that only appears in a commented block | [`WRITING_TESTS.md` § Imports used only from commented-out blocks](./WRITING_TESTS.md#imports-used-only-from-commented-out-blocks) |
 | Write a `docs:` snippet test | [`WRITING_TESTS.md` § Docs snippets](./WRITING_TESTS.md#docs-snippets) |
 | Hand off a `src/` bug you discovered | [`WRITING_TESTS.md` § When a test surfaces a bug in `src/`](./WRITING_TESTS.md#when-a-test-surfaces-a-bug-in-src) |
+| **Pick the right marker for a test you must disable** (bug · limitation · engine can't run it · dialect boundary) | [`LIMITATIONS.md` § The decision rule](./LIMITATIONS.md#the-decision-rule) |
 | Write a negative type test | [`WRITING_TESTS.md` § Negative type tests](./WRITING_TESTS.md#negative-type-tests) |
 | Type-check the test matrix (which command, RAM) | [`WRITING_TESTS.md` § Type-checking the test matrix](./WRITING_TESTS.md#type-checking-the-test-matrix) |
 
@@ -166,7 +167,7 @@ Then, for the round-shaping presets:
 | After patching `src/`, find docs/tests/examples to refresh | `--for post-fix-sync` | [`BUGS.md` § When the fix lands](./BUGS.md) |
 | Add or extend a compatibility-version cell | `--for version-work` | [`NEW_DATABASE.md` § Adding a compatibility version](./NEW_DATABASE.md#adding-a-compatibility-version) |
 | Add a `@ts-expect-error` rule, consistent with existing locks | `--neg-types full` | [`WRITING_TESTS.md` § Negative type tests](./WRITING_TESTS.md#negative-type-tests) |
-| Browse declared caveats on cells (all three disabled-test categories per cell: `NOT-APPLICABLE`, `TODO[BUG]`, `TODO[LIMITATION]`) | `--cell-caveats summary` (or `full` with `--coord`) | [`LIMITATIONS.md`](./LIMITATIONS.md), [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md), [`ANTIPATTERNS.md` § Blind copy](./ANTIPATTERNS.md#3-blind-copy-to-bun_sql_postgres) |
+| Browse declared caveats on cells (all four disabled-test categories per cell: `NOT-APPLICABLE`, `NOT-SUPPORTED`, `TODO[BUG]`, `TODO[LIMITATION]`) | `--cell-caveats summary` (or `full` with `--coord`) | [`LIMITATIONS.md`](./LIMITATIONS.md), [`ENGINE_SUPPORT.md`](./ENGINE_SUPPORT.md), [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md), [`ANTIPATTERNS.md` § Blind copy](./ANTIPATTERNS.md#3-blind-copy-to-bun_sql_postgres) |
 | See which scenarios are validated with a MOCKED input (a live test using `ctx.mockOnlyConnection()`) | `--search <symbol> --mock-only summary` | [`DESIGN.md` § Mock-only smell](./DESIGN.md#mock-only-smell) |
 
 `npm run tests:index:newest` builds the underlying index for the newest cells
@@ -181,8 +182,9 @@ the agent consuming them.
 | Want | Read |
 |---|---|
 | Bugs in `src/` the suite has surfaced | [`BUGS.md`](./BUGS.md) |
-| Deliberate gaps in `src/` (not bugs — declared limitations) | [`LIMITATIONS.md`](./LIMITATIONS.md) |
-| Caveats per driver / engine / runtime (Bun#29010, MySQL no RETURNING, etc.) | [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md) |
+| Deliberate gaps in `src/` (not bugs — declared limitations we could close) | [`LIMITATIONS.md`](./LIMITATIONS.md) |
+| What the engine / this engine version / its build / the driver cannot run (permanent, not our backlog) | [`ENGINE_SUPPORT.md`](./ENGINE_SUPPORT.md) |
+| How a per-dialect / per-driver caveat is wired today (which tests it disables, which workaround is already in the runner) | [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md) |
 
 ### … understand the infrastructure
 

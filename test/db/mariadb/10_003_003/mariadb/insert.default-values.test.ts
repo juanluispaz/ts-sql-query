@@ -53,7 +53,7 @@ describe(ctx.label, () => {
     // deterministic in both mock and real modes — one assertion holds for both.
     // Each insert is wrapped in a rollback so the real row does not persist.
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('default values returning an object', async () => {
         // `insert into <t> default values returning <cols>` — the object-projection
@@ -73,7 +73,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('default values returning one column', async () => {
         // `insert into <t> default values returning <col>` — the single-column

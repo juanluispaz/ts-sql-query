@@ -264,7 +264,7 @@ describe(ctx.label, () => {
         expect(nullRow.body).toBe(null)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compound-before-op-intersect-nullable-exec', async () => {
         // `.projectingOptionalValuesAsNullable()` on the arms BEFORE `.intersect(...)`:
@@ -295,7 +295,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compound-before-op-intersect-nullable-inline', async () => {
         // Same `intersect` compound with the before-op nullable flag, consumed as an inline
@@ -327,7 +327,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compound-before-op-intersectAll-nullable-exec', async () => {
         // `.projectingOptionalValuesAsNullable()` on the arms BEFORE `.intersectAll(...)`:
@@ -358,7 +358,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compound-before-op-intersectAll-nullable-inline', async () => {
         // Same `intersect all` compound with the before-op nullable flag, consumed as an inline
@@ -390,7 +390,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compound-before-op-except-nullable-exec', async () => {
         // `.projectingOptionalValuesAsNullable()` on the arms BEFORE `.except(...)`:
@@ -421,7 +421,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compound-before-op-except-nullable-inline', async () => {
         // Same `except` compound with the before-op nullable flag, consumed as an inline
@@ -453,7 +453,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compound-before-op-exceptAll-nullable-exec', async () => {
         // `.projectingOptionalValuesAsNullable()` on the arms BEFORE `.exceptAll(...)`:
@@ -484,7 +484,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compound-before-op-exceptAll-nullable-inline', async () => {
         // Same `except all` compound with the before-op nullable flag, consumed as an inline
@@ -516,7 +516,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compound-before-op-minus-nullable-exec', async () => {
         // `.projectingOptionalValuesAsNullable()` on the arms BEFORE `.minus(...)`:
@@ -547,7 +547,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compound-before-op-minus-nullable-inline', async () => {
         // Same `except (minus alias)` compound with the before-op nullable flag, consumed as an inline
@@ -579,7 +579,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compound-before-op-minusAll-nullable-exec', async () => {
         // `.projectingOptionalValuesAsNullable()` on the arms BEFORE `.minusAll(...)`:
@@ -610,7 +610,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compound-before-op-minusAll-nullable-inline', async () => {
         // Same `except all (minus alias)` compound with the before-op nullable flag, consumed as an inline
@@ -677,7 +677,7 @@ describe(ctx.label, () => {
         expect(rows[0]!.body).toBe(null)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compound-after-op-intersect-nullable-surfaces-null', async () => {
         // `.projectingOptionalValuesAsNullable()` applied AFTER `.intersect(...)`: the
@@ -708,7 +708,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compound-after-op-intersectAll-nullable-surfaces-null', async () => {
         // `.projectingOptionalValuesAsNullable()` applied AFTER `.intersectAll(...)`: the
@@ -739,7 +739,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compound-after-op-except-nullable-surfaces-null', async () => {
         // `.projectingOptionalValuesAsNullable()` applied AFTER `.except(...)`: the
@@ -770,7 +770,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compound-after-op-exceptAll-nullable-surfaces-null', async () => {
         // `.projectingOptionalValuesAsNullable()` applied AFTER `.exceptAll(...)`: the
@@ -801,7 +801,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compound-after-op-minus-nullable-surfaces-null', async () => {
         // `.projectingOptionalValuesAsNullable()` applied AFTER `.minus(...)` (the
@@ -832,7 +832,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compound-after-op-minusAll-nullable-surfaces-null', async () => {
         // `.projectingOptionalValuesAsNullable()` applied AFTER `.minusAll(...)` (the

@@ -40,7 +40,7 @@ class VCountryCodes extends Values<DBConnection, 'countryCodes'> {
 }
 
 // tCountry and VCountryCodes are referenced only by the CTE-on-DML test
-// commented out in this tier (see the TODO[LIMITATION] below); live cells use
+// commented out in this tier (see the NOT-SUPPORTED marker below); live cells use
 // them for real.
 void tCountry
 void VCountryCodes
@@ -136,7 +136,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — a WITH clause prefixing an UPDATE/DELETE (CTE-on-DML) is only accepted on MariaDB 12.3+; every earlier release rejects it with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — a WITH clause prefixing an UPDATE/DELETE (CTE-on-DML) is only accepted on MariaDB 12.3+; every earlier release rejects it with ER_PARSE_ERROR (1064).
     /*
     test('values-as-delete-using-source', async () => {
         // A `Values` fed as the USING source of DELETE … USING. The values

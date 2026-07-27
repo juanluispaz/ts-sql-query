@@ -48,7 +48,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[LIMITATION]: the mssql driver (tedious) rejects a bare NULL bound as a custom-typed parameter (`EPARAM` — "Validation failed for parameter … not implemented"): binding an explicit `null` for the enum/custom/customComparable columns fails because their TDS type isn't resolved for a null value. The stored-NULL outcome is still validated here by `insert-optional-custom-columns-omitted` (columns omitted → NULL); only the explicit-null bind is unsupported on this driver. The full canonical body is kept for symmetry.
+    // NOT-SUPPORTED: the mssql driver (tedious) rejects a bare NULL bound as a custom-typed parameter (`EPARAM` — "Validation failed for parameter … not implemented"): binding an explicit `null` for the enum/custom/customComparable columns fails because their TDS type isn't resolved for a null value. The stored-NULL outcome is still validated here by `insert-optional-custom-columns-omitted` (columns omitted → NULL); only the explicit-null bind is unsupported on this driver. The full canonical body is kept for symmetry.
     /*
     test('insert-optional-custom-columns-set-to-null', async () => {
         // Each optional enum / custom / customComparable column set explicitly to `null`, so the

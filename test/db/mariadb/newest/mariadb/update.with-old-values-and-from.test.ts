@@ -20,7 +20,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
     /*
     test('returning-old-and-new-with-from-table-projects-required-columns-in-old-subquery', async () => {
         // Update tProject.name from organization.name; RETURNING the
@@ -79,8 +79,8 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment (and bake) once mariadb:latest reaches 13.0.1+.
-    // (NOT-APPLICABLE — canonical body preserved as line comments; contains */):
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment (and bake) once mariadb:latest reaches 13.0.1+. Canonical body kept as line comments below — it contains `*/`, so a /* … */ wrap is impossible.
+
     //     test('returning-old-and-new-with-from-and-customize-query-three-way-stack', async () => {
     //         // UPDATE … FROM combined with `oldValues()` in RETURNING and `customizeQuery`
     //         // hooks: the `beforeQuery` / `afterUpdateKeyword` / `afterQuery` comment fragments
@@ -137,7 +137,7 @@ describe(ctx.label, () => {
     //         })
     //     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
     /*
     test('returning-old-values-with-primary-key-in-set-uses-for-update-of', async () => {
         // Including a PRIMARY KEY column in `.set()` flips the builder's
@@ -183,7 +183,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
     /*
     test('returning-old-new-and-from-column-folded-into-nested-audit-object', async () => {
         // `oldValues()` folded into a nested sub-object, combined with UPDATE … FROM:
@@ -213,7 +213,7 @@ describe(ctx.label, () => {
         })
     })
     */
-    // TODO[LIMITATION]: see LIMITATIONS.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
     /*
     test('returning-one-column-old-value-with-from-table', async () => {
         // `returningOneColumn(oldProject.name)` on an UPDATE … FROM: the pre-update `name` (via
@@ -238,7 +238,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
     /*
     test('returning-old-and-new-with-values-from-source', async () => {
         // UPDATE … FROM a `Values` source with `oldValues()` in RETURNING: the
@@ -273,7 +273,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment and bake the body when mariadb:latest catches up to 13.0.1+.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment and bake the body when mariadb:latest catches up to 13.0.1+.
     /*
     test('returning-old-value-with-from-then-inner-join-projects-join-brought-in-column', async () => {
         // `oldValues()` combined with `.from(j1).innerJoin(j2).on(...)` (a JOIN after
@@ -323,7 +323,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment and bake the body when mariadb:latest catches up to 13.0.1+.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment and bake the body when mariadb:latest catches up to 13.0.1+.
     /*
     test('returning-old-optional-and-assignee-with-from-inner-join-projecting-nullable', async () => {
         // `oldValues()` in RETURNING combined with `UPDATE … FROM(join)` under
@@ -362,7 +362,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment and bake the body when mariadb:latest catches up to 13.0.1+.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment and bake the body when mariadb:latest catches up to 13.0.1+.
     /*
     test('returning-old-value-with-from-then-left-join-drops-nested-object-on-join-miss', async () => {
         // `oldValues()` combined with `.from(issue).leftJoin(app_user).on(...)`. The
@@ -402,7 +402,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment and bake the body when mariadb:latest catches up to 13.0.1+.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment and bake the body when mariadb:latest catches up to 13.0.1+.
     /*
     test('returning-old-value-with-from-then-left-join-projects-nullable-assignee-on-miss', async () => {
         // `oldValues()` × `.from(issue).leftJoin(app_user)` under

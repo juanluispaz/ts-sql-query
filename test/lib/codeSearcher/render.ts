@@ -43,6 +43,7 @@ export interface Sections {
     bugs: Level             // // TODO[BUG] markers naming the symbol — a src/ defect, re-enabled when fixed
     limitation: Level       // // TODO[LIMITATION] markers naming the symbol — not covered yet / env
     notApplicable: Level    // // NOT-APPLICABLE markers naming the symbol — a permanent dialect boundary
+    notSupported: Level     // // NOT-SUPPORTED markers naming the symbol — the engine / version / build / driver can't run it
     mockOnly: Level         // // MOCK-ONLY markers naming the symbol — a LIVE test whose scenario needs the mock as its INPUT
     cellCaveats: Level
     nameSearch: NameSearchLevel
@@ -72,7 +73,7 @@ export const DEFAULT_SECTIONS: Sections = {
     classification: 'summary', declared: 'summary', signature: 'summary', chain: 'strict',
     refReturn: 'none', refImplements: 'summary', refTypeArg: 'none', refParam: 'none', refField: 'none', refNew: 'none', refProperty: 'none', refBrand: 'none', surface: 'none', versionGates: 'none', docs: 'summary',
     simplified: 'summary', emittedSql: 'none', tests: 'summary', examples: 'summary',
-    negTypes: 'summary', bugs: 'none', limitation: 'none', notApplicable: 'none', mockOnly: 'none', cellCaveats: 'none', nameSearch: 'none',
+    negTypes: 'summary', bugs: 'none', limitation: 'none', notApplicable: 'none', notSupported: 'none', mockOnly: 'none', cellCaveats: 'none', nameSearch: 'none',
 }
 export const DEFAULT_FILTERS: Filters = {
     coord: [],
@@ -574,7 +575,39 @@ export function render(db: QueryDb, name: string, opts: SearchOptions, meta: Met
         }
     }
 
-    // Mock-only tests — // MOCK-ONLY markers mentioning the name. A FOURTH category, and the only one
+    // External-runtime boundaries — // NOT-SUPPORTED markers mentioning the name. Permanent like a
+    // dialect boundary, but drawn by the RUNTIME, not by the type surface: the call compiles and the
+    // library emits SQL, and the engine (at any version, or at this cell's version), its build or the
+    // driver rejects or mis-evaluates it. Nothing in THIS repo re-enables it — only an external upgrade
+    // would — so it is NOT debt and never merged into limitations. Summary groups by REASON: the matrix
+    // is symmetric, so one engine fact repeats across every cell of the dialect.
+    if (S.notSupported !== 'none') {
+        const markers = Q.todoMarkersMatching(db, name, 'NOT-SUPPORTED')
+        if (markers.length) {
+            push('## External-runtime boundaries (// NOT-SUPPORTED)')
+            if (S.notSupported === 'summary') {
+                const byText = new Map<string, { count: number, first: { file: string, line: number } }>()
+                for (const m of markers) {
+                    const e = byText.get(m.text)
+                    if (e) e.count++
+                    else byText.set(m.text, { count: 1, first: { file: m.file, line: m.line } })
+                }
+                const rows = [...byText.entries()].sort((a, b) => b[1].count - a[1].count)
+                const cap = 15
+                for (const [text, e] of rows.slice(0, cap)) {
+                    push(`- ${e.count === 1 ? '' : `×${e.count} cells — `}${text} _(${e.first.file}:${e.first.line})_`)
+                }
+                if (rows.length > cap) push(`- …and ${rows.length - cap} more distinct reasons`)
+                push(`_(${markers.length} marker(s) across ${rows.length} distinct engine/driver fact(s).)_`)
+            } else {
+                for (const m of markers) push(`- ${m.file}:${m.line} — ${m.text}`)
+            }
+            push('_(permanent here — only an engine/driver upgrade changes it; test/ENGINE_SUPPORT.md is the catalogue.)_')
+            push()
+        }
+    }
+
+    // Mock-only tests — // MOCK-ONLY markers mentioning the name. A FIFTH category, and the only one
     // that is not about a DISABLED test: the test is live and runs in every mode, but its INPUT comes
     // from the mock (a value no real driver hands back, an injected fault), so nothing proves the engine
     // can produce it. Kept apart from NOT-APPLICABLE on purpose — a dialect boundary still validates in
@@ -608,7 +641,7 @@ export function render(db: QueryDb, name: string, opts: SearchOptions, meta: Met
         }
     }
 
-    // Cell caveats — TODO[BUG]/TODO[LIMITATION] declared on cells (case G). COORD-scoped and NOT
+    // Cell caveats — every first-class disabled-test marker declared on cells (case G). COORD-scoped and NOT
     // filtered by the searched symbol: a wave/propagation can be invalidated by a caveat on the target
     // CELL (e.g. MariaDB UPDATE…RETURNING needs 13.0.1+), which name-filtered --bugs/--limitation miss.
     // The LEVEL is the view, --coord only filters which cells appear (it never changes the view):
@@ -621,22 +654,24 @@ export function render(db: QueryDb, name: string, opts: SearchOptions, meta: Met
         const matrix = F.coord.length ? '' : ' (whole matrix)'
         if (scoped.length && S.cellCaveats === 'summary') {
             // summary = the per-cell MAP: which cells carry caveats + counts (one entry = one cell). The
-            // three categories are counted SEPARATELY (NOT-APPLICABLE is never folded into LIMITATION).
+            // four categories are counted SEPARATELY (neither NOT-APPLICABLE nor NOT-SUPPORTED is ever
+            // folded into LIMITATION — only BUG + LIMITATION are actionable debt).
             push(`## Cell caveats — per-cell map${matrix}`)
-            const byCell = new Map<string, { bug: number, lim: number, na: number }>()
+            const byCell = new Map<string, { bug: number, lim: number, na: number, ns: number }>()
             for (const m of scoped) {
                 const k = cellKey(m.cell)
                 let c = byCell.get(k)
-                if (!c) { c = { bug: 0, lim: 0, na: 0 }; byCell.set(k, c) }
+                if (!c) { c = { bug: 0, lim: 0, na: 0, ns: 0 }; byCell.set(k, c) }
                 if (m.tag === 'BUG') c.bug++
                 else if (m.tag === 'NOT-APPLICABLE') c.na++
+                else if (m.tag === 'NOT-SUPPORTED') c.ns++
                 else c.lim++
             }
-            const total = (c: { bug: number, lim: number, na: number }): number => c.bug + c.lim + c.na
+            const total = (c: { bug: number, lim: number, na: number, ns: number }): number => c.bug + c.lim + c.na + c.ns
             const cells = [...byCell.entries()].sort((a, b) => total(b[1]) - total(a[1]))
             const cap = Math.min(cells.length, 40)
             for (const [k, c] of cells.slice(0, cap)) {
-                const parts = [c.bug ? `${c.bug} BUG` : '', c.lim ? `${c.lim} LIMITATION` : '', c.na ? `${c.na} NOT-APPLICABLE` : ''].filter(Boolean).join(', ')
+                const parts = [c.bug ? `${c.bug} BUG` : '', c.lim ? `${c.lim} LIMITATION` : '', c.ns ? `${c.ns} NOT-SUPPORTED` : '', c.na ? `${c.na} NOT-APPLICABLE` : ''].filter(Boolean).join(', ')
                 push(`- ${k} — ${total(c)} (${parts})`)
             }
             if (cells.length > cap) push(`- …and ${cells.length - cap} more cells`)
@@ -644,7 +679,8 @@ export function render(db: QueryDb, name: string, opts: SearchOptions, meta: Met
             push()
         } else if (scoped.length) {
             // full = the MARKERS, each prefixed with its cell (one entry = one marker). The [TAG] keeps the
-            // three categories distinct — `[NOT-APPLICABLE]` is a permanent dialect boundary, not debt.
+            // four categories distinct — `[NOT-APPLICABLE]` is a permanent dialect boundary and
+            // `[NOT-SUPPORTED]` a permanent engine/driver one; neither is debt.
             push(`## Cell caveats — markers${matrix}`)
             const sorted = [...scoped].sort((a, b) => cellKey(a.cell).localeCompare(cellKey(b.cell)) || a.line - b.line)
             const cap = Math.min(sorted.length, 60)
@@ -653,7 +689,7 @@ export function render(db: QueryDb, name: string, opts: SearchOptions, meta: Met
                 push(`- ${cellKey(m.cell)} · [${m.tag}] ${m.file.split('/').pop()}:${m.line} — ${text}`)
             }
             if (sorted.length > cap) push(`- …and ${sorted.length - cap} more markers`)
-            push('_(caveats apply to the CELL, not your symbol. BUG→test/BUGS.md · LIMITATION→test/LIMITATIONS.md · NOT-APPLICABLE = permanent dialect boundary.)_')
+            push('_(caveats apply to the CELL, not your symbol. BUG→test/BUGS.md · LIMITATION→test/LIMITATIONS.md · NOT-SUPPORTED→test/ENGINE_SUPPORT.md · NOT-APPLICABLE = permanent dialect boundary.)_')
             push()
         }
     }

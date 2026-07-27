@@ -125,7 +125,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; v?: string }>>>()
         expect(result).toEqual(expected)
     })
-    // TODO[LIMITATION]: see LIMITATIONS.md — the case-insensitive replace emits regexp_replace, which requires MySQL 8.0.4+; MySQL 5.7 has no regexp_replace function (ER_SP_DOES_NOT_EXIST 1305).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the case-insensitive replace emits regexp_replace, which requires MySQL 8.0.4+; MySQL 5.7 has no regexp_replace function (ER_SP_DOES_NOT_EXIST 1305).
     /*
     test('replaceAllInsensitive on a uuid receiver converts before collate', async () => {
         const s = tIssue.externalRef.asString()
@@ -172,7 +172,7 @@ describe(ctx.label, () => {
     // ── replaceAllInsensitive ──────────────────────────────────────────
     // REGEXP_REPLACE folds under the default (case-insensitive) collation, so
     // both 'ABC' and 'abc' are replaced → 'XX'.
-    // TODO[LIMITATION]: see LIMITATIONS.md — the case-insensitive replace emits regexp_replace, which requires MySQL 8.0.4+; MySQL 5.7 has no regexp_replace function (ER_SP_DOES_NOT_EXIST 1305).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the case-insensitive replace emits regexp_replace, which requires MySQL 8.0.4+; MySQL 5.7 has no regexp_replace function (ER_SP_DOES_NOT_EXIST 1305).
     /*
     test('replaceAllInsensitive on cased data', async () => {
         const expected = [{ v: 'XX' }]
@@ -195,7 +195,7 @@ describe(ctx.label, () => {
 
     // insensitiveCollation forces the collation on the REGEXP_REPLACE operands;
     // a binary collation makes it case-sensitive again → 'ABCX'.
-    // TODO[LIMITATION]: see LIMITATIONS.md — the case-insensitive replace emits regexp_replace, which requires MySQL 8.0.4+; MySQL 5.7 has no regexp_replace function (ER_SP_DOES_NOT_EXIST 1305).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the case-insensitive replace emits regexp_replace, which requires MySQL 8.0.4+; MySQL 5.7 has no regexp_replace function (ER_SP_DOES_NOT_EXIST 1305).
     /*
     test('replaceAllInsensitive honours insensitiveCollation', async () => {
         const collated = ctx.withInsensitiveCollation('utf8mb4_bin')
@@ -217,7 +217,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the case-insensitive replace emits regexp_replace, which requires MySQL 8.0.4+; MySQL 5.7 has no regexp_replace function (ER_SP_DOES_NOT_EXIST 1305).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the case-insensitive replace emits regexp_replace, which requires MySQL 8.0.4+; MySQL 5.7 has no regexp_replace function (ER_SP_DOES_NOT_EXIST 1305).
     /*
     test('replaceAllInsensitive with a regex-metacharacter term', async () => {
         // 'a.c' is regex-escaped to `a\.c`, so the literal dot only matches 'a.c'
@@ -240,7 +240,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the case-insensitive replace emits regexp_replace, which requires MySQL 8.0.4+; MySQL 5.7 has no regexp_replace function (ER_SP_DOES_NOT_EXIST 1305).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the case-insensitive replace emits regexp_replace, which requires MySQL 8.0.4+; MySQL 5.7 has no regexp_replace function (ER_SP_DOES_NOT_EXIST 1305).
     /*
     test('replaceAllInsensitive escapes a regex-metacharacter replacement', async () => {
         // The replacement is treated LITERALLY (like `replaceAll` / JS String.replaceAll), even
@@ -325,7 +325,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the case-insensitive replace emits regexp_replace, which requires MySQL 8.0.4+; MySQL 5.7 has no regexp_replace function (ER_SP_DOES_NOT_EXIST 1305).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the case-insensitive replace emits regexp_replace, which requires MySQL 8.0.4+; MySQL 5.7 has no regexp_replace function (ER_SP_DOES_NOT_EXIST 1305).
     /*
     test('replaceAll then replaceAllInsensitive parenthesises the inner replace', async () => {
         const expected = [{ v: 'ABCX' }]
@@ -348,7 +348,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the case-insensitive replace emits regexp_replace, which requires MySQL 8.0.4+; MySQL 5.7 has no regexp_replace function (ER_SP_DOES_NOT_EXIST 1305).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the case-insensitive replace emits regexp_replace, which requires MySQL 8.0.4+; MySQL 5.7 has no regexp_replace function (ER_SP_DOES_NOT_EXIST 1305).
     /*
     test('replaceAllInsensitive then collate parenthesises the inner replace', async () => {
         const expected = [{ v: 'ABCabc' }]
@@ -507,7 +507,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
         expect('v' in result[0]!).toBe(false)
     })
-    // TODO[LIMITATION]: see LIMITATIONS.md — the case-insensitive replace emits regexp_replace, which requires MySQL 8.0.4+; MySQL 5.7 has no regexp_replace function (ER_SP_DOES_NOT_EXIST 1305).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the case-insensitive replace emits regexp_replace, which requires MySQL 8.0.4+; MySQL 5.7 has no regexp_replace function (ER_SP_DOES_NOT_EXIST 1305).
     /*
     test('replaceAllInsensitive with a value-source find operand', async () => {
         const expected = [{ v: 'ZXZX' }]
@@ -527,7 +527,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
     */
-    // TODO[LIMITATION]: see LIMITATIONS.md — the case-insensitive replace emits regexp_replace, which requires MySQL 8.0.4+; MySQL 5.7 has no regexp_replace function (ER_SP_DOES_NOT_EXIST 1305).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the case-insensitive replace emits regexp_replace, which requires MySQL 8.0.4+; MySQL 5.7 has no regexp_replace function (ER_SP_DOES_NOT_EXIST 1305).
     /*
     test('replaceAllInsensitive with a value-source replacement operand', async () => {
         const expected = [{ v: 'ZYZY' }]
@@ -547,7 +547,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
     */
-    // TODO[LIMITATION]: see LIMITATIONS.md — the case-insensitive replace emits regexp_replace, which requires MySQL 8.0.4+; MySQL 5.7 has no regexp_replace function (ER_SP_DOES_NOT_EXIST 1305).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the case-insensitive replace emits regexp_replace, which requires MySQL 8.0.4+; MySQL 5.7 has no regexp_replace function (ER_SP_DOES_NOT_EXIST 1305).
     /*
     test('replaceAllInsensitive with both operands value sources', async () => {
         const expected = [{ v: 'ZWZW' }]
@@ -567,7 +567,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
     */
-    // TODO[LIMITATION]: see LIMITATIONS.md — the case-insensitive replace emits regexp_replace, which requires MySQL 8.0.4+; MySQL 5.7 has no regexp_replace function (ER_SP_DOES_NOT_EXIST 1305).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the case-insensitive replace emits regexp_replace, which requires MySQL 8.0.4+; MySQL 5.7 has no regexp_replace function (ER_SP_DOES_NOT_EXIST 1305).
     /*
     test('replaceAllInsensitiveIfValue present-value arms with a value-source operand', async () => {
         const expected = [{ vfind: 'ZXZX', vrepl: 'ZYZY' }]

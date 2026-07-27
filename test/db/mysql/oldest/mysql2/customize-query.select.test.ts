@@ -42,7 +42,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number }>>>()
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — window functions and the named WINDOW clause require MySQL 8.0.2+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — window functions and the named WINDOW clause require MySQL 8.0.2+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('customize-select-custom-window-emits-named-window', async () => {
         // `customWindow` is the slot for a `WINDOW name AS (...)` clause
@@ -140,7 +140,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; issueId: number }>>>()
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
 //     test('customize-recursive-select-before-and-after-query-render-inside-cte-body', async () => {
 //         // A recursive select materialised as a CTE via `.forUseInQueryAs(...)`
 //         // keeps ALL four `customizeQuery` hooks. `beforeQuery` / `afterQuery`
@@ -175,7 +175,7 @@ describe(ctx.label, () => {
 //         expect(result).toEqual([{ id: 2 }])
 //     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
 //     test('customize-recursive-select-projection-only-hooks-not-applicable-as-cte', async () => {
 //         // Same recursive select consumed as a CTE via `.forUseInQueryAs(...)`,
 //         // now ALSO carrying the projection-only hooks `afterSelectKeyword` /
@@ -219,7 +219,7 @@ describe(ctx.label, () => {
 //         expect(result).toEqual([{ id: 2 }])
 //     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
 //     test('customize-recursive-select-projection-only-hooks-render-in-wrapping-cte-with-ordering', async () => {
 //         // The same recursive select consumed as a CTE via `.forUseInQueryAs(...)`, but
 //         // now ALSO carrying `orderBy`. The ordering cannot fold into the recursive term
@@ -262,7 +262,7 @@ describe(ctx.label, () => {
 //         expect(result).toEqual([{ id: 2 }])
 //     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
 //     test('customize-recursive-select-projection-only-hooks-render-in-wrapping-cte-with-limit', async () => {
 //         // A recursive select carrying `limit` (paging), consumed as a CTE via
 //         // `.forUseInQueryAs(...)`. The limit cannot fold into the recursive term, so
@@ -303,7 +303,7 @@ describe(ctx.label, () => {
 //         expect(result).toEqual([{ id: 2 }])
 //     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
 //     test('customize-recursive-select-projection-only-hooks-render-in-wrapping-cte-with-limit-and-offset', async () => {
 //         // A recursive select carrying `limit` + `offset` paging (the fluent API
 //         // reaches OFFSET only after a LIMIT), consumed as a CTE. Neither can fold
@@ -347,7 +347,7 @@ describe(ctx.label, () => {
 //         else expect(result).toEqual([{ id: 2 }])
 //     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
 //     test('customize-recursive-select-projection-only-hooks-render-in-wrapping-cte-with-order-by-and-limit', async () => {
 //         // A recursive select carrying `orderBy` + `limit`, consumed as a CTE. Both
 //         // the ordering and the limit are exposed in the WRAPPING
@@ -411,7 +411,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number }>>>()
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — window functions and the named WINDOW clause require MySQL 8.0.2+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — window functions and the named WINDOW clause require MySQL 8.0.2+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
 //     test('customize-select-all-rawfragment-hooks-kitchen-sink', async () => {
 //         // All seven RawFragment-typed hooks on SELECT applied at once
 //         // - the snapshot is the documentation of exactly where each
@@ -440,7 +440,7 @@ describe(ctx.label, () => {
 //         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
 //         assertType<Exact<typeof result, Array<{ id: number }>>>()
 //     })
-    // TODO[LIMITATION]: see LIMITATIONS.md — window functions and the named WINDOW clause require MySQL 8.0.2+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — window functions and the named WINDOW clause require MySQL 8.0.2+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
 //     test('customize-select-projection-only-hooks-survive-as-cte', async () => {
 //         // A NON-recursive select consumed as a CTE via `.forUseInQueryAs(...)` renders
 //         // ALL FIVE projection/order-by hooks (`afterSelectKeyword` / `beforeColumns` /
@@ -529,7 +529,7 @@ describe(ctx.label, () => {
     })
 
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — window functions and the named WINDOW clause require MySQL 8.0.2+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — window functions and the named WINDOW clause require MySQL 8.0.2+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
 //     test('customize-select-plain-page-projection-hooks-render-in-count-wrap', async () => {
 //         // The count-wrap now fires for ANY customizeQuery hook
 //         // (`|| this.__customization`), so a plain (non-distinct, non-grouped)
@@ -670,7 +670,7 @@ describe(ctx.label, () => {
         expect(page.data).toEqual(dataRows)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
 //     test('customize-recursive-select-hooks-render-in-inline-scalar-value', async () => {
 //         // A recursive select carrying its own `customizeQuery` used as an inline SCALAR
 //         // subquery via `.forUseAsInlineQueryValue()`. All six hooks render: `beforeQuery`
@@ -711,7 +711,7 @@ describe(ctx.label, () => {
 //         expect(result).toEqual(expected)
 //     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
 //     test('customize-recursive-select-hooks-render-in-inline-aggregated-array-value', async () => {
 //         // A recursive select carrying its own `customizeQuery` used as an inline
 //         // AGGREGATED-ARRAY value via `.forUseAsInlineAggregatedArrayValue()`. The six
@@ -749,7 +749,7 @@ describe(ctx.label, () => {
 //         assertType<Exact<typeof result, Array<{ id: number; tree: number[] }>>>()
 //         expect(result).toEqual(expected)
 //     })
-    // TODO[LIMITATION]: see LIMITATIONS.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
 //     test('customize-recursive-select-custom-window-renders-in-inline-scalar-value', async () => {
 //         // A recursive select consumed as an inline SCALAR value via
 //         // `.forUseAsInlineQueryValue()`, carrying `customWindow` alongside the
@@ -787,7 +787,7 @@ describe(ctx.label, () => {
 //         expect(result).toEqual(expected)
 //     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
 //     test('customize-recursive-one-column-custom-window-and-ordering-in-inline-scalar-value', async () => {
 //         // A one-column recursive select consumed as an inline SCALAR value via
 //         // `.forUseAsInlineQueryValue()`, carrying BOTH `orderBy` and `customWindow`
@@ -827,7 +827,7 @@ describe(ctx.label, () => {
 //         expect(result).toEqual(expected)
 //     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
 //     test('customize-recursive-one-column-custom-window-and-ordering-in-inline-aggregated-array-value', async () => {
 //         // A one-column recursive select consumed as an inline AGGREGATED-ARRAY value
 //         // via `.forUseAsInlineAggregatedArrayValue()`, carrying BOTH `orderBy` and
@@ -865,7 +865,7 @@ describe(ctx.label, () => {
 //         expect(result).toEqual(expected)
 //     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
     /*
     test('customize-recursive-one-column-ordering-in-inline-aggregated-array-value', async () => {
         // A one-column recursive select carrying `orderBy` and consumed as an inline
@@ -901,7 +901,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
     /*
     test('customize-recursive-execute-select-page-count-strips-order-by-hooks', async () => {
         // A recursive select consumed via `executeSelectPage`, whose

@@ -367,7 +367,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
 //     test('customize-compound-inline-aggregated-array-via-for-use-as-inline-aggregated-array-value', async () => {
 //         // A CUSTOMIZED one-column compound consumed as an inline aggregated-array
 //         // value via forUseAsInlineAggregatedArrayValue: the compound beforeQuery /

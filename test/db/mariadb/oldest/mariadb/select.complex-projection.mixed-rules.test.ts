@@ -1574,7 +1574,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('merged-two-left-join-leaf-plus-const-inside-aggregate-element-demotes-leaf-default', async () => {
         // The merged-two-left-join leaf + const anchor inside an `aggregateAsArray`
@@ -1616,7 +1616,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('merged-two-left-join-leaf-plus-const-inside-aggregate-element-demotes-leaf-projecting-optional-values-as-nullable', async () => {
         // Same merged-leaf-inside-aggregate-element boundary under

@@ -167,10 +167,11 @@ to hide it (`--chain none`).
 | `--examples` | none · **summary** · full | legacy `src/examples/` occurrences |
 | `--neg-types` | none · **summary** · full | `@ts-expect-error` negative-type assertions — `summary` = count per db; `full` = each assertion's **rule comment + rejected snippet + file:line** (what you model a new lock on) |
 | `--bugs` | **none** · summary · full | `// TODO[BUG]` markers whose text **names the searched symbol** — a **src/ defect** (the library should do this but fails; re-enabled in this cell once fixed) |
-| `--limitation` | **none** · summary · full | `// TODO[LIMITATION]` markers naming the symbol — the library **doesn't cover this yet** (by choice) or the environment can't (could re-enable here if that changes) |
+| `--limitation` | **none** · summary · full | `// TODO[LIMITATION]` markers naming the symbol — the library **doesn't cover this yet** (by choice) or this harness can't drive it (could re-enable here if that changes) |
+| `--not-supported` | **none** · summary · full | `// NOT-SUPPORTED` markers naming the symbol — the call compiles but the **engine / this engine version / its build / the driver** can't run it. Permanent here (only an external upgrade changes it), so it is **never** merged into limitations: it is not debt. `summary` collapses the symmetric matrix to **one line per distinct reason** + how many cells carry it |
 | `--not-applicable` | **none** · summary · full | `// NOT-APPLICABLE` markers naming the symbol — a **permanent dialect boundary** (this cell *never* runs the test, by design; it runs+validates in the cells whose dialect supports it). A **distinct** category, never merged into limitations: nothing pending, not actionable debt — it explains a deliberate `never` typing |
 | `--mock-only` | **none** · summary · full | `// MOCK-ONLY` markers naming the symbol — a **live, fully-running** test whose INPUT is mocked (`ctx.mockOnlyConnection()`), because no real driver produces the value under test or the fault is injected. NOT a disabled test and NOT a dialect boundary: it validates against no engine in any cell. `summary` collapses the symmetric matrix to **one line per distinct reason** + how many cells carry it; `full` lists every marker |
-| `--cell-caveats` | **none** · summary · full | **coord-scoped:** all three markers (`TODO[BUG]` / `TODO[LIMITATION]` / `NOT-APPLICABLE`) declared on cells, *not* filtered by the symbol — surfaces a caveat on the target **cell** a wave/propagation would hit late. **The level is the view:** `summary` = the per-cell **map** (each cell + counts **per category**); `full` = the **markers** (cell-prefixed + `[TAG]`). `--coord` only **filters which cells** appear |
+| `--cell-caveats` | **none** · summary · full | **coord-scoped:** all four markers (`TODO[BUG]` / `TODO[LIMITATION]` / `NOT-SUPPORTED` / `NOT-APPLICABLE`) declared on cells, *not* filtered by the symbol — surfaces a caveat on the target **cell** a wave/propagation would hit late. **The level is the view:** `summary` = the per-cell **map** (each cell + counts **per category**); `full` = the **markers** (cell-prefixed + `[TAG]`). `--coord` only **filters which cells** appear |
 | `--name-search` | **none** · full | name-based discovery — every place the name appears, per dimension (high recall) |
 | `--refs` | none · summary · full | **shortcut**, not a section: sets the whole "references by role" family (every `--ref-*` above) to one level at once. An explicit per-role flag still overrides it; `--refs` itself beats a `--for` preset |
 
@@ -188,20 +189,26 @@ to hide it (`--chain none`).
 > `--name-search` answer "where used" too, but as a graph traversal and a flat catch-all — not a single
 > syntactic role.)
 
-> **Caveats — four first-class categories, two scopes.** A disabled test (commented-out or `.skip`) still
-> counts for symmetry, so it carries one of **three distinct markers**, by cause and *future* — plus a
-> fourth marker that describes a LIVE test:
+> **Caveats — five first-class categories, two scopes.** A disabled test (commented-out or `.skip`) still
+> counts for symmetry, so it carries one of **four distinct markers**, by cause and *future* — plus a
+> fifth marker that describes a LIVE test:
 > - **`// TODO[BUG]: <reason>`** — a **src/ defect**: the library *should* do this but fails today.
 >   Re-enabled in this cell **once the bug is fixed**. (`test/BUGS.md`.)
-> - **`// TODO[LIMITATION]: <reason>`** — the library **doesn't cover this yet** (by choice) or the
->   environment can't. Could re-enable here **if that decision/env changes**. (`test/LIMITATIONS.md`.)
+> - **`// TODO[LIMITATION]: <reason>`** — the library **doesn't cover this yet** (by choice) or this
+>   harness can't drive it. Could re-enable here **if that decision changes** — the fix would be ours to
+>   make. (`test/LIMITATIONS.md`.)
+> - **`// NOT-SUPPORTED: <reason>`** — the call **compiles** and the library emits SQL, but the **runtime**
+>   can't run it: the engine has no such feature at any version, or *this cell's engine version* predates
+>   it (`json_arrayagg` needs MariaDB 10.5+), or its build lacks the function (`reverse()` on SQLite), or
+>   the driver has no API for it. **Permanent here** — only an external upgrade changes it, so it is NOT a
+>   `TODO` and never folded into `--limitation` (it is not debt). (`test/ENGINE_SUPPORT.md`.)
 > - **`// NOT-APPLICABLE: <reason>`** — a **permanent dialect boundary**: this cell **never** runs the test,
 >   by design (e.g. `START WITH … CONNECT BY` is Oracle-only; `DELETE … USING JOIN` is MariaDB/MySQL-only).
 >   **Nothing pending, nothing to fix or add** — and the same test **runs and validates in the cells whose
 >   dialect supports it** (usually with a `types.negative/` counterpart here). NOT a `TODO` (the word implies
 >   work); its own category, never folded into `--limitation`.
 >
-> - **`// MOCK-ONLY: <reason>`** — the **fourth** category, and the odd one out: it does NOT describe a
+> - **`// MOCK-ONLY: <reason>`** — the **fifth** category, and the odd one out: it does NOT describe a
 >   disabled test. The test is **live and runs in every mode**; what it gives up is that its INPUT comes
 >   from the mock (`ctx.mockOnlyConnection()`) because no real driver of any connector produces the value
 >   under test, or the fault is injected. Never folded into NOT-APPLICABLE: a dialect boundary still
@@ -209,16 +216,17 @@ to hide it (`--chain none`).
 >   any cell**. Surfaced by `--mock-only`; **not** part of `--cell-caveats` (it blocks no wave, and the
 >   markers repeat identically across all 67 cells).
 >
-> Each of the four is its own **name-scoped** section (`--bugs` / `--limitation` / `--not-applicable` /
-> `--mock-only`) — *"is there a known bug / limitation / dialect-boundary / mocked-input **about the symbol
-> I'm calling**?"* And **`--cell-caveats`** is **coord-scoped**: **every** marker of the three
+> Each of the five is its own **name-scoped** section (`--bugs` / `--limitation` / `--not-supported` /
+> `--not-applicable` / `--mock-only`) — *"is there a known bug / limitation / engine boundary /
+> dialect-boundary / mocked-input **about the symbol
+> I'm calling**?"* And **`--cell-caveats`** is **coord-scoped**: **every** marker of the four
 > DISABLED-test categories, tagged, in the **cells `--coord` selects**, named or not — *"is anything
 > declared on the **cell I'm about to write into** that blocks my wave?"* `MOCK-ONLY` stays out of that
 > view by design: it blocks nothing, and being uniform across the matrix it would bury the caveats that do.
 >
 > They diverge when a caveat is about a *dialect/version*, not a method. Searching `oldValues`,
-> `--limitation` finds the markers that literally say `oldValues()`, but **misses** the "MariaDB
-> UPDATE…RETURNING needs 13.0.1+" limitation in the same cells (its text never says `oldValues`) —
+> `--not-supported` finds the markers that literally say `oldValues()`, but **misses** the "MariaDB
+> UPDATE…RETURNING needs 13.0.1+" entry in the same cells (its text never says `oldValues`) —
 > which `--cell-caveats --coord mariadb/newest` **does** surface. Name-scoped for *my symbol*,
 > coord-scoped for *my cell*; and `--not-applicable` keeps a *deliberate dialect boundary* from looking
 > like *actionable debt*.

@@ -177,7 +177,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — a WITH clause prefixing an UPDATE/DELETE (CTE-on-DML) is only accepted on MariaDB 12.3+; every earlier release rejects it with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — a WITH clause prefixing an UPDATE/DELETE (CTE-on-DML) is only accepted on MariaDB 12.3+; every earlier release rejects it with ER_PARSE_ERROR (1064).
     /*
     test('delete-cte-in-where-in-subquery-with-returning', async () => {
         // The DELETE consumes a `.forUseInQueryAs(...)` CTE inside a
@@ -269,6 +269,6 @@ describe(ctx.label, () => {
     })
 })
 
-// Tests referencing these are commented out above with TODO[LIMITATION]
+// Tests referencing these are commented out above with NOT-SUPPORTED
 // markers; keep the bindings referenced so noUnusedLocals stays green.
 void tProject

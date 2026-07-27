@@ -51,7 +51,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[LIMITATION]: SQLite RETURNING can only reference the table being modified, not a FROM-joined column; the library emits `returning organization.name`, which SQLite rejects.
+    // NOT-SUPPORTED: SQLite RETURNING can only reference the table being modified, not a FROM-joined column; the library emits `returning organization.name`, which SQLite rejects.
     /*
     test('update-from-returning-a-from-table-column-nested', async () => {
         // A plain `update(t).from(j)` (no JOIN) whose RETURNING folds a column of the

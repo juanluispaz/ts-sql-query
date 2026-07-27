@@ -60,7 +60,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ label: string }>>>()
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
 //     test('customize-compound-with-query-hooks-wrap-cte', async () => {
 //         // A CTE feeds the left side of an INTERSECT; the compound
 //         // carries `beforeWithQuery` / `afterWithQuery` hooks. At the ROOT of a
@@ -98,7 +98,7 @@ describe(ctx.label, () => {
 //         assertType<Exact<typeof result, Array<{ id: number }>>>()
 //     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
 //     test('customize-compound-all-hooks-combined-on-except', async () => {
 //         // The four compound hooks at once on an EXCEPT. Documents
 //         // exactly where each one lands relative to the others — the
@@ -402,7 +402,7 @@ describe(ctx.label, () => {
         expect(sorted).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — window functions and the named WINDOW clause require MySQL 8.0.2+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — window functions and the named WINDOW clause require MySQL 8.0.2+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('customize-compound-arm-custom-window-lands-on-un-parenthesized-first-arm', async () => {
         // A `customWindow` hook on a compound ARM: the first select is customized BEFORE

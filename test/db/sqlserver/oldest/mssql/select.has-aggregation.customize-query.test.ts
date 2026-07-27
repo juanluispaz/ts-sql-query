@@ -150,7 +150,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
     // test('has-aggregation/customize-query-custom-window-hook-without-an-aggregate-reports-false', async () => {
     //     // The negative half of the `customWindow` pair, and the only other test
     //     // that mentions that slot: the control's eight companions plus an inert
@@ -398,7 +398,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
     // test('has-aggregation/customize-query-custom-window-hook-with-an-aggregate-reports-aggregation', async () => {
     //     // The positive half of the `customWindow` pair: the same nine slots as
     //     // its negative twin, with the aggregate added inside a comment in the

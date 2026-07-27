@@ -298,11 +298,12 @@ export function extractEmittedSql(program: ts.Program, ids: Ids): EmittedSqlRow[
 
 // ── todo_marker: ALL // TODO[...] across test files (a plain comment scan) ────
 // Captures every // TODO with its bracketed modifier as `tag` (BUG, PERF, … or null for a
-// bare // TODO), PLUS the two first-class non-TODO markers stored under their own tag:
-// 'NOT-APPLICABLE' (a permanent dialect boundary) and 'MOCK-ONLY' (a live test whose
+// bare // TODO), PLUS the three first-class non-TODO markers stored under their own tag:
+// 'NOT-APPLICABLE' (a permanent dialect boundary), 'NOT-SUPPORTED' (the engine / this engine
+// version / its build / the driver cannot run it) and 'MOCK-ONLY' (a live test whose
 // scenario needs the mock as its input device). --bugs filters to tag='BUG',
-// --not-applicable / --mock-only to theirs; the remaining TODO tags are indexed for
-// completeness.
+// --not-applicable / --not-supported / --mock-only to theirs; the remaining TODO tags are
+// indexed for completeness.
 export function extractTodoMarkers(program: ts.Program, ids: Ids): TodoMarkerRow[] {
     const out: TodoMarkerRow[] = []
     const TODO_RE = /\/\/\s*TODO(?:\s*\[([^\]]*)\])?\s*:?\s*(.*)$/
@@ -311,9 +312,17 @@ export function extractTodoMarkers(program: ts.Program, ids: Ids): TodoMarkerRow
     // exactly wrong here). Stored under tag='NOT-APPLICABLE' so the searcher classifies it separately
     // from LIMITATION (actionable debt). Matches the audit's NOT_APPLICABLE_REASON (test/lib/audit/reasons.ts).
     const NA_RE = /\/\/\s*NOT-APPLICABLE\s*:\s*(.*)$/
+    // `// NOT-SUPPORTED: <reason>` — the EXTERNAL system cannot run it: the engine (at any version,
+    // or at this cell's version), its build, or the driver. The API is callable and the library emits
+    // the SQL; the runtime rejects or mis-evaluates it. A FIRST-CLASS marker, NOT a TODO sub-tag:
+    // nothing in THIS repo re-enables it, only an external upgrade would, so it is not actionable
+    // debt. Kept separate from NOT-APPLICABLE (whose boundary is the TYPE SURFACE, and which still
+    // runs the test mock-only) and from LIMITATION (which IS closeable here). Matches the audit's
+    // NOT_SUPPORTED_REASON (test/lib/audit/reasons.ts).
+    const NS_RE = /\/\/\s*NOT-SUPPORTED\s*:\s*(.*)$/
     // `// MOCK-ONLY: <reason>` — why a LIVE, fully-running test asks for
     // `ctx.mockOnlyConnection()`: its SCENARIO needs the mock as an INPUT DEVICE (a value no
-    // real driver hands back, an injected fault). A FOURTH first-class marker, stored under
+    // real driver hands back, an injected fault). A FIFTH first-class marker, stored under
     // tag='MOCK-ONLY'. Deliberately NOT folded into NOT-APPLICABLE: a dialect boundary still
     // validates in the dialects that support it, whereas a mock-only case validates against no
     // engine in ANY cell — merging them would make --not-applicable read a suite-wide
@@ -338,13 +347,21 @@ export function extractTodoMarkers(program: ts.Program, ids: Ids): TodoMarkerRow
         // it at the first newline, which silently broke the name-scoped sections: a marker reading
         // "…the only way to reach the transformValueFromDB arm under test." on its second line was
         // invisible to `--mock-only`/`--bugs` searching that symbol.
+        // A commented-out TEST BODY must not be absorbed into the reason. When the body contains
+        // `*/` it cannot be block-commented, so it is kept as `//` lines right under the marker —
+        // and a pure "keep reading `//` lines" rule would swallow the whole test into `text`,
+        // making the marker unreadable in every searcher view. The cells separate the two with a
+        // blank line (which already breaks the loop); this is the belt-and-braces stop for when
+        // someone forgets it.
+        const COMMENTED_CODE = /^(?:test|it|describe)\s*[.(]/
         const continuationFrom = (start: number): string => {
             const parts: string[] = []
             for (let j = start; j < lines.length; j++) {
                 const s = lines[j]!.trim()
                 if (!s.startsWith('//')) break
                 const body = s.slice(2).trim()
-                if (TODO_RE.test(s) || NA_RE.test(s) || MOCK_ONLY_RE.test(s)) break
+                if (TODO_RE.test(s) || NA_RE.test(s) || NS_RE.test(s) || MOCK_ONLY_RE.test(s)) break
+                if (COMMENTED_CODE.test(body)) break
                 if (body) parts.push(body)
             }
             return parts.join(' ')
@@ -358,6 +375,11 @@ export function extractTodoMarkers(program: ts.Program, ids: Ids): TodoMarkerRow
             const na = line.match(NA_RE)
             if (na) {
                 out.push({ id: ids.next(), file: rel, line: i + 1, tag: 'NOT-APPLICABLE', text: joinReason(na[1]!, i + 1), scope: null })
+                continue
+            }
+            const ns = line.match(NS_RE)
+            if (ns) {
+                out.push({ id: ids.next(), file: rel, line: i + 1, tag: 'NOT-SUPPORTED', text: joinReason(ns[1]!, i + 1), scope: null })
                 continue
             }
             const mo = line.match(MOCK_ONLY_RE)

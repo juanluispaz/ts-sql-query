@@ -3,7 +3,8 @@
 //
 // A commented-out test still counts for symmetry, so it stays in every cell; it
 // must carry its OWN first-class reason marker (`// TODO[BUG]:` /
-// `// TODO[LIMITATION]:` / `// NOT-APPLICABLE:`) explaining why THAT test is off.
+// `// TODO[LIMITATION]:` / `// NOT-SUPPORTED:` / `// NOT-APPLICABLE:`) explaining
+// why THAT test is off.
 // When several `test(...)` / `it(...)` calls are lumped into one `/* … */` block,
 // a single marker above the block "covers" all of them: the individual reasons
 // are lost and a reader cannot tell which reason applies to which test. Split the
@@ -37,7 +38,7 @@ export function checkGroupedCommentedTests(sf: ts.SourceFile, file: string): Fin
                 rule: 'grouped-commented-tests',
                 file,
                 line: c.startLine,
-                message: `this comment block groups ${count} commented-out tests under one reason — split it so each commented-out test is its own block with its own \`// TODO[BUG]: <reason>\` / \`// TODO[LIMITATION]: <reason>\` / \`// NOT-APPLICABLE: <reason>\` marker`,
+                message: `this comment block groups ${count} commented-out tests under one reason — split it so each commented-out test is its own block with its own \`// TODO[BUG]: <reason>\` / \`// TODO[LIMITATION]: <reason>\` / \`// NOT-SUPPORTED: <reason>\` / \`// NOT-APPLICABLE: <reason>\` marker`,
             })
         }
     }

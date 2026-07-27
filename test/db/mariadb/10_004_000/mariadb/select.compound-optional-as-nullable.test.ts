@@ -171,7 +171,7 @@ describe(ctx.label, () => {
         expect(rows[0]!.body).toBe(null)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('compound-three-arm-projecting-optionals-as-nullable-inline', async () => {
         // The three-arm compound (flag on every arm) consumed as an inline aggregated
@@ -237,7 +237,7 @@ describe(ctx.label, () => {
         expect(rows[0]!.body).toBe(null)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('compound-before-op-unionAll-nullable-inline', async () => {
         // Same `union all` compound with the before-op nullable flag, consumed as an inline
@@ -298,7 +298,7 @@ describe(ctx.label, () => {
         expect(rows[0]!.body).toBe(null)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('compound-before-op-intersect-nullable-inline', async () => {
         // Same `intersect` compound with the before-op nullable flag, consumed as an inline
@@ -330,7 +330,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT ALL / INTERSECT ALL compound variants require MariaDB 10.5+; earlier releases reject them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT ALL / INTERSECT ALL compound variants require MariaDB 10.5+; earlier releases reject them with ER_PARSE_ERROR (1064).
     /*
     test('compound-before-op-intersectAll-nullable-exec', async () => {
         // `.projectingOptionalValuesAsNullable()` on the arms BEFORE `.intersectAll(...)`:
@@ -361,7 +361,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('compound-before-op-intersectAll-nullable-inline', async () => {
         // Same `intersect all` compound with the before-op nullable flag, consumed as an inline
@@ -421,7 +421,7 @@ describe(ctx.label, () => {
         expect(rows[0]!.body).toBe(null)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('compound-before-op-except-nullable-inline', async () => {
         // Same `except` compound with the before-op nullable flag, consumed as an inline
@@ -453,7 +453,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT ALL / INTERSECT ALL compound variants require MariaDB 10.5+; earlier releases reject them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT ALL / INTERSECT ALL compound variants require MariaDB 10.5+; earlier releases reject them with ER_PARSE_ERROR (1064).
     /*
     test('compound-before-op-exceptAll-nullable-exec', async () => {
         // `.projectingOptionalValuesAsNullable()` on the arms BEFORE `.exceptAll(...)`:
@@ -484,7 +484,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('compound-before-op-exceptAll-nullable-inline', async () => {
         // Same `except all` compound with the before-op nullable flag, consumed as an inline
@@ -544,7 +544,7 @@ describe(ctx.label, () => {
         expect(rows[0]!.body).toBe(null)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('compound-before-op-minus-nullable-inline', async () => {
         // Same `except (minus alias)` compound with the before-op nullable flag, consumed as an inline
@@ -576,7 +576,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT ALL / INTERSECT ALL compound variants require MariaDB 10.5+; earlier releases reject them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT ALL / INTERSECT ALL compound variants require MariaDB 10.5+; earlier releases reject them with ER_PARSE_ERROR (1064).
     /*
     test('compound-before-op-minusAll-nullable-exec', async () => {
         // `.projectingOptionalValuesAsNullable()` on the arms BEFORE `.minusAll(...)`:
@@ -607,7 +607,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('compound-before-op-minusAll-nullable-inline', async () => {
         // Same `except all (minus alias)` compound with the before-op nullable flag, consumed as an inline
@@ -702,7 +702,7 @@ describe(ctx.label, () => {
         expect(rows[0]!.body).toBe(null)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT ALL / INTERSECT ALL compound variants require MariaDB 10.5+; earlier releases reject them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT ALL / INTERSECT ALL compound variants require MariaDB 10.5+; earlier releases reject them with ER_PARSE_ERROR (1064).
     /*
     test('compound-after-op-intersectAll-nullable-surfaces-null', async () => {
         // `.projectingOptionalValuesAsNullable()` applied AFTER `.intersectAll(...)`: the
@@ -761,7 +761,7 @@ describe(ctx.label, () => {
         expect(rows[0]!.body).toBe(null)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT ALL / INTERSECT ALL compound variants require MariaDB 10.5+; earlier releases reject them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT ALL / INTERSECT ALL compound variants require MariaDB 10.5+; earlier releases reject them with ER_PARSE_ERROR (1064).
     /*
     test('compound-after-op-exceptAll-nullable-surfaces-null', async () => {
         // `.projectingOptionalValuesAsNullable()` applied AFTER `.exceptAll(...)`: the
@@ -820,7 +820,7 @@ describe(ctx.label, () => {
         expect(rows[0]!.body).toBe(null)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT ALL / INTERSECT ALL compound variants require MariaDB 10.5+; earlier releases reject them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT ALL / INTERSECT ALL compound variants require MariaDB 10.5+; earlier releases reject them with ER_PARSE_ERROR (1064).
     /*
     test('compound-after-op-minusAll-nullable-surfaces-null', async () => {
         // `.projectingOptionalValuesAsNullable()` applied AFTER `.minusAll(...)` (the
@@ -861,7 +861,7 @@ describe(ctx.label, () => {
     // the merged array — matching a standalone inline aggregate over the same
     // rule-1/rule-2 leaf.
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('inline-compound-union-rule-1-gate-leaf-default-drops-gate', async () => {
         // A UNION consumed inline, DEFAULT projector. Each arm projects `{ ref, assigneeId }`
@@ -902,7 +902,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('inline-compound-union-rule-2-left-join-leaf-default-drops-on-miss', async () => {
         // A UNION consumed inline, DEFAULT projector. Each arm left-joins app_user and

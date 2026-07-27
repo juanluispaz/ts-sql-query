@@ -3307,7 +3307,7 @@ describe(ctx.label, () => {
     // projects 3 (NULL), 4 (archived). The aggregate has no inner ORDER BY, so array
     // order is not deterministic on the real engine — value assertions sort by id.
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('cte-with-top-level-aggregate-as-array-nullable-leaf-carries-projecting-flag', async () => {
         // TOP-LEVEL aggregate with projectingOptionalValuesAsNullable() carried through
@@ -3364,7 +3364,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('cte-with-nested-object-aggregate-as-array-nullable-leaf-carries-projecting-flag', async () => {
         // The SAME nullable aggregate NESTED inside a projection object member (`wrap`)
@@ -3428,7 +3428,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('cte-with-top-level-aggregate-as-array-default-projector-drops-null-leaf', async () => {
         // The default-projector variant (no projectingOptionalValuesAsNullable()): an
@@ -3490,7 +3490,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('cte-with-nested-object-aggregate-as-array-default-projector-drops-null-leaf', async () => {
         // The default-projector variant of the nested-in-object aggregate carried through
@@ -3549,7 +3549,7 @@ describe(ctx.label, () => {
         expect('archivedAt' in sorted[0]!.wrap.projects[0]!).toBe(false)
     })
     */
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('cte-with-top-level-aggregate-projecting-then-use-empty-array-for-no-value-carries-flag', async () => {
         // A projecting aggregate with `useEmptyArrayForNoValue()` chained after it, read out of
@@ -3607,7 +3607,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('cte-with-top-level-aggregate-projecting-then-as-optional-non-empty-array-carries-flag', async () => {
         // A projecting aggregate with `asOptionalNonEmptyArray()` chained after it, read out of
@@ -3663,7 +3663,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('cte-with-nested-object-aggregate-projecting-then-as-required-in-optional-object-carries-flag', async () => {
         // A projecting aggregate with `asRequiredInOptionalObject()`, nested in a `meta` object

@@ -14,7 +14,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('intersect-all-emits-intersect-all-syntax', async () => {
         // INTERSECT ALL keeps row-multiplicities (vs INTERSECT which
@@ -41,7 +41,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('except-all-emits-except-all-syntax', async () => {
         // EXCEPT ALL preserves duplicates from the left side that have
@@ -67,7 +67,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('minus-routes-through-the-dialect-alias', async () => {
         // `.minus(...)` renders as the dialect's set-difference operator
@@ -94,7 +94,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('minus-all-routes-through-the-dialect-alias', async () => {
         // The `*All` flavour renders as ` except all ` (multiset
@@ -126,7 +126,7 @@ describe(ctx.label, () => {
     // suite already chains union-after-union; these cover the set-difference and
     // intersect families through that compounded interface.
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compounded-interface-except-after-union', async () => {
         // `a.union(b).except(c)` — `except` is invoked on the compounded
@@ -154,7 +154,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compounded-interface-minus-all-after-union', async () => {
         // `a.union(b).minusAll(c)` — the dialect-aliased multiset difference
@@ -181,7 +181,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compounded-interface-intersect-after-union', async () => {
         // `a.union(b).intersect(c)` — `intersect` on the compounded interface.
@@ -208,7 +208,7 @@ describe(ctx.label, () => {
         expect(result.map(r => r.status).sort()).toEqual(['in_progress', 'open'])
     })
     */
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compounded-interface-intersect-all-after-union', async () => {
         // `a.union(b).intersectAll(c)` — the `*All` intersect reached through the
@@ -235,7 +235,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compounded-interface-except-all-after-union', async () => {
         // `a.union(b).exceptAll(c)` — the `*All` set-difference reached through
@@ -261,7 +261,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compounded-interface-minus-after-union', async () => {
         // `a.union(b).minus(c)` — the dialect-aliased set-difference (`except` on
@@ -289,7 +289,7 @@ describe(ctx.label, () => {
 
 })
 
-// Tests referencing these are commented out above with TODO[LIMITATION]
+// Tests referencing these are commented out above with NOT-SUPPORTED
 // markers; keep the bindings referenced so noUnusedLocals stays green.
 void assertType; void expect; void tIssue; void test
 export type { Exact }

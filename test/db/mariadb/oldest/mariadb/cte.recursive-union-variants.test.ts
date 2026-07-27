@@ -338,7 +338,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('recursive-one-column-inline-aggregated-array-value', async () => {
         // Sibling of the scalar case: the one-column recursive select used
@@ -884,7 +884,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('recursive-multi-column-inline-aggregated-array-value', async () => {
         // A recursive select projecting more than one column, consumed via
@@ -1172,7 +1172,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('recursive-result-order-by-inline-aggregated-array-value', async () => {
         // A recursive result given `.orderBy('id')` and consumed as an inline
@@ -1429,7 +1429,7 @@ describe(ctx.label, () => {
         expect(result[0]!.parentId).toBe(null)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('recursive-union-dedup-projecting-optionals-as-nullable-inline', async () => {
         // The dedup `.recursiveUnion(fn)` carrying `.projectingOptionalValuesAsNullable()`,
@@ -1507,7 +1507,7 @@ describe(ctx.label, () => {
         expect(result[0]!.parentId).toBe(null)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('recursive-union-on-dedup-projecting-optionals-as-nullable-inline', async () => {
         // The `.recursiveUnionOn(fn)` shortcut (dedup `union` variant) carrying
@@ -1587,7 +1587,7 @@ describe(ctx.label, () => {
         expect(result[0]!.parentId).toBe(null)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('recursive-union-all-fn-projecting-optionals-as-nullable-inline', async () => {
         // The `.recursiveUnionAll(fn)` full-form carrying `.projectingOptionalValuesAsNullable()`,

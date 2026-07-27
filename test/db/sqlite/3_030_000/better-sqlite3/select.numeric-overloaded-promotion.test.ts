@@ -116,7 +116,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite's `%` converts both operands to integers before the modulo, so int.modulo(double) truncates the fraction (2 % 1.5 -> 2 % 1 = 0) instead of yielding 0.5; SQLite has no built-in float modulo.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite's `%` converts both operands to integers before the modulo, so int.modulo(double) truncates the fraction (2 % 1.5 -> 2 % 1 = 0) instead of yielding 0.5; SQLite has no built-in float modulo.
     /*
     test('int-receiver-modulo-double-column-promotes-result-to-double', async () => {
         // `priority.modulo(estimatedHours)` — the int-side mirror of the
@@ -211,7 +211,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite's `%` truncates both operands to integers, so (2 + 2.5) % 2 collapses to 0 rather than 0.5; SQLite has no built-in float modulo.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite's `%` truncates both operands to integers, so (2 + 2.5) % 2 collapses to 0 rather than 0.5; SQLite has no built-in float modulo.
     /*
     test('int-receiver-chained-fractional-literal-add-then-modulo', async () => {
         // `priority.add(2.5).modulo(2)` — an int receiver with a fractional LITERAL

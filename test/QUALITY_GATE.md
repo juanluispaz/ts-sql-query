@@ -52,7 +52,7 @@ Agent({
 ```
 
 The prompt deliberately asks the sub-agent to read
-DESIGN/WRITING_TESTS/BUGS/LIMITATIONS/EXTERNAL_CAVEATS/ANTIPATTERNS
+DESIGN/WRITING_TESTS/BUGS/LIMITATIONS/ENGINE_SUPPORT/EXTERNAL_CAVEATS/ANTIPATTERNS
 itself, rather than trust a summary. That gives the gate independence
 from whatever assumptions the writing agent made.
 
@@ -170,8 +170,9 @@ in [`tests:audit`](./TESTS_AUDIT.md):
   with the suppression syntax (eslint/oxlint style, reason mandatory)
   for the rare irreducible case. Siblings `any-type`, `ts-ignore`,
   `ts-expect-error` cover the other typer bypasses.
-- **Commented test without one of the three first-class reason
-  markers** (`// NOT-APPLICABLE`, `// TODO[LIMITATION]`, `// TODO[BUG]`)
+- **Commented test without one of the four first-class reason
+  markers** (`// NOT-APPLICABLE`, `// NOT-SUPPORTED`, `// TODO[LIMITATION]`,
+  `// TODO[BUG]`)
   — landed as `commented-test-reason` (and `skipped-test-reason` for
   `test.skip` /
   `test.todo` siblings).

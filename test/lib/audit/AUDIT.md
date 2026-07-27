@@ -711,29 +711,31 @@ A test may be temporarily disabled by commenting it out; the
 [symmetry check](#the-rules) still counts its name (so it cannot be silently
 dropped — it stays commented in every cell). But a bare commented-out test
 reads as "someone gave up here" with no trace of why. Project rule: every
-commented-out test carries one of **three first-class reason markers** (the
-reason after the colon is mandatory in all three; the markers live in
+commented-out test carries one of **four first-class reason markers** (the
+reason after the colon is mandatory in all four; the markers live in
 [`reasons.ts`](reasons.ts)):
 
 | Marker | Cause | Pending? | Re-enables in THIS cell? | Runs in another cell? | Tracked |
 |---|---|---|---|---|---|
 | `// TODO[BUG]: <reason>` | a defect in `src/` | yes — fix it | when the bug is fixed | normally no | `BUGS.md` |
-| `// TODO[LIMITATION]: <reason>` | the lib doesn't cover it yet / the env can't | yes — could be covered | if the decision/env changes | normally no | `LIMITATIONS.md` |
-| `// NOT-APPLICABLE: <reason>` | a deliberate **dialect boundary** | **no — nothing pending** | **never** | **yes, where the dialect supports it** | symmetry + the dialect's `types.negative/` |
+| `// TODO[LIMITATION]: <reason>` | the lib doesn't cover it yet, or this harness can't drive it | yes — could be covered | if the decision changes | normally no | `LIMITATIONS.md` |
+| `// NOT-SUPPORTED: <reason>` | the **engine** / this engine **version** / its **build** / the **driver** can't run it | **no — not ours to close** | only on an external upgrade | **yes, where the engine supports it** | `ENGINE_SUPPORT.md` |
+| `// NOT-APPLICABLE: <reason>` | a deliberate **dialect boundary** (drawn by the type surface) | **no — nothing pending** | **never** | **yes, where the dialect supports it** | symmetry + the dialect's `types.negative/` |
 
-`NOT-APPLICABLE` is its **own** category, **not** a `TODO[NOT-APPLICABLE]`
-sub-tag: the word "TODO" implies pending work, which is exactly wrong for a
-permanent, by-design boundary (`.startWith`/`.connectBy` typed `never` in
-PostgreSQL, `.innerJoin` in a DELETE typed `never` outside MariaDB/MySQL, …),
-and tagging it "TODO" would pollute `LIMITATIONS.md` (actionable debt) with
-boundaries nobody will close and erase the signal "this test is alive in another
-cell". Pick by **future**: a `TODO[*]` means work that could re-enable the test
-*here*; `NOT-APPLICABLE` means it will only ever run *elsewhere*.
+`NOT-APPLICABLE` and `NOT-SUPPORTED` are their **own** categories, **not**
+`TODO[…]` sub-tags: the word "TODO" implies pending work, which is exactly wrong
+for a permanent, by-design boundary (`.startWith`/`.connectBy` typed `never` in
+PostgreSQL, `.innerJoin` in a DELETE typed `never` outside MariaDB/MySQL, …) and
+for an engine that will never grow the feature (MySQL 5.7 has no recursive CTE).
+Tagging either "TODO" would pollute `LIMITATIONS.md` (actionable debt) with
+boundaries nobody in this repo will close and erase the signal "this test is alive
+in another cell". Pick by **future**: a `TODO[*]` means work HERE that could
+re-enable the test *here*; the other two mean it will only ever run *elsewhere*.
 
 Detection is comment-scoped — the TS **scanner** enumerates comments, so a
 string or live code that merely contains `test(` is never mistaken for one. A
 comment whose text holds a `test(…)` / `it(…)` call is a commented-out test; it
-is satisfied when that comment, or one of the three markers within 3 lines above
+is satisfied when that comment, or one of the four markers within 3 lines above
 it (the usual marker line sitting above a `/* … */` block), states a reason. The
 markers are uppercase + hyphen so they are deliberate and greppable — prose like
 `// Not applicable on MariaDB: …` does **not** match and stays flagged until
@@ -750,9 +752,9 @@ searcher).
 **Status**: **built** (`error`). Whole matrix: 0 findings today (was 555 during
 the ramp — commented-out tests that explained themselves in prose
 (`// Not applicable on MariaDB: …`) but lacked a standardised marker). The backlog
-was to convert each prose note into the right one of the three markers (a dialect
-boundary → `// NOT-APPLICABLE:`; a bug → `// TODO[BUG]:`; not-covered-yet →
-`// TODO[LIMITATION]:`); that migration — suite work owned by the corrections
+was to convert each prose note into the right one of the markers (a dialect
+boundary → `// NOT-APPLICABLE:`; an engine/driver boundary → `// NOT-SUPPORTED:`;
+a bug → `// TODO[BUG]:`; not-covered-yet → `// TODO[LIMITATION]:`); that migration — suite work owned by the corrections
 pass, not the audit tool — is now complete.
 
 ### `grouped-commented-tests` — several commented-out tests sharing one comment block
@@ -1008,11 +1010,11 @@ Whole-matrix: both 0 — clean preventive gates.
 
 ### `misplaced-marker` — a reason marker not at a test
 
-The three first-class markers (`// TODO[BUG]:`, `// TODO[LIMITATION]:`,
-`// NOT-APPLICABLE:`) plus `// MOCK-ONLY:` mean something specific *about a
-test* — they are consumed by `commented-test-reason` / `skipped-test-reason`
-and the `mock-only` / `as-*` carve-outs, and the indexer surfaces the first
-three as cell caveats. A marker at file
+The four first-class markers (`// TODO[BUG]:`, `// TODO[LIMITATION]:`,
+`// NOT-SUPPORTED:`, `// NOT-APPLICABLE:`) plus `// MOCK-ONLY:` mean something
+specific *about a test* — they are consumed by `commented-test-reason` /
+`skipped-test-reason` and the `mock-only` / `as-*` carve-outs, and the indexer
+surfaces the first four as cell caveats. A marker at file
 scope, inside a helper, or floating in prose belongs to none of those and reads
 as a phantom marking. This rule is the **inverse** of the consumers: it flags a
 marker that no test-detection window would associate with a test.
@@ -1222,7 +1224,7 @@ test/lib/audit/
 ├── rules.ts          ← RULE_SEVERITY table + the rule registry (CONTENT_RULES)
 ├── types.ts          ← Severity, Finding
 ├── ast.ts            ← lineOf + isInRealBranch + allComments / markerLines / isNodeInMarkedTest (the marker→enclosing-test span check shared by the carve-outs). `allComments` reads comments off the PARSED tree: a raw `ts.createScanner` loop goes blind past the first template literal in a file, which silently hid every marker after it
-├── reasons.ts        ← the three disabled-test marker regexes + MOCK-ONLY + the derived sets (TODO_BUG, NOT_APPLICABLE_OR_BUG, DISABLED_TEST_REASON, MOCK_ONLY_LICENSE, ANY_MARKER) shared across checks
+├── reasons.ts        ← the four disabled-test marker regexes + MOCK-ONLY + the derived sets (TODO_BUG, NOT_SUPPORTED, NOT_APPLICABLE_OR_BUG, DISABLED_TEST_REASON, MOCK_ONLY_LICENSE, ANY_MARKER) shared across checks
 ├── walk.ts           ← enumerate cell .test.ts files (the audit's exclusions) + typesNegativeTestFiles (ts-ignore only)
 ├── ignores.ts        ← `tests-audit-disable-*` parsing + matching + meta-findings
 ├── report.ts         ← compiler-style output + exit-code tally
@@ -1335,7 +1337,7 @@ EXTERNAL_CAVEATS subsection), update the link here in the same change.
     a rewrite backlog: `unknown` / precise type), and `non-public-api` (0 — a
     preventive gate: src imports must be public `exports`, test/lib imports must
     be admitted helpers), and `commented-test-reason` (555 — commented-out tests
-    that lack one of the three reason markers TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE),
+    that lack one of the four reason markers TODO[BUG]/TODO[LIMITATION]/NOT-SUPPORTED/NOT-APPLICABLE),
     and `grouped-commented-tests` (88 — 2+ commented-out tests crammed into one
     `/* … */` block under a single shared marker; split so each gets its own),
     and `focused-test` (0 — a

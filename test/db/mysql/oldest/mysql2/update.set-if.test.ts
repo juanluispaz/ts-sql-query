@@ -106,7 +106,7 @@ describe(ctx.label, () => {
             expect('assigneeId' in row).toBe(false)
         })
     })
-    // TODO[LIMITATION]: see LIMITATIONS.md — the case-insensitive replace emits regexp_replace, which requires MySQL 8.0.4+; MySQL 5.7 has no regexp_replace function (ER_SP_DOES_NOT_EXIST 1305).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the case-insensitive replace emits regexp_replace, which requires MySQL 8.0.4+; MySQL 5.7 has no regexp_replace function (ER_SP_DOES_NOT_EXIST 1305).
     /*
     test('collation-forks-in-a-mutation-set-and-where', async () => {
         // a `replaceAllInsensitive` transform in an UPDATE SET value and a
@@ -174,6 +174,6 @@ describe(ctx.label, () => {
     })
 })
 
-// Tests referencing these are commented out above with TODO[LIMITATION]
+// Tests referencing these are commented out above with NOT-SUPPORTED
 // markers; keep the bindings referenced so noUnusedLocals stays green.
 void tAppUser

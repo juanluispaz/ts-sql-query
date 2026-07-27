@@ -97,7 +97,15 @@ check('--not-applicable summary parses',         parseArgs(['--search', 'x', '--
 check('bare --not-applicable → summary',         parseArgs(['--search', 'x', '--not-applicable']).sectionOverrides.notApplicable === 'summary')
 check('preset type-bug raises not-applicable',   tyb.sections.notApplicable === 'summary')
 check('not-applicable is NOT the same as limitation', (() => { const s = buildOptions(parseArgs(['--search', 'x', '--not-applicable', 'full', '--limitation', 'none'])).sections; return s.notApplicable === 'full' && s.limitation === 'none' })())
-// MOCK-ONLY is the FOURTH first-class marker — a LIVE test whose input is mocked, never folded
+// NOT-SUPPORTED is a first-class section too — the external-runtime boundary (engine / engine
+// version / build / driver), permanent here and never folded into --limitation (actionable debt).
+check('--not-supported summary parses',          parseArgs(['--search', 'x', '--not-supported', 'summary']).sectionOverrides.notSupported === 'summary')
+check('bare --not-supported → summary',          parseArgs(['--search', 'x', '--not-supported']).sectionOverrides.notSupported === 'summary')
+check('--not-supported defaults to none',        buildOptions(parseArgs(['--search', 'x'])).sections.notSupported === 'none')
+check('preset version-work raises not-supported', buildOptions(parseArgs(['--search', 'x', '--for', 'version-work'])).sections.notSupported === 'full')
+check('not-supported is NOT the same as limitation', (() => { const s = buildOptions(parseArgs(['--search', 'x', '--not-supported', 'full', '--limitation', 'none'])).sections; return s.notSupported === 'full' && s.limitation === 'none' })())
+check('not-supported is NOT the same as not-applicable', (() => { const s = buildOptions(parseArgs(['--search', 'x', '--not-supported', 'full', '--not-applicable', 'none'])).sections; return s.notSupported === 'full' && s.notApplicable === 'none' })())
+// MOCK-ONLY is the FIFTH first-class marker — a LIVE test whose input is mocked, never folded
 // into NOT-APPLICABLE (which means "validated in the dialects that support it").
 check('--mock-only summary parses',              parseArgs(['--search', 'x', '--mock-only', 'summary']).sectionOverrides.mockOnly === 'summary')
 check('bare --mock-only → summary',              parseArgs(['--search', 'x', '--mock-only']).sectionOverrides.mockOnly === 'summary')

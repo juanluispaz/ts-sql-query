@@ -113,8 +113,8 @@ the dialect / driver constraint that justifies the comment-out. Example in
 
 **Gate today**: partial mechanical coverage. The `commented-test-reason`
 rule of [`tests:audit`](./TESTS_AUDIT.md) fails any commented test that
-lacks one of the three first-class reason markers (`// NOT-APPLICABLE`,
-`// TODO[LIMITATION]`, `// TODO[BUG]`), so the stub-without-reason path
+lacks one of the four first-class reason markers (`// NOT-APPLICABLE`,
+`// NOT-SUPPORTED`, `// TODO[LIMITATION]`, `// TODO[BUG]`), so the stub-without-reason path
 is blocked across the whole matrix. Its structural companion
 `grouped-commented-tests` additionally fails any single `/* … */` block
 that holds two or more commented-out tests, so several tests can no longer
@@ -199,16 +199,19 @@ const view = ctx.conn.virtualColumnFromFragment(
 **Rule violated**: [`DESIGN.md` § The `as any` runtime-guard exception](./DESIGN.md#as-any-runtime-guard).
 
 **Why it's wrong**: when TypeScript rejects an API the test wants to call,
-the right answers are exactly three (none of them `as any` in test bodies),
-each with its own first-class reason marker (see
-[`LIMITATIONS.md`](./LIMITATIONS.md) for the comparison):
+the right answers are exactly four (none of them `as any` in test bodies),
+each with its own first-class reason marker (see [`LIMITATIONS.md` § The
+decision rule](./LIMITATIONS.md#the-decision-rule) for the comparison):
 
 1. The dialect doesn't support the feature by design — block-comment with
    `// NOT-APPLICABLE: <reason>` per the
    [Symmetry rule](./DESIGN.md#symmetry-rule). The same test runs live in
    the cells whose dialect supports it.
 2. The lib hasn't covered the path yet — block-comment with
-   `// TODO[LIMITATION]: see LIMITATIONS.md — <one-line>`.
+   `// TODO[LIMITATION]: see LIMITATIONS.md — <one-line>`. (If instead the
+   call compiles and it is the ENGINE, its version, its build or the driver
+   that can't run it, the marker is
+   `// NOT-SUPPORTED: see ENGINE_SUPPORT.md — <one-line>`.)
 3. The lib has a bug — open an entry in [`BUGS.md`](./BUGS.md), block-comment
    the test with the canonical body and `// TODO[BUG]: see test/BUGS.md`.
 4. The API doesn't exist — verify with `npm run tests:where-is -- --search <name>`

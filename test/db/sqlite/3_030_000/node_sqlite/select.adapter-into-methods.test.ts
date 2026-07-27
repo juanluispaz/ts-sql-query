@@ -152,7 +152,7 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: this SQLite build has no `reverse()` function.
+    // NOT-SUPPORTED: this SQLite build has no `reverse()` function.
     /*
     test('adapter-string-column-into-reverse-keeps-result-leaf-bracketed', async () => {
         // `reverse()` is a string-returning transform whose result leaf inherits

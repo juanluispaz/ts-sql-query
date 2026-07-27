@@ -96,7 +96,9 @@ function enclosingTestCall(node: ts.Node): ts.CallExpression | undefined {
 //     (a dialect boundary, or a bug repro that stays mock-only until fixed);
 //   - TODO[BUG] alone             → the `as-any` / `any-type` / meaningless-cast
 //     / meaningless-type carve-out (a bug repro may need a type bypass to compile).
-// `TODO[LIMITATION]` licenses neither.
+// `TODO[LIMITATION]` and `NOT-SUPPORTED` license neither: the first is pending
+// work, the second a test no engine of this cell can run at all (so it is
+// commented out, never live-mock-only).
 export function isNodeInMarkedTest(node: ts.Node, sf: ts.SourceFile, markerLineSet: Set<number>): boolean {
     if (markerLineSet.size === 0) return false
     const call = enclosingTestCall(node)

@@ -34,7 +34,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the `<<` / `>>` bit-shift operators require SQL Server 2022+; 2019 rejects them (Incorrect syntax near '<').
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the `<<` / `>>` bit-shift operators require SQL Server 2022+; 2019 rejects them (Incorrect syntax near '<').
     /*
     test('build-fragment-with-args-coerces-int-literals', async () => {
         // Both args are literal numbers → both coerce to
@@ -58,7 +58,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the `<<` / `>>` bit-shift operators require SQL Server 2022+; 2019 rejects them (Incorrect syntax near '<').
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the `<<` / `>>` bit-shift operators require SQL Server 2022+; 2019 rejects them (Incorrect syntax near '<').
     /*
     test('build-fragment-with-args-passes-value-source-through', async () => {
         // ValueSource args bypass coercion. `ctx.conn.const(...)`

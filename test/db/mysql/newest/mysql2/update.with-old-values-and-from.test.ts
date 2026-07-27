@@ -79,8 +79,8 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: MySQL has no RETURNING, and `oldValues()` (typed `never` here) needs a RETURNING projection to surface pre-update column snapshots from a single UPDATE.
-    // (NOT-APPLICABLE — canonical body preserved as line comments; contains */):
+    // NOT-APPLICABLE: MySQL has no RETURNING, and `oldValues()` (typed `never` here) needs a RETURNING projection to surface pre-update column snapshots from a single UPDATE. Canonical body kept as line comments below — it contains `*/`, so a /* … */ wrap is impossible.
+
     //     test('returning-old-and-new-with-from-and-customize-query-three-way-stack', async () => {
     //         // UPDATE … FROM combined with `oldValues()` in RETURNING and `customizeQuery`
     //         // hooks: the `beforeQuery` / `afterUpdateKeyword` / `afterQuery` comment fragments

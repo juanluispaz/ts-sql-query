@@ -791,7 +791,8 @@ export function brandKeysAt(db: QueryDb, path: string, line: number): BrandKeyHi
 
 // ── todo_marker (schema v4): markers (by tag) mentioning the name ─────────────
 // --bugs surfaces tag='BUG' (the generator→fixer channel); --limitation surfaces
-// tag='LIMITATION'. Other indexed TODO tags aren't consumed by a section yet.
+// tag='LIMITATION'; --not-supported surfaces tag='NOT-SUPPORTED' (the external-runtime
+// boundary). Other indexed TODO tags aren't consumed by a section yet.
 export interface TodoMarkerHit { file: string, line: number, text: string }
 export function todoMarkersMatching(db: QueryDb, name: string, tag: string): TodoMarkerHit[] {
     return db.all<TodoMarkerHit>(
@@ -800,15 +801,16 @@ export function todoMarkersMatching(db: QueryDb, name: string, tag: string): Tod
     )
 }
 
-// --cell-caveats (case G): every first-class disabled-test marker — BUG, LIMITATION and the permanent
-// dialect-boundary NOT-APPLICABLE — NOT filtered by symbol. The searcher derives each marker's cell from
-// its file path and keeps the ones the --coord focus matches, so a caveat declared on a cell (e.g. MariaDB
-// UPDATE…RETURNING, or a dialect boundary like Oracle-only CONNECT BY) surfaces for any work in that cell.
-// The `tag` keeps the three CATEGORIES distinct in the view (NOT-APPLICABLE is never merged into LIMITATION).
+// --cell-caveats (case G): every first-class disabled-test marker — BUG, LIMITATION, the permanent
+// dialect-boundary NOT-APPLICABLE and the external-runtime NOT-SUPPORTED — NOT filtered by symbol. The
+// searcher derives each marker's cell from its file path and keeps the ones the --coord focus matches, so a
+// caveat declared on a cell (e.g. MariaDB UPDATE…RETURNING, or a dialect boundary like Oracle-only CONNECT
+// BY) surfaces for any work in that cell. The `tag` keeps the four CATEGORIES distinct in the view: neither
+// NOT-APPLICABLE nor NOT-SUPPORTED is ever merged into LIMITATION — only LIMITATION and BUG are debt.
 export interface CaveatMarker { file: string, line: number, tag: string, text: string }
 export function caveatMarkers(db: QueryDb): CaveatMarker[] {
     return db.all<CaveatMarker>(
-        `SELECT file, line, tag, text FROM todo_marker WHERE tag IN ('BUG','LIMITATION','NOT-APPLICABLE') ORDER BY file, line`,
+        `SELECT file, line, tag, text FROM todo_marker WHERE tag IN ('BUG','LIMITATION','NOT-APPLICABLE','NOT-SUPPORTED') ORDER BY file, line`,
     )
 }
 

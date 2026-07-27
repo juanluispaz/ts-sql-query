@@ -1,25 +1,50 @@
-# `test/` — external caveats: per-driver, per-engine, per-runtime
+# `test/` — per-dialect and per-driver caveats, as wired in today's matrix
 
-Catalogue of caveats imposed by the **external** systems the test matrix
-talks to — driver packages, database engines, runtimes. These are NOT
-bugs in `ts-sql-query` and NOT deliberate library gaps; they are
-constraints from outside the library that test authors have to work
-around when writing or porting tests.
+**How each dialect / driver constraint is handled in the matrix right
+now**: which tests it disables and where, which workaround is already
+built into a runner, and what to re-check when the matrix grows a cell.
+It is the operational companion to the three cause-based catalogues — it
+answers *"what does this mean for the cell I'm writing?"*, not *"whose
+fault is it?"*.
+
+Most of what it documents is a **typed narrowing**: the library
+deliberately does not expose `.returning(...)` on `MySqlConnection`,
+`oldValues()` on `SqliteConnection`, `onConflictOn(...)` on
+`MariaDBConnection`, … Those are `// NOT-APPLICABLE:` dialect boundaries
+— the call cannot even be written — which is why they are tracked by
+symmetry rather than by a catalogue of their own.
+
+*(This file used to be titled "external caveats … driver / engine /
+runtime" while most of its content was those library-side narrowings.
+The mismatch got it misread more than once; the runtime facts now live in
+[`ENGINE_SUPPORT.md`](./ENGINE_SUPPORT.md).)*
 
 Boundary with the other catalogues:
 
 | File | What it catalogues |
 |---|---|
 | [`BUGS.md`](./BUGS.md) | bugs in `src/` (`ts-sql-query` itself) |
-| [`LIMITATIONS.md`](./LIMITATIONS.md) | deliberate gaps in `src/` declared by the project author |
-| This file | external — what a driver / engine / runtime can't do (or doesn't yet do) |
+| [`LIMITATIONS.md`](./LIMITATIONS.md) | deliberate gaps in `src/` declared by the project author — closeable **here** |
+| [`ENGINE_SUPPORT.md`](./ENGINE_SUPPORT.md) | what the engine / this engine **version** / its build / the driver **cannot run**, with the `// NOT-SUPPORTED:` markers that disable those tests |
+| This file | the **operational** side of the same story: how each constraint is wired in today's matrix (workarounds already in the runners, per-dialect typed narrowings, the checklist when adding a connector) |
+
+> **Read this boundary carefully — it has been misread before.** Most of the
+> per-dialect notes below are **typed narrowings**: the library deliberately does
+> not expose `.returning(...)` on `MySqlConnection`, `oldValues()` on
+> `SqliteConnection`, `onConflictOn(...)` on `MariaDBConnection`, … Those are
+> `// NOT-APPLICABLE:` **dialect boundaries** (the call cannot even be written),
+> not engine-runtime facts. A constraint where the call **compiles** and the
+> engine/driver then refuses it belongs in
+> [`ENGINE_SUPPORT.md`](./ENGINE_SUPPORT.md) under `// NOT-SUPPORTED:`, and one
+> this repo could close belongs in [`LIMITATIONS.md`](./LIMITATIONS.md).
 
 Today's matrix already wires the workarounds in every affected cell; the
 "Dialect-specific notes" section below documents them. The other
 sections list connectors not in the matrix today, connection-subclass
-patterns that don't fit the shared domain, and the operational checklist
-for adding new infrastructure. Treat the items as a checklist when the
-matrix is extended.
+patterns that don't fit the shared domain, and the structural-only
+assertions that a real-DB run could tighten. Treat the items as a
+checklist when the matrix is extended — the end-to-end recipe for adding
+a database / connector / version is [`NEW_DATABASE.md`](./NEW_DATABASE.md).
 
 ## How the constraints surface today
 
@@ -27,16 +52,19 @@ Each item below describes a `docs:` or `docs-extra:` test that is
 **commented out** in some cells with a `/* ... */` block per the
 symmetry rule ([`DESIGN.md` § Symmetry rule](./DESIGN.md#symmetry-rule)).
 The body stays verbatim, prefixed by a one-line marker. The
-**categories of reason marker** are three (see
-[`LIMITATIONS.md`](./LIMITATIONS.md) for the comparison):
+**categories of reason marker** are four (see [`LIMITATIONS.md` § The
+decision rule](./LIMITATIONS.md#the-decision-rule) for the comparison):
 
 - `// NOT-APPLICABLE: <reason>` — a **dialect boundary** the lib will
   never run for this cell by design (the canonical case for everything
   in this catalogue: MySQL has no RETURNING, Oracle has no ON CONFLICT,
   …). The test runs and validates live on the cells whose dialect
   supports the feature; here it is only present for symmetry.
+- `// NOT-SUPPORTED: <reason>` — the call compiles, but the engine /
+  this engine version / its build / the driver can't run it; see
+  [`ENGINE_SUPPORT.md`](./ENGINE_SUPPORT.md).
 - `// TODO[LIMITATION]: <reason>` — the library hasn't covered it yet
-  (or the environment can't); see [`LIMITATIONS.md`](./LIMITATIONS.md).
+  (or this harness can't drive it); see [`LIMITATIONS.md`](./LIMITATIONS.md).
 - `// TODO[BUG]: <reason>` — the library has a defect to fix; see
   [`BUGS.md`](./BUGS.md).
 
@@ -48,8 +76,8 @@ npm run tests:where-is -- --search <any-api> --cell-caveats summary
 ```
 
 returns the per-cell **map** of every reason marker
-(`// NOT-APPLICABLE`, `// TODO[BUG]`, `// TODO[LIMITATION]`) — each cell
-+ its caveat counts. Scope to a driver with `--coord '<driver-cells>'`
+(`// NOT-APPLICABLE`, `// NOT-SUPPORTED`, `// TODO[BUG]`,
+`// TODO[LIMITATION]`) — each cell + its caveat counts. Scope to a driver with `--coord '<driver-cells>'`
 and the preset auto-raises to `full` (the markers themselves) —
 `--cell-caveats` is the searcher's section designed for exactly this
 catalogue. Plain
@@ -85,10 +113,11 @@ marshalling. One connector limitation surfaces:
 
 ### MySQL — no INSERT/UPDATE/DELETE RETURNING
 
-MySQL's driver/server combo doesn't surface RETURNING values. The
-following tests are commented out in `test/db/mysql/newest/mysql2/`
-because `.returning({...})` / `.returningOneColumn(...)` is not
-typed for that connection:
+MySQL has no RETURNING clause, so the library does not type
+`.returning({...})` / `.returningOneColumn(...)` on `MySqlConnection` at
+all — a `// NOT-APPLICABLE:` dialect boundary, not something the server
+might grow support for behind a callable API. The following tests are
+commented out in `test/db/mysql/newest/mysql2/`:
 
 - `docs.insert.test.ts`:
   - `docs:insert/insert-many-values`
@@ -106,10 +135,11 @@ typed for that connection:
   - `docs:delete/delete-returning`
   - `docs-extra:delete/returning-one-column`
 
-If a future MySQL version (or a newer driver) starts to surface
-RETURNING, uncomment these tests in the existing `mysql2` cell and add
-the same test bodies under the new `<version>/mysql2` and any new
-connector cells.
+If a future MySQL version adds RETURNING **and the library types it on
+`MySqlConnection`**, uncomment these tests in the existing `mysql2` cell
+and add the same test bodies under the new `<version>/mysql2` and any new
+connector cells. Until the type surface changes this stays a dialect
+boundary, not an [`ENGINE_SUPPORT.md`](./ENGINE_SUPPORT.md) version gate.
 
 ### Oracle — no INSERT ... ON CONFLICT
 
@@ -226,17 +256,16 @@ snapshot.
 
 These are reachable from the public exports and have their own runner
 implementation in `src/queryRunners/`, but no `test/db/<db>/<version>/<connector>/`
-cell exists yet:
+cell exists yet. (The **sync runners** are no longer among them: `extras/sync`
+is covered by the `<connector>-sync` cells that exist for every embedded SQLite
+driver — `better-sqlite3-sync`, `bun_sqlite-sync`, `node_sqlite-sync`,
+`sqlite-wasm-OO1-sync` — inside the main matrix, not in a separate sub-tree.)
 
 - **prisma** — different runtime semantics (Prisma client wraps the
   driver). Plan in `DESIGN.md §1.15`: light mirror coverage under
   `test/db/<database>/<version>/prisma/`, NOT the full docs.* set.
   Treat the docs tests as out-of-scope until prisma parity is the
   explicit task.
-- **sync runners** — `extras/sync`, `BetterSqlite3SyncQueryRunner`,
-  `Sqlite3WasmOO1SyncQueryRunner`, etc. Different runtime semantics
-  (the API is sync). Plan in `DESIGN.md §1.16`: dedicated
-  `test/db/sync/...` sub-tree, not part of the main matrix.
 - **`bun_sql_mysql`, `bun_sql_sqlite`** — experimental bun
   connectors with known bugs. Excluded permanently per
   `DESIGN.md §10`.
@@ -310,24 +339,18 @@ itself; the `if (ctx.realDbEnabled)` switch already covers it.
 
 ## Operational checklist when adding a new connector or version
 
-1. **Read** [`NEW_DATABASE.md`](./NEW_DATABASE.md) (end-to-end recipe
-   for adding a database / connector / version).
-2. **Mirror** every `docs.*.test.ts` from a sibling cell (the sqlite
-   canonical `test/db/sqlite/newest/bun_sqlite/` is the cheapest
-   source). Use `cp` over the whole set, then run the matrix snapshot
-   bake.
-3. **Triage** compile errors against the dialect notes above. Cell
-   that matches the new dialect on commented tests usually points to
-   the same restriction.
-4. **Re-run** `npm run validate:tests:newest` (fast) and `npm run
-   validate:tests` (authoritative) — both must be clean before
-   committing.
-5. **Run** `npm run tests:audit`; symmetry must be intact.
-6. **If the new connector exposes a real DB** (docker or in-process),
-   also run `npm run tests -- --docker` (and `--wasm` for WASM
-   connectors). The `if (ctx.realDbEnabled)` branches in existing
-   tests will fire — fix any data assertions that mismatch the real
-   seed.
+The end-to-end recipe lives in [`NEW_DATABASE.md`](./NEW_DATABASE.md) —
+follow it rather than a copy that drifts. Two things it does **not**
+cover, because they are this file's subject:
+
+1. **Triage the compile errors against the "Dialect-specific notes"
+   above.** A cell that matches the new dialect on commented-out tests
+   usually points at the same typed narrowing; reuse its reason instead
+   of re-deriving one.
+2. **Re-check the [`ENGINE_SUPPORT.md`](./ENGINE_SUPPORT.md) entries for
+   that engine and version.** A new version tier inherits every gate at
+   or above its engine release — that is what decides which tests it can
+   run at all.
 
 ## Pages deliberately not in scope
 

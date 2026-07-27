@@ -246,7 +246,7 @@ describe(ctx.label, () => {
         expect(rows[1]!.meta!.assigneeId).toBeNull()
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('union-all-of-aggregate-as-array-arms-merges-array-typed-columns', async () => {
         // Each arm carries an aggregate-as-array column (`projects`), grouped over a
@@ -612,7 +612,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('union-all-of-aggregate-as-array-arms-projecting-optional-values-as-nullable', async () => {
         // Each UNION ALL arm carries an aggregate-as-array column whose element has an
@@ -747,7 +747,7 @@ describe(ctx.label, () => {
         expect('body' in rows[0]!.detail).toBe(false)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT ALL / INTERSECT ALL compound variants require MariaDB 10.5+; earlier releases reject them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT ALL / INTERSECT ALL compound variants require MariaDB 10.5+; earlier releases reject them with ER_PARSE_ERROR (1064).
     /*
     test('intersectAll-of-rule-3-required-object-with-optional-leaf-default', async () => {
         ctx.mockNext([
@@ -816,7 +816,7 @@ describe(ctx.label, () => {
         expect('body' in rows[0]!.detail).toBe(false)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT ALL / INTERSECT ALL compound variants require MariaDB 10.5+; earlier releases reject them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT ALL / INTERSECT ALL compound variants require MariaDB 10.5+; earlier releases reject them with ER_PARSE_ERROR (1064).
     /*
     test('exceptAll-of-rule-3-required-object-with-optional-leaf-default', async () => {
         ctx.mockNext([
@@ -885,7 +885,7 @@ describe(ctx.label, () => {
         expect('body' in rows[0]!.detail).toBe(false)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT ALL / INTERSECT ALL compound variants require MariaDB 10.5+; earlier releases reject them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT ALL / INTERSECT ALL compound variants require MariaDB 10.5+; earlier releases reject them with ER_PARSE_ERROR (1064).
     /*
     test('minusAll-of-rule-3-required-object-with-optional-leaf-default', async () => {
         ctx.mockNext([
@@ -920,7 +920,7 @@ describe(ctx.label, () => {
         expect('body' in rows[0]!.detail).toBe(false)
     })
     */
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('union-all-of-nested-object-aggregate-arms-projecting-optional-values-as-nullable', async () => {
         // A nullable aggregate NESTED inside a projection object member (`wrap`),
@@ -1000,7 +1000,7 @@ describe(ctx.label, () => {
         expect(sorted[0]!.wrap.projects[0]!.archivedAt).toBeNull()
     })
     */
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('union-all-of-aggregate-as-array-arms-projecting-then-use-empty-array-for-no-value', async () => {
         // Each UNION ALL arm's aggregate uses `projectingOptionalValuesAsNullable()` then
@@ -1082,7 +1082,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('union-all-of-aggregate-as-array-arms-projecting-then-as-optional-non-empty-array', async () => {
         // Each UNION ALL arm's aggregate uses `projectingOptionalValuesAsNullable()` then
@@ -1162,7 +1162,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('union-all-of-aggregate-as-array-arms-projecting-then-as-required-in-optional-object', async () => {
         // Each UNION ALL arm's aggregate uses `projectingOptionalValuesAsNullable()` then
@@ -1244,6 +1244,6 @@ describe(ctx.label, () => {
 
 })
 
-// Tests referencing these are commented out above with TODO[LIMITATION]
+// Tests referencing these are commented out above with NOT-SUPPORTED
 // markers; keep the bindings referenced so noUnusedLocals stays green.
 void tOrganization

@@ -1385,7 +1385,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT ALL / INTERSECT ALL compound variants require MariaDB 10.5+; earlier releases reject them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT ALL / INTERSECT ALL compound variants require MariaDB 10.5+; earlier releases reject them with ER_PARSE_ERROR (1064).
     /*
     test('compound-intersectAll-order-by-raw-fragment-embedding-value-source', async () => {
         const expected = [{ iid: 1 }]
@@ -1430,7 +1430,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT ALL / INTERSECT ALL compound variants require MariaDB 10.5+; earlier releases reject them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT ALL / INTERSECT ALL compound variants require MariaDB 10.5+; earlier releases reject them with ER_PARSE_ERROR (1064).
     /*
     test('compound-exceptAll-order-by-raw-fragment-embedding-value-source', async () => {
         const expected = [{ iid: 1 }]
@@ -1475,7 +1475,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT ALL / INTERSECT ALL compound variants require MariaDB 10.5+; earlier releases reject them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT ALL / INTERSECT ALL compound variants require MariaDB 10.5+; earlier releases reject them with ER_PARSE_ERROR (1064).
     /*
     test('compound-minusAll-order-by-raw-fragment-embedding-value-source', async () => {
         const expected = [{ iid: 1 }]

@@ -64,7 +64,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('intersect', async () => {
         // status values appearing in both opened-issues and id<=2-issues:
@@ -90,7 +90,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('except', async () => {
         // statuses present in issues but NOT under id <= 2.
@@ -1175,7 +1175,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
     /*
     test('inline-aggregated-array-with-group-by-and-order-by', async () => {
         // An inline aggregated-array subquery (`forUseAsInlineAggregatedArrayValue`)
@@ -1370,7 +1370,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compound-intersect-order-by-raw-fragment-embedding-value-source', async () => {
         const expected = [{ iid: 1 }]
@@ -1394,7 +1394,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compound-intersectAll-order-by-raw-fragment-embedding-value-source', async () => {
         const expected = [{ iid: 1 }]
@@ -1418,7 +1418,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compound-except-order-by-raw-fragment-embedding-value-source', async () => {
         const expected = [{ iid: 1 }]
@@ -1442,7 +1442,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compound-exceptAll-order-by-raw-fragment-embedding-value-source', async () => {
         const expected = [{ iid: 1 }]
@@ -1466,7 +1466,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compound-minus-order-by-raw-fragment-embedding-value-source', async () => {
         const expected = [{ iid: 1 }]
@@ -1490,7 +1490,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the EXCEPT / INTERSECT compound operators (incl. the ALL variants) require MySQL 8.0.31+; MySQL 5.7 rejects them with ER_PARSE_ERROR (1064).
     /*
     test('compound-minusAll-order-by-raw-fragment-embedding-value-source', async () => {
         const expected = [{ iid: 1 }]
@@ -1673,6 +1673,6 @@ describe(ctx.label, () => {
     })
 })
 
-// Tests referencing these are commented out above with TODO[LIMITATION]
+// Tests referencing these are commented out above with NOT-SUPPORTED
 // markers; keep the bindings referenced so noUnusedLocals stays green.
 void tOrganization

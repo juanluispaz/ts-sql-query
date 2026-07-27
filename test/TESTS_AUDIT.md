@@ -79,7 +79,7 @@ SQL + params + result type + result value, against both the mock and (under
 finding. Fix a finding by making the test validate honestly — never by hiding it.
 
 **Real-DB validation (the test must run and check the value in both modes)**
-- `mock-only` — two shapes. **(a) The skip**: `if (ctx.realDbEnabled) return`, or a `catch` that only rethrows on the mock — the test never executes against the real engine, so a real failure passes as green AND the SQL/param/type assertions are validated only in the mocked run. Never right, no carve-outs. **(b) The unjustified request**: a `ctx.mockOnlyConnection()` with no reason marker. That call is the sanctioned escape hatch (the body still runs and asserts in every mode; only its INPUT comes from the mock), but it must say why — `// MOCK-ONLY: <reason>` naming what the real engine cannot supply. Either way, first try to drive the case for real: use `fragmentWithType` / `rawFragment` to synthesise an off-shape input the engine can't produce naturally; `toBeCloseTo` for float precision. **If this dialect deliberately cannot validate it on a real engine** (a permanent boundary, not a fixable gap), mark the live test `// NOT-APPLICABLE: <reason>` — it then runs mock-only here and validates in the dialects that support it (see "the three reason markers" below).
+- `mock-only` — two shapes. **(a) The skip**: `if (ctx.realDbEnabled) return`, or a `catch` that only rethrows on the mock — the test never executes against the real engine, so a real failure passes as green AND the SQL/param/type assertions are validated only in the mocked run. Never right, no carve-outs. **(b) The unjustified request**: a `ctx.mockOnlyConnection()` with no reason marker. That call is the sanctioned escape hatch (the body still runs and asserts in every mode; only its INPUT comes from the mock), but it must say why — `// MOCK-ONLY: <reason>` naming what the real engine cannot supply. Either way, first try to drive the case for real: use `fragmentWithType` / `rawFragment` to synthesise an off-shape input the engine can't produce naturally; `toBeCloseTo` for float precision. **If this dialect deliberately cannot validate it on a real engine** (a permanent boundary, not a fixable gap), mark the live test `// NOT-APPLICABLE: <reason>` — it then runs mock-only here and validates in the dialects that support it (see "the four reason markers" below).
 - `mirror-image` — a two-sided `ctx.realDbEnabled` guard where one branch checks the value and the other only checks shape (`.length`, `Array.isArray`, `typeof`). Give both branches the same value assertion (sort the unstable dimension in JS, then `toEqual`).
 - `one-sided-guard` — only one mode validates the value. Assert it unconditionally — add `ORDER BY` / JS-sort so one `toEqual` passes in both modes.
 - `skip-real-db` — `test.skipIf(ctx.realDbEnabled)` / `runIf(!ctx.realDbEnabled)`: a registration-level mock-only evasion. Let the test run in both modes (if its scenario needs the mock as an input device, `ctx.mockOnlyConnection()` + `// MOCK-ONLY: <reason>` keeps it running) — or, if it is a permanent dialect boundary, mark it `// NOT-APPLICABLE: <reason>`.
@@ -109,15 +109,15 @@ finding. Fix a finding by making the test validate honestly — never by hiding 
 - `non-public-api` — a relative import past the public surface (into `src/` internals, or a non-admitted `test/lib/` helper). Import only the public library API and the admitted helpers (`src/experimental/*` is allowed as a tests-only staging area).
 
 **Don't disable or fake tests silently**
-- `commented-test-reason` — a commented-out test with no reason. Add one of the three first-class markers (see below), or re-enable it.
-- `grouped-commented-tests` — several commented-out tests lumped into ONE `/* … */` block, so a single marker "covers" them all and the individual reasons are lost. Split the block: one commented-out test per comment, each with its own `// TODO[BUG]:` / `// TODO[LIMITATION]:` / `// NOT-APPLICABLE:` marker (the structural companion to `commented-test-reason`, which then requires a reason on each). A normal `//`-per-line commented-out test is fine — only a block holding two or more tests is flagged.
+- `commented-test-reason` — a commented-out test with no reason. Add one of the four first-class markers (see below), or re-enable it.
+- `grouped-commented-tests` — several commented-out tests lumped into ONE `/* … */` block, so a single marker "covers" them all and the individual reasons are lost. Split the block: one commented-out test per comment, each with its own `// TODO[BUG]:` / `// TODO[LIMITATION]:` / `// NOT-SUPPORTED:` / `// NOT-APPLICABLE:` marker (the structural companion to `commented-test-reason`, which then requires a reason on each). A normal `//`-per-line commented-out test is fine — only a block holding two or more tests is flagged.
 - `skipped-test-reason` — `test.skip` / `test.todo` / `xit` … needs the same reason marker as a commented-out test.
 - `focused-test` — a committed `test.only` / `describe.only`: it silently skips the rest of the file. Remove `.only`.
-- `misplaced-marker` — a `// TODO[BUG]:` / `// TODO[LIMITATION]:` / `// NOT-APPLICABLE:` marker that is **not at a test** (file scope, inside a helper, floating prose). It must sit in the comment block directly above a test (live or commented out) or inside a test body. Move it to the test it explains, or remove it.
+- `misplaced-marker` — a `// TODO[BUG]:` / `// TODO[LIMITATION]:` / `// NOT-SUPPORTED:` / `// NOT-APPLICABLE:` marker that is **not at a test** (file scope, inside a helper, floating prose). It must sit in the comment block directly above a test (live or commented out) or inside a test body. Move it to the test it explains, or remove it.
 - `non-deterministic-input` — `new Date()` (no arg), `Date.now()`, `Math.random()` used as a query input make the params non-deterministic. Use a fixed value (`new Date('2024-01-02T03:04:05Z')`). These are allowed only as **mock data** passed to `mockNext`, simulating the database's own `current_date` / `random()`.
 
 **Structure**
-- `symmetry` — **every cell of the WHOLE matrix** (all databases × versions × connectors) must declare the same `.test.ts` files with the same test names in the same order (executed OR commented out). Keep the cells mirror images across dialects: a test that doesn't apply to a dialect is commented out with a `// NOT-APPLICABLE: <reason>` (or TODO) marker, not dropped. Some files are **excluded** from the comparison (see below). (`error`: the cross-database migration backlog has been worked down and the matrix is mirrored.)
+- `symmetry` — **every cell of the WHOLE matrix** (all databases × versions × connectors) must declare the same `.test.ts` files with the same test names in the same order (executed OR commented out). Keep the cells mirror images across dialects: a test that doesn't apply to a dialect is commented out with a `// NOT-APPLICABLE: <reason>` (or `// NOT-SUPPORTED:` / TODO) marker, not dropped. Some files are **excluded** from the comparison (see below). (`error`: the cross-database migration backlog has been worked down and the matrix is mirrored.)
 
 ### Files excluded from symmetry
 
@@ -131,26 +131,37 @@ These do **not** have to exist in every cell; everything else must be mirrored a
 
 The recognised database names are the real database directories under `test/db/` (`mariadb`, `mysql`, `oracle`, `postgres`, `sqlite`, `sqlserver`) — matched as whole `.`/`-` tokens, so `postgresql` or a substring never triggers the exclusion. Beyond files, the `domain/` and `types.negative/` directories, the `documentation` connector, and the synthetic `general` database are also outside the comparison.
 
-## Disabling a test — the three reason markers
+## Disabling a test — the four reason markers
 
 A disabled test (commented out, or `.skip` / `.todo`) still counts for symmetry —
 it stays in every cell — so it can never be dropped silently. It must carry
-**exactly one** of three first-class markers, with a mandatory reason after the
+**exactly one** of four first-class markers, with a mandatory reason after the
 colon. Pick by the test's **future**:
 
 | Marker | Cause | Pending? | Re-enables in THIS cell? | Runs in another cell? | Tracked |
 |---|---|---|---|---|---|
 | `// TODO[BUG]: <reason>` | a defect in `src/` — the library *should* do this but fails today | yes, fix it | when the bug is fixed | normally no | `BUGS.md` |
-| `// TODO[LIMITATION]: <reason>` | the library doesn't cover it *yet* (by choice) / the env can't | yes, could be covered | if the decision/env changes | normally no | `LIMITATIONS.md` |
-| `// NOT-APPLICABLE: <reason>` | a deliberate **dialect boundary** (e.g. `START WITH … CONNECT BY` is Oracle-only) | **no — nothing pending** | **never** | **yes — it runs and validates where the dialect supports it** | symmetry + the dialect's `types.negative/` |
+| `// TODO[LIMITATION]: <reason>` | the library doesn't cover it *yet* (by choice), or this harness can't drive it | yes, could be covered | if the decision changes | normally no | `LIMITATIONS.md` |
+| `// NOT-SUPPORTED: <reason>` | the **engine** / this engine **version** / its **build** / the **driver** can't run it — the call compiles, the runtime refuses (e.g. `json_arrayagg` needs MariaDB 10.5+) | **no — not ours to close** | only if the external system is upgraded | **yes — it runs where the engine supports it** | `ENGINE_SUPPORT.md` |
+| `// NOT-APPLICABLE: <reason>` | a deliberate **dialect boundary** — the **type surface** doesn't expose the call here (e.g. `START WITH … CONNECT BY` is Oracle-only) | **no — nothing pending** | **never** | **yes — it runs and validates where the dialect supports it** | symmetry + the dialect's `types.negative/` |
 
-A `TODO[*]` means there is pending work that could re-enable the test **here**;
-`NOT-APPLICABLE` is permanent and the test only ever runs **elsewhere**. Use
-`NOT-APPLICABLE` for a by-design boundary — **never** `TODO[NOT-APPLICABLE]` ("TODO"
-wrongly implies pending work). The markers are uppercase + hyphen, so prose like
+A `TODO[*]` means there is pending work **in this repo** that could re-enable the
+test **here**; `NOT-SUPPORTED` and `NOT-APPLICABLE` are permanent and the test only
+ever runs **elsewhere**. Use them for by-design / external boundaries — **never**
+`TODO[NOT-APPLICABLE]` or `TODO[NOT-SUPPORTED]` ("TODO" wrongly implies pending
+work). The markers are uppercase + hyphen, so prose like
 `// Not applicable on PostgreSQL: …` does **not** satisfy the rule — write the
 canonical `// NOT-APPLICABLE: …`. The reason should name the boundary (which
-dialect/feature) and, where useful, where the test *does* run.
+dialect / engine version / driver, and which feature) and, where useful, where the
+test *does* run.
+
+**Telling `NOT-SUPPORTED` from `TODO[LIMITATION]`** — ask *is there a change in
+THIS repo that re-enables the test in THIS cell?* If yes, it is a `TODO`; if only
+an engine/driver upgrade would do it, it is `NOT-SUPPORTED`. An in-repo close path
+counts only when it covers **every connector of the dialect**. **Telling it from
+`NOT-APPLICABLE`** — who draws the boundary: the type surface (`NOT-APPLICABLE`,
+usually with a `types.negative/` counterpart) or the runtime (`NOT-SUPPORTED`, the
+call compiles fine).
 
 **`NOT-APPLICABLE` and `TODO[BUG]` also license a *live* mock-only test.** When
 the feature *can* be exercised through the API (so the SQL/params are worth
@@ -160,9 +171,12 @@ It then runs mock-only here without tripping `mock-only` / `skip-real-db`. Two
 markers grant this: `// NOT-APPLICABLE:` (a permanent dialect boundary — it
 validates fully in the dialects that support it) and `// TODO[BUG]:` (a
 reproducible bug, mock-only until the fix lands). `// TODO[LIMITATION]:` does
-**not** (a pending decision, neither a boundary nor an open bug).
+**not** (a pending decision, neither a boundary nor an open bug), and neither does
+`// NOT-SUPPORTED:` — there the call compiles but no engine of this cell can run
+it, so a mock run would just replay the suite's own seeded values through a query
+that cannot execute. Those tests stay commented out.
 
-**`MOCK-ONLY` is a FOURTH marker, and not one of the three.** It licenses one
+**`MOCK-ONLY` is a FIFTH marker, and not one of the four.** It licenses one
 specific thing: a `ctx.mockOnlyConnection()` call in a LIVE, fully-running test
 whose scenario needs the mock as its INPUT DEVICE — a value no real driver of any
 connector hands back, or an injected fault. It is not a disabled-test marker (the
@@ -187,7 +201,7 @@ Every marker is scoped to its own test, so it never exempts a neighbour.
 > are two different mechanisms — don't confuse them:
 > - **The test does not apply to this database / is blocked by a bug** → you
 >   **comment the test out** (or `test.skip` it) and mark *why* with one of the
->   three first-class reason markers (below). The test stops running but **stays
+>   four first-class reason markers (below). The test stops running but **stays
 >   counted for symmetry** (it must exist, commented, in every cell). This is
 >   governed by `commented-test-reason` / `skipped-test-reason`, NOT by
 >   `tests-audit-disable`. See [`WRITING_TESTS.md`](./WRITING_TESTS.md).

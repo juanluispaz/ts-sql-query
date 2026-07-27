@@ -13,58 +13,58 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-procedure-with-no-args', async () => {})
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-procedure-with-args', async () => {})
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-int', async () => {})
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-string', async () => {})
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-optional-accepts-null-result', async () => {})
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-required-throws-mandatory-when-driver-returns-null', async () => {})
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-throws-no-result-when-driver-returns-undefined', async () => {})
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-bigint', async () => {})
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-optional-local-date-time', async () => {})
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-custom-double', async () => {})
     */
 
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-optional-int', async () => {
         // count_open_issues with the 'optional' flag -> `number | null`.
@@ -78,7 +78,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-optional-bigint', async () => {
         // total_view_count with the 'optional' flag -> `bigint | null`.
@@ -92,7 +92,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-required-local-date-time', async () => {
         // latest_issue_at with the 'required' flag -> `Date`. MAX(created_at) of
@@ -107,7 +107,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-optional-custom-double', async () => {
         // estimated_total with the 'optional' flag -> `Money | null` (branded).
@@ -121,17 +121,17 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-with-trailing-type-adapter-brackets-result', async () => {})
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-custom-double-with-trailing-adapter-shift-branch', async () => {})
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-boolean', async () => {
         // ret_flag(1) returns a boolean → true.
@@ -148,7 +148,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-optional-boolean', async () => {
         // ret_flag with the 'optional' flag → `boolean | null`.
@@ -165,7 +165,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-double', async () => {
         // estimated_total(1) read as the plain 'double' kind → 0.
@@ -182,7 +182,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-optional-double', async () => {
         // estimated_total read as 'double' with the 'optional' flag → `number | null`.
@@ -199,7 +199,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-uuid', async () => {
         // ret_uuid(1) returns a uuid string. The postgres uuid columns are
@@ -217,7 +217,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-optional-uuid', async () => {
         // ret_uuid with the 'optional' flag → `string | null`.
@@ -234,7 +234,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-local-date', async () => {
         // ret_day(1) returns a date. The marshalled Date is driver-dependent
@@ -253,7 +253,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-optional-local-date', async () => {
         // ret_day with the 'optional' flag → `Date | null`.
@@ -270,7 +270,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-local-time', async () => {
         // ret_clock(1) returns a time; the marshalled Date is driver-dependent,
@@ -288,7 +288,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-optional-local-time', async () => {
         // ret_clock with the 'optional' flag → `Date | null`.
@@ -305,7 +305,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-enum', async () => {
         // ret_activity(1) returns an enum value (WorklogActivity) → 'coding'.
@@ -322,7 +322,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-optional-enum', async () => {
         // ret_activity with the 'optional' flag → `WorklogActivity | null`.
@@ -339,7 +339,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-custom', async () => {
         // ret_channel(1) returns an equality-only custom value (ReleaseChannel)
@@ -357,7 +357,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-optional-custom', async () => {
         // ret_channel with the 'optional' flag → `ReleaseChannel | null`.
@@ -374,7 +374,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-custom-comparable', async () => {
         // ret_semver(1) returns an ordered custom value (Semver, a branded
@@ -392,7 +392,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-optional-custom-comparable', async () => {
         // ret_semver with the 'optional' flag → `string | null`.
@@ -409,7 +409,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-custom-int', async () => {
         // count_open_issues(1) read as the branded customInt kind (Cents) → 1.
@@ -426,7 +426,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-optional-custom-int', async () => {
         // count_open_issues read as customInt with the 'optional' flag → `number | null`.
@@ -443,7 +443,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-custom-uuid', async () => {
         // ret_uuid(1) read as the branded customUuid kind (SigningKey) → the
@@ -461,7 +461,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-optional-custom-uuid', async () => {
         // ret_uuid read as customUuid with the 'optional' flag → `string | null`.
@@ -478,7 +478,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-custom-local-date', async () => {
         // ret_day(1) read as the branded customLocalDate kind (ReleaseDay); the
@@ -496,7 +496,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-optional-custom-local-date', async () => {
         // ret_day read as customLocalDate with the 'optional' flag → `Date | null`.
@@ -513,7 +513,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-custom-local-time', async () => {
         // ret_clock(1) read as the branded customLocalTime kind (CutoffClock);
@@ -531,7 +531,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-optional-custom-local-time', async () => {
         // ret_clock read as customLocalTime with the 'optional' flag → `Date | null`.
@@ -548,7 +548,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-custom-local-date-time', async () => {
         // latest_issue_at(1) read as the branded customLocalDateTime kind
@@ -567,7 +567,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-function-returning-optional-custom-local-date-time', async () => {
         // latest_issue_at read as customLocalDateTime with the 'optional' flag →

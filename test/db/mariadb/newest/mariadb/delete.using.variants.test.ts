@@ -126,7 +126,7 @@ describe(ctx.label, () => {
     // (verified against MariaDB 12.3.2). Single-table DELETE ... RETURNING
     // works on this image (it has shipped since MariaDB 10.0.5), but
     // RETURNING on a multi-table DELETE (DELETE ... USING) is not accepted.
-    // TODO[LIMITATION]: see LIMITATIONS.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 12.3.2
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 12.3.2
     /*
     test('delete-using-with-returning-none-or-one-row', async () => {
         // RETURNING combined with USING. Uses `executeDeleteNoneOrOne`
@@ -184,7 +184,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 12.3.2
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 12.3.2
     /*
     test('delete-using-with-returning-auxiliary-using-column', async () => {
         // RETURNING a column from the USING-joined table (`project.slug`), not the
@@ -217,7 +217,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 12.3.2
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 12.3.2
     /*
     test('delete-using-returning-scaled-adapter-column', async () => {
         // An adapter column read through DELETE … USING … RETURNING:
@@ -251,7 +251,7 @@ describe(ctx.label, () => {
     // (verified against MariaDB 12.3.2). Single-table DELETE ... RETURNING
     // works on this image (it has shipped since MariaDB 10.0.5), but
     // RETURNING on a multi-table DELETE (DELETE ... USING) is not accepted.
-    // TODO[LIMITATION]: see LIMITATIONS.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 12.3.2
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 12.3.2
     /*
     test('delete-using-returning-nullable-projected-optional', async () => {
         // `projectingOptionalValuesAsNullable()` on a DELETE … USING … RETURNING:
@@ -279,7 +279,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 12.3.2
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 12.3.2
     /*
     test('delete-using-returning-nested-using-joined-object', async () => {
         // DELETE … USING … RETURNING folding the USING-joined table's columns into a
@@ -409,7 +409,7 @@ describe(ctx.label, () => {
             else expect(typeof affected).toBe('number')
         })
     })
-    // TODO[LIMITATION]: see LIMITATIONS.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 12.3.2
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 12.3.2
     /*
     test('delete-using-returning-one-column-auxiliary-using-column', async () => {
         // `returningOneColumn(project.slug)` returns a column of the USING-joined table —

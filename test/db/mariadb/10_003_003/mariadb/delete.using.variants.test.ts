@@ -92,7 +92,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — a WITH clause prefixing an UPDATE/DELETE (CTE-on-DML) is only accepted on MariaDB 12.3+; every earlier release rejects it with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — a WITH clause prefixing an UPDATE/DELETE (CTE-on-DML) is only accepted on MariaDB 12.3+; every earlier release rejects it with ER_PARSE_ERROR (1064).
     /*
     test('delete-using-cte-source', async () => {
         // USING target is a `.forUseInQueryAs(...)` view (a CTE). The
@@ -129,7 +129,7 @@ describe(ctx.label, () => {
     // (verified against MariaDB 12.3.2). Single-table DELETE ... RETURNING
     // works on this image (it has shipped since MariaDB 10.0.5), but
     // RETURNING on a multi-table DELETE (DELETE ... USING) is not accepted.
-    // TODO[LIMITATION]: see LIMITATIONS.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 12.3.2
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 12.3.2
     /*
     test('delete-using-with-returning-none-or-one-row', async () => {
         // RETURNING combined with USING. Uses `executeDeleteNoneOrOne`
@@ -187,7 +187,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 12.3.2
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 12.3.2
     /*
     test('delete-using-with-returning-auxiliary-using-column', async () => {
         // RETURNING a column from the USING-joined table (`project.slug`), not the
@@ -220,7 +220,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 12.3.2
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 12.3.2
     /*
     test('delete-using-returning-scaled-adapter-column', async () => {
         // An adapter column read through DELETE … USING … RETURNING:
@@ -254,7 +254,7 @@ describe(ctx.label, () => {
     // (verified against MariaDB 12.3.2). Single-table DELETE ... RETURNING
     // works on this image (it has shipped since MariaDB 10.0.5), but
     // RETURNING on a multi-table DELETE (DELETE ... USING) is not accepted.
-    // TODO[LIMITATION]: see LIMITATIONS.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 12.3.2
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 12.3.2
     /*
     test('delete-using-returning-nullable-projected-optional', async () => {
         // `projectingOptionalValuesAsNullable()` on a DELETE … USING … RETURNING:
@@ -282,7 +282,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 12.3.2
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 12.3.2
     /*
     test('delete-using-returning-nested-using-joined-object', async () => {
         // DELETE … USING … RETURNING folding the USING-joined table's columns into a
@@ -386,7 +386,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — a WITH clause prefixing an UPDATE/DELETE (CTE-on-DML) is only accepted on MariaDB 12.3+; every earlier release rejects it with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — a WITH clause prefixing an UPDATE/DELETE (CTE-on-DML) is only accepted on MariaDB 12.3+; every earlier release rejects it with ER_PARSE_ERROR (1064).
     /*
     test('delete-using-values-source', async () => {
         // The USING target is a `Values` source (vs a table or a forUseInQueryAs CTE).
@@ -415,7 +415,7 @@ describe(ctx.label, () => {
         })
     })
     */
-    // TODO[LIMITATION]: see LIMITATIONS.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 12.3.2
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 12.3.2
     /*
     test('delete-using-returning-one-column-auxiliary-using-column', async () => {
         // `returningOneColumn(project.slug)` returns a column of the USING-joined table —
@@ -443,6 +443,6 @@ describe(ctx.label, () => {
 
 })
 
-// Tests referencing these are commented out above with TODO[LIMITATION]
+// Tests referencing these are commented out above with NOT-SUPPORTED
 // markers; keep the bindings referenced so noUnusedLocals stays green.
 void VProjectIdList

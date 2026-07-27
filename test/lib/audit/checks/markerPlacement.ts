@@ -1,6 +1,6 @@
-// Rule `misplaced-marker` — one of the three first-class reason markers
-// (`// TODO[BUG]:`, `// TODO[LIMITATION]:`, `// NOT-APPLICABLE:`) appearing
-// somewhere OTHER than at a test.
+// Rule `misplaced-marker` — one of the four first-class reason markers
+// (`// TODO[BUG]:`, `// TODO[LIMITATION]:`, `// NOT-SUPPORTED:`,
+// `// NOT-APPLICABLE:`) appearing somewhere OTHER than at a test.
 //
 // These markers mean something specific ABOUT A TEST: why it is commented out /
 // skipped, or why a live test is allowed to stay mock-only. They are consumed by

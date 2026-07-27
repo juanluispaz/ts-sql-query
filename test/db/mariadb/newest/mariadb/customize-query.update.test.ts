@@ -92,7 +92,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
     // test('customize-update-returning-object-with-hooks', async () => {
     //     // The object-RETURNING + `customizeQuery` arm on UPDATE: `.returning({...})`
     //     // yields a composable customizable executable, so the customize hook
@@ -116,7 +116,7 @@ describe(ctx.label, () => {
     //         expect(row).toEqual(expected)
     //     })
     // })
-    // TODO[LIMITATION]: see LIMITATIONS.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
     // test('customize-update-returning-one-column-with-hooks', async () => {
     //     // The single-column RETURNING + `customizeQuery` arm on UPDATE:
     //     // `.returningOneColumn(col)` yields a composable customizable executable,

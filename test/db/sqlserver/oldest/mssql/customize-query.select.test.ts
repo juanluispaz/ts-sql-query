@@ -42,7 +42,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number }>>>()
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
     /*
     test('customize-select-custom-window-emits-named-window', async () => {
         // `customWindow` is the slot for a `WINDOW name AS (...)` clause
@@ -217,7 +217,7 @@ describe(ctx.label, () => {
         expect(result).toEqual([{ id: 2 }])
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
 //     test('customize-recursive-select-projection-only-hooks-render-in-wrapping-cte-with-ordering', async () => {
 //         // The same recursive select consumed as a CTE via `.forUseInQueryAs(...)`, but
 //         // now ALSO carrying `orderBy`. The ordering cannot fold into the recursive term
@@ -260,7 +260,7 @@ describe(ctx.label, () => {
 //         expect(result).toEqual([{ id: 2 }])
 //     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
 //     test('customize-recursive-select-projection-only-hooks-render-in-wrapping-cte-with-limit', async () => {
 //         // A recursive select carrying `limit` (paging), consumed as a CTE via
 //         // `.forUseInQueryAs(...)`. The limit cannot fold into the recursive term, so
@@ -301,7 +301,7 @@ describe(ctx.label, () => {
 //         expect(result).toEqual([{ id: 2 }])
 //     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
 //     test('customize-recursive-select-projection-only-hooks-render-in-wrapping-cte-with-limit-and-offset', async () => {
 //         // A recursive select carrying `limit` + `offset` paging (the fluent API
 //         // reaches OFFSET only after a LIMIT), consumed as a CTE. Neither can fold
@@ -345,7 +345,7 @@ describe(ctx.label, () => {
 //         else expect(result).toEqual([{ id: 2 }])
 //     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
 //     test('customize-recursive-select-projection-only-hooks-render-in-wrapping-cte-with-order-by-and-limit', async () => {
 //         // A recursive select carrying `orderBy` + `limit`, consumed as a CTE. Both
 //         // the ordering and the limit are exposed in the WRAPPING
@@ -409,7 +409,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number }>>>()
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
 //     test('customize-select-all-rawfragment-hooks-kitchen-sink', async () => {
 //         // All seven RawFragment-typed hooks on SELECT applied at once
 //         // - the snapshot is the documentation of exactly where each
@@ -438,7 +438,7 @@ describe(ctx.label, () => {
 //         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
 //         assertType<Exact<typeof result, Array<{ id: number }>>>()
 //     })
-    // TODO[LIMITATION]: see LIMITATIONS.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
 //     test('customize-select-projection-only-hooks-survive-as-cte', async () => {
 //         // A NON-recursive select consumed as a CTE via `.forUseInQueryAs(...)` renders
 //         // ALL FIVE projection/order-by hooks (`afterSelectKeyword` / `beforeColumns` /
@@ -527,7 +527,7 @@ describe(ctx.label, () => {
     })
 
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
 //     test('customize-select-plain-page-projection-hooks-render-in-count-wrap', async () => {
 //         // The count-wrap now fires for ANY customizeQuery hook
 //         // (`|| this.__customization`), so a plain (non-distinct, non-grouped)
@@ -745,7 +745,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; tree: number[] }>>>()
         expect(result).toEqual(expected)
     })
-    // TODO[LIMITATION]: see LIMITATIONS.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
 //     test('customize-recursive-select-custom-window-renders-in-inline-scalar-value', async () => {
 //         // A recursive select consumed as an inline SCALAR value via
 //         // `.forUseAsInlineQueryValue()`, carrying `customWindow` alongside the
@@ -783,7 +783,7 @@ describe(ctx.label, () => {
 //         expect(result).toEqual(expected)
 //     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
 //     test('customize-recursive-one-column-custom-window-and-ordering-in-inline-scalar-value', async () => {
 //         // A one-column recursive select consumed as an inline SCALAR value via
 //         // `.forUseAsInlineQueryValue()`, carrying BOTH `orderBy` and `customWindow`
@@ -823,7 +823,7 @@ describe(ctx.label, () => {
 //         expect(result).toEqual(expected)
 //     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
 //     test('customize-recursive-one-column-custom-window-and-ordering-in-inline-aggregated-array-value', async () => {
 //         // A one-column recursive select consumed as an inline AGGREGATED-ARRAY value
 //         // via `.forUseAsInlineAggregatedArrayValue()`, carrying BOTH `orderBy` and

@@ -246,7 +246,7 @@ npm run tests:where-is -- --search <api-symbol> --for coverage-gap
 full · cell-caveats`, so a single call gives you the public reach of
 the API, every cell **missing** coverage, the legacy examples and the
 declared reason markers on cells (`// NOT-APPLICABLE` /
-`// TODO[BUG]` / `// TODO[LIMITATION]`).
+`// NOT-SUPPORTED` / `// TODO[BUG]` / `// TODO[LIMITATION]`).
 `--cell-caveats` is **always on** under this preset; the level is the
 **view**: without `--coord` you get the per-cell **map** (each cell +
 its caveat counts), with `--coord` the preset auto-raises to the
@@ -517,21 +517,22 @@ Once the canonical is GREEN/YELLOW, propagate via a small `cp` script (or
    under this preset; the level is the **view**: no `--coord` gives
    the per-cell **map** (each cell + its caveat counts, useful when
    browsing the whole matrix), `--coord` auto-raises to the
-   **markers** themselves (`// NOT-APPLICABLE` / `// TODO[BUG]` /
-   `// TODO[LIMITATION]` declared inside the focused cells, e.g.
+   **markers** themselves (`// NOT-APPLICABLE` / `// NOT-SUPPORTED` /
+   `// TODO[BUG]` / `// TODO[LIMITATION]` declared inside the focused cells, e.g.
    "NOT-APPLICABLE: MySQL has no RETURNING") — `--coord` only narrows
    which cells appear, it never changes the view. See
    [`CODE_SEARCH.md`](./CODE_SEARCH.md#the-command-youll-use) for the
-   name-scoped (`--bugs` / `--limitation` / `--not-applicable`) vs
+   name-scoped (`--bugs` / `--limitation` / `--not-supported` / `--not-applicable`) vs
    coord-scoped (`--cell-caveats`) distinction.
 
 2. **Copy the canonical** to each active cell. For tests that don't apply
    to a cell (per the [Symmetry rule](./DESIGN.md#symmetry-rule) or per
    the EXTERNAL_CAVEATS sweep), prepare a `/* */` wrap with the canonical
-   body preserved and one of the three first-class reason markers above
+   body preserved and one of the four first-class reason markers above
    the block: `// NOT-APPLICABLE:` (dialect boundary by design),
-   `// TODO[LIMITATION]:` (library hasn't covered it yet) or
-   `// TODO[BUG]:` (library defect). **Never** replace the body with a
+   `// NOT-SUPPORTED:` (the engine / this engine version / its build / the
+   driver can't run it), `// TODO[LIMITATION]:` (library hasn't covered it
+   yet) or `// TODO[BUG]:` (library defect). **Never** replace the body with a
    stub — see
    [`DESIGN.md` § Full-canonical-body discipline](./DESIGN.md#full-canonical-body),
    [`ANTIPATTERNS.md` § Stub as commented test](./ANTIPATTERNS.md#2-stub-as-commented-test)
@@ -574,7 +575,8 @@ Once the canonical is GREEN/YELLOW, propagate via a small `cp` script (or
    Must pass. (For the inner edit loop use `npm run validate:tests:newest`.) Errors often signal that the cell's connection type
    rejects an API used in the test — re-check whether the right answer is
    "this dialect doesn't support it" (block-comment with
-   `// NOT-APPLICABLE: <reason>`), "the lib hasn't covered it yet"
+   `// NOT-APPLICABLE: <reason>`), "the engine can't run it"
+   (`// NOT-SUPPORTED: …`), "the lib hasn't covered it yet"
    (`// TODO[LIMITATION]: …`) or "we hit the lib bug from §4.3"
    (`// TODO[BUG]: …`).
 

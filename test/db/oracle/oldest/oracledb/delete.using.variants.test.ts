@@ -34,7 +34,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — Oracle multi-table UPDATE…FROM / DELETE…USING
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — Oracle multi-table UPDATE…FROM / DELETE…USING
     // requires Oracle Database 23ai; earlier Oracle (this cell) rejects the FROM/USING keyword
     // at the parser (ORA-00933). Emission is the same standard form on all versions by design.
     /*
@@ -66,7 +66,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — Oracle multi-table UPDATE…FROM / DELETE…USING
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — Oracle multi-table UPDATE…FROM / DELETE…USING
     // requires Oracle Database 23ai; earlier Oracle (this cell) rejects the FROM/USING keyword
     // at the parser (ORA-00933). Emission is the same standard form on all versions by design.
     /*
@@ -138,7 +138,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — Oracle multi-table UPDATE…FROM / DELETE…USING
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — Oracle multi-table UPDATE…FROM / DELETE…USING
     // requires Oracle Database 23ai; earlier Oracle (this cell) rejects the FROM/USING keyword
     // at the parser (ORA-00933). Emission is the same standard form on all versions by design.
     /*
@@ -189,7 +189,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — Oracle multi-table UPDATE…FROM / DELETE…USING
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — Oracle multi-table UPDATE…FROM / DELETE…USING
     // requires Oracle Database 23ai; earlier Oracle (this cell) rejects the FROM/USING keyword
     // at the parser (ORA-00933). Emission is the same standard form on all versions by design.
     /*
@@ -211,7 +211,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — Oracle multi-table UPDATE…FROM / DELETE…USING
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — Oracle multi-table UPDATE…FROM / DELETE…USING
     // requires Oracle Database 23ai; earlier Oracle (this cell) rejects the FROM/USING keyword
     // at the parser (ORA-00933). Emission is the same standard form on all versions by design.
     /*
@@ -250,7 +250,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — Oracle multi-table UPDATE…FROM / DELETE…USING
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — Oracle multi-table UPDATE…FROM / DELETE…USING
     // requires Oracle Database 23ai; earlier Oracle (this cell) rejects the FROM/USING keyword
     // at the parser (ORA-00933). Emission is the same standard form on all versions by design.
     /*
@@ -285,7 +285,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — Oracle multi-table UPDATE…FROM / DELETE…USING
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — Oracle multi-table UPDATE…FROM / DELETE…USING
     // requires Oracle Database 23ai; earlier Oracle (this cell) rejects the FROM/USING keyword
     // at the parser (ORA-00933). Emission is the same standard form on all versions by design.
     /*
@@ -327,7 +327,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — Oracle multi-table UPDATE…FROM / DELETE…USING
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — Oracle multi-table UPDATE…FROM / DELETE…USING
     // requires Oracle Database 23ai; earlier Oracle (this cell) rejects the FROM/USING keyword
     // at the parser (ORA-00933). Emission is the same standard form on all versions by design.
     /*
@@ -377,7 +377,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — Oracle multi-table UPDATE…FROM / DELETE…USING
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — Oracle multi-table UPDATE…FROM / DELETE…USING
     // requires Oracle Database 23ai; earlier Oracle (this cell) rejects the FROM/USING keyword
     // at the parser (ORA-00933). Emission is the same standard form on all versions by design.
     /*
@@ -431,7 +431,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — Oracle multi-table UPDATE…FROM / DELETE…USING
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — Oracle multi-table UPDATE…FROM / DELETE…USING
     // requires Oracle Database 23ai; earlier Oracle (this cell) rejects the FROM/USING keyword
     // at the parser (ORA-00933). Emission is the same standard form on all versions by design.
     /*
@@ -512,7 +512,7 @@ describe(ctx.label, () => {
         })
     })
     */
-    // TODO[LIMITATION]: see LIMITATIONS.md — Oracle multi-table UPDATE…FROM / DELETE…USING
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — Oracle multi-table UPDATE…FROM / DELETE…USING
     // requires Oracle Database 23ai; earlier Oracle (this cell) rejects the FROM/USING keyword
     // at the parser (ORA-00933). Emission is the same standard form on all versions by design.
     /*

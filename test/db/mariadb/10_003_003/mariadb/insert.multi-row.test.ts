@@ -165,7 +165,7 @@ describe(ctx.label, () => {
             expect(typeof ids[0]).toBe('number')
         })
     })
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
     test('multi-row-on-conflict-returning-last-id', async () => {
         // Multi-row VALUES + on-conflict + returningLastInsertedId(). Two project

@@ -9767,7 +9767,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: MySQL 8.0 evaluates `col IN (<const>, <subquery>)` for a
+    // NOT-SUPPORTED: MySQL 8.0 evaluates `col IN (<const>, <subquery>)` for a
     // TIME column by dropping the constant operand when the list contains a
     // subquery, so the row matching the constant is excluded (fixed in MySQL 9).
     /*
@@ -10017,7 +10017,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: MySQL 8.0 evaluates `col IN (<const>, <subquery>)` for a
+    // NOT-SUPPORTED: MySQL 8.0 evaluates `col IN (<const>, <subquery>)` for a
     // TIME column by dropping the constant operand when the list contains a
     // subquery, so the row matching the constant is excluded (fixed in MySQL 9).
     /*

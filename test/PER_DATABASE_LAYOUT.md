@@ -50,7 +50,7 @@ Three rules from [`DESIGN.md`](./DESIGN.md):
    connectors, not just one database) contains the same `.test.ts` files with the
    same `test(...)` names in the same order. The audit
    ([`tests:audit`](./TEST_LIB.md#audittestsymmetryts--the-symmetry-audit))
-   enforces this — comment out non-applicable tests (with a `// NOT-APPLICABLE:` /
+   enforces this — comment out non-applicable tests (with a `// NOT-APPLICABLE:` / `// NOT-SUPPORTED:` /
    `// TODO[*]:` marker), do not delete them. Exempt from the comparison:
    `config.*` files (connection-config-specific), `*.generated.test.ts`, and files
    whose name embeds a database name (`select.postgres-const-force-type-cast.test.ts`).

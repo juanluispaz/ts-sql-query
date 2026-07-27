@@ -137,7 +137,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
 //     test('customize-insert-returning-object-with-hooks', async () => {
 //         // `.returning({...})` yields a composable customizable executable, so
 //         // the customize hook lands on the same statement while the RETURNING
@@ -170,7 +170,7 @@ describe(ctx.label, () => {
 //         })
 //     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
 //     test('customize-insert-on-conflict-returning-object-with-hooks', async () => {
 //         // The ON CONFLICT returning × customizeQuery composition — the
 //         // returning×customize combination is covered for plain / from-select /
@@ -206,7 +206,7 @@ describe(ctx.label, () => {
 //             expect(row).toEqual(expected)
 //         })
 //     })
-    // TODO[LIMITATION]: see LIMITATIONS.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
 //     test('customize-insert-returning-one-column-with-hooks', async () => {
 //         // The single-column RETURNING + `customizeQuery` arm on INSERT:
 //         // `.returningOneColumn(col)` yields a composable customizable executable,

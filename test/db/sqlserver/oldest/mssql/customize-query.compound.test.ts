@@ -400,7 +400,7 @@ describe(ctx.label, () => {
         expect(sorted).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
     /*
     test('customize-compound-arm-custom-window-lands-on-un-parenthesized-first-arm', async () => {
         // A `customWindow` hook on a compound ARM: the first select is customized BEFORE

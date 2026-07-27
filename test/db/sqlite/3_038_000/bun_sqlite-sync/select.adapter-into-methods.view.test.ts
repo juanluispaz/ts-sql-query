@@ -138,7 +138,7 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: this SQLite build has no reverse() function.
+    // NOT-SUPPORTED: this SQLite build has no reverse() function.
     /*
     test('version-bracketed-into-reverse-keeps-result-leaf-bracketed', async () => {
         // `versionBracketed.reverse()` — the result leaf inherits bracketAdapter,
@@ -387,7 +387,7 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    // TODO[LIMITATION]: this SQLite build has no reverse() function.
+    // NOT-SUPPORTED: this SQLite build has no reverse() function.
     /*
     test('channel-bracketed-into-reverse-keeps-result-leaf-bracketed', async () => {
         // `channelBracketed.reverse()` on the OPTIONAL receiver — the result leaf

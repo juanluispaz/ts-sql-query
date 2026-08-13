@@ -653,6 +653,11 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     concatIfValue(value: any): any {
         return new SqlOperation1ValueSourceIfValueOrIgnore('_concat', this, value, this.__valueType, this.__valueTypeName, getOptionalType2(this, value), getTypeAdapter2(this, value))
     }
+    concatIgnoringNull(value: any): any {
+        // A NULL operand counts as the empty string here, so the result is optional only when
+        // EVERY operand is: `getRequiredType2` keeps the STRICTEST operand instead of the loosest.
+        return new SqlOperation1ValueSource('_concatIgnoringNull', this, value, this.__valueType, this.__valueTypeName, getRequiredType2(this, value), getTypeAdapter2(this, value))
+    }
     substrToEnd(start: any): any {
         return new SqlOperation1ValueSource('_substrToEnd', this, start, this.__valueType, this.__valueTypeName, getOptionalType2(this, start), getTypeAdapter2(this, start))
     }
@@ -2068,6 +2073,33 @@ function mergeOptional(op1: OptionalType, op2: OptionalType): OptionalType {
     } else {
         return 'optional'
     }
+}
+
+function mergeRequired(op1: OptionalType, op2: OptionalType): OptionalType {
+    // The dual of `mergeOptional`: keep the MORE strict option. See `MergeRequired` in
+    // expressions/values.ts for why an operation that reads NULL as the empty string merges
+    // this way.
+    if (op1 === 'required' || op2 === 'required') {
+        return 'required'
+    }
+    if (op1 === 'requiredInOptionalObject' || op2 === 'requiredInOptionalObject') {
+        return 'requiredInOptionalObject'
+    }
+    if (op1 === 'originallyRequired' || op2 === 'originallyRequired') {
+        return 'originallyRequired'
+    }
+    return 'optional'
+}
+
+function getRequiredType2(a: ValueSourceImpl, b: any): OptionalType {
+    if (isValueSource(b)) {
+        return mergeRequired(a.__optionalType, __getValueSourcePrivate(b).__optionalType)
+    }
+    if (b === null || b === undefined) {
+        return a.__optionalType
+    }
+    // A constant of the language is never NULL, so it alone makes the result always present.
+    return 'required'
 }
 
 function getOptionalType2(a: ValueSourceImpl, b: any): OptionalType {

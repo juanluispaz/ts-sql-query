@@ -45,6 +45,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
             _and: true,
             _or: true,
             _concat: true,
+            // Same as `_concat`: the base spelling is the `||` operator (plus a `coalesce` per
+            // nullable operand), so it must be wrapped when embedded as an operand. A dialect
+            // that emits a self-contained call sets it back to false.
+            _concatIgnoringNull: true,
             _add: true,
             _subtract: true,
             _multiply: true,
@@ -3399,6 +3403,69 @@ export class AbstractSqlBuilder implements SqlBuilder {
             this._appendSqlParenthesisExcluding(valueSource, params, '_concat', false),
             this._appendValueParenthesisExcluding(value, params, columnType, columnTypeName, typeAdapter, '_concat', false)
         )
+    }
+    /**
+     * `concatIgnoringNull`: concatenation that reads a NULL operand as the empty string instead
+     * of propagating it. A SEPARATE operation from `_concat`, not a mode of it — the two have
+     * their own semantics, their own type rule (the result is optional only when EVERY operand
+     * is) and their own spelling per dialect, and neither `_concat`'s dialect overrides nor
+     * Oracle's NULL-propagation seams (`concatFunction` / the poison `CASE`) apply here.
+     *
+     * Two build-time facts shape the emission. An operand that is ALREADY NULL (a `null` /
+     * `undefined` value, an `optionalConst(null)`) contributes the empty string, so it is dropped
+     * rather than emitted and neutralised: no bound parameter, and a chain that loses one operand
+     * renders as the other alone. An operand that merely MAY be null is the only one wrapped, so a
+     * concatenation of required operands stays the plain `a || b` `_concat` already emits — right,
+     * since the two operations differ only on NULL. A nested node of this same operation is never
+     * wrapped either: it has neutralised its own operands already and cannot answer NULL here.
+     *
+     * A chain needs no walking: the operand append excludes this same operation from parenthesis,
+     * so the inner node renders through this method again and the whole chain stays one flat
+     * `a || b || c`.
+     *
+     * `coalesce(x, '') || …` is deliberate over the native NULL-ignoring call these two engines
+     * also have (PostgreSQL's `concat(x, …)`, SQLite 3.44+'s). The call is shorter to read, and
+     * nothing else:
+     *
+     *   - It is not cheaper. `coalesce` is NOT a function on either engine — PostgreSQL has no
+     *     `coalesce` row in `pg_proc` at all (it is a `CoalesceExpr` node) and SQLite compiles it
+     *     to a `NotNull` jump plus the constant, zero `Function` opcodes. Both short-circuit.
+     *     `concat` IS one real call, and on PostgreSQL a `VARIADIC "any"` one that renders every
+     *     argument through its type's output function.
+     *   - It costs reach on PostgreSQL. That output-function dependency (session settings such as
+     *     `TimeZone`) is why `concat` is declared STABLE, so an expression built with it cannot
+     *     back an expression index or a generated column ("functions in index expression must be
+     *     marked IMMUTABLE"), while `||` and `coalesce` can.
+     *
+     * Only the operands that can be NULL are wrapped, so the cost lands exactly on the operand
+     * that needs it. (`concat` also only exists from SQLite 3.44 — a fact about the engine, not
+     * part of the decision: the two points above hold on every version.)
+     */
+    _concatIgnoringNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        let result = ''
+        if (!this._isNullValue(valueSource)) {
+            result = this._appendSqlParenthesisExcluding(valueSource, params, '_concatIgnoringNull', false)
+            if (this._isOptionalValue(valueSource) && operationOf(valueSource) !== '_concatIgnoringNull') {
+                result = "coalesce(" + result + ", '')"
+            }
+        }
+        if (!this._isNullValue(value)) {
+            let right = this._appendValueParenthesisExcluding(value, params, columnType, columnTypeName, typeAdapter, '_concatIgnoringNull', false)
+            if (this._isOptionalValue(value) && operationOf(value) !== '_concatIgnoringNull') {
+                right = "coalesce(" + right + ", '')"
+            }
+            if (result) {
+                result = result + ' || ' + right
+            } else {
+                result = right
+            }
+        }
+        if (!result) {
+            // Every operand was NULL at build time. The empty string is what the operation answers
+            // then — and on Oracle, where '' IS NULL, the NULL its `||` answers.
+            return "''"
+        }
+        return result
     }
     // The substr/substring family. These mirror the two JavaScript methods of the same
     // names, which differ ONLY in how they treat a negative index:

@@ -228,6 +228,7 @@ interface StringValueSource extends ComparableValueSource<string, 'string'> {
     collate(collation: string): StringValueSource
     concatIfValue(value: string | null | undefined): StringValueSource
     concat(value: string | this): StringValueSource
+    concatIgnoringNull(value: string | this): StringValueSource
     substrToEnd(start: number | NumberValueSource): StringValueSource
     substringToEnd(start: number | NumberValueSource): StringValueSource
     substr(start: number | NumberValueSource, count: number | NumberValueSource): StringValueSource

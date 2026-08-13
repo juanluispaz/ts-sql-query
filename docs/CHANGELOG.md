@@ -4,6 +4,16 @@ search:
 ---
 # Change Log
 
+## v2.0.0-beta.3 (Unreleased)
+
+**New features**:
+
+- New `.concatIgnoringNull(...)` on string value expressions: a concatenation that reads a `NULL` operand as the empty string instead of propagating it, next to the existing `.concat(...)`, which keeps propagating it. `tCustomer.firstName.concatIgnoringNull(tCustomer.middleName)` gives the first name when there is no middle name, where `.concat(...)` gives `NULL`.
+    - Because a `NULL` operand no longer poisons the result, the result is optional only when **every** operand is, and the returned type says so: the example above is typed `string`, not `string | undefined`.
+    - Each database emits its own best form — `coalesce(a, '') || b` on PostgreSQL and SQLite (indexable, unlike their `concat(...)`, which is not immutable), `concat_ws('', a, b)` on MySQL and MariaDB (their `concat(...)` is the NULL-propagating one), `concat(a, b)` on SQL Server, and Oracle's native `||`. An operand that cannot be `NULL` adds nothing to the generated SQL, and one that is already `NULL` when the query is built is dropped from it.
+    - On Oracle the empty string **is** `NULL`, so a concatenation whose operands are *all* `NULL` answers `NULL` there and the empty string everywhere else.
+    - This was previously not expressible in a portable way: wrapping each operand in `.valueWhenNull('')` works on the other five databases, but not on Oracle, where the empty string it falls back to is itself `NULL`.
+
 ## v2.0.0-beta.2
 
 **Testing and quality**:
@@ -40,7 +50,7 @@ This beta's central focus was test coverage, and that work is what surfaced the 
 Each behavior change below keeps an opt-out that restores the previous behavior.
 
 - PostgreSQL, SQL Server: `.minValue(...)` / `.maxValue(...)` now return `NULL` when an operand is `NULL` (matching the other databases and the declared optional type), instead of ignoring the `NULL` and returning the present value. Opt out with `ignoreNullInMinAndMaxValue = true`, or provide your own null-propagating function with `minValueFunction` / `maxValueFunction`. See [PostgreSQL](configuration/supported-databases/postgresql.md#minvalue--maxvalue-and-null) / [SQL Server](configuration/supported-databases/sqlserver.md#minvalue--maxvalue-and-null).
-- Oracle: `.concat(...)` and the affix predicates (`startsWith` / `endsWith` / `contains` and their `Insensitive` variants) now return `NULL` when an operand is `NULL`, instead of reading the `NULL` as an empty string; previously an affix predicate built on a `NULL` search term matched every row instead of none. Opt out with `ignoreNullInConcat = true`, or provide a null-propagating package with `concatFunction`. See [Oracle](configuration/supported-databases/oracle.md#concatenation-and-null).
+- Oracle: `.concat(...)` and the affix predicates (`startsWith` / `endsWith` / `contains` and their `Insensitive` variants) now return `NULL` when an operand is `NULL`, instead of reading the `NULL` as an empty string; previously an affix predicate built on a `NULL` search term matched every row instead of none. Opt out with `ignoreNullInConcat = true`, or provide a null-propagating package with `concatFunction`. If what you wanted was the ignore-`NULL` behavior of a *particular* concatenation rather than of the whole connection, use `.concatIgnoringNull(...)` (added in v2.0.0-beta.3) instead of the opt-out: it means the same thing on every database, and it does not change how the affix predicates treat a `NULL` search term. See [Oracle](configuration/supported-databases/oracle.md#concatenation-and-null).
 - SQL Server, Oracle: `.replaceAll(...)` is now case-sensitive regardless of the database collation, so on a case-insensitive database it no longer replaces text of a different case. Opt out with `replaceCollation = ''`. See [Collations](configuration/collations.md#replacecollation-sql-server-and-oracle).
 - SQL Server: `.length()` now counts trailing blanks (matching JavaScript's `String.length`), instead of using the native `LEN()` that excludes them. Opt out with `excludeTrailingBlanksInLength = true` (a genuine trade-off: the bare `len(x)` is lighter but under-reports by one for a value at its column's declared maximum length). See [SQL Server](configuration/supported-databases/sqlserver.md#length-and-trailing-blanks).
 

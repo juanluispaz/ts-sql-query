@@ -82,6 +82,10 @@ title like (case when "body" is null then null else "body" || '%' end) escape '\
 
 Only the leanest check the build-time optionality needs is emitted: a concatenation whose operands are all **required** stays the bare `||` (`title || :0`), and a chain null-checks only the operands that can be NULL, once, sharing a single `CASE` (`case when body is null then null else body || :0 || :1 end`).
 
+!!! tip "Only for `concat` — `concatIgnoringNull` is untouched"
+
+    Everything on this section is about `concat`, whose contract is to propagate NULL. When you *want* a NULL operand read as the empty string, use [`concatIgnoringNull`](../../api/value-expressions.md) instead of reconfiguring the connection: it is a separate operation with its own contract, it emits Oracle's bare `||` (no `CASE`, nothing to opt out of), and the same call means the same thing on every database. The settings below only change how `concat` — and the affix predicates — handle NULL.
+
 ### Keeping Oracle's native ignore-NULL behavior
 
 If you prefer Oracle's own semantics — a NULL operand read as the empty string rather than propagated — set `ignoreNullInConcat = true`:

@@ -33,6 +33,124 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    test('concat-ignoring-null', async () => {
+        // issue 1 has body = NULL. `.concatIgnoringNull(...)` reads that NULL as
+        // the empty string instead of propagating it the way `.concat(...)` does,
+        // so the result is the title alone. And because one operand (`title`) is
+        // always present, the result is typed `string`, not `string | undefined`.
+        const expected = [{ id: 1, label: 'Update hero copy' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:    tIssue.id,
+                label: tIssue.body.concatIgnoringNull(tIssue.title),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(body, '') || title as label from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('concat-ignoring-null-required-operands', async () => {
+        // With no operand that can be NULL there is nothing to neutralise, so the
+        // emission collapses to the same concatenation `.concat(...)` produces:
+        // the two operations differ only on NULL.
+        const expected = [{ id: 1, label: 'Update hero copy/' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:    tIssue.id,
+                label: tIssue.title.concatIgnoringNull('/'),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title || ? as label from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "/",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('concat-ignoring-null-chain', async () => {
+        // A chain of three operands, of which only `body` (NULL on issue 1) can
+        // be NULL: it is the only one that costs anything extra in the emitted
+        // SQL, and it is read as the empty string rather than poisoning the rest.
+        const expected = [{ id: 1, label: 'Update hero copy!' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:    tIssue.id,
+                label: tIssue.body.concatIgnoringNull(tIssue.title).concatIgnoringNull('!'),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(body, '') || title || ? as label from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "!",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('concat-ignoring-null-all-operands-optional', async () => {
+        // Every operand optional is the one case where the result can still be
+        // NULL, so it keeps the optional marker (`?: string`). issue 2 has
+        // body = 'Use new tokens', so a value is observed.
+        const expected = [{ id: 2, label: 'Use new tokensUse new tokens' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({
+                id:    tIssue.id,
+                label: tIssue.body.concatIgnoringNull(tIssue.body),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(body, '') || coalesce(body, '') as label from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; label?: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('concat-ignoring-null-drops-build-time-null-operand', async () => {
+        // An operand that is already NULL when the query is built contributes the
+        // empty string, so it is dropped from the emitted SQL and binds no
+        // parameter, instead of neutralising a constant at run time.
+        const expected = [{ id: 1, label: 'Update hero copy' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:    tIssue.id,
+                label: tIssue.title.concatIgnoringNull(ctx.conn.optionalConst(null, 'string')),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as label from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
     test('concat-chain-with-conditional-flattens', async () => {
         // Chains `.concat(...)` and `.concatIfValue(...)` with every ifValue
         // argument present, so all segments are included.

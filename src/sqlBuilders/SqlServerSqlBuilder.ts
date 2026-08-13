@@ -35,6 +35,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // emit a bare `replace(...)` with no trailing collate, so wrapping it would only add noise).
         this._operationsThatNeedParenthesis._replaceAll = true
         this._operationsThatNeedParenthesis._replaceAllInsensitive = true
+        // `_concatIgnoringNull` is a `concat(...)` call here, never the `+` operator `_concat`
+        // uses, so it is self-delimiting and needs no wrapping as an operand.
+        this._operationsThatNeedParenthesis._concatIgnoringNull = false
     }
     override _appendRawColumnName(column: DBColumn, params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
@@ -1153,6 +1156,27 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             result += this._appendValueParenthesisExcluding(value, params, columnType, columnTypeName, typeAdapter, '_concat', false)
         }
         return result
+    }
+    override _concatIgnoringNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        // T-SQL's `concat(...)` is exactly this operation: it reads a NULL argument as the empty
+        // string and answers '' (not NULL) when every argument is NULL, so no operand needs the
+        // neutralising the base form applies. It also converts a `uniqueidentifier` argument
+        // implicitly, giving the same string the explicit `convert(nvarchar(36), …)` that `_concat`
+        // needs for `+` produces.
+        //
+        // The call is kept BINARY rather than flattening the chain into one call: `concat` here
+        // "requires 2 to 254 arguments", so an operand dropped for being NULL at build time could
+        // otherwise leave a single-argument call the engine rejects.
+        if (this._isNullValue(value)) {
+            if (this._isNullValue(valueSource)) {
+                return "''"
+            }
+            return this._appendSqlParenthesisExcluding(valueSource, params, '_concatIgnoringNull', false)
+        }
+        if (this._isNullValue(valueSource)) {
+            return this._appendValueParenthesisExcluding(value, params, columnType, columnTypeName, typeAdapter, '_concatIgnoringNull', false)
+        }
+        return 'concat(' + this._appendSqlParenthesisExcluding(valueSource, params, '_concatIgnoringNull', false) + ', ' + this._appendValueParenthesisExcluding(value, params, columnType, columnTypeName, typeAdapter, '_concatIgnoringNull', false) + ')'
     }
     override _length(params: any[], valueSource: ToSql): string {
         if (this._connectionConfiguration.excludeTrailingBlanksInLength) {

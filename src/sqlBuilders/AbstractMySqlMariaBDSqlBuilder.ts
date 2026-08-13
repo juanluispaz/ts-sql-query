@@ -1,5 +1,5 @@
 import type { ToSql, SelectData, InsertData, UpdateData, DeleteData, FlatQueryColumns, OrderByEntry } from './SqlBuilder.js'
-import { getQueryColumn, flattenQueryColumns } from './SqlBuilder.js'
+import { getQueryColumn, flattenQueryColumns, operationOf } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import type { AnyValueSource, __AggregatedArrayColumns, ValueType } from '../expressions/values.js'
 import { isValueSource } from '../expressions/values.js'
@@ -11,10 +11,23 @@ import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import { SqlOperation1ValueSource, SqlOperation1ValueSourceIfValueOrIgnore } from '../internal/ValueSourceImpl.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 
+/**
+ * Minimal view of a `_concatIgnoringNull` operation node (a `SqlOperation1ValueSource`) so the
+ * builder can flatten a chain down to its atomic operands. Only reached after
+ * `operationOf(node) === '_concatIgnoringNull'` has confirmed the shape.
+ */
+interface ConcatIgnoringNullNode {
+    __valueSource: AnyValueSource
+    __value: unknown
+}
+
 export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     constructor() {
         super()
         this._operationsThatNeedParenthesis._concat = false
+        // Both spellings of `_concatIgnoringNull` here (`concat_ws(...)` / `concat(...)`) are
+        // self-contained calls, so neither needs wrapping as an operand.
+        this._operationsThatNeedParenthesis._concatIgnoringNull = false
         this._operationsThatNeedParenthesis._is = true
         this._operationsThatNeedParenthesis._getDate = true
         // `_getMilliseconds` is overridden below as a self-contained call, so it never
@@ -567,6 +580,60 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
         result += ')'
         return result
+    }
+    override _concatIgnoringNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        // `concat(...)` is the NULL-PROPAGATING one on this dialect family (`concat('a', null)` is
+        // NULL — the opposite of PostgreSQL's), so it is what `_concat` emits and it cannot serve
+        // here. `concat_ws(<separator>, ...)` is the one that SKIPS a NULL argument, and with an
+        // empty separator it is exactly this operation: `concat_ws('', 'a', null, 'b')` is 'ab',
+        // and all-NULL arguments give '' rather than NULL. No operand needs the neutralising the
+        // base form applies.
+        //
+        // The chain is flattened into ONE call, the way `_concat` flattens through
+        // `_appendMaybeInnerConcat`. An empty argument list means every operand was NULL at build
+        // time; a single one is fine, `concat_ws` takes any number of arguments.
+        const args = this._appendMaybeInnerConcatIgnoringNull(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+        if (!args) {
+            return "''"
+        }
+        return "concat_ws('', " + args + ')'
+    }
+    /**
+     * The flattened argument list of a `concatIgnoringNull` chain: a nested node of that same
+     * operation is descended into rather than rendered, so `a.concatIgnoringNull(b)
+     * .concatIgnoringNull(c)` emits one call over three arguments. Anything else is one atomic
+     * argument — including a `_concat` node, which keeps its own NULL-propagating emission and is
+     * merely one possibly-null argument from here — and an operand that is already NULL when the
+     * query is built is dropped, contributing the empty string it would concatenate.
+     *
+     * The types threaded into a nested node's value are its OWN left operand's, exactly as
+     * `SqlOperation1ValueSource.__toSql` threads them when it reaches the builder. The `_concat`
+     * twin of this walk is `_appendMaybeInnerConcat` below.
+     */
+    _appendMaybeInnerConcatIgnoringNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        let result = ''
+        if (operationOf(valueSource) === '_concatIgnoringNull') {
+            const node = valueSource as unknown as ConcatIgnoringNullNode
+            const nodePrivate = __getValueSourcePrivate(node.__valueSource)
+            result = this._appendMaybeInnerConcatIgnoringNull(params, node.__valueSource as unknown as ToSql, node.__value, nodePrivate.__valueType, nodePrivate.__valueTypeName, nodePrivate.__typeAdapter)
+        } else if (!this._isNullValue(valueSource)) {
+            result = this._appendSqlParenthesisExcluding(valueSource, params, '_concatIgnoringNull', false)
+        }
+        let right = ''
+        if (operationOf(value) === '_concatIgnoringNull') {
+            const node = value as ConcatIgnoringNullNode
+            const nodePrivate = __getValueSourcePrivate(node.__valueSource)
+            right = this._appendMaybeInnerConcatIgnoringNull(params, node.__valueSource as unknown as ToSql, node.__value, nodePrivate.__valueType, nodePrivate.__valueTypeName, nodePrivate.__typeAdapter)
+        } else if (!this._isNullValue(value)) {
+            right = this._appendValueParenthesisExcluding(value, params, columnType, columnTypeName, typeAdapter, '_concatIgnoringNull', false)
+        }
+        if (!result) {
+            return right
+        }
+        if (!right) {
+            return result
+        }
+        return result + ', ' + right
     }
     _appendMaybeInnerConcat(valueSource: AnyValueSource, params: any[]): string {
         if (valueSource instanceof SqlOperation1ValueSource && valueSource.__operation === '_concat') {

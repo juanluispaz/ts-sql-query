@@ -270,6 +270,35 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         return true
     }
+    override _concatIgnoringNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        // Oracle's native `||` already reads a NULL operand as the empty string — the very
+        // behaviour `_concat` above has to emulate AWAY — so this is the base form without the
+        // `coalesce` it wraps nullable operands in, which would be a no-op here anyway: the empty
+        // string IS NULL on this dialect. Build-time NULL operands are still dropped.
+        //
+        // For that same reason a chain whose operands are ALL NULL answers NULL here and the empty
+        // string elsewhere; that is the one divergence of this operation, and it is not
+        // expressible away (see the `concatIgnoringNull` documentation).
+        //
+        // The `concatFunction` / `ignoreNullInConcat` configuration is deliberately NOT consulted:
+        // both exist to choose how `concat` PROPAGATES NULL, a question this operation never asks.
+        let result = ''
+        if (!this._isNullValue(valueSource)) {
+            result = this._appendSqlParenthesisExcluding(valueSource, params, '_concatIgnoringNull', false)
+        }
+        if (!this._isNullValue(value)) {
+            const right = this._appendValueParenthesisExcluding(value, params, columnType, columnTypeName, typeAdapter, '_concatIgnoringNull', false)
+            if (result) {
+                result = result + ' || ' + right
+            } else {
+                result = right
+            }
+        }
+        if (!result) {
+            return "''"
+        }
+        return result
+    }
     override _likePatternStartingWith(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
         const concatFunction = this._connectionConfiguration.concatFunction
         if (concatFunction) {

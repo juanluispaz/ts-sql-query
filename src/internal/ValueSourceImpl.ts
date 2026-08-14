@@ -653,9 +653,16 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     concatIfValue(value: any): any {
         return new SqlOperation1ValueSourceIfValueOrIgnore('_concat', this, value, this.__valueType, this.__valueTypeName, getOptionalType2(this, value), getTypeAdapter2(this, value))
     }
+    concatIgnoringNullIfValue(value: any): any {
+        // The optionality is the RECEIVER's (`getOptionalType2` with a plain value), not the
+        // stricter one `concatIgnoringNull` computes: an ABSENT value leaves the receiver alone,
+        // and whether it is absent is a run-time fact. Absence also depends on the connection's
+        // `allowEmptyString`, which this constructor cannot see.
+        return new SqlOperation1ValueSourceIfValueOrIgnore('_concatIgnoringNull', this, value, this.__valueType, this.__valueTypeName, getOptionalType2(this, value), getTypeAdapter2(this, value))
+    }
     concatIgnoringNull(value: any): any {
-        // A NULL operand counts as the empty string here, so the result is optional only when
-        // EVERY operand is: `getRequiredType2` keeps the STRICTEST operand instead of the loosest.
+        // A NULL operand counts as the empty string, so the result is optional only when EVERY
+        // operand is: `getRequiredType2` keeps the STRICTEST operand instead of the loosest.
         return new SqlOperation1ValueSource('_concatIgnoringNull', this, value, this.__valueType, this.__valueTypeName, getRequiredType2(this, value), getTypeAdapter2(this, value))
     }
     substrToEnd(start: any): any {

@@ -8,10 +8,10 @@ search:
 
 **New features**:
 
-- New `.concatIgnoringNull(...)` on string value expressions: a concatenation that reads a `NULL` operand as the empty string instead of propagating it, next to the existing `.concat(...)`, which keeps propagating it. `tCustomer.firstName.concatIgnoringNull(tCustomer.middleName)` gives the first name when there is no middle name, where `.concat(...)` gives `NULL`.
+- New `.concatIgnoringNull(...)` / `.concatIgnoringNullIfValue(...)` on string value expressions: a concatenation that reads a `NULL` operand as the empty string instead of propagating it, next to the existing `.concat(...)`, which keeps propagating it. `tCustomer.firstName.concatIgnoringNull(tCustomer.middleName)` gives the first name when there is no middle name, where `.concat(...)` gives `NULL`.
     - Because a `NULL` operand no longer poisons the result, the result is optional only when **every** operand is, and the returned type says so: the example above is typed `string`, not `string | undefined`.
     - Each database emits its own best form — `coalesce(a, '') || b` on PostgreSQL and SQLite (indexable, unlike their `concat(...)`, which is not immutable), `concat_ws('', a, b)` on MySQL and MariaDB (their `concat(...)` is the NULL-propagating one), `concat(a, b)` on SQL Server, and Oracle's native `||`. An operand that cannot be `NULL` adds nothing to the generated SQL, and one that is already `NULL` when the query is built is dropped from it.
-    - On Oracle the empty string **is** `NULL`, so a concatenation whose operands are *all* `NULL` answers `NULL` there and the empty string everywhere else.
+    - `.concatIgnoringNullIfValue(...)` is the dynamic-query twin, as `.concatIfValue(...)` is for `.concat(...)`: it takes a `string | null | undefined` and, when the value is absent, drops that operand from the generated SQL instead of binding it.
     - This was previously not expressible in a portable way: wrapping each operand in `.valueWhenNull('')` works on the other five databases, but not on Oracle, where the empty string it falls back to is itself `NULL`.
 
 ## v2.0.0-beta.2

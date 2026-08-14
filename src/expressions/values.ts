@@ -42,10 +42,10 @@ export function __mergeOptional(op1: OptionalType, op2: OptionalType): OptionalT
 
 export type MergeRequired<OP1 extends OptionalType, OP2 extends OptionalType> =
     // Always select the more strict option (the dual of MergeOptional). For an operation whose
-    // result is NULL only when EVERY operand is NULL — `concatIgnoringNull`, where a NULL operand
-    // counts as the empty string — the strictest operand decides: one operand that is always
-    // present makes the result always present, and a `requiredInOptionalObject` /
-    // `originallyRequired` operand keeps the result present exactly when that operand is.
+    // result is NULL only when EVERY operand is — `concatIgnoringNull`, where a NULL operand counts
+    // as the empty string — the strictest operand decides: one operand that is always present makes
+    // the result always present, while all-optional operands can leave nothing but the empty string,
+    // which the library projects as absent unless `allowEmptyString` says otherwise.
     OP1 extends 'any' ? 'optional' :
     OP2 extends 'any' ? 'optional' :
     OP1 extends 'required' ? 'required' :
@@ -780,20 +780,27 @@ export interface StringValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/
     concat(value: string): StringValueSource<SOURCE, OPTIONAL_TYPE>
     concat<VALUE extends IStringValueSource<any, any>>(value: VALUE): StringValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     /**
+     * {@link concatIgnoringNull} whose operand is dropped when the value is absent, the way
+     * {@link concatIfValue} relates to {@link concat}: an absent value contributes nothing and
+     * leaves no bound parameter behind, so a dynamic query can hand it a `string | null |
+     * undefined` without branching first.
+     *
+     * The result keeps the RECEIVER's optionality, unlike {@link concatIgnoringNull}: whether the
+     * operand that would make the result always present is there at all is only known at run time.
+     */
+    concatIgnoringNullIfValue(value: string | null | undefined): StringValueSource<SOURCE, OPTIONAL_TYPE>
+    /**
      * Concatenation that reads a NULL operand as the empty string, instead of propagating it the
      * way {@link concat} does: `'Issue: '.concatIgnoringNull(<null>)` is `'Issue: '`, where
      * `.concat(<null>)` is NULL.
      *
-     * Because a NULL operand no longer poisons the result, the result is optional only when EVERY
-     * operand is — one operand that is always present makes the whole concatenation always present,
-     * which is what the returned type declares.
+     * Because a NULL operand no longer poisons the result, ONE operand that is always present makes
+     * the whole concatenation always present, which is what the returned type declares. It stays
+     * optional only when EVERY operand is: what is left then is the empty string, which the library
+     * gives back as absent unless the connection enables `allowEmptyString`.
      *
-     * There is no `concatIgnoringNullIfValue` counterpart: dropping an absent operand and reading it
-     * as the empty string produce the same string, so `concatIfValue`'s role is already covered here.
-     *
-     * On Oracle the empty string IS NULL, so a concatenation whose operands are ALL NULL answers
-     * NULL there and the empty string everywhere else. That is the same limitation that makes an
-     * Oracle `varchar2` unable to hold `''`; it only surfaces here when every operand is NULL.
+     * On Oracle an all-NULL concatenation answers NULL rather than the empty string — the engine's
+     * own `'' IS NULL`, the same trait that keeps a `varchar2` from holding `''`.
      */
     concatIgnoringNull(value: string): StringValueSource<SOURCE, 'required'>
     concatIgnoringNull<VALUE extends IStringValueSource<any, any>>(value: VALUE): StringValueSource<SOURCE | VALUE[typeof source], MergeRequired<OPTIONAL_TYPE, VALUE[typeof optionalType]>>

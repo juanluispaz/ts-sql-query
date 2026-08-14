@@ -1157,25 +1157,13 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
         return result
     }
-    override _concatIgnoringNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        // T-SQL's `concat(...)` is exactly this operation: it reads a NULL argument as the empty
-        // string and answers '' (not NULL) when every argument is NULL, so no operand needs the
-        // neutralising the base form applies. It also converts a `uniqueidentifier` argument
-        // implicitly, giving the same string the explicit `convert(nvarchar(36), …)` that `_concat`
-        // needs for `+` produces.
-        //
-        // The call is kept BINARY rather than flattening the chain into one call: `concat` here
-        // "requires 2 to 254 arguments", so an operand dropped for being NULL at build time could
-        // otherwise leave a single-argument call the engine rejects.
-        if (this._isNullValue(value)) {
-            if (this._isNullValue(valueSource)) {
-                return "''"
-            }
-            return this._appendSqlParenthesisExcluding(valueSource, params, '_concatIgnoringNull', false)
-        }
-        if (this._isNullValue(valueSource)) {
-            return this._appendValueParenthesisExcluding(value, params, columnType, columnTypeName, typeAdapter, '_concatIgnoringNull', false)
-        }
+    /**
+     * T-SQL's `concat(...)` is this operation: it reads a NULL argument as the empty string and
+     * converts a `uniqueidentifier` implicitly, so no operand needs neutralising. It is binary
+     * because the build-time NULL check above already removed the operands that contribute
+     * nothing, and `concat` here "requires 2 to 254 arguments".
+     */
+    override _appendConcatIgnoringNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return 'concat(' + this._appendSqlParenthesisExcluding(valueSource, params, '_concatIgnoringNull', false) + ', ' + this._appendValueParenthesisExcluding(value, params, columnType, columnTypeName, typeAdapter, '_concatIgnoringNull', false) + ')'
     }
     override _length(params: any[], valueSource: ToSql): string {

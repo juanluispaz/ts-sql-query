@@ -309,6 +309,35 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+    test('concat-chain-conditional-skip-inside-chain-with-optional-operand', async () => {
+        // The dropped `.concatIfValue(...)` sits in the MIDDLE of the chain (a further `.concat(...)`
+        // is built on top of it) and an OPTIONAL operand precedes it. Every database must answer the
+        // same value: the dropped segment contributes nothing, the rest concatenates. How each
+        // dialect gets there differs — one that reads NULL as the empty string has to guard the
+        // whole chain to propagate it — but that is the snapshot's business, not the result's.
+        const expected = [{ label: 'Redesign navbarUse new tokens!' }]
+        ctx.mockNext(expected)
+        const middle: string | undefined = undefined
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({
+                label: tIssue.title
+                    .concat(tIssue.body)
+                    .concatIfValue(middle)
+                    .concat('!'),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select concat(title, body, ?) as label from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "!",
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ label?: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
     test('contains', async () => {
         const expected = [{ id: 1 }, { id: 2 }]
         ctx.mockNext(expected)

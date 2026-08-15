@@ -14,6 +14,10 @@ search:
     - `.concatIgnoringNullIfValue(...)` is the dynamic-query twin, as `.concatIfValue(...)` is for `.concat(...)`: it takes a `string | null | undefined` and, when the value is absent, drops that operand from the generated SQL instead of binding it.
     - This was previously not expressible in a portable way: wrapping each operand in `.valueWhenNull('')` works on the other five databases, but not on Oracle, where the empty string it falls back to is itself `NULL`.
 
+**Bug fixes**:
+
+- Oracle: a `.concatIfValue(...)` whose value is absent no longer splits the concatenation it sits in. Oracle emulates `NULL` propagation for `.concat(...)` with a `case when … is null then null else … end` that covers the whole chain; an ignored `.concatIfValue(...)` used to cut the chain there, so the part before it was emitted as a separate expression — once inside the `case` condition and once inside its result. In a dynamic query that builds a concatenation from several optional parts, each ignored part doubled the size of the generated SQL. The chain now stays whole, and the query is one `case` over one concatenation regardless of how many parts were dropped. The result was already correct; only the SQL was needlessly large.
+
 ## v2.0.0-beta.2
 
 **Testing and quality**:

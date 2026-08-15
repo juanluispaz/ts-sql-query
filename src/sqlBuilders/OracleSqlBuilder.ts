@@ -10,18 +10,8 @@ import type { DBColumn } from '../utils/Column.js'
 import { isColumn, __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
-import { SqlOperation1ValueSourceIfValueOrIgnore } from '../internal/ValueSourceImpl.js'
+import { SqlOperation1ValueSource, SqlOperation1ValueSourceIfValueOrIgnore } from '../internal/ValueSourceImpl.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-
-/**
- * Minimal view of a `_concat` operation node (a `SqlOperation1ValueSource`) so the builder
- * can walk a concat chain down to its atomic operands. Only reached after `operationOf(node)
- * === '_concat'` has confirmed the shape.
- */
-interface ConcatNode {
-    __valueSource: AnyValueSource
-    __value: unknown
-}
 
 export class OracleSqlBuilder extends AbstractSqlBuilder {
     oracle: true = true
@@ -182,11 +172,11 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // — and, by the same token, no param was appended — so the bare native join is emitted with
         // no `CASE`. A concat wrapped in another operation (e.g. `valueWhenNull`) is a single leaf
         // here, so it keeps its own `CASE` (see `_concatChainSql`).
-        const nullCheck = this._appendConcatNullCheck(params, valueSource, value)
+        const nullCheck = this._appendConcatNullCheck(params, valueSource, value, false)
         if (!nullCheck) {
             return super._concat(params, valueSource, value, columnType, columnTypeName, typeAdapter)
         }
-        return 'case when ' + nullCheck + ' then null else ' + this._concatChainSql(params, valueSource, value) + ' end'
+        return 'case when ' + nullCheck + ' then null else ' + this._concatChainSql(params, valueSource, value, false) + ' end'
     }
     // Builds the poison `CASE`'s null check for a concat chain: `<a> is null or <b> is null or …`
     // over the build-time-optional atomic leaves, appending each leaf's params as it goes. It walks
@@ -196,20 +186,21 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     // the walk avoids collecting the leaves into an intermediate array first. Returns '' when
     // nothing is optional — and in that case appends NO param, so the caller can fall back to the
     // bare join with the param array untouched.
-    private _appendConcatNullCheck(params: any[], valueSource: any, value: any): string {
+    private _appendConcatNullCheck(params: any[], valueSource: any, value: any, dropValue: boolean): string {
         let left: string
         if (this._isConcatChainNode(valueSource)) {
-            const node = valueSource as unknown as ConcatNode
-            left = this._appendConcatNullCheck(params, node.__valueSource, node.__value)
+            left = this._appendConcatNullCheck(params, valueSource.__valueSource, valueSource.__value, this._concatChainDropsValue(valueSource))
         } else if (this._isOptionalValue(valueSource)) {
             left = this._isNull(params, valueSource)
         } else {
             left = ''
         }
+        if (dropValue) {
+            return left
+        }
         let right: string
         if (this._isConcatChainNode(value)) {
-            const node = value as ConcatNode
-            right = this._appendConcatNullCheck(params, node.__valueSource, node.__value)
+            right = this._appendConcatNullCheck(params, value.__valueSource, value.__value, this._concatChainDropsValue(value))
         } else if (this._isOptionalValue(value)) {
             right = this._isNull(params, value)
         } else {
@@ -231,44 +222,42 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     // append, so a concat wrapped in another operation reaches the public `_concat` and keeps
     // its own `CASE`. Types are threaded exactly as the operation node's `__toSql` does: the
     // right operand is appended with the LEFT operand's value type.
-    private _concatChainSql(params: any[], valueSource: ToSql, value: any): string {
+    private _concatChainSql(params: any[], valueSource: ToSql, value: any, dropValue: boolean): string {
         let left: string
         if (this._isConcatChainNode(valueSource)) {
-            const node = valueSource as unknown as ConcatNode
-            left = this._concatChainSql(params, node.__valueSource as unknown as ToSql, node.__value)
+            left = this._concatChainSql(params, valueSource.__valueSource, valueSource.__value, this._concatChainDropsValue(valueSource))
         } else {
             left = this._appendSqlParenthesisExcluding(valueSource, params, '_concat', false)
         }
+        if (dropValue) {
+            return left
+        }
         let right: string
         if (this._isConcatChainNode(value)) {
-            const node = value as ConcatNode
-            right = this._concatChainSql(params, node.__valueSource as unknown as ToSql, node.__value)
+            right = this._concatChainSql(params, value.__valueSource, value.__value, this._concatChainDropsValue(value))
         } else {
             const leftPrivate = __getValueSourcePrivate(valueSource as unknown as AnyValueSource)
             right = this._appendValueParenthesisExcluding(value, params, leftPrivate.__valueType, leftPrivate.__valueTypeName, leftPrivate.__typeAdapter, '_concat', false)
         }
         return this._concatSql(left, right)
     }
-    // Whether a node is a concat-CHAIN node the two walks above descend into, rather than a
-    // leaf. Every `_concat` operation node is — EXCEPT a `.concatIfValue()` whose value is
-    // ABSENT (`null` / `undefined` / `''` under `allowEmptyString:false`). That node carries
-    // `__operation === '_concat'` even when its value is ignored, but it is a NO-OP that renders
-    // as just its receiver: its `__toSql` short-circuits to `__valueSource` (see
-    // `SqlOperation1ValueSourceIfValueOrIgnore.__toSql`). So the walks must treat it as a LEAF
-    // and let `__toSql` drop the dead operand. Descending into it (the pre-fix `operationOf(...)
-    // === '_concat'` check did) processed its dead operand, which emitted a spurious bound param
-    // for the ignored value and — for an `undefined`/`null` value — crashed `_isNull` on the
-    // missing operand. This only surfaced when the `concatIfValue` was NESTED under a further
-    // `.concat()`; the outermost case is resolved by `__toSql` before `_concat` runs. Mirrors
-    // `_appendMaybeInnerConcat` on MySQL/MariaDB, which skips the ignored operand the same way.
-    private _isConcatChainNode(node: any): boolean {
-        if (operationOf(node) !== '_concat') {
+    // Whether a node is a link of the `_concat` chain the two walks above descend into, rather than
+    // a leaf. Same rule as the MySQL/MariaDB walk, deliberately: a `.concatIfValue()` IS a link even
+    // when its value is absent — what it loses then is only its operand, which `_concatChainDropsValue`
+    // says. Treating it as a leaf instead would hand it back to the public `_concat` via its own
+    // `__toSql`, and a receiver that is itself a concat would come back wearing its own poison `CASE`
+    // — a `CASE` this level then emits TWICE, once per branch, doubling the whole subchain per link.
+    private _isConcatChainNode(node: unknown): node is SqlOperation1ValueSource | SqlOperation1ValueSourceIfValueOrIgnore {
+        if (!(node instanceof SqlOperation1ValueSource) && !(node instanceof SqlOperation1ValueSourceIfValueOrIgnore)) {
             return false
         }
-        if (node instanceof SqlOperation1ValueSourceIfValueOrIgnore && !this._isValue(node.__value)) {
-            return false
-        }
-        return true
+        return node.__operation === '_concat'
+    }
+    // A `.concatIfValue()` whose value is ABSENT (`null` / `undefined` / `''` under
+    // `allowEmptyString:false`) renders as just its receiver, so the chain skips its operand: emitting
+    // it would bind a param for the ignored value and feed `undefined` to `_isNull`.
+    private _concatChainDropsValue(node: SqlOperation1ValueSource | SqlOperation1ValueSourceIfValueOrIgnore): boolean {
+        return node instanceof SqlOperation1ValueSourceIfValueOrIgnore && !this._isValue(node.__value)
     }
     /**
      * Oracle's `||` already reads a NULL operand as the empty string — what `_concat` above has to

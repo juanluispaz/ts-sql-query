@@ -392,7 +392,6 @@ export interface SqlFunctionStatic1 {
     _constForCondition(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string
     _exists(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string
     _notExists(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string
-    _escapeLikeWildcard(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string
 }
 
 export interface SqlBoolean0 {
@@ -402,7 +401,6 @@ export interface SqlBoolean0 {
 
 export interface SqlFunction0 {
     // String
-    _collate(params: any[], valueSource: ToSql, collation: string): string
     _toLowerCase(params: any[], valueSource: ToSql): string
     _toUpperCase(params: any[], valueSource: ToSql): string
     _length(params: any[], valueSource: ToSql): string
@@ -533,6 +531,7 @@ export interface SqlOperation2 extends SqlComparator2, SqlFunction2 {
 }
 
 export interface SqlOperation extends SqlOperationStatic0, SqlOperationStatic1, SqlOperation0, SqlOperation1, SqlOperation2, SqlSequenceOperation, SqlFragmentOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2 {
+    _collate(params: any[], valueSource: ToSql, collation: string): string
     _inlineSelectAsValue(query: SelectData, params: any[]): string
     _asNullValue(params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
 }

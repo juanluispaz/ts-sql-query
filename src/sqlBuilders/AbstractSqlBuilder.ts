@@ -3091,6 +3091,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _notExists(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         return 'not exists(' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ')'
     }
+    // INTERNAL to the builders, deliberately NOT on the `SqlBuilder` interface: it is only ever reached as
+    // `this._escapeLikeWildcard(...)` from the `like`/`startsWith`/`contains` emitters, and dialects override it. Its
+    // argument order (`value` first) differs from every interface-dispatched op, so exposing it would let a value
+    // source be built over it and emit its arguments in the wrong order.
     _escapeLikeWildcard(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (typeof value === 'string') {
             value = value.replace(/\\/g, '\\\\')

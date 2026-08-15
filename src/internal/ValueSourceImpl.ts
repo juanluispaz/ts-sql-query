@@ -969,11 +969,9 @@ export class SqlOperationConstValueSource extends ValueSourceImpl implements Has
 
 export class SqlOperation0ValueSource extends ValueSourceImpl implements HasOperation {
     __valueSource: ValueSourceImpl
-    // `_collate` is excluded: it takes an extra collation argument and is carried by the
-    // dedicated `SqlOperationCollateValueSource`, not by this single-operand dispatcher.
-    __operation: Exclude<keyof SqlFunction0, '_collate'> | keyof SqlBoolean0
+    __operation: keyof SqlFunction0 | keyof SqlBoolean0
 
-    constructor(operation: Exclude<keyof SqlFunction0, '_collate'> | keyof SqlBoolean0, valueSource: ValueSourceImpl, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+    constructor(operation: keyof SqlFunction0 | keyof SqlBoolean0, valueSource: ValueSourceImpl, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
         super(valueType, valueTypeName, optionalType, typeAdapter)
         this.__valueSource = valueSource
         this.__operation = operation
@@ -1006,7 +1004,7 @@ export class SqlOperation0ValueSource extends ValueSourceImpl implements HasOper
 
 export class SqlOperationCollateValueSource extends ValueSourceImpl implements HasOperation {
     __valueSource: ValueSourceImpl
-    __operation: keyof SqlFunction0 = '_collate'
+    __operation: '_collate' = '_collate'
     __collation: string
 
     constructor(valueSource: ValueSourceImpl, collation: string, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {

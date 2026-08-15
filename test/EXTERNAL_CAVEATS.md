@@ -310,7 +310,7 @@ that justifies the divergence:
   pattern.
 - **Globally Encrypted ID (id-manipulation.md)** — needs a
   DBConnection subclass overriding `transformValueFromDB` /
-  `transformValueToDB` and a per-table `ID:<prefix>` custom type.
+  `transformValueToDB` and a per-table `ID_<prefix>` custom type.
   The `IDEncrypter` itself is exercised directly (`docs:id-manipulation/encrypter-with-prefix`,
   `docs-extra:id-manipulation/encrypter-prefix-disambiguates-tables`)
   to lock its round-trip contract.

@@ -9,7 +9,7 @@ import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAgg
 import { valueType as valueType_, optionalType as optionalType_ , booleanValueSource, comparableValueSource, localDateTimeValueSource, localDateValueSource, equalableValueSource, nullableValueSource, numberValueSource, stringValueSource, localTimeValueSource, ifValueSource, bigintValueSource, typeName, anyBooleanValueSource, isValueSourceObject, aggregatedArrayValueSource, isSelectQueryObject, uuidValueSource, customIntValueSource, customDoubleValueSource, customUuidValueSource, customLocalDateValueSource, customLocalTimeValueSource, customLocalDateTimeValueSource, source } from '../utils/symbols.js'
 import { __addWiths } from '../utils/ITableOrView.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
-import { ProxyTypeAdapter } from './ProxyTypeAdapter.js'
+import { proxyTypeAdapterFor } from './ProxyTypeAdapter.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { FragmentQueryBuilder } from '../queryBuilders/FragmentQueryBuilder.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
@@ -2595,7 +2595,7 @@ function valueSourceInitializationForInlineSelect(selectData: SelectData, requir
         let typeAdapter = valueSourcePrivate.__typeAdapter
         if (typeAdapter instanceof CustomBooleanTypeAdapter) {
             // Avoid treat the column as a custom boolean
-            typeAdapter = new ProxyTypeAdapter(typeAdapter)
+            typeAdapter = proxyTypeAdapterFor(typeAdapter)
         }
         return [valueSourcePrivate.__valueType, valueSourcePrivate.__valueTypeName, required ? 'required' : 'optional', typeAdapter, valueSourcePrivate.__aggregatedArrayColumns, valueSourcePrivate.__aggregatedArrayMode, valueSourcePrivate.__uuidString, valueSourcePrivate.__aggreagtedProjectingOptionalValuesAsNullable] as const
     } else {

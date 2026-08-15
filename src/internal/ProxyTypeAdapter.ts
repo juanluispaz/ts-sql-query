@@ -22,3 +22,16 @@ export class ProxyTypeAdapter implements TypeAdapter {
         return next.transformPlaceholder(placeholder, type, forceTypeCast, valueSentToDB)
     }
 }
+
+// A proxy holds nothing but the adapter it wraps, so one per wrapped adapter is enough — and a caller that keys a
+// cache by adapter IDENTITY only hits it if the proxy is the same object every time.
+const proxies = new WeakMap<TypeAdapter, ProxyTypeAdapter>()
+
+export function proxyTypeAdapterFor(typeAdapter: TypeAdapter): ProxyTypeAdapter {
+    let proxy = proxies.get(typeAdapter)
+    if (!proxy) {
+        proxy = new ProxyTypeAdapter(typeAdapter)
+        proxies.set(typeAdapter, proxy)
+    }
+    return proxy
+}

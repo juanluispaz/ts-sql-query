@@ -7,7 +7,7 @@ import type { ValueType } from '../expressions/values.js'
 import { isValueSource, __getValueSourcePrivate } from '../expressions/values.js'
 import { ValueSourceImpl } from './ValueSourceImpl.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
-import { ProxyTypeAdapter } from './ProxyTypeAdapter.js'
+import { proxyTypeAdapterFor } from './ProxyTypeAdapter.js'
 import { hasDefaultValue, isColumnObject, type, writable } from '../utils/symbols.js'
 
 export class DBColumnImpl extends ValueSourceImpl implements DBColumn, WritableDBColumn, Column, __ColumnPrivate, ToSql {
@@ -138,7 +138,7 @@ export function createColumnsFrom(sqlBuilder: HasIsValue, columns: QueryColumns,
             let typeAdapter = columnPrivate.__typeAdapter
             if (typeAdapter instanceof CustomBooleanTypeAdapter) {
                 // Avoid treat the column as a custom boolean
-                typeAdapter = new ProxyTypeAdapter(typeAdapter)
+                typeAdapter = proxyTypeAdapterFor(typeAdapter)
             }
             const withColumn = new DBColumnImpl(table, property, valueType, valueTypeName, typeAdapter)
             withColumn.__optionalType = columnPrivate.__optionalType
@@ -171,7 +171,7 @@ export function createColumnsFromInnerObject(sqlBuilder: HasIsValue, columns: Qu
             let typeAdapter = columnPrivate.__typeAdapter
             if (typeAdapter instanceof CustomBooleanTypeAdapter) {
                 // Avoid treat the column as a custom boolean
-                typeAdapter = new ProxyTypeAdapter(typeAdapter)
+                typeAdapter = proxyTypeAdapterFor(typeAdapter)
             }
             const withColumn = new DBColumnImpl(table, prefix + property, valueType, valueTypeName, typeAdapter)
             let optionalType = columnPrivate.__optionalType

@@ -991,12 +991,9 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     aggregateFragmentWithType<T>(type: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): ComparableFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'optional', NAggregate<DB>>
     aggregateFragmentWithType(type: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any {
         if (typeof adapter === 'string') {
-            type = required
-            required = adapter
-        } else {
-            adapter2 = adapter
+            return new FragmentQueryBuilder(type as ValueType, required, adapter as any, adapter2, true)
         }
-        return new FragmentQueryBuilder(type as ValueType, type, required as any, adapter2, true)
+        return new FragmentQueryBuilder(type as ValueType, type, required as any, adapter, true)
     }
 
     protected buildAggregateFragmentWithArgs(): FragmentBuilder0<NNoTableOrViewRequired<DB>, NAggregate<DB>>

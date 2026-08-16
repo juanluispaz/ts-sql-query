@@ -832,10 +832,9 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     protected arg<T>(type: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'customComparable', 'optional', 'combined', T, T>
     protected arg(type: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any {
         if (typeof adapter === 'string') {
-            return new Argument(type as any, adapter, required as any, 'combined', adapter2)
-        } else {
-            return new Argument(type as any, type, required as any, 'combined', adapter)
+            return new Argument(type as any, required, adapter as any, 'combined', adapter2)
         }
+        return new Argument(type as any, type, required as any, 'combined', adapter)
     }
 
     protected valueArg(type: 'boolean', required: 'required', adapter?: TypeAdapter): Argument<'boolean', 'required', 'value', boolean>
@@ -894,10 +893,9 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     protected valueArg<T>(type: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'customComparable', 'optional', 'value', T, T>
     protected valueArg(type: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any {
         if (typeof adapter === 'string') {
-            return new Argument(type as any, adapter, required as any, 'value', adapter2)
-        } else {
-            return new Argument(type as any, type, required as any, 'value', adapter)
+            return new Argument(type as any, required, adapter as any, 'value', adapter2)
         }
+        return new Argument(type as any, type, required as any, 'value', adapter)
     }
 
     protected buildFragmentWithArgs(): FragmentBuilder0<NNoTableOrViewRequired<DB>>

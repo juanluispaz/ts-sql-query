@@ -75,7 +75,181 @@ entry says under *Current workaround in the suite* why the matrix can't see it.
 A `none` there is not "nothing to do": it means no test would notice a
 regression either.
 
-*(none)*
+## `arg(...)` / `valueArg(...)` swap the type name and the optionality of a custom-typed fragment argument
+
+**Where**: `AbstractConnection.arg` (`src/connections/AbstractConnection.ts:833`)
+and `AbstractConnection.valueArg` (`src/connections/AbstractConnection.ts:895`).
+The custom overloads are declared `(type, typeName, required, adapter?)`, so in
+the implementation body the parameter named `required` receives the TYPE NAME and
+the parameter named `adapter` receives the optionality string. The body then
+builds `new Argument(type, adapter, required, mode, adapter2)` — i.e. it hands the
+`Argument` constructor the optionality where `typeName` goes and the type name
+where `optionalType` goes.
+
+**Reproduction**:
+
+```ts
+import { PostgreSqlConnection } from 'ts-sql-query/connections/PostgreSqlConnection'
+import { MockQueryRunner } from 'ts-sql-query/queryRunners/MockQueryRunner'
+import type { TypeAdapter } from 'ts-sql-query'
+
+const seen: string[] = []
+const recordTypeName: TypeAdapter = {
+    transformValueFromDB(value, type, next) { seen.push('fromDB:' + type); return next.transformValueFromDB(value, type) },
+    transformValueToDB(value, type, next) { seen.push('toDB:' + type); return next.transformValueToDB(value, type) },
+}
+
+class DBConnection extends PostgreSqlConnection<'DBConnection'> {
+    centsArg = this.buildFragmentWithArgs(
+        this.arg<number, 'Cents'>('customInt', 'Cents', 'required', recordTypeName)
+    ).as((v) => this.fragmentWithType('int', 'required').sql`${v}`)
+}
+
+const conn = new DBConnection(new MockQueryRunner(() => [{ r: 1 }]))
+await conn.selectFromNoTable().select({ r: conn.centsArg(5) }).executeSelectMany()
+console.log(seen)                       // → [ 'toDB:required' ]   expected [ 'toDB:Cents' ]
+
+const arg: any = (conn as any).arg('customInt', 'Cents', 'required', recordTypeName)
+console.log(arg.type, arg.typeName, arg.optionalType)
+//   → customInt required Cents        expected: customInt Cents required
+const varg: any = (conn as any).valueArg('customInt', 'Cents', 'optional', recordTypeName)
+console.log(varg.type, varg.typeName, varg.optionalType)
+//   → customInt optional Cents        expected: customInt Cents optional
+```
+
+The same custom data type declared through `const(5, 'customInt', 'Cents', adapter)`
+records `[ 'toDB:Cents', 'fromDB:Cents' ]`, so the reference behaviour is the
+`Cents` one.
+
+What a user observes: a `TypeAdapter` on a custom-typed fragment argument — and
+the `transformValueToDB` / `transformValueFromDB` overrides on the connection,
+which is the documented place to map a custom type name onto its native type — is
+handed `'required'` / `'optional'` instead of the declared type name, so the
+custom type's marshalling is silently skipped for that argument. Secondarily the
+argument's `optionalType` holds the type name, so it is neither `'required'` nor
+`'optional'` at runtime.
+
+The swap also defeats the **read** marshalling of a derivation over such an
+argument, not only the write. `transformValueFromDB` is handed `'required'` in
+place of the declared type name, so a connection that maps its custom type names
+onto a native type (the documented place to do it) never sees the name and the
+value is returned raw. Verified against a real PostgreSQL 18: the SQL emitted for
+`arg('double', 'required')`, `arg('customDouble', 'Money', 'required')` and
+`const(v, 'customDouble', 'Money')` is byte-identical
+(`select mod(($1)::numeric, ($2)::numeric) as result from col_matrix`) and the
+driver hands the `numeric` back as the string `"1"` in all three; the plain
+`double` argument and the `Money` **const** marshal it to the number `1`, the
+`Money` **argument** leaves it the string `"1"`.
+
+**Current workaround in the suite**: ten tests in
+`select.custom-type-derivation-args.test.ts` (every cell) are block-commented with
+this reason; their bodies are the ones that run once the arguments carry their
+declared type name. `arg/custom-double-modulo-emits-the-form-the-argument-data-type-requires`
+is block-commented with the same reason on the PostgreSQL cells, where the read
+path above is observable (`numeric` arrives as text); it stays live on the
+dialects whose driver returns a number, and its two siblings observe the
+argument's `ValueType` through the emitted SQL, which the swap does not affect.
+
+## PostgreSQL cannot type the bare `$n is null` the optional min/max null guard emits
+
+**Where**: `AbstractSqlBuilder._minAndMaxValueBetweenTwoValuesPoisoningNull` —
+when either operand of `minValue` / `maxValue` is optional it wraps the native
+`least` / `greatest` in `case when <operand> is null then null else … end`. When
+that operand is a value source that renders as a **bare parameter** (an
+`optionalConst(...)`, an optional fragment argument) the guard is emitted as
+`case when $n is null then null else …`, which carries no type information at
+all. `PostgreSqlConnection.transformPlaceholder` already exists to solve exactly
+this (it appends `::int4` / `::float8` / … when a const is the projected column,
+via `PostgreSqlSqlBuilder._appendColumnValue`'s `forceTypeCast = true`), but the
+nested guard position never reaches it.
+
+**Reproduction** (real PostgreSQL 18, `pg` / `postgres.js` / `pglite`):
+
+```
+select case when $1 is null then null else least($2, billed_amount) end as "v" from issue_worklog where id = $3
+parameters: [ 500, 500, 1 ]
+-> ERROR 42P18  could not determine data type of parameter $1
+                (routine pg_analyze_and_rewrite_varparams)
+```
+
+**Not custom-type-specific, and not limited to the receiver.** The same error
+comes back for a plain `double` and a plain `int`, and whether the bare parameter
+is the receiver or the argument:
+
+```
+optionalConst(5, 'double').maxValue(<double column>)            -> 42P18
+optionalConst(5, 'int').maxValue(<int column>)                  -> 42P18
+optionalConst(5, 'double').minValue(<double column>)            -> 42P18
+<double column>.maxValue(optionalConst(5, 'double'))            -> 42P18
+optionalConst<number,'Money'>(5,'customDouble','Money').maxValue(<double column>) -> 42P18
+const(5, 'double').maxValue(<double column>)                    -> OK  (no guard emitted)
+optionalConst(5, 'double').add(<double column>)                 -> OK  (no guard emitted)
+<optional double column>.maxValue(5)                            -> OK  (guard on a typed column)
+```
+
+Casting the guard's placeholder makes the identical statement run:
+`select case when $1::float8 is null then null else least($2, billed_amount) end …`
+returns `200`. The two documented opt-outs also avoid it, at the cost of the
+semantics the guard exists for: `ignoreNullInMinAndMaxValue` emits the bare
+`least($1, billed_amount)` (NULL no longer poisons) and
+`minValueFunction`/`maxValueFunction` emit `my_max($1, billed_amount)` (needs a
+user-defined SQL function).
+
+Driver-dependent within the dialect: `pg`, `postgres.js` and `pglite` send no
+parameter type, so the server has to infer and fails; Bun's `bun:sql` infers OIDs
+from the JS values and the same query runs there. SQL Server routes through the
+same guard and is unaffected (its driver declares every parameter's type), and
+the dialects that keep the native null-poisoning `least`/`greatest` (Oracle,
+MySQL, MariaDB, SQLite) never emit the guard.
+
+**Current workaround in the suite**:
+`optional-const/custom-double-max-value-column-operand` in
+`select.custom-type-derivation-ops.test.ts` is block-commented with this reason on
+the `pg`, `postgres` and `pglite` cells of both PostgreSQL version tiers, and runs
+live everywhere else. No other test covers the shape: every pre-existing
+`minValue` / `maxValue` assertion in the matrix puts a **column** in the guarded
+position, where PostgreSQL reads the type from the column, so nothing else would
+notice a regression here.
+
+## SQL Server emits `currentValue()` as an untyped `sql_variant`, so any operation on it is rejected
+
+**Where**: `SqlServerSqlBuilder._currentSequenceValue` emits
+`(select current_value from sys.sequences where name = '<seq>')`. SQL Server types
+that catalog column as `sql_variant`, while the value source the library hands the
+user is typed `int` / `bigint` / `customInt` — so anything that composes with it
+emits SQL the engine refuses.
+
+**Reproduction** (real `mcr.microsoft.com/mssql/server:2025-latest`):
+
+```
+select ((select current_value from sys.sequences where name = 'release_tag_seq') * @0) + m_int as [result] from col_matrix
+-> Msg 257  Implicit conversion from data type sql_variant to int is not allowed.
+            Use the CONVERT function to run this query.
+```
+
+**Not custom-type-specific.** A plain `int` sequence (`issue_id_seq`) and a plain
+`bigint` sequence (`audit_tag_seq`) are rejected identically; the base type behind
+the variant is reported as `int`
+(`sql_variant_property(…, 'BaseType')`). Only the bare projection the library
+emits today survives, because the driver converts on the wire:
+
+```
+select (select current_value from sys.sequences where name = 'release_tag_seq') as [result]          -> 1
+select ((cast((select current_value …) as bigint)) * 0) + m_int as [result] from col_matrix          -> 42
+select (next value for release_tag_seq * 0) + m_int as [result] from col_matrix                      -> 42
+```
+
+So `currentValue()` on SQL Server is usable only as a bare projected column; every
+arithmetic, comparison or derivation over it fails, while the `nextValue()`
+sibling (`next value for <seq>`, a typed expression) composes fine.
+
+**Current workaround in the suite**:
+`sequence/current-value-custom-int-add-column-reads-back-with-the-sequence-data-type`
+in `select.custom-type-derivation-sequence.test.ts` is block-commented with this
+reason on every SQL Server cell and runs live on the other dialects. The
+`sequence.next-current-value.test.ts` tests only project `currentValue()` bare, so
+they are unaffected — and nothing else in the matrix composes with it, which means
+no test would notice a regression on that path.
 
 ## Coverage gaps carried over (not bugs — no entry to fix)
 

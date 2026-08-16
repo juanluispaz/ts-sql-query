@@ -88,6 +88,29 @@ export type ReleaseTag = number & { readonly __brand: 'ReleaseTag' }
 // dialects' domain exports); used by the branded-newtype brand-keep/erase test.
 export type Money = number & { readonly __brand: 'Money' }
 
+// Every other TypeAdapter in this file switches on `typeof value`, so it cannot
+// tell an `int` from a `Cents`. This one transforms ONLY when the type NAME it is
+// handed is `Cents`, `Money` or `ReleaseTag` (write x100, read /100) and delegates
+// every other type name untouched. An expression that keeps its custom data type is therefore
+// scaled and one that fell back to a plain `int` / `double` is not, so the bound
+// placeholder and the value read back both record which data type the expression
+// actually carried.
+const scaledByTypeName: TypeAdapter = {
+    transformValueFromDB(value, type, next) {
+        const v = next.transformValueFromDB(value, type)
+        if ((type === 'Cents' || type === 'Money' || type === 'ReleaseTag') && typeof v === 'number') {
+            return v / 100
+        }
+        return v
+    },
+    transformValueToDB(value, type, next) {
+        if ((type === 'Cents' || type === 'Money' || type === 'ReleaseTag') && typeof value === 'number') {
+            return next.transformValueToDB(value * 100, type)
+        }
+        return next.transformValueToDB(value, type)
+    },
+}
+
 export class DBConnection extends SqliteConnection<'DBConnection'> {
     constructor(queryRunner: QueryRunner, compatibilityVersion?: number) {
         super(queryRunner)
@@ -458,6 +481,79 @@ export class DBConnection extends SqliteConnection<'DBConnection'> {
     withFiveParams = this.createTableOrViewCustomization<number, number, number, number, number>((table, alias, a, b, c, d, e) => {
         return this.rawFragment`(select * from ${table} where ${this.const(a, 'int')} >= 0 and ${this.const(b, 'int')} >= 0 and ${this.const(c, 'int')} >= 0 and ${this.const(d, 'int')} >= 0 and ${this.const(e, 'int')} >= 0) ${alias}`
     })
+
+    // Fragment-builder arguments declared with a CUSTOM data type. Each body
+    // applies a DERIVED operation to the argument, so the argument's own data type
+    // -- not just the type name its bound value is marshalled with -- decides how
+    // the extra operand is marshalled, how the derivation is spelled, and (where
+    // the derived value source is returned directly) how the result reads back.
+    //
+    // The `scaledByTypeName` ones pair the argument with a second argument of the
+    // SAME custom data type, bound to a column at the call site, so every
+    // placeholder sits next to a typed operand and the emitted SQL stays portable.
+    derivedArgCents = this.buildFragmentWithArgs(
+        this.arg<number, 'Cents'>('customInt', 'Cents', 'required', scaledByTypeName),
+        this.arg<number, 'Cents'>('customInt', 'Cents', 'required')
+    ).as((v, col) => this.fragmentWithType('int', 'required').sql`${v.add(col).add(9)}`)
+    derivedArgMoney = this.buildFragmentWithArgs(
+        this.arg<number, 'Money'>('customDouble', 'Money', 'required', scaledByTypeName),
+        this.arg<number, 'Money'>('customDouble', 'Money', 'required')
+    ).as((v, col) => this.fragmentWithType('double', 'required').sql`${v.add(col).add(9)}`)
+    // The same declarations, but the fragment returns the DERIVED value source
+    // itself instead of wrapping it in a `fragmentWithType`, so the argument's data
+    // type also governs how the result is read back.
+    derivedArgCentsRead = this.buildFragmentWithArgs(
+        this.arg<number, 'Cents'>('customInt', 'Cents', 'required', scaledByTypeName),
+        this.arg<number, 'Cents'>('customInt', 'Cents', 'required')
+    ).as((v, col) => v.add(col))
+    derivedArgMoneyRead = this.buildFragmentWithArgs(
+        this.arg<number, 'Money'>('customDouble', 'Money', 'required', scaledByTypeName),
+        this.arg<number, 'Money'>('customDouble', 'Money', 'required')
+    ).as((v, col) => v.add(col))
+    // The maybe-optional counterpart.
+    derivedMaybeOptionalArgCents = this.buildFragmentWithMaybeOptionalArgs(
+        this.arg<number, 'Cents'>('customInt', 'Cents', 'optional', scaledByTypeName),
+        this.arg<number, 'Cents'>('customInt', 'Cents', 'optional')
+    ).as((v, col) => this.fragmentWithType('int', 'optional').sql`${v.add(col).add(9)}`)
+    // Inside an if-value builder the fragment is a predicate, so the extra
+    // operand's marshalling is what records the argument's data type.
+    derivedArgCentsIfValue = this.buildFragmentWithArgsIfValue(
+        this.arg<number, 'Cents'>('customInt', 'Cents', 'required', scaledByTypeName),
+        this.arg<number, 'Cents'>('customInt', 'Cents', 'required'),
+        this.valueArg<number, 'Cents'>('customInt', 'Cents', 'optional')
+    ).as((v, col, limit) => v.add(col).add(9).greaterThan(limit))
+    derivedValueArgCentsIfValue = this.buildFragmentWithArgsIfValue(
+        this.arg<number, 'Cents'>('customInt', 'Cents', 'required'),
+        this.valueArg<number, 'Cents'>('customInt', 'Cents', 'optional', scaledByTypeName)
+    ).as((col, v) => v.add(col).add(9).greaterThan(col.multiply(20)))
+    // The aggregate fragment builders over the same declarations.
+    derivedAggArgCents = this.buildAggregateFragmentWithArgs(
+        this.arg<number, 'Cents'>('customInt', 'Cents', 'required', scaledByTypeName),
+        this.arg<number, 'Cents'>('customInt', 'Cents', 'required')
+    ).as((v, col) => this.aggregateFragmentWithType('int', 'required').sql`sum(${v.add(col).add(9)})`)
+    derivedAggMaybeOptionalArgMoney = this.buildAggregateFragmentWithMaybeOptionalArgs(
+        this.arg<number, 'Money'>('customDouble', 'Money', 'optional', scaledByTypeName),
+        this.arg<number, 'Money'>('customDouble', 'Money', 'optional')
+    ).as((v, col) => this.aggregateFragmentWithType('double', 'optional').sql`sum(${v.add(col).add(9)})`)
+    derivedAggValueArgCentsIfValue = this.buildAggregateFragmentWithArgsIfValue(
+        this.arg<number, 'Cents'>('customInt', 'Cents', 'required'),
+        this.valueArg<number, 'Cents'>('customInt', 'Cents', 'optional', scaledByTypeName)
+    ).as((col, v) => this.aggregateFragmentWithType('boolean', 'required').sql`sum(${v.add(col).add(9)}) > sum(${col}) * 20`)
+
+    // Custom-typed arguments WITHOUT an adapter: what observes the argument's own
+    // data type here is the SQL the dialect emits for the derivation -- a modulo
+    // over a fractional receiver needs a different form from an integer one -- not
+    // a value transform. Both operands of the modulo are placeholders the dialect
+    // casts for itself, so the emitted SQL stays portable.
+    derivedArgMoneyModulo = this.buildFragmentWithArgs(
+        this.arg<number, 'Money'>('customDouble', 'Money', 'required')
+    ).as((v) => v.modulo(2))
+    derivedAggArgMoneyModulo = this.buildAggregateFragmentWithArgs(
+        this.arg<number, 'Money'>('customDouble', 'Money', 'required')
+    ).as((v) => this.aggregateFragmentWithType('double', 'required').sql`sum(${v.modulo(2)})`)
+    derivedValueArgMoneyModuloIfValue = this.buildFragmentWithArgsIfValue(
+        this.valueArg<number, 'Money'>('customDouble', 'Money', 'optional')
+    ).as((v) => v.modulo(2).lessThan(10))
 }
 
 export const tOrganization = new class TOrganization extends Table<DBConnection, 'TOrganization'> {
@@ -1449,4 +1545,137 @@ export const tColMatrixOptionalComputedAdapter = new class TColMatrixOptionalCom
     signOff     = this.optionalComputedColumn<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp', colMatrixShiftHour)
     activity    = this.optionalComputedColumn<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity', colMatrixStringBracket)
     constructor() { super('col_matrix') }
+}()
+
+
+// Column factories reading the SAME col_matrix row through a CUSTOM data type and
+// the `scaledByTypeName` adapter. One class per factory, so a factory that loses
+// the custom data type is visible on its own: `cents` is a customInt ('Cents')
+// over m_int (42) and `money` a customDouble ('Money') over m_double (3.5). The
+// plain `int` / `double` twins over the same two columns are the controls — same
+// SQL, no scaling. No DDL of its own: col_matrix and col_matrix_view already hold
+// the one seeded row.
+
+// `column(name, type, typeName, adapter)`.
+export const tDerivedColumn = new class TDerivedColumn extends Table<DBConnection, 'TDerivedColumn'> {
+    id          = this.primaryKey('id', 'int')
+    plainInt    = this.column('m_int', 'int')
+    plainDouble = this.column('m_double', 'double')
+    cents       = this.column<number, 'Cents'>('m_int', 'customInt', 'Cents', scaledByTypeName)
+    money       = this.column<number, 'Money'>('m_double', 'customDouble', 'Money', scaledByTypeName)
+    // The temporal and uuid custom data types on the same factory. They carry no
+    // adapter: what observes their data type is the dialect's own dispatch on it
+    // (the date/time spelling and the uuid handling), not a value transform.
+    signOff     = this.column<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp')
+    releaseDay  = this.column<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay')
+    cutoffClock = this.column<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock')
+    signingKey  = this.column<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey')
+    // The adapter-free twins of `cents` / `money`, plus a `ReleaseTag` twin for the
+    // sequence tests. They are the OPERANDS the derived-type tests pass to a
+    // custom-typed fragment argument or to a sequence derivation: the operand has
+    // to share the receiver's data type, and it must not bring an adapter of its
+    // own, so the receiver's is the one that runs.
+    plainCents  = this.column<number, 'Cents'>('m_int', 'customInt', 'Cents')
+    plainMoney  = this.column<number, 'Money'>('m_double', 'customDouble', 'Money')
+    releaseTag  = this.column<number, 'ReleaseTag'>('m_int', 'customInt', 'ReleaseTag')
+    constructor() { super('col_matrix') }
+}()
+
+// `optionalColumn(name, type, typeName, adapter)`.
+export const tDerivedOptional = new class TDerivedOptional extends Table<DBConnection, 'TDerivedOptional'> {
+    id          = this.primaryKey('id', 'int')
+    plainInt    = this.optionalColumn('m_int', 'int')
+    plainDouble = this.optionalColumn('m_double', 'double')
+    cents       = this.optionalColumn<number, 'Cents'>('m_int', 'customInt', 'Cents', scaledByTypeName)
+    money       = this.optionalColumn<number, 'Money'>('m_double', 'customDouble', 'Money', scaledByTypeName)
+    constructor() { super('col_matrix') }
+}()
+
+// `columnWithDefaultValue(name, type, typeName, adapter)`.
+export const tDerivedDefault = new class TDerivedDefault extends Table<DBConnection, 'TDerivedDefault'> {
+    id          = this.primaryKey('id', 'int')
+    plainInt    = this.columnWithDefaultValue('m_int', 'int')
+    plainDouble = this.columnWithDefaultValue('m_double', 'double')
+    cents       = this.columnWithDefaultValue<number, 'Cents'>('m_int', 'customInt', 'Cents', scaledByTypeName)
+    money       = this.columnWithDefaultValue<number, 'Money'>('m_double', 'customDouble', 'Money', scaledByTypeName)
+    constructor() { super('col_matrix') }
+}()
+
+// `optionalColumnWithDefaultValue(name, type, typeName, adapter)`.
+export const tDerivedOptionalDefault = new class TDerivedOptionalDefault extends Table<DBConnection, 'TDerivedOptionalDefault'> {
+    id          = this.primaryKey('id', 'int')
+    plainInt    = this.optionalColumnWithDefaultValue('m_int', 'int')
+    plainDouble = this.optionalColumnWithDefaultValue('m_double', 'double')
+    cents       = this.optionalColumnWithDefaultValue<number, 'Cents'>('m_int', 'customInt', 'Cents', scaledByTypeName)
+    money       = this.optionalColumnWithDefaultValue<number, 'Money'>('m_double', 'customDouble', 'Money', scaledByTypeName)
+    constructor() { super('col_matrix') }
+}()
+
+// `computedColumn(name, type, typeName, adapter)`.
+export const tDerivedComputed = new class TDerivedComputed extends Table<DBConnection, 'TDerivedComputed'> {
+    id          = this.primaryKey('id', 'int')
+    plainInt    = this.computedColumn('m_int', 'int')
+    plainDouble = this.computedColumn('m_double', 'double')
+    cents       = this.computedColumn<number, 'Cents'>('m_int', 'customInt', 'Cents', scaledByTypeName)
+    money       = this.computedColumn<number, 'Money'>('m_double', 'customDouble', 'Money', scaledByTypeName)
+    constructor() { super('col_matrix') }
+}()
+
+// `optionalComputedColumn(name, type, typeName, adapter)`.
+export const tDerivedOptionalComputed = new class TDerivedOptionalComputed extends Table<DBConnection, 'TDerivedOptionalComputed'> {
+    id          = this.primaryKey('id', 'int')
+    plainInt    = this.optionalComputedColumn('m_int', 'int')
+    plainDouble = this.optionalComputedColumn('m_double', 'double')
+    cents       = this.optionalComputedColumn<number, 'Cents'>('m_int', 'customInt', 'Cents', scaledByTypeName)
+    money       = this.optionalComputedColumn<number, 'Money'>('m_double', 'customDouble', 'Money', scaledByTypeName)
+    constructor() { super('col_matrix') }
+}()
+
+// `primaryKey(name, type, typeName, adapter)` — the caller-provided key itself
+// carries the custom data type.
+export const tDerivedPk = new class TDerivedPk extends Table<DBConnection, 'TDerivedPk'> {
+    centsPk     = this.primaryKey<number, 'Cents'>('m_int', 'customInt', 'Cents', scaledByTypeName)
+    plainInt    = this.column('m_int', 'int')
+    plainDouble = this.column('m_double', 'double')
+    constructor() { super('col_matrix') }
+}()
+
+// `autogeneratedPrimaryKey(name, type, typeName, adapter)`.
+export const tDerivedAutogenPk = new class TDerivedAutogenPk extends Table<DBConnection, 'TDerivedAutogenPk'> {
+    centsPk     = this.autogeneratedPrimaryKey<number, 'Cents'>('m_int', 'customInt', 'Cents', scaledByTypeName)
+    plainInt    = this.column('m_int', 'int')
+    plainDouble = this.column('m_double', 'double')
+    constructor() { super('col_matrix') }
+}()
+
+// `virtualColumnFromFragment` / `optionalVirtualColumnFromFragment` with a custom
+// data type. Each fragment renders a base column OBJECT (`bInt` / `bDouble`), so
+// the emitted read SQL matches the plain-column form and only the typed virtual
+// read path differs.
+export const tDerivedVirtual = new class TDerivedVirtual extends Table<DBConnection, 'TDerivedVirtual'> {
+    id          = this.primaryKey('id', 'int')
+    bInt        = this.column('m_int', 'int')
+    bDouble     = this.column('m_double', 'double')
+    cents       = this.virtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (fragment) => fragment.sql`${this.bInt}`, scaledByTypeName)
+    money       = this.virtualColumnFromFragment<number, 'Money'>('customDouble', 'Money', (fragment) => fragment.sql`${this.bDouble}`, scaledByTypeName)
+    centsOptional = this.optionalVirtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (fragment) => fragment.sql`${this.bInt}`, scaledByTypeName)
+    moneyOptional = this.optionalVirtualColumnFromFragment<number, 'Money'>('customDouble', 'Money', (fragment) => fragment.sql`${this.bDouble}`, scaledByTypeName)
+    constructor() { super('col_matrix') }
+}()
+
+// The View side: `column` / `optionalColumn` / `virtualColumnFromFragment` /
+// `optionalVirtualColumnFromFragment` over col_matrix_view.
+export const vDerivedColumn = new class VDerivedColumn extends View<DBConnection, 'VDerivedColumn'> {
+    id            = this.column('id', 'int')
+    bInt          = this.column('m_int', 'int')
+    bDouble       = this.column('m_double', 'double')
+    cents         = this.column<number, 'Cents'>('m_int', 'customInt', 'Cents', scaledByTypeName)
+    money         = this.column<number, 'Money'>('m_double', 'customDouble', 'Money', scaledByTypeName)
+    centsOptional = this.optionalColumn<number, 'Cents'>('m_int', 'customInt', 'Cents', scaledByTypeName)
+    moneyOptional = this.optionalColumn<number, 'Money'>('m_double', 'customDouble', 'Money', scaledByTypeName)
+    centsVirtual  = this.virtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (fragment) => fragment.sql`${this.bInt}`, scaledByTypeName)
+    moneyVirtual  = this.virtualColumnFromFragment<number, 'Money'>('customDouble', 'Money', (fragment) => fragment.sql`${this.bDouble}`, scaledByTypeName)
+    centsVirtualOptional = this.optionalVirtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (fragment) => fragment.sql`${this.bInt}`, scaledByTypeName)
+    moneyVirtualOptional = this.optionalVirtualColumnFromFragment<number, 'Money'>('customDouble', 'Money', (fragment) => fragment.sql`${this.bDouble}`, scaledByTypeName)
+    constructor() { super('col_matrix_view') }
 }()

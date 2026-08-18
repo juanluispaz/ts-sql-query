@@ -1574,7 +1574,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         let columns = ''
-        const nextSequenceValues: string[] = []
+        const nextSequenceValues: Array<{ name: string, valueType: ValueType }> = []
         for (var columnName in table) {
             const column = __getColumnOfObject(table, columnName)
             if (!column) {
@@ -1590,7 +1590,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
 
             columns += this._appendRawColumnName(column, params)
-            nextSequenceValues.push(columnPrivate.__sequenceName)
+            nextSequenceValues.push({ name: columnPrivate.__sequenceName, valueType: columnPrivate.__valueType })
         }
         for (let columnName in usedColumns) {
             const column = __getColumnOfObject(table, columnName)
@@ -1617,8 +1617,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 if (values) {
                     values += ', '
                 }
-                const sequenceName = nextSequenceValues[j]!
-                values += this._nextSequenceValue(params, sequenceName)
+                const sequence = nextSequenceValues[j]!
+                values += this._nextSequenceValue(params, sequence.name, sequence.valueType)
             }
 
             const sets = multiple[i]!
@@ -1646,7 +1646,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 const columnPrivate = __getColumnPrivate(column)
                 const sequenceName = columnPrivate.__sequenceName
                 if (!(setPropertyName in sets) && sequenceName) {
-                    values += this._nextSequenceValue(params, sequenceName)
+                    values += this._nextSequenceValue(params, sequenceName, columnPrivate.__valueType)
                 } else {
                     values += this._appendValueForColumn(column, value, params, false)
                 }
@@ -1770,7 +1770,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         insertQuery += this._appendTableOrViewName(table, params)
 
         let columns = ''
-        const sequences: string[] = []
+        const sequences: Array<{ name: string, valueType: ValueType }> = []
         for (var columnName in table) {
             const column = __getColumnOfObject(table, columnName)
             if (!column) {
@@ -1786,7 +1786,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
 
             columns += this._appendRawColumnName(column, params)
-            sequences.push(columnPrivate.__sequenceName)
+            sequences.push({ name: columnPrivate.__sequenceName, valueType: columnPrivate.__valueType })
         }
 
         if (columns) {
@@ -1796,12 +1796,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         let values = ''
         for (let i = 0, length = sequences.length; i < length; i++) {
-            const sequenceName = sequences[i]!
+            const sequence = sequences[i]!
             if (values) {
                 values += ', '
             }
 
-            values += this._nextSequenceValue(params, sequenceName)
+            values += this._nextSequenceValue(params, sequence.name, sequence.valueType)
         }
 
         if (values) {
@@ -1860,7 +1860,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         let columns = ''
-        const sequences: string[] = []
+        const sequences: Array<{ name: string, valueType: ValueType }> = []
         for (var columnName in table) {
             if (columnsInShape) {
                 if (columnName in columnsInShape) {
@@ -1885,7 +1885,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
 
             columns += this._appendRawColumnName(column, params)
-            sequences.push(columnPrivate.__sequenceName)
+            sequences.push({ name: columnPrivate.__sequenceName, valueType: columnPrivate.__valueType })
         }
         if (shape) { // Follow shape order
             const properties = Object.getOwnPropertyNames(shape)
@@ -1933,12 +1933,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         let values = ''
         for (let i = 0, length = sequences.length; i < length; i++) {
-            const sequenceName = sequences[i]!
+            const sequence = sequences[i]!
             if (values) {
                 values += ', '
             }
 
-            values += this._nextSequenceValue(params, sequenceName)
+            values += this._nextSequenceValue(params, sequence.name, sequence.valueType)
         }
 
         if (shape) { // Follow shape order
@@ -2287,10 +2287,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
         this._setSafeTableOrView(params, oldSafeTableOrView)
         return result
     }
-    _nextSequenceValue( _params: any[], sequenceName: string) {
+    _nextSequenceValue( _params: any[], sequenceName: string, _columnType: ValueType) {
         return "nextval('" + sequenceName + "')"
     }
-    _currentSequenceValue(_params: any[], sequenceName: string): string {
+    _currentSequenceValue(_params: any[], sequenceName: string, _columnType: ValueType): string {
         return "currval('" + sequenceName + "')"
     }
     _buildUpdate(query: UpdateData, params: any[]): string {
@@ -2754,42 +2754,63 @@ export class AbstractSqlBuilder implements SqlBuilder {
      */
     // SqlComparator0
     _isNull(params: any[], valueSource: ToSql): string {
+        if (this._isValueKnownWhenTheQueryIsBuilt(valueSource)) {
+            return this._isNullValue(valueSource) ? this._trueValueForCondition : this._falseValueForCondition
+        }
         return this._appendSqlParenthesis(valueSource, params, false) + ' is null'
     }
     _isNotNull(params: any[], valueSource: ToSql): string {
+        if (this._isValueKnownWhenTheQueryIsBuilt(valueSource)) {
+            return this._isNullValue(valueSource) ? this._falseValueForCondition : this._trueValueForCondition
+        }
         return this._appendSqlParenthesis(valueSource, params, false) + ' is not null'
     }
-    _isNullValue(value: any): boolean {
+    /**
+     * Whether the value carries its own value already — a constant — instead of one the database
+     * resolves. A missing value is still a value we hold, so `null`/`undefined` answer true;
+     * `_isNullValue` is what tells the two apart afterwards.
+     *
+     * Together they settle a null test while the query is built: asking the database whether a
+     * value we are already holding is NULL cannot answer anything else.
+     */
+    _isValueKnownWhenTheQueryIsBuilt(value: any): boolean {
         if (value === null || value === undefined) {
             return true
         }
-        if (!isValueSource(value)) {
+        return isValueSource(value) && __getValueSourcePrivate(value).isConstValue()
+    }
+    _isNullValue(value: any): boolean {
+        if (!this._isValueKnownWhenTheQueryIsBuilt(value)) {
             return false
         }
-        const valueSourcePrivate = __getValueSourcePrivate(value)
-        if (valueSourcePrivate.isConstValue()) {
-            const valueSourceValue = valueSourcePrivate.getConstValue()
-            if (valueSourceValue === null || valueSourceValue === undefined) {
-                return true
-            }
+        if (value === null || value === undefined) {
+            return true
         }
-        return false
+        const valueSourceValue = __getValueSourcePrivate(value).getConstValue()
+        return valueSourceValue === null || valueSourceValue === undefined
+    }
+    /**
+     * Whether the database is the one deciding if this value is NULL. A constant carries its
+     * value already, so its null state is settled while the query is built and no runtime check
+     * over it can ever change: only a value the database resolves needs one emitted.
+     *
+     * Narrower than `_isOptionalValue`, which answers the DECLARED optionality — the one that
+     * governs the result type — and so still reports a constant holding a value as optional.
+     */
+    _canBeNullWhenTheQueryRuns(value: any): boolean {
+        if (this._isValueKnownWhenTheQueryIsBuilt(value)) {
+            return this._isNullValue(value)
+        }
+        return this._isOptionalValue(value)
     }
     _isOptionalValue(value: any): boolean {
-        if (value === null || value === undefined) {
+        if (this._isNullValue(value)) {
             return true
         }
         if (!isValueSource(value)) {
             return false
         }
-        const valueSourcePrivate = __getValueSourcePrivate(value)
-        if (valueSourcePrivate.isConstValue()) {
-            const valueSourceValue = valueSourcePrivate.getConstValue()
-            if (valueSourceValue === null || valueSourceValue === undefined) {
-                return true
-            }
-        }
-        return valueSourcePrivate.__optionalType !== 'required'
+        return __getValueSourcePrivate(value).__optionalType !== 'required'
     }
     _hasSameBooleanTypeAdapter(valueSource: DBColumn, value: DBColumn): valueSource is DBColumn  {
         if (isColumn(valueSource) && isColumn(value)) {
@@ -3592,8 +3613,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
      *     null-propagating function emitted as `func(a, b)`, so the operand is not repeated.
      *
      * The operand appears twice in the optional cases (null check + `<inner>`); accepted,
-     * because it is almost always a column, and the user-function opt-in exists for the
-     * rare expensive value-source receiver.
+     * because only a value the DATABASE resolves is checked at all — a constant's null state
+     * is settled while the query is built — and the user-function opt-in exists for the rare
+     * expensive value-source receiver.
      */
     _minAndMaxValueBetweenTwoValuesPoisoningNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, userFunction: string | undefined, functionName: string): string {
         const argumentType = this._getMathArgumentType(columnType, columnTypeName, value)
@@ -3606,10 +3628,16 @@ export class AbstractSqlBuilder implements SqlBuilder {
             // Opt-in: a user-provided null-propagating function; it poisons NULL itself, no CASE.
             return userFunction + '(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter, false) + ')'
         }
-        const receiverOptional = this._isOptionalValue(valueSource)
-        const operandOptional = this._isOptionalValue(value)
+        if (this._isNullValue(valueSource) || this._isNullValue(value)) {
+            // A NULL operand poisons the result, and this operand is already known to be NULL
+            // here, so the result is NULL: asking the database to compute a value it cannot
+            // reach is pure noise.
+            return this._asNullValue(params, argumentType, argumentTypeName, typeAdapter)
+        }
+        const receiverOptional = this._canBeNullWhenTheQueryRuns(valueSource)
+        const operandOptional = this._canBeNullWhenTheQueryRuns(value)
         if (!receiverOptional && !operandOptional) {
-            // Both required: nothing can be null, emit the bare native form.
+            // Nothing can be null, emit the bare native form.
             return this._minAndMaxValueSelection(params, valueSource, value, argumentType, argumentTypeName, typeAdapter, functionName)
         }
         // Build the null check first so its parameters are appended before the inner's.

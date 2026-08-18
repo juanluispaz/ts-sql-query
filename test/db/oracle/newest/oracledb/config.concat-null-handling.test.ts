@@ -141,14 +141,40 @@ describe(ctx.label, () => {
     })
 
     test('default: a wrapped nested concat that reuses a receiver keeps its own poison CASE', async () => {
-        // Regression guard: `body.concat(title).concat(body.concat(optionalConst(null)).valueWhenNull('Z'))`
-        // reuses the nullable `body` column as the receiver of BOTH the outer chain AND an
-        // INDEPENDENT nested concat (wrapped in `valueWhenNull`, so it is absent from the outer
-        // null-check). The nested concat must keep its OWN poison `CASE` in the value branch — its
-        // inner NULL operand poisons it to NULL, so `valueWhenNull` yields 'Z'. Suppressing the
-        // `CASE` by the shared receiver (instead of the concat node) rendered it bare (`body || :n`),
-        // so issue 2 got `body` a second time ('…Use new tokens') instead of the 'Z' default.
+        // Regression guard: `body.concat(title).concat(body.concat(body).valueWhenNull('Z'))` reuses
+        // the nullable `body` column as the receiver of BOTH the outer chain AND an INDEPENDENT
+        // nested concat (wrapped in `valueWhenNull`, so it is absent from the outer null-check). The
+        // nested concat must keep its OWN poison `CASE`: suppressing it by the shared receiver
+        // (instead of the concat node) rendered it bare (`body || body`), which is what the nested
+        // `CASE` in the snapshot pins. Its operand is the column, so the database is the one
+        // deciding the null state and the `CASE` is emitted — a NULL the query already carries
+        // would be settled while building instead (the test below).
         // Issue 2 has body='Use new tokens', title='Redesign navbar'.
+        const nested = tIssue.body.concat(tIssue.body).valueWhenNull('Z')
+        const expected = [{ id: 2, v: 'Use new tokensRedesign navbarUse new tokensUse new tokens' }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({ id: tIssue.id, v: tIssue.body.concat(tIssue.title).concat(nested) })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", case when "body" is null or nvl(case when "body" is null or "body" is null then null else "body" || "body" end, :0) is null then null else "body" || title || nvl(case when "body" is null or "body" is null then null else "body" || "body" end, :1) end as "v" from issue where id = :2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "Z",
+            "Z",
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; v?: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('default: a concat whose operand is already NULL is settled while the query is built', async () => {
+        // The twin of the guard above with the NULL carried by the query instead of the row:
+        // `body.concat(optionalConst(null)).valueWhenNull('Z')`. A NULL operand poisons the whole
+        // concatenation and this one is known while building, so the nested concat is emitted as
+        // NULL — no `CASE`, no operand, no parameter for the value that could not matter — and
+        // `valueWhenNull` still answers 'Z'. Issue 2 has body='Use new tokens', title='Redesign navbar'.
         const nested = tIssue.body.concat(ctx.conn.optionalConst(null, 'string')).valueWhenNull('Z')
         const expected = [{ id: 2, v: 'Use new tokensRedesign navbarZ' }]
         ctx.mockNext(expected)
@@ -156,14 +182,10 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(2))
             .select({ id: tIssue.id, v: tIssue.body.concat(tIssue.title).concat(nested) })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", case when "body" is null or nvl(case when "body" is null or :0 is null then null else "body" || :1 end, :2) is null then null else "body" || title || nvl(case when "body" is null or :3 is null then null else "body" || :4 end, :5) end as "v" from issue where id = :6"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", case when "body" is null or nvl(null, :0) is null then null else "body" || title || nvl(null, :1) end as "v" from issue where id = :2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            null,
-            null,
             "Z",
-            null,
-            null,
             "Z",
             2,
           ]

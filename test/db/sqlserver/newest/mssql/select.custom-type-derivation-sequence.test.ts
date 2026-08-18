@@ -112,10 +112,6 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[BUG]: see test/BUGS.md — currentValue() is emitted as a read of the catalog's
-    // sql_variant column, so any arithmetic on it is rejected with "Implicit conversion from
-    // data type sql_variant to int is not allowed" even though the value source is typed int.
-    /*
     test('sequence/current-value-custom-int-add-column-reads-back-with-the-sequence-data-type', async () => {
         await ctx.withCommit(async () => {
             // The same derivation over `currentValue()` instead of `nextValue()`.
@@ -130,7 +126,7 @@ describe(ctx.label, () => {
             const v = await ctx.conn.selectFrom(tDerivedColumn)
                 .selectOneColumn(ctx.conn.derivedTagSeq.currentValue().multiply(0).add(tDerivedColumn.releaseTag))
                 .executeSelectOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select ((select current_value from sys.sequences where name = 'release_tag_seq') * @0) + m_int as [result] from col_matrix"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select (cast((select current_value from sys.sequences where name = 'release_tag_seq') as bigint) * @0) + m_int as [result] from col_matrix"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 0,
@@ -140,5 +136,4 @@ describe(ctx.label, () => {
             expect(v).toBe(0.42)
         })
     })
-    */
 })

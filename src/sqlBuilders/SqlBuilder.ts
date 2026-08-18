@@ -487,8 +487,8 @@ export interface SqlFunction2 {
 }
 
 export interface SqlSequenceOperation {
-    _nextSequenceValue(params: any[], sequenceName: string): string
-    _currentSequenceValue(params: any[], sequenceName: string): string
+    _nextSequenceValue(params: any[], sequenceName: string, columnType: ValueType): string
+    _currentSequenceValue(params: any[], sequenceName: string, columnType: ValueType): string
 }
 
 export interface SqlFragmentOperation {

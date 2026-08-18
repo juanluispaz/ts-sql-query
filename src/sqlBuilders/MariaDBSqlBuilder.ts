@@ -1,4 +1,4 @@
-import type { AnyValueSource, __AggregatedArrayColumns } from '../expressions/values.js'
+import type { AnyValueSource, ValueType, __AggregatedArrayColumns } from '../expressions/values.js'
 import { isValueSource } from '../expressions/values.js'
 import { AbstractMySqlMariaDBSqlBuilder } from './AbstractMySqlMariaBDSqlBuilder.js'
 import type { FlatQueryColumns, InsertData, SelectData } from './SqlBuilder.js'
@@ -57,13 +57,13 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         }
         return super._appendRawColumnName(column, params)
     }
-    override _nextSequenceValue(_params: any[], sequenceName: string): string {
+    override _nextSequenceValue(_params: any[], sequenceName: string, _columnType: ValueType): string {
         // MariaDB sequences (MDEV-10139, MariaDB 10.3.0) expose NEXTVAL(seq) for the
         // function form and the SQL-standard NEXT VALUE FOR seq alias; we emit the
         // function form because it accepts a regular (back-tick-escaped) identifier.
         return 'nextval(' + this._escape(sequenceName, false) + ')'
     }
-    override _currentSequenceValue(_params: any[], sequenceName: string): string {
+    override _currentSequenceValue(_params: any[], sequenceName: string, _columnType: ValueType): string {
         // LASTVAL(seq) returns the most recent NEXTVAL(seq) issued in the current
         // connection (NULL if none); equivalent to PostgreSQL's currval() and to
         // the SQL-standard PREVIOUS VALUE FOR seq.

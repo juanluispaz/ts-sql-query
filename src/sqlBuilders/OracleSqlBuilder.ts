@@ -172,25 +172,52 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // — and, by the same token, no param was appended — so the bare native join is emitted with
         // no `CASE`. A concat wrapped in another operation (e.g. `valueWhenNull`) is a single leaf
         // here, so it keeps its own `CASE` (see `_concatChainSql`).
+        if (this._concatChainIsNull(valueSource, value, false)) {
+            // The chain already holds the NULL the `CASE` below exists to propagate, so the
+            // concatenation cannot produce anything else: neither the check nor the operands
+            // feeding it are worth emitting.
+            return this._asNullValue(params, columnType, columnTypeName, typeAdapter)
+        }
         const nullCheck = this._appendConcatNullCheck(params, valueSource, value, false)
         if (!nullCheck) {
             return super._concat(params, valueSource, value, columnType, columnTypeName, typeAdapter)
         }
         return 'case when ' + nullCheck + ' then null else ' + this._concatChainSql(params, valueSource, value, false) + ' end'
     }
+    // Whether the chain already holds a NULL operand, which poisons the whole concatenation.
+    // Mirrors the descent of the two walks below — a `_concat` operand is descended into, a
+    // dropped `.concatIfValue()` operand does not participate — but appends NO param: it only
+    // asks what the chain is already carrying.
+    private _concatChainIsNull(valueSource: any, value: any, dropValue: boolean): boolean {
+        if (this._isConcatChainNode(valueSource)) {
+            if (this._concatChainIsNull(valueSource.__valueSource, valueSource.__value, this._concatChainDropsValue(valueSource))) {
+                return true
+            }
+        } else if (this._isNullValue(valueSource)) {
+            return true
+        }
+        if (dropValue) {
+            return false
+        }
+        if (this._isConcatChainNode(value)) {
+            return this._concatChainIsNull(value.__valueSource, value.__value, this._concatChainDropsValue(value))
+        }
+        return this._isNullValue(value)
+    }
     // Builds the poison `CASE`'s null check for a concat chain: `<a> is null or <b> is null or …`
-    // over the build-time-optional atomic leaves, appending each leaf's params as it goes. It walks
+    // over the atomic leaves the DATABASE decides the null state of, appending each leaf's params as
+    // it goes. A leaf carrying its own value is not checked: `_concat` settled it already. It walks
     // the concat operands directly, mirroring `_concatChainSql`: a `_concat` operand is descended
     // into; any other operand is a leaf, checked when it is optional (a nullable column,
-    // `optionalConst(null)`, a `valueWhenNull`-wrapped concat, …). Building the check straight from
-    // the walk avoids collecting the leaves into an intermediate array first. Returns '' when
-    // nothing is optional — and in that case appends NO param, so the caller can fall back to the
-    // bare join with the param array untouched.
+    // a `valueWhenNull`-wrapped concat, …). Building the check straight from the walk avoids
+    // collecting the leaves into an intermediate array first. Returns '' when nothing can be NULL
+    // — and in that case appends NO param, so the caller can fall back to the bare join with the
+    // param array untouched.
     private _appendConcatNullCheck(params: any[], valueSource: any, value: any, dropValue: boolean): string {
         let left: string
         if (this._isConcatChainNode(valueSource)) {
             left = this._appendConcatNullCheck(params, valueSource.__valueSource, valueSource.__value, this._concatChainDropsValue(valueSource))
-        } else if (this._isOptionalValue(valueSource)) {
+        } else if (this._canBeNullWhenTheQueryRuns(valueSource)) {
             left = this._isNull(params, valueSource)
         } else {
             left = ''
@@ -201,7 +228,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         let right: string
         if (this._isConcatChainNode(value)) {
             right = this._appendConcatNullCheck(params, value.__valueSource, value.__value, this._concatChainDropsValue(value))
-        } else if (this._isOptionalValue(value)) {
+        } else if (this._canBeNullWhenTheQueryRuns(value)) {
             right = this._isNull(params, value)
         } else {
             right = ''
@@ -349,10 +376,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     override _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords
     }
-    override _nextSequenceValue(_params: any[], sequenceName: string) {
+    override _nextSequenceValue(_params: any[], sequenceName: string, _columnType: ValueType) {
         return this._escape(sequenceName, false) + '.nextval'
     }
-    override _currentSequenceValue(_params: any[], sequenceName: string): string {
+    override _currentSequenceValue(_params: any[], sequenceName: string, _columnType: ValueType): string {
         return this._escape(sequenceName, false) + '.currval'
     }
     override _fromNoTable() {
@@ -936,7 +963,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
             const sets = multiple[i]!
             let columns = ''
-            const sequences: string[] = []
+            const sequences: Array<{ name: string, valueType: ValueType }> = []
             for (var columnName in table) {
                 if (columnsInShape) {
                     if (columnName in columnsInShape) {
@@ -961,7 +988,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 }
     
                 columns += this._appendSql(column, params, false)
-                sequences.push(columnPrivate.__sequenceName)
+                sequences.push({ name: columnPrivate.__sequenceName, valueType: columnPrivate.__valueType })
             }
             if (shape) { // Follow shape order
                 const properties = Object.getOwnPropertyNames(shape)
@@ -1009,12 +1036,12 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
             let values = ''
             for (let i = 0, length = sequences.length; i < length; i++) {
-                const sequenceName = sequences[i]!
+                const sequence = sequences[i]!
                 if (values) {
                     values += ', '
                 }
 
-                values += this._nextSequenceValue(params, sequenceName)
+                values += this._nextSequenceValue(params, sequence.name, sequence.valueType)
             }
             if (shape) { // Follow shape order
                 const properties = Object.getOwnPropertyNames(shape)
@@ -1142,7 +1169,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
             const columnPrivate = __getColumnPrivate(column)
             if (columnPrivate.__sequenceName) {
-                values += this._nextSequenceValue(params, columnPrivate.__sequenceName)
+                values += this._nextSequenceValue(params, columnPrivate.__sequenceName, columnPrivate.__valueType)
             } else {
                 values += 'default'
             }
@@ -1244,7 +1271,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 }
             }
         }
-        return this._appendSqlParenthesis(valueSource, params, false) + ' is null'
+        return super._isNull(params, valueSource)
     }
     override _isNotNull(params: any[], valueSource: ToSql): string {
         if (isColumn(valueSource)) {
@@ -1260,7 +1287,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 }
             }
         }
-        return this._appendSqlParenthesis(valueSource, params, false) + ' is not null'
+        return super._isNotNull(params, valueSource)
     }
     override _is(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {

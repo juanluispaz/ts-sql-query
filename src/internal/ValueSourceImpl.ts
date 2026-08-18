@@ -1725,7 +1725,7 @@ export class SequenceValueSource extends ValueSourceImpl {
         this.__sequenceName = sequenceName
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
-        return sqlBuilder[this.__operation](params, this.__sequenceName)
+        return sqlBuilder[this.__operation](params, this.__sequenceName, this.__valueType)
     }
 }
 

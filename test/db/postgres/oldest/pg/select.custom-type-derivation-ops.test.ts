@@ -1881,10 +1881,6 @@ describe(ctx.label, () => {
         expect(row).toEqual({ v: 0.2 })
     })
 
-    // TODO[BUG]: see test/BUGS.md — an optional operand makes the library emit its null guard
-    // as a bare `$n is null`, a position PostgreSQL can infer no parameter type for, so the
-    // statement is refused with 42P18 "could not determine data type of parameter $1".
-    /*
     test('optional-const/custom-double-max-value-column-operand', async () => {
         // maxValue caps an OPTIONAL `Money` const of 5 (bound as 500) at the
         // `Money` billed_amount of worklog 1 (200); an optional operand makes
@@ -1898,10 +1894,9 @@ describe(ctx.label, () => {
                     .maxValue(tIssueWorklog.billedAmount),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select case when $1 is null then null else least($2, billed_amount) end as "v" from issue_worklog where id = $3"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select least($1, billed_amount) as "v" from issue_worklog where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            500,
             500,
             1,
           ]
@@ -1909,7 +1904,6 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { v?: number }>>()
         expect(row).toEqual({ v: 2 })
     })
-    */
 
     // ── temporal customs · the date-part getters ───────────────────────────
 

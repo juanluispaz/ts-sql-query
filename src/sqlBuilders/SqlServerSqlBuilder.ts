@@ -53,11 +53,29 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords
     }
-    override _nextSequenceValue(_params: any[], sequenceName: string) {
+    override _nextSequenceValue(_params: any[], sequenceName: string, _columnType: ValueType) {
         return 'next value for ' + this._escape(sequenceName, false)
     }
-    override _currentSequenceValue(_params: any[], sequenceName: string): string {
-        return "(select current_value from sys.sequences where name = '" + sequenceName + "')"
+    override _currentSequenceValue(_params: any[], sequenceName: string, columnType: ValueType): string {
+        // SQL Server has no `currval`; the current value is read from the catalog, where it is
+        // typed `sql_variant`. SQL Server refuses to convert that implicitly, so anything doing
+        // arithmetic over it (or handing it to a numeric function) is rejected with "Implicit
+        // conversion from data type sql_variant to int is not allowed" — the cast is what makes
+        // the value composable, and it asks for the data type the sequence was declared with.
+        return 'cast((select current_value from sys.sequences where name = \'' + sequenceName + '\') as ' + this._sqlServerSequenceValueType(columnType) + ')'
+    }
+    private _sqlServerSequenceValueType(columnType: ValueType): string {
+        switch (columnType) {
+            case 'int':
+                return 'int'
+            case 'double':
+                return 'float'
+            default:
+                // A SQL Server sequence is always integer-typed, so every remaining declaration
+                // reads one: `bigint` is the only width that cannot overflow the value, and it is
+                // what a custom data type gets too, since its own width is the user's to know.
+                return 'bigint'
+        }
     }
     override _trueValue = 'convert(bit, 1)'
     override _falseValue = 'convert(bit, 0)'
@@ -763,7 +781,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                 }
             }
         }
-        return this._appendSqlParenthesis(valueSource, params, false) + ' is null'
+        return super._isNull(params, valueSource)
     }
     _generalIsNull(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (hasToSql(value)) {
@@ -785,7 +803,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                 }
             }
         }
-        return this._appendSqlParenthesis(valueSource, params, false) + ' is not null'
+        return super._isNotNull(params, valueSource)
     }
     _generalIsNotNull(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (hasToSql(value)) {

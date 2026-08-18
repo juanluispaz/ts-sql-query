@@ -1894,10 +1894,9 @@ describe(ctx.label, () => {
                     .maxValue(tIssueWorklog.billedAmount),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select case when @0 is null then null else least(@1, billed_amount) end as [v] from issue_worklog where id = @2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select least(@0, billed_amount) as [v] from issue_worklog where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            500,
             500,
             1,
           ]

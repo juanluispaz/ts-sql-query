@@ -75,7 +75,75 @@ entry says under *Current workaround in the suite* why the matrix can't see it.
 A `none` there is not "nothing to do": it means no test would notice a
 regression either.
 
-*(none)*
+## Neutralising a condition resets its optionality to `required` — on two of the three roads
+
+**Where**: `src/internal/ValueSourceImpl.ts:389` (`onlyWhen`) and `:394`
+(`ignoreWhen`), which return `new SqlOperationValueSourceIfValueAlwaysNoop()`,
+whose constructor (`:1537-1539`) hardcodes `'required'`; and
+`src/queryBuilders/FragmentQueryBuilder.ts:86`, which builds the same constant
+when an optional VALUE argument has no value and so neutralises the whole
+fragment. Not surfaced by this suite — found while auditing the value-source
+type-system rewrite, and filed here because that is where `src/` defects live.
+
+**Reproduction**: over the SAME optional receiver, the three roads to the same
+neutral disagree. With `name = this.optionalColumn('name', 'string')`:
+
+```ts
+name.equalsIfValue(undefined)                 // → optional   ✅
+name.equals('x').onlyWhen(false)              // → required   ❌
+name.equals('x').ignoreWhen(true)             // → required   ❌
+someIfValueFragment(name, undefined)          // → required   ❌   (optional VALUE arg absent)
+```
+
+All four emit nothing. Reduce two of them identically and project them and the
+SQL is byte-identical while the optionality is not:
+
+```ts
+name.equalsIfValue(undefined).trueWhenNoValue()      // optional — select true as result from x
+name.equals('x').onlyWhen(false).trueWhenNoValue()   // required — select true as result from x
+```
+
+Both are declared `IfValueSource<S, 'optional'>` → `BooleanValueSource<S,
+'optional'>`, so on the two broken roads the runtime contradicts the declared
+type. The fragment road contradicts it the same way: `as()` captures
+`RESULT[optionalType]` (`src/expressions/fragment.ts:287-308`) and the fragment
+function returns `IfValueSource<…, OPTIONAL_TYPE>` carrying it — measured, the
+runtime does carry it when the argument is PRESENT and drops it when absent.
+
+**Diagnosis** (measured, so the fixing agent need not redo it): `optionalType`
+answers "can NULL be present?", and the neutral ADDS an inhabitant rather than
+replacing the domain — `{true,false[,null]}` becomes `{…, neutral}`. So
+neutralising an EXISTING boolean must keep the receiver's optionality, which is
+what `equalsIfValue(undefined)` does and what the two broken roads lose by
+constructing a receiver-less constant.
+
+**NOT part of this bug — the seeds are correct.** A neutral that stands for no
+boolean yet is legitimately `'required'`: `noValueBoolean()`
+(`src/connections/AbstractConnection.ts:1069`, which even DECLARES `'required'`),
+`dynamicBooleanExpressionUsing(…)` (`:1073-1080`, declared with `any` as an
+escape valve) and the five `src/queryBuilders/DynamicConditionBuilder.ts` fold
+accumulators. `'required'` is the identity of `mergeOptional`, so a seed steps
+aside as soon as a real term joins — verified:
+`dynamicBooleanExpressionUsing(t).and(name.equalsIfValue(undefined))` → `optional`.
+
+**Current workaround in the suite**: none, and no test would notice a
+regression. The matrix cannot see this: the emitted SQL is identical on both
+roads so no snapshot moves, and the declared type is `optional` on both roads so
+no `assertType` moves either — the only difference is the runtime
+`__optionalType`, which nothing asserts directly. It can surface INDIRECTLY,
+which is what makes it worth fixing rather than documenting:
+`src/sqlBuilders/SqlServerSqlBuilder.ts:1582` and `:1676` wrap the emitted SQL in
+`isnull(…, 'null')` only when it is not `'required'`, and
+`src/queryBuilders/AbstractQueryBuilder.ts:75` throws `Expected a value as
+result` for a `'required'` value that comes back null. A fix will therefore
+change SQL Server JSON-aggregate output for these expressions — expect snapshots
+to move there and classify them rather than refresh them.
+
+**Note for whoever fixes it**: the durable explanation of the rule (the two
+producers, why each answers differently, and why the condition world has no
+optionality transform) is a code comment — `THE NEUTRAL'S OPTIONALITY` in
+`src/typeSystem/nodes/conditionValueSource.ts`. It stays after this entry is
+deleted.
 
 ## Coverage gaps carried over (not bugs — no entry to fix)
 

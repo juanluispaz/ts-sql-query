@@ -53,6 +53,7 @@ once. The heavy set:
 |---|---|
 | `npm run tests` (whole matrix; `--docker` / `--wasm` on top) | ~15.9 GB |
 | `npm run validate:tests` (per-connector tsgo split) | ~7 GB (largest slice) |
+| `npm run validate:tests -- <coord>` (narrowed to the cells a coord selects) | smaller — one cell is ~3 s |
 | `npm run validate:tests:newest` (single tsgo program) | ~6 GB |
 | `npm run validate` / `validate:tsgo` / `build*` | multi-GB |
 | `npm run tests:audit`, `npm run tests:index*` | multi-GB |

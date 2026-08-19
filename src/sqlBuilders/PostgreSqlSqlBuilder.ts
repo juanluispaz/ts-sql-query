@@ -303,7 +303,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
             // Cast both operands to numeric so `mod(numeric, numeric)` resolves
             // (the same numeric-cast strategy `_logn` / `_roundn` use). Pure
             // integer / bigint receivers and operands keep the plain `%` form below.
-            return 'mod((' + this._appendSql(valueSource, params, false) + ')::numeric, (' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')::numeric)'
+            return 'mod((' + this._appendSql(valueSource, params, false) + ')::numeric, (' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')::numeric)'
         }
         return super._modulo(params, valueSource, value, columnType, columnTypeName, typeAdapter)
     }
@@ -318,7 +318,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // fails at runtime with `function log(unknown, double precision)
         // does not exist`. Cast both operands to numeric so the overload
         // resolves regardless of how the chain was built.
-        return 'log((' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')::numeric, (' + this._appendSql(valueSource, params, false) + ')::numeric)'
+        return 'log((' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')::numeric, (' + this._appendSql(valueSource, params, false) + ')::numeric)'
     }
     override _roundn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // PostgreSQL only has the `round(numeric, integer)` overload — there is

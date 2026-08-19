@@ -51,6 +51,33 @@ register.
 | Reactivates in **this** cell | If the lib covers it, yes | When the bug is fixed, yes | Only if the external system changes | **Never** |
 | Test action | Comment out (full canonical body) with the marker, or work around per the entry's recipe | Mark the assertion / block-comment the canonical body per [`WRITING_TESTS.md`](./WRITING_TESTS.md#when-a-test-surfaces-a-bug-in-src) | Block-comment the canonical body with the marker; it runs live where the engine supports it | Block-comment the canonical body; the same test runs live in the cells whose dialect supports it |
 
+**Before writing the reason, decide which AXIS the failure lives on.** The static
+type system and the runtime one are separate in this library on purpose: the
+TypeScript types do not exist at runtime, and the runtime carries its own data
+type (`__valueType`) which the library resolves from the context AND the value in
+hand. A true statement about one axis does not justify a gap on the other. "The
+type system cannot express this" is a real, permanent limitation when the *type
+surface* is what has to reject the call — a position that only accepts a whole
+number, say, which `number` cannot narrow. It is **not** a reason when the
+information is available at runtime and the library simply does not use it: that
+is a defect in the runtime half, and it belongs in [`BUGS.md`](./BUGS.md). Crossing
+the two is how a bug gets filed as a limitation and then inherited as settled.
+
+The test that separates the two: **who decides the data type of that position?**
+
+- **The position itself decides** — a row count (`limit` / `offset`), a character
+  index (`substr` / `substring`), a value written into a declared column. These
+  would be typed `int` if TypeScript had an `int`, with no `double` overload; the
+  type is not a choice, it is what the position *means*. A runtime check there is
+  not the library preempting the engine — it is the type check the type system
+  cannot perform, standing in for a type that cannot be written. Legitimate.
+- **The library decides, from context and value** — every OPERAND: `coalesce`,
+  the comparisons, the arithmetic. `<int> + 2.5` really is a double operation, so
+  a mismatch here means the library picked the wrong type, and refusing the
+  caller's value only preempts the engine, which is the one that understands
+  queries. The fix is always to pick the type that fits the value, never to
+  reject the value.
+
 `NOT-APPLICABLE` and `NOT-SUPPORTED` are **first-class categories, not
 sub-tags of TODO** (no `// TODO[NOT-APPLICABLE]` — "TODO" implies pending
 work, which is wrong for a permanent boundary). For `NOT-APPLICABLE` the
@@ -300,107 +327,6 @@ library could close the gap (render the no-table ORDER BY term as an
 expression on SQL Server) and the API is callable — a deliberate gap,
 not a permanent dialect frontier. Ordering a result set by a bare
 constant is a no-op sort, so the payoff for closing it is low.
-
-
-## A fractional numeric literal as the operand of an `int` value source emits an untyped `col + $param` that PostgreSQL rejects at bind time
-
-When the receiver of an overloaded arithmetic op (`add` / `subtract` /
-`multiply` / `modulo` / `maximumBetweenTwoValues` / …) is an **`int`** value
-source and the operand is a **JavaScript `number` literal that happens to be
-fractional** (e.g. `tIssue.priority.add(2.5)`), the library emits
-`priority + $n` with the parameter carrying **no explicit type**. TypeScript
-cannot tell `2.5` from `2` — both are `number` — so the library keeps the
-operation int-shaped in the SQL; the fraction exists only in the bound runtime
-value.
-
-PostgreSQL resolves parameter types at **parse/prepare time, before it sees the
-value**. Parsing `priority + $n` it picks the `int4 + int4` operator, so it
-infers `$n :: int4`. At bind time the driver sends `2.5`, PostgreSQL tries to
-read it as an integer and fails:
-
-```
-error: invalid input syntax for type integer: "2.5"   (SQLSTATE 22P02)
-```
-
-**Chaining into a numeric-casting op does not help on PostgreSQL.** Even the
-`modulo` form, which emits `mod((priority + $1)::numeric, ($2)::numeric)`, is
-rejected: the outer `::numeric` casts the *result* of the addition — too late to
-re-type the inner `$1`, which was already pinned to `int4` when the `+` operator
-was resolved.
-
-**This is not driver-specific — it is structural.** Verified against a real
-engine on all three PostgreSQL connectors (`pg` / `postgres.js` / `pglite`);
-each rejects identically with `22P02`. `postgres.js` prints the parameter OIDs
-it sends, which pinpoints the cause:
-
-```
-query:      select id as id, mod((priority + $1)::numeric, ($2)::numeric) as rest from issue where id = $3
-parameters: [ '2.5', '2', '1' ]
-types:      [ 23, 1700, 23 ]     -- $1 = int4(23), $2 = numeric(1700), $3 = int4(23)
-```
-
-`$2` is `numeric` (1700) because it sits **directly** inside `($2)::numeric`;
-`$1` is `int4` (23) because it sits inside `priority + $1`, **before** the outer
-cast, and inherits `priority`'s type. With `pg` (node-postgres) no OIDs are sent
-and the *server* infers the same `int4`; `pglite` runs the PostgreSQL engine in
-WASM and infers identically. No PostgreSQL connector avoids it.
-
-**Per-engine behaviour:**
-
-| Engine | Emitted (modulo form) | Result |
-|---|---|---|
-| PostgreSQL (`pg` / `postgres` / `pglite`) | `mod((priority + $1)::numeric, ($2)::numeric)` | **rejected** — `22P02` at bind |
-| SQLite | `(priority + ?) % ?` | **wrong value** — `%` truncates both operands to integers, so `(2 + 2.5) % 2` collapses to `0`, not `0.5` (see [`ENGINE_SUPPORT.md`](./ENGINE_SUPPORT.md) § SQLite's `%` operator) |
-| MySQL / MariaDB | `(priority + ?) % ?` | accepted, `0.5` (the engine coerces the operand to decimal) |
-| Oracle | `mod(priority + :0, :1)` | accepted, `0.5` |
-| SQL Server | `cast(priority + @0 as numeric(38, 16)) % cast(@1 as numeric(38, 16))` | accepted, `0.5` |
-
-So the failure lands on the two primary/canonical cells (PostgreSQL rejects,
-SQLite silently truncates) and only the other four dialects accept it.
-
-**The portable form that works** — give the operand an explicit numeric type
-instead of a bare literal: use a `double` / `numeric` **column** (or an
-explicitly-typed value source) as the operand. Then the engine resolves
-`int + double` from the declared type and no bad inference occurs. The
-`int-receiver-*-double-column-promotes-result-to-double` tests in
-`select.numeric-overloaded-promotion.test.ts` use a real `double` column
-precisely for this reason (see that file's header comment).
-
-**What this means for tests** — the
-`int-receiver-chained-fractional-literal-add-then-modulo` test
-(`tIssue.priority.add(2.5).modulo(2)` asserting `0.5`) in
-`select.numeric-overloaded-promotion.test.ts` runs live on MySQL / MariaDB /
-Oracle / SQL Server and is gated with `TODO[LIMITATION]` (full canonical body
-preserved) on all 8 PostgreSQL cells (PG rejects the bind) and all 5 SQLite
-cells (SQLite truncates), i.e. both canonicals. The int→double promotion it
-exercises is otherwise pinned everywhere by the double-column
-`int-receiver-*-double-column-promotes-result-to-double` tests in the same file,
-which pass a typed operand and so avoid the bad `int4` inference.
-
-**What could be done later (for whoever revisits this).** The library
-intentionally types operands from the receiver, not by inspecting runtime
-values, so the fix is a `src/` decision, not a test one. Options, roughly in
-order of blast radius:
-
-1. **Cast the parameter when the operand is a numeric literal** — emit
-   `priority + $n::numeric` (or the dialect's numeric-cast form) so PostgreSQL
-   stops inferring `int4`. Needs care that the many working `int + int` /
-   `int + intColumn` cases are not disturbed and that the extra cast is harmless
-   on the engines that already accept the bare form.
-2. **Promote the whole operation to `double` when a fractional literal is
-   detected at build time** — but that means inspecting the literal's runtime
-   value during query building, which cuts against the current "type from the
-   receiver, never from the value" design.
-3. **Leave as-is and document** (current choice) — callers who need a fractional
-   operand pass a typed value source (`double` column / explicit cast) instead
-   of a bare literal.
-
-"The lib emits SQL the server rejects" is never a bug (see
-[`ENGINE_SUPPORT.md`](./ENGINE_SUPPORT.md) § Library policy on engine feature
-support). This one stays HERE rather than there because the fix is ours to make —
-the parameter's type comes from the library's own receiver-typing rule, and every
-PostgreSQL version behaves the same — so it is a deliberate, documented rough edge,
-not an engine boundary.
 
 
 ## Query introspection (`__isAllowed`, `__hasAggregation`) has no public API yet — tests reach internals via a single helper

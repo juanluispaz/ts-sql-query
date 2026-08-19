@@ -620,9 +620,20 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
         // Only a plain `int` receiver needs widening — a double/bigint/customInt/customDouble
         // receiver already carries the wider-or-matching type, and the compile-time signature
         // only admits a same-`typeName` operand.
-        if (valueType === 'int' && isValueSource(value)) {
-            const operandType = __getValueSourcePrivate(value).__valueType
-            if (operandType === 'double' || operandType === 'customDouble') {
+        //
+        // A fractional NUMBER LITERAL widens for exactly the same reason. TypeScript cannot tell
+        // `2` from `2.5` — both are `number`, there is no integer literal type — so this decision
+        // belongs to the runtime half, which has the value in hand; `_getWidenedArgumentType` binds
+        // the operand with the matching type, and the two have to agree or the fraction is rejected
+        // on one of the two crossings.
+        if (valueType === 'int') {
+            if (isValueSource(value)) {
+                const operandType = __getValueSourcePrivate(value).__valueType
+                if (operandType === 'double' || operandType === 'customDouble') {
+                    valueType = 'double'
+                    valueTypeName = 'double'
+                }
+            } else if (typeof value === 'number' && !Number.isInteger(value)) {
                 valueType = 'double'
                 valueTypeName = 'double'
             }

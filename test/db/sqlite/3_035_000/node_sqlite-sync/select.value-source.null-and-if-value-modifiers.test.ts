@@ -103,6 +103,39 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+    test('valueWhenNull-int-receiver-widens-to-a-fractional-literal-fallback', async () => {
+        // The same promotion, reached with a fractional LITERAL instead of a double
+        // value source. The static type cannot tell `0.5` from `0`, so the widening
+        // is decided while the query is built, from the value: the result is declared
+        // `double` and the parameter is bound as one, which is what lets the fraction
+        // both reach the engine and come back. assignee_id is NULL only for issue 3,
+        // the row whose fallback surfaces the fraction.
+        const expected = [
+            { id: 1, w: 1 },
+            { id: 2, w: 2 },
+            { id: 3, w: 0.5 },
+            { id: 4, w: 3 },
+        ]
+        ctx.mockNext(expected)
+
+        const rows = sync(ctx.conn.selectFrom(tIssue)
+            .select({
+                id: tIssue.id,
+                w:  tIssue.assigneeId.valueWhenNull(0.5),
+            })
+            .orderBy('id')
+            .executeSelectMany())
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(assignee_id, ?) as "w" from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0.5,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; w: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
     test('valueWhenNull-with-column-as-default', async () => {
         // The default is another column (`tIssue.id`) instead of a
         // literal. Distinct from the literal-default test because the

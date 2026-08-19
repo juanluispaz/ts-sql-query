@@ -1293,13 +1293,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return 'decode(' + this._appendRawColumnName(valueSource, params) + ', ' + this._appendRawColumnName(value, params) + ', 1, 0 ) = 1'
         }
-        return 'decode(' + this._appendSqlParenthesis(valueSource, params, false) + ', ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ', 1, 0 ) = 1'
+        return 'decode(' + this._appendSqlParenthesis(valueSource, params, false) + ', ' + this._appendValueParenthesis(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ', 1, 0 ) = 1'
     }
     override _isNot(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return 'decode(' + this._appendRawColumnName(valueSource, params) + ', ' + this._appendRawColumnName(value, params) + ', 1, 0 ) = 0'
         }
-        return 'decode(' + this._appendSqlParenthesis(valueSource, params, false) + ', ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ', 1, 0 ) = 0'
+        return 'decode(' + this._appendSqlParenthesis(valueSource, params, false) + ', ' + this._appendValueParenthesis(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ', 1, 0 ) = 0'
     }
     override _random(_params: any): string {
         return '(select dbms_random.value from dual)'
@@ -1319,19 +1319,19 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return 'localtimestamp'
     }
     override _valueWhenNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'nvl(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
+        return 'nvl(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
     }
     override _divide(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // Unlike the other dialects, Oracle divides in NUMBER, which is exact to 38
         // significant digits — more precision than the double this operation yields.
         // Casting the operands to float here would *lose* precision instead of
         // preserving it, so the bare division is the correct emission on Oracle.
-        return this._appendSqlParenthesis(valueSource, params, false) + ' / ' + this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false)
+        return this._appendSqlParenthesis(valueSource, params, false) + ' / ' + this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
     override _modulo(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // Oracle does not accept `a % b`; the `%` token is a syntax error.
         // Use the built-in MOD(a, b) function instead.
-        return 'mod(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')'
+        return 'mod(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
     }
     override _appendCastAsDouble(sql: string): string {
         return 'cast(' + sql + ' as float)'

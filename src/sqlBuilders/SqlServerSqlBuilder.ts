@@ -878,9 +878,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
         result += ', '
         if (isValueSource(value) && __getValueSourcePrivate(value).__uuidString) {
-            result += 'convert(nvarchar(36), ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
+            result += 'convert(nvarchar(36), ' + this._appendValue(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
         } else {
-            result += this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false)
+            result += this._appendValue(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
         }
         result += ')'
         return result
@@ -1156,7 +1156,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             // only type family `%` accepts for fractional values — so the
             // operator resolves regardless of which side is the double. The
             // integer / bigint receivers and operands keep the plain `%` form below.
-            return 'cast(' + this._appendSql(valueSource, params, false) + ' as numeric(38, 16)) % cast(' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ' as numeric(38, 16))'
+            return 'cast(' + this._appendSql(valueSource, params, false) + ' as numeric(38, 16)) % cast(' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ' as numeric(38, 16))'
         }
         return super._modulo(params, valueSource, value, columnType, columnTypeName, typeAdapter)
     }
@@ -1232,7 +1232,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         if (columnType !== 'double' && columnType !== 'customDouble') {
             base = this._appendCastAsDouble(base)
         }
-        return 'power(' + base + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')'
+        return 'power(' + base + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
     }
     override _ln(params: any[], valueSource: ToSql): string {
         return 'log(' + this._appendSql(valueSource, params, false) + ')'
@@ -1242,10 +1242,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     }
     override _logn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // SQL Server's LOG is `LOG(value, base)` — value first — unlike every other backend.
-        return 'log(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')'
+        return 'log(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
     }
     override _atan2(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'atn2(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')'
+        return 'atn2(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
     }
     override _minimumBetweenTwoValues(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // maxValue(x) — the SMALLER of the two. Native `least` / `greatest` and the `iif`
@@ -1262,10 +1262,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // operand poisons the result. `minValueFunction` is the user opt-in.
         return this._minAndMaxValueBetweenTwoValuesPoisoningNull(params, valueSource, value, columnType, columnTypeName, typeAdapter, this._connectionConfiguration.minValueFunction, 'greatest')
     }
-    override _minAndMaxValueSelection(params: any[], valueSource: ToSql, value: any, argumentType: ValueType, argumentTypeName: string, typeAdapter: TypeAdapter | undefined, functionName: string): string {
+    override _minAndMaxValueSelection(params: any[], valueSource: ToSql, value: any, argumentType: ValueType, argumentTypeName: string, typeAdapter: TypeAdapter | undefined, functionName: string, argumentNeedsTypeCast: boolean): string {
         if (this._connectionConfiguration.compatibilityVersion >= 16_000_000) {
             // SQL Server 2022+ has native LEAST / GREATEST — the coherent base form.
-            return super._minAndMaxValueSelection(params, valueSource, value, argumentType, argumentTypeName, typeAdapter, functionName)
+            return super._minAndMaxValueSelection(params, valueSource, value, argumentType, argumentTypeName, typeAdapter, functionName, argumentNeedsTypeCast)
         }
         // Below SQL Server 2022 `least` / `greatest` do not exist, so emulate them with
         // `iif`. The comparison follows the function: `least` keeps the smaller (`<`),

@@ -2831,25 +2831,25 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return this._appendRawColumnName(valueSource, params) + ' = ' + this._appendRawColumnName(value, params)
         }
-        return this._appendSqlParenthesis(valueSource, params, false) + ' = ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false)
+        return this._appendSqlParenthesis(valueSource, params, false) + ' = ' + this._appendValueParenthesis(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
     _notEquals(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return this._appendRawColumnName(valueSource, params) + ' <> ' + this._appendRawColumnName(value, params)
         }
-        return this._appendSqlParenthesis(valueSource, params, false) + ' <> ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false)
+        return this._appendSqlParenthesis(valueSource, params, false) + ' <> ' + this._appendValueParenthesis(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
     _is(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return this._appendRawColumnName(valueSource, params) + ' is not distinct from ' + this._appendRawColumnName(value, params)
         }
-        return this._appendSqlParenthesis(valueSource, params, false) + ' is not distinct from ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false)
+        return this._appendSqlParenthesis(valueSource, params, false) + ' is not distinct from ' + this._appendValueParenthesis(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
     _isNot(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return this._appendRawColumnName(valueSource, params) + ' is distinct from ' + this._appendRawColumnName(value, params)
         }
-        return this._appendSqlParenthesis(valueSource, params, false) + ' is distinct from ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false)
+        return this._appendSqlParenthesis(valueSource, params, false) + ' is distinct from ' + this._appendValueParenthesis(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
     _equalsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
@@ -2872,16 +2872,16 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
     }
     _lessThan(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' < ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false)
+        return this._appendSqlParenthesis(valueSource, params, false) + ' < ' + this._appendValueParenthesis(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
     _greaterThan(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' > ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false)
+        return this._appendSqlParenthesis(valueSource, params, false) + ' > ' + this._appendValueParenthesis(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
     _lessOrEqual(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' <= ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false)
+        return this._appendSqlParenthesis(valueSource, params, false) + ' <= ' + this._appendValueParenthesis(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
     _greaterOrEqual(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' >= ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false)
+        return this._appendSqlParenthesis(valueSource, params, false) + ' >= ' + this._appendValueParenthesis(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
     _in(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // An empty array can never match, so short-circuit to the false constant.
@@ -2891,7 +2891,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (Array.isArray(value) && value.length <= 0) {
             return this._falseValueForCondition
         }
-        return this._appendSqlParenthesis(valueSource, params, false) + ' in ' + this._appendSpreadValue(value, params, columnType, columnTypeName, typeAdapter, false)
+        return this._appendSqlParenthesis(valueSource, params, false) + ' in ' + this._appendSpreadValue(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
     _notIn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // An empty array excludes nothing, so short-circuit to the true constant
@@ -2899,7 +2899,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (Array.isArray(value) && value.length <= 0) {
             return this._trueValueForCondition
         }
-        return this._appendSqlParenthesis(valueSource, params, false) + ' not in ' + this._appendSpreadValue(value, params, columnType, columnTypeName, typeAdapter, false)
+        return this._appendSqlParenthesis(valueSource, params, false) + ' not in ' + this._appendSpreadValue(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
     // Escape clause appended to the LIKE expressions built by the comparison predicates
     // below (`_like` … `_notContainsInsensitive`). `_escapeLikeWildcard` escapes the
@@ -3059,10 +3059,22 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     // SqlComparator2
     _between(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' between ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' and ' + this._appendValueParenthesis(value2, params, columnType, columnTypeName, typeAdapter, false)
+        // Both bounds are compared against the SAME receiver, so they are widened together: one
+        // fractional bound decides the data type of the pair.
+        const bounds = [value, value2]
+        const boundType = this._getWidenedArgumentType(columnType, columnTypeName, bounds)
+        const boundTypeName = this._getWidenedArgumentTypeName(columnType, columnTypeName, bounds)
+        const boundNeedsTypeCast = this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, bounds)
+        return this._appendSqlParenthesis(valueSource, params, false) + ' between ' + this._appendValueParenthesis(value, params, boundType, boundTypeName, typeAdapter, boundNeedsTypeCast) + ' and ' + this._appendValueParenthesis(value2, params, boundType, boundTypeName, typeAdapter, boundNeedsTypeCast)
     }
     _notBetween(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' not between ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' and ' + this._appendValueParenthesis(value2, params, columnType, columnTypeName, typeAdapter, false)
+        // Both bounds are compared against the SAME receiver, so they are widened together: one
+        // fractional bound decides the data type of the pair.
+        const bounds = [value, value2]
+        const boundType = this._getWidenedArgumentType(columnType, columnTypeName, bounds)
+        const boundTypeName = this._getWidenedArgumentTypeName(columnType, columnTypeName, bounds)
+        const boundNeedsTypeCast = this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, bounds)
+        return this._appendSqlParenthesis(valueSource, params, false) + ' not between ' + this._appendValueParenthesis(value, params, boundType, boundTypeName, typeAdapter, boundNeedsTypeCast) + ' and ' + this._appendValueParenthesis(value2, params, boundType, boundTypeName, typeAdapter, boundNeedsTypeCast)
     }
     // SqlOperationStatic0
     _pi(_params: any): string {
@@ -3352,10 +3364,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     // SqlFunction1
     _valueWhenNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'coalesce(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
+        return 'coalesce(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
     }
     _nullIfValue(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'nullif(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
+        return 'nullif(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
     }
     _and(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         this._setResultingOperation(params, undefined)
@@ -3547,6 +3559,44 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return columnTypeName
     }
+    _getWidenedArgumentType(columnType: ValueType, _columnTypeName: string, value: any): ValueType {
+        // The data type an OPERAND is bound with. It is the receiver's own, except where that type cannot
+        // hold the value the caller gave: an `int` receiver and a fractional JS number. The library PICKS
+        // this type, so a mismatch here is the library's own bad choice, not an invalid state to report —
+        // refusing the value would only preempt the engine, which is the one that understands queries.
+        // Widened, `coalesce(<int>, 0.5)` returns the fraction and `<int> < 2.5` answers, both correctly.
+        //
+        // Positions whose data type is FIXED BY WHAT THE POSITION MEANS do NOT come through here, and must
+        // not: a value written into a declared column, a row count (`limit` / `offset`), a character index
+        // (`substr` / `substring`). Those would be typed `int` if TypeScript had one, with no `double`
+        // overload — nobody CHOOSES their type — so the marshaller's check there is not the library
+        // preempting the engine, it is the type check the type system cannot perform.
+        if (columnType === 'int' && this._isFractionalNumberOperand(value)) {
+            return 'double'
+        }
+        return columnType
+    }
+    _getWidenedArgumentTypeName(columnType: ValueType, columnTypeName: string, value: any): string {
+        if (columnType === 'int' && this._isFractionalNumberOperand(value)) {
+            return 'double'
+        }
+        return columnTypeName
+    }
+    _widenedArgumentNeedsTypeCast(columnType: ValueType, columnTypeName: string, value: any): boolean {
+        // The operand resolved WIDER than the receiver. The parameter has to carry that type in the SQL, not
+        // just in the marshaller — PostgreSQL resolves a bare `$n` from the operator around it (parsing
+        // `int4 + $n` pins `$n` to int4) and then refuses the fractional bind before it ever sees the value,
+        // so without this the engine never gets to judge the query at all. Only PostgreSQL acts on
+        // `forceTypeCast`, so every other dialect emits exactly what it emitted before.
+        return this._getWidenedArgumentType(columnType, columnTypeName, value) !== columnType
+    }
+    /** `in` / `notIn` hand over the whole list and `between` two bounds; one fractional member widens them all. */
+    _isFractionalNumberOperand(value: any): boolean {
+        if (Array.isArray(value)) {
+            return value.some(element => this._isFractionalNumberOperand(element))
+        }
+        return typeof value === 'number' && !Number.isInteger(value)
+    }
     _moduloRequiresFloatHandling(columnType: ValueType, value: any): boolean {
         // `_modulo` only receives the receiver's column type, but the
         // overloaded-number dispatcher promotes the result to `double` whenever
@@ -3567,22 +3617,22 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return typeof value === 'number' && !Number.isInteger(value)
     }
     _power(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'power(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')'
+        return 'power(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
     }
     _logn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // The public API `value.logn(n)` means log base n of value, i.e. `log_n(value)`.
         // PostgreSQL, MariaDB, MySQL, SQLite and Oracle all spell this as `LOG(base, value)`
         // — base first. SQL Server's LOG is `LOG(value, base)` and overrides this method.
-        return 'log(' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ', ' + this._appendSql(valueSource, params, false) + ')'
+        return 'log(' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ', ' + this._appendSql(valueSource, params, false) + ')'
     }
     _roundn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return 'round(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')'
     }
     _minimumBetweenTwoValues(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'least(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')'
+        return 'least(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
     }
     _maximumBetweenTwoValues(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'greatest(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')'
+        return 'greatest(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
     }
     /**
      * Shared min/max builder for the dialects whose native `least`/`greatest` (or
@@ -3620,13 +3670,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _minAndMaxValueBetweenTwoValuesPoisoningNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, userFunction: string | undefined, functionName: string): string {
         const argumentType = this._getMathArgumentType(columnType, columnTypeName, value)
         const argumentTypeName = this._getMathArgumentTypeName(columnType, columnTypeName, value)
+        const argumentNeedsTypeCast = this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)
         if (this._connectionConfiguration.ignoreNullInMinAndMaxValue) {
             // Opt-out: keep the engine's native least/greatest, which ignores a NULL operand.
-            return this._minAndMaxValueSelection(params, valueSource, value, argumentType, argumentTypeName, typeAdapter, functionName)
+            return this._minAndMaxValueSelection(params, valueSource, value, argumentType, argumentTypeName, typeAdapter, functionName, argumentNeedsTypeCast)
         }
         if (userFunction) {
             // Opt-in: a user-provided null-propagating function; it poisons NULL itself, no CASE.
-            return userFunction + '(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter, false) + ')'
+            return userFunction + '(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter, argumentNeedsTypeCast) + ')'
         }
         if (this._isNullValue(valueSource) || this._isNullValue(value)) {
             // A NULL operand poisons the result, and this operand is already known to be NULL
@@ -3638,7 +3689,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const operandOptional = this._canBeNullWhenTheQueryRuns(value)
         if (!receiverOptional && !operandOptional) {
             // Nothing can be null, emit the bare native form.
-            return this._minAndMaxValueSelection(params, valueSource, value, argumentType, argumentTypeName, typeAdapter, functionName)
+            return this._minAndMaxValueSelection(params, valueSource, value, argumentType, argumentTypeName, typeAdapter, functionName, argumentNeedsTypeCast)
         }
         // Build the null check first so its parameters are appended before the inner's.
         let nullCheck: string
@@ -3649,7 +3700,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         } else {
             nullCheck = this._isNull(params, value)
         }
-        return 'case when ' + nullCheck + ' then null else ' + this._minAndMaxValueSelection(params, valueSource, value, argumentType, argumentTypeName, typeAdapter, functionName) + ' end'
+        return 'case when ' + nullCheck + ' then null else ' + this._minAndMaxValueSelection(params, valueSource, value, argumentType, argumentTypeName, typeAdapter, functionName, argumentNeedsTypeCast) + ' end'
     }
     /**
      * The bare two-value min/max selection with NO null handling: `<functionName>(a, b)`,
@@ -3657,17 +3708,17 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * by any dialect that keeps `least`/`greatest`). SQL Server overrides this to emulate
      * the pair with `iif` on the versions where `least`/`greatest` do not exist.
      */
-    _minAndMaxValueSelection(params: any[], valueSource: ToSql, value: any, argumentType: ValueType, argumentTypeName: string, typeAdapter: TypeAdapter | undefined, functionName: string): string {
-        return functionName + '(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter, false) + ')'
+    _minAndMaxValueSelection(params: any[], valueSource: ToSql, value: any, argumentType: ValueType, argumentTypeName: string, typeAdapter: TypeAdapter | undefined, functionName: string, argumentNeedsTypeCast: boolean): string {
+        return functionName + '(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter, argumentNeedsTypeCast) + ')'
     }
     _add(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesisExcluding(valueSource, params, '_add', false) + ' + ' + this._appendValueParenthesisExcluding(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, '_add', false)
+        return this._appendSqlParenthesisExcluding(valueSource, params, '_add', false) + ' + ' + this._appendValueParenthesisExcluding(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, '_add', this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
     _subtract(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesisExcluding(valueSource, params, '_subtract', false) + ' - ' + this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false)
+        return this._appendSqlParenthesisExcluding(valueSource, params, '_subtract', false) + ' - ' + this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
     _multiply(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesisExcluding(valueSource, params, '_multiply', false) + ' * ' + this._appendValueParenthesisExcluding(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, '_multiply', false)
+        return this._appendSqlParenthesisExcluding(valueSource, params, '_multiply', false) + ' * ' + this._appendValueParenthesisExcluding(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, '_multiply', this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
     _divide(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // `divide` always yields a double — it mirrors JavaScript's `/`, which has no
@@ -3678,17 +3729,17 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // point on every dialect, so the cast is emitted only when neither operand is
         // already known to be one.
         const dividend = this._appendSqlParenthesis(valueSource, params, false)
-        const divisor = this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false)
+        const divisor = this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
         if (this._numericKindOf(valueSource) === 'approximate' || this._numericKindOf(value) === 'approximate') {
             return dividend + ' / ' + divisor
         }
         return this._appendCastAsDouble(dividend) + ' / ' + divisor
     }
     _modulo(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' % ' + this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false)
+        return this._appendSqlParenthesis(valueSource, params, false) + ' % ' + this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
     _atan2(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'atan2(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')'
+        return 'atan2(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
     }
     // SqlFunction2
     /**

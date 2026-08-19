@@ -9,8 +9,7 @@
 // fractional result only survives because the operation is carried as double —
 // an int carry would lose the fraction. A real DOUBLE COLUMN is used as the
 // right operand (not a bare parameter) so the engine resolves `int + double`
-// from the column's declared type — strict engines reject an untyped fractional
-// parameter added to an integer column, so the column form is the portable one.
+// from the column's own declared type, which is what this arm is about.
 //
 // Seed: issue 1 has priority 2; estimated_hours is set to 1.5 inside the
 // rollback so the promoted result is the fractional 3.5.
@@ -54,6 +53,41 @@ describe(ctx.label, () => {
             assertType<Exact<typeof row, { id: number; bumped?: number }>>()
             expect(row).toEqual(expected)
         })
+    })
+
+    test('int-receiver-comparisons-accept-a-fractional-literal', async () => {
+        // A fractional bound against an `int` column is a query the engine answers, so
+        // the library builds it instead of refusing it: issue 1 has priority 2, which is
+        // below 2.5, is not 0.5, sits inside [0.5, 2.5] and is in the list. The static
+        // type cannot tell `2.5` from `2` — `number` has no integer literal type — so the
+        // operand is bound in the data type that can hold the value and the engine judges
+        // the rest. `between` widens both bounds together, `in` the whole list.
+        const expected = { id: 1, p: 2 }
+        ctx.mockNext(expected)
+
+        const row = sync(ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1)
+                .and(tIssue.priority.lessThan(2.5))
+                .and(tIssue.priority.notEquals(0.5))
+                .and(tIssue.priority.between(0.5, 2.5))
+                .and(tIssue.priority.in([0.5, 2])))
+            .select({ id: tIssue.id, p: tIssue.priority })
+            .executeSelectOne())
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority as "p" from issue where id = ? and priority < ? and priority <> ? and priority between ? and ? and priority in (?, ?)"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2.5,
+            0.5,
+            0.5,
+            2.5,
+            0.5,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; p: number }>>()
+        expect(row).toEqual(expected)
     })
 
     test('int-receiver-subtract-double-column-promotes-result-to-double', async () => {

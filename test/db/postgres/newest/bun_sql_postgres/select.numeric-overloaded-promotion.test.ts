@@ -9,8 +9,7 @@
 // fractional result only survives because the operation is carried as double —
 // an int carry would lose the fraction. A real DOUBLE COLUMN is used as the
 // right operand (not a bare parameter) so the engine resolves `int + double`
-// from the column's declared type — strict engines reject an untyped fractional
-// parameter added to an integer column, so the column form is the portable one.
+// from the column's own declared type, which is what this arm is about.
 //
 // Seed: issue 1 has priority 2; estimated_hours is set to 1.5 inside the
 // rollback so the promoted result is the fractional 3.5.
@@ -53,6 +52,41 @@ describe(ctx.label, () => {
             assertType<Exact<typeof row, { id: number; bumped?: number }>>()
             expect(row).toEqual(expected)
         })
+    })
+
+    test('int-receiver-comparisons-accept-a-fractional-literal', async () => {
+        // A fractional bound against an `int` column is a query the engine answers, so
+        // the library builds it instead of refusing it: issue 1 has priority 2, which is
+        // below 2.5, is not 0.5, sits inside [0.5, 2.5] and is in the list. The static
+        // type cannot tell `2.5` from `2` — `number` has no integer literal type — so the
+        // operand is bound in the data type that can hold the value and the engine judges
+        // the rest. `between` widens both bounds together, `in` the whole list.
+        const expected = { id: 1, p: 2 }
+        ctx.mockNext(expected)
+
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1)
+                .and(tIssue.priority.lessThan(2.5))
+                .and(tIssue.priority.notEquals(0.5))
+                .and(tIssue.priority.between(0.5, 2.5))
+                .and(tIssue.priority.in([0.5, 2])))
+            .select({ id: tIssue.id, p: tIssue.priority })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority as "p" from issue where id = $1 and priority < $2::float8 and priority <> $3::float8 and priority between $4::float8 and $5::float8 and priority in ($6::float8, $7::float8)"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2.5,
+            0.5,
+            0.5,
+            2.5,
+            0.5,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; p: number }>>()
+        expect(row).toEqual(expected)
     })
 
     test('int-receiver-subtract-double-column-promotes-result-to-double', async () => {
@@ -208,8 +242,6 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — a fractional numeric literal on an int receiver emits an untyped `priority + $n`; PostgreSQL infers $n as int4 (from `int4 + $n`) and rejects the bound 2.5 with 22P02 at bind time (the outer ::numeric casts the sum's result, too late to re-type $n).
-    /*
     test('int-receiver-chained-fractional-literal-add-then-modulo', async () => {
         // `priority.add(2.5).modulo(2)` — an int receiver with a fractional LITERAL
         // operand chained into modulo. Issue 1 has priority 2, so (2 + 2.5) mod 2 = 0.5.
@@ -223,11 +255,16 @@ describe(ctx.label, () => {
                 .select({ id: tIssue.id, rest: tIssue.priority.add(2.5).modulo(2) })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, mod((priority + $1::float8)::numeric, ($2)::numeric) as rest from issue where id = $3"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                2.5,
+                2,
+                1,
+              ]
+            `)
             assertType<Exact<typeof row, { id: number; rest: number }>>()
             expect(row).toEqual(expected)
         })
     })
-    */
 })

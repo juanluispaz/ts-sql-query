@@ -43,7 +43,7 @@
 > generics that is an explosion of "apparently insignificant" details, and **the
 > insignificant-looking ones are exactly where the bugs live**. There is no path
 > "too small to test": a distinct reachable overload / interface / per-receiver
-> method / arity / kind / classification gets a test even when its output
+> method / arity / data type / classification gets a test even when its output
 > coincides with a covered one. This is not completeness theatre — it is a
 > **proven bug-finding method** — the recurring fingerprints it has surfaced are
 > distilled in §9, and each maximalist pass has tended to surface **more real
@@ -230,7 +230,7 @@ entry point* the type system exposes. One source method can be many type-paths:
   return-branches.
 - **Arity** — `buildFragmentWithArgs` at 0/1/2/3/4/5 args; the compound vs
   non-compound order-by overload set.
-- **Kind** — each `'int' | 'bigint' | 'uuid' | 'customDouble' | …` a factory
+- **Data type** — each `'int' | 'bigint' | 'uuid' | 'customDouble' | …` a factory
   or `const`/`fragmentWithType`/`sequence` accepts.
 - **Return-branch** — optionality/nullability propagation, brand keep vs erase
   (`sign()` on a customInt erases to Number), result-shape inference.
@@ -278,8 +278,8 @@ quick to dismiss, and a path one pass had called "borderline / not reachable"
 later shipped a real bug fix. Carry the narrowed bar:
 
 > **A path is DEGENERATE only when ALL of:** it is the **same overload** reached
-> through a **shared dispatcher**, the only difference is a **kind-string**, the
-> impl is **provably generic** over that kind, **and** a representative of that
+> through a **shared dispatcher**, the only difference is a **data-type string**, the
+> impl is **provably generic** over that data type, **and** a representative of that
 > exact dispatcher is **already tested**. Even then — **LIST it** in §C with the
 > justification, do not silently drop it.
 
@@ -306,8 +306,8 @@ Worked distinctions:
   scope by the same standard under which the column/fragment/executeFunction
   adapter layers are tested). *Not* degenerate.
 - `column('x','uuid')` vs `column('x','int')` routed through one generic
-  `DBColumnImpl` dispatcher, leaf type already proven for several kinds, only
-  the kind-string differs → **degenerate** (list in §C / §B-if-needs-fixture),
+  `DBColumnImpl` dispatcher, leaf type already proven for several data types, only
+  the data-type string differs → **degenerate** (list in §C / §B-if-needs-fixture),
   but still worth a fixture under "every variant" — lowest priority.
 
 The test that settles a borderline call: *would a regression that breaks only
@@ -439,13 +439,13 @@ surface is the biggest fan-out and is split several ways:
 | F1-BOOLIF | `Boolean` / `IfValueSource` / `AlwaysIfValueSource` + the `*IfValue` family |
 | F1-TEMP | `Local{Date,Time,DateTime}` + custom-temporal getters + null-modifiers |
 | F1-EQCMP | the shared `Equalable`/`Comparable`/`Nullable` base methods × **every** concrete leaf type (the cross-product) |
-| F2-COL | column factories × kind × required/optional × adapter (`Table.ts`, `View.ts`) |
-| F2-VALVIEW | `Values` (inline VALUES) + View-source per-kind dispatch |
+| F2-COL | column factories × data type × required/optional × adapter (`Table.ts`, `View.ts`) |
+| F2-VALVIEW | `Values` (inline VALUES) + View-source per-data-type dispatch |
 | F3-SELECT | the SELECT builder fluent surface (overloads, execute-shapes, **compound interface's own overload set**, subquery/inline uses) |
 | F3-PROJ | `complexProjections/` — **both** projectors, every rule × plain/element × leaf-configuration |
 | F4-INSERT | `insert.ts` — set-variants, **the shaped surface**, the on-conflict matrix, returning, execute-shapes |
 | F4-UPDDEL | `update.ts` + `delete.ts` — incl. **the shaped UPDATE set surface**, guards, `*When`, allowing-no-where |
-| F5-CONN | Connection API — **declared in `connections/AbstractConnection.ts` + `AbstractAdvancedConnection.ts`** (`src/Connection.ts` is a thin re-export, not the impl): `const`/`optionalConst`/`fragmentWithType`/`aggregateFragmentWithType`/`buildFragmentWith*`/`arg`/`valueArg`/`sequence`/`executeFunction`/`executeProcedure`/transaction/`createTableOrViewCustomization`/aggregates, **each × kind × arity × {with adapter, without}** |
+| F5-CONN | Connection API — **declared in `connections/AbstractConnection.ts` + `AbstractAdvancedConnection.ts`** (`src/Connection.ts` is a thin re-export, not the impl): `const`/`optionalConst`/`fragmentWithType`/`aggregateFragmentWithType`/`buildFragmentWith*`/`arg`/`valueArg`/`sequence`/`executeFunction`/`executeProcedure`/transaction/`createTableOrViewCustomization`/aggregates, **each × data type × arity × {with adapter, without}** |
 | F6-DYN | dynamic — every operator × type × {descriptor `FilterTypeOf`, VSM `MapValueSourceToFilter`} × {base, IfValue}; pick/orderBy/from-model/extension |
 | F7-EXTRAS | `extras/*` utility types (+ each `*ShapedAs` / `*ProjectedAsNullable`), `TypeAdapter`, `TsSqlError` builder-reachable reasons, dialect config flags |
 | F8-META | composition / seam critic — overload-sets with one arm tested, **feature×feature chains tested only alone** (the bug class), input-classification boundaries, `src/index.ts` barrel reachability. **Seed it to REASON ABOUT THE EMITTED SQL / runtime of each composition** (a cross-cutting feature — `customizeQuery`, `allowWhen`, `projectingOptionalValuesAsNullable`, `forUseAsInline*Value`, an adapter column — composed onto a SPECIAL builder — recursive / compound / shaped / on-conflict / with-values / CTE) and flag any composition whose fragment/clause is **dropped, misplaced, or throws** as a **CANDIDATE DEFECT** for the coordinator's runtime probe (§7.4). This is the highest-yield bug vein once the per-surface matrices saturate. |
@@ -455,7 +455,7 @@ their own agents (they are the largest matrices) and always keep an F8-style
 seam critic (it catches what per-surface agents miss at the boundaries) — split
 it into a **mutation seam critic** and a **select/CTE/compound/recursive/projection
 seam critic** once the per-surface matrices saturate, since the feature×builder grid
-is too big for one agent. Split a surface whenever its method × kind × optionality
+is too big for one agent. Split a surface whenever its method × data type × optionality
 matrix is too big for one agent to enumerate in a single pass (EQCMP and CONN
 already are).
 
@@ -507,21 +507,21 @@ the re-export.
 
 Each agent gets the shared preamble below + its surface line. Tune the
 maximalism (a routine round wants "report genuine gaps"; a "be exhaustive,
-prefer excess" round wants every per-kind variant listed).
+prefer excess" round wants every per-data-type variant listed).
 
 ```
 You are discovery agent <ID> in ROUND <N> — a missing-tests audit of
 ts-sql-query (type-safe SQL query builder for TS). Repo: <root>.
 
 GOAL: find tests the TYPE DEFINITIONS imply but the suite lacks. UNIT = the
-"type-path" (each overload / per-receiver method / union member / arity / kind
+"type-path" (each overload / per-receiver method / union member / arity / data type
 / return-branch / input-classification). COVERED ⇔ a test asserts that exact
 path via emitted SQL+params and/or assertType<Exact> and/or (when a value is
 promised: |null, |undefined, absent-key-with-'k' in obj, branded round-trip)
 the VALUE via toEqual/toBe. NOT covered: void X / <any,any> / signature snapshot.
 
 DEGENERACY BAR (narrow): degenerate ONLY if same overload through a shared
-dispatcher, kind-string-only difference, provably-generic impl, representative
+dispatcher, data-type-string-only difference, provably-generic impl, representative
 already tested — and even then LIST it, don't drop it. A distinct reachable
 overload/interface/per-receiver-method/arity/input-classification is a path to
 TEST even when its output coincides with a covered case (output-coincidence is
@@ -692,7 +692,7 @@ fires). The coordinator is the adjudicator.
        trusting a "matched nothing" result (a bare `matched: []` is ambiguous — a real bug, or the
        insert never landed — until the control proves persistence).
      - Delete the probe; `git status --porcelain` clean. The flaky/slow docker cells (mssql,
-       oracle) are worth it for a filed defect, and any custom-type / per-kind emission claim (§9
+       oracle) are worth it for a filed defect, and any custom-type / per-data-type emission claim (§9
        branded-twin) needs this real-DB pass — the mock hides what the engine rejects.
 
 5. **Adversarially re-check the confident §C / "saturated" DROPS — not only the §A claims.**
@@ -737,7 +737,7 @@ round doesn't re-chase it).
 Write `test/MISSING_TESTS_AUDIT_<N>.md`. **The report is an EXHAUSTIVE,
 ITEM-BY-ITEM IMPLEMENTATION BACKLOG — not a thematic summary.** The single failure
 mode this section exists to prevent: **collapsing findings into semantic clusters**
-("~8 sibling-operator cells", "the per-kind sequence fan-out", "the receiver-optionality
+("~8 sibling-operator cells", "the per-data-type sequence fan-out", "the receiver-optionality
 variants") so the report *reads* tidy while the individual tests — the actual work —
 stay implicit. That is the wrong direction: it makes the audit harder than the
 implementation, and it guarantees the next round re-discovers the un-enumerated tail
@@ -768,7 +768,7 @@ Structure that has worked:
     dispatcher but observably distinct.
   - **T3** — genuine per-variant completeness (often §B, needs a fixture).
   - **T4** — output-coincident completeness fan-out (same dispatcher, byte-identical
-    emission but a distinct reachable overload/kind/arity/leaf). LOWEST priority but
+    emission but a distinct reachable overload/data type/arity/leaf). LOWEST priority but
     **ENUMERATED one line per variant** (`notInN` on bigint, on double, on customInt, …
     — *not* "notInN on 10 leaves"): this is precisely the tail a themed report hides
     and the next round re-finds, so name each one. A distinction reaches OUT (below)
@@ -790,7 +790,7 @@ it is distinct, the exact `src` location, where to test, and the wide-grep (or
 compile-repro) proving absence/reachability. A **§C (degenerate)** entry names
 the path + the shared dispatcher + the tested representative (e.g.
 "`column('x','uuid')` — same `DBColumnImpl` dispatcher as the covered
-`int`/`string`/`bigint` kinds, kind-string only"). A **refuted** entry names the
+`int`/`string`/`bigint` data types, data-type string only"). A **refuted** entry names the
 claim + the evidence that killed it (e.g. "bigint `equals` direct — REFUTED,
 covered at `select.value-source.custom-numeric.test.ts:NN`"), so the next round
 doesn't re-chase it.
@@ -811,7 +811,7 @@ these first; they are where output-coincidence most often masks a real defect:
    fingerprints).
 3. **Trailing-`adapter?` fan-out.** The optional trailing `TypeAdapter` overload
    on `const`/`optionalConst`/`fragmentWithType`/`aggregateFragmentWithType`/
-   `executeFunction`/`sequence`/`arg`/`valueArg` — tested for one kind, and some
+   `executeFunction`/`sequence`/`arg`/`valueArg` — tested for one data type, and some
    route through a distinct runtime branch (the `adapter2` slot).
 4. **Direct vs dynamic per-type asymmetry.** The *dynamic*-condition surface is
    exhaustively per-type; the *direct* fluent equality/comparison surface
@@ -823,8 +823,8 @@ these first; they are where output-coincidence most often masks a real defect:
 6. **Compound-interface overload subsets.** A distinct interface
    (`CompoundedOrderByExecutableSelectExpression`) declares its own overload set;
    only one arm is exercised on the compound path.
-7. **Custom-temporal / per-kind getters & casts** that emit distinct SQL per
-   kind (so distinct, not degenerate).
+7. **Custom-temporal / per-data-type getters & casts** that emit distinct SQL per
+   data type (so distinct, not degenerate).
 8. **Feature×feature compositions tested only alone** (`shaped × customizeQuery`,
    `shaped × returning`, brand-keep through `forUseAsInlineQueryValue`). The
    seam, not the feature, is the gap.
@@ -871,15 +871,15 @@ where to spend less time, never a licence to skip the enumeration.
 
 **As the per-surface matrices saturate, the marginal bug moves to the SEAMS.** In
 the mature phase (many single-surface agents returning 0/0), the round's headline
-value is no longer per-kind fan-out — it is the **parity sweep (theme 10)** and the
+value is no longer per-data-type fan-out — it is the **parity sweep (theme 10)** and the
 **seam critic (theme 8)**, whose CANDIDATE DEFECTs, once **runtime-probed** (§7.4),
 are the confirmed bugs. The evidence: the fingerprints below are increasingly
 dominated by twin-asymmetry and cross-cutting-feature × special-builder defects that
 no per-surface agent could see. So when most surfaces come back saturated, that is
-**not** a signal to pad the round with degenerate per-kind gaps — it is the signal
+**not** a signal to pad the round with degenerate per-data-type gaps — it is the signal
 to spend the round's depth on the two seam agents and to *probe* (not merely reason
 about) every composition/twin they flag. A saturating round with two runtime-probed
-seam bugs is a *better* round than one with fifty degenerate per-kind additions.
+seam bugs is a *better* round than one with fifty degenerate per-data-type additions.
 
 **The two top targets in the mature phase are the SEAMS and the recently-changed src
 type surface (§0.5 pre-flight step 5).** Both are where the accepted-but-untested arm
@@ -893,7 +893,7 @@ a handful of untested *compositions* (real §A tests), and — crucially — the
 bug reaches the coordinator. When that happens there is simply nothing to file to
 `BUGS.md`, and the §A/§B tail (seam compositions + the freshly-changed surface's positive
 arms) is the round's whole value. **Do NOT manufacture a bug to "produce" one, and do NOT
-pad §A with degenerate per-kind gaps** — an honest "10 surfaces saturated, 0 bugs, N clean
+pad §A with degenerate per-data-type gaps** — an honest "10 surfaces saturated, 0 bugs, N clean
 §A composition tests" report is exactly what a mature round should look like. The method's
 worth is proven by the fingerprints below across the effort's whole history, not by every single
 round landing a defect. (See "False positives & misclassified boundaries" for the two ways
@@ -971,7 +971,7 @@ technique that catches it:
   do **not** file it as a `src/` bug; it is at most a **§B fixture gap** (a user-side
   `transformPlaceholder` the domain `DBConnection` doesn't model, unlike its `baseTypeForCustom`
   value marshalling). Only file a bug if the maintainer confirms the library is meant to derive it.
-  *Technique:* whenever a path keys on a base type name, enumerate the **custom / branded kind of the
+  *Technique:* whenever a path keys on a base type name, enumerate the **custom / branded data type of the
   same family** (customLocal* for temporal, `customInt`/`customDouble` for numeric, `custom`/`enum`
   for equality) and **`--docker`-probe the branded twin** — the plain twin passes on both mock and
   real DB while the branded twin passes on the mock but the engine rejects it (only the real-DB cell

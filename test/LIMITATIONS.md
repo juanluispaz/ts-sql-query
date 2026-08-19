@@ -267,13 +267,13 @@ the following at once:
 An application does not normally satisfy (1) and (2) together: if the SQL
 text is identical, the query is the same query, and the same query almost
 always binds the same types. The realistic way to break that tie is
-`const(...)` over `selectFromNoTable()`, where **every** value kind emits
+`const(...)` over `selectFromNoTable()`, where **every** data type emits
 the same `select :0 as "result" from dual` regardless of the type bound —
 so the text stays fixed while the type varies. That is a construct a real
 application rarely uses at all, and rarer still with mixed types.
 
-This suite is the outlier by design: it deliberately fans **every** value
-kind out over that one construct, in one file, on one connection — which
+This suite is the outlier by design: it deliberately fans **every** data type
+out over that one construct, in one file, on one connection — which
 is precisely conditions (1) + (2) + (3). Treat this entry as an artifact of
 exhaustive type-matrix testing, not as a hazard production code is likely
 to meet.
@@ -283,7 +283,7 @@ to meet.
 re-parse with its own bind types. That un-blocked the 33 tests previously
 disabled in `oracle/newest/oracledb/select.connection-trailing-adapter.test.ts`
 under a `NOT-APPLICABLE` reason that misattributed the failure to Oracle
-rejecting the bare bind for non-numeric kinds; the whole file (65 tests)
+rejecting the bare bind for non-numeric data types; the whole file (65 tests)
 now runs and passes against the real engine. **Fingerprint if it resurfaces**:
 the test passes in isolation and fails only in file order. In the unlikely
 event a user meets all three conditions, the same `stmtCacheSize` setting on

@@ -117,7 +117,7 @@ So this is a boundary of the **engine**, not of `executeProcedure` /
 library emits `call …` / `select …()` for them). It is also, by a wide
 margin, the largest single family in this catalogue: `exec.procedure-*`,
 `exec.function-*` and the whole `exec.function-value-kinds` fan-out —
-every return kind × {required, optional} × {no-adapter, trailing-adapter} —
+every return data type × {required, optional} × {no-adapter, trailing-adapter} —
 are commented out on all five SQLite version tiers and run live on the
 other five dialects.
 

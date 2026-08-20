@@ -37,6 +37,25 @@ function _typeNegatives() {
             title: tIssue.title,
         })
 
+    // Rule: an `inN`/`notInN` ELEMENT is an operand like any other, so every
+    // element that is a value source has to be reachable from the query. The
+    // element list takes each element's own source, so a column of a table
+    // that was never joined must not compile — the list is not an escape from
+    // the FROM clause.
+    void connection.selectFrom(tProject)
+        // @ts-expect-error tIssue.id is not reachable from tProject alone
+        .select({ hit: tProject.id.inN(1, tIssue.id) })
+    void connection.selectFrom(tProject)
+        // @ts-expect-error tIssue.id is not reachable from tProject alone
+        .select({ hit: tProject.id.notInN(1, tIssue.id) })
+
+    // Rule: an `inN`/`notInN` element must carry the receiver's data type —
+    // both as a scalar and as a value source.
+    // @ts-expect-error tProject.name is a string column; the receiver is int
+    void tProject.id.inN(1, tProject.name)
+    // @ts-expect-error a string scalar where the receiver's int is required
+    void tProject.id.inN(1, 'abc')
+
     // Rule: ORDER BY by alias must reference an alias that exists in the
     // current select shape.
     void connection.selectFrom(tProject)

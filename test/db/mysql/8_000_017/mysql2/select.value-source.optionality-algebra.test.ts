@@ -1,9 +1,11 @@
 // Merge-optional numeric and boolean operators realizing their NULL/absent
 // runtime inhabitant: a plain `col.add(optionalCol)` where the optional operand
-// is NULL, and a 3-valued boolean `required.and(optional)` where the optional is
-// NULL. These use the existing NULL seed values (worklog 2 has NULL `minutes`;
-// worklog 3 has NULL `billable` with activity 'meeting'), so no UPDATE is needed
-// and every row is real-DB-validatable.
+// is NULL, a 3-valued boolean `required.and(optional)` where the optional is
+// NULL, and the varargs membership predicate `inN`/`notInN`, whose optionality
+// merges the receiver with every ELEMENT (both arms: an optional element and an
+// all-required list). These use the existing NULL seed values (worklog 2 has
+// NULL `minutes`; worklog 3 has NULL `billable` with activity 'meeting'), so no
+// UPDATE is needed and every row is real-DB-validatable.
 //
 // Seed facts (issue_worklog):
 //   worklog 1 — issue 1, minutes 90, activity 'coding',  billable TRUE
@@ -125,5 +127,74 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number; flag: boolean | null }>>>()
         expect(rows).toEqual(expected)
         expect(rows[0]!.flag).toBeNull()
+    })
+
+    test('in-n-with-an-optional-element-is-optional-and-realizes-the-null-inhabitant', async () => {
+        // `inN`/`notInN` take VARARGS, and the optionality merges the receiver
+        // with EVERY element, not the receiver alone: `issue_id in (99, minutes)`
+        // carries an optional element, so by SQL's three-valued logic the
+        // predicate is NULL -- not false -- when nothing matches and `minutes` is
+        // NULL. worklog 1 (issueId 1, minutes 90) matches nothing and both
+        // operands are present -> false/true; worklog 2 (issueId 2, minutes NULL)
+        // realizes the NULL inhabitant -> both leaves are absent.
+        const expected = [{ id: 1, hit: false, miss: true }, { id: 2 }]
+        ctx.mockNext([{ id: 1, hit: false, miss: true }, { id: 2, hit: null, miss: null }])
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.in([1, 2]))
+            .select({
+                id:   tIssueWorklog.id,
+                hit:  tIssueWorklog.issueId.inN(99, tIssueWorklog.minutes),
+                miss: tIssueWorklog.issueId.notInN(99, tIssueWorklog.minutes),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, issue_id in (?, minutes) as hit, issue_id not in (?, minutes) as miss from issue_worklog where id in (?, ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            99,
+            99,
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; hit?: boolean; miss?: boolean }>>>()
+        expect(rows).toEqual(expected)
+        expect('hit' in rows[1]!).toBe(false)
+        expect('miss' in rows[1]!).toBe(false)
+    })
+
+    test('in-n-with-only-required-operands-stays-required', async () => {
+        // The other arm of the same merge: every operand of
+        // `issue_id in (99, id)` is present-by-type, so the predicate can never
+        // be NULL and the leaf stays REQUIRED -- a plain boolean, present on
+        // every row. worklog 1 (issueId 1, id 1) and worklog 2 (issueId 2, id 2)
+        // match their own id -> true; worklog 3 (issueId 1, id 3) -> false.
+        const expected = [
+            { id: 1, hit: true,  miss: false },
+            { id: 2, hit: true,  miss: false },
+            { id: 3, hit: false, miss: true  },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.in([1, 2, 3]))
+            .select({
+                id:   tIssueWorklog.id,
+                hit:  tIssueWorklog.issueId.inN(99, tIssueWorklog.id),
+                miss: tIssueWorklog.issueId.notInN(99, tIssueWorklog.id),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, issue_id in (?, id) as hit, issue_id not in (?, id) as miss from issue_worklog where id in (?, ?, ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            99,
+            99,
+            1,
+            2,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; hit: boolean; miss: boolean }>>>()
+        expect(rows).toEqual(expected)
     })
 })

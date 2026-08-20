@@ -268,10 +268,10 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
         return condition(new SqlOperationInValueSource('_notIn', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     inN(...value: any[]): any {
-        return condition(new SqlOperationInValueSource('_in', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperationInValueSource('_in', this, value, 'boolean', 'boolean', getOptionalTypeN(this, value), getTypeAdapter2(this, value)))
     }
     notInN(...value: any[]): any {
-        return condition(new SqlOperationInValueSource('_notIn', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperationInValueSource('_notIn', this, value, 'boolean', 'boolean', getOptionalTypeN(this, value), getTypeAdapter2(this, value)))
     }
     likeIfValue(value: any): any {
         return condition(new SqlOperation1ValueSourceIfValueOrNoop('_like', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
@@ -2136,6 +2136,24 @@ function getOptionalType2(a: ValueSourceImpl, b: any): OptionalType {
     return a.__optionalType
 }
 
+
+function getOptionalTypeN(a: ValueSourceImpl, values: any[]): OptionalType {
+    // The varargs counterpart of `getOptionalType2`, for `inN` / `notInN`. Their operand is the
+    // ARRAY the varargs collected, not a value source, so `getOptionalType2` would find no value
+    // source in it and answer the receiver's optional type, ignoring the elements. An element that
+    // is a value source can be NULL, and `<x> in (1, <null>)` is NULL — not false — when no element
+    // matches (SQL's three-valued logic), so every element has to be merged in, exactly as the
+    // declared type says (`MergeOptional<OPTIONAL_TYPE, VALUE[optionalType]>`). A constant of the
+    // language is never NULL, so a list of plain values keeps the receiver's optional type.
+    let result = a.__optionalType
+    for (let i = 0, length = values.length; i < length; i++) {
+        const value = values[i]
+        if (isValueSource(value)) {
+            result = mergeOptional(result, __getValueSourcePrivate(value).__optionalType)
+        }
+    }
+    return result
+}
 
 function getOptionalType3(a: ValueSourceImpl, b: any, c: any): OptionalType {
     let result = a.__optionalType

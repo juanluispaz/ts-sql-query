@@ -8,9 +8,10 @@
 //     `SqlOperationConstValueSource`; passes `ValueSource` args
 //     through unchanged.
 //   - `FragmentFunctionBuilderIfValue.as` — same, plus the
-//     value+optional + `_isValue` check that short-circuits to
-//     `SqlOperationValueSourceIfValueAlwaysNoop` when the arg is
-//     present but rejected by `_isValue`.
+//     value+optional + `_isValue` check that puts the neutral
+//     boolean in place of the whole fragment when the arg is
+//     present but rejected by `_isValue`. The neutral keeps the
+//     optional type of the boolean the fragment builds.
 //   - `FragmentFunctionBuilderMaybeOptional.as` — coerces args while
 //     tracking the merged `optionalType` (via `__mergeOptional`
 //     and stamps the merged value on the result.
@@ -101,8 +102,8 @@ describe(ctx.label, () => {
     test('build-fragment-with-args-if-value-short-circuits-noop-on-undefined', async () => {
         // First arg literal 1 (required). Second arg is `undefined`
         // — `_isValue(undefined)` returns false → the dispatcher
-        // returns `SqlOperationValueSourceIfValueAlwaysNoop()`, a
-        // sentinel boolean ValueSource. Used in WHERE it drops the
+        // returns the neutral boolean in place of the fragment.
+        // Used in WHERE it drops the
         // entire clause from the emitted SQL. The plain SELECT that
         // remains is valid in every dialect, so this test runs in
         // both mock and real modes.

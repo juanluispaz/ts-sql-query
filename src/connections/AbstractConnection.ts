@@ -1067,7 +1067,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     }
 
     noValueBoolean(): IfValueSource<NNoTableOrViewRequired<DB>, 'required'> {
-        return new SqlOperationValueSourceIfValueAlwaysNoop()
+        return new SqlOperationValueSourceIfValueAlwaysNoop('required')
     }
 
     dynamicBooleanExpressionUsing<SOURCE extends NSource>(table: ITableOrView<SOURCE> & SameDB<DB>): AlwaysIfValueSource<SOURCE | NNoTableOrViewRequired<DB>, any>
@@ -1076,7 +1076,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     dynamicBooleanExpressionUsing<S1 extends NSource, S2 extends NSource, S3 extends NSource, S4 extends NSource>(table1: ITableOrView<S1> & SameDB<DB>, table2: ITableOrView<S2> & SameDB<DB>, table3: ITableOrView<S3> & SameDB<DB>, table4: ITableOrView<S4> & SameDB<DB>): AlwaysIfValueSource<S1 | S2 | S3 | S4 | NNoTableOrViewRequired<DB>, any>
     dynamicBooleanExpressionUsing<S1 extends NSource, S2 extends NSource, S3 extends NSource, S4 extends NSource, S5 extends NSource>(table1: ITableOrView<S1> & SameDB<DB>, table2: ITableOrView<S2> & SameDB<DB>, table3: ITableOrView<S3> & SameDB<DB>, table4: ITableOrView<S4> & SameDB<DB>, table5: ITableOrView<S5> & SameDB<DB>): AlwaysIfValueSource<S1 | S2 | S3 | S4 | S5 | NNoTableOrViewRequired<DB>, any>
     dynamicBooleanExpressionUsing(..._tables: any[]): AlwaysIfValueSource<any, any> {
-        return new SqlOperationValueSourceIfValueAlwaysNoop()
+        return new SqlOperationValueSourceIfValueAlwaysNoop('required')
     }
 
     // Agregate functions

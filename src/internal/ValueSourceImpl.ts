@@ -386,12 +386,12 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
         if (condition) {
             return this
         } else {
-            return new SqlOperationValueSourceIfValueAlwaysNoop()
+            return new SqlOperationValueSourceIfValueAlwaysNoop(this.__optionalType)
         }
     }
     ignoreWhen(condition: boolean): any {
         if (condition) {
-            return new SqlOperationValueSourceIfValueAlwaysNoop()
+            return new SqlOperationValueSourceIfValueAlwaysNoop(this.__optionalType)
         } else {
             return this
         }
@@ -1534,8 +1534,15 @@ export class SqlOperationInValueSourceIfValueOrNoop extends ValueSourceImpl impl
 
 export class SqlOperationValueSourceIfValueAlwaysNoop extends ValueSourceImpl {
 
-    constructor() {
-        super('', '', 'required', undefined)
+    /**
+     * The optional type is the one of the boolean expression that was neutralised; the neutral is one more
+     * possibility added to that boolean (true / false / null / neutral), it doesn't replace it, then neutralising it
+     * must not drop the null that boolean admitted. When there is no previous boolean expression (the neutral used as
+     * the initial value of a dynamic boolean expression), no null is possible yet, and 'required' (the identity of the
+     * optional type merge) is the one that steps aside as soon as a real expression joins the expression.
+     */
+    constructor(optionalType: OptionalType = 'required') {
+        super('', '', optionalType, undefined)
     }
     override valueWhenNoValue(value: any): any {
         // The neutral element of the four-valued dynamic-boolean system

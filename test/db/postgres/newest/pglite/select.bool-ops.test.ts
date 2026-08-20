@@ -230,4 +230,48 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('neutralised-boolean-keeps-the-optional-type-of-what-it-drops', async () => {
+        // Ignoring a boolean does not turn it into one that can never be
+        // null: the ignored expression is still the one the result stands
+        // for, so `onlyWhen(false)` must report the same optional type the
+        // `*IfValue` road reports for the same dropped comparison. Both
+        // roads are built here and asserted to emit the very same SQL.
+        // The dialects with no native boolean in a projected position pick
+        // the `case` shape from that optional type, so they emit different
+        // SQL when the two roads disagree.
+        const expected = [{ id: 1, matches: true }]
+
+        ctx.mockNext(expected)
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                matches: tIssue.body.equalsIfValue(undefined).and(tIssue.priority.equalsIfValue(2)).trueWhenNoValue(),
+            })
+            .executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                matches: tIssue.body.equals('unused').onlyWhen(false).and(tIssue.priority.equalsIfValue(2)).trueWhenNoValue(),
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id, priority = $1 as matches from issue where id = $2"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; matches?: boolean }>>>()
+        expect(result).toEqual(expected)
+    })
 })

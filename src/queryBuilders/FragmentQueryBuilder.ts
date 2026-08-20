@@ -73,6 +73,7 @@ export class FragmentFunctionBuilderIfValue {
     as(impl: (...vs: AnyValueSource[]) => AnyValueSource): ((...args: any[]) => AnyValueSource) {
         return (...args: any[]): AnyValueSource => {
             const newArgs: AnyValueSource[] = []
+            let noValue = false
             for (let i = 0, length = args.length; i < length; i++) {
                 const arg = args[i]
                 if (isValueSource(arg)) {
@@ -83,7 +84,7 @@ export class FragmentFunctionBuilderIfValue {
                     const valueMode = definition.mode === 'value'
                     if (optional && valueMode) {
                         if (!this.sqlBuilderSource.__sqlBuilder._isValue(arg)) {
-                            return new SqlOperationValueSourceIfValueAlwaysNoop()
+                            noValue = true
                         }
                     }
                     const newArg = new SqlOperationConstValueSource(arg, definition.type, definition.typeName, definition.optionalType, definition.adapter)
@@ -91,6 +92,13 @@ export class FragmentFunctionBuilderIfValue {
                 }
             }
             const result = impl.apply(undefined, newArgs)
+            if (noValue) {
+                // The fragment is ignored, but the neutral boolean that takes its place keeps the optional type of the
+                // boolean expression the fragment builds, the same one returned when the value is provided. The
+                // expression is built and discarded here only to get it: it is not stored anywhere else, it lives in
+                // the value returned by the implementation function.
+                return new SqlOperationValueSourceIfValueAlwaysNoop(__getValueSourcePrivate(result).__optionalType)
+            }
             if (this.isAggregate) {
                 __getValueSourcePrivate(result).__isAggregate = true
             }

@@ -188,17 +188,25 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     notEquals(value: any): any {
         return condition(new SqlOperation1ValueSource('_notEquals', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
+    /* The `is`/`isNot` family is a TOTAL predicate: `IS [NOT] DISTINCT FROM` (and the per-dialect emulation of it)
+     * answers true or false even when an operand is NULL — which is the reason to reach for it instead of `equals`.
+     * So the result is ALWAYS `'required'`, whatever the receiver and the operand are. Merging them, the way an
+     * ordinary comparison does (`getOptionalType2`), would report a NULL the operator cannot produce, and that
+     * over-report reaches the SQL: the dialects with no native boolean in a projected position would emit the
+     * 3-branch `case … else null end` with an unreachable branch. The `*IfValue` twins carry the same `'required'`
+     * into the neutral they become when the operand has no value — a neutral inherits the optional type of the
+     * expression it stands for, and for a total predicate that is `'required'`. */
     isIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_is', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_is', this, value, 'boolean', 'boolean', 'required', getTypeAdapter2(this, value)))
     }
     is(value: any): any {
-        return condition(new SqlOperation1NotOptionalValueSource('_is', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1NotOptionalValueSource('_is', this, value, 'boolean', 'boolean', 'required', getTypeAdapter2(this, value)))
     }
     isNotIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_isNot', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_isNot', this, value, 'boolean', 'boolean', 'required', getTypeAdapter2(this, value)))
     }
     isNot(value: any): any {
-        return condition(new SqlOperation1NotOptionalValueSource('_isNot', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1NotOptionalValueSource('_isNot', this, value, 'boolean', 'boolean', 'required', getTypeAdapter2(this, value)))
     }
     asString(): any {
         const result = new SqlOperation0ValueSource('_asString', this, 'string', 'string', this.__optionalType, this.__typeAdapter)

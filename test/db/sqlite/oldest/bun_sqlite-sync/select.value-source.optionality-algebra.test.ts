@@ -1,11 +1,14 @@
 // Merge-optional numeric and boolean operators realizing their NULL/absent
 // runtime inhabitant: a plain `col.add(optionalCol)` where the optional operand
 // is NULL, a 3-valued boolean `required.and(optional)` where the optional is
-// NULL, and the varargs membership predicate `inN`/`notInN`, whose optionality
+// NULL, the varargs membership predicate `inN`/`notInN`, whose optionality
 // merges the receiver with every ELEMENT (both arms: an optional element and an
-// all-required list). These use the existing NULL seed values (worklog 2 has
-// NULL `minutes`; worklog 3 has NULL `billable` with activity 'meeting'), so no
-// UPDATE is needed and every row is real-DB-validatable.
+// all-required list), and the opposite case — the null-safe `is`/`isNot` family
+// and its `*IfValue` twins, which stay REQUIRED over an OPTIONAL receiver
+// because they answer over a NULL instead of propagating it. These use the
+// existing NULL seed values (worklog 2 has NULL `minutes`; worklog 3 has NULL
+// `billable` with activity 'meeting'), so no UPDATE is needed and every row is
+// real-DB-validatable.
 //
 // Seed facts (issue_worklog):
 //   worklog 1 — issue 1, minutes 90, activity 'coding',  billable TRUE
@@ -196,6 +199,77 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number; hit: boolean; miss: boolean }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('is-and-is-not-over-an-optional-receiver-project-a-required-boolean', async () => {
+        // `is`/`isNot` are the null-safe comparison: they answer true or false
+        // even when an operand is NULL, so the projected leaf is REQUIRED
+        // whatever the receiver is -- unlike `equals`/`notEquals`, which carry
+        // the receiver's optionality through and would drop the key on a NULL
+        // row. worklog 1 (minutes 90) -> same=true, diff=false; worklog 2
+        // (minutes NULL) -> the comparison still answers, same=false and
+        // diff=true, both present.
+        const expected = [
+            { id: 1, same: true,  diff: false },
+            { id: 2, same: false, diff: true  },
+        ]
+        ctx.mockNext(expected)
+        const rows = sync(ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.in([1, 2]))
+            .select({
+                id:   tIssueWorklog.id,
+                same: tIssueWorklog.minutes.is(90),
+                diff: tIssueWorklog.minutes.isNot(90),
+            })
+            .orderBy('id')
+            .executeSelectMany())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, minutes is ? as same, minutes is not ? as diff from issue_worklog where id in (?, ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            90,
+            90,
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; same: boolean; diff: boolean }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('is-if-value-projects-a-required-boolean-with-and-without-an-operand', async () => {
+        // The dynamic twins of that same total predicate are REQUIRED on both
+        // arms: the comparison `isIfValue(90)` builds, and the neutral
+        // `isNotIfValue(undefined)` becomes -- a neutral stands for the
+        // expression it replaces, and that expression never yields NULL either.
+        // `trueWhenNoValue()` leaves the condition world so the boolean can be
+        // projected, carrying the condition's optionality through. worklog 1
+        // (minutes 90) -> same=true; worklog 2 (minutes NULL) -> same=false;
+        // `noOperand` got no operand at all, so it is the substituted true on
+        // every row.
+        const expected = [
+            { id: 1, same: true,  noOperand: true },
+            { id: 2, same: false, noOperand: true },
+        ]
+        ctx.mockNext(expected)
+        const rows = sync(ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.in([1, 2]))
+            .select({
+                id:        tIssueWorklog.id,
+                same:      tIssueWorklog.minutes.isIfValue(90).trueWhenNoValue(),
+                noOperand: tIssueWorklog.minutes.isNotIfValue(undefined).trueWhenNoValue(),
+            })
+            .orderBy('id')
+            .executeSelectMany())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, minutes is ? as same, 1 as noOperand from issue_worklog where id in (?, ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            90,
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; same: boolean; noOperand: boolean }>>>()
         expect(rows).toEqual(expected)
     })
 })

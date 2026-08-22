@@ -379,7 +379,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(case when case when (assignee_id = parent_id) or (assignee_id is null and parent_id is null) then 1 else 0 end = 1 then 1 when not (case when (assignee_id = parent_id) or (assignee_id is null and parent_id is null) then 1 else 0 end = 1) then 0 else null end as bit) as eqIs, cast(case when not (case when (assignee_id = parent_id) or (assignee_id is null and parent_id is null) then 1 else 0 end = 1) then 1 when not (not (case when (assignee_id = parent_id) or (assignee_id is null and parent_id is null) then 1 else 0 end = 1)) then 0 else null end as bit) as neqIs from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(case when case when (assignee_id = parent_id) or (assignee_id is null and parent_id is null) then 1 else 0 end = 1 then 1 else 0 end as bit) as eqIs, cast(case when not (case when (assignee_id = parent_id) or (assignee_id is null and parent_id is null) then 1 else 0 end = 1) then 1 else 0 end as bit) as neqIs from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

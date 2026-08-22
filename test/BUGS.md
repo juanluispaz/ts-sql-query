@@ -75,72 +75,7 @@ entry says under *Current workaround in the suite* why the matrix can't see it.
 A `none` there is not "nothing to do": it means no test would notice a
 regression either.
 
-## `is` / `isNot` / `isIfValue` / `isNotIfValue` report an optional type the operator cannot produce
-
-**Where**: `src/internal/ValueSourceImpl.ts:191-199` (`isIfValue`, `is`, `isNotIfValue`,
-`isNot`), all four built with `getOptionalType2(this, value)` (`:2137-2143`),
-which answers the RECEIVER's optional type. Declared types are in
-`src/expressions/values.ts:266-271`.
-
-**Reproduction**: `IS [NOT] DISTINCT FROM` is a TOTAL predicate — it is the
-operator you use precisely because it never returns NULL. Verified on a real
-engine (PostgreSQL via pglite), over a row where the column IS NULL:
-
-| expression | result | `is null` |
-|---|---|---|
-| `b is not distinct from 1` | `false` | **false** |
-| `b is distinct from 1` | `true` | **false** |
-| `b is not distinct from null` | `true` | **false** |
-| `b = 1` (ordinary comparison, for contrast) | `null` | true |
-
-So the honest optional type for the whole family is `'required'`, whatever the
-receiver is. What the library has instead:
-
-| method | DECLARED | RUNTIME |
-|---|---|---|
-| `is` | `'required'` ✅ | the receiver's ❌ |
-| `isNot` | `'required'` ✅ | the receiver's ❌ |
-| `isNotIfValue` | `'required'` ✅ | the receiver's ❌ |
-| `isIfValue` | the receiver's ❌ | the receiver's ❌ |
-
-Three of the four have a runtime that contradicts their own declaration, and
-`isIfValue` is the one whose DECLARATION is also wrong.
-
-**Consequence — it is not only cosmetic, it reaches the SQL.** On the dialects
-with no native boolean in a projected position the shape is chosen from
-`__optionalType`, so an over-report emits the 3-branch form with a dead
-`else null` and binds the parameter TWICE. Measured, SQL Server,
-`tX.b.is(1)` projected:
-
-```sql
-cast(case when case when [b] = @0 then 1 else 0 end = 1 then 1
-          when not (case when [b] = @1 then 1 else 0 end = 1) then 0
-          else null end as bit)
-```
-
-The `else null` branch is unreachable — the operator cannot return NULL — and
-`@1` exists only to feed it. The 2-branch form is the correct emission. SQL
-Server also wraps a non-`'required'` value in `isnull(…, 'null')` inside an
-aggregated array built as JSON text, which is equally unnecessary here.
-
-**Diagnosis** (measured, so the fixing agent need not redo it): the four are
-built through the generic operand-merging helper, which is right for an
-ORDINARY comparison — `b = 1` really is NULL when `b` is — and wrong for a total
-predicate. The fix is to pass `'required'` explicitly at the four sites, and to
-correct `isIfValue`'s declaration to `'required'` so the pair stops being
-asymmetric. Note the `*IfValue` twins turn NEUTRAL when the operand is absent,
-and the neutral must then carry `'required'` too — that is not an exception to
-the neutral rule but the rule itself: the neutral inherits the optional type of
-THE EXPRESSION IT STANDS FOR, and for a total predicate that is `'required'`
-(see `THE NEUTRAL'S OPTIONALITY` in `src/typeSystem/nodes/conditionValueSource.ts`).
-
-**Current workaround in the suite**: none, and no test would notice a
-regression — the emitted SQL is snapshotted as it is today, so the dead branch
-is baked into the snapshots rather than flagged by them. Fixing this WILL move
-Oracle and SQL Server snapshots for any projected `is`/`isNot`/`is*IfValue`;
-classify them against this entry rather than refreshing them. A test asserting
-that the projected result of `is` over an OPTIONAL column is non-nullable is the
-one to add with the fix.
+*(none)*
 
 ## Coverage gaps carried over (not bugs — no entry to fix)
 

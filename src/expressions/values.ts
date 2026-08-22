@@ -265,7 +265,7 @@ export interface EqualableValueSource</*in|out*/ SOURCE extends NSource, /*in|ou
     notEqualsIfValue(value: TYPE | null | undefined): IfValueSource<SOURCE, OPTIONAL_TYPE>
     notEquals(value: TYPE): BooleanValueSource<SOURCE, OPTIONAL_TYPE>
     notEquals<VALUE extends IEqualableValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): BooleanValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    isIfValue(value: TYPE | null | undefined): IfValueSource<SOURCE, OPTIONAL_TYPE>
+    isIfValue(value: TYPE | null | undefined): IfValueSource<SOURCE, 'required'>
     is(value: TYPE | null | undefined): BooleanValueSource<SOURCE, 'required'>
     is<VALUE extends IEqualableValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): BooleanValueSource<SOURCE | VALUE[typeof source], 'required'>
     isNotIfValue(value: TYPE | null | undefined): IfValueSource<SOURCE, 'required'>

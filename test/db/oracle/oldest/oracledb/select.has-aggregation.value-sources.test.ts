@@ -545,10 +545,9 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", case when decode(max(assignee_id), :0, 1, 0 ) = 1 then 1 when not (decode(max(assignee_id), :1, 1, 0 ) = 1) then 0 else null end as "matches" from issue group by project_id order by "projectId""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", case when decode(max(assignee_id), :0, 1, 0 ) = 1 then 1 else 0 end as "matches" from issue group by project_id order by "projectId""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            3,
             3,
           ]
         `)
@@ -581,7 +580,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", case when decode(project_id, min(id), 1, 0 ) = 1 then 1 when not (decode(project_id, min(id), 1, 0 ) = 1) then 0 else null end as "matches" from issue group by project_id order by "projectId""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", case when decode(project_id, min(id), 1, 0 ) = 1 then 1 else 0 end as "matches" from issue group by project_id order by "projectId""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ projectId: number; matches: boolean }>>>()
         expect(rows).toEqual(expected)

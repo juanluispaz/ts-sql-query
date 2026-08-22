@@ -379,7 +379,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select case when decode(assignee_id, parent_id, 1, 0 ) = 1 then 1 when not (decode(assignee_id, parent_id, 1, 0 ) = 1) then 0 else null end as "eqIs", case when decode(assignee_id, parent_id, 1, 0 ) = 0 then 1 when not (decode(assignee_id, parent_id, 1, 0 ) = 0) then 0 else null end as "neqIs" from issue where id = :0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select case when decode(assignee_id, parent_id, 1, 0 ) = 1 then 1 else 0 end as "eqIs", case when decode(assignee_id, parent_id, 1, 0 ) = 0 then 1 else 0 end as "neqIs" from issue where id = :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

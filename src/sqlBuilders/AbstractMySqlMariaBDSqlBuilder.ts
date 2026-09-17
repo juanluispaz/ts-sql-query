@@ -429,7 +429,8 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         let sql = this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
         sql = "replace(" + sql + ", '\\\\', '\\\\\\\\')"
         const metachars = '.*+?^${}()|[]'
-        for (const ch of metachars) {
+        for (let i = 0, length = metachars.length; i < length; i++) {
+            const ch = metachars[i]!
             sql = "replace(" + sql + ", '" + ch + "', '\\\\" + ch + "')"
         }
         return sql

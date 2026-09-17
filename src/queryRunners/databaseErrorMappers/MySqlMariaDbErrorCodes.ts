@@ -2,8 +2,8 @@ type ErrorCodeNumberMap = Map<string, number>
 
 function createUnambiguousErrorCodeNumbers(...maps: ErrorCodeNumberMap[]): Map<string, number> {
     const numbersByCode = new Map<string, Set<number>>()
-    for (const map of maps) {
-        for (const [code, number] of map) {
+    for (let i = 0, length = maps.length; i < length; i++) {
+        for (const [code, number] of maps[i]!) {
             const numbers = numbersByCode.get(code) ?? new Set<number>()
             numbers.add(number)
             numbersByCode.set(code, numbers)
@@ -18,8 +18,8 @@ function createUnambiguousErrorCodeNumbers(...maps: ErrorCodeNumberMap[]): Map<s
 
 function createUnambiguousErrorNumberCodes(...maps: ErrorCodeNumberMap[]): Map<number, string> {
     const codesByNumber = new Map<number, Set<string>>()
-    for (const map of maps) {
-        for (const [code, number] of map) {
+    for (let i = 0, length = maps.length; i < length; i++) {
+        for (const [code, number] of maps[i]!) {
             const codes = codesByNumber.get(number) ?? new Set<string>()
             codes.add(code)
             codesByNumber.set(number, codes)

@@ -20,6 +20,7 @@ import type { SqliteDateTimeFormat } from '../../../src/connections/SqliteConfig
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { createTestContext, type TestContext } from '../../lib/testContext.js'
 import { MockBetterSqlite3QueryRunner } from '../../lib/mockRunners/MockBetterSqlite3QueryRunner.js'
+import { MockBunSqlSqliteQueryRunner } from '../../lib/mockRunners/MockBunSqlSqliteQueryRunner.js'
 import { MockBunSqliteQueryRunner } from '../../lib/mockRunners/MockBunSqliteQueryRunner.js'
 import { MockNodeSqliteQueryRunner } from '../../lib/mockRunners/MockNodeSqliteQueryRunner.js'
 import { MockSqlite3QueryRunner } from '../../lib/mockRunners/MockSqlite3QueryRunner.js'
@@ -362,6 +363,73 @@ export function createBunSqliteTestContext(spec: BunSqliteTestSpec, sync = false
 /** The `bun_sqlite-sync` cell: {@link createBunSqliteTestContext} in synchronous mode. */
 export function createBunSqliteSyncTestContext(spec: BunSqliteTestSpec): SqliteTestContext {
     return createBunSqliteTestContext(spec, true)
+}
+
+// ---- bun:sql for sqlite (in-process, Bun-only) ---------------------------
+
+// Per-process Bun SQL sqlite instance (each `new SQL(':memory:')` is its own
+// database), seeded once and reseeded per file through the runner.
+let sharedBunSqlSqliteDb: import('bun').SQL | null = null
+
+async function applySchemaAndSeedOnBunSql(sql: import('bun').SQL): Promise<void> {
+    const { schema, seed } = await readSchemaAndSeed()
+    for (const stmt of splitStatements(schema)) await sql.unsafe(stmt)
+    for (const stmt of splitStatements(seed)) await sql.unsafe(stmt)
+}
+
+async function getOrCreateBunSqlSqliteDb(): Promise<import('bun').SQL> {
+    if (sharedBunSqlSqliteDb === null) {
+        const { SQL } = await import('bun')
+        sharedBunSqlSqliteDb = new SQL({ adapter: 'sqlite', filename: ':memory:' })
+    }
+    return sharedBunSqlSqliteDb
+}
+
+// A second database whose reader surfaces integers past 2^53 as an exact
+// `bigint` (`safeIntegers`, a db-wide option, as on bun:sqlite) — see
+// getOrCreateBunSqliteExactDb for why it is a dedicated, separately seeded db.
+let sharedBunSqlSqliteExactDb: import('bun').SQL | null = null
+async function createBunSqlSqliteExactIntegerConnection(): Promise<DBConnection> {
+    const { BunSqlSqliteQueryRunner } = await import('../../../src/queryRunners/BunSqlSqliteQueryRunner.js')
+    if (sharedBunSqlSqliteExactDb === null) {
+        const { SQL } = await import('bun')
+        const sql = new SQL({ adapter: 'sqlite', filename: ':memory:', safeIntegers: true })
+        await applySchemaAndSeedOnBunSql(sql)
+        sharedBunSqlSqliteExactDb = sql
+    }
+    return new DBConnection(new BunSqlSqliteQueryRunner(sharedBunSqlSqliteExactDb))
+}
+
+export function createBunSqlSqliteTestContext(spec: BunSqliteTestSpec): SqliteTestContext {
+    // In-process, but Bun SQL only exists under Bun. Under node+vitest we keep
+    // the mock branch and never touch `bun`.
+    const version = spec.label.split(' / ')[0] ?? ''
+    const connector = spec.label.split(' / ')[1] ?? ''
+    const realDbEnabled = isBun && isRealDbEnabled(DATABASE, /* needsDocker */ false, version, connector)
+
+    return decorateSqliteContext(createTestContext<DBConnection>({
+        label: spec.label,
+        canonicalForDocs: spec.canonicalForDocs,
+        compatibilityVersion: spec.compatibilityVersion,
+        database: 'sqlite',
+        realDbEnabled,
+        mockRunnerClass: MockBunSqlSqliteQueryRunner,
+        async createRealRunner() {
+            const { BunSqlSqliteQueryRunner } = await import('../../../src/queryRunners/BunSqlSqliteQueryRunner.js')
+            const sql = await getOrCreateBunSqlSqliteDb()
+            await applySchemaAndSeedOnBunSql(sql)
+            return {
+                runner: new BunSqlSqliteQueryRunner(sql),
+                shutdown: async () => { /* shared instance, intentional no-op */ },
+            }
+        },
+        async onReseed(runner) {
+            await applySchemaAndSeedOnBunSql(runner.getNativeRunner() as import('bun').SQL)
+        },
+        buildConnection(interceptor, compatibilityVersion) {
+            return new DBConnection(interceptor, compatibilityVersion)
+        },
+    }), createBunSqlSqliteExactIntegerConnection)
 }
 
 // ---- better-sqlite3 (in-process, Node-only — does not load under Bun) ---

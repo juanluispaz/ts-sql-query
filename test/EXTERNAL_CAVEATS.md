@@ -234,9 +234,6 @@ driver — `better-sqlite3-sync`, `bun_sqlite-sync`, `node_sqlite-sync`,
   `test/db/<database>/<version>/prisma/`, NOT the full docs.* set.
   Treat the docs tests as out-of-scope until prisma parity is the
   explicit task.
-- **`bun_sql_mysql`, `bun_sql_sqlite`** — experimental bun
-  connectors with known bugs. Excluded permanently per
-  `DESIGN.md §10`.
 
 When any of these are added to the main matrix:
 

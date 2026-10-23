@@ -424,3 +424,84 @@ export function createMySql2PoolTestContext(spec: MySqlTestSpec): MySqlTestConte
         },
     }))
 }
+
+// ---- bun:sql for mysql (docker-backed, bun-only) ------------------------
+
+declare global {
+    // eslint-disable-next-line no-var
+    var Bun: { version: string } | undefined
+}
+
+const isBun = typeof globalThis.Bun !== 'undefined'
+
+export function createBunSqlMySqlTestContext(spec: MySqlTestSpec): MySqlTestContext {
+    // bun:sql is bun-only AND docker-backed. Under node we skip the real
+    // branch entirely; under bun we still depend on docker for the mysql
+    // engine. The worker DB is bootstrapped through mysql2 (shared with the
+    // mysql2 cells), the runner itself goes through Bun SQL.
+    const version = spec.label.split(' / ')[0] ?? ''
+    const connector = spec.label.split(' / ')[1] ?? ''
+    const realDbEnabled = isBun && isRealDbEnabled(DATABASE, /* needsDocker */ true, version, connector)
+    const image = imageForCell(DATABASE, version, realDbEnabled)
+    const isMysql5 = image.startsWith('mysql:5')
+    const buildRunner = memoizeSharedRunner(async (params: { host: string; port: number; workerDb: string }) => {
+        const { SQL } = await import('bun')
+        const { BunSqlMySqlQueryRunner } = await import('../../../src/queryRunners/BunSqlMySqlQueryRunner.js')
+        const sql = new SQL({
+            adapter: 'mysql',
+            hostname: params.host, port: params.port,
+            username: 'root', password: ROOT_PASSWORD,
+            database: params.workerDb,
+            // Required by BunSqlMySqlQueryRunner: count the rows an UPDATE matched.
+            foundRows: true,
+            // The test engines run without TLS; caching_sha2_password then needs
+            // the server's public key on a cold authentication cache.
+            allowPublicKeyRetrieval: true,
+            max: 4,
+            connectionTimeout: 20,
+        })
+        return {
+            runner: new BunSqlMySqlQueryRunner(sql),
+            shutdown: async () => { await sql.close() },
+        }
+    })
+
+    return decorateMySqlContext(createTestContext<DBConnection>({
+        label: spec.label,
+        canonicalForDocs: spec.canonicalForDocs,
+        compatibilityVersion: spec.compatibilityVersion,
+        database: 'mySql',
+        realDbEnabled,
+        async createRealRunner(forceNew = false) {
+            const container = await containers.getFor(image).acquire()
+            const host = container.getHost()
+            const port = container.getMappedPort(3306)
+            const workerDb = await bootstrapWorkerDbSchemaAndSeed(host, port, isMysql5)
+            // `forceNew` rebuilds a fresh runner (clean transaction state) when
+            // the harness discards a connection poisoned by a failed commit.
+            return await buildRunner({ host, port, workerDb }, forceNew)
+        },
+        async onReseed(runner) {
+            // reset.sql disables foreign-key checks for its session, so the whole
+            // reset + seed runs on one reserved connection of the runner's pool.
+            const sql = runner.getNativeRunner() as import('bun').SQL
+            const reserved = await sql.reserve()
+            try {
+                const [resetSql, seedSql] = await Promise.all([
+                    readFile(RESET_PATH, 'utf8'),
+                    readFile(SEED_PATH, 'utf8'),
+                ])
+                for (const stmt of splitStatements(resetSql)) await reserved.unsafe(stmt)
+                for (const stmt of splitStatements(seedSql)) await reserved.unsafe(stmt)
+            } finally {
+                reserved.release()
+            }
+        },
+        async onDown() {
+            await containers.getFor(image).release()
+        },
+        buildConnection(interceptor, compatibilityVersion) {
+            return new DBConnection(interceptor, compatibilityVersion)
+        },
+    }))
+}

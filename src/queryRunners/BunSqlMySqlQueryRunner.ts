@@ -3,7 +3,7 @@
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { AbstractBunSqlQueryRunner } from './AbstractBunSqlQueryRunner.js'
 import type { BeginTransactionOpts, DatabaseType } from './QueryRunner.js'
-import { SQL } from 'bun'
+import { SQL, type TransactionSQL } from 'bun'
 import { getBunSqlMySqlErrorReason, isBunSqlMySqlAnyError } from './connectorErrorMappers/BunSqlMySqlErrorMapper.js'
 
 export class BunSqlMySqlQueryRunner extends AbstractBunSqlQueryRunner {
@@ -43,6 +43,27 @@ export class BunSqlMySqlQueryRunner extends AbstractBunSqlQueryRunner {
     override addParam(params: any[], value: any): string {
         params.push(value)
         return '?'
+    }
+    override createBeginTransactionOptions(opts: BeginTransactionOpts): string | undefined {
+        // MySQL/MariaDB only accept the access mode in START TRANSACTION; the isolation
+        // level is set beforehand on the same connection (see beginNativeTransaction).
+        this.getTransactionLevel(opts)
+        return this.getTransactionAccessMode(opts)
+    }
+    protected override beginNativeTransaction<T>(opts: BeginTransactionOpts, options: string | undefined, callback: (transaction: TransactionSQL) => Promise<T>): Promise<T> {
+        const level = this.getTransactionLevel(opts)
+        if (!level) {
+            return super.beginNativeTransaction(opts, options, callback)
+        }
+        // SET TRANSACTION applies only to the next transaction started on that connection,
+        // so the level must be set on the connection the transaction then runs on.
+        return this.connection.reserve().then((reserved) => {
+            return reserved.unsafe('set transaction isolation level ' + level).then(() => {
+                return (options ? reserved.begin(options, callback) : reserved.begin(callback)) as Promise<T>
+            }).finally(() => {
+                reserved.release()
+            })
+        })
     }
     override createBeginTransactionQuery(opts: BeginTransactionOpts): string {
         const level = this.getTransactionLevel(opts)

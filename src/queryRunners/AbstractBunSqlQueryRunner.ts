@@ -136,6 +136,9 @@ export abstract class AbstractBunSqlQueryRunner extends SqlTransactionQueryRunne
                 this.transaction = undefined
             })
         }
+        return this.beginNativeTransaction(opts, options, callback)
+    }
+    protected beginNativeTransaction<T>(_opts: BeginTransactionOpts, options: string | undefined, callback: (transaction: TransactionSQL) => Promise<T>): Promise<T> {
         if (options) {
             return this.connection.begin(options, callback) as Promise<T>
         } else {

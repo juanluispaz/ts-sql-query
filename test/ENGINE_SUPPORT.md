@@ -736,18 +736,38 @@ stores its `NULL`) works, and that outcome is what
 in `sqlserver/*/mssql/insert.optional-custom-columns.test.ts` is therefore
 commented out with `// NOT-SUPPORTED:` (full canonical body preserved).
 
-### `replaceAllInsensitiveFunction`'s UDF cannot be registered on `bun:sqlite` / `sqlite3`
+## MariaDB discards placeholder values in a prepared `VALUES (...)` table constructor (Bun SQL)
+
+MariaDB silently drops the bound values of placeholders that sit inside a
+`VALUES (...)` table constructor of a **server-side prepared statement**
+([MDEV-33477](https://jira.mariadb.org/browse/MDEV-33477), open; reproduced on
+MariaDB 10.5, 12.3 and 13.0 with `mysql2.execute()` and `mariadb.execute()` too).
+The `WITH name(cols) AS (VALUES (?, ...))` a [`Values`](../docs/queries/values.md)
+source emits on MariaDB then reaches the engine with empty values: a select reads
+empty strings, an insert-from-select is refused (`Incorrect integer value: ''`),
+an update / delete through it touches nothing. The `mariadb` connector is not
+affected — it sends the query through the text protocol with the values
+interpolated — but **Bun SQL always prepares the statement** (and refuses
+`prepare: false` on MySQL / MariaDB). MySQL is not affected either: there the
+library emits `VALUES ROW(...)`.
+
+Every test that reads or writes through a `Values` source is therefore commented
+out with `// NOT-SUPPORTED:` (full canonical body preserved) in the
+`mariadb/*/bun_sql_mysql` cells and runs live on `mariadb/*/mariadb`. Only a
+MariaDB fix would re-enable them.
+
+### `replaceAllInsensitiveFunction`'s UDF cannot be registered on `bun:sqlite` / Bun SQL / `sqlite3`
 
 `replaceAllInsensitiveFunction` lets a SQLite connection route
 `replaceAllInsensitive` through a case-folding user-defined function (`ci_replace`).
 Registering that UDF needs a driver-level user-defined-function API. **better-sqlite3**,
-**node:sqlite** and **sqlite-wasm** expose one and run the test live; **bun:sqlite**
-and the deprecated **sqlite3** do not, so the library cannot register `ci_replace`
+**node:sqlite** and **sqlite-wasm** expose one and run the test live; **bun:sqlite**,
+Bun SQL's sqlite adapter and the deprecated **sqlite3** do not, so the library cannot register `ci_replace`
 there. This is **within-dialect divergence** across SQLite runners, so it is a
 per-runner boundary, not a dialect frontier — and only those drivers growing a
 UDF-registration API would close it. The `replaceAllInsensitiveFunction` test is
-commented with `// NOT-SUPPORTED:` (full canonical body preserved) on `bun:sqlite` and
-`sqlite3` and runs live on the other three SQLite runners.
+commented with `// NOT-SUPPORTED:` (full canonical body preserved) on `bun:sqlite`,
+`bun_sql_sqlite` and `sqlite3` and runs live on the other three SQLite runners.
 
 *(Judgement note for a future maintainer: the `uuid_str`/`uuid_blob`
 platform-dependent case is `NOT-APPLICABLE`; the difference here is that the

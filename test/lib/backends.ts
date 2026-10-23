@@ -21,13 +21,13 @@
  * path), not by implementation:
  *
  *   - `docker`: needs a real DB container (mariadb, mysql2, oracledb, mssql,
- *     pg, postgres, bun_sql_postgres). Gated by `--docker`.
+ *     pg, postgres, bun_sql_postgres, bun_sql_mysql). Gated by `--docker`.
  *   - `wasm`: needs a WebAssembly module bootstrap (pglite, sqlite-wasm-OO1).
  *     Gated by `--wasm`. Its own category because the bootstrap is CPU-bound
  *     and dominates wall time under parallel workers — see the two-phase split
  *     in `scripts/tests.sh`.
  *   - `native`: embedded SQLite drivers (better-sqlite3, bun_sqlite,
- *     node_sqlite, sqlite3) — no extra infra. Gated by `--native` (default
+ *     bun_sql_sqlite, node_sqlite, sqlite3) — no extra infra. Gated by `--native` (default
  *     `all`, i.e. real). pglite / sqlite-wasm-OO1 are also in-process but
  *     belong to `wasm` because their gating profile differs.
  */

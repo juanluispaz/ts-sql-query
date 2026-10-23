@@ -19,7 +19,7 @@ search:
 - The Bun SQL query runners (`BunSqlPostgresQueryRunner`, `BunSqlMySqlQueryRunner`, `BunSqlSqliteQueryRunner`) now require **Bun 1.4.4 or newer**, the first release where Bun SQL binds `Date` parameters, decodes MySQL `YEAR` / `DECIMAL` values and reports the affected rows of an `INSERT ... SELECT` correctly. The workarounds they carried for older Bun releases are gone:
     - `BunSqlPostgresQueryRunner` no longer converts `Date` parameters to an ISO 8601 string before binding them; the `Date` is handed to Bun SQL as is.
     - `BunSqlSqliteQueryRunner` no longer runs an extra `select changes()` after an `INSERT ... SELECT` that reported no inserted rows.
-- With `BunSqlMySqlQueryRunner`, create the Bun SQL connection with `foundRows: true`. Without it, `executeUpdate()` counts only the rows whose values changed, not every row the update matched, so `executeUpdate(min, max)` can fail with `MINIMUM_ROWS_NOT_REACHED` for an update that matched its rows ([docs](configuration/query-runners/recommended/bun_sql_mysql.md)).
+- `BunSqlMySqlQueryRunner` now requires a Bun SQL connection created with `foundRows: true` (or `?foundRows=true` in the URL) and throws `INVALID_CONFIGURATION` (`name: 'foundRows'`) otherwise. Without it, an `UPDATE` counts only the rows whose values changed, not every row it matched, so `executeUpdate()` and the `min` / `max` checks of `executeUpdate(min, max)` reported fewer rows than the update matched ([docs](configuration/query-runners/recommended/bun_sql_mysql.md)).
 
 **Bug fixes**:
 

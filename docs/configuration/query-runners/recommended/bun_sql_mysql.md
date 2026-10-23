@@ -28,11 +28,11 @@ This page explains how to use `ts-sql-query` with the [Bun SQL](https://bun.com/
 
     Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
 
-!!! warning "Create the connection with `foundRows: true`"
+!!! warning "The connection must be created with `foundRows: true`"
 
-    Create the Bun SQL connection with `foundRows: true` (or `?foundRows=true` in the connection URL).
+    Create the Bun SQL connection with `foundRows: true` (or `?foundRows=true` in the connection URL). `BunSqlMySqlQueryRunner` throws a `TsSqlProcessingError` with reason `INVALID_CONFIGURATION` (`name: 'foundRows'`) when it receives a connection without it.
 
-    Without it, an `UPDATE` only counts the rows whose values actually changed: a row that matches the `WHERE` clause but already holds the values being set is not counted. The number returned by `executeUpdate()` is then lower than the number of rows the update matched, and the `min` / `max` row checks of `executeUpdate(min, max)` are evaluated against that lower number (an update that matched its row can fail with `MINIMUM_ROWS_NOT_REACHED`).
+    Without `foundRows`, an `UPDATE` only counts the rows whose values actually changed: a row that matches the `WHERE` clause but already holds the values being set is not counted. The number returned by `executeUpdate()` would then be lower than the number of rows the update matched, and the `min` / `max` row checks of `executeUpdate(min, max)` would be evaluated against that lower number.
 
 !!! note "Authentication without TLS"
 

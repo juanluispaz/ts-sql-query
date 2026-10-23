@@ -13,6 +13,12 @@ export class BunSqlMySqlQueryRunner extends AbstractBunSqlQueryRunner {
         if (!(adapter === 'mysql' || adapter === 'mariadb')) {
             throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'adapter', value: adapter }, 'BunSqlMySqlQueryRunner only supports Bun.SQL connections using the mysql or mariadb adapter')
         }
+        // Without foundRows an UPDATE counts only the rows whose values changed, not the rows it matched,
+        // so the update count (and the min/max checks of executeUpdate) would be wrong.
+        const foundRows = connection.options.foundRows
+        if (foundRows !== true) {
+            throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'foundRows', value: foundRows }, 'BunSqlMySqlQueryRunner requires a Bun.SQL connection created with foundRows: true (or ?foundRows=true in the connection URL)')
+        }
     }
     override useDatabase(database: DatabaseType): void {
         if (database !== 'mySql' && database !== 'mariaDB') {

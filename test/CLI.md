@@ -111,28 +111,30 @@ Wall-time numbers assume a machine that is otherwise idle; see
 
 ## Test-loop discipline
 
-The suite has grown past **~258k tests across ~17k files**. Mocked-only
-it's ~74 s under vitest (`isolate:false`), ~68 s under bun; with `--docker`
-add real-DB cost on top — **~7 min under vitest, but impractical under bun (hours)** (bun
-rebuilds each cell's DB pool per file; see [`BENCHMARKS.md`](./BENCHMARKS.md)).
-Running the full matrix on every inner iteration burns minutes per hour.
+The suite has grown past **~357k tests across ~22.5k files**. Mocked-only
+it's ~10 s under bun (`--parallel --no-isolate`), ~74 s under vitest
+(`isolate:false`); with `--docker` add real-DB cost on top — **~11 min under bun**
+(~12 min under vitest, which also mocks the Bun SQL cells; see
+[`BENCHMARKS.md`](./BENCHMARKS.md)). Running the real matrix on every inner
+iteration still burns minutes per hour.
 
 The cells are heavily symmetric — for most changes, the `<db>/oldest/*`
 cells emit the **same** SQL + params snapshots as the matching `<db>/newest/*`
 cell (same SqlBuilder, same expression tree). Re-running them is wasted
 feedback.
 
-**Recommended order while iterating** (prefer `npm run tests -- …`; `bun run
-tests …` is fine for mocked runs, but use vitest for `--docker`/`--wasm`):
+**Recommended order while iterating** (prefer `bun run tests …`; `npm run tests
+-- …` runs the same matrix under vitest):
 
 1. `tests <coord>` — single cell or file. Tightest loop; use while editing.
 2. `tests --run-versions newest` — change spans several databases. Skips
-   `<db>/oldest/*` (~19 s instead of ~74 s under vitest, ~190 k fewer assertions).
+   the older version tiers (~2 s instead of ~10 s under bun, ~270 k fewer assertions).
 3. `tests` — full mocked matrix. **Pre-push** sanity sweep.
 4. `tests --docker` / `--wasm` — only when the change touches a docker-backed
-   connector / the WASM path, or as a final confidence check. **Run under
-   vitest** (`npm run tests -- --docker`) — the real-DB matrix is ~7 min there
-   vs hours under bun (impractical).
+   connector / the WASM path, or as a final confidence check
+   (`bun run tests --docker`). Bun mocks the node-only embedded SQLite cells
+   (`better-sqlite3`, `node_sqlite` + their `-sync` twins); add
+   `npm run tests -- --run-connectors native` for those.
 
 Widen the scope explicitly when you have a reason: touching a
 compatibility-version branch in a `SqlBuilder`, investigating a regression
@@ -222,10 +224,10 @@ pglite / sqlite-wasm-OO1. Native SQLite is real by default (`--native all`);
 `--native none` routes it through the mock too.
 
 ```bash
-# Full matrix, mocked docker/wasm, real native. ~74 s under vitest / ~68 s under bun (~258k tests).
+# Full matrix, mocked docker/wasm, real native. ~10 s under bun / ~74 s under vitest (~357k tests).
 npm run tests
 
-# + real docker backends. ~7 min under vitest with warm containers (impractical under bun — use vitest).
+# + real docker backends. ~11 min under bun with warm containers (~12 min under vitest).
 npm run tests -- --docker
 
 # Smoke against real DBs but only on the newest version of each engine.
@@ -234,7 +236,7 @@ npm run tests -- --docker newest
 # Skip older-version cells entirely (participation: not run at all).
 npm run tests -- --run-versions newest
 
-# Full matrix (docker + real WASM second phase). ~9 min under vitest (impractical under bun — use vitest).
+# Full matrix (docker + real WASM first phase). ~12.5 min under bun (the WASM phase itself ~30 s).
 npm run tests -- --docker --wasm
 
 # Only WASM cells run, real WASM module.
@@ -718,8 +720,8 @@ with no column or branch info — and its test-exec reporter is limited to
 `junit` and `dots`. The HTML test-execution SPA is vitest-only. Bun handles
 both `--report` and `--coverage` natively, but the artifacts are leaner.
 
-To force vitest even when invoking via `bun run` (so you keep bun's faster
-daily test loop and still get vitest's coverage stack), pass `--use-vitest`.
+To force vitest even when invoking via `bun run` (so you keep bun as the
+default runtime and still get vitest's coverage stack), pass `--use-vitest`.
 `--ui` implies it.
 
 ## Coverage report formats

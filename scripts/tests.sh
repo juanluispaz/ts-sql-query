@@ -175,6 +175,7 @@ Defaults
   --bail             off (no bail; bare --bail means 1)
   --timeout          60000 (ms; the value baked into the runner config)
   --no-color         off (colors kept when stdout is a TTY)
+  --isolate          off (bun: one global per worker across files, --no-isolate)
   --list-cells       off
   --list-cells-with-mode off (when set: running — show cells that will run;
                      all|real|mock|skipped filter the listing)
@@ -391,6 +392,13 @@ Narrowing flags (runtime-agnostic — translated for you)
         both runtimes). Keeps agent transcripts and `grep`/`tail`
         pipelines clean; also suppresses the color re-injection the
         WASM-phase replay would otherwise do on a TTY.
+  --isolate
+        bun only. Run every test file in a fresh global (bun's default
+        --parallel behaviour) instead of letting each worker keep one global
+        and module registry across its files (--no-isolate, the default
+        here, same model as vitest's isolate:false). Use it to debug a test
+        that only fails after another file ran in the same worker. Slower:
+        each file rebuilds its DB pool. Ignored under vitest.
 
 Listing flags (enumerate, don't run — mutually exclusive)
   --list-cells
@@ -582,6 +590,7 @@ TEST_NAME_PATTERN=
 # `--bail` alone resolves to 1 below.
 BAIL=
 NO_COLOR_FLAG=off
+BUN_ISOLATE=off
 LIST_CELLS=off
 LIST_FILES=off
 LIST_TESTS=off
@@ -665,6 +674,7 @@ while [ $# -gt 0 ]; do
             esac ;;
         --shard=*)              SHARD_MODE=on; SHARD_ONLY="${1#--shard=}"; shift ;;
         --no-color)             NO_COLOR_FLAG=on; shift ;;
+        --isolate)              BUN_ISOLATE=on; shift ;;
         --list-cells)           LIST_CELLS=on; shift ;;
         --list-files)           LIST_FILES=on; shift ;;
         --list-tests)           LIST_TESTS=on; shift ;;

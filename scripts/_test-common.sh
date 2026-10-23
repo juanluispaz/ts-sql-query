@@ -49,7 +49,14 @@ run_phase() {
     local tmo="${TEST_TIMEOUT_MS:-60000}"
     if [ "$runtime" = "bun" ]; then
         local parallel_flag=
-        if [ "$mode" = "parallel" ]; then parallel_flag="--parallel"; fi
+        # `--parallel` implies `--isolate` (a fresh global + module registry per
+        # file), which rebuilds every cell's DB pool / schema bootstrap per file.
+        # `--no-isolate` (Bun 1.4+) keeps one global per worker across its files,
+        # the same model as vitest's `isolate: false` — see test/BENCHMARKS.md.
+        # `--isolate` on the tests CLI (BUN_ISOLATE=on) restores per-file isolation.
+        if [ "$mode" = "parallel" ]; then
+            if [ "${BUN_ISOLATE:-off}" = "on" ]; then parallel_flag="--parallel"; else parallel_flag="--parallel --no-isolate"; fi
+        fi
         # An empty "$@" turns into a literal "" token that `bun test`
         # interprets as a filter matching every project file AND exits 99.
         if [ "$#" -gt 0 ]; then

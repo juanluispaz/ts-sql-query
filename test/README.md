@@ -250,19 +250,18 @@ cells simply do not exist.
 > [`CLI.md` § One heavy job at a time](./CLI.md#one-heavy-job-at-a-time).
 
 ```bash
-# Daily mocked loop, ~74 s under vitest (isolate:false) / ~68 s under bun.
-npm run tests            # or `npm run tests` — mocked is fast under both
+# Daily mocked loop, ~10 s under bun (--no-isolate) / ~74 s under vitest (isolate:false).
+bun run tests            # or `npm run tests` for the same matrix under vitest
 
 # One cell, fastest possible iteration.
-npm run tests -- postgres/newest/pg
+bun run tests postgres/newest/pg
 
-# Real-DB validation of one cell (docker). Use vitest — the real-DB matrix is
-# ~20x faster under vitest (bun rebuilds the pool per file). Add --bail to abort
-# on first failure while iterating — saves wall-time on the slow lane.
-npm run tests -- postgres/newest/pg --docker --bail
+# Real-DB validation of one cell (docker). Add --bail to abort on first failure
+# while iterating — saves wall-time on the slow lane.
+bun run tests postgres/newest/pg --docker --bail
 
 # Real WASM on a wasm cell.
-npm run tests -- postgres/oldest/pglite --wasm
+bun run tests postgres/oldest/pglite --wasm
 
 # Update snapshots.
 npm run tests -- postgres/newest/pg --update-snapshots

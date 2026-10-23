@@ -112,7 +112,7 @@ Wall-time numbers assume a machine that is otherwise idle; see
 ## Test-loop discipline
 
 The suite has grown past **~357k tests across ~22.5k files**. Mocked-only
-it's ~10 s under bun (`--parallel --no-isolate`), ~74 s under vitest
+it's ~10 s under bun (`--parallel --no-isolate`), ~48 s under vitest
 (`isolate:false`); with `--docker` add real-DB cost on top — **~11 min under bun**
 (~12 min under vitest, which also mocks the Bun SQL cells; see
 [`BENCHMARKS.md`](./BENCHMARKS.md)). Running the real matrix on every inner
@@ -224,7 +224,7 @@ pglite / sqlite-wasm-OO1. Native SQLite is real by default (`--native all`);
 `--native none` routes it through the mock too.
 
 ```bash
-# Full matrix, mocked docker/wasm, real native. ~10 s under bun / ~74 s under vitest (~357k tests).
+# Full matrix, mocked docker/wasm, real native. ~10 s under bun / ~48 s under vitest (~357k tests).
 bun run tests
 
 # + real docker backends. ~11 min under bun with warm containers (~12 min under vitest).

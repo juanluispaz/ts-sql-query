@@ -303,8 +303,8 @@ Report flags (test-execution report)
   --report
         Emit a test-execution report. Output lands under
         .test-report/: under vitest the html SPA lives at
-        .test-report/index.html (see vitest.config.ts's
-        `outputFile.html`); under bun the junit XML lives at
+        .test-report/index.html (see vitest.config.ts); under
+        both runtimes the junit XML lives at
         .test-report/junit.xml. Independent from --coverage: you
         can have either, both, or neither.
   --report-format <name>
@@ -314,8 +314,9 @@ Report flags (test-execution report)
         Under vitest, pass-through to `--reporter`. Common values:
         html (browseable SPA at .test-report/index.html — needs
         `bunx vite preview` because the page fetches metadata),
-        default, verbose, dot, tap, tap-flat, junit, json, tree,
-        github-actions.
+        default, verbose, dot, tap, tap-flat, junit (file at
+        .test-report/junit.xml), json (file at .test-report/report.json),
+        tree, github-actions.
         Under bun, only `junit` (file at .test-report/junit.xml)
         and `dot`/`dots` (terminal-only compact progress) are
         supported. `dot` and `dots` are accepted interchangeably and
@@ -881,11 +882,14 @@ fi
 # bodies or beforeAll hooks, so no real DB is bootstrapped. Honours the
 # coord/scope/connection path filter (MAIN_PATHS) and --test-name-pattern;
 # extra runner args after `--` pass through (e.g. `--json` for parsing).
+# `--staticParse=false`: vitest 5 collects names by parsing the source by default,
+# which reports `describe(ctx.label, …)` as the literal `ctx.label`; evaluating the
+# registration gives the real cell label.
 if [ "$LIST_TESTS" = "on" ]; then
     if [ "$NO_COLOR_FLAG" = "on" ]; then export NO_COLOR=1; fi
     list_args=()
     if [ -n "$TEST_NAME_PATTERN" ]; then list_args+=(--testNamePattern "$TEST_NAME_PATTERN"); fi
-    vitest list "${MAIN_PATHS[@]}" "${list_args[@]}" "${EXTRA_ARGS[@]}"
+    vitest list --staticParse=false "${MAIN_PATHS[@]}" "${list_args[@]}" "${EXTRA_ARGS[@]}"
     exit $?
 fi
 
@@ -1070,7 +1074,7 @@ fi
 # natively via report_runner_flags (junit / dots).
 #
 # NOTE: when --report and --wasm are both on the two phases share
-# the same --reporter-outfile / html outputFile path, so the WASM
+# the same --reporter-outfile / html output path, so the WASM
 # phase's report artifact is overwritten by the main pass. The
 # terminal output for both phases still scrolls past (and the WASM
 # summary is re-emitted at the end), but the on-disk SPA / junit

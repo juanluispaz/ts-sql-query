@@ -67,14 +67,19 @@ are on top — see [Practical workflow](#practical-workflow)):
 | Invocation | bun wall / peak | vitest wall / peak | Reading |
 |---|---|---|---|
 | `tests --run-versions newest` (mocked) | **~2 s** | ~17 s | not identical work‡ |
-| `tests` (mocked, 357 246 tests / 22 530 files) | **~10 s / 3.8 GB** | ~74 s (17k-file matrix)† | not identical work‡ |
+| `tests` (mocked, 357 246 tests / 22 530 files) | **~10 s / 3.8 GB** | ~48 s / 4.0 GB† | not identical work‡ |
 | 5 newest docker cells (1 387 files, warm) | **114 s / 1.8 GB** | 143 s / 3.0 GB | same docker cells |
 | `tests --docker` (warm containers) | **670 s / 2.7 GB** | 729 s / 9.0 GB | bun runs MORE real cells‡ |
 | `tests --docker --wasm` (warm containers) | **742 s / 3.7 GB** (WASM phase 27 s) | ~9:00 (17k-file matrix) | — |
 
-**† vitest's mocked run is variable and memory-heavy.** At this size each worker
-carries a large accumulated module graph — the accumulation that peaks ~15.9 GB
-and OOMs the 16 GB CI runner on Node 26 (see [`CLI.md` § Sharding](./CLI.md#sharding)).
+**† vitest's mocked run is memory-heavy.** At this size each worker carries a
+large accumulated module graph — the accumulation that peaks ~15.9 GB and OOMs
+the 16 GB CI runner on Node 26 (see [`CLI.md` § Sharding](./CLI.md#sharding)).
+The main vitest process, which collects every file's results, also outgrows
+V8's ~4 GB default heap on the full matrix: `run_phase` in
+[`scripts/_test-common.sh`](../scripts/_test-common.sh) starts it with
+`--max-old-space-size=8192` (workers keep the default). Without it the run dies
+with "heap out of memory", or crawls in GC just under the limit (~2.5× slower).
 
 **‡ The `bun` and `vitest` columns are NOT the same workload.** The docker
 connectors `pg` / `postgres` / `mysql2` / `mariadb` / `oracledb` / `mssql` and the
@@ -121,14 +126,15 @@ rationale: [`CLI.md` § Sharding](./CLI.md#sharding).
 
 | Shard | vitest wall † | peak RSS ‡ |
 |---|---|---|
-| 1 · wasm (real, **sequential**) | ~60 s | 4.8 GiB |
-| 2 · sqlite native A | ~22 s | 8.8 GiB |
-| 3 · sqlite native B | ~16 s | 6.3 GiB |
-| 4 · rest (docker mocked + docs) | ~21 s | 8.4 GiB |
-| **all four in sequence** | ~120 s | biggest shard |
+| 1 · wasm (real, **sequential**) | ~53 s | 4.8 GiB |
+| 2 · sqlite native A | ~8 s | 8.8 GiB |
+| 3 · sqlite native B | ~8 s | 6.3 GiB |
+| 4 · rest (docker mocked + docs) | ~10 s | 8.4 GiB |
+| **all four in sequence** | ~83 s | biggest shard |
 
-† 12-core macOS, unconstrained, measured on the 17k-file matrix. ‡ peak resident
-memory under the **CI limit** (`--cpus=4 --memory=16g`, Node 26, Linux) — the
+† 12-core macOS, unconstrained, vitest 5 on the 22.5k-file matrix. ‡ peak resident
+memory under the **CI limit** (`--cpus=4 --memory=16g`, Node 26, Linux; measured
+with vitest 4 on the 17k-file matrix) — the
 number that matters here, ~7 GB under the ~15.9 GB single-process peak. Shard 1 is
 sequential (the WASM module bootstrap is per-worker; running it parallel is
 catastrophic) and gets `--max-old-space-size=8192` on node.

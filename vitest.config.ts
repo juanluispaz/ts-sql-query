@@ -49,8 +49,18 @@ export default defineConfig({
         // requires @vitest/ui) writes here; the coverage report
         // lives in a subdirectory so the two share one wipe-and-go
         // root (see `clean_coverage_dir` in scripts/_test-common.sh).
+        // A `--reporter` given on the CLI keeps the options this config
+        // declares for the same reporter, but a reporter declared here is
+        // also enabled when the CLI names none — so the html entry is only
+        // declared when the CLI asks for it.
+        ...(process.argv.includes('--reporter=html')
+            ? { reporters: [['html', { outputDir: '.test-report' }]] }
+            : {}),
+        // The file reporters write here instead of vitest's `.vitest/`;
+        // junit.xml is where bun's junit reporter writes too.
         outputFile: {
-            html: '.test-report/index.html',
+            junit: '.test-report/junit.xml',
+            json: '.test-report/report.json',
         },
         coverage: {
             // Coverage scope. Mirrored in bunfig.toml's

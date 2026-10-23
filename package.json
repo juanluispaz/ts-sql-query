@@ -322,12 +322,12 @@
         "@types/oracledb": "^26.0.0",
         "@types/pg": "^8.23.1",
         "@types/sqlite3": "^3.1.11",
-        "@vitest/coverage-v8": "^4.1.12",
-        "@vitest/ui": "^4.1.12",
+        "@vitest/coverage-v8": "^5.0.5",
+        "@vitest/ui": "^5.0.5",
         "better-sqlite3": "^13.0.3",
         "lcov-parse": "^1.0.0",
         "mariadb": "^3.5.4",
-        "monocart-coverage-reports": "^2.13.2",
+        "monocart-coverage-reports": "^3.0.0",
         "mssql": "^12.7.11",
         "mysql2": "^3.24.6",
         "oracledb": "^26.0.0",
@@ -341,8 +341,8 @@
         "typescript": "^7.0.2",
         "typescript6": "npm:typescript@^6.0.3",
         "uuid": "^14.0.3",
-        "vitest": "^4.1.12",
-        "vitest-monocart-coverage": "^4.0.2"
+        "vitest": "^5.0.5",
+        "vitest-monocart-coverage": "^5.0.0"
     },
     "engines": {
         "node": ">=22"

@@ -74,7 +74,14 @@ run_phase() {
         # invocations too — not just to runs that go through us. The CLI
         # `--testTimeout` wins over the config value, so passing it here
         # makes --timeout authoritative (and is a no-op at the default).
-        vitest run $serial_flag --testTimeout="$tmo" "$@"
+        #
+        # The main vitest process collects every file's results; on the
+        # full matrix (~22.5k files) it sits right at V8's ~4 GB default
+        # old-space and dies with "FATAL … heap out of memory" (or crawls
+        # in GC just under it). The flag is passed to the main process
+        # only — forks don't inherit it, so the per-worker ceiling (and
+        # the CI shards' RAM budget) is unchanged.
+        node --max-old-space-size="${VITEST_MAIN_HEAP_MB:-8192}" "$(command -v vitest)" run $serial_flag --testTimeout="$tmo" "$@"
         ec=$?
     fi
     return $ec

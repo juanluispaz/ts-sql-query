@@ -250,7 +250,7 @@ cells simply do not exist.
 > [`CLI.md` § One heavy job at a time](./CLI.md#one-heavy-job-at-a-time).
 
 ```bash
-# Daily mocked loop, ~10 s under bun (--no-isolate) / ~74 s under vitest (isolate:false).
+# Daily mocked loop, ~10 s under bun (--no-isolate) / ~48 s under vitest (isolate:false).
 bun run tests            # or `npm run tests` for the same matrix under vitest
 
 # One cell, fastest possible iteration.

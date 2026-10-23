@@ -78,7 +78,7 @@ database has to satisfy see [`PER_DATABASE_LAYOUT.md`](./PER_DATABASE_LAYOUT.md)
    names. The sqlite canonical (`test/db/sqlite/newest/bun_sqlite/`) is the
    cheapest source.
 
-7. **Bake snapshots**: `npm run tests -- test/db/<database> --update-snapshots`.
+7. **Bake snapshots**: `bun run tests test/db/<database> --update-snapshots`.
 
 8. **Triage compile errors** against the catalogue in
    [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md) — most dialect
@@ -89,18 +89,18 @@ database has to satisfy see [`PER_DATABASE_LAYOUT.md`](./PER_DATABASE_LAYOUT.md)
    [`DESIGN.md` § Full-canonical-body discipline](./DESIGN.md#full-canonical-body).
    To browse the existing caveat shape across the matrix (the wrap
    header conventions you'll mirror), use
-   `npm run tests:where-is -- --search <api> --cell-caveats summary` for
+   `bun run tests:where-is --search <api> --cell-caveats summary` for
    the per-cell map, or `--coord '<sibling-db>'` to raise it to the
    markers themselves in that db's cells.
 
 9. **Run the validations**:
 
    ```bash
-   npm run tests:audit          -- # symmetry ✓
-   npm run validate:tests:newest        # fast typecheck — single tsgo program over the newest cells (~6 GB RAM)
-   npm run validate:tests               # authoritative typecheck — CI gates this (tsgo, one program per connector, ~7 GB peak)
-   npm run tests                -- # no docker, fast sanity check
-   npm run tests -- --docker --wasm  # full real matrix (Docker required)
+   bun run tests:audit          -- # symmetry ✓
+   bun run validate:tests:newest        # fast typecheck — single tsgo program over the newest cells (~6 GB RAM)
+   bun run validate:tests               # authoritative typecheck — CI gates this (tsgo, one program per connector, ~7 GB peak)
+   bun run tests                -- # no docker, fast sanity check
+   bun run tests --docker --wasm  # full real matrix (Docker required)
    ```
 
 10. **Re-run with `npm run`** to exercise the vitest path — same script
@@ -164,7 +164,7 @@ A new `<compatibilityVersion>` folder under an existing database:
    superset; copying from there and then commenting out anything not
    typed at this older version usually works). To see which APIs are
    gated by `compatibilityVersion` and at which breakpoints, use
-   `npm run tests:where-is -- --search <api> --for version-work` — the
+   `bun run tests:where-is --search <api> --for version-work` — the
    preset bundles `version-gates full · tests summary · bugs ·
    limitation · chain none`, so a single call shows the breakpoints
    that apply to the method, the existing coverage per db, and any
@@ -175,7 +175,7 @@ A new `<compatibilityVersion>` folder under an existing database:
 
 5. **Bake snapshots** — the SqlBuilder branches on `compatibilityVersion`,
    so each cell emits its own SQL. The snapshot recipe is the same:
-   `npm run tests -- test/db/<db>/<new-version> --update-snapshots`.
+   `bun run tests test/db/<db>/<new-version> --update-snapshots`.
 
 6. **Triage compile errors** as for a new connector.
 

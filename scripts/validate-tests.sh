@@ -29,7 +29,7 @@
 # partitioned. Per-connector cells are independent .test.ts files with no
 # type dependency between connectors, so partitioning them is sound.
 #
-# COORDINATES. With no argument this is `npm run validate:tests`, the
+# COORDINATES. With no argument this is `bun run validate:tests`, the
 # authoritative test-scope typecheck CI/release gates on: every connector of
 # every database. With one or more <coord> positionals it narrows to the cells
 # they select, using the SAME coordinate vocabulary as the `tests` CLI
@@ -45,7 +45,7 @@
 # between an inner loop and a wait.
 #
 # tsgo is a standalone binary (runtime-agnostic), so this script is the
-# same whether invoked by `npm run validate:tests` or `bun run
+# same whether invoked by `bun run validate:tests` or `bun run
 # validate:tests`; the package manager puts node_modules/.bin on PATH.
 
 set -e
@@ -74,7 +74,7 @@ validate:tests — type-check the test/ matrix with tsgo (one program per connec
     validate:tests mariadb/newest/mariadb mysql/newest/mysql2
 
   Under npm the coords ride behind the `--` separator:
-    npm run validate:tests -- postgres/newest/pg
+    bun run validate:tests postgres/newest/pg
 USAGE
 }
 

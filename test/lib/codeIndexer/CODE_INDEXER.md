@@ -559,13 +559,13 @@ wire it into the `openIndexDb` dispatcher. Everything above `db.ts` is backend-a
   `test/tsconfig.json`), shared by every extractor — no per-file `createSourceFile`, no
   in-memory slicing. The classic `typescript` package (not tsgo, which has no programmatic
   API yet). `src/examples/prisma/` is excluded.
-- Typecheck edits with `npm run validate:tests` (tsgo).
+- Typecheck edits with `bun run validate:tests` (tsgo).
 
 ## Notes
 
 - The `.sqlite` is a **disposable derived artifact** — gitignored; don't commit it.
 - Rebuild after `src/`, `test/` or `docs/` change. If `docs/` changed, regenerate the
-  doc-code cells first (`npm run codegen:doc-code`) so the documentation dimension is
+  doc-code cells first (`bun run codegen:doc-code`) so the documentation dimension is
   current.
 - It uses the classic `typescript` package (not tsgo, which has no programmatic API yet).
   Unlike a pure-parse pass, it builds a real type-checked Program over the whole tree, so

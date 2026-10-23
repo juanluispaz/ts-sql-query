@@ -76,7 +76,7 @@ bug — it is an entry in this file, or a user configuration mistake.
 ## Finding the affected tests
 
 ```bash
-npm run tests:where-is -- --search <api> --not-supported full
+bun run tests:where-is --search <api> --not-supported full
 ```
 
 lists every `// NOT-SUPPORTED` that **names the API** across the matrix,

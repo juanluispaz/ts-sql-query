@@ -48,18 +48,19 @@ in explicit `--docker-mode` flags:
 `TESTCONTAINERS_REUSE_ENABLE=true`. `--docker-mode no-reuse` clears it, giving
 the hermetic behaviour CI wants:
 
-Run `--docker` under **vitest** (`npm run tests -- …`) — it's ~20× faster on
-the real-DB matrix than bun, which rebuilds each cell's pool per file (see
+Run `--docker` under **bun** (`bun run tests …`) — with `--parallel --no-isolate`
+it builds each cell's pool once per worker, is the fastest runtime on the real-DB
+matrix and the only one that runs the Bun SQL cells real (see
 [`BENCHMARKS.md`](./BENCHMARKS.md)). The container lifecycle below is identical
 under both runtimes.
 
 ```bash
 # Local iterative loop (default — reuse).
-npm run tests -- --docker
-npm run tests -- postgres/newest/pg --docker
+bun run tests --docker
+bun run tests postgres/newest/pg --docker
 
 # Hermetic — fresh containers every run.
-npm run tests -- --docker --docker-mode no-reuse
+bun run tests --docker --docker-mode no-reuse
 ```
 
 **Rule of thumb: locally, leave the default.** The hermetic mode is for the
@@ -148,7 +149,7 @@ versions transparently fall back to the mock for that run.
 
 ```bash
 # Real backends only on `newest`; older versions go through the mock.
-npm run tests -- --docker newest
+bun run tests --docker newest
 ```
 
 Same shape as `--wasm` (a narrower scope than the full matrix), different
@@ -193,7 +194,7 @@ only ever runs on postgres 18.
 runs on a real engine of that version:
 
 ```bash
-npm run tests -- postgres/oldest/pg --docker --docker-version closest
+bun run tests postgres/oldest/pg --docker --docker-version closest
 # → postgres/oldest/pg runs on a real postgres:17-alpine (not 18)
 ```
 
@@ -242,7 +243,7 @@ different repo/tag. If it is a **new repository** not already matched, add its
 prefix to [`tests-stop-containers.sh`](../scripts/tests-stop-containers.sh) (the
 existing `postgres:` / `mysql:` / `mariadb` / `mcr.microsoft.com/mssql/server` /
 `gvenzl/oracle-xe` prefixes already cover their older tags). Then verify with
-`npm run tests -- <db>/<version>/<connector> --docker --docker-version closest`;
+`bun run tests <db>/<version>/<connector> --docker --docker-version closest`;
 the runner logs `[docker-version] <db>: using <image>` when the container starts.
 
 ### Narrow by design (memory)
@@ -431,7 +432,7 @@ imported. The cell falls back to the mock for its real-DB branch.
 
 There is **no obligation** to stop the reused containers between runs — that
 is the whole point. They consume some RAM in the background while you
-iterate, and the next `npm run tests -- --docker` (or `tests <coord> --docker`)
+iterate, and the next `bun run tests --docker` (or `tests <coord> --docker`)
 invocation attaches to them in ~1 s instead of paying the full container
 start-up. Agents in particular should not bother calling `tests:stop-containers`
 as a clean-up step.
@@ -442,10 +443,10 @@ from scratch after editing a `test/db/<database>/domain/schema.sql` that
 changes column types in ways the reused container hasn't yet picked up:
 
 ```bash
-npm run tests:stop-containers
+bun run tests:stop-containers
 ```
 
-(`npm run tests:stop-containers` works the same — it's the same shell script
+(`bun run tests:stop-containers` works the same — it's the same shell script
 under the hood.)
 
 The helper matches by image, so it only touches containers from this project —

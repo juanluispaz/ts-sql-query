@@ -147,7 +147,7 @@ catastrophic) and gets `--max-old-space-size=8192` on node.
 > hold ~7.2 GB at rest (SQL Server ~3.1, Oracle ~2.6, MySQL ~0.8, MariaDB ~0.36,
 > PostgreSQL ~0.32) inside a Docker VM provisioned ~11.7 GB of host RAM — and
 > `--docker-mode reuse` (the default) keeps them up BETWEEN runs, so they compete
-> with a later `tsgo` too. `npm run tests:stop-containers` releases them.
+> with a later `tsgo` too. `bun run tests:stop-containers` releases them.
 >
 > Full rule: [`CLI.md` § One heavy job at a time](./CLI.md#one-heavy-job-at-a-time).
 
@@ -169,7 +169,7 @@ pipeline stays on npm/Node.
   `npm run tests -- --run-connectors native` for the node-only embedded cells
   (`better-sqlite3`, `node_sqlite` and their `-sync` twins), which bun mocks.
 - **WASM-touching changes**: `bun run tests --run-connectors wasm --wasm`.
-- **No-docker CI (memory-bounded)**: `npm run tests -- --shard` runs the four CI
+- **No-docker CI (memory-bounded)**: `bun run tests --shard` runs the four CI
   shards in sequence; peak = biggest shard, not the sum. See
   [`CLI.md` § Sharding](./CLI.md#sharding).
 
@@ -181,7 +181,7 @@ two in parallel — same machine skews both):
 bun run tests --docker --wasm
 /usr/bin/time -p bun run tests --docker --wasm          # "real" = wall
 /usr/bin/time -p npm run tests -- --docker --wasm       # the vitest column
-npm run tests:stop-containers                           # tear the engines down after
+bun run tests:stop-containers                           # tear the engines down after
 ```
 
 Needs enough Docker VM disk for all five engines up at once (oracle + mssql are

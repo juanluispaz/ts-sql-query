@@ -64,7 +64,7 @@ function main(): number {
     if (cells.length === 0) {
         console.error('Error: --docker-version closest needs at least one real docker cell.')
         console.error('  Add --docker (optionally with a coord) so a docker cell runs real, e.g.:')
-        console.error('    npm run tests -- postgres/oldest/pg --docker --docker-version closest')
+        console.error('    bun run tests postgres/oldest/pg --docker --docker-version closest')
         return 2
     }
 

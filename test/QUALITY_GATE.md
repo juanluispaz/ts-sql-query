@@ -76,11 +76,11 @@ The sub-agent also produces an **EXTERNAL_CAVEATS sweep** — a list of
 The propagation step applies these mechanically — see
 [`COVERAGE_RUNBOOK.md` § Propagation](./COVERAGE_RUNBOOK.md#propagation).
 Cross-check the cell list the sub-agent returns against
-`npm run tests -- <wave-coord-glob> --list-cells` to confirm the wraps land
+`bun run tests <wave-coord-glob> --list-cells` to confirm the wraps land
 on exactly the cells the propagation will touch — no manual `find` over
 `test/db/`. To verify the wrap **shape** (the reason-header convention
 the new wraps must mirror), run
-`npm run tests:where-is -- --search <api> --cell-caveats full --coord '<target-cells>'`
+`bun run tests:where-is --search <api> --cell-caveats full --coord '<target-cells>'`
 — it lists the existing markers in those cells, line by line.
 
 **If the sub-agent flags an issue the writing agent disagrees with**:

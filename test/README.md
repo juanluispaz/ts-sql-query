@@ -245,7 +245,7 @@ cells simply do not exist.
 > OOM-killed (`EXIT=137`) and the survivor reports bogus contention
 > timeouts. **The engines count too**: under `--docker` the containers hold
 > ~7.2 GB at rest inside a Docker VM provisioned ~11.7 GB, and container
-> reuse keeps them up BETWEEN runs — `npm run tests:stop-containers` frees
+> reuse keeps them up BETWEEN runs — `bun run tests:stop-containers` frees
 > them before a heavy non-docker job. Wait for each to finish. See
 > [`CLI.md` § One heavy job at a time](./CLI.md#one-heavy-job-at-a-time).
 
@@ -264,17 +264,17 @@ bun run tests postgres/newest/pg --docker --bail
 bun run tests postgres/oldest/pglite --wasm
 
 # Update snapshots.
-npm run tests -- postgres/newest/pg --update-snapshots
+bun run tests postgres/newest/pg --update-snapshots
 
 # Enumerate the active cells (sorted, one per line, no test execution).
 # Handy before propagating a wave or scoping a focused run.
-npm run tests -- --list-cells
+bun run tests --list-cells
 
 # Pre-push sanity sweep.
-npm run tests:audit -- && npm run validate:tests && npm run tests
+bun run tests:audit && bun run validate:tests && bun run tests
 
 # Full real matrix (the user's confidence check).
-npm run tests -- --docker --wasm
+bun run tests --docker --wasm
 ```
 
 Full reference: [`CLI.md`](./CLI.md).

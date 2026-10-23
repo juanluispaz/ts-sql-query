@@ -85,13 +85,13 @@ Whenever the library's emitted SQL or params change, refresh snapshots:
 
 ```bash
 # Whole version
-npm run tests -- postgres/newest --docker --update-snapshots
+bun run tests postgres/newest --docker --update-snapshots
 
 # One file
-npm run tests -- postgres/newest/pg/select.basic.test.ts --docker --update-snapshots
+bun run tests postgres/newest/pg/select.basic.test.ts --docker --update-snapshots
 
 # One test inside one file (composes with --test-name-pattern)
-npm run tests -- postgres/newest/pg/select.basic.test.ts --docker \
+bun run tests postgres/newest/pg/select.basic.test.ts --docker \
               --test-name-pattern inner-join --update-snapshots
 ```
 
@@ -118,13 +118,13 @@ run the cell against its real engine:
 
 ```bash
 # SQLite native — real-DB by default, no flag needed:
-npm run tests -- sqlite/newest/bun_sqlite/<file>.test.ts
+bun run tests sqlite/newest/bun_sqlite/<file>.test.ts
 
 # Docker-backed — add --docker:
-npm run tests -- postgres/newest/pg/<file>.test.ts --docker
+bun run tests postgres/newest/pg/<file>.test.ts --docker
 
 # WASM — add --wasm:
-npm run tests -- postgres/oldest/pglite/<file>.test.ts --wasm
+bun run tests postgres/oldest/pglite/<file>.test.ts --wasm
 ```
 
 If snapshots stay green, the test is `real-validated` in that cell. See
@@ -191,7 +191,7 @@ re-validate" loop benefits the most. Full flag reference in
 5. **Bake snapshots** for the canonical:
 
    ```bash
-   npm run tests -- sqlite/newest/bun_sqlite/<slug>.test.ts --update-snapshots
+   bun run tests sqlite/newest/bun_sqlite/<slug>.test.ts --update-snapshots
    ```
 
 6. **Real-validate the canonical** — see
@@ -210,9 +210,9 @@ re-validate" loop benefits the most. Full flag reference in
 9. **Verify**:
 
    ```bash
-   npm run tests:audit  -- # mechanical anti-cheat gate (symmetry + ~24 rules)
-   npm run validate:tests  # typecheck ✓ (tsgo, per-connector split; use validate:tests:newest for the fast loop)
-   npm run tests        -- # mock matrix ✓
+   bun run tests:audit  -- # mechanical anti-cheat gate (symmetry + ~24 rules)
+   bun run validate:tests  # typecheck ✓ (tsgo, per-connector split; use validate:tests:newest for the fast loop)
+   bun run tests        -- # mock matrix ✓
    ```
 
    `tests:audit` walks `test/db/` statically and reports tests that have
@@ -253,7 +253,7 @@ test('postgres-negative-types', () => {
   from firing.
 - Each `// @ts-expect-error` MUST be paired with a one-line comment naming
   the rule it enforces.
-- `npm run validate:tests` (or `validate:tests:newest` for the fast loop)
+- `bun run validate:tests` (or `validate:tests:newest` for the fast loop)
   is the real assertion. If a directive becomes "unused", the build fails —
   exactly the regression signal we want.
 - The `types.negative/` folder is **not** part of the cell matrix and is
@@ -264,7 +264,7 @@ the symbol so the new one is **consistent with what's already there**
 (rule-comment convention, snippet granularity, scope):
 
 ```bash
-npm run tests:where-is -- --search <symbol> --neg-types full
+bun run tests:where-is --search <symbol> --neg-types full
 ```
 
 `--neg-types full` returns each existing assertion's **rule comment +
@@ -275,7 +275,7 @@ negative test is the second step of fixing a typing bug (see
 
 ## Type-checking the test matrix
 
-`npm run validate:tests` runs `bash scripts/validate-tests.sh` — one tsgo
+`bun run validate:tests` runs `bash scripts/validate-tests.sh` — one tsgo
 program **per connector** (the TypeScript 7 Go-based compiler) — and is the
 **authoritative** check for the `test/` matrix. tsgo is the only compiler that
 type-checks tests: tests don't ship, so there's no downstream tsc-compat
@@ -285,11 +285,11 @@ behaviour. CI gates on it.
 > **RAM.** A single tsgo program over `test/tsconfig.json` + `src/` peaks
 > **past 17 GB** as the suite grows, OOM-killing 16 GB CI runners and most dev
 > boxes — so there is no whole-matrix command. Two RAM-safe paths:
-> - **Full check → `npm run validate:tests`** — one tsgo program per connector
+> - **Full check → `bun run validate:tests`** — one tsgo program per connector
 >   (sqlite grew too large to split merely per-db, so every db is split the
 >   same way; configs generated on the fly), so peak = the single largest
 >   slice, not the sum (~7 GB), which is what CI gates. Use it before pushing.
-> - **Inner edit loop → `npm run validate:tests:newest`** — a SINGLE tsgo
+> - **Inner edit loop → `bun run validate:tests:newest`** — a SINGLE tsgo
 >   program (`test/tsconfig.newest.json`) narrowed to every db's `newest` +
 >   `types.negative` cells (drops the older version tiers + `domain/`, mirroring
 >   `--run-versions newest`). It peaks ~6 GB and compiles `src/` once, so it fits
@@ -420,8 +420,8 @@ shared-domain extension.
    (`sqlite/newest/bun_sqlite/`) once, copy to the other cells, re-bake the
    snapshot for `extract-columns-select-all` (it lists the full select
    clause).
-5. **Re-run** `npm run tests:audit -- && npm run validate:tests &&
-   npm run tests` end to end. If the new column has a
+5. **Re-run** `bun run tests:audit && bun run validate:tests &&
+   bun run tests` end to end. If the new column has a
    `CustomBooleanTypeAdapter`, the select snapshot will surface as
    `(<col> = '<true-value>') as <col>` — sanity-check that, the adapter
    mapping was your call.
@@ -657,7 +657,7 @@ behaviour was documented on.
    value with `expect(result).toEqual(expected)`.
 4. **Bake snapshots** in the sqlite cell:
    ```bash
-   npm run tests -- sqlite/newest/bun_sqlite/docs.<slug>.test.ts --update-snapshots
+   bun run tests sqlite/newest/bun_sqlite/docs.<slug>.test.ts --update-snapshots
    ```
 5. **Mirror to every other cell.** For each `(db, version, connector)`
    under `test/db/`, copy the file and re-bake snapshots.
@@ -678,7 +678,7 @@ three different questions in one report — paste the output into the
 entry as the verifiable artifact:
 
 ```bash
-npm run tests:where-is -- --search <api> --bugs summary --limitation summary --not-supported summary --not-applicable summary --declared full
+bun run tests:where-is --search <api> --bugs summary --limitation summary --not-supported summary --not-applicable summary --declared full
 ```
 
 - `--bugs / --limitation / --not-supported / --not-applicable` → if any of
@@ -704,7 +704,7 @@ inventing a new helper or type alias to work around the bug, check
 that the shape doesn't already exist under a different name:
 
 ```bash
-npm run tests:where-is -- --search-pattern-summary '<shared-token>'
+bun run tests:where-is --search-pattern-summary '<shared-token>'
 ```
 
 (Past near-miss: nearly re-introduced `AllowsNoTableOrViewRequired` by

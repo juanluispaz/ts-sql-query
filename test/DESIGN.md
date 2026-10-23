@@ -79,15 +79,15 @@ category and [`BENCHMARKS.md`](./BENCHMARKS.md) for wall-time numbers.
 Promotion from mock-validated to real-validated for a single cell is
 mechanical:
 
-- If the canonical cell is **SQLite native**, `npm run tests -- <cell>` already
+- If the canonical cell is **SQLite native**, `bun run tests <cell>` already
   ran the real engine; the test is real-validated in that cell without any
   extra flag.
 - If the canonical cell is **docker-backed**, run
-  `npm run tests -- <cell> --docker`.
-- If the canonical cell is **WASM**, run `npm run tests -- <cell> --wasm`.
+  `bun run tests <cell> --docker`.
+- If the canonical cell is **WASM**, run `bun run tests <cell> --wasm`.
 
 **Full-matrix real-DB coverage** is a separate discipline — the project
-author runs `npm run tests -- --docker --wasm` over the whole matrix as the
+author runs `bun run tests --docker --wasm` over the whole matrix as the
 final confidence check. An agent finishing a round does **not** need to do
 the full pass; it reports honestly which tests are mock-validated only and
 in which cells the others were promoted to real-validated, so the author
@@ -158,10 +158,10 @@ for how the report should look.
      the test exercises. The test should encode that contract, not invent it.
 
 5. **One test runner execution covers the whole suite.** The agent and CI
-   run `npm run tests -- --docker --wasm` (Bun) or `npm run tests -- --docker --wasm`
+   run `bun run tests --docker --wasm` (Bun) or `bun run tests --docker --wasm`
    (Node + vitest) and get genuine coverage of every
    `(database × version × connector)` cell. Focused runs work via
-   `npm run tests -- <coord>…` or direct invocation.
+   `bun run tests <coord>…` or direct invocation.
 
 6. **Three dimensions, all encoded in the folder layout.**
    `test/db/<database>/<compatibilityVersion>/<connector>/`. The flat layout
@@ -318,7 +318,7 @@ the canonical body as documentation. `test.skip(…)` is fine when a test is
 temporarily broken or under investigation — that is an exceptional
 situation, not the non-applicability case.
 
-The symmetry audit (`npm run tests:audit`) enforces this mechanically over the
+The symmetry audit (`bun run tests:audit`) enforces this mechanically over the
 **whole matrix** (every database × version × connector, not just the cells of one
 database). See [`test/lib/audit/AUDIT.md`](./lib/audit/AUDIT.md). It is reported
 at `error` severity: the cross-database backlog (files/tests not yet mirrored to
@@ -669,7 +669,7 @@ rejects an API your test wants to call, pick the right reason marker
   [`WRITING_TESTS.md` § When a test surfaces a bug in `src/`](./WRITING_TESTS.md#when-a-test-surfaces-a-bug-in-src),
   block-comment the test with `// TODO[BUG]: see test/BUGS.md`, and move on.
 - The API may not exist — verify with
-  `npm run tests:where-is -- --search <name>` before writing the test
+  `bun run tests:where-is --search <name>` before writing the test
   (see [`CODE_SEARCH.md` § When the symbol is not found](./CODE_SEARCH.md#when-the-symbol-is-not-found)).
 
 ## Public surface only

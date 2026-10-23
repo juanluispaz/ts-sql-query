@@ -94,7 +94,7 @@ them — pattern-matching the symptom to a shape is the fixing agent's
 first move, not the detector's.
 
 **First, locate every declaration site of the symbol** —
-`npm run tests:where-is -- --search <symbol> --declared full` lists ALL
+`bun run tests:where-is --search <symbol> --declared full` lists ALL
 declaration sites. Trust the index over the entry: the files named in
 the open entry are the ones known when it was filed, and they can be
 **incomplete**. (Past miss: an entry on `virtualColumnFromFragment`
@@ -105,7 +105,7 @@ and a fix that grepped only the two listed files would have left
 Then gather the context appropriate to the bug's shape:
 
 - **SQL-emission bug** (the lib emits SQL the engine rejects, or the
-  emitted SQL is wrong) — `npm run tests:where-is -- --search <symbol> --for emission-bug`
+  emitted SQL is wrong) — `bun run tests:where-is --search <symbol> --for emission-bug`
   bundles `emitted-sql full · implemented-by full (non-overriders) ·
   version-gates · bugs full · limitation · not-applicable · chain
   none`: the SQL the symbol emits across tests and docs, every
@@ -118,7 +118,7 @@ Then gather the context appropriate to the bug's shape:
   to the builder code instead.
 - **Type-system bug** (overload selection, variance, assignability —
   the symbol's typing rejects or accepts something it shouldn't) —
-  `npm run tests:where-is -- --search <symbol> --for type-bug` bundles
+  `bun run tests:where-is --search <symbol> --for type-bug` bundles
   `declared full · signature full · ref-type-arg full · neg-types
   full · bugs summary · limitation summary · not-applicable summary ·
   chain none`: every declaration + signature, every place the type is
@@ -166,7 +166,7 @@ When the fix lands:
 1. Patch `src/` and add the negative-type test (where applicable).
 2. Remove the corresponding entry from the open list above.
 3. **Walk every place that reflected the old behaviour**:
-   `npm run tests:where-is -- --search <symbol> --for post-fix-sync` bundles
+   `bun run tests:where-is --search <symbol> --for post-fix-sync` bundles
    `emitted-sql full · docs full · examples full · tests detail · bugs
    · chain none` — every asserted SQL across tests and docs, the doc
    pages that explain it, the legacy `src/examples/` occurrences,

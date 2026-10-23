@@ -160,7 +160,7 @@ decision rule](./LIMITATIONS.md#the-decision-rule) for the comparison):
    `// NOT-SUPPORTED: see ENGINE_SUPPORT.md — <one-line>`.)
 3. The lib has a bug — open an entry in [`BUGS.md`](./BUGS.md), block-comment
    the test with the canonical body and `// TODO[BUG]: see test/BUGS.md`.
-4. The API doesn't exist — verify with `npm run tests:where-is -- --search <name>`
+4. The API doesn't exist — verify with `bun run tests:where-is --search <name>`
    (see [`CODE_SEARCH.md` § When the symbol is not found](./CODE_SEARCH.md#when-the-symbol-is-not-found))
    before proposing the test.
 
@@ -214,7 +214,7 @@ compile" with an `as any` cast (see antipattern #4).
 **Remedy**: before proposing any wave, run
 
 ```bash
-npm run tests:where-is -- --search <api-symbol>
+bun run tests:where-is --search <api-symbol>
 ```
 
 The `Classification` block answers existence directly — `public` /

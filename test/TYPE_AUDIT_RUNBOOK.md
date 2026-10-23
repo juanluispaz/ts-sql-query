@@ -122,7 +122,7 @@ surface list in **this** file is a snapshot.
 
 **Pre-flight at session start:**
 
-1. `npm run tests:audit` — the authoritative per-database cell/test counts for
+1. `bun run tests:audit` — the authoritative per-database cell/test counts for
    today's matrix. Reference cell is still `postgres/newest/pg/` unless this
    prints otherwise.
 2. `npm run tests:index` — the semantic index, for coverage-checking
@@ -377,7 +377,7 @@ Reference cell `postgres/newest/pg/` (PostgreSQL is the superset dialect). The
 matrix is **symmetric**: a gap in the reference cell is a gap everywhere, so
 the audit reasons about the reference cell and the generation step propagates.
 A *cell* is `test/db/<db>/<version>/<connector>` (enumerate them with
-`npm run tests -- --list-cells`); the symmetry rule (see [`DESIGN.md`](./DESIGN.md))
+`bun run tests --list-cells`); the symmetry rule (see [`DESIGN.md`](./DESIGN.md))
 keeps the same file and test names in every cell, which is why reference-cell
 reasoning carries to the whole matrix and why a §B fixture added to the shared
 `domain/connection.ts` reaches every cell at once.
@@ -603,7 +603,7 @@ fires). The coordinator is the adjudicator.
      `assertType<Exact<typeof x, …>>()`; to disambiguate which of two rules /
      overloads fires, write *both* hypotheses as separate `assertType` lines and
      see which errors.
-   - `npm run validate:tests:newest 2>&1 | grep <reprofile>` — no error means the
+   - `bun run validate:tests:newest 2>&1 | grep <reprofile>` — no error means the
      chain typechecks and the asserted type holds; an error reveals the actual.
      (`validate:tests:newest` runs **tsgo** in a single program over just the newest cells —
      ~6 GB/fast, and your repro lives in a `newest` cell; the full `validate:tests` splits
@@ -648,7 +648,7 @@ fires). The coordinator is the adjudicator.
      `ctx.mockNext([...])`, `await …execute*()`, then `console.log(ctx.lastSql)`
      (emission diff) **or** wrap in `try/catch` and log `e.message` /
      `e.errorReason?.reason` (throw).
-   - `npm run tests -- 'postgres/newest/pg/<probe>.test.ts' --no-color` and read the
+   - `bun run tests 'postgres/newest/pg/<probe>.test.ts' --no-color` and read the
      logged SQL / throw. **Always include the WORKING sibling as a control in the
      same probe** (the non-recursive / non-shaped / plain form): the bug is proven by
      the *diff* between the composed cell and its working twin, not by the composed
@@ -679,7 +679,7 @@ fires). The coordinator is the adjudicator.
      whether the engine REJECTS the SQL (an escape that never matches, a placeholder the engine
      rejects, a per-driver marshalling). A snapshot proves the emitted *token*, never that the
      query *behaves* correctly — those surface only on a real DB. Confirm with a `--docker` probe:
-     - `npm run tests -- --docker <db>/<version>/<connector> --test-name-pattern <name>` —
+     - `bun run tests --docker <db>/<version>/<connector> --test-name-pattern <name>` —
        **`--docker` does NOT accept a 4th-level `<file>` coord**; give it the CELL coord plus a
        `--test-name-pattern` that selects your probe test.
      - Vitest **swallows `console.log`/`console.error`** under the runner, so a logged value never
@@ -1212,12 +1212,13 @@ or does the composition remove/replace it?**
 
 ## Operational rules
 
-- **Use `npm run …` for everything** — `validate:tests` / `validate:tests:newest`, `tests:where-is`,
-  `tests:index`, and the matrix itself. One consistent runtime avoids confusing
-  the agent; for the compiler/searcher helpers the launcher is a no-op (same tsgo,
-  same index), and for the matrix vitest (`isolate:false`) is faster incl. ~20× on
-  `--docker` (see [`BENCHMARKS.md`](./BENCHMARKS.md)). Reach for `bun` only for the
-  bun-native connector cells.
+- **Use `bun run …` for everything** — `validate:tests` / `validate:tests:newest`, `tests:where-is`,
+  and the matrix itself. One consistent runtime avoids confusing the agent; for the
+  compiler/searcher helpers the launcher is a no-op (same tsgo, same index), and for
+  the matrix bun (`--parallel --no-isolate`) is the fastest (see
+  [`BENCHMARKS.md`](./BENCHMARKS.md)). Two exceptions run under npm/node:
+  `npm run tests:index*` (node builds the index ~2.4× faster) and
+  `npm run tests -- --run-connectors native` for the node-only SQLite cells.
 - **Agents are READ-ONLY.** The working tree must end the session clean — only
   the new `MISSING_TESTS_AUDIT_<N>.md` (plus any pre-existing untracked files)
   should appear in `git status`. Delete every compile-repro you wrote.

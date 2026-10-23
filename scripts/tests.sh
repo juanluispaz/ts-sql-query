@@ -288,7 +288,7 @@ Runner flags
                   engine are separate containers that must not all start at
                   once. Two version folders that map to the SAME image are fine
                   (one container). Run one image per engine per invocation:
-                    npm run tests -- postgres/oldest/pg --docker --docker-version closest
+                    bun run tests postgres/oldest/pg --docker --docker-version closest
   --use-vitest
         Force vitest even if invoked via `bun run`. The test process
         runs under Node; vitest's richer V8 coverage and full
@@ -369,9 +369,9 @@ Narrowing flags (runtime-agnostic — translated for you)
         vitest's `--testNamePattern`. Canonical "fix one test's
         snapshot" recipe (same flags under bun and npm — npm just adds
         its single `--` before the script flags):
-          npm run tests -- postgres/newest/pg/select.basic.test.ts \
+          bun run tests postgres/newest/pg/select.basic.test.ts \
                         --test-name-pattern inner-join --update-snapshots
-          npm run tests -- postgres/newest/pg/select.basic.test.ts \
+          bun run tests postgres/newest/pg/select.basic.test.ts \
                            --test-name-pattern inner-join --update-snapshots
   --bail [<N>]
         Stop the run after N test failures (default 1 when no count is
@@ -515,44 +515,44 @@ Pass-through args
   flags through npm run.)
 
 Examples
-  npm run tests                                            -- # fast loop
-  npm run tests -- --docker                                   # + docker
-  npm run tests -- --docker --wasm                            # full matrix
-  npm run tests -- --run-versions newest                             # skip oldest cells
-  npm run tests -- --coverage --run-versions newest --open           # shorter coverage
-  npm run tests -- --run-connectors wasm --wasm                  # only WASM cells (real)
-  npm run tests -- --run-connectors docker --docker              # only docker-backed cells
-  npm run tests -- --run-connectors native                       # only embedded SQLite
-  npm run tests -- postgres/newest/pg                         # focused: one cell
-  npm run tests -- postgres/newest/pg --test-name-pattern inner-join
+  bun run tests                                            -- # fast loop
+  bun run tests --docker                                   # + docker
+  bun run tests --docker --wasm                            # full matrix
+  bun run tests --run-versions newest                             # skip oldest cells
+  bun run tests --coverage --run-versions newest --open           # shorter coverage
+  bun run tests --run-connectors wasm --wasm                  # only WASM cells (real)
+  bun run tests --run-connectors docker --docker              # only docker-backed cells
+  bun run tests --run-connectors native                          # only embedded SQLite
+  bun run tests postgres/newest/pg                         # focused: one cell
+  bun run tests postgres/newest/pg --test-name-pattern inner-join
                                                            # focused: one cell + test-name regex
-  npm run tests -- postgres/newest/pg/select.basic.test.ts \
+  bun run tests postgres/newest/pg/select.basic.test.ts \
                 --test-name-pattern inner-join --update-snapshots
                                                            # refresh one test's snapshot
-  npm run tests -- postgres/newest/pg --docker --bail         # stop at first failure
-  npm run tests -- --list-cells                               # enumerate active cells, no run
-  npm run tests -- postgres --run-versions newest --list-cells       # cells a propagation would touch
-  npm run tests -- postgres/newest/pg --list-files            # enumerate test files (filesystem)
-  npm run tests -- postgres/newest/pg --list-tests            # enumerate test names (vitest-backed)
-  npm run tests -- --docker --list-cells-with-mode            # which cells run real vs mock
-  npm run tests -- --docker --wasm --list-cells-with-mode real # only the cells that go real
-  npm run tests -- --docker --validation-summary              # run + real/mock breakdown at the end
-  npm run tests -- 'postgres/*/pg' --docker                   # focused: glob
-  npm run tests -- 'postgres/*/{pg,postgres}' --docker --run-versions newest
+  bun run tests postgres/newest/pg --docker --bail         # stop at first failure
+  bun run tests --list-cells                               # enumerate active cells, no run
+  bun run tests postgres --run-versions newest --list-cells       # cells a propagation would touch
+  bun run tests postgres/newest/pg --list-files            # enumerate test files (filesystem)
+  bun run tests postgres/newest/pg --list-tests            # enumerate test names (vitest-backed)
+  bun run tests --docker --list-cells-with-mode            # which cells run real vs mock
+  bun run tests --docker --wasm --list-cells-with-mode real # only the cells that go real
+  bun run tests --docker --validation-summary              # run + real/mock breakdown at the end
+  bun run tests 'postgres/*/pg' --docker                   # focused: glob
+  bun run tests 'postgres/*/{pg,postgres}' --docker --run-versions newest
                                                            # focused: glob + brace + scope
-  npm run tests -- --report                                   # bun → junit.xml
-  npm run tests -- --coverage --coverage-format=html --open   # bun coverage html
-  npm run tests -- --use-vitest --report --open               # vitest html SPA
-  npm run tests -- --use-vitest --coverage --open             # vitest coverage html
-  npm run tests -- --use-vitest --report --coverage --open    # both, vite preview
-  npm run tests -- --use-vitest --coverage \
+  bun run tests --report                                   # bun → junit.xml
+  bun run tests --coverage --coverage-format=html --open   # bun coverage html
+  bun run tests --use-vitest --report --open               # vitest html SPA
+  bun run tests --use-vitest --coverage --open             # vitest coverage html
+  bun run tests --use-vitest --report --coverage --open    # both, vite preview
+  bun run tests --use-vitest --coverage \
                 --coverage-format=html --coverage-format=lcov \
                 --coverage-format=json-summary             # multi-format
-  npm run tests -- --use-vitest --ui --coverage --docker      # interactive UI
-  npm run tests -- --use-vitest --report-format=verbose       # verbose test output
-  npm run tests -- --coverage --coverage-format=monocart --open
+  bun run tests --use-vitest --ui --coverage --docker      # interactive UI
+  bun run tests --use-vitest --report-format=verbose       # verbose test output
+  bun run tests --coverage --coverage-format=monocart --open
                                                            # bun → MCR html-spa
-  npm run tests -- --use-vitest --coverage \
+  bun run tests --use-vitest --coverage \
                 --coverage-format=monocart --open          # vitest → MCR v8 SPA
 EOF
 }
@@ -837,7 +837,7 @@ fi
 if [ "$DOCKER_VERSION" = "closest" ]; then
     if [ "$FOCUSED" = "off" ]; then
         echo "Error: --docker-version closest requires focused coords (it is not for full-matrix runs)." >&2
-        echo "  e.g. npm run tests -- postgres/oldest/pg --docker --docker-version closest" >&2
+        echo "  e.g. bun run tests postgres/oldest/pg --docker --docker-version closest" >&2
         exit 2
     fi
     assert_closest_docker_ok || exit 2

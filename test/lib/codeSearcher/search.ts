@@ -9,7 +9,7 @@
 //
 // It is a SEPARATE tool from the indexer: it never writes the index, only reads it.
 //
-// Usage:  npm run tests:where-is -- <door> [<section> <level>]… [<filter>]… [--db <path>]
+// Usage:  bun run tests:where-is <door> [<section> <level>]… [<filter>]… [--db <path>]
 //         (or run the file directly: tsx/bun test/lib/codeSearcher/search.ts …).
 
 import { existsSync } from 'node:fs'
@@ -409,7 +409,7 @@ function resolveLocation(db: QueryDb, spec: string, target: 'enclosing' | 'enclo
 // ── pattern modes ────────────────────────────────────────────────────────────
 function runCmd(): string {
     const rt = (process.env['npm_config_user_agent'] ?? '').split('/')[0]
-    return rt === 'npm' ? 'npm run tests:where-is -- ' : 'bun run tests:where-is '
+    return rt === 'npm' ? 'bun run tests:where-is ' : 'bun run tests:where-is '
 }
 function sampleRank(r: { decl_kind: string, abstract: number }): number {
     if (r.decl_kind === 'class') return r.abstract ? 0 : 1

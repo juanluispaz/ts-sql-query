@@ -40,7 +40,7 @@ to `vitest run`. Same entry under either runtime.
 
 **Under `npm run`**, bare `--flag` tokens are consumed by npm itself as
 config (you'll see `npm warn Unknown cli config "--flag"`). Use the `--`
-separator: `npm run tests -- --docker --run-versions newest`. Bun does not have
+separator: `bun run tests --docker --run-versions newest`. Bun does not have
 this problem.
 
 ## One heavy job at a time
@@ -51,13 +51,13 @@ once. The heavy set:
 
 | Job | Peak RSS |
 |---|---|
-| `npm run tests` (whole matrix; `--docker` / `--wasm` on top) | ~15.9 GB |
-| `npm run validate:tests` (per-connector tsgo split) | ~7 GB (largest slice) |
-| `npm run validate:tests -- <coord>` (narrowed to the cells a coord selects) | smaller — one cell is ~3 s |
-| `npm run validate:tests:newest` (single tsgo program) | ~6 GB |
-| `npm run validate` / `validate:tsgo` / `build*` | multi-GB |
-| `npm run tests:audit`, `npm run tests:index*` | multi-GB |
-| `npm run all-examples` / `no-docker-examples` | multi-GB + containers |
+| `bun run tests` (whole matrix; `--docker` / `--wasm` on top) | ~15.9 GB |
+| `bun run validate:tests` (per-connector tsgo split) | ~7 GB (largest slice) |
+| `bun run validate:tests <coord>` (narrowed to the cells a coord selects) | smaller — one cell is ~3 s |
+| `bun run validate:tests:newest` (single tsgo program) | ~6 GB |
+| `bun run validate` / `validate:tsgo` / `build*` | multi-GB |
+| `bun run tests:audit`, `npm run tests:index*` | multi-GB |
+| `bun run all-examples` / `no-docker-examples` | multi-GB + containers |
 
 Any *two* of those exceed the RAM of a 16 GB box, so the OS OOM-killer takes
 one out. Start one, **wait for it to finish, then start the next**.
@@ -90,7 +90,7 @@ not merely thin, it is negative.
 **Container reuse holds that memory between runs.** `--docker-mode reuse` is the
 default, so the engines stay up after the run ends: a `tsgo` started "now that
 no tests are running" still competes with ~7 GB of idle containers. Run
-`npm run tests:stop-containers` before a heavy non-docker job, or when handing
+`bun run tests:stop-containers` before a heavy non-docker job, or when handing
 the machine back — at the cost of a cold start on the next `--docker` run. See
 [`ENGINE_LIFECYCLE.md`](./ENGINE_LIFECYCLE.md).
 
@@ -123,7 +123,7 @@ cells emit the **same** SQL + params snapshots as the matching `<db>/newest/*`
 cell (same SqlBuilder, same expression tree). Re-running them is wasted
 feedback.
 
-**Recommended order while iterating** (prefer `bun run tests …`; `npm run tests
+**Recommended order while iterating** (prefer `bun run tests …`; `bun run tests
 -- …` runs the same matrix under vitest):
 
 1. `tests <coord>` — single cell or file. Tightest loop; use while editing.
@@ -211,10 +211,10 @@ that matches no running cell of that kind warns as a no-op.
 
 ```bash
 # One cell real, everything else mock — cheap regression while fixing a SqlBuilder.
-npm run tests -- --docker postgres/newest/pg
+bun run tests --docker postgres/newest/pg
 
 # Two specific cells real — repeat the flag, don't space-separate.
-npm run tests -- --docker postgres/newest/pg --docker mariadb/newest
+bun run tests --docker postgres/newest/pg --docker mariadb/newest
 ```
 
 **Every test runs in both modes.** With `--docker` off (default), a
@@ -225,41 +225,43 @@ pglite / sqlite-wasm-OO1. Native SQLite is real by default (`--native all`);
 
 ```bash
 # Full matrix, mocked docker/wasm, real native. ~10 s under bun / ~74 s under vitest (~357k tests).
-npm run tests
+bun run tests
 
 # + real docker backends. ~11 min under bun with warm containers (~12 min under vitest).
-npm run tests -- --docker
+bun run tests --docker
 
 # Smoke against real DBs but only on the newest version of each engine.
-npm run tests -- --docker newest
+bun run tests --docker newest
 
 # Skip older-version cells entirely (participation: not run at all).
-npm run tests -- --run-versions newest
+bun run tests --run-versions newest
 
 # Full matrix (docker + real WASM first phase). ~12.5 min under bun (the WASM phase itself ~30 s).
-npm run tests -- --docker --wasm
+bun run tests --docker --wasm
 
 # Only WASM cells run, real WASM module.
-npm run tests -- --run-connectors wasm --wasm
+bun run tests --run-connectors wasm --wasm
 
 # Only docker-backed connectors run, against real containers.
-npm run tests -- --run-connectors docker --docker
+bun run tests --run-connectors docker --docker
 
-# Only the embedded SQLite drivers run (zero-infra, real by default).
-npm run tests -- --run-connectors native
+# Only the embedded SQLite drivers run (zero-infra, real by default). Under bun the
+# node-only drivers (better-sqlite3, node_sqlite) mock; `npm run tests -- --run-connectors native`
+# runs those real.
+bun run tests --run-connectors native
 
 # Bug-fix flow: validate one cell real, everything else cheap mock.
-npm run tests -- --docker postgres/newest/pg
+bun run tests --docker postgres/newest/pg
 
 # Hermetic — fresh containers every run. CI baseline.
-npm run tests -- --docker --docker-mode no-reuse
+bun run tests --docker --docker-mode no-reuse
 
 # Confirm a cell's version-specific SQL on a real engine of that version
 # (postgres/oldest → a real PostgreSQL 17). Focused + one version per engine.
-npm run tests -- postgres/oldest/pg --docker --docker-version closest
+bun run tests postgres/oldest/pg --docker --docker-version closest
 
 # Fully mocked — even native SQLite routed through the mock.
-npm run tests -- --native none
+bun run tests --native none
 ```
 
 ## Sharding
@@ -275,10 +277,10 @@ exits and the peak is the **biggest shard (~8 GB)**, not the sum.
 
 ```bash
 # All four shards in sequence, one invocation (local equivalent of the 4 CI steps).
-npm run tests -- --shard
+bun run tests --shard
 
 # Just one shard — CI runs one step per shard so each gets its own readable log.
-npm run tests -- --shard 1        # or the package alias: npm run test:no-docker:shard -- 1
+bun run tests --shard 1        # or the package alias: bun run test:no-docker:shard 1
 ```
 
 Every test file lands in **exactly one** shard — the partition is complete and
@@ -338,43 +340,43 @@ mock (self-contained), so `--docker`/`--wasm` don't apply to them, but they're
 addressed with the same four-level coords as any other cell:
 
 ```bash
-npm run tests -- '*/newest/documentation'                              # every doc test cell
-npm run tests -- postgres/newest/documentation                        # one db's doc cell
-npm run tests -- general/newest/documentation                         # the non-db (general) docs
-npm run tests -- postgres/newest/documentation/doc-code.generated.test.ts  # one file
+bun run tests '*/newest/documentation'                              # every doc test cell
+bun run tests postgres/newest/documentation                        # one db's doc cell
+bun run tests general/newest/documentation                         # the non-db (general) docs
+bun run tests postgres/newest/documentation/doc-code.generated.test.ts  # one file
 ```
 
 The generated files are gitignored (`*.generated.test.ts`) and produced by
-`npm run codegen:doc-code` from templates at
+`bun run codegen:doc-code` from templates at
 `test/templates/doc-code/newest/documentation/`. Full reference:
 [`DOC_CODE_EXTRACTOR.md`](./DOC_CODE_EXTRACTOR.md).
 
 ```bash
 # Level 4: single test file (the narrowest focus).
-npm run tests -- postgres/newest/pg/select.basic.test.ts
+bun run tests postgres/newest/pg/select.basic.test.ts
 
 # Level 3: one (version × connector) cell.
-npm run tests -- postgres/newest/pg
+bun run tests postgres/newest/pg
 
 # Same cell + real docker (container reused across runs by default).
-npm run tests -- postgres/newest/pg --docker
+bun run tests postgres/newest/pg --docker
 
 # Level 2: whole version, every connector.
-npm run tests -- postgres/oldest --docker
+bun run tests postgres/oldest --docker
 
 # Level 1: whole database, every (version × connector).
-npm run tests -- postgres --docker
+bun run tests postgres --docker
 
 # Refresh this cell's snapshots — first-class flag, same spelling under
 # both runtimes (npm needs its usual single `--` separator for script flags).
-npm run tests -- postgres/newest/pg --docker --update-snapshots
+bun run tests postgres/newest/pg --docker --update-snapshots
 
 # Pass runner-specific flags the script doesn't wrap through after `--`.
 # (`--rerun-each` is a bun-only runner flag, shown under bun; vitest has its own.)
 bun run tests postgres/newest/pg --docker -- --rerun-each 3
 
 # Real WASM on a wasm cell — single pass (no two-phase split here).
-npm run tests -- postgres/oldest/pglite --wasm --mode sequential
+bun run tests postgres/oldest/pglite --wasm --mode sequential
 ```
 
 ## Coord patterns
@@ -385,23 +387,23 @@ handles globs AND braces whether you quote the coord or not.**
 
 ```bash
 # Single connector across every existing version (newest + oldest).
-npm run tests -- 'postgres/*/pg' --docker
-npm run tests -- postgres/*/pg --docker
+bun run tests 'postgres/*/pg' --docker
+bun run tests postgres/*/pg --docker
 
 # Same, with --run-versions newest: the script drops `*/oldest/*` paths
 # from the expansion — only postgres/newest/pg actually runs.
-npm run tests -- 'postgres/*/pg' --docker --run-versions newest
+bun run tests 'postgres/*/pg' --docker --run-versions newest
 
 # Two connectors of one database, every version.
-npm run tests -- 'postgres/*/{pg,postgres}' --docker
-npm run tests -- postgres/*/{pg,postgres} --docker
+bun run tests 'postgres/*/{pg,postgres}' --docker
+bun run tests postgres/*/{pg,postgres} --docker
 
 # Multiple unrelated coords combined in one run.
-npm run tests -- 'postgres/*/pg' sqlite/newest/bun_sqlite \
+bun run tests 'postgres/*/pg' sqlite/newest/bun_sqlite \
                     '{mariadb,mysql}/newest' --docker
 
 # Glob across every database, one file pattern.
-npm run tests -- '*/newest/*/select.basic.test.ts'
+bun run tests '*/newest/*/select.basic.test.ts'
 ```
 
 **Internals**: when a coord contains any of `*`, `?`, `[`, or `{`, the
@@ -423,21 +425,21 @@ script translates it to bun's `--test-name-pattern` or vitest's
 
 ```bash
 # Run only the test(s) whose name matches the regex in this cell
-npm run tests -- postgres/newest/pg --docker --test-name-pattern inner-join
+bun run tests postgres/newest/pg --docker --test-name-pattern inner-join
 
 # File + test-name regex
-npm run tests -- postgres/newest/pg/select.basic.test.ts --docker --test-name-pattern inner-join
+bun run tests postgres/newest/pg/select.basic.test.ts --docker --test-name-pattern inner-join
 
 # File + test-name regex + snapshot refresh — canonical
 # "update one test's snapshot" recipe
-npm run tests -- postgres/newest/pg/select.basic.test.ts --docker \
+bun run tests postgres/newest/pg/select.basic.test.ts --docker \
               --test-name-pattern inner-join --update-snapshots
 
 # Under npm: same first-class flags, same spelling. The only npm-ism is
 # the single `--` separator npm requires for ANY script flag (the same
 # one `--docker` already needs) — there is no SECOND `--` and no
 # runtime-specific runner spelling:
-npm run tests -- postgres/newest/pg/select.basic.test.ts --docker \
+bun run tests postgres/newest/pg/select.basic.test.ts --docker \
                  --test-name-pattern inner-join --update-snapshots
 ```
 
@@ -470,10 +472,10 @@ forward them after `--`:
   transcripts and `grep` / `tail` pipelines free of ANSI escapes.
 
 ```bash
-npm run tests -- postgres/newest/pg --docker --bail          # stop at first failure
-npm run tests -- postgres/newest/pg --docker --bail 3        # stop after 3 failures
-npm run tests -- postgres/newest/pg --docker --timeout 180000 # roomier timeout for a slow cell
-npm run tests -- postgres/newest/pg --no-color 2>&1 | tail   # clean, parseable output
+bun run tests postgres/newest/pg --docker --bail          # stop at first failure
+bun run tests postgres/newest/pg --docker --bail 3        # stop after 3 failures
+bun run tests postgres/newest/pg --docker --timeout 180000 # roomier timeout for a slow cell
+bun run tests postgres/newest/pg --no-color 2>&1 | tail   # clean, parseable output
 ```
 
 <a id="listing-cells"></a>
@@ -495,16 +497,16 @@ the cells a real run would visit.
 
 ```bash
 # Every active cell (matches the cell count tests:audit reports).
-npm run tests -- --list-cells
+bun run tests --list-cells
 
 # The exact set a propagation would touch — verify before copy-baking.
-npm run tests -- 'postgres/*/{pg,postgres}' --run-versions newest --list-cells
+bun run tests 'postgres/*/{pg,postgres}' --run-versions newest --list-cells
 
 # Only one connector type.
-npm run tests -- --run-connectors native --list-cells
+bun run tests --run-connectors native --list-cells
 
 # A single file collapses to its owning cell.
-npm run tests -- sqlite/newest/better-sqlite3/config.uuid-strategy.test.ts --list-cells
+bun run tests sqlite/newest/better-sqlite3/config.uuid-strategy.test.ts --list-cells
 #   → test/db/sqlite/newest/better-sqlite3
 ```
 
@@ -544,10 +546,10 @@ An **optional filter** selects which verdicts to print:
 ```bash
 # Default (running): only the cells that run; docker/wasm cells are mock
 # without their flag, native is always real.
-npm run tests -- 'postgres/*/{pg,pglite}' --list-cells-with-mode
+bun run tests 'postgres/*/{pg,pglite}' --list-cells-with-mode
 
 # all → the whole matrix, each off cell labelled with why it's excluded.
-npm run tests -- postgres/newest --run-connectors docker --docker --list-cells-with-mode all
+bun run tests postgres/newest --run-connectors docker --docker --list-cells-with-mode all
 #   test/db/postgres/newest/pg          real    (docker)
 #   test/db/postgres/newest/pglite      skipped (excluded by --run-connectors docker)
 #   test/db/postgres/oldest/pg          skipped (not selected: outside coords)
@@ -556,10 +558,10 @@ npm run tests -- postgres/newest --run-connectors docker --docker --list-cells-w
 #   -- 3 running cells: 3 real, 0 mock; 14 other cells skipped
 
 # real keeps only the cells that bring up a real engine ("active cases").
-npm run tests -- postgres/newest --docker --wasm --list-cells-with-mode real
+bun run tests postgres/newest --docker --wasm --list-cells-with-mode real
 
 # skipped → only the off cells; here, oldest excluded by --run-versions newest.
-npm run tests -- postgres --run-versions newest --docker --list-cells-with-mode skipped
+bun run tests postgres --run-versions newest --docker --list-cells-with-mode skipped
 ```
 
 A footer tallies the **running** cells (real + mock) and, separately, the
@@ -592,10 +594,10 @@ The per-cell count matches the "N test files per cell" line in
 
 ```bash
 # Every test file in one cell (matches tests:audit's per-cell file count).
-npm run tests -- postgres/newest/pg --list-files
+bun run tests postgres/newest/pg --list-files
 
 # Only the native SQLite connectors.
-npm run tests -- sqlite/newest --run-connectors native --list-files
+bun run tests sqlite/newest --run-connectors native --list-files
 ```
 
 > vitest also offers `vitest list --filesOnly`, but `--list-files` stays a
@@ -624,13 +626,13 @@ the coord / `--run-versions` / `--run-connectors` path filter and `--test-name-p
 
 ```bash
 # Every test name in one cell.
-npm run tests -- postgres/newest/pg --list-tests
+bun run tests postgres/newest/pg --list-tests
 
 # Preview which tests a pattern matches before running with it.
-npm run tests -- postgres/newest/pg --list-tests --test-name-pattern inner-join
+bun run tests postgres/newest/pg --list-tests --test-name-pattern inner-join
 
 # Machine-readable: pass --json through after `--`.
-npm run tests -- sqlite/newest --run-connectors native --list-tests -- --json
+bun run tests sqlite/newest --run-connectors native --list-tests -- --json
 ```
 
 `--list-cells`, `--list-cells-with-mode`, `--list-files` and `--list-tests`
@@ -651,10 +653,10 @@ a coverage round reports when it closes (see
 
 ```bash
 # Full matrix + the breakdown of what actually hit a real engine.
-npm run tests -- --docker --validation-summary
+bun run tests --docker --validation-summary
 
 # Only the real cells, for one database.
-npm run tests -- postgres/newest --docker --wasm --validation-summary real
+bun run tests postgres/newest --docker --wasm --validation-summary real
 ```
 
 It takes the same optional filter as `--list-cells-with-mode`
@@ -670,20 +672,20 @@ Pass `--coverage` to any of the test CLIs; output lands under
 
 ```bash
 # Whole matrix, mock-only, parallel — fastest coverage pass.
-npm run tests -- --coverage
+bun run tests --coverage
 
 # Full real coverage (docker + WASM). Sequential because --wasm +
 # parallel + coverage is forbidden — see "Forbidden combinations" below.
-npm run tests -- --coverage --docker --wasm --mode sequential
+bun run tests --coverage --docker --wasm --mode sequential
 
 # One cell.
-npm run tests -- postgres/newest/pg --coverage
+bun run tests postgres/newest/pg --coverage
 
 # Just the WASM cells.
-npm run tests -- --run-connectors wasm --wasm --coverage
+bun run tests --run-connectors wasm --wasm --coverage
 
 # Under npm/vitest, prefix flags with `--`:
-npm run tests -- --coverage
+bun run tests --coverage
 ```
 
 ### Memory: keep `--report` off a full-matrix coverage run

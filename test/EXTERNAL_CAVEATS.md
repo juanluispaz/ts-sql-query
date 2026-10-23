@@ -72,7 +72,7 @@ Most entries below are dialect boundaries → `// NOT-APPLICABLE: …`. To
 browse the caveat map mechanically:
 
 ```bash
-npm run tests:where-is -- --search <any-api> --cell-caveats summary
+bun run tests:where-is --search <any-api> --cell-caveats summary
 ```
 
 returns the per-cell **map** of every reason marker
@@ -241,13 +241,13 @@ When any of these are added to the main matrix:
    `DESIGN.md §8`.
 2. Copy every `docs.*.test.ts` from a sibling cell (sqlite canonical
    is the cheapest source).
-3. Run `npm run tests -- <db>/<version>/<connector> --update-snapshots`
+3. Run `bun run tests <db>/<version>/<connector> --update-snapshots`
    to bake per-cell SQL.
 4. Triage compile errors → comment out the offending tests with the
    one-line reason. Cross-reference the dialect notes above so you
    don't re-discover constraints already characterised in another
    cell of the same database.
-5. Run `npm run tests:audit` and `npm run validate:tests` before
+5. Run `bun run tests:audit` and `bun run validate:tests` before
    merging (tsgo, one program per connector; a single whole-matrix program
    OOMs, >17 GB).
 

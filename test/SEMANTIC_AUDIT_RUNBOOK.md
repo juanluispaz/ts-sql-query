@@ -151,7 +151,7 @@ disagreement *is* the finding. Every time:
   millisecond values came back one early.
 
 ```bash
-npm run tests:where-is -- --search _getSeconds --for emission-bug
+bun run tests:where-is --search _getSeconds --for emission-bug
 for f in AbstractSqlBuilder PostgreSqlSqlBuilder AbstractMySqlMariaBDSqlBuilder \
          OracleSqlBuilder SqlServerSqlBuilder SqliteSqlBuilder; do
   echo "── $f"; awk '/_theMethod\(params/,/^    }$/' src/sqlBuilders/$f.ts
@@ -278,7 +278,7 @@ The prompt template that worked:
 > Repo: … Read CLAUDE.md and test/SEMANTIC_AUDIT_RUNBOOK.md first.
 > READ-ONLY. Do NOT edit. Do NOT run tsgo / the matrix / tests:audit / docker /
 > tests:index — the coordinator owns those. You MAY read, grep, and run
-> `npm run tests:where-is -- …`.
+> `bun run tests:where-is …`.
 > CONTEXT: <the lens, with 2 concrete examples of what it found before>
 > YOUR TASK: <the one surface>. For each candidate report file:line, the emitted
 > SQL, which engines it would hurt, and the concrete user-visible consequence.

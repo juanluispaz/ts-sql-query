@@ -656,13 +656,26 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         // reported 124. The sub-millisecond part is truncated, not rounded, everywhere else.
         return 'floor(microsecond(' + this._appendSql(valueSource, params, false) + ') / 1000)'
     }
+    /**
+     * MySQL / MariaDB read a backslash inside a string literal as an escape character
+     * (unless `NO_BACKSLASH_ESCAPES` is set), so besides doubling `'` the backslash is
+     * doubled too; otherwise a value ending in `\` would escape the closing quote. With
+     * `NO_BACKSLASH_ESCAPES` a backslash in the value comes out doubled, never unescaped.
+     */
+    override _appendUnsafeLiteralValue(value: string, _params: any[]): string {
+        return "'" + value.replace(/\\/g, '\\\\').replace(/'/g, "''") + "'"
+    }
+    // GROUP_CONCAT only accepts a literal as SEPARATOR: a placeholder there is refused by a
+    // server-side prepared statement (it only worked when the driver interpolated the
+    // values on the client). The separator comes from a runtime API argument, so it is
+    // inlined through `_appendUnsafeLiteralValue`.
     override _stringConcat(params: any[], separator: string | undefined, value: any): string {
         if (separator === undefined || separator === null) {
             return 'group_concat(' + this._appendSql(value, params, false) + ')'
         } else if (separator === '') {
             return 'group_concat(' + this._appendSql(value, params, false) + " separator '')"
         } else {
-            return 'group_concat(' + this._appendSql(value, params, false) + ' separator ' + this._appendValue(separator, params, 'string', 'string', undefined, false) + ')'
+            return 'group_concat(' + this._appendSql(value, params, false) + ' separator ' + this._appendUnsafeLiteralValue(separator, params) + ')'
         }
     }
     override _stringConcatDistinct(params: any[], separator: string | undefined, value: any): string {
@@ -671,7 +684,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         } else if (separator === '') {
             return 'group_concat(distinct ' + this._appendSql(value, params, false) + " separator '')"
         } else {
-            return 'group_concat(distinct ' + this._appendSql(value, params, false) + ' separator ' + this._appendValue(separator, params, 'string', 'string', undefined, false) + ')'
+            return 'group_concat(distinct ' + this._appendSql(value, params, false) + ' separator ' + this._appendUnsafeLiteralValue(separator, params) + ')'
         }
     }
     override _random(_params: any): string {

@@ -164,10 +164,9 @@ describe(ctx.label, () => {
             .where(tIssue.projectId.equals(1))
             .selectOneColumn(ctx.conn.stringConcat(tIssue.externalRef.asString(), ','))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select group_concat(external_ref separator ?) as result from issue where project_id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select group_concat(external_ref separator ',') as result from issue where project_id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            ",",
             1,
           ]
         `)
@@ -184,10 +183,9 @@ describe(ctx.label, () => {
             .where(tIssue.projectId.equals(1))
             .selectOneColumn(ctx.conn.stringConcatDistinct(tIssue.externalRef.asString(), ','))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select group_concat(distinct external_ref separator ?) as result from issue where project_id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select group_concat(distinct external_ref separator ',') as result from issue where project_id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            ",",
             1,
           ]
         `)

@@ -44,12 +44,8 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tAppUser)
             .selectOneColumn(ctx.conn.stringConcat(tAppUser.fullName, ' | '))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select group_concat(full_name separator ?) as result from app_user"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            " | ",
-          ]
-        `)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select group_concat(full_name separator ' | ') as result from app_user"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(row).not.toBeNull()
         const parts = row!.split(' | ').sort()
         expect(parts).toEqual(['Ada Lovelace', 'Alan Turing', 'Grace Hopper'])
@@ -74,12 +70,8 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tIssue)
             .selectOneColumn(ctx.conn.stringConcatDistinct(tIssue.status, '|'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select group_concat(distinct status separator ?) as result from issue"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            "|",
-          ]
-        `)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select group_concat(distinct status separator '|') as result from issue"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(row).not.toBeNull()
         const parts = row!.split('|').sort()
         expect(parts).toEqual(['closed', 'in_progress', 'open'])

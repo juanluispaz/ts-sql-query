@@ -94,12 +94,6 @@ describe(ctx.label, () => {
         `)
     })
 
-    // Bun.SQL's PostgreSQL adapter serialises a JS `Date` via `Date#toString()`,
-    // which PostgreSQL rejects (bun#29010). `BunSqlPostgresQueryRunner.addParam`
-    // works around it by serialising the `Date` to an ISO 8601 string before
-    // binding, so the captured param is that ISO string — a best-effort
-    // workaround that may change without backwards compatibility once bun#29010
-    // is fixed. See https://github.com/oven-sh/bun/issues/29010.
     test('const-localdate-forces-date-cast', async () => {
         const d = new Date('2024-01-15T00:00:00Z')
         ctx.mockNext(d)
@@ -109,7 +103,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::date as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-15T00:00:00.000Z",
+            2024-01-15T00:00:00.000Z,
           ]
         `)
     })
@@ -128,12 +122,6 @@ describe(ctx.label, () => {
         `)
     })
 
-    // Bun.SQL's PostgreSQL adapter serialises a JS `Date` via `Date#toString()`,
-    // which PostgreSQL rejects (bun#29010). `BunSqlPostgresQueryRunner.addParam`
-    // works around it by serialising the `Date` to an ISO 8601 string before
-    // binding, so the captured param is that ISO string — a best-effort
-    // workaround that may change without backwards compatibility once bun#29010
-    // is fixed. See https://github.com/oven-sh/bun/issues/29010.
     test('const-localdatetime-forces-timestamp-cast', async () => {
         const ts = new Date('2024-01-15T12:34:56Z')
         ctx.mockNext(ts)
@@ -143,7 +131,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::timestamp as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-15T12:34:56.000Z",
+            2024-01-15T12:34:56.000Z,
           ]
         `)
     })
@@ -241,14 +229,6 @@ describe(ctx.label, () => {
         `)
     })
 
-    // Bun.SQL's PostgreSQL adapter serialises a JS `Date` via `Date#toString()`,
-    // which PostgreSQL rejects (bun#29010). `BunSqlPostgresQueryRunner.addParam`
-    // works around it by serialising the `Date` to an ISO 8601 string before
-    // binding, so the captured param is that ISO string — a best-effort
-    // workaround that may change without backwards compatibility once bun#29010
-    // is fixed. This case binds the `Date` to a bare placeholder (no `::cast`),
-    // so the workaround is what makes it bind at all. See
-    // https://github.com/oven-sh/bun/issues/29010.
     test('const-custom-localdate-falls-through-without-cast', async () => {
         // A `customLocalDate` carries a
         // Date object; `typeof` is `object` so the number/bigint ladder
@@ -263,7 +243,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-02-20T00:00:00.000Z",
+            2024-02-20T00:00:00.000Z,
           ]
         `)
     })

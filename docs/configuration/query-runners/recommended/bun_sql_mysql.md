@@ -16,7 +16,9 @@ This page explains how to use `ts-sql-query` with the [Bun SQL](https://bun.com/
 
     This query runner is experimental.
 
-    Bun SQL's MySQL adapter currently has known bugs that require compatibility notes and example-level workarounds. This status will be revisited when the upstream Bun issues are resolved.
+!!! info "Requirements"
+
+    Bun 1.4.4 or newer.
 
 !!! warning "Do not share connections between requests"
 
@@ -26,21 +28,19 @@ This page explains how to use `ts-sql-query` with the [Bun SQL](https://bun.com/
 
     Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
 
-!!! warning "Affected rows compatibility"
+!!! warning "Create the connection with `foundRows: true`"
 
-    Bun SQL's MySQL adapter currently reports changed rows for `UPDATE` statements. This differs from the default behavior of the `mysql2` and `mariadb` drivers, which enable `CLIENT_FOUND_ROWS`/`foundRows` by default and report matched rows through `affectedRows`.
+    Create the Bun SQL connection with `foundRows: true` (or `?foundRows=true` in the connection URL).
 
-    As a consequence, an `UPDATE` that matches a row but writes the same values can report `affectedRows = 0` with Bun SQL, while `mysql2` and `mariadb` report `affectedRows = 1` by default.
+    Without it, an `UPDATE` only counts the rows whose values actually changed: a row that matches the `WHERE` clause but already holds the values being set is not counted. The number returned by `executeUpdate()` is then lower than the number of rows the update matched, and the `min` / `max` row checks of `executeUpdate(min, max)` are evaluated against that lower number (an update that matched its row can fail with `MINIMUM_ROWS_NOT_REACHED`).
 
-    Bun SQL does not currently expose a documented option equivalent to `mysql2`'s `flags: ["-FOUND_ROWS"]`/`flags: ["FOUND_ROWS"]` or `mariadb`'s `foundRows`. See [oven-sh/bun#30843](https://github.com/oven-sh/bun/issues/30843) for the compatibility report.
+!!! note "Authentication without TLS"
 
-!!! warning "MySQL type decoding"
+    When the MySQL server authenticates with `caching_sha2_password` (the default since MySQL 8) and the connection does not use TLS, Bun SQL can reject the connection with `ERR_MYSQL_PUBLIC_KEY_RETRIEVAL_NOT_ALLOWED`. Enable TLS on the connection, or set `allowPublicKeyRetrieval: true` if you accept retrieving the server's public key over an insecure connection.
 
-    Bun SQL's MySQL adapter currently has a prepared-statement decoding issue where some MySQL/MariaDB values, such as `YEAR` and `NEWDECIMAL` results, can be returned as binary buffers instead of decoded JavaScript values.
+!!! warning "MariaDB: `Values` in `UPDATE` / `DELETE`"
 
-    The Bun SQL MySQL/MariaDB examples include a local `transformValueFromDB` workaround for the affected numeric projections. See [oven-sh/bun#29471](https://github.com/oven-sh/bun/issues/29471) for the upstream bug report.
-
-    Bun SQL's MySQL adapter can also leave a query promise unresolved when a `YEAR` result column is followed by a `NEWDECIMAL` result column in the same result row. The examples include a local SQL builder workaround for the affected date projections. See [oven-sh/bun#30854](https://github.com/oven-sh/bun/issues/30854) for the upstream bug report.
+    Bun SQL always sends the query parameters as a server-side prepared statement, and MariaDB silently discards the parameter values placed inside a `VALUES (...)` table constructor of a prepared statement ([MDEV-33477](https://jira.mariadb.org/browse/MDEV-33477)). On MariaDB, a [`Values`](../../../queries/values.md) source used in an `UPDATE ... FROM` or a `DELETE ... USING` therefore reaches the database without its values, so the statement updates or deletes nothing (or fails). This does not affect MySQL.
 
 ## Using a Bun SQL MySQL connection
 
@@ -52,6 +52,7 @@ import { BunSqlMySqlQueryRunner } from "ts-sql-query/queryRunners/BunSqlMySqlQue
 
 const sql = new SQL({
     adapter: 'mysql',
+    foundRows: true,
     user: 'dbuser',
     host: 'database.server.com',
     database: 'mydb',

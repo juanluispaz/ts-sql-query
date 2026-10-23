@@ -164,8 +164,6 @@ Then read the file. For every test() block in it, check:
 
   8. EXTERNAL_CAVEATS.md sweep — list which propagation targets
      will need post-copy re-wrapping. Concretely:
-     - new Date(...) params → bun_sql_postgres newest/oldest
-       (Bun#29010).
      - bigint values in UPDATE / mockNext / set({...:Nn}) →
        sqlite3 cell (NOT NULL violation).
      - customUuid columns projected / aggregated → sqlite3 and
@@ -191,9 +189,8 @@ Then read the file. For every test() block in it, check:
 
  10. ANTIPATTERNS.md cross-check:
      - Every flagged finding should map to a numbered antipattern
-       (#1 mirror-image smell, #2 stub-as-commented-test, #3
-       blind-copy-to-bun_sql_postgres, #4 as-any bypass, #5
-       hallucinated API). Tags #1 / #4 / part of #2 are already
+       (#1 mirror-image smell, #2 stub-as-commented-test,
+       #4 as-any bypass, #5 hallucinated API). Tags #1 / #4 / part of #2 are already
        mechanical in tests:audit (see "Division of work" above);
        your job is the cross-doc context (BUGS / LIMITATIONS /
        EXTERNAL_CAVEATS) and the stub-body / connector-symmetry

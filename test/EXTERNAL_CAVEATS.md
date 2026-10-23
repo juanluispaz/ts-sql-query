@@ -220,38 +220,6 @@ only mode is "serializable", set implicitly). The test
 `docs:transaction/isolation-level` is commented out in every sqlite
 cell (`test/db/sqlite/*/<connector>/docs.transaction.test.ts`).
 
-### `bun_sql_postgres` — `Date` parameter binding (Bun#29010)
-
-Bun.SQL's PostgreSQL adapter serialises JS `Date` parameters via
-`Date#toString()` (e.g. `"Mon Jan 15 2024 …"`) instead of an
-ISO/timestamp format. PostgreSQL rejects the bound value with
-`invalid input syntax for type date|timestamp` whenever a `Date`
-intended as `localDate` / `localDateTime` reaches the driver. Open
-upstream: <https://github.com/oven-sh/bun/issues/29010>.
-
-`localTime` is unaffected because `transformValueToDB('localTime',
-Date)` ships a bare `'HH:MM:SS'` string, not a `Date`. Numeric and
-text parameters are unaffected for the same reason.
-
-**Workaround now built into the runner:**
-`BunSqlPostgresQueryRunner.addParam` serialises every `Date` to an ISO
-8601 string (`date.toISOString()`) before binding it, so the affected
-tests run again (mock + real). The captured param is therefore the ISO
-string, not a `Date` — `MockBunSqlPostgresQueryRunner` mirrors the same
-coercion so mock and real modes agree. Re-enabled in
-`test/db/postgres/{newest,oldest}/bun_sql_postgres/`:
-
-- `select.postgres-const-force-type-cast.test.ts` →
-  `const-localdate-forces-date-cast`,
-  `const-localdatetime-forces-timestamp-cast`,
-  `const-custom-localdate-falls-through-without-cast`.
-
-This is a best-effort workaround that may change without backwards
-compatibility once the upstream bug is fixed; coverage-driven test
-generation can now copy `new Date(...)` parameter tests to
-`bun_sql_postgres` as-is, expecting the ISO string in the param
-snapshot.
-
 ## Connectors not in the matrix today
 
 These are reachable from the public exports and have their own runner

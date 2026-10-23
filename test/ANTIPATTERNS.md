@@ -16,7 +16,6 @@ the template at the bottom. When the gate that prevents it becomes automatic
 |---|---|---|
 | [1](#1-mirror-image-smell) | mirror-image smell | weakens real-DB validation |
 | [2](#2-stub-as-commented-test) | stub-as-commented-test | breaks full-canonical-body discipline |
-| [3](#3-blind-copy-to-bun_sql_postgres) | blind copy from `pg` to `bun_sql_postgres` | reintroduces Bun#29010 workarounds |
 | [4](#4-as-any-to-bypass-typer-rejection) | `as any` to bypass typer rejection | hides a real lib bug |
 | [5](#5-hallucinated-api) | hallucinated API in proposed wave | invents calls that don't exist |
 
@@ -129,59 +128,6 @@ judgement stays with the validation sub-agent
 body is suspiciously short (< N lines) or contains only comments / TODOs
 even when the reason header IS present. Tricky because legitimate one-line
 bodies exist (rare).
-
----
-
-## 3. Blind copy to `bun_sql_postgres`
-
-**Symptom** — taking the canonical from `test/db/postgres/newest/pg/` and
-copying it verbatim to `test/db/postgres/newest/bun_sql_postgres/` (and
-`oldest/bun_sql_postgres/`), re-decommenting the Bun#29010 workaround wraps
-that were in place.
-
-**Rule violated**: [`EXTERNAL_CAVEATS.md` § `bun_sql_postgres` — Date parameter binding (Bun#29010)](./EXTERNAL_CAVEATS.md#bun_sql_postgres--date-parameter-binding-bun29010).
-
-**Why it's wrong**: Bun.SQL's PostgreSQL adapter serialises JS `Date`
-parameters via `Date#toString()` instead of an ISO/timestamp format.
-PostgreSQL rejects the bound value with `invalid input syntax for type
-date|timestamp` whenever a `Date` intended as `localDate` / `localDateTime`
-reaches the driver. The wrap is per-test, per-`bun_sql_postgres`-cell —
-mechanical copy from `pg` loses it.
-
-**Remedy**: after `cp` to a `bun_sql_postgres` cell, sweep with
-
-```bash
-grep -nE 'new Date\(' test/db/postgres/*/bun_sql_postgres/<new-file>
-```
-
-and wrap every match in `/* */` with the `Bun#29010` reason header (verbatim
-from existing tests). Applies to **every** `Date` parameter for `localDate`
-or `localDateTime`, not just the three names currently commented out. To see
-the existing Bun#29010 wraps already in place across `bun_sql_postgres` cells
-(the shape your new wrap must match), run
-`npm run tests:where-is -- --search <api> --cell-caveats full --coord 'postgres/*/bun_sql_postgres'`.
-
-**Gate today**: caught by the validation sub-agent's `EXTERNAL_CAVEATS`
-sweep (see [`QUALITY_GATE.md`](./QUALITY_GATE.md)) on the canonical
-before propagation, and re-applied mechanically by
-[`COVERAGE_RUNBOOK.md` § Propagation](./COVERAGE_RUNBOOK.md#propagation)
-step 4 (the EXTERNAL_CAVEATS re-wrap pass) on every sibling cell.
-Partial generic coverage from [`tests:audit`](./TESTS_AUDIT.md):
-`non-deterministic-input` flags `new Date()` (no arg) used as a query
-input everywhere (mock or real), and `commented-test-reason` requires
-a `TODO[BUG]: Bun#29010 …` header on any commented wrap. Neither
-catches the specific shape "a live `new Date('<literal>')` in a
-`bun_sql_postgres` cell that should have been wrapped" — the date
-literal is deterministic, so the generic rule sees nothing wrong.
-
-**Gate pending**: none mechanical. A coord-aware "live `new Date(` in
-`bun_sql_postgres`" check is **out of scope for `tests:audit`** — the
-audit's rules are universal anti-cheat patterns, not per-database /
-per-connector wrappers. DB/connector-specific defences live in
-[`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md) (the catalogue), the
-sub-agent's sweep (canonical, pre-propagation) and the runbook's
-re-wrap step (post-propagation). The user's final inspection is the
-last line.
 
 ---
 

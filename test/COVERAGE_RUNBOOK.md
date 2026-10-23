@@ -78,7 +78,7 @@ tests on the first wave.
    enforce something `LIMITATIONS.md` says it will not enforce is doomed.
 7. **[`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md)** — every
    "Dialect-specific notes" subsection. These are the caveats in force on
-   today's matrix: `sqlite3` BigInt, missing `uuid_str`, `Bun#29010`,
+   today's matrix: `sqlite3` BigInt, missing `uuid_str`,
    MySQL no RETURNING, Oracle/SqlServer/MariaDB on-conflict shapes. The
    §8 propagation sweep is mechanical only if the agent knows the
    catalog.
@@ -547,8 +547,6 @@ Once the canonical is GREEN/YELLOW, propagate via a small `cp` script (or
    the relevant tests in the affected cells with the canonical body
    preserved and the documented reason header. The current catalog
    mechanically requires:
-   - Bun#29010 wrap on `bun_sql_postgres` (newest + oldest) for every test
-     passing a `Date` parameter typed `localDate` / `localDateTime`.
    - Bigint wrap on `sqlite/newest/sqlite3/` for any test UPDATE-ing a
      `bigint` column.
    - uuid_str wrap on `sqlite3` + `sqlite-wasm-OO1` for any test
@@ -613,7 +611,6 @@ In order:
      - sqlite/newest/better-sqlite3
      - … <all other cells>
    commented out per dialect / driver caveat:
-     - bun_sql_postgres newest+oldest (Bun#29010, Date parameter wrap)
      - sqlite/newest/sqlite3 (uuid_str unavailable)
      - mysql/newest/mysql2 (no RETURNING)
    ```

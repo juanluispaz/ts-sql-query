@@ -10,56 +10,17 @@ import { SQL } from 'bun';
 import { BunSqlMySqlQueryRunner } from '../queryRunners/BunSqlMySqlQueryRunner.js'
 import { MariaDBConnection } from '../connections/MariaDBConnection.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
-import type { QueryRunner } from '../queryRunners/QueryRunner.js'
-import { MariaDBSqlBuilder } from '../sqlBuilders/MariaDBSqlBuilder.js'
-import type { ToSql } from '../sqlBuilders/SqlBuilder.js'
 
 process.env.TZ = 'UTC'
 
-class BunSqlMariaDBSqlBuilder extends MariaDBSqlBuilder {
-    // TODO: Remove this builder when Bun SQL MySQL/MariaDB prepared statements no longer hang
-    // when a YEAR result column is followed by a NEWDECIMAL result column.
-    // See https://github.com/oven-sh/bun/issues/30854
-    override _getFullYear(params: any[], valueSource: ToSql): string {
-        return 'cast(' + super._getFullYear(params, valueSource) + ' as signed)'
-    }
-
-    override _getMilliseconds(params: any[], valueSource: ToSql): string {
-        return 'cast(' + super._getMilliseconds(params, valueSource) + ' as signed)'
-    }
-}
-
 class DBConnection extends MariaDBConnection<'DBConnection'> {
-    constructor(queryRunner: QueryRunner) {
-        super(queryRunner, new BunSqlMariaDBSqlBuilder())
-    }
-
-    protected override transformValueFromDB(value: unknown, type: string): unknown {
-        // TODO: Remove this method when Bun SQL decodes MySQL/MariaDB YEAR/NEWDECIMAL values correctly.
-        // See https://github.com/oven-sh/bun/issues/29471
-        function isNumericType(type: string) {
-            return type === 'int' || type === 'stringInt' || type === 'bigint' || type === 'double' || type === 'stringDouble'
-        }
-
-        function asciiBufferToString(value: Uint8Array) {
-            let result = ''
-            for (let i = 0; i < value.length; i++) {
-                result += String.fromCharCode(value[i]!)
-            }
-            return result
-        }
-
-        if (value instanceof Uint8Array && isNumericType(type)) {
-            value = asciiBufferToString(value)
-        }
-        return super.transformValueFromDB(value, type)
-    }
     increment(i: number) {
         return this.executeFunction('incrementt', [this.const(i, 'int')], 'int', 'required')
     }
     appendToAllCompaniesName(aditional: string) {
         return this.executeProcedure('append_to_all_companies_name', [this.const(aditional, 'string')])
     }
+    customerSeq = this.sequence('customer_seq', 'int')
 }
 
 const tCompany = new class TCompany extends Table<DBConnection, 'TCompany'> {
@@ -105,6 +66,7 @@ const tBoolean = new class TBoolean extends Table<DBConnection, 'TBoolean'> {
 
 const sql = new SQL({
     adapter: 'mysql',
+    foundRows: true,
     user: 'root',
     host: 'localhost',
     database: 'mysql',
@@ -122,8 +84,11 @@ async function main() {
         await connection.queryRunner.executeDatabaseSchemaModification(`use test`)
         await connection.queryRunner.executeDatabaseSchemaModification(`drop table if exists customer`)
         await connection.queryRunner.executeDatabaseSchemaModification(`drop table if exists company`)
+        await connection.queryRunner.executeDatabaseSchemaModification(`drop sequence if exists customer_seq`)
         await connection.queryRunner.executeDatabaseSchemaModification(`drop function if exists increment`)
         await connection.queryRunner.executeDatabaseSchemaModification(`drop procedure if exists append_to_all_companies_name`)
+
+        await connection.queryRunner.executeDatabaseSchemaModification(`create sequence customer_seq`)
 
         await connection.queryRunner.executeDatabaseSchemaModification(`
             create table company (
@@ -217,6 +182,18 @@ async function main() {
             .returningLastInsertedId()
             .executeInsert()
         assertEquals(i, 3)
+
+        i = await connection
+            .selectFromNoTable()
+            .selectOneColumn(connection.customerSeq.nextValue())
+            .executeSelectOne()
+        assertEquals(i, 1)
+
+        i = await connection
+            .selectFromNoTable()
+            .selectOneColumn(connection.customerSeq.currentValue())
+            .executeSelectOne()
+        assertEquals(i, 1)
 
         let company = await connection
             .selectFrom(tCompany)
@@ -836,13 +813,11 @@ async function main() {
             dateValue: date,
         })
 
-        // Bulk update / delete via `Values` works on the `mariadb` driver (see MariaDBExample.ts)
-        // and on every MySQL adapter (which emits `VALUES ROW(...)`), but Bun.SQL's MariaDB adapter
-        // fails with errno 1406 ("Data too long for column 'id'") on the
-        // `WITH name(cols) AS (VALUES (...)) UPDATE/DELETE` form. The emitted SQL and its bound
-        // parameters are correct — the param count matches the `?` placeholders exactly (verified) —
-        // so this is the adapter mishandling the `VALUES (...)` table constructor (it appears to treat
-        // it as a bulk-insert row list), not a library issue. Stays commented for this connector.
+        // Bulk update / delete via `Values` is not usable through Bun.SQL on MariaDB: Bun.SQL always
+        // sends parameters as a server-side prepared statement, and MariaDB silently discards
+        // placeholder values inside a `VALUES (...)` table constructor of a prepared statement
+        // (https://jira.mariadb.org/browse/MDEV-33477), so the `WITH name(cols) AS (VALUES (?, ...))`
+        // the library emits reaches the server with empty values.
         // class VCustomerForUpdate extends Values<DBConnection, 'customerForUpdate'> {
         //     id = this.column('int')
         //     firstName = this.column('string')
@@ -1221,9 +1196,7 @@ async function main() {
                 customOptionalBooleanF: tBoolean.customOptionalBooleanF,
             })
             .executeUpdate()
-        // TODO: Restore this assertion when Bun SQL supports CLIENT_FOUND_ROWS/foundRows semantics.
-        // See https://github.com/oven-sh/bun/issues/30843
-        // assertEquals(i, 1)
+        assertEquals(i, 1)
 
         let boolValidation = await connection
             .selectFrom(tBoolean)
@@ -1256,9 +1229,7 @@ async function main() {
                 customOptionalBooleanF: tBoolean.boolA,
              })
             .executeUpdate()
-        // TODO: Restore this assertion when Bun SQL supports CLIENT_FOUND_ROWS/foundRows semantics.
-        // See https://github.com/oven-sh/bun/issues/30843
-        // assertEquals(i, 1)
+        assertEquals(i, 1)
 
         boolValidation = await connection
             .selectFrom(tBoolean)
@@ -1291,9 +1262,7 @@ async function main() {
                 customOptionalBooleanF: tBoolean.optionalBoolB,
              })
             .executeUpdate()
-        // TODO: Restore this assertion when Bun SQL supports CLIENT_FOUND_ROWS/foundRows semantics.
-        // See https://github.com/oven-sh/bun/issues/30843
-        // assertEquals(i, 1)
+        assertEquals(i, 1)
 
         boolValidation = await connection
             .selectFrom(tBoolean)
@@ -1326,9 +1295,7 @@ async function main() {
                 customOptionalBooleanF: tBoolean.customBooleanC,
              })
             .executeUpdate()
-        // TODO: Restore this assertion when Bun SQL supports CLIENT_FOUND_ROWS/foundRows semantics.
-        // See https://github.com/oven-sh/bun/issues/30843
-        // assertEquals(i, 1)
+        assertEquals(i, 1)
 
         boolValidation = await connection
             .selectFrom(tBoolean)
@@ -1361,9 +1328,7 @@ async function main() {
                 customOptionalBooleanF: tBoolean.customBooleanD,
              })
             .executeUpdate()
-        // TODO: Restore this assertion when Bun SQL supports CLIENT_FOUND_ROWS/foundRows semantics.
-        // See https://github.com/oven-sh/bun/issues/30843
-        // assertEquals(i, 1)
+        assertEquals(i, 1)
 
         boolValidation = await connection
             .selectFrom(tBoolean)
@@ -1396,9 +1361,7 @@ async function main() {
                 customOptionalBooleanF: tBoolean.customOptionalBooleanE,
              })
             .executeUpdate()
-        // TODO: Restore this assertion when Bun SQL supports CLIENT_FOUND_ROWS/foundRows semantics.
-        // See https://github.com/oven-sh/bun/issues/30843
-        // assertEquals(i, 1)
+        assertEquals(i, 1)
 
         boolValidation = await connection
             .selectFrom(tBoolean)
@@ -1464,9 +1427,7 @@ async function main() {
                 customOptionalBooleanF: false,
             })
             .executeUpdate()
-        // TODO: Restore this assertion when Bun SQL supports CLIENT_FOUND_ROWS/foundRows semantics.
-        // See https://github.com/oven-sh/bun/issues/30843
-        // assertEquals(i, 1)
+        assertEquals(i, 1)
 
         boolValidation = await connection
             .selectFrom(tBoolean)

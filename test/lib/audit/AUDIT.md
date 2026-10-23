@@ -76,7 +76,7 @@ The audit is anti-cheat enforcement and nothing else.
 
 | Out of scope | Why | Who owns it |
 |---|---|---|
-| Database / connector **limitation management** (wrapping `new Date` for Bun#29010, etc.) | That is *handling* a limitation, not catching a cheat | [`EXTERNAL_CAVEATS.md`](../../EXTERNAL_CAVEATS.md) + the propagation step |
+| Database / connector **limitation management** (wrapping the tests a connector caveat affects, etc.) | That is *handling* a limitation, not catching a cheat | [`EXTERNAL_CAVEATS.md`](../../EXTERNAL_CAVEATS.md) + the propagation step |
 | Cross-referencing `// TODO[BUG]` / `// TODO[LIMITATION]` against `BUGS.md` / `LIMITATIONS.md` | The **searcher already does this** (`tests:where-is --bugs / --limitation / --cell-caveats`); duplicating it crosses that tool's boundary. Also has no anchor on the bug side today (`BUGS.md` = *"No open bugs"*, zero `TODO[BUG]` markers) | [searcher](../../CODE_SEARCH.md) |
 | Does a symbol exist in `src/`? | The searcher's `Classification` answers it | [searcher](../../CODE_SEARCH.md) |
 | Subjective judgement ("is this assertion *good enough*?") | Requires reading and opining — not mechanical | the [quality-gate sub-agent](../../QUALITY_GATE.md) |

@@ -14,6 +14,13 @@ search:
     - `.concatIgnoringNullIfValue(...)` is the dynamic-query twin, as `.concatIfValue(...)` is for `.concat(...)`: it takes a `string | null | undefined` and, when the value is absent, drops that operand from the generated SQL instead of binding it.
     - This was previously not expressible in a portable way: wrapping each operand in `.valueWhenNull('')` works on the other five databases, but not on Oracle, where the empty string it falls back to is itself `NULL`.
 
+**Breaking changes**:
+
+- The Bun SQL query runners (`BunSqlPostgresQueryRunner`, `BunSqlMySqlQueryRunner`, `BunSqlSqliteQueryRunner`) now require **Bun 1.4.4 or newer**, the first release where Bun SQL binds `Date` parameters, decodes MySQL `YEAR` / `DECIMAL` values and reports the affected rows of an `INSERT ... SELECT` correctly. The workarounds they carried for older Bun releases are gone:
+    - `BunSqlPostgresQueryRunner` no longer converts `Date` parameters to an ISO 8601 string before binding them; the `Date` is handed to Bun SQL as is.
+    - `BunSqlSqliteQueryRunner` no longer runs an extra `select changes()` after an `INSERT ... SELECT` that reported no inserted rows.
+- With `BunSqlMySqlQueryRunner`, create the Bun SQL connection with `foundRows: true`. Without it, `executeUpdate()` counts only the rows whose values changed, not every row the update matched, so `executeUpdate(min, max)` can fail with `MINIMUM_ROWS_NOT_REACHED` for an update that matched its rows ([docs](configuration/query-runners/recommended/bun_sql_mysql.md)).
+
 **Bug fixes**:
 
 - A custom data type declared on a fragment argument — `arg('customInt', 'Cents', 'required', adapter)`, `valueArg(...)` and their `buildFragmentWithArgs` / `buildFragmentWithArgsIfValue` / `buildFragmentWithMaybeOptionalArgs` users — now reaches the value marshalling. The declared type name and the optionality were swapped when the argument was built, so `transformValueToDB` / `transformValueFromDB` — the `TypeAdapter`'s and the connection's, which is the documented place to map a custom type name onto its native type — were handed `'required'` / `'optional'` instead of the type name (`'Cents'`), and the custom type's conversion was silently skipped for that argument in both directions: the value was bound raw and read back raw. The same type declared through a table column or `const(...)` was converted normally, so only arguments were affected. The generated SQL is unchanged.

@@ -200,7 +200,6 @@ elsewhere:
   form is commented out in every postgres cell.
 - SQLite has no `tTable.oldValues()`, no `deleteFrom(...).using(...)`, no
   `isolationLevel(...)`.
-- `bun_sql_postgres` mis-serialises `Date` parameters (Bun#29010).
 
 When propagating tests across cells, the catalog above is what
 [`COVERAGE_RUNBOOK.md` § EXTERNAL_CAVEATS sweep](./COVERAGE_RUNBOOK.md)

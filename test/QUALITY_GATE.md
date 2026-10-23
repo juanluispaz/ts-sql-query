@@ -154,7 +154,7 @@ braces.
 - Post-propagation regressions on the syntactic surface — those are now
   caught by [`tests:audit`](./TESTS_AUDIT.md) at the close of the round,
   not this gate. A propagation script that strips a workaround wrap
-  silently, a re-bake that fails to apply a Bun#29010 wrap, a `commented-
+  silently, a re-bake that fails to apply a caveat wrap, a `commented-
   test-reason` violation introduced during the copy: the audit flags
   them. Anything subtler than syntax still surfaces only at final user
   inspection.
@@ -190,7 +190,7 @@ Explicitly **out of scope for `tests:audit`** (the audit's rules are
 universal anti-cheat patterns, not per-database / per-connector
 wrappers):
 
-- **Bun#29010 sweep** and analogous DB/connector-specific re-wrap
+- **DB/connector-specific re-wrap**
   checks. Those defences live in [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md)
   (the catalogue), the sub-agent's `EXTERNAL_CAVEATS` sweep on the
   canonical (this gate), and the mechanical re-wrap step in

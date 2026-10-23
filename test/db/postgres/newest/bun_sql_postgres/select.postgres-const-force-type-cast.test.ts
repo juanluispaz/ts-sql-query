@@ -94,12 +94,6 @@ describe(ctx.label, () => {
         `)
     })
 
-    // Bun.SQL's PostgreSQL adapter serialises a JS `Date` via `Date#toString()`,
-    // which PostgreSQL rejects (bun#29010). `BunSqlPostgresQueryRunner.addParam`
-    // works around it by serialising the `Date` to an ISO 8601 string before
-    // binding, so the captured param is that ISO string — a best-effort
-    // workaround that may change without backwards compatibility once bun#29010
-    // is fixed. See https://github.com/oven-sh/bun/issues/29010.
     test('const-localdate-forces-date-cast', async () => {
         const d = new Date('2024-01-15T00:00:00Z')
         ctx.mockNext(d)
@@ -109,7 +103,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::date as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-15T00:00:00.000Z",
+            2024-01-15T00:00:00.000Z,
           ]
         `)
     })
@@ -128,12 +122,6 @@ describe(ctx.label, () => {
         `)
     })
 
-    // Bun.SQL's PostgreSQL adapter serialises a JS `Date` via `Date#toString()`,
-    // which PostgreSQL rejects (bun#29010). `BunSqlPostgresQueryRunner.addParam`
-    // works around it by serialising the `Date` to an ISO 8601 string before
-    // binding, so the captured param is that ISO string — a best-effort
-    // workaround that may change without backwards compatibility once bun#29010
-    // is fixed. See https://github.com/oven-sh/bun/issues/29010.
     test('const-localdatetime-forces-timestamp-cast', async () => {
         const ts = new Date('2024-01-15T12:34:56Z')
         ctx.mockNext(ts)
@@ -143,7 +131,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::timestamp as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-15T12:34:56.000Z",
+            2024-01-15T12:34:56.000Z,
           ]
         `)
     })
@@ -241,14 +229,6 @@ describe(ctx.label, () => {
         `)
     })
 
-    // Bun.SQL's PostgreSQL adapter serialises a JS `Date` via `Date#toString()`,
-    // which PostgreSQL rejects (bun#29010). `BunSqlPostgresQueryRunner.addParam`
-    // works around it by serialising the `Date` to an ISO 8601 string before
-    // binding, so the captured param is that ISO string — a best-effort
-    // workaround that may change without backwards compatibility once bun#29010
-    // is fixed. This case binds the `Date` to a bare placeholder (no `::cast`),
-    // so the workaround is what makes it bind at all. See
-    // https://github.com/oven-sh/bun/issues/29010.
     test('const-custom-localdate-falls-through-without-cast', async () => {
         // A `customLocalDate` carries a
         // Date object; `typeof` is `object` so the number/bigint ladder
@@ -263,7 +243,79 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-02-20T00:00:00.000Z",
+            2024-02-20T00:00:00.000Z,
+          ]
+        `)
+    })
+
+    test('const-custom-comparable-falls-through-without-cast', async () => {
+        // A `customComparable` const carries a string value; the fallback
+        // ladder ends at the bare placeholder — no cast (customComparable is not
+        // enumerated in the type switch).
+        type SemVer = string & { readonly __brand: 'SemVer' }
+        const v = '1.2.0' as SemVer
+        ctx.mockNext(v)
+        await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const<SemVer, 'SemVer'>(v, 'customComparable', 'SemVer'))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "1.2.0",
+          ]
+        `)
+    })
+
+    test('const-custom-uuid-falls-through-without-cast', async () => {
+        // A `customUuid` const carries a string value, so — like the plain
+        // `custom`/string case — the fallback ladder emits the placeholder bare
+        // (the `::uuid` cast only applies to the enumerated `'uuid'` keyword).
+        type ReleaseId = string & { readonly __brand: 'ReleaseId' }
+        const id = 'c733575e-b5ba-400c-8803-3d3d4bbcd52f' as ReleaseId
+        ctx.mockNext(id)
+        await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const<ReleaseId, 'ReleaseId'>(id, 'customUuid', 'ReleaseId'))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "c733575e-b5ba-400c-8803-3d3d4bbcd52f",
+          ]
+        `)
+    })
+
+    test('const-custom-localtime-falls-through-without-cast', async () => {
+        // A `customLocalTime` carries a Date object; `typeof` is `object` so
+        // the number/bigint ladder is skipped and the placeholder is bare —
+        // distinct from the enumerated `'localTime'` case (which routes to
+        // `::time`).
+        type CutoffClock = Date & { readonly __brand: 'CutoffClock' }
+        const t = new Date('1970-01-01T17:00:00Z') as CutoffClock
+        ctx.mockNext(t)
+        await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const<CutoffClock, 'CutoffClock'>(t, 'customLocalTime', 'CutoffClock'))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "17:00:00",
+          ]
+        `)
+    })
+
+    test('const-custom-localdatetime-falls-through-without-cast', async () => {
+        // A `customLocalDateTime` carries a Date object -> bare placeholder,
+        // distinct from the enumerated `'localDateTime'` case (`::timestamp`).
+        type SignOffStamp = Date & { readonly __brand: 'SignOffStamp' }
+        const ts = new Date('2024-01-14T12:30:00Z') as SignOffStamp
+        ctx.mockNext(ts)
+        await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const<SignOffStamp, 'SignOffStamp'>(ts, 'customLocalDateTime', 'SignOffStamp'))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-01-14T12:30:00.000Z,
           ]
         `)
     })

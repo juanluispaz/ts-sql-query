@@ -310,7 +310,7 @@
         "@prisma/adapter-mssql": "^7.10.1",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
-        "@sqlite.org/sqlite-wasm": "^3.53.0-build1",
+        "@sqlite.org/sqlite-wasm": "^3.54.1-build1",
         "@testcontainers/postgresql": "^12.2.1",
         "@types/better-sqlite3": "^9.6.0",
         "@types/bun": "^1.4.4",

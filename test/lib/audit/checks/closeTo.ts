@@ -18,7 +18,7 @@
 // Anchor: 0 today (all 107 `toBeCloseTo` sit in a real-DB branch) — a clean
 // preventive gate.
 
-import ts from 'typescript'
+import ts from 'typescript6'
 import type { Finding } from '../types.js'
 import { lineOf, isInRealBranch } from '../ast.js'
 

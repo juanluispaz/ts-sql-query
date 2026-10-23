@@ -1,6 +1,6 @@
 // Compile-time negative tests for the model-first order-by types
 // (`OrderByForModel<Model>` and `DynamicOrderByForModel<Model, ORDER_BY>`).
-// These never execute — the value is that `validate:tests` (tsgo/tsc) rejects
+// These never execute — the value is that `validate:tests` (tsc) rejects
 // each `@ts-expect-error` line. The positive counterparts (valid clauses that
 // compile, plus the runtime `orderByFromString` round-trip) live in
 // `<cell>/dynamic-condition.from-model.test.ts`.

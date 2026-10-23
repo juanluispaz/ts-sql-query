@@ -15,7 +15,7 @@
 // — is a CallExpression whose callee is the matcher property, so it is fine.
 // Anchor 0 — a clean preventive gate.
 
-import ts from 'typescript'
+import ts from 'typescript6'
 import type { Finding } from '../types.js'
 import { lineOf } from '../ast.js'
 

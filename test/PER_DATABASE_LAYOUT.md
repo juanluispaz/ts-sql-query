@@ -287,6 +287,5 @@ test('postgres-negative-types', () => {
 - The `types.negative/` folder is **not** part of the cell matrix and is
   skipped by `tests:audit`.
 
-For which command to run and where to place `@ts-expect-error` directives (tsgo
-is the only compiler that checks tests) see
+For which command to run and where to place `@ts-expect-error` directives see
 [`WRITING_TESTS.md` § Type-checking the test matrix](./WRITING_TESTS.md#type-checking-the-test-matrix).

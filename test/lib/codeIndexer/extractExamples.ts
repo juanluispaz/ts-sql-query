@@ -19,7 +19,7 @@
 //
 // src/examples/prisma/ (generated client) is excluded, matching extractSrc.
 
-import ts from 'typescript'
+import ts from 'typescript6'
 import { resolve } from 'node:path'
 import { walkFiles } from './walk.js'
 import { resolveToken } from './resolve.js'

@@ -1,6 +1,6 @@
 // Small AST helpers shared by the content checks.
 
-import ts from 'typescript'
+import ts from 'typescript6'
 
 export function lineOf(sf: ts.SourceFile, node: ts.Node): number {
     return sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1

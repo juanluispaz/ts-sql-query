@@ -62,7 +62,7 @@ call resolves to which member, how a type is used, where the same symbol surface
 Rule of thumb: if your question is about **the type system, the call graph, the public surface, or how code
 connects across src/docs/tests**, use the tool. If it's about **literal text or byte-level edits**, use
 `grep`. The deeper "is this assignment type-correct?" question is neither — that's the **compiler** (a
-minimal repro + `tsgo`/`tsc`); the searcher *locates* the types, it doesn't *decide* assignability.
+minimal repro + `tsc`); the searcher *locates* the types, it doesn't *decide* assignability.
 
 ## The command you'll use
 

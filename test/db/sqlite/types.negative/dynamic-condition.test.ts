@@ -1,6 +1,6 @@
 // Compile-time negative tests for the dynamic-condition filter type
 // (`connection.dynamicConditionFor(fields).withValues(filter)`). These never
-// execute — the value is that `validate:tests` (tsgo/tsc) rejects each
+// execute — the value is that `validate:tests` (tsc) rejects each
 // `@ts-expect-error` line. The runtime counterparts (a malformed filter
 // forced past the type with `as any`) live in
 // `<cell>/dynamic-condition.errors.test.ts`; here we prove the type layer

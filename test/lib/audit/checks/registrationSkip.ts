@@ -32,7 +32,7 @@
 // reason-marker comments. No type checker. Anchor: 0 for both — clean preventive
 // gates.
 
-import ts from 'typescript'
+import ts from 'typescript6'
 import type { Finding } from '../types.js'
 import { lineOf, markerLines, isNodeInMarkedTest } from '../ast.js'
 import { DISABLED_TEST_REASON, NOT_APPLICABLE_OR_BUG_REASON } from '../reasons.js'

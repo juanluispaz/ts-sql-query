@@ -248,7 +248,7 @@ When any of these are added to the main matrix:
    don't re-discover constraints already characterised in another
    cell of the same database.
 5. Run `bun run tests:audit` and `bun run validate:tests` before
-   merging (tsgo, one program per connector; a single whole-matrix program
+   merging (tsc, one program per connector; a single whole-matrix program
    OOMs, >17 GB).
 
 ## Connection-subclass patterns not testable in the shared domain

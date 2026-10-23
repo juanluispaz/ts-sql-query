@@ -17,7 +17,7 @@
 // sitting above a `/* … */` block) — carries one of the markers followed by a
 // reason.
 
-import ts from 'typescript'
+import ts from 'typescript6'
 import type { Finding } from '../types.js'
 import { DISABLED_TEST_REASON } from '../reasons.js'
 

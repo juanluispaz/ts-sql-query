@@ -13,7 +13,7 @@
 // uses Node's native require/import — no TypeScript transformer is
 // in scope when MCR resolves its config, so a .ts file errors with
 // "Unknown file extension". JSDoc + the @type import below keeps it
-// typechecked under tsc/tsgo via verbatim-import inference.
+// typechecked under tsc via verbatim-import inference.
 
 /** @type {import('monocart-coverage-reports').CoverageReportOptions} */
 const config = {

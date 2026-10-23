@@ -73,19 +73,13 @@ jobs:
       # Build
       - name: Prepare
         run: bun run codegen
-      - name: Bun build (tsc)
+      - name: Bun build
         run: bun run validate
-      # Same src check with tsgo (preview TS 7 compiler).
-      - name: Bun build (tsgo)
-        run: bun run validate:tsgo
 
       # Type-check the test/ tree against the published library types.
-      # tsgo is authoritative for the test matrix — it's the test-scope
-      # gate the release runs. (Tests don't ship, so there's no downstream
-      # tsc-compat obligation; src's tsc-compat is covered by the `Bun build
-      # (tsc)` step above.) `validate:tests` splits one tsgo program per
-      # connector so each slice fits the 16 GB runner.
-      - name: Bun validate tests (tsgo, authoritative)
+      # `validate:tests` splits one tsc program per connector so each slice
+      # fits the 16 GB runner.
+      - name: Bun validate tests
         run: bun run validate:tests
 
       # Symmetry audit (DESIGN §4) — structural check of test/db/.
@@ -113,7 +107,7 @@ jobs:
   # under vitest (`isolate: false`, fast again) and the legacy examples under
   # tsx/node, so both runtimes' execution paths are validated before publishing.
   # Mirrors the `build` job in ci.yml (single Node version instead of the 22/24/26
-  # matrix). The test scope is gated with tsgo only (`validate:tests`).
+  # matrix).
   node:
     if: inputs.release_type != 'v1'
     name: node validation
@@ -141,14 +135,10 @@ jobs:
         run: npm run codegen
       - name: Build
         run: npm run build
-      # Type-check src with tsgo (preview TS 7 compiler) in addition to the tsc
-      # check covered by `npm run build` above.
-      - name: Validate src (tsgo)
-        run: npm run validate:tsgo
 
-      # Type-check the test/ tree against the published library types (tsgo,
-      # authoritative — same gate as the bun job and ci.yml).
-      - name: Validate tests (tsgo, authoritative)
+      # Type-check the test/ tree against the published library types (same
+      # gate as the bun job and ci.yml).
+      - name: Validate tests
         run: npm run validate:tests
 
       # Symmetry audit (DESIGN §4) — structural check of test/db/.
@@ -208,10 +198,6 @@ jobs:
         run: npm run codegen
       - name: Build
         run: npm run build
-      # Type-check src with tsgo (preview TS 7 compiler) in addition to
-      # the tsc check already covered by `npm run build` above.
-      - name: Validate src (tsgo)
-        run: npm run validate:tsgo
 
       # Tests (new matrix + legacy examples) and the test-tree typecheck run on
       # the `bun` and `node` jobs above (in parallel); `needs: [bun, node]` gates

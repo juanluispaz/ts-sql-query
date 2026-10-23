@@ -27,7 +27,7 @@
 // looks like a UUID but is not valid. A `'not-a-uuid'` placeholder matches
 // neither pattern and is out of scope (distinguishing it needs the type checker).
 
-import ts from 'typescript'
+import ts from 'typescript6'
 import type { Finding } from '../types.js'
 import { lineOf } from '../ast.js'
 

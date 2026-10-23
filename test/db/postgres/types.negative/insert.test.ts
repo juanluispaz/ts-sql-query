@@ -33,7 +33,7 @@ function _typeNegatives() {
     })
 
     // Rule: column value types must match. `priority` is `int`; passing a
-    // string must not compile. tsgo reports the error at the offending
+    // string must not compile. tsc reports the error at the offending
     // property, not at the values() call site, so the directive sits on
     // the property — see test/WRITING_TESTS.md for why this asymmetry exists.
     void connection.insertInto(tIssue).values({
@@ -45,7 +45,7 @@ function _typeNegatives() {
         priority:  'high',
     })
 
-    // Rule: cannot insert columns that don't exist on the table. tsgo
+    // Rule: cannot insert columns that don't exist on the table. tsc
     // reports the excess-property error at the property line itself —
     // directive placement matches.
     void connection.insertInto(tProject).values({

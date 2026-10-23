@@ -18,7 +18,7 @@
 // which the resolver uses to turn name-matches into exact links — here for the
 // invocation callees, and in the test/example/doc extractors for their refs.
 
-import ts from 'typescript'
+import ts from 'typescript6'
 import { readFileSync } from 'node:fs'
 import { resolve, relative } from 'node:path'
 import { resolveToken } from './resolve.js'

@@ -28,7 +28,7 @@
 // specifiers are considered. Domain (`../../domain/…`) and cell-local
 // (`./setup.js`) imports are neither `src/` nor `test/lib/`, so they are fine.
 
-import ts from 'typescript'
+import ts from 'typescript6'
 import { resolve, dirname } from 'node:path'
 import { readFileSync } from 'node:fs'
 import type { Finding } from '../types.js'

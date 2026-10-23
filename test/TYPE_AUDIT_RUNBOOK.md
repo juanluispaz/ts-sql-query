@@ -197,7 +197,7 @@ of [`COVERAGE_RUNBOOK.md`](./COVERAGE_RUNBOOK.md).)
                    CURRENT test files, and reports INLINE: §A / §B / §C + counts.
    §7  Aggregate   dedupe across agents; then COORDINATOR-VERIFY every large,
                    borderline, or cross-agent-contradictory claim YOURSELF —
-                   wide-grep for absence + tsgo compile-repro for reachability
+                   wide-grep for absence + tsc compile-repro for reachability
                    and exact inferred type. Do not trust a flaky agent on a
                    load-bearing call.
    §8  Report      write test/MISSING_TESTS_AUDIT_<N>.md: §A (existing
@@ -594,7 +594,7 @@ fires). The coordinator is the adjudicator.
    grep showed *both* right, scoped: the **dynamic** path covers every
    operator×type, the **direct** fluent path is sparse on non-int/non-string
    leaves.)
-2. **Reachability / exact-inferred-type questions** → **tsgo compile-repro**.
+2. **Reachability / exact-inferred-type questions** → **tsc compile-repro**.
    The recipe:
    - Write a small type-only `*.ts` (not `*.test.ts`) into the reference cell,
      importing the domain `DBConnection` (`declare const conn: DBConnection`)
@@ -605,9 +605,9 @@ fires). The coordinator is the adjudicator.
      see which errors.
    - `bun run validate:tests:newest 2>&1 | grep <reprofile>` — no error means the
      chain typechecks and the asserted type holds; an error reveals the actual.
-     (`validate:tests:newest` runs **tsgo** in a single program over just the newest cells —
-     ~6 GB/fast, and your repro lives in a `newest` cell; the full `validate:tests` splits
-     one tsgo program per connector because a single whole-matrix program OOMs, >17 GB. Full
+     (`validate:tests:newest` runs **tsc** in a single program over just the newest cells —
+     one program, and your repro lives in a `newest` cell; the full `validate:tests` splits
+     one tsc program per connector because a single whole-matrix program OOMs, >17 GB. Full
      command/flag vocabulary — `tests <coord>`, the runner flags — is in [`CLI.md`](./CLI.md).)
    - **Delete the repro and confirm `git status --porcelain` is clean.** (This
      recipe once proved `shapedAs().set().onConflictOn(c).doUpdateDynamicSet()`
@@ -1214,7 +1214,7 @@ or does the composition remove/replace it?**
 
 - **Use `bun run …` for everything** — `validate:tests` / `validate:tests:newest`, `tests:where-is`,
   and the matrix itself. One consistent runtime avoids confusing the agent; for the
-  compiler/searcher helpers the launcher is a no-op (same tsgo, same index), and for
+  compiler/searcher helpers the launcher is a no-op (same tsc, same index), and for
   the matrix bun (`--parallel --no-isolate`) is the fastest (see
   [`BENCHMARKS.md`](./BENCHMARKS.md)). Two exceptions run under npm/node:
   `npm run tests:index*` (node builds the index ~2.4× faster) and

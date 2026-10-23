@@ -18,7 +18,7 @@
 // unchanged. No in-memory .md slice is parsed — the only thing read from the .md is the
 // nearest heading for the block.
 
-import ts from 'typescript'
+import ts from 'typescript6'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { walkFiles } from './walk.js'

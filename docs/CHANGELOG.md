@@ -53,6 +53,10 @@ search:
     - What changes in the generated SQL is confined to a **projected** `is` / `isNot` / `is*IfValue`, on the two databases with no native boolean in that position. Oracle and SQL Server emitted the 3-branch `case when <condition> then 1 when not <condition> then 0 else null end` — the form that tells `false` apart from `null`, which repeats the whole condition and so binds every parameter in it a second time. For this comparison the `else null` cannot be reached, so they now emit `case when <condition> then 1 else 0 end`: the condition appears once and each of its parameters is bound once. SQL Server also stops wrapping such a value in `isnull(…, 'null')` inside an aggregated array built as JSON text.
     - Nothing else moves: used in `where`, `on` or `having` the emitted SQL is unchanged, PostgreSQL, MySQL, MariaDB and SQLite generate byte-for-byte the same SQL as before, and the values you get back are the same. The same four operations offered as dynamic-condition filters (`{ is: … }`, `{ isNot: … }`, `{ isIfValue: … }`, `{ isNotIfValue: … }`) go through these methods and follow along.
 
+**Internal changes**:
+
+- The library is now compiled with TypeScript 7. The published JavaScript is the same, and the published typings only differ in how a few types are printed (parentheses and quotes), so projects that compile with TypeScript 6 keep working.
+
 ## v2.0.0-beta.2
 
 **Testing and quality**:

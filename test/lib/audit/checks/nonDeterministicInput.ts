@@ -18,7 +18,7 @@
 // Engine: AST, no type checker. Anchor 0 — every `new Date()` in the suite today
 // is mock data; a clean preventive gate against a non-deterministic input.
 
-import ts from 'typescript'
+import ts from 'typescript6'
 import type { Finding } from '../types.js'
 import { lineOf } from '../ast.js'
 

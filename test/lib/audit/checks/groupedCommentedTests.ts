@@ -17,7 +17,7 @@
 // test (one `test(` on one of its lines) is never flagged; only a multi-test
 // `/* … */` block (or two calls crammed on one comment line) is.
 
-import ts from 'typescript'
+import ts from 'typescript6'
 import type { Finding } from '../types.js'
 
 // Same shape as commentedTest.ts `TEST_CALL` / markerPlacement.ts

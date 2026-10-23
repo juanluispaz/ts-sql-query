@@ -1035,7 +1035,7 @@ The residue also reconfirmed where the searcher should **not** go — the same w
 `--real-capable` and the type-coverage tool:
 
 - **The assignability question itself** ("does `NNoTableOrViewRequiredFrom<SOURCE>` assign to
-  `SOURCE`?") → the **compiler**. The index *locates* the types; a minimal repro + `tsgo`/`tsc`
+  `SOURCE`?") → the **compiler**. The index *locates* the types; a minimal repro + `tsc`
   *decides*. The searcher can show "here's the alias, here's its definition" (J-b), never "here's
   whether the assignment holds".
 - **Exact enumeration for mass-edits** (counting occurrences, byte anchors for a `perl`/`python` pass

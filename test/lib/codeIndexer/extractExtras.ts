@@ -11,7 +11,7 @@
 // version_gate / sql_emit / producer reuse the declMap built by extractSrc (so a
 // producer's return type resolves to our symbol rows). bug_marker is a plain comment scan.
 
-import ts from 'typescript'
+import ts from 'typescript6'
 import { relative } from 'node:path'
 import { cellOf } from './extractTests.js'
 import { resolveToken, type DeclMap, type RowRef } from './resolve.js'

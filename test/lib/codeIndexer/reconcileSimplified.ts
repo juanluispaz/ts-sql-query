@@ -23,7 +23,7 @@
 // lacks; extra = source shows, real lacks → drift); `reconcile_gap` the member names, also
 // tagged by `source`. The def→doc-location anchor is `doc_test_block.simplified_def`.
 
-import ts from 'typescript'
+import ts from 'typescript6'
 import { resolve } from 'node:path'
 import type { SrcExtract } from './extractSrc.js'
 import type { HeritageRow, ReconcileRow, ReconcileGapRow, ReconcileSource, SymbolRow } from './model.js'

@@ -22,7 +22,7 @@
 //     `commented-test-reason` detects such a test.
 // Anything else (file scope, a helper, floating prose) is flagged.
 
-import ts from 'typescript'
+import ts from 'typescript6'
 import type { Finding } from '../types.js'
 import { allComments } from '../ast.js'
 import { ANY_MARKER } from '../reasons.js'

@@ -31,7 +31,7 @@
 // commented-out test is trivia, not a call — `commented-test-reason` governs
 // that block instead.
 
-import ts from 'typescript'
+import ts from 'typescript6'
 import type { Finding } from '../types.js'
 import { lineOf, markerLines, isNodeInMarkedTest } from '../ast.js'
 import { MOCK_ONLY_LICENSE } from '../reasons.js'

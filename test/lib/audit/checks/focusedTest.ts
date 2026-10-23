@@ -12,7 +12,7 @@
 // identifier of the access chain is `test` / `it` / `describe`. The chain walk
 // also catches `test.only.each(...)` / `it.only.failing(...)`. No type checker.
 
-import ts from 'typescript'
+import ts from 'typescript6'
 import type { Finding } from '../types.js'
 import { lineOf } from '../ast.js'
 

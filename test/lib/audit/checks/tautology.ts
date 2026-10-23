@@ -23,7 +23,7 @@
 // non-negativity bound the audit cannot prove constant — `month`, an affected
 // count — stays unflagged).
 
-import ts from 'typescript'
+import ts from 'typescript6'
 import type { Finding } from '../types.js'
 import { lineOf } from '../ast.js'
 

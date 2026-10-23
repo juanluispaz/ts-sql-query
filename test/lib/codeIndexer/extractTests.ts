@@ -7,7 +7,7 @@
 // Parser only. Commented-out tests don't appear (they reference nothing at
 // runtime); .skip/.todo/.fails are recorded with is_active = 0.
 
-import ts from 'typescript'
+import ts from 'typescript6'
 import { resolve } from 'node:path'
 import { walkFiles } from './walk.js'
 import { resolveToken } from './resolve.js'

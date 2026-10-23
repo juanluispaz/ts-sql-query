@@ -13,7 +13,7 @@
 // resolve (or resolve outside the indexed surface — test helpers, locals, Bun globals)
 // keep only the name-based fallback the ref tables still carry.
 
-import ts from 'typescript'
+import ts from 'typescript6'
 import { resolve as resolvePath } from 'node:path'
 
 export interface BuiltProgram {

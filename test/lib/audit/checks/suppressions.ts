@@ -31,7 +31,7 @@
 // the `ts-ignore` rule for the negative-type cells (the only rule that scans
 // there).
 
-import ts from 'typescript'
+import ts from 'typescript6'
 import type { Finding } from '../types.js'
 
 const TS_IGNORE = /@ts-ignore\b|@ts-nocheck\b/

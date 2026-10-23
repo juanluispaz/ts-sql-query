@@ -16,7 +16,7 @@
 // anchor is 0 — this is a preventive gate against committing an un-baked
 // snapshot, the snapshot twin of `uuid-literal` / `non-public-api`.
 
-import ts from 'typescript'
+import ts from 'typescript6'
 import type { Finding } from '../types.js'
 import { lineOf } from '../ast.js'
 

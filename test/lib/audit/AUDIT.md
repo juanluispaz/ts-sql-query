@@ -124,8 +124,8 @@ The TypeScript compiler API is the motor.
   literal's static type would be separated by *cost of analysis*, not a
   `--quick`/`--deep` split, and would measure/report its wall time.
 
-The classic `typescript` package (not tsgo — no programmatic API yet), same
-choice the [indexer](../codeIndexer/CODE_INDEXER.md) made.
+The TypeScript 6 API (the `typescript6` dev dependency — TypeScript 7 has no stable
+programmatic API yet), same choice the [indexer](../codeIndexer/CODE_INDEXER.md) made.
 
 **Exclusions** mirror the symmetry check: skip `domain/` and
 `types.negative/` dirs, the `documentation` connector, the `general` db, and

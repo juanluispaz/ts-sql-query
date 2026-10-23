@@ -11,7 +11,7 @@
 //
 // Reads the COMPILED source file from the unified Program (no isolated parse).
 
-import ts from 'typescript'
+import ts from 'typescript6'
 import { resolve } from 'node:path'
 import { walkFiles } from './walk.js'
 import { cellOf, collectRefPositions } from './extractTests.js'

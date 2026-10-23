@@ -83,7 +83,7 @@
 // `mirror-image` and `one-sided-guard` describe a test that DOES run in both
 // modes, so no carve-out affects them.
 
-import ts from 'typescript'
+import ts from 'typescript6'
 import type { Finding } from '../types.js'
 import { lineOf, markerLines, isNodeInMarkedTest } from '../ast.js'
 import { NOT_APPLICABLE_OR_BUG_REASON } from '../reasons.js'

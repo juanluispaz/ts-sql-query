@@ -1,6 +1,6 @@
 // Compile-time negative tests for the `Values` (WITH ... VALUES) API on the
 // postgres dialect. These never execute any SQL — the value of the test is
-// that `validate:tests` (tsgo) rejects each `@ts-expect-error` line. If the
+// that `validate:tests` (tsc) rejects each `@ts-expect-error` line. If the
 // library stops rejecting one of these, the directive becomes "unused" and the
 // build fails with `TS2578` — exactly the regression signal we want.
 //
@@ -27,7 +27,7 @@ class VProjectPatchVirtual extends Values<DBConnection, 'projectPatchVirtual'> {
     display = this.virtualColumnFromFragment('string', f => f.sql`'x'`)
 }
 
-// The body of `_typeNegatives` is checked by tsgo but never executed at
+// The body of `_typeNegatives` is checked by tsc but never executed at
 // runtime, so the throw paths inside ts-sql-query are not triggered.
 function _typeNegatives() {
     const patch = Values.create(VProjectPatch, 'projectPatch', [

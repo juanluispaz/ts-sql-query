@@ -52,10 +52,10 @@ once. The heavy set:
 | Job | Peak RSS |
 |---|---|
 | `bun run tests` (whole matrix; `--docker` / `--wasm` on top) | ~15.9 GB |
-| `bun run validate:tests` (per-connector tsgo split) | ~7 GB (largest slice) |
+| `bun run validate:tests` (per-connector tsc split) | ~8 GB (largest slice) |
 | `bun run validate:tests <coord>` (narrowed to the cells a coord selects) | smaller — one cell is ~3 s |
-| `bun run validate:tests:newest` (single tsgo program) | ~6 GB |
-| `bun run validate` / `validate:tsgo` / `build*` | multi-GB |
+| `bun run validate:tests:newest` (single tsc program) | ~14 GB |
+| `bun run validate` / `build` | multi-GB |
 | `bun run tests:audit`, `npm run tests:index*` | multi-GB |
 | `bun run all-examples` / `no-docker-examples` | multi-GB + containers |
 
@@ -88,7 +88,7 @@ before the first test executes — that is why the headroom for a second job is
 not merely thin, it is negative.
 
 **Container reuse holds that memory between runs.** `--docker-mode reuse` is the
-default, so the engines stay up after the run ends: a `tsgo` started "now that
+default, so the engines stay up after the run ends: a `tsc` started "now that
 no tests are running" still competes with ~7 GB of idle containers. Run
 `bun run tests:stop-containers` before a heavy non-docker job, or when handing
 the machine back — at the cost of a cold start on the next `--docker` run. See

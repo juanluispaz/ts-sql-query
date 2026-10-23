@@ -557,9 +557,10 @@ wire it into the `openIndexDb` dispatcher. Everything above `db.ts` is backend-a
   `COUNT(*)`, not a stored column.
 - **One `ts.Program` over `src/` + `test/`** (built in `resolve.ts` from
   `test/tsconfig.json`), shared by every extractor — no per-file `createSourceFile`, no
-  in-memory slicing. The classic `typescript` package (not tsgo, which has no programmatic
-  API yet). `src/examples/prisma/` is excluded.
-- Typecheck edits with `bun run validate:tests` (tsgo).
+  in-memory slicing. It uses the TypeScript 6 API, through the `typescript6` dev dependency (an alias of
+  `typescript@6`): TypeScript 7 — the project's compiler — only publishes its API under
+  `typescript/unstable/*`. `src/examples/prisma/` is excluded.
+- Typecheck edits with `bun run validate:tests`.
 
 ## Notes
 
@@ -567,7 +568,7 @@ wire it into the `openIndexDb` dispatcher. Everything above `db.ts` is backend-a
 - Rebuild after `src/`, `test/` or `docs/` change. If `docs/` changed, regenerate the
   doc-code cells first (`bun run codegen:doc-code`) so the documentation dimension is
   current.
-- It uses the classic `typescript` package (not tsgo, which has no programmatic API yet).
+- It uses the TypeScript 6 API (`typescript6`, see above).
   Unlike a pure-parse pass, it builds a real type-checked Program over the whole tree, so
   a rebuild is ~2 min and peaks at ~12 GB (the type resolution is the cost — and the point;
   it is ~70% of the peak). This is why `tests:index` is the one script whose runtime is not

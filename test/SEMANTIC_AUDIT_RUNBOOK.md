@@ -259,7 +259,7 @@ comment in the code.**
 ## Wave 1 — discovery agents
 
 **Cap at ~2–3 concurrent** ([memory: delegation OOM discipline](./TYPE_AUDIT_RUNBOOK.md#operational-rules)).
-Agents **never** run `tsgo`, the whole matrix, `tests:audit`, `--docker`, or
+Agents **never** run `tsc`, the whole matrix, `tests:audit`, `--docker`, or
 `tests:index` — the coordinator owns all of those, serially.
 
 Give each agent **one lens or one surface**, never "find bugs":
@@ -276,7 +276,7 @@ Give each agent **one lens or one surface**, never "find bugs":
 The prompt template that worked:
 
 > Repo: … Read CLAUDE.md and test/SEMANTIC_AUDIT_RUNBOOK.md first.
-> READ-ONLY. Do NOT edit. Do NOT run tsgo / the matrix / tests:audit / docker /
+> READ-ONLY. Do NOT edit. Do NOT run tsc / the matrix / tests:audit / docker /
 > tests:index — the coordinator owns those. You MAY read, grep, and run
 > `bun run tests:where-is …`.
 > CONTEXT: <the lens, with 2 concrete examples of what it found before>

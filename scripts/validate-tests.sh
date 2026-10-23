@@ -1,8 +1,8 @@
 #!/bin/bash
-# Type-check the test/ matrix with tsgo, split one tsgo program PER CONNECTOR
+# Type-check the test/ matrix with tsc, split one tsc program PER CONNECTOR
 # so each slice fits the 16 GB GitHub-hosted CI runners.
 #
-# Why split at all: compiling the whole matrix + src in a single tsgo
+# Why split at all: compiling the whole matrix + src in a single tsc
 # program peaks past ~17 GB, which the Linux OOM killer terminates with
 # SIGKILL on the 16 GB runners (and on smaller dev machines). The OS
 # reclaims all memory between invocations, so the overall peak is the
@@ -13,7 +13,7 @@
 # single sqlite program peaks ~13 GB and OOM-kills the runner. Splitting per
 # database is no longer enough for sqlite, and rather than special-case one
 # database this script splits EVERY database the same way — one program per
-# connector. Each connector is ~0.5–1.3 k files and peaks ~6 GB, with huge
+# connector. Each connector is ~0.5–1.3 k files and peaks ~8 GB at most, with
 # headroom under 16 GB; the whole-run peak is now the single largest
 # connector, not the largest database.
 #
@@ -34,25 +34,25 @@
 # every database. With one or more <coord> positionals it narrows to the cells
 # they select, using the SAME coordinate vocabulary as the `tests` CLI
 # (`<db>[/<version>[/<connector>[/<file>]]]`, glob and brace expansion, quoted
-# or not). The cells are still grouped one tsgo program per (database,
+# or not). The cells are still grouped one tsc program per (database,
 # connector), so the memory profile of a narrowed run can only be smaller.
 #
 # Narrowing matters because the matrix is SYMMETRIC: the same test names exist
 # in all 67 cells, so one type error appears 67 times. Fixing it against a
 # single cell first, then one cell per database, then the remaining connectors
 # and version tiers, reads each error once instead of 67 times. A single cell
-# type-checks in ~3 s against ~86 s for the full split, which is the difference
+# type-checks in ~3 s against ~2 min for the full split, which is the difference
 # between an inner loop and a wait.
 #
-# tsgo is a standalone binary (runtime-agnostic), so this script is the
-# same whether invoked by `bun run validate:tests` or `bun run
+# tsc is a standalone binary (runtime-agnostic), so this script is the
+# same whether invoked by `bun run validate:tests` or `npm run
 # validate:tests`; the package manager puts node_modules/.bin on PATH.
 
 set -e
 
 print_usage() {
     cat <<'USAGE'
-validate:tests — type-check the test/ matrix with tsgo (one program per connector)
+validate:tests — type-check the test/ matrix with tsc (one program per connector)
 
   validate:tests [<coord>…]
 
@@ -95,7 +95,7 @@ trap 'rm -f test/tsconfig.*.generated.json' EXIT
 
 databases=(mariadb mysql oracle postgres sqlite sqlserver)
 
-# Emit one tsgo program: shared infra + src + the given cell includes, which
+# Emit one tsc program: shared infra + src + the given cell includes, which
 # are paths relative to test/ (where `extends: ./tsconfig.json` resolves).
 run_slice() {
     local db="$1" label="$2"; shift 2
@@ -121,7 +121,7 @@ $includes        "../src/**/*.ts"
 EOF
     echo ""
     echo ">>> validate:tests — $db/$label"
-    tsgo -p "$cfg" --noEmit
+    tsc -p "$cfg" --noEmit
     rm -f "$cfg"
 }
 

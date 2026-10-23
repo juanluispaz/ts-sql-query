@@ -1,6 +1,6 @@
 // Compile-time negative tests for the SQL-fragment builders on the postgres
 // dialect. These never execute any SQL — the value of the test is that
-// `validate:tests` (tsgo) rejects each `@ts-expect-error` line. If the library
+// `validate:tests` (tsc) rejects each `@ts-expect-error` line. If the library
 // stops rejecting one of these, the directive becomes "unused" and the build
 // fails with `TS2578` — exactly the regression signal we want.
 //
@@ -22,7 +22,7 @@ class ConnWithRequiredValueArg extends DBConnection {
     ).as((a, b) => this.fragmentWithType('boolean', 'required').sql`${a} = ${b}`)
 }
 
-// The body of `_typeNegatives` is checked by tsgo but never executed at
+// The body of `_typeNegatives` is checked by tsc but never executed at
 // runtime, so the throw paths inside ts-sql-query are not triggered.
 declare const conn: ConnWithRequiredValueArg
 

@@ -32,7 +32,7 @@
 // demonstration with `compatibilityVersion = Infinity`); the `/documentation/`
 // guard below is a defensive backstop if the check is ever run over a wider set.
 
-import ts from 'typescript'
+import ts from 'typescript6'
 import type { Finding } from '../types.js'
 import { lineOf } from '../ast.js'
 

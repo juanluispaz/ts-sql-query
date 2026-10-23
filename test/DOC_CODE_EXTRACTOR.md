@@ -4,7 +4,7 @@ This tool's **purpose is to TEST the documentation's code examples**. It turns t
 doc snippets into ordinary matrix test cells that validate them **twice**:
 
 1. **By the TypeScript compiler** — every ```ts / ```typescript snippet is
-   extracted into compilable TypeScript and fed through the same `tsc`/`tsgo`
+   extracted into compilable TypeScript and fed through the same `tsc`
    compilation as the rest of `test/`. A doc example that no longer type-checks
    (API renamed, signature changed, typo) fails the build instead of rotting.
 2. **By running the SQL** — every ```ts that is paired with a dialect SQL fence
@@ -45,7 +45,7 @@ bun run codegen               # umbrella: codegen:prisma + codegen:doc-code (wha
 
 Wrapper: [`scripts/codegen-doc-code.sh`](../scripts/codegen-doc-code.sh)
 (`--help` prints the full behaviour). The generated files are type-checked by
-`bun run validate:tests` (tsgo); the non-v1 CI runs `codegen` before
+`bun run validate:tests` (tsc); the non-v1 CI runs `codegen` before
 `validate:tests`.
 
 ## Run the SQL tests

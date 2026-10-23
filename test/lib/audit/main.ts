@@ -5,7 +5,7 @@
 // See AUDIT.md.
 
 import { readFileSync } from 'node:fs'
-import ts from 'typescript'
+import ts from 'typescript6'
 
 import { runSymmetryCheck } from './symmetry.js'
 import { cellTestFiles, typesNegativeTestFiles } from './walk.js'

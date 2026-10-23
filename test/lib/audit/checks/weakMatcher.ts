@@ -34,7 +34,7 @@
 // Engine: AST, no type checker. Diagnostic context is recognised structurally
 // (`isDiagnosticContext`).
 
-import ts from 'typescript'
+import ts from 'typescript6'
 import type { Finding } from '../types.js'
 import { lineOf } from '../ast.js'
 

@@ -44,7 +44,7 @@
 // (`as-any` / `as-unknown-as` / `meaningless-cast` / `type-cast`) also share the
 // `castSanctioned` carve-outs; each cast node is owned by exactly one of them.
 
-import ts from 'typescript'
+import ts from 'typescript6'
 import type { Finding } from '../types.js'
 import { lineOf, markerLines, isNodeInMarkedTest } from '../ast.js'
 import { TODO_BUG_REASON } from '../reasons.js'

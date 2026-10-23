@@ -211,7 +211,7 @@ re-validate" loop benefits the most. Full flag reference in
 
    ```bash
    bun run tests:audit  -- # mechanical anti-cheat gate (symmetry + ~24 rules)
-   bun run validate:tests  # typecheck ✓ (tsgo, per-connector split; use validate:tests:newest for the fast loop)
+   bun run validate:tests  # typecheck ✓ (tsc, per-connector split; use validate:tests:newest for the fast loop)
    bun run tests        -- # mock matrix ✓
    ```
 
@@ -275,38 +275,35 @@ negative test is the second step of fixing a typing bug (see
 
 ## Type-checking the test matrix
 
-`bun run validate:tests` runs `bash scripts/validate-tests.sh` — one tsgo
-program **per connector** (the TypeScript 7 Go-based compiler) — and is the
-**authoritative** check for the `test/` matrix. tsgo is the only compiler that
-type-checks tests: tests don't ship, so there's no downstream tsc-compat
-obligation, and the agent's default loop gets tsgo's speed and stricter span
-behaviour. CI gates on it.
+`bun run validate:tests` runs `bash scripts/validate-tests.sh` — one `tsc`
+program **per connector** (TypeScript 7, the Go-based compiler) — and is the
+**authoritative** check for the `test/` matrix. CI gates on it.
 
-> **RAM.** A single tsgo program over `test/tsconfig.json` + `src/` peaks
+> **RAM.** A single tsc program over `test/tsconfig.json` + `src/` peaks
 > **past 17 GB** as the suite grows, OOM-killing 16 GB CI runners and most dev
 > boxes — so there is no whole-matrix command. Two RAM-safe paths:
-> - **Full check → `bun run validate:tests`** — one tsgo program per connector
+> - **Full check → `bun run validate:tests`** — one tsc program per connector
 >   (sqlite grew too large to split merely per-db, so every db is split the
 >   same way; configs generated on the fly), so peak = the single largest
->   slice, not the sum (~7 GB), which is what CI gates. Use it before pushing.
-> - **Inner edit loop → `bun run validate:tests:newest`** — a SINGLE tsgo
+>   slice, not the sum (~8 GB), which is what CI gates. Use it before pushing.
+> - **Inner edit loop → `bun run validate:tests:newest`** — a SINGLE tsc
 >   program (`test/tsconfig.newest.json`) narrowed to every db's `newest` +
 >   `types.negative` cells (drops the older version tiers + `domain/`, mirroring
->   `--run-versions newest`). It peaks ~6 GB and compiles `src/` once, so it fits
->   in RAM easily. A green newest run says nothing about the older tiers, so run
+>   `--run-versions newest`). It peaks ~14 GB — more than any slice of the full split —
+>   so on a 16 GB box run it alone; for a narrow change `validate:tests <coord>` is cheaper.
+>   A green newest run says nothing about the older tiers, so run
 >   the full `validate:tests` before pushing.
 >
 > The newest set is expressed by INCLUDE in `test/tsconfig.newest.json`, so a
 > newly added version-tier folder is auto-excluded there with no edit.
 
-Negative type tests are written **in tsgo style** — `@ts-expect-error`
-directives placed where tsgo reports the error span (the common case:
-single-statement assertions and call-site errors). tsgo is the only compiler
-that checks them, so its placement is the one that matters. Error spans are
-unspecified when either error is valid
+Negative type tests place their `@ts-expect-error` directives where
+TypeScript 7 reports the error span (the common case: single-statement
+assertions and call-site errors). Error spans are unspecified when either error
+is valid
 ([microsoft/typescript-go#1088](https://github.com/microsoft/typescript-go/issues/1088),
-closed *not planned*), which is why the directive follows tsgo rather than any
-particular tsc release.
+closed *not planned*), so follow what the current compiler reports — a
+placement taken from a TypeScript 6 example may need moving.
 
 ## Testing a runtime guard that is also typed at compile time
 

@@ -241,7 +241,7 @@ cells simply do not exist.
 ## TL;DR commands
 
 > **One heavy job at a time.** Never run two of these concurrently — the
-> whole matrix peaks ~15.9 GB and a tsgo slice ~7 GB, so the second one gets
+> whole matrix peaks ~15.9 GB and a tsc slice ~8 GB, so the second one gets
 > OOM-killed (`EXIT=137`) and the survivor reports bogus contention
 > timeouts. **The engines count too**: under `--docker` the containers hold
 > ~7.2 GB at rest inside a Docker VM provisioned ~11.7 GB, and container

@@ -12,9 +12,9 @@ This page explains how to use `ts-sql-query` with the [Bun SQL](https://bun.com/
     - [MySQL](../../supported-databases/mysql.md)
     - [MariaDB](../../supported-databases/mariadb.md)
 
-!!! danger "Experimental"
+!!! danger "Experimental on MariaDB"
 
-    This query runner is experimental.
+    This query runner is experimental when it is used against MariaDB: a [`Values`](../../mapping.md#mapping-constant-values-as-view) source cannot be used in a query (see *MariaDB: `Values`* below). Against MySQL it is fully supported.
 
 !!! info "Requirements"
 
@@ -38,9 +38,9 @@ This page explains how to use `ts-sql-query` with the [Bun SQL](https://bun.com/
 
     When the MySQL server authenticates with `caching_sha2_password` (the default since MySQL 8) and the connection does not use TLS, Bun SQL can reject the connection with `ERR_MYSQL_PUBLIC_KEY_RETRIEVAL_NOT_ALLOWED`. Enable TLS on the connection, or set `allowPublicKeyRetrieval: true` if you accept retrieving the server's public key over an insecure connection.
 
-!!! warning "MariaDB: `Values` in `UPDATE` / `DELETE`"
+!!! warning "MariaDB: `Values`"
 
-    Bun SQL always sends the query parameters as a server-side prepared statement, and MariaDB silently discards the parameter values placed inside a `VALUES (...)` table constructor of a prepared statement ([MDEV-33477](https://jira.mariadb.org/browse/MDEV-33477)). On MariaDB, a [`Values`](../../../queries/values.md) source used in an `UPDATE ... FROM` or a `DELETE ... USING` therefore reaches the database without its values, so the statement updates or deletes nothing (or fails). This does not affect MySQL.
+    Bun SQL always sends the query parameters as a server-side prepared statement, and MariaDB silently discards the parameter values placed inside a `VALUES (...)` table constructor of a prepared statement ([MDEV-33477](https://jira.mariadb.org/browse/MDEV-33477)). On MariaDB, a [`Values`](../../mapping.md#mapping-constant-values-as-view) source — in a `select`, an `insert ... from select`, an `UPDATE ... FROM` or a `DELETE ... USING` — therefore reaches the database without its values: the query reads empty values, inserts or updates nothing, or is refused. This does not affect MySQL, where the library emits `VALUES ROW(...)`.
 
 ## Using a Bun SQL MySQL connection
 

@@ -14,6 +14,8 @@ search:
     - `.concatIgnoringNullIfValue(...)` is the dynamic-query twin, as `.concatIfValue(...)` is for `.concat(...)`: it takes a `string | null | undefined` and, when the value is absent, drops that operand from the generated SQL instead of binding it.
     - This was previously not expressible in a portable way: wrapping each operand in `.valueWhenNull('')` works on the other five databases, but not on Oracle, where the empty string it falls back to is itself `NULL`.
 
+- The Bun SQL query runners are no longer experimental: `BunSqlPostgresQueryRunner`, `BunSqlSqliteQueryRunner` and `BunSqlMySqlQueryRunner` against MySQL are now fully supported and covered by the test suite against the real databases. `BunSqlMySqlQueryRunner` stays **experimental against MariaDB**, where a `Values` source cannot be used because MariaDB discards the values of a prepared `VALUES (...)` table constructor ([MDEV-33477](https://jira.mariadb.org/browse/MDEV-33477); [docs](configuration/query-runners/recommended/bun_sql_mysql.md)).
+
 **Breaking changes**:
 
 - The Bun SQL query runners (`BunSqlPostgresQueryRunner`, `BunSqlMySqlQueryRunner`, `BunSqlSqliteQueryRunner`) now require **Bun 1.4.4 or newer**, the first release where Bun SQL binds `Date` parameters, decodes MySQL `YEAR` / `DECIMAL` values and reports the affected rows of an `INSERT ... SELECT` correctly. The workarounds they carried for older Bun releases are gone:

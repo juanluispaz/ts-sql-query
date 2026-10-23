@@ -11,10 +11,6 @@ This page explains how to use `ts-sql-query` with the [Bun SQL](https://bun.com/
 
     - [SQLite](../../supported-databases/sqlite.md)
 
-!!! danger "Experimental"
-
-    This query runner is experimental.
-
 !!! info "Requirements"
 
     Bun 1.4.4 or newer.

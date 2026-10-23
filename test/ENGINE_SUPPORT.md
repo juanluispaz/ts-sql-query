@@ -742,7 +742,7 @@ MariaDB silently drops the bound values of placeholders that sit inside a
 `VALUES (...)` table constructor of a **server-side prepared statement**
 ([MDEV-33477](https://jira.mariadb.org/browse/MDEV-33477), open; reproduced on
 MariaDB 10.5, 12.3 and 13.0 with `mysql2.execute()` and `mariadb.execute()` too).
-The `WITH name(cols) AS (VALUES (?, ...))` a [`Values`](../docs/queries/values.md)
+The `WITH name(cols) AS (VALUES (?, ...))` a [`Values`](../docs/configuration/mapping.md#mapping-constant-values-as-view)
 source emits on MariaDB then reaches the engine with empty values: a select reads
 empty strings, an insert-from-select is refused (`Incorrect integer value: ''`),
 an update / delete through it touches nothing. The `mariadb` connector is not

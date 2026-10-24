@@ -618,7 +618,7 @@ Only the `TIME` type is affected (the `int` / `string` / `localDate` /
 `localDateTime` / `custom*` variants of the same `inN(const, subquery)` test all
 pass); it is a server-side type-aggregation quirk in MySQL 8.0's evaluation of
 `IN(...)` when the list mixes a constant with a subquery. **MySQL 9 evaluates it
-correctly** (the `newest` cell, on `mysql:9`, returns both rows). The library emits
+correctly** (the `newest` cell — `mysql:9` when verified, `mysql:26.10` today — returns both rows). The library emits
 correct, standard SQL identical to `newest` — this is purely the older server.
 
 **What this means for tests** — per the engine-support policy at the top of this

@@ -130,7 +130,7 @@ describe(ctx.label, () => {
 
     // The server rejects the emitted `delete from issue using issue,
     // project ... RETURNING ...` form with a parse error at `returning`
-    // (verified against MariaDB 12.3.2). Single-table DELETE ... RETURNING
+    // (verified against MariaDB 13.0.2). Single-table DELETE ... RETURNING
     // works on this image (it has shipped since MariaDB 10.0.5), but
     // RETURNING on a multi-table DELETE (DELETE ... USING) is not accepted.
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 13.0.2
@@ -255,7 +255,7 @@ describe(ctx.label, () => {
 
     // The server rejects the emitted `delete from issue using issue,
     // project ... RETURNING ...` form with a parse error at `returning`
-    // (verified against MariaDB 12.3.2). Single-table DELETE ... RETURNING
+    // (verified against MariaDB 13.0.2). Single-table DELETE ... RETURNING
     // works on this image (it has shipped since MariaDB 10.0.5), but
     // RETURNING on a multi-table DELETE (DELETE ... USING) is not accepted.
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 13.0.2

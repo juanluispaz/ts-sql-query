@@ -77,8 +77,8 @@ run (under load it is higher):
 |---|---|---|
 | SQL Server | `mcr.microsoft.com/mssql/server:2025-latest` | ~3.10 GB |
 | Oracle | `gvenzl/oracle-free:23-slim-faststart` | ~2.60 GB |
-| MySQL | `mysql:9` | ~0.83 GB |
-| MariaDB | `mariadb:12.3` | ~0.36 GB |
+| MySQL | `mysql:26.10` | ~0.83 GB |
+| MariaDB | `mariadb:13.0` | ~0.36 GB |
 | PostgreSQL | `postgres:18-alpine` | ~0.32 GB |
 | | **total** | **~7.2 GB** |
 

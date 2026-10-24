@@ -124,7 +124,7 @@ in [`test/lib/dockerPreflight.ts`](./lib/dockerPreflight.ts), driven by the
    container started here, and it front-loads the once-per-container schema-hash
    validation too. Under the default `latest` every folder resolves to the
    newest image, so it collapses back to one warmup per engine; the log names
-   the resolved image (e.g. `mariadb: ready (mariadb:12.3)`), never the
+   the resolved image (e.g. `mariadb: ready (mariadb:13.0)`), never the
    arbitrary version folder that drove it.
 
 Why reuse-only: a container started in a separate preflight process survives

@@ -119,7 +119,7 @@ describe(ctx.label, () => {
 
     // The server rejects the emitted `update project, organization set
     // ... returning ...` form with a parse error at `returning`
-    // (verified against MariaDB 12.3.2). Two reasons stack: UPDATE ...
+    // (verified against MariaDB 13.0.2). Two reasons stack: UPDATE ...
     // RETURNING needs MariaDB 13.0.1+ (the mariadb:latest image still
     // ships 12.x), and RETURNING on a multi-table UPDATE is not accepted
     // even where single-table UPDATE RETURNING is.
@@ -170,7 +170,7 @@ describe(ctx.label, () => {
 
     // The server rejects the emitted `update project, organization set
     // ... returning ...` form with a parse error at `returning`
-    // (verified against MariaDB 12.3.2). Two reasons stack: UPDATE ...
+    // (verified against MariaDB 13.0.2). Two reasons stack: UPDATE ...
     // RETURNING needs MariaDB 13.0.1+ (the mariadb:latest image still
     // ships 12.x), and RETURNING on a multi-table UPDATE is not accepted
     // even where single-table UPDATE RETURNING is.
@@ -226,7 +226,7 @@ describe(ctx.label, () => {
 
     // The server rejects the emitted `update project, organization set
     // ... returning ...` form with a parse error at `returning`
-    // (verified against MariaDB 12.3.2). Two reasons stack: UPDATE ...
+    // (verified against MariaDB 13.0.2). Two reasons stack: UPDATE ...
     // RETURNING needs MariaDB 13.0.1+ (the mariadb:latest image still
     // ships 12.x), and RETURNING on a multi-table UPDATE is not accepted
     // even where single-table UPDATE RETURNING is.

@@ -39,9 +39,10 @@ export const ENGINE_IMAGES: Readonly<Record<string, Readonly<Record<string, stri
         oldest: 'postgres:17-alpine',
     },
     // Breakpoints 8_000_019 (== newest), 8_000_017, 8_000_000. 8.0.x covers both
-    // sub-newest breakpoints; oldest is MySQL 5.x.
+    // sub-newest breakpoints; oldest is MySQL 5.x. newest is the current innovation
+    // release (calendar-versioned since 26.7; 9.7 is the LTS line).
     mysql: {
-        newest: 'mysql:9',
+        newest: 'mysql:26.10',
         '8_000_017': 'mysql:8.0',
         '8_000_000': 'mysql:8.0',
         // MySQL <8.0 has no arm64 image; 5.7 is amd64-only (it is the only option

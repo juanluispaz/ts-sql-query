@@ -1,5 +1,6 @@
 import { Table } from '../Table.js'
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
+import { PrismaLibSql } from '@prisma/adapter-libsql'
 import { assertEquals } from './assertEquals.js'
 import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
 import { SqliteConnection } from '../connections/SqliteConnection.js'
@@ -70,10 +71,11 @@ const tBoolean = new class TBoolean extends Table<DBConnection, 'TBoolean'> {
     }
 }()
 
+// Prisma's better-sqlite3 adapter does not run on Bun; Prisma documents the libsql adapter for Bun instead.
 const prisma = new PrismaClient({
-    adapter: new PrismaBetterSqlite3({
-        url: 'src/examples/prisma/generated/prismasqlitetest.db'
-    })
+    adapter: typeof globalThis.Bun !== 'undefined'
+        ? new PrismaLibSql({ url: 'file:src/examples/prisma/generated/prismasqlitetest.db' })
+        : new PrismaBetterSqlite3({ url: 'src/examples/prisma/generated/prismasqlitetest.db' })
 })
 
 async function main() {

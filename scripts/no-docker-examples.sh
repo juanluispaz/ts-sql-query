@@ -48,8 +48,8 @@ else
         echo "Skipping NodeSqlite{,Synchronous}Example.ts: db.function API requires Node >= 24 (current: Node $NODE_MAJOR)"
         set -x
     fi
-    $RUN ./src/examples/PrismaSqliteExample.ts || exit 1
 fi
+$RUN ./src/examples/PrismaSqliteExample.ts || exit 1
 $RUN ./src/examples/Sqlite3WasmOO1Example.ts || exit 1
 $RUN ./src/examples/Sqlite3WasmOO1SynchronousExample.ts || exit 1
 

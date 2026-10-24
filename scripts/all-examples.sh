@@ -5,11 +5,11 @@
 # direct invocation defaults to bun.
 #
 # Per-runtime divergence is intentional:
-#   * node-only: PrismaSqlite.
 #   * bun-only:  BunSqlite*, BunSqlSqlite*, BunSqlPostgres*,
 #                BunSqlMySql*, BunSqlMariaDB*.
 #   * common:    everything under documentation/, Sqlite3Example,
-#                BetterSqlite3*, NodeSqlite* (Node 24+ / Bun), Sqlite3WasmOO1*, PgLiteExample, the per-driver scripts
+#                BetterSqlite3*, NodeSqlite* (Node 24+ / Bun), PrismaSqlite,
+#                Sqlite3WasmOO1*, PgLiteExample, the per-driver scripts
 #                that share between runtimes.
 
 set -x #echo on
@@ -75,8 +75,8 @@ else
         echo "Skipping NodeSqlite{,Synchronous}Example.ts: db.function API requires Node >= 24 (current: Node $NODE_MAJOR)"
         set -x
     fi
-    $RUN ./src/examples/PrismaSqliteExample.ts || exit 1
 fi
+$RUN ./src/examples/PrismaSqliteExample.ts || exit 1
 $RUN ./src/examples/Sqlite3WasmOO1Example.ts || exit 1
 $RUN ./src/examples/Sqlite3WasmOO1SynchronousExample.ts || exit 1
 

@@ -306,6 +306,7 @@
     "devDependencies": {
         "@electric-sql/pglite": "^0.5.11",
         "@prisma/adapter-better-sqlite3": "^7.10.1",
+        "@prisma/adapter-libsql": "^7.10.1",
         "@prisma/adapter-mariadb": "^7.10.1",
         "@prisma/adapter-mssql": "^7.10.1",
         "@prisma/adapter-pg": "^7.10.1",

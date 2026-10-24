@@ -1300,6 +1300,8 @@ describe(ctx.label, () => {
     // site' and 'Internal tools' (both non-null, distinct first letters), so the
     // nulls and insensitivity modifiers don't reorder the two elements — only
     // asc vs desc.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('inline-aggregate-order-by-asc', async () => {
         ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Internal tools', 'Marketing site']) })
         const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
@@ -1322,7 +1324,10 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; projectNames: string[] }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('inline-aggregate-order-by-asc-nulls-first', async () => {
         ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Internal tools', 'Marketing site']) })
         const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
@@ -1345,7 +1350,10 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; projectNames: string[] }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('inline-aggregate-order-by-desc', async () => {
         ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Marketing site', 'Internal tools']) })
         const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
@@ -1368,7 +1376,10 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; projectNames: string[] }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Marketing site', 'Internal tools'] })
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('inline-aggregate-order-by-desc-nulls-last', async () => {
         ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Marketing site', 'Internal tools']) })
         const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
@@ -1391,7 +1402,10 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; projectNames: string[] }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Marketing site', 'Internal tools'] })
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('inline-aggregate-order-by-insensitive', async () => {
         ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Internal tools', 'Marketing site']) })
         const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
@@ -1414,7 +1428,10 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; projectNames: string[] }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('inline-aggregate-order-by-desc-insensitive', async () => {
         ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Marketing site', 'Internal tools']) })
         const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
@@ -1437,7 +1454,10 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; projectNames: string[] }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Marketing site', 'Internal tools'] })
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('inline-aggregate-order-by-desc-nulls-last-insensitive', async () => {
         ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Marketing site', 'Internal tools']) })
         const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
@@ -1460,7 +1480,10 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; projectNames: string[] }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Marketing site', 'Internal tools'] })
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('inline-aggregate-order-by-desc-nulls-first-insensitive', async () => {
         ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Marketing site', 'Internal tools']) })
         const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
@@ -1483,6 +1506,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; projectNames: string[] }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Marketing site', 'Internal tools'] })
     })
+    */
     // Tests referencing these are commented out above with NOT-SUPPORTED
     // markers; keep the bindings referenced so noUnusedLocals stays green.
     void tAppUser; void tProjectRelease

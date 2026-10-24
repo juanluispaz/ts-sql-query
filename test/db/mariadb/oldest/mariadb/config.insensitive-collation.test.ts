@@ -22,6 +22,9 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { tAppUser, tIssue, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
+void tOrganization
+void tProject
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -290,6 +293,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref not like concat('%', ?, '%')"`)
     })
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('collation: aggregate-array-order-by-insensitive', async () => {
         // An inline aggregate whose inner `order by` uses an INSENSITIVE mode, on
         // a connection with `insensitiveCollation` set. The insensitive-order-by
@@ -324,4 +329,5 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(name order by name asc) from project where organization_id = organization.id) as char) as names from organization where id = ?"`)
     })
+    */
 })

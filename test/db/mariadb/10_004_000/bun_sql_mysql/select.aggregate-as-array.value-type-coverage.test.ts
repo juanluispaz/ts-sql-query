@@ -14,6 +14,8 @@ import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tIssue, tIssueWorklog, tProject, tProjectRelease, tProjectReview, vReleaseOverview, type ReleaseTag } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
+void tProjectRelease
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -585,6 +587,8 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('aggregate-of-double-column-as-wrapped-array', async () => {
         // WRAPPED single-column inline aggregate: the inner `order by` forces the
         // builder to wrap the subquery as `... from (select … order by …) as a_N_`,
@@ -626,7 +630,10 @@ describe(ctx.label, () => {
             expect(sorted).toEqual({ id: 1, hours: [4.5, 12] })
         })
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('aggregate-of-bigint-column-as-wrapped-array', async () => {
         // WRAPPED single-column inline aggregate of a `bigint` column — pins the
         // `bigint` case of the wrapped JSON-leaf path (SQL Server < 17M emits the
@@ -662,7 +669,10 @@ describe(ctx.label, () => {
             expect(sorted).toEqual({ id: 1, views: [100n, 200n] })
         })
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('aggregate-of-uuid-column-as-wrapped-array', async () => {
         // WRAPPED single-column aggregate of an optional `uuid` column — pins the
         // `uuid` wrapped JSON-leaf case (SQL Server < 17M wraps it in
@@ -698,7 +708,10 @@ describe(ctx.label, () => {
             expect(sorted).toEqual({ id: 1, refs: ['c733575e-b5ba-400c-8803-3d3d4bbcd52f', 'c995d12f-ced4-4e94-a341-c2da118fe64b'] })
         })
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('aggregate-of-local-date-time-column-as-wrapped-array', async () => {
         // WRAPPED single-column aggregate of a `localDateTime` column — pins the
         // `localDateTime` wrapped JSON-leaf case (SQL Server < 17M emits
@@ -734,7 +747,10 @@ describe(ctx.label, () => {
             expect(sorted.map(d => d.toISOString())).toEqual(['2024-01-01T00:00:00.000Z', '2024-01-02T00:00:00.000Z'])
         })
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('aggregate-of-boolean-column-as-wrapped-array', async () => {
         // WRAPPED single-column aggregate of an optional `boolean` column — pins the
         // `boolean` wrapped JSON-leaf case (SQL Server < 17M emits `convert(nvarchar,
@@ -769,7 +785,10 @@ describe(ctx.label, () => {
             expect(sorted).toEqual({ id: 1, flags: [false, true] })
         })
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('aggregate-of-local-date-column-as-wrapped-array', async () => {
         // WRAPPED single-column aggregate of a `localDate` column — pins the
         // `localDate` wrapped JSON-leaf case (SQL Server < 17M emits
@@ -797,7 +816,10 @@ describe(ctx.label, () => {
         const sorted = [...row.dates].sort((a, b) => a.getTime() - b.getTime())
         expect(sorted.map(d => d.getUTCFullYear() + '-' + (d.getUTCMonth() + 1) + '-' + d.getUTCDate())).toEqual(['2024-3-4', '2024-3-6'])
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('aggregate-of-custom-double-column-as-wrapped-array', async () => {
         // WRAPPED single-column aggregate of a `customDouble` (branded `Money`)
         // column — pins the `customDouble` wrapped JSON-leaf case (quoted, lossless
@@ -824,7 +846,10 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; amounts: number[] }>>()
         expect(row).toEqual({ id: 1, amounts: [200, 200] })
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('aggregate-of-custom-double-column-as-array', async () => {
         // NON-wrapped aggregate of the same `customDouble` column — pins the
         // non-wrapped `customDouble` JSON-leaf case. Issue 1's worklogs 1 and 3.
@@ -847,7 +872,10 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ issueId: number; amounts: number[] }>>>()
         expect(rows).toEqual([{ issueId: 1, amounts: [200, 200] }])
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('aggregate-of-local-time-column-as-wrapped-array', async () => {
         // WRAPPED single-column aggregate of a `localTime` column — pins the
         // `localTime` wrapped JSON-leaf case. `tIssueWorklog.startedAt` is optional
@@ -875,7 +903,10 @@ describe(ctx.label, () => {
         const sorted = [...row.clocks].sort((a, b) => a.getTime() - b.getTime())
         expect(sorted.map(d => d.getUTCHours() + ':' + String(d.getUTCMinutes()).padStart(2, '0'))).toEqual(['9:15', '10:30'])
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('aggregate-of-custom-uuid-column-as-wrapped-array', async () => {
         // WRAPPED single-column aggregate of a `customUuid` column — pins the
         // `customUuid` wrapped JSON-leaf case (nvarchar(36) convert). Project 1 owns
@@ -902,7 +933,10 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; keys: string[] }>>()
         expect(row).toEqual({ id: 1, keys: ['0a8f9c1e-1111-4222-8333-444455556666'] })
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('aggregate-of-custom-local-date-column-as-wrapped-array', async () => {
         // WRAPPED single-column aggregate of a `customLocalDate` column — pins the
         // `customLocalDate` wrapped JSON-leaf case. Project 1's releases 1 and 2 seed
@@ -929,7 +963,10 @@ describe(ctx.label, () => {
         const sorted = [...row.days].sort((a, b) => a.getTime() - b.getTime())
         expect(sorted.map(d => d.getUTCFullYear() + '-' + (d.getUTCMonth() + 1) + '-' + d.getUTCDate())).toEqual(['2024-1-15', '2024-2-20'])
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('aggregate-of-custom-local-time-column-as-wrapped-array', async () => {
         // WRAPPED single-column aggregate of a `customLocalTime` column — pins the
         // `customLocalTime` wrapped JSON-leaf case. Project 1's releases 1 and 2 seed
@@ -956,7 +993,10 @@ describe(ctx.label, () => {
         const sorted = [...row.cutoffs].sort((a, b) => a.getTime() - b.getTime())
         expect(sorted.map(d => d.getUTCHours() + ':' + String(d.getUTCMinutes()).padStart(2, '0'))).toEqual(['17:00', '18:30'])
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('aggregate-of-custom-local-date-time-column-as-wrapped-array', async () => {
         // WRAPPED single-column aggregate of a `customLocalDateTime` column — pins
         // the `customLocalDateTime` wrapped JSON-leaf case. Project 1's releases 1 and
@@ -983,6 +1023,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; signoffs: Date[] }>>()
         expect(row.signoffs.map(d => d.toISOString())).toEqual(['2024-01-14T12:30:00.000Z'])
     })
+    */
 
     // NOT-APPLICABLE: MariaDB types `forUseAsInlineAggregatedArrayValue` as `never` for an inline aggregate carrying `group by` (also `having`/`compound`/`distinct`) — MariaDB allows no outer references in an inner FROM (no LATERAL), so this correlated wrapped-object shape is forbidden by design. A MariaDB user can never build it; casting past the guard only emits SQL MariaDB rejects at execution (ER_BAD_FIELD_ERROR: Unknown column 'project.id'). Body kept (canonical shape) for cross-cell diff parity per the symmetry rule.
     /*

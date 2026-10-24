@@ -754,6 +754,23 @@ out with `// NOT-SUPPORTED:` (full canonical body preserved) in the
 `mariadb/*/bun_sql_mysql` cells and runs live on `mariadb/*/mariadb`. Only a
 MariaDB fix would re-enable them.
 
+## MariaDB 10.5 and earlier type a prepared statement's parameters as `binary` (Bun SQL)
+
+On MariaDB 10.5 and earlier, a parameter of a **server-side prepared statement**
+has the `binary` character set (verified against `mariadb:10.5`; 12.3 and 13.0
+type it as the connection's character set). So `? collate utf8mb4_bin` is
+rejected (`COLLATION 'utf8mb4_bin' is not valid for CHARACTER SET 'binary'`), and
+an expression built only from parameters — `coalesce(?, ?)` — comes back as
+bytes, which the library refuses as a string (`INVALID_VALUE_RECEIVED_FROM_DATABASE`).
+The `mariadb` connector is not affected (text protocol); **Bun SQL always
+prepares the statement**.
+
+The collation tests and the parameter-only fragment tests that hit this are
+therefore commented out with `// NOT-SUPPORTED:` in the `bun_sql_mysql` cells of
+the tiers whose engine is 10.5 or earlier (`10_005_000`, `10_004_000`,
+`10_003_003`, `oldest`) and run live on `newest` and on the `mariadb` connector.
+Verified with `--docker-version closest`.
+
 ### `replaceAllInsensitiveFunction`'s UDF cannot be registered on `bun:sqlite` / Bun SQL / `sqlite3`
 
 `replaceAllInsensitiveFunction` lets a SQLite connection route

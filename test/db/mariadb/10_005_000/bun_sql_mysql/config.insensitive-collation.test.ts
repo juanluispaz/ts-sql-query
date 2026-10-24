@@ -22,11 +22,15 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { tAppUser, tIssue, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
+void tIssue
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MariaDB 10.5 and earlier a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mariadb connector.
+    /*
     test('collation: equalsInsensitive', async () => {
         const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
         await collated.selectFrom(tAppUser)
@@ -42,7 +46,10 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email = ?"`)
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MariaDB 10.5 and earlier a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mariadb connector.
+    /*
     test('collation: notEqualsInsensitive', async () => {
         const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
         await collated.selectFrom(tAppUser)
@@ -58,7 +65,10 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email <> ?"`)
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MariaDB 10.5 and earlier a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mariadb connector.
+    /*
     test('collation: likeInsensitive', async () => {
         const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
         await collated.selectFrom(tAppUser)
@@ -74,7 +84,10 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email like ?"`)
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MariaDB 10.5 and earlier a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mariadb connector.
+    /*
     test('collation: notLikeInsensitive', async () => {
         const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
         await collated.selectFrom(tAppUser)
@@ -90,7 +103,10 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not like ?"`)
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MariaDB 10.5 and earlier a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mariadb connector.
+    /*
     test('collation: startsWithInsensitive', async () => {
         const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
         await collated.selectFrom(tAppUser)
@@ -106,7 +122,10 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email like concat(?, '%')"`)
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MariaDB 10.5 and earlier a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mariadb connector.
+    /*
     test('collation: notStartsWithInsensitive', async () => {
         const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
         await collated.selectFrom(tAppUser)
@@ -122,7 +141,10 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not like concat(?, '%')"`)
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MariaDB 10.5 and earlier a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mariadb connector.
+    /*
     test('collation: endsWithInsensitive', async () => {
         const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
         await collated.selectFrom(tAppUser)
@@ -138,7 +160,10 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email like concat('%', ?)"`)
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MariaDB 10.5 and earlier a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mariadb connector.
+    /*
     test('collation: notEndsWithInsensitive', async () => {
         const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
         await collated.selectFrom(tAppUser)
@@ -154,7 +179,10 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not like concat('%', ?)"`)
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MariaDB 10.5 and earlier a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mariadb connector.
+    /*
     test('collation: containsInsensitive', async () => {
         const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
         await collated.selectFrom(tAppUser)
@@ -170,7 +198,10 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email like concat('%', ?, '%')"`)
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MariaDB 10.5 and earlier a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mariadb connector.
+    /*
     test('collation: notContainsInsensitive', async () => {
         const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
         await collated.selectFrom(tAppUser)
@@ -186,6 +217,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not like concat('%', ?, '%')"`)
     })
+    */
     test('collation: affix operators with a value-source (column) needle', async () => {
         // The insensitive-affix operators reached with a VALUE-SOURCE (column)
         // needle instead of a string literal, under a SET collation. The needle
@@ -216,6 +248,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email like concat(replace(replace(replace(full_name, '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_'), '%')"`)
     })
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MariaDB 10.5 and earlier a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mariadb connector.
+    /*
     test('collation: affix operators with a uuid receiver', async () => {
         // A uuid RECEIVER (`tIssue.externalRef.asString()`) reached through the affix-insensitive
         // operators under a SET collation, then under the empty collation. The ` collate <name>`
@@ -247,7 +281,10 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref like concat('%', ?, '%')"`)
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MariaDB 10.5 and earlier a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mariadb connector.
+    /*
     test('collation: negated affix operators with a uuid receiver', async () => {
         // The negated twins of the affix test above: `notStartsWithInsensitive`,
         // `notContainsInsensitive` and `notEndsWithInsensitive` over the same uuid
@@ -289,6 +326,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref not like concat('%', ?, '%')"`)
     })
+    */
 
     test('collation: aggregate-array-order-by-insensitive', async () => {
         // An inline aggregate whose inner `order by` uses an INSENSITIVE mode, on

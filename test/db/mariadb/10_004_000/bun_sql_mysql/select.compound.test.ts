@@ -1571,6 +1571,8 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MariaDB 10.5 and earlier a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mariadb connector.
+    /*
     test('compound-order-by-value-source-collate-secondary', async () => {
         // `.collate(name)` on a no-table value source as a compound ORDER BY term:
         // a benign constant secondary key after `orderBy('label')`, so the result
@@ -1603,6 +1605,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
     })
+    */
 
     // A compound's ORDER BY can only name the SELECT aliases, so its whole
     // ordering path is separate code from a plain query's. These two pin the

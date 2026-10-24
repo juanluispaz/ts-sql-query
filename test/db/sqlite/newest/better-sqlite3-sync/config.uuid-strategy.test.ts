@@ -22,12 +22,11 @@
 // mode. The `'uuid-extension'` branch tests emit
 // `uuid_str(uuid_blob(?))`, which requires the SQLite `uuid` extension
 // functions. This connector registers them in the test harness (see
-// test/db/sqlite/runners.ts — better-sqlite3 / node:sqlite via
-// `db.function(...)`, sqlite-wasm-OO1 via `db.createFunction(...)`), so
+// test/db/sqlite/runners.ts — better-sqlite3 / bun:sqlite / node:sqlite
+// via `db.function(...)`, sqlite-wasm-OO1 via `db.createFunction(...)`), so
 // those tests run end-to-end against the real engine. The `sqlite3` and
-// bun:sqlite connectors can't register them (no user-defined-function
-// API; bun:sqlite's built-ins aren't present on every platform), so they
-// keep these tests mock-only (via `ctx.mockOnlyConnection()`), per
+// Bun SQL connectors can't register them (no user-defined-function API),
+// so they keep these tests mock-only (via `ctx.mockOnlyConnection()`), per
 // [DESIGN.md §1 #18](../../../../DESIGN.md#1-principles): there the
 // assertion of interest is the SqlBuilder shape, not engine execution.
 

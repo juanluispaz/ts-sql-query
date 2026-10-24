@@ -3,14 +3,13 @@ import { assertEquals } from './assertEquals.js'
 import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
 import { SqliteConnection } from '../connections/SqliteConnection.js'
 import { Database } from 'bun:sqlite'
+import { parse as uuidParse, stringify as uuidStringify, v7 as uuidv7 } from 'uuid'
 import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from '../connections/SqliteConfiguration.js'
 import { Values } from '../Values.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import { BunSqliteQueryRunner } from '../queryRunners/BunSqliteQueryRunner.js'
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
-    protected override uuidStrategy = 'string' as const
-
     protected override getDateTimeFormat(_type: SqliteDateTimeFormatType): SqliteDateTimeFormat {
         return 'Julian day as real number'
     }
@@ -1968,6 +1967,9 @@ async function main(db: Database) {
 async function run() {
     try {
         const db: Database = new Database()
+        db.function('uuid', () => uuidv7())
+        db.function('uuid_str', (blob: Uint8Array) => uuidStringify(blob))
+        db.function('uuid_blob', (uuid: string) => Buffer.from(uuidParse(uuid)))
         await main(db);
         console.log('All ok');
         process.exit(0);

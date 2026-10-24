@@ -565,7 +565,7 @@ covers **every** SQLite runner, UDF API or not:
    work on SQLite and turn every `cot` test there live. This is the cheapest close
    and the recommended one when someone picks this up.
 2. Register a `cot` UDF on the connectors that expose a UDF API. Note this is a
-   *partial* path — `bun:sqlite` and `sqlite3` have no UDF API — which is why
+   *partial* path — Bun SQL and `sqlite3` have no UDF API — which is why
    `reverse()`, whose only close path is this one, is `NOT-SUPPORTED` instead.
 
 The emulation is **deliberately deferred**, to keep taxonomy work free of a `src/`

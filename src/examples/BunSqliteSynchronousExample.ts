@@ -7,6 +7,7 @@ import { assertEquals } from './assertEquals.js'
 import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
 import { SqliteConnection } from '../connections/SqliteConnection.js'
 import { Database } from 'bun:sqlite'
+import { parse as uuidParse, stringify as uuidStringify, v7 as uuidv7 } from 'uuid'
 import { SynchronousPromise } from 'synchronous-promise'
 import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from '../connections/SqliteConfiguration.js'
 import { Values } from '../Values.js'
@@ -14,8 +15,6 @@ import { BunSqliteQueryRunner } from '../queryRunners/BunSqliteQueryRunner.js'
 import { sync } from '../extras/sync.js'
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
-    protected override uuidStrategy = 'string' as const
-
     protected override getDateTimeFormat(_type: SqliteDateTimeFormatType): SqliteDateTimeFormat {
         return 'Unix time milliseconds as integer'
     }
@@ -844,9 +843,9 @@ function main(db: Database) {
 async function run() {
     try {
         const db: Database = new Database();
-        // db.createFunction('uuid', _ => uuidv7())
-        // db.createFunction('uuid_str', (_context, blob: Uint8Array) => uuidStringify(blob))
-        // db.createFunction('uuid_blob', (_context, str: string) => Buffer.from(uuidParse(str)))
+        db.function('uuid', () => uuidv7())
+        db.function('uuid_str', (blob: Uint8Array) => uuidStringify(blob))
+        db.function('uuid_blob', (uuid: string) => Buffer.from(uuidParse(uuid)))
         await main(db);
         console.log('All ok');
         process.exit(0);

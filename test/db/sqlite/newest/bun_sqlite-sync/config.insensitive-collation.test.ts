@@ -23,6 +23,7 @@ import { tAppUser, tIssue, tOrganization, tProject } from '../../domain/connecti
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
 
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -218,8 +219,6 @@ describe(ctx.label, () => {
     })
 
 
-    // NOT-SUPPORTED: bun:sqlite has no user-defined-function API to register the ci_replace UDF
-    /*
     test('replaceAllInsensitiveFunction routes through the named UDF', async () => {
         // With `replaceAllInsensitiveFunction = 'ci_replace'`, `replaceAllInsensitive`
         // emits `ci_replace(?, ?, ?)` instead of the case-sensitive `replace(...)`
@@ -227,14 +226,19 @@ describe(ctx.label, () => {
         // 'ABC' and 'abc' → 'XX'.
                 ctx.mockNext([{ v: 'XX' }])
 const conn = ctx.withReplaceAllInsensitiveFunction('ci_replace')
-        const rows = await conn.selectFromNoTable()
+        const rows = sync(conn.selectFromNoTable()
             .select({ v: conn.const('ABCabc', 'string').replaceAllInsensitive('abc', 'X') })
-            .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+            .executeSelectMany())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ci_replace(?, ?, ?) as "v""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "ABCabc",
+            "abc",
+            "X",
+          ]
+        `)
         expect(rows).toEqual([{ v: 'XX' }])
     })
-    */
 
     test('collation: affix operators with a uuid receiver', async () => {
         // A uuid RECEIVER (`tIssue.externalRef.asString()`) reached through the affix-insensitive

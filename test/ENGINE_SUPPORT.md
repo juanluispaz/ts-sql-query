@@ -37,8 +37,8 @@ dialect**. A workaround that would rescue three SQLite runners and leave
 two behind does not make the gap actionable debt: `cot()` is a
 `TODO[LIMITATION]` because `1 / tan(x)` works on all five SQLite runners
 (Oracle already emits exactly that), while `reverse()` is `NOT-SUPPORTED`
-because the only close path is registering a UDF, and `bun:sqlite` and
-`sqlite3` expose no UDF API.
+because the only close path is registering a UDF, and Bun SQL's sqlite adapter
+and `sqlite3` expose no UDF API.
 
 **`NOT-SUPPORTED` vs `NOT-APPLICABLE`** — both are permanent; they differ
 in **who draws the boundary**, and only `NOT-APPLICABLE` keeps a live test:
@@ -122,7 +122,7 @@ are commented out on all five SQLite version tiers and run live on the
 other five dialects.
 
 Registering a UDF through the driver would **not** close it: it rescues
-neither `sqlite3` nor `bun:sqlite` (no UDF API — see § 3), it cannot
+neither `sqlite3` nor Bun SQL (no UDF API — see § 3), it cannot
 express a stored procedure at all, and a function invented by the test
 harness would no longer be the domain's declared surface. Nothing about
 this is pending.
@@ -147,9 +147,9 @@ call compiles fine). The `reverse()` tests on the SQLite cells are commented out
 `// NOT-SUPPORTED:` (full canonical body preserved) and run live everywhere else.
 
 **Why this is not actionable debt.** The only close path is registering a `reverse`
-user-defined function, and it reaches just three of the five SQLite runners
-(better-sqlite3, node:sqlite and sqlite-wasm expose a UDF API; `bun:sqlite` and
-`sqlite3` do not — § 3). Per the decision rule at the top of this file, a close path
+user-defined function, and it does not reach every SQLite runner
+(better-sqlite3, bun:sqlite, node:sqlite and sqlite-wasm expose a UDF API; Bun
+SQL's sqlite adapter and `sqlite3` do not — § 3). Per the decision rule at the top of this file, a close path
 that leaves connectors of the dialect behind does not make the gap a
 `TODO[LIMITATION]`. Contrast `cot()`, which stays in
 [`LIMITATIONS.md`](./LIMITATIONS.md) because `1 / tan(x)` closes it on all five.
@@ -785,22 +785,23 @@ the tiers whose engine is 10.5 or earlier (`10_005_000`, `10_004_000`,
 `10_003_003`, `oldest`) and run live on `newest` and on the `mariadb` connector.
 Verified with `--docker-version closest`.
 
-### `replaceAllInsensitiveFunction`'s UDF cannot be registered on `bun:sqlite` / Bun SQL / `sqlite3`
+### `replaceAllInsensitiveFunction`'s UDF cannot be registered on Bun SQL / `sqlite3`
 
 `replaceAllInsensitiveFunction` lets a SQLite connection route
 `replaceAllInsensitive` through a case-folding user-defined function (`ci_replace`).
 Registering that UDF needs a driver-level user-defined-function API. **better-sqlite3**,
-**node:sqlite** and **sqlite-wasm** expose one and run the test live; **bun:sqlite**,
-Bun SQL's sqlite adapter and the deprecated **sqlite3** do not, so the library cannot register `ci_replace`
-there. This is **within-dialect divergence** across SQLite runners, so it is a
+**bun:sqlite** (`Database.function`, Bun 1.4+), **node:sqlite** and **sqlite-wasm**
+expose one and run the test live; Bun SQL's sqlite adapter (no UDF API, and it does not
+expose the `bun:sqlite` `Database` it opens) and the deprecated **sqlite3** do not, so
+`ci_replace` cannot be registered there. This is **within-dialect divergence** across SQLite runners, so it is a
 per-runner boundary, not a dialect frontier — and only those drivers growing a
 UDF-registration API would close it. The `replaceAllInsensitiveFunction` test is
-commented with `// NOT-SUPPORTED:` (full canonical body preserved) on `bun:sqlite`,
-`bun_sql_sqlite` and `sqlite3` and runs live on the other three SQLite runners.
+commented with `// NOT-SUPPORTED:` (full canonical body preserved) on `bun_sql_sqlite`
+and `sqlite3` and runs live on the other SQLite runners.
 
 *(Judgement note for a future maintainer: the `uuid_str`/`uuid_blob`
 platform-dependent case is `NOT-APPLICABLE`; the difference here is that the
-UDF is the **library's own** and three sibling SQLite runners register it, so the
+UDF is the **library's own** and four sibling SQLite runners register it, so the
 boundary is the driver rather than the dialect. Worth a second look if the taxonomy
 line moves.)*
 

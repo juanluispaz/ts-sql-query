@@ -217,7 +217,7 @@ describe(ctx.label, () => {
     })
 
 
-    // NOT-SUPPORTED: Bun SQL's sqlite adapter has no user-defined-function API to register the ci_replace UDF
+    // NOT-SUPPORTED: Bun SQL's sqlite adapter exposes neither a user-defined-function API nor its bun:sqlite `Database`, so the ci_replace UDF can't be registered
     /*
     test('replaceAllInsensitiveFunction routes through the named UDF', async () => {
         // With `replaceAllInsensitiveFunction = 'ci_replace'`, `replaceAllInsensitive`

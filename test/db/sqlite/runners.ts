@@ -40,19 +40,16 @@ import { DBConnection } from './domain/connection.js'
 // test that opts back into `'uuid-extension'` via
 // `ctx.withUuidStrategy('uuid-extension')` finds them available and runs the
 // binary `'uuid-extension'` path END-TO-END against the real engine:
-//   - better-sqlite3, node:sqlite — registered here via `db.function(...)`,
-//     exactly as the connector docs and
+//   - better-sqlite3, bun:sqlite, node:sqlite — registered here via
+//     `db.function(...)`, exactly as the connector docs and
 //     src/examples/{BetterSqlite3,NodeSqlite}*Example.ts show.
 //   - sqlite-wasm-OO1 — registered here via `db.createFunction(...)` (the OO1
 //     user-defined-function API), exactly as the connector doc shows.
 // Two connectors can't register them, so their `'uuid-extension'` tests stay
 // mock-only (via `ctx.mockOnlyConnection()`):
 //   - sqlite3 (npm) — has no user-defined-function API at all.
-//   - bun:sqlite — also has no user-defined-function API (only `loadExtension`).
-//     Its `uuid_str` / `uuid_blob` are present only where the underlying system
-//     SQLite already bundles the `uuid` extension (e.g. macOS); Bun's bundled
-//     SQLite on Linux/CI has them NOT, raising "no such function: uuid_blob".
-//     Relying on the built-ins is therefore not portable.
+//   - Bun SQL (sqlite adapter) — exposes neither a user-defined-function API
+//     nor the bun:sqlite `Database` it opens.
 // uuid_str / uuid_blob are NULL-safe (return NULL on NULL input), mirroring
 // the real uuid extension.
 // The user-registered case-insensitive replace a connection names via
@@ -70,6 +67,12 @@ function registerBetterSqlite3UuidFunctions(db: import('better-sqlite3').Databas
     db.function('uuid_str', ((blob: Uint8Array | null) => blob == null ? null : uuidStringify(blob)) as (_: unknown) => unknown)
     db.function('uuid_blob', ((uuid: string | null) => uuid == null ? null : Buffer.from(uuidParse(uuid))) as (_: unknown) => unknown)
     db.function('ci_replace', ciReplace as (_: unknown) => unknown)
+}
+function registerBunSqliteUuidFunctions(db: import('bun:sqlite').Database): void {
+    db.function('uuid', () => uuidv7())
+    db.function('uuid_str', (blob: Uint8Array | null) => blob == null ? null : uuidStringify(blob))
+    db.function('uuid_blob', (uuid: string | null) => uuid == null ? null : Buffer.from(uuidParse(uuid)))
+    db.function('ci_replace', ciReplace)
 }
 function registerNodeSqliteUuidFunctions(db: import('node:sqlite').DatabaseSync): void {
     // `DatabaseSync.function` only exists from Node 24; on Node 22 the
@@ -282,6 +285,7 @@ async function getOrCreateBunSqliteDb(): Promise<import('bun:sqlite').Database> 
     if (sharedBunSqliteDb === null) {
         const { Database } = await import('bun:sqlite')
         sharedBunSqliteDb = new Database(':memory:')
+        registerBunSqliteUuidFunctions(sharedBunSqliteDb)
     }
     return sharedBunSqliteDb
 }

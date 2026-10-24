@@ -250,10 +250,10 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
 
 Register `ci_replace` on the driver. The JS body is the same everywhere; only the registration call differs, and only some connectors expose one.
 
-On **`better-sqlite3`** and **`node:sqlite`**, both expose `db.function(name, fn)`:
+On **`better-sqlite3`**, **`bun:sqlite`** and **`node:sqlite`**, all three expose `db.function(name, fn)`:
 
 ```typescriptreact
-// `db` is the better-sqlite3 / node:sqlite Database the query runner wraps
+// `db` is the better-sqlite3 / bun:sqlite / node:sqlite Database the query runner wraps
 db.function('ci_replace', (s, f, t) => {
     if (s == null || f == null || t == null) return s
     // case-insensitive replace of every occurrence of `f` in `s` with `t`
@@ -272,7 +272,7 @@ db.createFunction('ci_replace', (_ctxPtr, s, f, t) => {
 })
 ```
 
-The **`sqlite3`**, **`bun:sqlite`** and **`bun:sql`** connectors have **no user-defined-function API** (only `loadExtension`), so `replaceAllInsensitiveFunction` cannot be used — leave it unset and `replaceAllInsensitive` behaves as `replace` (case-sensitive). Registering a compiled extension is out of scope: it opens a non-JS chapter the library does not enter.
+The **`sqlite3`** and **`bun:sql`** connectors have **no user-defined-function API** (`bun:sql` does not expose the `bun:sqlite` database it opens either), so `replaceAllInsensitiveFunction` cannot be used — leave it unset and `replaceAllInsensitive` behaves as `replace` (case-sensitive). Registering a compiled extension is out of scope: it opens a non-JS chapter the library does not enter.
 
 ## Per database
 

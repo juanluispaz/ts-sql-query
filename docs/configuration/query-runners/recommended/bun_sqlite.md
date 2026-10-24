@@ -11,6 +11,12 @@ This runner provides integration with the [Bun Sqlite](https://bun.com/docs/runt
 
     - [SQLite](../../supported-databases/sqlite.md)
 
+!!! info "Tested with"
+
+    The built-in `bun:sqlite` module, on **Bun**.
+
+    This information reflects the runtimes the test suite runs it on against a real database.
+
 !!! tip
 
     bun:sqlite supports synchronous query execution. See the [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.

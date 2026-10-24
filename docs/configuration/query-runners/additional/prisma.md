@@ -16,9 +16,9 @@ This query runner allows executing SQL queries using a [Prisma](https://www.pris
 
 !!! info "Tested with"
 
-    [prisma](https://www.npmjs.com/package/prisma) and [@prisma/client](https://www.npmjs.com/package/@prisma/client) `^7.10.1`
+    [prisma](https://www.npmjs.com/package/prisma) and [@prisma/client](https://www.npmjs.com/package/@prisma/client) `^7.10.1` on **Node.js** and **Bun**; with SQLite, on **Node.js** only, because `@prisma/adapter-better-sqlite3` does not run on Bun.
 
-    This information reflects the driver version pinned in this project's `devDependencies` and exercised by the CI suite. Other compatible versions may work but are not actively tested.
+    This information reflects the driver version pinned in this project's `devDependencies` and the runtimes the test suite runs it on against a real database. Other compatible versions may work but are not actively tested.
 
 !!! danger "Experimental"
 

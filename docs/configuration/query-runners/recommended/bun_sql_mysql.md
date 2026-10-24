@@ -12,6 +12,12 @@ This page explains how to use `ts-sql-query` with the [Bun SQL](https://bun.com/
     - [MySQL](../../supported-databases/mysql.md)
     - [MariaDB](../../supported-databases/mariadb.md)
 
+!!! info "Tested with"
+
+    The built-in Bun SQL driver, on **Bun**.
+
+    This information reflects the runtimes the test suite runs it on against a real database.
+
 !!! danger "Experimental on MariaDB"
 
     This query runner is experimental when it is used against MariaDB: a [`Values`](../../mapping.md#mapping-constant-values-as-view) source cannot be used in a query (see *MariaDB: `Values`* below). Against MySQL it is fully supported.

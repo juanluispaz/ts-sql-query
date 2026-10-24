@@ -13,9 +13,9 @@ This runner provides integration with the WebAssembly-based [sqlite-wasm](https:
 
 !!! info "Tested with"
 
-    [@sqlite.org/sqlite-wasm](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm) `^3.54.1-build1`
+    [@sqlite.org/sqlite-wasm](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm) `^3.54.1-build1` on **Node.js** and **Bun**.
 
-    This information reflects the driver version pinned in this project's `devDependencies` and exercised by the CI suite. Other compatible versions may work but are not actively tested.
+    This information reflects the driver version pinned in this project's `devDependencies` and the runtimes the test suite runs it on against a real database. Other compatible versions may work but are not actively tested.
 
 !!! tip
 

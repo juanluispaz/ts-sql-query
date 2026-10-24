@@ -11,6 +11,12 @@ This page explains how to use `ts-sql-query` with the [Bun SQL](https://bun.com/
 
     - [PostgreSQL](../../supported-databases/postgresql.md)
 
+!!! info "Tested with"
+
+    The built-in Bun SQL driver, on **Bun**.
+
+    This information reflects the runtimes the test suite runs it on against a real database.
+
 !!! info "Requirements"
 
     Bun 1.4.4 or newer.

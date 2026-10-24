@@ -11,6 +11,12 @@ This runner provides integration with Node.js' built-in [`node:sqlite`](https://
 
     - [SQLite](../../supported-databases/sqlite.md)
 
+!!! info "Tested with"
+
+    The built-in `node:sqlite` module, on **Node.js** and **Bun**.
+
+    This information reflects the runtimes the test suite runs it on against a real database.
+
 !!! warning "Runtime requirements"
 
     - **Node.js 24 or newer** is recommended. `node:sqlite` is stable from Node 24 onward and is the only version where `DatabaseSync` exposes the `function()` API used to register custom SQL functions (e.g. for UUID handling) — which `ts-sql-query` relies on.

@@ -13,9 +13,9 @@ This runner provides integration with the [sqlite3](https://www.npmjs.com/packag
 
 !!! info "Tested with"
 
-    [sqlite3](https://www.npmjs.com/package/sqlite3) `^6.0.1`
+    [sqlite3](https://www.npmjs.com/package/sqlite3) `^6.0.1` on **Node.js** and **Bun**.
 
-    This information reflects the driver version pinned in this project's `devDependencies` and exercised by the CI suite. Other compatible versions may work but are not actively tested.
+    This information reflects the driver version pinned in this project's `devDependencies` and the runtimes the test suite runs it on against a real database. Other compatible versions may work but are not actively tested.
 
 !!! danger "Deprecated"
 

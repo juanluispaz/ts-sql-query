@@ -13,7 +13,7 @@ This page explains how to use `ts-sql-query` with the [mssql](https://www.npmjs.
 
 !!! info "Tested with"
 
-    [mssql](https://www.npmjs.com/package/mssql) `^12.5.0`
+    [mssql](https://www.npmjs.com/package/mssql) `^12.7.11`
 
     This information reflects the driver version pinned in this project's `devDependencies` and exercised by the CI suite. Other compatible versions may work but are not actively tested.
 

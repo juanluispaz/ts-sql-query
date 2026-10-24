@@ -14,7 +14,7 @@ This page explains how to use `ts-sql-query` with the [mysql2](https://www.npmjs
 
 !!! info "Tested with"
 
-    [mysql2](https://www.npmjs.com/package/mysql2) `^3.22.2`
+    [mysql2](https://www.npmjs.com/package/mysql2) `^3.24.6`
 
     This information reflects the driver version pinned in this project's `devDependencies` and exercised by the CI suite. Other compatible versions may work but are not actively tested.
 

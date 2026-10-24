@@ -13,7 +13,7 @@ This page explains how to use `ts-sql-query` with the [oracledb](https://www.npm
 
 !!! info "Tested with"
 
-    [oracledb](https://www.npmjs.com/package/oracledb) `^6.10.0`
+    [oracledb](https://www.npmjs.com/package/oracledb) `^26.0.0`
 
     This information reflects the driver version pinned in this project's `devDependencies` and exercised by the CI suite. Other compatible versions may work but are not actively tested.
 

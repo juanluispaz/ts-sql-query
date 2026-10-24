@@ -13,7 +13,7 @@ This page explains how to use `ts-sql-query` with the [pglite](https://www.npmjs
 
 !!! info "Tested with"
 
-    [@electric-sql/pglite](https://www.npmjs.com/package/@electric-sql/pglite) `^0.5.2`
+    [@electric-sql/pglite](https://www.npmjs.com/package/@electric-sql/pglite) `^0.5.11`
 
     This information reflects the driver version pinned in this project's `devDependencies` and exercised by the CI suite. Other compatible versions may work but are not actively tested.
 

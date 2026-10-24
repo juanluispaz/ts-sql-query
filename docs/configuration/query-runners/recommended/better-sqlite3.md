@@ -13,7 +13,7 @@ This runner provides integration with the [better-sqlite3](https://www.npmjs.com
 
 !!! info "Tested with"
 
-    [better-sqlite3](https://www.npmjs.com/package/better-sqlite3) `^12.9.0`
+    [better-sqlite3](https://www.npmjs.com/package/better-sqlite3) `^13.0.3`
 
     This information reflects the driver version pinned in this project's `devDependencies` and exercised by the CI suite. Other compatible versions may work but are not actively tested.
 

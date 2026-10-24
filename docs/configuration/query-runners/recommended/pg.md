@@ -13,7 +13,7 @@ This page explains how to use `ts-sql-query` with the [pg](https://www.npmjs.com
 
 !!! info "Tested with"
 
-    [pg](https://www.npmjs.com/package/pg) `^8.20.0`
+    [pg](https://www.npmjs.com/package/pg) `^8.23.1`
 
     This information reflects the driver version pinned in this project's `devDependencies` and exercised by the CI suite. Other compatible versions may work but are not actively tested.
 

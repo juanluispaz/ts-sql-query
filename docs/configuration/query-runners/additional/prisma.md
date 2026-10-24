@@ -16,7 +16,7 @@ This query runner allows executing SQL queries using a [Prisma](https://www.pris
 
 !!! info "Tested with"
 
-    [prisma](https://www.npmjs.com/package/prisma) and [@prisma/client](https://www.npmjs.com/package/@prisma/client) `^7.8.0`
+    [prisma](https://www.npmjs.com/package/prisma) and [@prisma/client](https://www.npmjs.com/package/@prisma/client) `^7.10.1`
 
     This information reflects the driver version pinned in this project's `devDependencies` and exercised by the CI suite. Other compatible versions may work but are not actively tested.
 

@@ -13,7 +13,7 @@ This runner provides integration with the WebAssembly-based [sqlite-wasm](https:
 
 !!! info "Tested with"
 
-    [@sqlite.org/sqlite-wasm](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm) `^3.53.0-build1`
+    [@sqlite.org/sqlite-wasm](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm) `^3.54.1-build1`
 
     This information reflects the driver version pinned in this project's `devDependencies` and exercised by the CI suite. Other compatible versions may work but are not actively tested.
 

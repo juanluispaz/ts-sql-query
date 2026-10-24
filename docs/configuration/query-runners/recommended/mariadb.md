@@ -14,7 +14,7 @@ This page explains how to use `ts-sql-query` with the [mariadb](https://www.npmj
 
 !!! info "Tested with"
 
-    [mariadb](https://www.npmjs.com/package/mariadb) `^3.5.2`
+    [mariadb](https://www.npmjs.com/package/mariadb) `^3.5.4`
 
     This information reflects the driver version pinned in this project's `devDependencies` and exercised by the CI suite. Other compatible versions may work but are not actively tested.
 

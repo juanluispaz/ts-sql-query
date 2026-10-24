@@ -228,7 +228,8 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
         return false
     }
     protected wrapPrismaPromise(promise: Promise<any>): Promise<any> {
-        // Use a real Promise instead of Prisma proxy to avoid issues due then with one param is not properly managed
+        // A PrismaPromise is a lazy thenable, not a Promise: the query only runs once `then` is called.
+        // Wrapping it starts the query and hands back a standard Promise.
         return new Promise((resolve, reject) => {
             promise.then(resolve, reject)
         })

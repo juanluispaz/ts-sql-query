@@ -25,7 +25,7 @@ export class WithViewImpl implements IWithView<any>, WithSelectData, __ITableOrV
     __type: 'with' = 'with'
     __selectData: SelectData
     // @ts-ignore
-    __originalWith?: WithViewImpl<any, any>
+    __originalWith?: WithViewImpl
     __ignoreWith?: boolean
     __recursive?: boolean
     // @ts-ignore

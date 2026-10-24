@@ -250,14 +250,17 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         const offset = query.__offset
         if (offset !== null && offset !== undefined) {
             if (!result) {
-                // MySql/MariaDB doesn't support an offset without a limit, let put the the max value of an int
+                // MySQL/MariaDB don't accept an offset without a limit, so put the max value of an int
                 result += ' limit 2147483647'
             }
             result += ' offset ' + this._appendValue(offset, params, 'int', 'int', undefined, false)
         }
 
         if (!result && this._isAggregateArrayWrapped(params) && (query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems)) {
-            result += ' limit 2147483647' // Workaround to force mysql/maraiadb to order the result (if not the order by is ignored), the number is the max value of an int
+            // Without a limit MySQL/MariaDB ignore the order by of a derived table, so the aggregated
+            // array comes out unordered (still the case on MySQL 26.10 and MariaDB 13.0); the number is
+            // the max value of an int.
+            result += ' limit 2147483647'
         }
         return result
     }

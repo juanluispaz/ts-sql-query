@@ -434,6 +434,8 @@ describe(ctx.label, () => {
         expect(ne).toEqual(expectedNe)
     })
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MySQL 8.0 evaluates `time IN (?, ?)` wrongly when the statement is prepared server-side (no row matches), and Bun SQL always prepares the statement; runs on the mysql2 connector.
+    /*
     test('customLocalTime-in-array-in-n', async () => {
         // `.in([17:00, 16:00])` matches releases 1 and 3; `.inN(17:00)` matches
         // release 1 only.
@@ -471,6 +473,7 @@ describe(ctx.label, () => {
         `)
         expect(inNRows).toEqual(expectedInN)
     })
+    */
 
     test('customLocalTime-between-not-between', async () => {
         // `.between(16:30, 18:00)` matches release 1 (17:00); releases 2 (18:30)

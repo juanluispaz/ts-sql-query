@@ -633,6 +633,20 @@ keyed to the engine version rather than the `newest` label. The SQL these tests
 assert is version-independent and fully covered by any live cell.
 
 
+### MySQL 8.0 evaluates `time IN (?, ?)` wrongly in a prepared statement (Bun SQL)
+
+A second TIME quirk of MySQL 8.0, specific to **server-side prepared
+statements**: `time_col IN (?, ?)` with two or more placeholders matches no row,
+while `= ?`, `IN (?)` and `IN (cast(? as time), …)` work. Verified on 8.0.46 —
+`mysql2.execute()` returns 0 where `mysql2.query()` returns 1 — and correct on
+26.10. The `mysql2` connector is not affected (text protocol); **Bun SQL always
+prepares the statement**. So `localTime-in-n-multi-const` and
+`customLocalTime-in-array-in-n` are commented out with `// NOT-SUPPORTED:` in
+the `bun_sql_mysql` cells whose engine is MySQL 8.0 (`8_000_017`, `8_000_000`)
+and run live on `newest` and on `mysql2`. Verified with `--docker-version
+closest`.
+
+
 ### Oracle multi-table `UPDATE … FROM` / `DELETE … USING` requires Oracle Database 23ai
 
 Oracle added the ANSI `UPDATE … FROM` and `DELETE … USING` forms in

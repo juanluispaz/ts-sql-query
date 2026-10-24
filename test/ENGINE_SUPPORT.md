@@ -768,7 +768,7 @@ out with `// NOT-SUPPORTED:` (full canonical body preserved) in the
 `mariadb/*/bun_sql_mysql` cells and runs live on `mariadb/*/mariadb`. Only a
 MariaDB fix would re-enable them.
 
-## MariaDB 10.5 and earlier type a prepared statement's parameters as `binary` (Bun SQL)
+## MariaDB 10.5 and earlier and MySQL 5.7 type a prepared statement's parameters as `binary` (Bun SQL)
 
 On MariaDB 10.5 and earlier, a parameter of a **server-side prepared statement**
 has the `binary` character set (verified against `mariadb:10.5`; 12.3 and 13.0
@@ -784,6 +784,11 @@ therefore commented out with `// NOT-SUPPORTED:` in the `bun_sql_mysql` cells of
 the tiers whose engine is 10.5 or earlier (`10_005_000`, `10_004_000`,
 `10_003_003`, `oldest`) and run live on `newest` and on the `mariadb` connector.
 Verified with `--docker-version closest`.
+
+MySQL 5.7 behaves the same way (verified against `mysql:5.7`, which also returns a
+`nullif(?, ?)` over date parameters as bytes): the same collation, parameter-only
+fragment and `temporal/*-null-if-value*` tests are commented out in
+`mysql/oldest/bun_sql_mysql` and run live on `mysql2` and on the MySQL 8.0+ tiers.
 
 ### `replaceAllInsensitiveFunction`'s UDF cannot be registered on Bun SQL / `sqlite3`
 

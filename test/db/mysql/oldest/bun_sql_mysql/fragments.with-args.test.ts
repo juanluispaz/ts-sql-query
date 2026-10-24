@@ -297,6 +297,8 @@ describe(ctx.label, () => {
         `)
     })
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MySQL 5.7 a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mysql2 connector.
+    /*
     test('build-fragment-with-maybe-optional-args-arity-3-over-string', async () => {
         // A 3-ary `buildFragmentWithMaybeOptionalArgs` over `string` args. The
         // middle arg is `undefined` -> bound NULL and the merged optionalType
@@ -316,6 +318,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ r?: string }>>>()
         expect(rows).toEqual([{ r: 'a' }])
     })
+    */
 
     // ── buildFragmentWithArgs at arities 3 and 5 ──
     test('args-arity-3-coalesce', async () => {
@@ -443,6 +446,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ r: 42 }])
     })
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MySQL 5.7 a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mysql2 connector.
+    /*
     test('maybe-optional-args-arity-4-coalesce', async () => {
         ctx.mockNext([{ r: 'a' }])
         const rows = await ctx.conn.selectFromNoTable()
@@ -460,7 +465,10 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ r?: string }>>>()
         expect(rows).toEqual([{ r: 'a' }])
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MySQL 5.7 a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mysql2 connector.
+    /*
     test('maybe-optional-args-arity-5-coalesce', async () => {
         ctx.mockNext([{ r: 'a' }])
         const rows = await ctx.conn.selectFromNoTable()
@@ -479,6 +487,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ r?: string }>>>()
         expect(rows).toEqual([{ r: 'a' }])
     })
+    */
 
     // ── buildAggregateFragmentWithArgs at arities 0, 2-5 (over issue 1) ──
     test('aggregate-args-arity-0-count', async () => {

@@ -19,6 +19,8 @@ describe(ctx.label, () => {
     // ── .collate() ─────────────────────────────────────────────────────
     // MySQL's default collation is case- and accent-insensitive; forcing the
     // binary `utf8mb4_bin` makes 'ABC' <> 'abc'.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MySQL 5.7 a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mysql2 connector.
+    /*
     test('collate forces case-sensitive equality', async () => {
         const expected = [{ v: false }]
         ctx.mockNext(expected)
@@ -35,9 +37,12 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ v: boolean }>>>()
         expect(result).toEqual(expected)
     })
+    */
 
     // The default collation already folds case, but forcing an explicit CI name
     // keeps 'ABC' = 'abc' → true.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MySQL 5.7 a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mysql2 connector.
+    /*
     test('collate forces case-insensitive equality', async () => {
         const expected = [{ v: true }]
         ctx.mockNext(expected)
@@ -54,7 +59,10 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ v: boolean }>>>()
         expect(result).toEqual(expected)
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MySQL 5.7 a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mysql2 connector.
+    /*
     test('collate is usable as a projected value', async () => {
         const expected = [{ v: 'ABCabc' }]
         ctx.mockNext(expected)
@@ -70,6 +78,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ v: string }>>>()
         expect(result).toEqual(expected)
     })
+    */
 
     // ── replaceAll ─────────────────────────────────────────────────────
     // MySQL's REPLACE ignores collation (byte-wise case-sensitive), so the plain
@@ -307,6 +316,8 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MySQL 5.7 a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mysql2 connector.
+    /*
     test('replaceAll then collate parenthesises the inner replace', async () => {
         const expected = [{ v: 'ABCX' }]
         ctx.mockNext(expected)
@@ -324,6 +335,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ v: string }>>>()
         expect(result).toEqual(expected)
     })
+    */
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the case-insensitive replace emits regexp_replace, which requires MySQL 8.0.4+; MySQL 5.7 has no regexp_replace function (ER_SP_DOES_NOT_EXIST 1305).
     /*
@@ -369,6 +381,8 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MySQL 5.7 a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mysql2 connector.
+    /*
     test('collate on the right-hand operand of a comparison', async () => {
         const expected = [{ v: false }]
         ctx.mockNext(expected)
@@ -385,6 +399,9 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ v: boolean }>>>()
         expect(result).toEqual(expected)
     })
+    */
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MySQL 5.7 a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mysql2 connector.
+    /*
     test('collate operand under the comparison-operator family', async () => {
         const expected = [{
             ne: true, lt: false, gt: true, le: false, ge: true,
@@ -433,6 +450,7 @@ describe(ctx.label, () => {
         }>>>()
         expect(result).toEqual(expected)
     })
+    */
     test('collate as a group-by column', async () => {
         const expected = [
             { name: 'Ada Lovelace', n: 1 },
@@ -593,6 +611,8 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
     */
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MySQL 5.7 a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mysql2 connector.
+    /*
     test('collate on a like receiver', async () => {
         const expected = [{ v: false }]
         ctx.mockNext(expected)
@@ -609,6 +629,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ v: boolean }>>>()
         expect(result).toEqual(expected)
     })
+    */
 
     // ── uuid × forced collation ────────────────────────────────────────
     // A forced `collate` on a uuid must emit valid SQL and round-trip — the forced-collate

@@ -341,6 +341,8 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MySQL 5.7 a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mysql2 connector.
+    /*
     test('temporal/local-date-null-if-value-literal', async () => {
         // `valueWhenNull` / `nullIfValue` redefined per temporal type — the
         // numeric/string arms are covered above; this and the next tests pin
@@ -366,6 +368,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; d?: Date }>>()
         expect(row).toEqual(expected)
     })
+    */
 
     test('temporal/local-time-value-when-null-literal', async () => {
         // `valueWhenNull(literalTime)` on a localTime column → result required.
@@ -410,6 +413,8 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MySQL 5.7 a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mysql2 connector.
+    /*
     test('temporal/custom-local-date-null-if-value-literal', async () => {
         // Custom twin: `nullIfValue(literalDate)` on a customLocalDate column
         // (releasedOn / 'ReleaseDay'). release 2: released_on 2024-02-20,
@@ -431,6 +436,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; d?: Date }>>()
         expect(row).toEqual(expected)
     })
+    */
 
     test('temporal/custom-local-date-time-value-when-null-literal-on-null-row', async () => {
         // Custom twin: `valueWhenNull(literalDateTime)` on a customLocalDateTime
@@ -627,6 +633,8 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MySQL 5.7 a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mysql2 connector.
+    /*
     test('temporal/custom-local-date-time-null-if-value', async () => {
         // `nullIfValue` on a customLocalDateTime column
         // (signedOffAt / 'SignOffStamp', optional). Both overloads — `x` a
@@ -655,6 +663,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; x?: Date; x2?: Date }>>()
         expect(row).toEqual(expected)
     })
+    */
 
     test('boolean/value-when-null-and-null-if-value-on-plain-boolean', async () => {
         // `valueWhenNull(boolean)` / `nullIfValue(boolean)` on a nullable plain
@@ -1544,6 +1553,8 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MySQL 5.7 a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mysql2 connector.
+    /*
     test('temporal/local-date-time-null-if-value-literal', async () => {
         // nullIfValue(literalDateTime) on a plain localDateTime column
         // (organization.created_at) — the literal arm. Org 1 created_at 2023-06-15 08:00:00
@@ -1564,6 +1575,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; d?: Date }>>()
         expect(row).toEqual(expected)
     })
+    */
 
     test('temporal/local-date-is-null-is-not-null', async () => {
         // isNull / isNotNull on an optional localDate column (project_review.review_date).

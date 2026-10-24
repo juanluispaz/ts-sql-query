@@ -1279,6 +1279,8 @@ describe(ctx.label, () => {
     // site' and 'Internal tools' (both non-null, distinct first letters), so the
     // nulls and insensitivity modifiers don't reorder the two elements — only
     // asc vs desc.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    /*
     test('inline-aggregate-order-by-asc', async () => {
         ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Internal tools', 'Marketing site']) })
         const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
@@ -1301,7 +1303,10 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; projectNames: string[] }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    /*
     test('inline-aggregate-order-by-asc-nulls-first', async () => {
         ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Internal tools', 'Marketing site']) })
         const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
@@ -1324,7 +1329,10 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; projectNames: string[] }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    /*
     test('inline-aggregate-order-by-desc', async () => {
         ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Marketing site', 'Internal tools']) })
         const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
@@ -1347,7 +1355,10 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; projectNames: string[] }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Marketing site', 'Internal tools'] })
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    /*
     test('inline-aggregate-order-by-desc-nulls-last', async () => {
         ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Marketing site', 'Internal tools']) })
         const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
@@ -1370,7 +1381,10 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; projectNames: string[] }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Marketing site', 'Internal tools'] })
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    /*
     test('inline-aggregate-order-by-insensitive', async () => {
         ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Internal tools', 'Marketing site']) })
         const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
@@ -1393,7 +1407,10 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; projectNames: string[] }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    /*
     test('inline-aggregate-order-by-desc-insensitive', async () => {
         ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Marketing site', 'Internal tools']) })
         const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
@@ -1416,7 +1433,10 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; projectNames: string[] }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Marketing site', 'Internal tools'] })
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    /*
     test('inline-aggregate-order-by-desc-nulls-last-insensitive', async () => {
         ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Marketing site', 'Internal tools']) })
         const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
@@ -1439,7 +1459,10 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; projectNames: string[] }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Marketing site', 'Internal tools'] })
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    /*
     test('inline-aggregate-order-by-desc-nulls-first-insensitive', async () => {
         ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Marketing site', 'Internal tools']) })
         const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
@@ -1462,4 +1485,5 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; projectNames: string[] }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Marketing site', 'Internal tools'] })
     })
+    */
 })

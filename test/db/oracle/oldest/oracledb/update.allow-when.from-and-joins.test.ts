@@ -28,10 +28,12 @@
 // `isQueryAllowed` is the sanctioned introspection seam; see test/LIMITATIONS.md.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
-import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { assertType } from '../../../../lib/assertType.js'
 import { isQueryAllowed } from '../../../../lib/queryIntrospection.js'
 import { tAppUser, tIssue, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+
+void assertType
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -160,43 +162,50 @@ describe(ctx.label, () => {
         expect((thrown as Error).message).toContain('update-after-keyword gate blocks')
     })
 
-    test('update-from-join-all-gates-open-walks-to-end-and-runs', async () => {
-        // Every limb carries an OPEN gate: the SET value, the join's `on`, the
-        // WHERE and all three customization fragments. The walk has to traverse
-        // all of them and fall through to the allowed verdict — the branches only
-        // reachable when each limb reports allowed. Open gates are transparent,
-        // so the statement builds and runs: issue 1 belongs to project 1, so
-        // exactly one row is updated.
-        ctx.mockNext(1)
-        await ctx.withRollback(async () => {
-            const connection = ctx.conn
-            const query = connection.update(tProject)
-                .from(tIssue)
-                .innerJoin(tAppUser).on(tAppUser.id.equals(tIssue.assigneeId).allowWhen(true, 'update-join-on gate'))
-                .set({ name: tAppUser.fullName.allowWhen(true, 'update-set gate') })
-                .where(tProject.id.equals(tIssue.projectId).allowWhen(true, 'update-where gate'))
-                    .and(tIssue.id.equals(1))
-                .customizeQuery({
-                    beforeQuery: connection.rawFragment`/* gated ${tIssue.id.allowWhen(true, 'update-before-query gate')} */ `,
-                    afterUpdateKeyword: connection.rawFragment`/* gated ${tIssue.projectId.allowWhen(true, 'update-after-keyword gate')} */`,
-                    afterQuery: connection.rawFragment` /* gated ${tProject.slug.allowWhen(true, 'update-after-query gate')} */`,
-                })
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — Oracle multi-table UPDATE…FROM / DELETE…USING
+    // requires Oracle Database 23ai; earlier Oracle (this cell) rejects the FROM/USING keyword
+    // at the parser (ORA-00933). Emission is the same standard form on all versions by design.
+    // test('update-from-join-all-gates-open-walks-to-end-and-runs', async () => {
+    //     // Every limb carries an OPEN gate: the SET value, the join's `on`, the
+    //     // WHERE and all three customization fragments. The walk has to traverse
+    //     // all of them and fall through to the allowed verdict — the branches only
+    //     // reachable when each limb reports allowed. Open gates are transparent,
+    //     // so the statement builds and runs: issue 1 belongs to project 1, so
+    //     // exactly one row is updated.
+    //     ctx.mockNext(1)
+    //     await ctx.withRollback(async () => {
+    //         const connection = ctx.conn
+    //         const query = connection.update(tProject)
+    //             .from(tIssue)
+    //             .innerJoin(tAppUser).on(tAppUser.id.equals(tIssue.assigneeId).allowWhen(true, 'update-join-on gate'))
+    //             .set({ name: tAppUser.fullName.allowWhen(true, 'update-set gate') })
+    //             .where(tProject.id.equals(tIssue.projectId).allowWhen(true, 'update-where gate'))
+    //                 .and(tIssue.id.equals(1))
+    //             .customizeQuery({
+    //                 beforeQuery: connection.rawFragment`/* gated ${tIssue.id.allowWhen(true, 'update-before-query gate')} */ `,
+    //                 afterUpdateKeyword: connection.rawFragment`/* gated ${tIssue.projectId.allowWhen(true, 'update-after-keyword gate')} */`,
+    //                 afterQuery: connection.rawFragment` /* gated ${tProject.slug.allowWhen(true, 'update-after-query gate')} */`,
+    //             })
+    //
+    //         expect(isQueryAllowed(query)).toBe(true)
+    //
+    //         const affected = await query.executeUpdate()
+    //
+    //         expect(ctx.lastSql).toMatchInlineSnapshot(`"/* gated issue.id */  update /* gated issue.project_id */ project set project.name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = :0  /* gated project.slug */"`)
+    //         expect(ctx.lastParams).toMatchInlineSnapshot(`
+    //           [
+    //             1,
+    //           ]
+    //         `)
+    //         assertType<Exact<typeof affected, number>>()
+    //         expect(affected).toBe(1)
+    //     })
+    // })
 
-            expect(isQueryAllowed(query)).toBe(true)
-
-            const affected = await query.executeUpdate()
-
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* gated issue.id */  update /* gated issue.project_id */ project set project.name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = :0  /* gated project.slug */"`)
-            expect(ctx.lastParams).toMatchInlineSnapshot(`
-              [
-                1,
-              ]
-            `)
-            assertType<Exact<typeof affected, number>>()
-            expect(affected).toBe(1)
-        })
-    })
-
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — Oracle multi-table UPDATE…FROM / DELETE…USING
+    // requires Oracle Database 23ai; earlier Oracle (this cell) rejects the FROM/USING keyword
+    // at the parser (ORA-00933). Emission is the same standard form on all versions by design.
+    /*
     test('update-from-join-all-gates-open-with-allowed-returning-walks-to-end', async () => {
         // The same all-open FROM+JOIN as the sibling above, plus an OPEN-gated
         // RETURNING column. That is the one limb the sibling omits: with no
@@ -242,4 +251,5 @@ describe(ctx.label, () => {
             expect(row).toEqual(expected)
         })
     })
+    */
 })

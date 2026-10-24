@@ -58,6 +58,8 @@ search:
 
 - The library is now compiled with TypeScript 7. The published JavaScript is the same, and the published typings only differ in how a few types are printed (parentheses and quotes), so projects that compile with TypeScript 6 keep working.
 - `BetterSqlite3QueryRunner` and `NodeSqliteQueryRunner` are now also tested under Bun, against a real database: better-sqlite3 13 loads on Bun, and Bun implements `node:sqlite` since Bun 1.4.
+- The test suite now runs against MariaDB 13.0 and MySQL 26.10, and also against the older engine version each `compatibilityVersion` tier targets. On MariaDB 13, `oldValues()` used inside an expression in `UPDATE ... RETURNING` is affected by a MariaDB bug ([MDEV-40126](https://jira.mariadb.org/browse/MDEV-40126)); see the [MariaDB page](configuration/supported-databases/mariadb.md) for the workaround.
+- `BunSqliteQueryRunner`: the [bun:sqlite page](configuration/query-runners/recommended/bun_sqlite.md) shows how to register the uuid functions the default `uuid-extension` strategy needs, with `Database.function` (Bun 1.4+).
 
 ## v2.0.0-beta.2
 

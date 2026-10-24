@@ -22,6 +22,9 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { tAppUser, tIssue, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
+void tOrganization
+void tProject
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -290,6 +293,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where bin_to_uuid(external_ref) not like concat('%', ?, '%')"`)
     })
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    /*
     test('collation: aggregate-array-order-by-insensitive', async () => {
         // An inline aggregate whose inner `order by` uses an INSENSITIVE mode, on
         // a connection with `insensitiveCollation` set. The insensitive-order-by
@@ -324,4 +329,5 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(a_1_.result) from (select \`name\` as result from project where organization_id = \`organization\`.id order by result asc limit 2147483647) as a_1_) as char) as \`names\` from \`organization\` where id = ?"`)
     })
+    */
 })

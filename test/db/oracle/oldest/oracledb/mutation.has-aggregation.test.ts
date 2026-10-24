@@ -96,6 +96,8 @@ import { queryHasAggregation } from '../../../../lib/queryIntrospection.js'
 import { tAppUser, tIssue, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
+void tOrganization
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -819,46 +821,49 @@ describe(ctx.label, () => {
     // UPDATE
     // ---------------------------------------------------------------------
 
-    test('has-aggregation/update-no-aggregate-in-any-clause-reports-false', async () => {
-        // The control for the UPDATE walker: the set value, a join's `on`, the
-        // `where` and all three customization fragments populated at once, with
-        // nothing aggregating anywhere. A walker that answered `true` for any
-        // multi-table or customised update — or that mistook a plain column for
-        // an aggregate — fails here and nowhere else.
-        //
-        // Issue 1 belongs to project 1 and is assigned to user 1 ('Ada
-        // Lovelace'), so the join and the `where` both resolve and exactly one
-        // project row is renamed.
-        ctx.mockNext(1)
-        await ctx.withRollback(async () => {
-            const connection = ctx.conn
-
-            const query = connection.update(tProject)
-                .from(tIssue)
-                .innerJoin(tAppUser).on(tAppUser.id.equals(tIssue.assigneeId))
-                .set({ name: tAppUser.fullName })
-                .where(tProject.id.equals(tIssue.projectId))
-                    .and(tIssue.id.equals(1))
-                .customizeQuery({
-                    beforeQuery:        connection.rawFragment`/* head */ `,
-                    afterUpdateKeyword: connection.rawFragment`/* hint */`,
-                    afterQuery:         connection.rawFragment` /* tail */`,
-                })
-
-            expect(queryHasAggregation(query)).toBe(false)
-
-            const affected = await query.executeUpdate()
-
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /* hint */ project set project.name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = :0  /* tail */"`)
-            expect(ctx.lastParams).toMatchInlineSnapshot(`
-              [
-                1,
-              ]
-            `)
-            assertType<Exact<typeof affected, number>>()
-            expect(affected).toBe(1)
-        })
-    })
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — Oracle multi-table UPDATE…FROM / DELETE…USING
+    // requires Oracle Database 23ai; earlier Oracle (this cell) rejects the FROM/USING keyword
+    // at the parser (ORA-00933). Emission is the same standard form on all versions by design.
+    // test('has-aggregation/update-no-aggregate-in-any-clause-reports-false', async () => {
+    //     // The control for the UPDATE walker: the set value, a join's `on`, the
+    //     // `where` and all three customization fragments populated at once, with
+    //     // nothing aggregating anywhere. A walker that answered `true` for any
+    //     // multi-table or customised update — or that mistook a plain column for
+    //     // an aggregate — fails here and nowhere else.
+    //     //
+    //     // Issue 1 belongs to project 1 and is assigned to user 1 ('Ada
+    //     // Lovelace'), so the join and the `where` both resolve and exactly one
+    //     // project row is renamed.
+    //     ctx.mockNext(1)
+    //     await ctx.withRollback(async () => {
+    //         const connection = ctx.conn
+    //
+    //         const query = connection.update(tProject)
+    //             .from(tIssue)
+    //             .innerJoin(tAppUser).on(tAppUser.id.equals(tIssue.assigneeId))
+    //             .set({ name: tAppUser.fullName })
+    //             .where(tProject.id.equals(tIssue.projectId))
+    //                 .and(tIssue.id.equals(1))
+    //             .customizeQuery({
+    //                 beforeQuery:        connection.rawFragment`/* head */ `,
+    //                 afterUpdateKeyword: connection.rawFragment`/* hint */`,
+    //                 afterQuery:         connection.rawFragment` /* tail */`,
+    //             })
+    //
+    //         expect(queryHasAggregation(query)).toBe(false)
+    //
+    //         const affected = await query.executeUpdate()
+    //
+    //         expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /* hint */ project set project.name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = :0  /* tail */"`)
+    //         expect(ctx.lastParams).toMatchInlineSnapshot(`
+    //           [
+    //             1,
+    //           ]
+    //         `)
+    //         assertType<Exact<typeof affected, number>>()
+    //         expect(affected).toBe(1)
+    //     })
+    // })
 
     test('has-aggregation/update-set-with-an-aggregating-subquery-reports-aggregation', async () => {
         // The set values are the FIRST clause the update walker opens, and the
@@ -900,55 +905,58 @@ describe(ctx.label, () => {
         })
     })
 
-    test('has-aggregation/update-join-on-with-an-aggregating-subquery-reports-aggregation', async () => {
-        // The join `on` of a multi-table update carries the only aggregate,
-        // reached through a scalar subquery — a bare aggregate in an `on` is
-        // rejected by every engine. The set value, the `where` and the three
-        // fragments are populated and inert, so a walker that stopped at the
-        // set values would report `false`. The control above is the twin that
-        // keeps this honest: the same clauses, plain join condition.
-        //
-        // The seed holds two organizations, so the extra `on` term keeps
-        // issues whose project id is at most 2 — which includes issue 1
-        // (project 1). Issue 1 belongs to project 1 and is assigned to user 1,
-        // so exactly one row is updated.
-        ctx.mockNext(1)
-        await ctx.withRollback(async () => {
-            const connection = ctx.conn
-
-            const organizationCount = connection.selectFrom(tOrganization)
-                .selectOneColumn(connection.count(tOrganization.id))
-                .forUseAsInlineQueryValue()
-
-            const query = connection.update(tProject)
-                .from(tIssue)
-                .innerJoin(tAppUser).on(
-                    tAppUser.id.equals(tIssue.assigneeId)
-                        .and(tIssue.projectId.lessOrEqual(organizationCount)),
-                )
-                .set({ name: tAppUser.fullName })
-                .where(tProject.id.equals(tIssue.projectId))
-                    .and(tIssue.id.equals(1))
-                .customizeQuery({
-                    beforeQuery:        connection.rawFragment`/* head */ `,
-                    afterUpdateKeyword: connection.rawFragment`/* hint */`,
-                    afterQuery:         connection.rawFragment` /* tail */`,
-                })
-
-            expect(queryHasAggregation(query)).toBe(true)
-
-            const affected = await query.executeUpdate()
-
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /* hint */ project set project.name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id and issue.project_id <= (select count(id) as "result" from "organization") where project.id = issue.project_id and issue.id = :0  /* tail */"`)
-            expect(ctx.lastParams).toMatchInlineSnapshot(`
-              [
-                1,
-              ]
-            `)
-            assertType<Exact<typeof affected, number>>()
-            expect(affected).toBe(1)
-        })
-    })
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — Oracle multi-table UPDATE…FROM / DELETE…USING
+    // requires Oracle Database 23ai; earlier Oracle (this cell) rejects the FROM/USING keyword
+    // at the parser (ORA-00933). Emission is the same standard form on all versions by design.
+    // test('has-aggregation/update-join-on-with-an-aggregating-subquery-reports-aggregation', async () => {
+    //     // The join `on` of a multi-table update carries the only aggregate,
+    //     // reached through a scalar subquery — a bare aggregate in an `on` is
+    //     // rejected by every engine. The set value, the `where` and the three
+    //     // fragments are populated and inert, so a walker that stopped at the
+    //     // set values would report `false`. The control above is the twin that
+    //     // keeps this honest: the same clauses, plain join condition.
+    //     //
+    //     // The seed holds two organizations, so the extra `on` term keeps
+    //     // issues whose project id is at most 2 — which includes issue 1
+    //     // (project 1). Issue 1 belongs to project 1 and is assigned to user 1,
+    //     // so exactly one row is updated.
+    //     ctx.mockNext(1)
+    //     await ctx.withRollback(async () => {
+    //         const connection = ctx.conn
+    //
+    //         const organizationCount = connection.selectFrom(tOrganization)
+    //             .selectOneColumn(connection.count(tOrganization.id))
+    //             .forUseAsInlineQueryValue()
+    //
+    //         const query = connection.update(tProject)
+    //             .from(tIssue)
+    //             .innerJoin(tAppUser).on(
+    //                 tAppUser.id.equals(tIssue.assigneeId)
+    //                     .and(tIssue.projectId.lessOrEqual(organizationCount)),
+    //             )
+    //             .set({ name: tAppUser.fullName })
+    //             .where(tProject.id.equals(tIssue.projectId))
+    //                 .and(tIssue.id.equals(1))
+    //             .customizeQuery({
+    //                 beforeQuery:        connection.rawFragment`/* head */ `,
+    //                 afterUpdateKeyword: connection.rawFragment`/* hint */`,
+    //                 afterQuery:         connection.rawFragment` /* tail */`,
+    //             })
+    //
+    //         expect(queryHasAggregation(query)).toBe(true)
+    //
+    //         const affected = await query.executeUpdate()
+    //
+    //         expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /* hint */ project set project.name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id and issue.project_id <= (select count(id) as "result" from "organization") where project.id = issue.project_id and issue.id = :0  /* tail */"`)
+    //         expect(ctx.lastParams).toMatchInlineSnapshot(`
+    //           [
+    //             1,
+    //           ]
+    //         `)
+    //         assertType<Exact<typeof affected, number>>()
+    //         expect(affected).toBe(1)
+    //     })
+    // })
 
     test('has-aggregation/update-where-with-an-aggregating-subquery-reports-aggregation', async () => {
         // The `where` carries the only aggregate, again through a scalar
@@ -992,61 +1000,64 @@ describe(ctx.label, () => {
         })
     })
 
-    test('has-aggregation/update-returning-plain-columns-reports-false', async () => {
-        // The update control's statement plus a RETURNING projection of plain
-        // columns. The walker now has to OPEN that projection — the clause the
-        // control leaves absent — walk both of its leaves and come back empty,
-        // so a walker that treated a RETURNING-bearing update, or a projected
-        // column, as evidence of aggregation would report `true` here while the
-        // control still passed. The set value, the join `on`, the `where` and
-        // all three fragments are the control's, unchanged and aggregate-free.
-        //
-        // Issue 1 belongs to project 1 and is assigned to user 1 ('Ada
-        // Lovelace'), so that project is renamed to the assignee's full name
-        // and RETURNING reads the updated row back.
-        const expected = { id: 1, name: 'Ada Lovelace' }
-        ctx.mockNext(expected)
-        await ctx.withRollback(async () => {
-            const connection = ctx.conn
-
-            const query = connection.update(tProject)
-                .from(tIssue)
-                .innerJoin(tAppUser).on(tAppUser.id.equals(tIssue.assigneeId))
-                .set({ name: tAppUser.fullName })
-                .where(tProject.id.equals(tIssue.projectId))
-                    .and(tIssue.id.equals(1))
-                .returning({
-                    id:   tProject.id,
-                    name: tProject.name,
-                })
-                .customizeQuery({
-                    beforeQuery:        connection.rawFragment`/* head */ `,
-                    afterUpdateKeyword: connection.rawFragment`/* hint */`,
-                    afterQuery:         connection.rawFragment` /* tail */`,
-                })
-
-            expect(queryHasAggregation(query)).toBe(false)
-
-            const row = await query.executeUpdateOne()
-
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /* hint */ project set project.name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = :0 returning project.id, project.name into :1, :2  /* tail */"`)
-            expect(ctx.lastParams).toMatchInlineSnapshot(`
-              [
-                1,
-                {
-                  "as": "id",
-                  "dir": 3003,
-                },
-                {
-                  "as": "name",
-                  "dir": 3003,
-                },
-              ]
-            `)
-            assertType<Exact<typeof row, { id: number; name: string }>>()
-            expect(row).toEqual(expected)
-        })
-    })
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — Oracle multi-table UPDATE…FROM / DELETE…USING
+    // requires Oracle Database 23ai; earlier Oracle (this cell) rejects the FROM/USING keyword
+    // at the parser (ORA-00933). Emission is the same standard form on all versions by design.
+    // test('has-aggregation/update-returning-plain-columns-reports-false', async () => {
+    //     // The update control's statement plus a RETURNING projection of plain
+    //     // columns. The walker now has to OPEN that projection — the clause the
+    //     // control leaves absent — walk both of its leaves and come back empty,
+    //     // so a walker that treated a RETURNING-bearing update, or a projected
+    //     // column, as evidence of aggregation would report `true` here while the
+    //     // control still passed. The set value, the join `on`, the `where` and
+    //     // all three fragments are the control's, unchanged and aggregate-free.
+    //     //
+    //     // Issue 1 belongs to project 1 and is assigned to user 1 ('Ada
+    //     // Lovelace'), so that project is renamed to the assignee's full name
+    //     // and RETURNING reads the updated row back.
+    //     const expected = { id: 1, name: 'Ada Lovelace' }
+    //     ctx.mockNext(expected)
+    //     await ctx.withRollback(async () => {
+    //         const connection = ctx.conn
+    //
+    //         const query = connection.update(tProject)
+    //             .from(tIssue)
+    //             .innerJoin(tAppUser).on(tAppUser.id.equals(tIssue.assigneeId))
+    //             .set({ name: tAppUser.fullName })
+    //             .where(tProject.id.equals(tIssue.projectId))
+    //                 .and(tIssue.id.equals(1))
+    //             .returning({
+    //                 id:   tProject.id,
+    //                 name: tProject.name,
+    //             })
+    //             .customizeQuery({
+    //                 beforeQuery:        connection.rawFragment`/* head */ `,
+    //                 afterUpdateKeyword: connection.rawFragment`/* hint */`,
+    //                 afterQuery:         connection.rawFragment` /* tail */`,
+    //             })
+    //
+    //         expect(queryHasAggregation(query)).toBe(false)
+    //
+    //         const row = await query.executeUpdateOne()
+    //
+    //         expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /* hint */ project set project.name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = :0 returning project.id, project.name into :1, :2  /* tail */"`)
+    //         expect(ctx.lastParams).toMatchInlineSnapshot(`
+    //           [
+    //             1,
+    //             {
+    //               "as": "id",
+    //               "dir": 3003,
+    //             },
+    //             {
+    //               "as": "name",
+    //               "dir": 3003,
+    //             },
+    //           ]
+    //         `)
+    //         assertType<Exact<typeof row, { id: number; name: string }>>()
+    //         expect(row).toEqual(expected)
+    //     })
+    // })
 
     test('has-aggregation/update-before-query-fragment-with-an-aggregating-subquery-reports-aggregation', async () => {
         // `beforeQuery` is the FIRST of the three update fragment slots and
@@ -1211,94 +1222,100 @@ describe(ctx.label, () => {
         })
     })
 
-    test('has-aggregation/delete-join-on-with-plain-condition-reports-false', async () => {
-        // The control's statement widened into a multi-table delete whose join
-        // `on` is a plain column-to-column condition. The walker now has to
-        // OPEN the join conditions — the clause the control leaves absent — and
-        // come back empty, so a walker that treated a joined delete as
-        // aggregating would report `true` here while the control still passed.
-        // The three fragments are the control's verbatim; its `where` gains the
-        // term that ties the delete target to the USING table.
-        //
-        // Issue 4 belongs to project 3 ('Public API'), which belongs to
-        // organization 2, so the join resolves and exactly one row goes.
-        ctx.mockNext(1)
-        await ctx.withRollback(async () => {
-            const connection = ctx.conn
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — Oracle multi-table UPDATE…FROM / DELETE…USING
+    // requires Oracle Database 23ai; earlier Oracle (this cell) rejects the FROM/USING keyword
+    // at the parser (ORA-00933). Emission is the same standard form on all versions by design.
+    // test('has-aggregation/delete-join-on-with-plain-condition-reports-false', async () => {
+    //     // The control's statement widened into a multi-table delete whose join
+    //     // `on` is a plain column-to-column condition. The walker now has to
+    //     // OPEN the join conditions — the clause the control leaves absent — and
+    //     // come back empty, so a walker that treated a joined delete as
+    //     // aggregating would report `true` here while the control still passed.
+    //     // The three fragments are the control's verbatim; its `where` gains the
+    //     // term that ties the delete target to the USING table.
+    //     //
+    //     // Issue 4 belongs to project 3 ('Public API'), which belongs to
+    //     // organization 2, so the join resolves and exactly one row goes.
+    //     ctx.mockNext(1)
+    //     await ctx.withRollback(async () => {
+    //         const connection = ctx.conn
+    //
+    //         const query = connection.deleteFrom(tIssue)
+    //             .using(tProject)
+    //             .innerJoin(tOrganization).on(tOrganization.id.equals(tProject.organizationId))
+    //             .where(tIssue.projectId.equals(tProject.id))
+    //                 .and(tIssue.id.equals(4))
+    //             .customizeQuery({
+    //                 beforeQuery:        connection.rawFragment`/* head */ `,
+    //                 afterDeleteKeyword: connection.rawFragment`/* hint */`,
+    //                 afterQuery:         connection.rawFragment` /* tail */`,
+    //             })
+    //
+    //         expect(queryHasAggregation(query)).toBe(false)
+    //
+    //         const affected = await query.executeDelete()
+    //
+    //         expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  delete /* hint */ from issue using project inner join "organization" on "organization".id = project.organization_id where issue.project_id = project.id and issue.id = :0  /* tail */"`)
+    //         expect(ctx.lastParams).toMatchInlineSnapshot(`
+    //           [
+    //             4,
+    //           ]
+    //         `)
+    //         assertType<Exact<typeof affected, number>>()
+    //         expect(affected).toBe(1)
+    //     })
+    // })
 
-            const query = connection.deleteFrom(tIssue)
-                .using(tProject)
-                .innerJoin(tOrganization).on(tOrganization.id.equals(tProject.organizationId))
-                .where(tIssue.projectId.equals(tProject.id))
-                    .and(tIssue.id.equals(4))
-                .customizeQuery({
-                    beforeQuery:        connection.rawFragment`/* head */ `,
-                    afterDeleteKeyword: connection.rawFragment`/* hint */`,
-                    afterQuery:         connection.rawFragment` /* tail */`,
-                })
-
-            expect(queryHasAggregation(query)).toBe(false)
-
-            const affected = await query.executeDelete()
-
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  delete /* hint */ from issue using project inner join "organization" on "organization".id = project.organization_id where issue.project_id = project.id and issue.id = :0  /* tail */"`)
-            expect(ctx.lastParams).toMatchInlineSnapshot(`
-              [
-                4,
-              ]
-            `)
-            assertType<Exact<typeof affected, number>>()
-            expect(affected).toBe(1)
-        })
-    })
-
-    test('has-aggregation/delete-join-on-with-an-aggregating-subquery-reports-aggregation', async () => {
-        // The join `on` is the FIRST clause the delete walker opens, and it
-        // carries the only aggregate, reached through a scalar subquery — a
-        // bare aggregate in an `on` is rejected by every engine. The `where`
-        // and the three fragments are populated and inert, and the sibling
-        // above is the same statement with a plain `on`.
-        //
-        // Issue 4 belongs to project 3, which belongs to organization 2, and
-        // the seed holds three users, so the extra `on` term (`2 < 3`) keeps
-        // the joined row and exactly one issue goes. Had the aggregate come
-        // back as 2 or less, nothing would have been removed.
-        ctx.mockNext(1)
-        await ctx.withRollback(async () => {
-            const connection = ctx.conn
-
-            const userCount = connection.selectFrom(tAppUser)
-                .selectOneColumn(connection.count(tAppUser.id))
-                .forUseAsInlineQueryValue()
-
-            const query = connection.deleteFrom(tIssue)
-                .using(tProject)
-                .innerJoin(tOrganization).on(
-                    tOrganization.id.equals(tProject.organizationId)
-                        .and(tOrganization.id.lessThan(userCount)),
-                )
-                .where(tIssue.projectId.equals(tProject.id))
-                    .and(tIssue.id.equals(4))
-                .customizeQuery({
-                    beforeQuery:        connection.rawFragment`/* head */ `,
-                    afterDeleteKeyword: connection.rawFragment`/* hint */`,
-                    afterQuery:         connection.rawFragment` /* tail */`,
-                })
-
-            expect(queryHasAggregation(query)).toBe(true)
-
-            const affected = await query.executeDelete()
-
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  delete /* hint */ from issue using project inner join "organization" on "organization".id = project.organization_id and "organization".id < (select count(id) as "result" from app_user) where issue.project_id = project.id and issue.id = :0  /* tail */"`)
-            expect(ctx.lastParams).toMatchInlineSnapshot(`
-              [
-                4,
-              ]
-            `)
-            assertType<Exact<typeof affected, number>>()
-            expect(affected).toBe(1)
-        })
-    })
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — Oracle multi-table UPDATE…FROM / DELETE…USING
+    // requires Oracle Database 23ai; earlier Oracle (this cell) rejects the FROM/USING keyword
+    // at the parser (ORA-00933). Emission is the same standard form on all versions by design.
+    // test('has-aggregation/delete-join-on-with-an-aggregating-subquery-reports-aggregation', async () => {
+    //     // The join `on` is the FIRST clause the delete walker opens, and it
+    //     // carries the only aggregate, reached through a scalar subquery — a
+    //     // bare aggregate in an `on` is rejected by every engine. The `where`
+    //     // and the three fragments are populated and inert, and the sibling
+    //     // above is the same statement with a plain `on`.
+    //     //
+    //     // Issue 4 belongs to project 3, which belongs to organization 2, and
+    //     // the seed holds three users, so the extra `on` term (`2 < 3`) keeps
+    //     // the joined row and exactly one issue goes. Had the aggregate come
+    //     // back as 2 or less, nothing would have been removed.
+    //     ctx.mockNext(1)
+    //     await ctx.withRollback(async () => {
+    //         const connection = ctx.conn
+    //
+    //         const userCount = connection.selectFrom(tAppUser)
+    //             .selectOneColumn(connection.count(tAppUser.id))
+    //             .forUseAsInlineQueryValue()
+    //
+    //         const query = connection.deleteFrom(tIssue)
+    //             .using(tProject)
+    //             .innerJoin(tOrganization).on(
+    //                 tOrganization.id.equals(tProject.organizationId)
+    //                     .and(tOrganization.id.lessThan(userCount)),
+    //             )
+    //             .where(tIssue.projectId.equals(tProject.id))
+    //                 .and(tIssue.id.equals(4))
+    //             .customizeQuery({
+    //                 beforeQuery:        connection.rawFragment`/* head */ `,
+    //                 afterDeleteKeyword: connection.rawFragment`/* hint */`,
+    //                 afterQuery:         connection.rawFragment` /* tail */`,
+    //             })
+    //
+    //         expect(queryHasAggregation(query)).toBe(true)
+    //
+    //         const affected = await query.executeDelete()
+    //
+    //         expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  delete /* hint */ from issue using project inner join "organization" on "organization".id = project.organization_id and "organization".id < (select count(id) as "result" from app_user) where issue.project_id = project.id and issue.id = :0  /* tail */"`)
+    //         expect(ctx.lastParams).toMatchInlineSnapshot(`
+    //           [
+    //             4,
+    //           ]
+    //         `)
+    //         assertType<Exact<typeof affected, number>>()
+    //         expect(affected).toBe(1)
+    //     })
+    // })
 
     test('has-aggregation/delete-where-with-an-aggregating-subquery-reports-aggregation', async () => {
         // The `where` carries the only aggregate, through a scalar subquery.
@@ -1543,6 +1560,10 @@ describe(ctx.label, () => {
         })
     })
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — Oracle multi-table UPDATE…FROM / DELETE…USING
+    // requires Oracle Database 23ai; earlier Oracle (this cell) rejects the FROM/USING keyword
+    // at the parser (ORA-00933). Emission is the same standard form on all versions by design.
+    /*
     test('has-aggregation/update-without-a-customization-reports-false', async () => {
         // The UPDATE twin: the portable control's statement — set, from, join
         // `on` and where all populated and none aggregating — with no
@@ -1573,6 +1594,7 @@ describe(ctx.label, () => {
             expect(affected).toBe(1)
         })
     })
+    */
 
     test('has-aggregation/delete-without-a-customization-reports-false', async () => {
         // The DELETE twin. Issue 4 carries no worklog and no webhook event, so

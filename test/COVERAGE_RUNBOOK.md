@@ -657,8 +657,8 @@ In order:
   the agent; the matrix under bun (`--parallel --no-isolate`) is the fastest and
   the only runtime that runs the Bun SQL cells real (see
   [`BENCHMARKS.md`](./BENCHMARKS.md)). Two exceptions run under npm/node:
-  `npm run tests -- --run-connectors native` for the node-only SQLite cells
-  (better-sqlite3, node_sqlite), and `npm run tests:index*` (node builds the index
+  `npm run tests -- --run-connectors native` for Node's `node:sqlite` (the
+  node_sqlite cells), and `npm run tests:index*` (node builds the index
   ~2.4× faster).
 - **Never** touch the user's `test` / `test:*` aliases in `package.json`.
   They are reserved. Canonical CLI vocabulary is `tests` / `tests:audit`

@@ -132,9 +132,9 @@ feedback.
 3. `tests` — full mocked matrix. **Pre-push** sanity sweep.
 4. `tests --docker` / `--wasm` — only when the change touches a docker-backed
    connector / the WASM path, or as a final confidence check
-   (`bun run tests --docker`). Bun mocks the node-only `node_sqlite` cells
-   (+ their `-sync` twin); add `npm run tests -- --run-connectors native`
-   for those.
+   (`bun run tests --docker`). Under Bun the `node_sqlite` cells (+ their
+   `-sync` twin) run against Bun's own `node:sqlite`; add
+   `npm run tests -- --run-connectors native` to run them against Node's.
 
 Widen the scope explicitly when you have a reason: touching a
 compatibility-version branch in a `SqlBuilder`, investigating a regression
@@ -245,9 +245,9 @@ bun run tests --run-connectors wasm --wasm
 # Only docker-backed connectors run, against real containers.
 bun run tests --run-connectors docker --docker
 
-# Only the embedded SQLite drivers run (zero-infra, real by default). Under bun the
-# node-only driver (node_sqlite) mocks; `npm run tests -- --run-connectors native`
-# runs it real.
+# Only the embedded SQLite drivers run (zero-infra, real by default). Under bun
+# node_sqlite runs against Bun's own node:sqlite; `npm run tests -- --run-connectors native`
+# runs it against Node's.
 bun run tests --run-connectors native
 
 # Bug-fix flow: validate one cell real, everything else cheap mock.

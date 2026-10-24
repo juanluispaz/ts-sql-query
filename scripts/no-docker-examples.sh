@@ -36,6 +36,8 @@ if [ "$runtime" = "bun" ]; then
     $RUN ./src/examples/BunSqliteExample.ts || exit 1
     $RUN ./src/examples/BunSqliteSynchronousExample.ts || exit 1
     $RUN ./src/examples/BunSqlSqliteExample.ts || exit 1
+    $RUN ./src/examples/NodeSqliteExample.ts || exit 1
+    $RUN ./src/examples/NodeSqliteSynchronousExample.ts || exit 1
 else
     NODE_MAJOR=$(node -p "process.versions.node.split('.')[0]")
     if [ "$NODE_MAJOR" -ge 24 ]; then

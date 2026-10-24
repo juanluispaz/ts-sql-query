@@ -89,12 +89,13 @@ rest split by runtime:
 - **real only under bun**: `bun_sql_postgres`, `bun_sql_mysql` (docker) and
   `bun_sqlite(-sync)`, `bun_sql_sqlite` (embedded) — they import `bun` /
   `bun:sqlite`;
-- **real only under node**: `node_sqlite(-sync)` (under bun `node:sqlite` is
-  Bun's own reimplementation, so it would validate Bun, not Node).
+- **real under both, against different engines**: `node_sqlite(-sync)` —
+  `node:sqlite` is a different implementation under each runtime (Bun ships its own since 1.4), so
+  each run validates its own runtime's.
 
 Under `--docker`, bun therefore validates 11 more docker cells against their
-engine than vitest does — and is still faster — while vitest validates the
-node-only `node_sqlite` cells, which are cheap.
+engine than vitest does — and is still faster — while vitest validates Node's
+`node:sqlite`, which is cheap.
 
 ## Bun: `--parallel --no-isolate`
 
@@ -172,8 +173,9 @@ pipeline stays on npm/Node.
   tiers.
 - **Pre-merge confidence**: `bun run tests --docker --wasm` — every docker, WASM
   and bun-embedded cell runs against its real engine. **Then**
-  `npm run tests -- --run-connectors native` for the node-only `node_sqlite`
-  cells (and their `-sync` twin), which bun mocks.
+  `npm run tests -- --run-connectors native`, which runs the `node_sqlite`
+  cells (and their `-sync` twin) against Node's `node:sqlite` — under bun they
+  run against Bun's.
 - **WASM-touching changes**: `bun run tests --run-connectors wasm --wasm`.
 - **No-docker CI (memory-bounded)**: `bun run tests --shard` runs the four CI
   shards in sequence; peak = biggest shard, not the sum. See

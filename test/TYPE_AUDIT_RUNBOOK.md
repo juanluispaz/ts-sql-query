@@ -1218,7 +1218,7 @@ or does the composition remove/replace it?**
   the matrix bun (`--parallel --no-isolate`) is the fastest (see
   [`BENCHMARKS.md`](./BENCHMARKS.md)). Two exceptions run under npm/node:
   `npm run tests:index*` (node builds the index ~2.4× faster) and
-  `npm run tests -- --run-connectors native` for the node-only SQLite cells.
+  `npm run tests -- --run-connectors native` for Node's `node:sqlite` (the `node_sqlite` cells).
 - **Agents are READ-ONLY.** The working tree must end the session clean — only
   the new `MISSING_TESTS_AUDIT_<N>.md` (plus any pre-existing untracked files)
   should appear in `git status`. Delete every compile-repro you wrote.

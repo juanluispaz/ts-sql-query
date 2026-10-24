@@ -7,8 +7,9 @@
 // false everywhere. The exceptions that need runtime gating:
 //   - `bun:sqlite` is bun-only — only fires under Bun.
 //   - `node:sqlite` requires Node >= 22.5 (built-in module is gated on
-//     a feature flag in some versions). We try the import and skip the
-//     real branch if it throws.
+//     a feature flag in some versions) or Bun >= 1.4 (Bun's own
+//     implementation). We try the import and skip the real branch if it
+//     throws.
 //   - `better-sqlite3` is a native (N-API) module that loads under both
 //     runtimes.
 //   - `sqlite3` and `sqlite-wasm-OO1` are universal under both runtimes.
@@ -542,16 +543,15 @@ export function createBetterSqlite3SyncTestContext(spec: SqliteTestSpec): Sqlite
     return createBetterSqlite3TestContext(spec, true)
 }
 
-// ---- node:sqlite (in-process, Node 22.5+) -------------------------------
+// ---- node:sqlite (in-process, Node 22.5+ / Bun 1.4+) ---------------------
 
 // `sync` builds the `-sync` cell variant (runner + mock via SynchronousPromise).
 export function createNodeSqliteTestContext(spec: SqliteTestSpec, sync = false): SqliteTestContext {
-    // `node:sqlite` is a built-in module added in Node 22.5. Under Bun the
-    // shim does not expose it. We try the import lazily and fall back to
-    // mock-only mode if the runtime does not have it.
+    // `node:sqlite` is a built-in module added in Node 22.5; Bun ships its
+    // own implementation since 1.4. We try the import lazily and fall back
+    // to mock-only mode if the runtime does not have it.
     let resolvedRealDb: boolean | null = null
     function isNodeSqliteAvailable(): boolean {
-        if (isBun) return false
         if (resolvedRealDb !== null) return resolvedRealDb
         try {
             // dynamic require to avoid bundlers complaining

@@ -5,11 +5,11 @@
 # direct invocation defaults to bun.
 #
 # Per-runtime divergence is intentional:
-#   * node-only: NodeSqlite* (Node 24+), PrismaSqlite.
+#   * node-only: PrismaSqlite.
 #   * bun-only:  BunSqlite*, BunSqlSqlite*, BunSqlPostgres*,
 #                BunSqlMySql*, BunSqlMariaDB*.
 #   * common:    everything under documentation/, Sqlite3Example,
-#                BetterSqlite3*, Sqlite3WasmOO1*, PgLiteExample, the per-driver scripts
+#                BetterSqlite3*, NodeSqlite* (Node 24+ / Bun), Sqlite3WasmOO1*, PgLiteExample, the per-driver scripts
 #                that share between runtimes.
 
 set -x #echo on
@@ -63,6 +63,8 @@ if [ "$runtime" = "bun" ]; then
     $RUN ./src/examples/BunSqliteExample.ts || exit 1
     $RUN ./src/examples/BunSqliteSynchronousExample.ts || exit 1
     $RUN ./src/examples/BunSqlSqliteExample.ts || exit 1
+    $RUN ./src/examples/NodeSqliteExample.ts || exit 1
+    $RUN ./src/examples/NodeSqliteSynchronousExample.ts || exit 1
 else
     NODE_MAJOR=$(node -p "process.versions.node.split('.')[0]")
     if [ "$NODE_MAJOR" -ge 24 ]; then

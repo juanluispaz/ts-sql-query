@@ -7,6 +7,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tCountry, tIssueWorklog, tProjectRelease, tProjectReview, tReleaseDraft } from '../../domain/connection.js'
+import type { ReleaseChannel } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 // tIssueWorklog is referenced only by the commented-out test below.
@@ -64,8 +65,6 @@ describe(ctx.label, () => {
         })
     })
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('update-project-release-returning-branded-custom-column', async () => {
         // `returningOneColumn(...)` preserves the column's branded value type,
         // so reading `channel` back through RETURNING yields `ReleaseChannel`,
@@ -79,16 +78,18 @@ describe(ctx.label, () => {
                 .returningOneColumn(tProjectRelease.channel)
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_release set channel = ? where id = ? returning channel as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "beta",
+                1,
+              ]
+            `)
             assertType<Exact<typeof channel, ReleaseChannel>>()
             expect(channel).toBe('beta')
         })
     })
-    */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('update-worklog-returning-adapter-virtual-column', async () => {
         // `.returning(...)` of an adapter column: `activityTagged` is a virtual
         // column carrying a non-identity TypeAdapter that brackets the read
@@ -104,13 +105,17 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssueWorklog.activityTagged)
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set minutes = ? where id = ? returning upper(activity) as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                95,
+                1,
+              ]
+            `)
             assertType<Exact<typeof tagged, string>>()
             expect(tagged).toBe('[CODING]')
         })
     })
-    */
 
     test('update-country-keyed-on-string-provided-primary-key', async () => {
         // An UPDATE whose WHERE is the provided string primary key

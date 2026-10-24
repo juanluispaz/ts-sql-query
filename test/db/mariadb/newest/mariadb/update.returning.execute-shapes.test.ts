@@ -17,16 +17,22 @@
 //   3. `returningOneColumn(col) + executeUpdateOne()` on no-match — fires
 //      `executeUpdateOne`'s NO_RESULT throw on the one-column branch.
 
-import { afterAll, beforeAll, beforeEach, describe } from '../../../../lib/testRunner.js'
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { TsSqlError } from '../../../../../src/TsSqlError.js'
+import { tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+
+function reasonOf(e: unknown): string | undefined {
+    if (e instanceof TsSqlError) return e.errorReason.reason
+    return undefined
+}
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('update-returning-none-or-one-row-shape-null-on-no-match', async () => {
         // `returning({ ... })` + `executeUpdateNoneOrOne()` lands on the
         // row-shape branch of `executeUpdateNoneOrOne`. WHERE id=99999
@@ -59,10 +65,7 @@ describe(ctx.label, () => {
             expect(row).toBeNull()
         })
     })
-    */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('update-returning-row-shape-throws-no-result-on-empty', async () => {
         // `returning({ ... })` + `executeUpdateOne()` with a no-match
         // filter. Lands on the NO_RESULT branch of `executeUpdateOne`.
@@ -92,10 +95,7 @@ describe(ctx.label, () => {
           ]
         `)
     })
-    */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('update-returning-one-column-throws-no-result-on-empty', async () => {
         // `returningOneColumn(col)` + `executeUpdateOne()` with a no-match
         // filter fires the NO_RESULT throw on the one-column branch of
@@ -121,10 +121,7 @@ describe(ctx.label, () => {
           ]
         `)
     })
-    */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('update-returning-none-or-one-row-shape-present-on-match', async () => {
         // The PRESENT arm of `executeUpdateNoneOrOne()` on the row-shape branch: WHERE
         // id=1 matches exactly one row, so RETURNING yields a single object and the
@@ -143,7 +140,7 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = $1 where id = $2 returning id as id, status as status"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = ? where id = ? returning id as id, status as status"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 5,
@@ -157,10 +154,7 @@ describe(ctx.label, () => {
             expect(row).toEqual(expected)
         })
     })
-    */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('update-returning-one-column-throws-invalid-value-on-wrong-typed-value', async () => {
         // The one-column value is PRESENT but of a shape the required-`int`
         // column can't accept (a non-integer `1.5`), so `transformValueFromDB`
@@ -183,10 +177,7 @@ describe(ctx.label, () => {
         }
         expect(reasonOf(caught)).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
     })
-    */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('update-returning-one-column-throws-mandatory-value-on-present-null', async () => {
         // The one-column value is PRESENT but null on a required column
         // (`status`). `transformValueFromDB` coerces null→null and the
@@ -210,5 +201,4 @@ describe(ctx.label, () => {
         }
         expect(reasonOf(caught)).toBe('MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE')
     })
-    */
 })

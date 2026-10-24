@@ -30,7 +30,9 @@
 // `inN` / `notInN` are used wherever an array operand has to carry a value source:
 // `in([...])` accepts plain values only.
 
-import { afterAll, beforeAll, beforeEach, describe } from '../../../../lib/testRunner.js'
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -39,7 +41,7 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB 13.0.2 evaluates OLD_VALUE(col) only as a bare RETURNING item: inside an expression it returns the new value, or is a syntax error (MDEV-40126, open).
     /*
     test('returning-in-with-old-value-single-operand', async () => {
         // Idempotency probe on a rename: `name in (old.name)` answers "was this
@@ -60,8 +62,13 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ? returning id as id, name in (old_value(name)) as nameUnchanged"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Marketing site v1",
+                1,
+              ]
+            `)
             assertType<Exact<typeof row, { id: number, nameUnchanged: boolean }>>()
             expect(row).toEqual(expected)
         })
@@ -69,8 +76,6 @@ describe(ctx.label, () => {
     */
 
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
-    /*
     test('returning-in-n-with-old-value-later-in-array-operand', async () => {
         // Normalising a project's display name to its slug, and reporting whether
         // the new name matches one of the row's previous identifiers. The plain
@@ -91,16 +96,21 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ? returning id as id, name in (?, old_value(slug)) as nameMatchesPriorIdentity"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "mktg-site",
+                1,
+                "Marketing site",
+              ]
+            `)
             assertType<Exact<typeof row, { id: number, nameMatchesPriorIdentity: boolean }>>()
             expect(row).toEqual(expected)
         })
     })
-    */
 
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB 13.0.2 evaluates OLD_VALUE(col) only as a bare RETURNING item: inside an expression it returns the new value, or is a syntax error (MDEV-40126, open).
     /*
     test('returning-is-not-with-old-value-operand', async () => {
         // The NULL-safe comparison family — the audit-friendly "did this UPDATE
@@ -120,8 +130,13 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ? returning id as id, not (name <=> old_value(name)) as renamed"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Marketing site v3",
+                1,
+              ]
+            `)
             assertType<Exact<typeof row, { id: number, renamed: boolean }>>()
             expect(row).toEqual(expected)
         })
@@ -129,7 +144,7 @@ describe(ctx.label, () => {
     */
 
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB 13.0.2 evaluates OLD_VALUE(col) only as a bare RETURNING item: inside an expression it returns the new value, or is a syntax error (MDEV-40126, open).
     /*
     test('returning-value-when-null-with-old-value-operand', async () => {
         // `coalesce(body, old.title)`. Clearing an issue's body should still give
@@ -152,8 +167,13 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set \`body\` = ? where id = ? returning id as id, ifnull(\`body\`, old_value(title)) as summary"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                null,
+                1,
+              ]
+            `)
             assertType<Exact<typeof row, { id: number, summary: string }>>()
             expect(row).toEqual(expected)
         })
@@ -161,7 +181,7 @@ describe(ctx.label, () => {
     */
 
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB 13.0.2 evaluates OLD_VALUE(col) only as a bare RETURNING item: inside an expression it returns the new value, or is a syntax error (MDEV-40126, open).
     /*
     test('returning-between-with-old-value-lower-bound-operand', async () => {
         // A two-operand comparator with the pre-update value as the UPPER bound, so
@@ -185,8 +205,14 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = ? where id = ? returning id as id, priority between ? and old_value(priority) as notEscalated"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                1,
+                1,
+              ]
+            `)
             assertType<Exact<typeof row, { id: number, notEscalated: boolean }>>()
             expect(row).toEqual(expected)
         })
@@ -194,7 +220,7 @@ describe(ctx.label, () => {
     */
 
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB 13.0.2 evaluates OLD_VALUE(col) only as a bare RETURNING item: inside an expression it returns the new value, or is a syntax error (MDEV-40126, open).
     /*
     test('returning-replace-all-with-old-value-find-operand', async () => {
         // The same two-operand family through a non-comparator, with the
@@ -216,8 +242,14 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ? returning id as id, replace(name, old_value(name), ?) as shortName"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Marketing site (EMEA)",
+                1,
+                "Mktg",
+              ]
+            `)
             assertType<Exact<typeof row, { id: number, shortName: string }>>()
             expect(row).toEqual(expected)
         })
@@ -225,8 +257,6 @@ describe(ctx.label, () => {
     */
 
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
-    /*
     test('returning-replace-all-if-value-with-old-value-replacement-operand', async () => {
         // The IfValue sibling of the test above, and the only *IfValue wrapper
         // whose operands are typed to accept a value source. Here the old column
@@ -248,16 +278,21 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ? returning id as id, replace(name, ?, old_value(slug)) as slugLabel"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Marketing site (EMEA)",
+                1,
+                "Marketing site",
+              ]
+            `)
             assertType<Exact<typeof row, { id: number, slugLabel: string }>>()
             expect(row).toEqual(expected)
         })
     })
-    */
 
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB 13.0.2 evaluates OLD_VALUE(col) only as a bare RETURNING item: inside an expression it returns the new value, or is a syntax error (MDEV-40126, open).
     /*
     test('returning-value-when-no-value-with-old-value-fallback-operand', async () => {
         // The fallback arm of a dynamic predicate projected into RETURNING. With no
@@ -281,8 +316,14 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ? returning id as id, old_value(name) = ? as wasMarketingSite"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Marketing site v5",
+                1,
+                "Marketing site",
+              ]
+            `)
             assertType<Exact<typeof row, { id: number, wasMarketingSite: boolean }>>()
             expect(row).toEqual(expected)
         })
@@ -290,7 +331,7 @@ describe(ctx.label, () => {
     */
 
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB 13.0.2 evaluates OLD_VALUE(col) only as a bare RETURNING item: inside an expression it returns the new value, or is a syntax error (MDEV-40126, open).
     /*
     test('returning-in-n-on-old-value-receiver-column', async () => {
         // The mirror of test 2: the old-values column is the operator's RECEIVER
@@ -312,15 +353,22 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ? returning id as id, old_value(name) in (?, ?) as wasKnownName"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Marketing site v6",
+                1,
+                "Marketing site",
+                "Legacy marketing",
+              ]
+            `)
             assertType<Exact<typeof row, { id: number, wasKnownName: boolean }>>()
             expect(row).toEqual(expected)
         })
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB 13.0.2 evaluates OLD_VALUE(col) only as a bare RETURNING item: inside an expression it returns the new value, or is a syntax error (MDEV-40126, open).
     /*
     test('returning-equals-if-value-with-old-value-receiver-and-a-present-value', async () => {
         // The `*IfValueOrNoop` old-values arm the file's `valueWhenNoValue` test
@@ -347,15 +395,21 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ? returning id as id, old_value(slug) = ? as wasMktgSite"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Marketing site v2",
+                1,
+                "mktg-site",
+              ]
+            `)
             assertType<Exact<typeof row, { id: number, wasMktgSite: boolean }>>()
             expect(row).toEqual(expected)
         })
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB 13.0.2 evaluates OLD_VALUE(col) only as a bare RETURNING item: inside an expression it returns the new value, or is a syntax error (MDEV-40126, open).
     /*
     test('returning-concat-if-value-with-old-value-receiver', async () => {
         // The `concatIfValue` twin — a value-present `*IfValueOrIgnore` operator
@@ -378,8 +432,14 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ? returning id as id, concat(old_value(name), ?) as label"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Marketing site v3",
+                1,
+                " (was)",
+              ]
+            `)
             assertType<Exact<typeof row, { id: number, label: string }>>()
             expect(row).toEqual(expected)
         })

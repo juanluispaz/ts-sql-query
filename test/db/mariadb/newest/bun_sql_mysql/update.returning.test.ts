@@ -2,7 +2,9 @@
 //
 // Each mutation runs inside `ctx.withRollback(...)`.
 
-import { afterAll, beforeAll, beforeEach, describe } from '../../../../lib/testRunner.js'
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { tIssue, tOrganization, tProject, tReleaseDraft, type ReleaseStage } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -10,8 +12,6 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('update-returning-one-row', async () => {
         const expectedMock = { id: 1, title: 'Patched', priority: 5 }
         ctx.mockNext(expectedMock)
@@ -50,10 +50,7 @@ describe(ctx.label, () => {
             }
         })
     })
-    */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('update-returning-one-column', async () => {
         ctx.mockNext('Renamed Acme')
 
@@ -76,18 +73,14 @@ describe(ctx.label, () => {
             expect(newName).toBe('Renamed Acme')
         })
     })
-    */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('update-returning-many', async () => {
         // Update every issue with priority 1 and return one row per
-        // touched record. Exercises `executeUpdateMany`.
-        const expectedMock = [
-            { id: 1, title: 'Bumped 1' },
-            { id: 2, title: 'Bumped 2' },
+        // touched record. Only issue 2 ('Redesign navbar') has priority 1.
+        const expected = [
+            { id: 2, title: 'Redesign navbar' },
         ]
-        ctx.mockNext(expectedMock)
+        ctx.mockNext(expected)
 
         await ctx.withRollback(async () => {
             const rows = await ctx.conn.update(tIssue)
@@ -108,14 +101,11 @@ describe(ctx.label, () => {
             `)
             assertType<Exact<typeof rows, Array<{ id: number; title: string }>>>()
 
-            if (!ctx.realDbEnabled) expect(rows).toEqual(expectedMock)
-            else expect(Array.isArray(rows)).toBe(true)
+            // UPDATE … RETURNING has no guaranteed order; sort by id.
+            expect(rows.slice().sort((a, b) => a.id - b.id)).toEqual(expected)
         })
     })
-    */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('update-returning-projecting-optional-values-as-nullable', async () => {
         // optional RETURNING columns become a present `| null` via
         // `projectingOptionalValuesAsNullable()` on an UPDATE builder. issue 3
@@ -131,16 +121,18 @@ describe(ctx.label, () => {
                 .projectingOptionalValuesAsNullable()
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where id = ? returning id as id, \`body\` as \`body\`"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "in_progress",
+                3,
+              ]
+            `)
             assertType<Exact<typeof updated, { id: number; body: string | null }>>()
             expect(updated).toEqual({ id: 3, body: null })
         })
     })
-    */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('update-returning-one-column-computed-expression', async () => {
         // RETURNING a COMPUTED expression (a column combined with a const), not
         // a bare column, via `returningOneColumn`. The `priority + 100`
@@ -156,7 +148,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.priority.add(100))
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = $1 where id = $2 returning priority + $3 as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = ? where id = ? returning priority + ? as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 5,
@@ -168,10 +160,7 @@ describe(ctx.label, () => {
             expect(bumped).toBe(105)
         })
     })
-    */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('update-returning-object-computed-expression', async () => {
         // Object-form RETURNING projecting a COMPUTED expression
         // (`title || ' [done]'`) alongside a plain column. The derived-value
@@ -191,7 +180,7 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = $1 where id = $2 returning id as id, title || $3 as tag"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ? where id = ? returning id as id, concat(title, ?) as tag"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Patched",
@@ -203,10 +192,7 @@ describe(ctx.label, () => {
             expect(row).toEqual(expected)
         })
     })
-    */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('update-returning-nested-object-projection', async () => {
         // Object-form RETURNING containing a NESTED object projection (plain —
         // no `oldValues`). The `meta` group folds two projected columns into a
@@ -228,7 +214,7 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = $1, priority = $2 where id = $3 returning id as id, title as "meta.title", priority as "meta.priority""`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?, priority = ? where id = ? returning id as id, title as \`meta.title\`, priority as \`meta.priority\`"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Patched",
@@ -243,10 +229,7 @@ describe(ctx.label, () => {
             expect(row).toEqual(expected)
         })
     })
-    */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('update-returning-object-none-or-one', async () => {
         // `executeUpdateNoneOrOne()` with an OBJECT-shape returning yields
         // `{...} | null`. Only the single-column branch (returningOneColumn) was
@@ -264,16 +247,18 @@ describe(ctx.label, () => {
                 .returning({ id: tIssue.id, title: tIssue.title })
                 .executeUpdateNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ? where id = ? returning id as id, title as title"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Reordered",
+                1,
+              ]
+            `)
             assertType<Exact<typeof row, { id: number; title: string } | null>>()
             expect(row).toEqual(expectedMock)
         })
     })
-    */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('update-release-draft-returning-one-column-optional-branded', async () => {
         // `returningOneColumn(<optional branded column>)` on UPDATE → `ReleaseStage | null`.
         // RETURNING sees the post-update value; draft 1's `stage` ('candidate') is untouched by the
@@ -286,15 +271,17 @@ describe(ctx.label, () => {
                 .returningOneColumn(tReleaseDraft.stage)
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update release_draft set title = ? where id = ? returning stage as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Alpha cut v2",
+                1,
+              ]
+            `)
             assertType<Exact<typeof stage, ReleaseStage | null>>()
             expect(stage).toBe('candidate')
         })
     })
-    */
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('update-release-draft-returning-object-optional-branded-default', async () => {
         // Object-form RETURNING of an optional branded column on UPDATE. Under the default projector
         // the leaf is `stage?: ReleaseStage` (brand preserved). Draft 1's stage 'candidate' is
@@ -308,15 +295,17 @@ describe(ctx.label, () => {
                 .returning({ id: tReleaseDraft.id, stage: tReleaseDraft.stage })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update release_draft set title = ? where id = ? returning id as id, stage as stage"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Alpha cut v2",
+                1,
+              ]
+            `)
             assertType<Exact<typeof row, { id: number; stage?: ReleaseStage }>>()
             expect(row).toEqual(expected)
         })
     })
-    */
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('update-release-draft-returning-object-optional-branded-as-nullable', async () => {
         // The same under `projectingOptionalValuesAsNullable()` → `stage: ReleaseStage | null`.
         // Draft 2's stage is NULL, so the returned value is present-null.
@@ -330,13 +319,17 @@ describe(ctx.label, () => {
                 .projectingOptionalValuesAsNullable()
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update release_draft set title = ? where id = ? returning id as id, stage as stage"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Nightly build v2",
+                2,
+              ]
+            `)
             assertType<Exact<typeof row, { id: number; stage: ReleaseStage | null }>>()
             expect(row).toEqual(expected)
         })
     })
-    */
 
     // NOT-APPLICABLE: This dialect does not support UPDATE ... RETURNING, so the returning() form of an UPDATE is typed never here.
     /*
@@ -427,8 +420,6 @@ describe(ctx.label, () => {
         })
     })
     */
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('update-returning-nested-object-optional-leaf-default', async () => {
         // object-form RETURNING whose nested `meta` group holds a SINGLE OPTIONAL
         // leaf (`archivedAt`) under the DEFAULT projector → `meta?: { archivedAt?: Date }`. Two boundary rows: project 4 (archived_at present) → `meta` + `archivedAt`
@@ -444,8 +435,13 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ? returning id as id, archived_at as \`meta.archivedAt\`"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Legacy app v2",
+                4,
+              ]
+            `)
             assertType<Exact<typeof present, { id: number; meta?: { archivedAt?: Date } }>>()
             expect(present.id).toBe(4)
             expect('meta' in present).toBe(true)
@@ -466,7 +462,6 @@ describe(ctx.label, () => {
             expect('meta' in absent).toBe(false)
         })
     })
-    */
 
     // NOT-APPLICABLE: MariaDB has no UPDATE ... RETURNING clause.
     /*

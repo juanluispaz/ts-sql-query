@@ -52,11 +52,11 @@ export const ENGINE_IMAGES: Readonly<Record<string, Readonly<Record<string, stri
         // Fine on amd64 CI. Verified: emulates + connects (5.7.44) with that set.
         oldest: 'mysql:5.7',
     },
-    // Breakpoints 13_000_001 (== newest; OLD_VALUE, not yet GA), 10_005_000,
+    // Breakpoints 13_000_001 (== newest; OLD_VALUE), 10_005_000,
     // 10_004_000, 10_003_003. oldest is the 10.3 line (docs: don't go below 10.3).
-    // newest pinned to 12.3 (current latest) — bump when a newer release ships.
+    // newest pinned to 13.0 (current latest) — bump when a newer release ships.
     mariadb: {
-        newest: 'mariadb:12.3',
+        newest: 'mariadb:13.0',
         '10_005_000': 'mariadb:10.5',
         '10_004_000': 'mariadb:10.4',
         '10_003_003': 'mariadb:10.3',

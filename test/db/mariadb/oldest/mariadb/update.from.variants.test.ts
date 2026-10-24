@@ -123,7 +123,7 @@ describe(ctx.label, () => {
     // RETURNING needs MariaDB 13.0.1+ (the mariadb:latest image still
     // ships 12.x), and RETURNING on a multi-table UPDATE is not accepted
     // even where single-table UPDATE RETURNING is.
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING needs MariaDB 13.0.1+ and is not accepted on a multi-table UPDATE as of 12.3.2
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING needs MariaDB 13.0.1+ and is not accepted on a multi-table UPDATE as of 13.0.2
     /*
     test('update-from-with-returning-one-row', async () => {
         // RETURNING combined with FROM; the emitted form is pinned by
@@ -174,7 +174,7 @@ describe(ctx.label, () => {
     // RETURNING needs MariaDB 13.0.1+ (the mariadb:latest image still
     // ships 12.x), and RETURNING on a multi-table UPDATE is not accepted
     // even where single-table UPDATE RETURNING is.
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING needs MariaDB 13.0.1+ and is not accepted on a multi-table UPDATE as of 12.3.2
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING needs MariaDB 13.0.1+ and is not accepted on a multi-table UPDATE as of 13.0.2
     /*
     test('update-from-shaped-set-with-returning-one-row', async () => {
         // The three-way cross: a SHAPED set (`shapedAs({...}).set({...})` on renamed
@@ -230,7 +230,7 @@ describe(ctx.label, () => {
     // RETURNING needs MariaDB 13.0.1+ (the mariadb:latest image still
     // ships 12.x), and RETURNING on a multi-table UPDATE is not accepted
     // even where single-table UPDATE RETURNING is.
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING needs MariaDB 13.0.1+ and is not accepted on a multi-table UPDATE as of 12.3.2
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING needs MariaDB 13.0.1+ and is not accepted on a multi-table UPDATE as of 13.0.2
     /*
     test('update-from-returning-scaled-adapter-column', async () => {
         // An adapter column driven through UPDATE … FROM … RETURNING: the SET
@@ -289,7 +289,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING needs MariaDB 13.0.1+ and is not accepted on a multi-table UPDATE as of 12.3.2
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING needs MariaDB 13.0.1+ and is not accepted on a multi-table UPDATE as of 13.0.2
     /*
     test('update-from-returning-one-column-from-table-column', async () => {
         // `returningOneColumn(organization.name)` returns a column of the FROM-joined table, not

@@ -92,54 +92,62 @@ describe(ctx.label, () => {
         })
     })
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    // test('customize-update-returning-object-with-hooks', async () => {
-    //     // The object-RETURNING + `customizeQuery` arm on UPDATE: `.returning({...})`
-    //     // yields a composable customizable executable, so the customize hook
-    //     // lands on the same statement while the RETURNING result type (an
-    //     // object) is preserved. Issue 1's title is patched and read back; the
-    //     // keyed id and the new title are deterministic in both modes.
-    //     const expected = { id: 1, title: 'Patched hero copy' }
-    //     ctx.mockNext(expected)
-    //     const connection = ctx.conn
-    //     await ctx.withRollback(async () => {
-    //         const row = await connection.update(tIssue)
-    //             .set({ title: 'Patched hero copy' })
-    //             .where(tIssue.id.equals(1))
-    //             .returning({ id: tIssue.id, title: tIssue.title })
-    //             .customizeQuery({ afterUpdateKeyword: connection.rawFragment`/*+ hint */` })
-    //             .executeUpdateOne()
-    //
-    //         expect(ctx.lastSql).toMatchInlineSnapshot()
-    //         expect(ctx.lastParams).toMatchInlineSnapshot()
-    //         assertType<Exact<typeof row, { id: number; title: string }>>()
-    //         expect(row).toEqual(expected)
-    //     })
-    // })
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    // test('customize-update-returning-one-column-with-hooks', async () => {
-    //     // The single-column RETURNING + `customizeQuery` arm on UPDATE:
-    //     // `.returningOneColumn(col)` yields a composable customizable executable,
-    //     // so the customize hook lands on the same statement while the SCALAR
-    //     // RETURNING result type survives the hook. Issue 1's status is patched and
-    //     // read back; the keyed id and the new status are deterministic in both
-    //     // modes.
-    //     ctx.mockNext('reviewed')
-    //     const connection = ctx.conn
-    //     await ctx.withRollback(async () => {
-    //         const status = await connection.update(tIssue)
-    //             .set({ status: 'reviewed' })
-    //             .where(tIssue.id.equals(1))
-    //             .returningOneColumn(tIssue.status)
-    //             .customizeQuery({ afterUpdateKeyword: connection.rawFragment`/*+ hint */` })
-    //             .executeUpdateOne()
-    //
-    //         expect(ctx.lastSql).toMatchInlineSnapshot()
-    //         expect(ctx.lastParams).toMatchInlineSnapshot()
-    //         assertType<Exact<typeof status, string>>()
-    //         expect(status).toBe('reviewed')
-    //     })
-    // })
+    test('customize-update-returning-object-with-hooks', async () => {
+        // The object-RETURNING + `customizeQuery` arm on UPDATE: `.returning({...})`
+        // yields a composable customizable executable, so the customize hook
+        // lands on the same statement while the RETURNING result type (an
+        // object) is preserved. Issue 1's title is patched and read back; the
+        // keyed id and the new title are deterministic in both modes.
+        const expected = { id: 1, title: 'Patched hero copy' }
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        await ctx.withRollback(async () => {
+            const row = await connection.update(tIssue)
+                .set({ title: 'Patched hero copy' })
+                .where(tIssue.id.equals(1))
+                .returning({ id: tIssue.id, title: tIssue.title })
+                .customizeQuery({ afterUpdateKeyword: connection.rawFragment`/*+ hint */` })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update /*+ hint */ issue set title = ? where id = ? returning id as id, title as title"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Patched hero copy",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; title: string }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+    test('customize-update-returning-one-column-with-hooks', async () => {
+        // The single-column RETURNING + `customizeQuery` arm on UPDATE:
+        // `.returningOneColumn(col)` yields a composable customizable executable,
+        // so the customize hook lands on the same statement while the SCALAR
+        // RETURNING result type survives the hook. Issue 1's status is patched and
+        // read back; the keyed id and the new status are deterministic in both
+        // modes.
+        ctx.mockNext('reviewed')
+        const connection = ctx.conn
+        await ctx.withRollback(async () => {
+            const status = await connection.update(tIssue)
+                .set({ status: 'reviewed' })
+                .where(tIssue.id.equals(1))
+                .returningOneColumn(tIssue.status)
+                .customizeQuery({ afterUpdateKeyword: connection.rawFragment`/*+ hint */` })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update /*+ hint */ issue set status = ? where id = ? returning status as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "reviewed",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof status, string>>()
+            expect(status).toBe('reviewed')
+        })
+    })
 
     test('customize-update-from-with-hooks', async () => {
         // The three RawFragment hooks on an UPDATE … FROM: the fragments land

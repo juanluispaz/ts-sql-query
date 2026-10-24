@@ -420,8 +420,6 @@ describe(ctx.label, () => {
         })
     })
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('shaped-set-when-returning-one-row', async () => {
         // shaped-set-`*When` × returning: a shaped `setWhen(true, {...})` followed by
         // `.returning({...})` on the renamed keys. The renamed `projectName` (→ name)
@@ -450,7 +448,6 @@ describe(ctx.label, () => {
             expect(row).toEqual(expectedMock)
         })
     })
-    */
 
     test('shaped-extend-shape-with-a-column-object-value-executes', async () => {
         // `extendShape` given a COLUMN OBJECT rather than a column name — an

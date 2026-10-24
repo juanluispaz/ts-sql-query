@@ -312,8 +312,6 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('on-conflict-do-nothing-returning-one-column', async () => {
         // `returningOneColumn(...)` after `onConflictDoNothing()` — the conflict
         // arm may suppress the insert, so the column is None-or-One (`string |
@@ -327,15 +325,19 @@ describe(ctx.label, () => {
                 .returningOneColumn(tOrganization.name)
                 .executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert ignore into organization (name, plan) values (?, ?) returning name as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Conflict demo",
+                "free",
+              ]
+            `)
             assertType<Exact<typeof name, string | null>>()
             expect(name).toBe('Conflict demo')
         })
     })
-    */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
+    // NOT-APPLICABLE: MariaDB uses the bare onConflictDoUpdateSet form
     /*
     test('on-conflict-on-columns-do-update-returning-one-column', async () => {
         // `returningOneColumn(...)` after `onConflictOn(...).doUpdateSet(...)` —
@@ -883,7 +885,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
+    // NOT-APPLICABLE: MariaDB uses the bare onConflictDoUpdateSet form
     /*
     test('on-conflict-do-update-with-nested-object-returning', async () => {
         // `onConflictOn(cols).doUpdateSet(...)` with a NESTED-object RETURNING.

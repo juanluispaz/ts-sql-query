@@ -107,19 +107,11 @@ describe(ctx.label, () => {
                 1,
               ]
             `)
-            if (ctx.realDbEnabled) {
-                // The mariadb:latest docker image still ships MariaDB 12.x,
-                // which rejects UPDATE ... RETURNING (only on 13.0.1+).
-                expect(caught).toBeInstanceOf(Error)
-            } else {
-                expect(caught).toBeUndefined()
-                expect(result).toBe('reviewed')
-            }
+            expect(caught).toBeUndefined()
+            expect(result).toBe('reviewed')
         })
     })
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('execute-update-none-or-one-with-returning-one-column-empty-result', async () => {
         // Same path as the previous test but the engine returns no row →
         // the single-column result coerces missing to `null`. Filter on a
@@ -143,10 +135,7 @@ describe(ctx.label, () => {
             expect(result).toBeNull()
         })
     })
-    */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('execute-update-many-with-min-max-throws-when-out-of-range', async () => {
         // `executeUpdateMany(min, max)` checks `rows.length` after the
         // RETURNING result; filter on a non-existing priority so
@@ -167,10 +156,7 @@ describe(ctx.label, () => {
             expect(String(caught)).toMatch(/MINIMUM_ROWS_NOT_REACHED|didn't update the minimum/)
         })
     })
-    */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('execute-update-many-with-min-max-throws-when-over-max', async () => {
         // Same guard but on the max side: WHERE matches all 4 seeded
         // issues (priority >= 1), max = 1 -> `MAXIMUM_ROWS_EXCEEDED`
@@ -195,10 +181,7 @@ describe(ctx.label, () => {
             expect(String(caught)).toMatch(/MAXIMUM_ROWS_EXCEEDED|updated more/)
         })
     })
-    */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('execute-update-one-column-many-result', async () => {
         // `returningOneColumn(col)` + `executeUpdateMany()` returns
         // `Array<scalar>` — the one-column-many RETURNING path. WHERE id=99999
@@ -211,13 +194,17 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.status)
                 .executeUpdateMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where id = ? returning status as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "reviewed",
+                99999,
+              ]
+            `)
             assertType<Exact<typeof statuses, string[]>>()
             expect(statuses).toEqual([])
         })
     })
-    */
 
     test('execute-update-with-no-sets-resolves-zero', async () => {
         // `dynamicSet()` with no columns set leaves the SET list empty, so
@@ -311,8 +298,6 @@ describe(ctx.label, () => {
             .executeUpdateMany()
         expect(rows).toEqual([])
     })
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('execute-update-many-with-min-max-in-range-passes', async () => {
         // `executeUpdateMany(min, max)` with an in-range count and a
         // `.returning({...})` row-shape: WHERE matches project 1's two issues
@@ -342,10 +327,7 @@ describe(ctx.label, () => {
             expect(sorted).toEqual(expected)
         })
     })
-    */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('execute-update-one-column-many-non-empty-result', async () => {
         // `returningOneColumn(col)` + `executeUpdateMany()` returns a NON-EMPTY
         // scalar array — the one-column-many RETURNING path with matches. WHERE
@@ -370,10 +352,7 @@ describe(ctx.label, () => {
             expect(statuses).toEqual(expected)
         })
     })
-    */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('execute-update-one-column-many-in-range-passes', async () => {
         // The one-column arity of the many-in-range PASS: `executeUpdateMany(min,
         // max)` with `returningOneColumn(col)`. WHERE matches project 1's two
@@ -399,10 +378,7 @@ describe(ctx.label, () => {
             expect(statuses).toEqual(expected)
         })
     })
-    */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('execute-update-one-column-many-with-max-throws-when-over-max', async () => {
         // The one-column arity of the many max-throw arm: `executeUpdateMany(min,
         // max)` with `returningOneColumn(col)`. WHERE matches all 4 seeded issues
@@ -423,10 +399,7 @@ describe(ctx.label, () => {
             expect(String(caught)).toMatch(/MAXIMUM_ROWS_EXCEEDED|updated more/)
         })
     })
-    */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('execute-update-returning-row-shape-execute-one-multiple-rows-throws-more-than-one-row', async () => {
         // `.returning({...}).executeUpdateOne()` over a WHERE matching MORE THAN
         // ONE row (project 1 has issues 1, 2) routes the RETURNING rows through
@@ -463,10 +436,7 @@ describe(ctx.label, () => {
             }
         })
     })
-    */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('execute-update-returning-row-shape-execute-none-or-one-multiple-rows-throws-more-than-one-row', async () => {
         // Same MORE_THAN_ONE_ROW guard on the none-or-one row-shape path:
         // `.returning({...}).executeUpdateNoneOrOne()` widens the None arm to
@@ -502,10 +472,7 @@ describe(ctx.label, () => {
             }
         })
     })
-    */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('execute-update-returning-one-column-execute-one-multiple-rows-throws-more-than-one-row', async () => {
         // The one-column arity of the MORE_THAN_ONE_ROW guard on update:
         // `.returningOneColumn(col).executeUpdateOne()` over a WHERE matching two
@@ -540,10 +507,7 @@ describe(ctx.label, () => {
             }
         })
     })
-    */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('execute-update-returning-one-column-execute-none-or-one-multiple-rows-throws-more-than-one-row', async () => {
         // Same MORE_THAN_ONE_ROW guard on the one-column none-or-one path:
         // `.returningOneColumn(col).executeUpdateNoneOrOne()` widens None to null
@@ -578,7 +542,6 @@ describe(ctx.label, () => {
             }
         })
     })
-    */
 
     test('update-query-called-twice-returns-the-cached-sql-without-re-binding-params', () => {
         // The non-executing entry points into the UPDATE emitter. Other tests do call

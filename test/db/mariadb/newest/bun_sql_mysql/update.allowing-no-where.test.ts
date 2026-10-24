@@ -160,8 +160,6 @@ describe(ctx.label, () => {
             expect(affected).toBe(4)
         })
     })
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('update-allowing-no-where-returning-touches-all-rows', async () => {
         // With no WHERE the UPDATE touches every seeded issue and RETURNING reads
         // each affected row back. The returned order is not guaranteed, so rows
@@ -190,6 +188,5 @@ describe(ctx.label, () => {
             expect(sorted).toEqual(expected)
         })
     })
-    */
 
 })

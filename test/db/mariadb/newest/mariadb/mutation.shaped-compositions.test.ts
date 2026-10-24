@@ -88,8 +88,6 @@ describe(ctx.label, () => {
         })
     })
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('shaped-update-returning-one-row', async () => {
         // `update(t).shapedAs({...}).set({...}).where(...).returning({...})` — the
         // shaped update chained into the RETURNING projection seam. The renamed
@@ -115,10 +113,7 @@ describe(ctx.label, () => {
             expect(row).toEqual(expected)
         })
     })
-    */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
-    /*
     test('shaped-update-returning-nested-object', async () => {
         // A `shapedAs({...}).set({...})` update whose RETURNING folds the real columns
         // into a nested `audit` sub-object. The shaped SET map (renamed keys) is
@@ -134,13 +129,17 @@ describe(ctx.label, () => {
                 .where(tProject.id.equals(1))
                 .returning({ id: tProject.id, audit: { name: tProject.name, slug: tProject.slug } })
                 .executeUpdateOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ? returning id as id, name as \`audit.name\`, slug as \`audit.slug\`"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Shaped nested returning",
+                1,
+              ]
+            `)
             assertType<Exact<typeof row, { id: number; audit: { name: string; slug: string } }>>()
             expect(row).toEqual(expected)
         })
     })
-    */
 
     test('shaped-update-extend-shape-then-dynamic-set', async () => {
         // `update(t).shapedAs({...}).extendShape({...}).dynamicSet({...})` on the

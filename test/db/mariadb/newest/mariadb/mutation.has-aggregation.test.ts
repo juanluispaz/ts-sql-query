@@ -984,7 +984,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB rejects RETURNING on a multi-table UPDATE (ER_NOT_SUPPORTED_YET 1235, verified on 13.0.2); single-table UPDATE ... RETURNING works.
     // test('has-aggregation/update-returning-plain-columns-reports-false', async () => {
     //     // The update control's statement plus a RETURNING projection of plain
     //     // columns. The walker now has to OPEN that projection — the clause the
@@ -1022,8 +1022,12 @@ describe(ctx.label, () => {
     //
     //         const row = await query.executeUpdateOne()
     //
-    //         expect(ctx.lastSql).toMatchInlineSnapshot()
-    //         expect(ctx.lastParams).toMatchInlineSnapshot()
+    //         expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /* hint */ project, issue inner join app_user on app_user.id = issue.assignee_id set project.name = app_user.full_name where project.id = issue.project_id and issue.id = ? returning project.id as id, project.name as name  /* tail */"`)
+    //         expect(ctx.lastParams).toMatchInlineSnapshot(`
+    //           [
+    //             1,
+    //           ]
+    //         `)
     //         assertType<Exact<typeof row, { id: number; name: string }>>()
     //         expect(row).toEqual(expected)
     //     })

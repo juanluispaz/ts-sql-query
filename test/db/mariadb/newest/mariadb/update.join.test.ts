@@ -55,7 +55,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB rejects RETURNING on a multi-table UPDATE (ER_NOT_SUPPORTED_YET 1235, verified on 13.0.2); single-table UPDATE ... RETURNING works.
     /*
     test('update-from-table-then-inner-join-returning-nested', async () => {
         // `.returning({ id, meta: {...} })` composed onto the from-then-join
@@ -81,7 +81,7 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = $1 returning project.id as id, project.name as "meta.name", project.slug as "meta.slug""`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project, issue inner join app_user on app_user.id = issue.assignee_id set project.name = app_user.full_name where project.id = issue.project_id and issue.id = ? returning project.id as id, project.name as \`meta.name\`, project.slug as \`meta.slug\`"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -156,7 +156,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB rejects RETURNING on a multi-table UPDATE (ER_NOT_SUPPORTED_YET 1235, verified on 13.0.2); single-table UPDATE ... RETURNING works.
     /*
     test('update-from-table-then-left-join-returning-nullable-joined-column', async () => {
         // The `.returning({...})` projects the LEFT-joined `app_user.full_name`
@@ -182,7 +182,7 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = issue.title from issue left join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = $1 returning project.id as id, app_user.full_name as assignee"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project, issue left join app_user on app_user.id = issue.assignee_id set project.name = issue.title where project.id = issue.project_id and issue.id = ? returning project.id as id, app_user.full_name as assignee"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 3,
@@ -197,7 +197,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB rejects RETURNING on a multi-table UPDATE (ER_NOT_SUPPORTED_YET 1235, verified on 13.0.2); single-table UPDATE ... RETURNING works.
     /*
     test('update-from-table-then-left-join-returning-left-join-optional-column-as-nullable-surfaces-present-null', async () => {
         // The same from-then-left-join UPDATE returning the LEFT-joined

@@ -288,8 +288,8 @@ running these tests live and only the cells below stay commented.
 |---|---|---|
 | MariaDB | 10.5 | `json_arrayagg` (aggregate-as-array), `INSERT … RETURNING`, `EXCEPT ALL` / `INTERSECT ALL` |
 | MariaDB | 12.3 | a `WITH` clause prefixing `UPDATE` / `DELETE` (CTE-on-DML) |
-| MariaDB | 13.0.1 | `UPDATE … RETURNING` + `OLD_VALUE(col)` — **not GA yet**, see § 4 |
-| MariaDB | — | `RETURNING` on multi-table DML — no release accepts it yet, see § 4 |
+| MariaDB | 13.0.1 | `UPDATE … RETURNING` + `OLD_VALUE(col)` (GA in 13.0.2); `OLD_VALUE` inside an expression is broken, see § 4 |
+| MariaDB | — | `RETURNING` on multi-table DML — no release accepts it yet (13.0.2), see § 4 |
 | MySQL | 8.0.1 / 8.0.19 | recursive `WITH` / the `VALUES` row constructor |
 | MySQL | 8.0.2 | window functions and the named `WINDOW` clause |
 | MySQL | 8.0.4 | `regexp_replace` (case-insensitive replace) |
@@ -432,57 +432,55 @@ MariaDB 12.3+ accepts the SQL — only the older engines reject it.
 
 
 
-### MariaDB UPDATE ... RETURNING requires MariaDB 13.0.1+ — `mariadb:latest` still ships 12.x
+### MariaDB UPDATE ... RETURNING requires MariaDB 13.0.1+
 
-[MariaDB added `UPDATE ... RETURNING` (and the matching `OLD_VALUE(col)` helper) in MariaDB 13.0.1](https://jira.mariadb.org/browse/MDEV-5092). The
-library tracks that via the `>= 13_000_001` `compatibilityVersion`
-breakpoint documented in
+[MariaDB added `UPDATE ... RETURNING` (and the matching `OLD_VALUE(col)` helper) in MariaDB 13.0.1](https://jira.mariadb.org/browse/MDEV-5092)
+(GA in 13.0.2). The library tracks that via the `>= 13_000_001`
+`compatibilityVersion` breakpoint documented in
 [`docs/configuration/supported-databases/mariadb.md`](../docs/configuration/supported-databases/mariadb.md);
 at `newest` (the default `Number.POSITIVE_INFINITY`) the
 `MariaDBSqlBuilder` emits the new syntax, including
 `returning old_value(col)` for `tTable.oldValues()` references.
 
-The Docker image used by the test matrix (`mariadb`, no tag → `mariadb:latest`) currently resolves to **MariaDB 12.3.2** (13.x is not yet GA). Real MariaDB 12.x rejects every `UPDATE ... RETURNING` with `ER_PARSE_ERROR (1064, SQLSTATE 42000)`:
+**What this means for tests** — the `newest` cells run against MariaDB 13.0
+(`ENGINE_IMAGES.mariadb.newest`), so single-table `UPDATE ... RETURNING`
+tests are live there. The older tiers (`10_005_000`, `10_004_000`,
+`10_003_003`, `oldest`) keep them commented out with `// NOT-SUPPORTED: see
+ENGINE_SUPPORT.md`: their own engines predate 13.0.1 and reject every
+`UPDATE ... RETURNING` with `ER_PARSE_ERROR (1064)`. Two cases stay
+commented at `newest` too — the next two sections.
 
-```text
-You have an error in your SQL syntax; check the manual that corresponds
-to your MariaDB server version for the right syntax to use near
-'returning id as id, name as name, slug as slug' at line 1
-```
+### MariaDB `OLD_VALUE(col)` only works as a bare RETURNING item (MDEV-40126)
 
-**What this means for tests** — the wrap is **per
-`compatibilityVersion` cell**, not per connector. At `newest`, every
-`docs:update/update-returning*` and `docs-extra:update/returning-one-column`
-test against MariaDB is commented out with `// NOT-SUPPORTED: see
-ENGINE_SUPPORT.md`. The SQL builder is correct; what is missing is purely
-the unreleased server version. When `mariadb:latest` catches up to
-13.0.1+, walk:
+On MariaDB 13.0.2, `OLD_VALUE(col)` returns the pre-update value only when it
+is a RETURNING item of its own. Inside an expression it is broken
+([MDEV-40126](https://jira.mariadb.org/browse/MDEV-40126), open), verified
+against a real 13.0.2 container:
 
-```bash
-grep -rn "NOT-SUPPORTED" test/db/mariadb/
-```
+- inside a function — `col in (old_value(col))`, `concat(old_value(col), …)`,
+  `coalesce(old_value(col), …)`, `ifnull(…, old_value(col))` — it silently
+  returns the **post**-update value;
+- as an operand of an operator — `col = old_value(col)`, `old_value(col) + 0`,
+  `between`, `case when old_value(col) …` — it is a syntax error
+  (`ER_PARSE_ERROR 1064`).
 
-and uncomment each match — **except** the cases in the next section,
-which the 13.0.1+ upgrade does **not** fix. If older `MariaDB`
-`compatibilityVersion` cells (`13_000_001`, `10_005_000`, `oldest`, …)
-are ever added, the `< 13_000_001` cells emit a legacy form that real
-MariaDB 12.x accepts and do **not** need the wrap.
+The library emits valid SQL (the same shape PostgreSQL and SQL Server
+accept), so the `newest` tests that use an old value inside an expression
+stay `NOT-SUPPORTED` with a marker citing MDEV-40126.
 
-
-
-### MariaDB rejects RETURNING on multi-table DML (verified against 12.3.2)
+### MariaDB rejects RETURNING on multi-table DML (verified against 13.0.2)
 
 Separate from the version gate above, the `mariadb` SqlBuilder emits a
-DML shape that MariaDB rejects at parse time independent of the
-RETURNING version gate. Verified by running the emitted SQL against a
-real `mariadb:latest` (12.3.2) container:
+DML shape that MariaDB rejects independent of the RETURNING version gate.
+Verified by running the emitted SQL against a real MariaDB 13.0.2
+container:
 
 - **RETURNING on a multi-table UPDATE / DELETE** — `UPDATE a, b SET ...
-  RETURNING ...` and `DELETE ... USING a, b ... RETURNING ...` are
-  rejected with `ER_PARSE_ERROR` at `returning`, even though
-  single-table `DELETE ... RETURNING` works on 12.x (it has shipped
-  since MariaDB 10.0.5) and single-table `UPDATE ... RETURNING` works
-  from 13.0.1+. The multi-table RETURNING form is not accepted on any
+  RETURNING ...` is rejected with `ER_NOT_SUPPORTED_YET (1235)` ("RETURNING
+  for multi-table UPDATE") and `DELETE ... USING a, b ... RETURNING ...` with
+  `ER_PARSE_ERROR` at `returning`, even though single-table
+  `DELETE ... RETURNING` works (it has shipped since MariaDB 10.0.5) and
+  single-table `UPDATE ... RETURNING` works from 13.0.1+. The multi-table RETURNING form is not accepted on any
   current MariaDB. Affects `update.from.variants`,
   `update.allow-when.from-and-joins`, `delete.using.variants` and
   `delete.allow-when.using-and-joins`.
@@ -866,22 +864,18 @@ honest outcome (never a silently-wrong value).
 # 4. Watchlist — entries a newer image would close
 
 Everything else in this file is settled: the cell's engine is pinned and
-the gap is permanent there. These two are the exception — they sit on a
+the gap is permanent there. These are the exception — they sit on a
 **moving** tier (`newest`, whose image is bumped as releases ship), so a
 future image genuinely re-enables them. They are still `NOT-SUPPORTED` and
 not a TODO: nothing in this repo closes them, and the work when the day
 comes is "bump the image, uncomment", not "implement something".
 
-- **MariaDB `UPDATE … RETURNING` / `OLD_VALUE(col)` (13.0.1+)** — the
-  builder already emits the 13.0.1 syntax at `newest`; MariaDB 13 is simply
-  not GA, so `ENGINE_IMAGES.mariadb.newest` still pins 12.3. When
-  `mariadb:latest` reaches 13.0.1+, bump the pin and walk
-  `grep -rn "NOT-SUPPORTED" test/db/mariadb/` — uncommenting every match
-  **except** the multi-table RETURNING cases below, which the upgrade does
-  **not** fix.
+- **MariaDB `OLD_VALUE(col)` inside an expression (MDEV-40126)** — when an
+  image ships the fix, uncomment the `newest` tests whose marker cites
+  MDEV-40126 and re-validate them against the real engine.
 - **MariaDB `RETURNING` on multi-table DML** — no MariaDB release accepts
-  it today (verified against 12.3.2). Re-probe against the real engine
-  before reactivating; do not assume the 13.x upgrade brings it.
+  it today (verified against 13.0.2). Re-probe against the real engine
+  before reactivating.
 
 The rest of § 2 is **not** a watchlist: those tiers exist precisely to pin
 an old engine's behaviour, so their gaps are permanent by construction.

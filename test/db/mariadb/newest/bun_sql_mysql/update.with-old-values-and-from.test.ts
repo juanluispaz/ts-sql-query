@@ -12,7 +12,9 @@
 // The exact emitted form is dialect- and version-dependent and is
 // pinned per cell by the snapshot below.
 
-import { afterAll, beforeAll, beforeEach, describe } from '../../../../lib/testRunner.js'
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -20,7 +22,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB rejects RETURNING on a multi-table UPDATE (ER_NOT_SUPPORTED_YET 1235, verified on 13.0.2); single-table UPDATE ... RETURNING works.
     /*
     test('returning-old-and-new-with-from-table-projects-required-columns-in-old-subquery', async () => {
         // Update tProject.name from organization.name; RETURNING the
@@ -79,7 +81,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment (and bake) once mariadb:latest reaches 13.0.1+. Canonical body kept as line comments below — it contains `*/`, so a /* … */ wrap is impossible.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB rejects RETURNING on a multi-table UPDATE (ER_NOT_SUPPORTED_YET 1235, verified on 13.0.2); single-table UPDATE ... RETURNING works.
 
     //     test('returning-old-and-new-with-from-and-customize-query-three-way-stack', async () => {
     //         // UPDATE … FROM combined with `oldValues()` in RETURNING and `customizeQuery`
@@ -137,8 +139,6 @@ describe(ctx.label, () => {
     //         })
     //     })
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
-    /*
     test('returning-old-values-with-primary-key-in-set-uses-for-update-of', async () => {
         // Including a PRIMARY KEY column in `.set()` flips the builder's
         // `updatePrimaryKey` flag, so the synthesised `_old_` subquery
@@ -165,8 +165,14 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set id = ?, name = concat(name, ?) where id = ? returning id as id, old_value(name) as oldName, name as newName"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "!",
+                1,
+              ]
+            `)
             assertType<Exact<typeof row, {
                 id:      number
                 oldName: string
@@ -181,9 +187,8 @@ describe(ctx.label, () => {
             }
         })
     })
-    */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB rejects RETURNING on a multi-table UPDATE (ER_NOT_SUPPORTED_YET 1235, verified on 13.0.2); single-table UPDATE ... RETURNING works.
     /*
     test('returning-old-new-and-from-column-folded-into-nested-audit-object', async () => {
         // `oldValues()` folded into a nested sub-object, combined with UPDATE … FROM:
@@ -213,7 +218,7 @@ describe(ctx.label, () => {
         })
     })
     */
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB rejects RETURNING on a multi-table UPDATE (ER_NOT_SUPPORTED_YET 1235, verified on 13.0.2); single-table UPDATE ... RETURNING works.
     /*
     test('returning-one-column-old-value-with-from-table', async () => {
         // `returningOneColumn(oldProject.name)` on an UPDATE … FROM: the pre-update `name` (via
@@ -238,7 +243,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB rejects RETURNING on a multi-table UPDATE (ER_NOT_SUPPORTED_YET 1235, verified on 13.0.2); single-table UPDATE ... RETURNING works.
     /*
     test('returning-old-and-new-with-values-from-source', async () => {
         // UPDATE … FROM a `Values` source with `oldValues()` in RETURNING: the
@@ -273,7 +278,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment and bake the body when mariadb:latest catches up to 13.0.1+.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB rejects RETURNING on a multi-table UPDATE (ER_NOT_SUPPORTED_YET 1235, verified on 13.0.2); single-table UPDATE ... RETURNING works.
     /*
     test('returning-old-value-with-from-then-inner-join-projects-join-brought-in-column', async () => {
         // `oldValues()` combined with `.from(j1).innerJoin(j2).on(...)` (a JOIN after
@@ -323,7 +328,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment and bake the body when mariadb:latest catches up to 13.0.1+.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB rejects RETURNING on a multi-table UPDATE (ER_NOT_SUPPORTED_YET 1235, verified on 13.0.2); single-table UPDATE ... RETURNING works.
     /*
     test('returning-old-optional-and-assignee-with-from-inner-join-projecting-nullable', async () => {
         // `oldValues()` in RETURNING combined with `UPDATE … FROM(join)` under
@@ -362,7 +367,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment and bake the body when mariadb:latest catches up to 13.0.1+.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB rejects RETURNING on a multi-table UPDATE (ER_NOT_SUPPORTED_YET 1235, verified on 13.0.2); single-table UPDATE ... RETURNING works.
     /*
     test('returning-old-value-with-from-then-left-join-drops-nested-object-on-join-miss', async () => {
         // `oldValues()` combined with `.from(issue).leftJoin(app_user).on(...)`. The
@@ -402,7 +407,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment and bake the body when mariadb:latest catches up to 13.0.1+.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB rejects RETURNING on a multi-table UPDATE (ER_NOT_SUPPORTED_YET 1235, verified on 13.0.2); single-table UPDATE ... RETURNING works.
     /*
     test('returning-old-value-with-from-then-left-join-projects-nullable-assignee-on-miss', async () => {
         // `oldValues()` × `.from(issue).leftJoin(app_user)` under

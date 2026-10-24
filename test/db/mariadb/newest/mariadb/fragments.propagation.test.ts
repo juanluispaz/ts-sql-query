@@ -32,9 +32,9 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB 13.0.2 evaluates OLD_VALUE(col) only as a bare RETURNING item: inside an expression it returns the new value, or is a syntax error (MDEV-40126, open).
     /*
-test('fragment-with-old-values-column-bubbles-up-in-update-returning', async () => {
+    test('fragment-with-old-values-column-bubbles-up-in-update-returning', async () => {
         // A typed fragment that interpolates `oldProject.name` is the
         // sole `result` column of an UPDATE…returningOneColumn. The
         // build path
@@ -53,10 +53,10 @@ test('fragment-with-old-values-column-bubbles-up-in-update-returning', async () 
                 .set({ name: 'Mktg site v3' })
                 .where(tProject.id.equals(1))
                 .returningOneColumn(connection.fragmentWithType('string', 'required')
-                    .sql`('[' || ${oldProject.name} || ']')`)
+                    .sql`concat('[', ${oldProject.name}, ']')`)
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = $1 where id = $2 returning ('[' || old.name || ']') as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ? returning concat('[', old_value(name), ']') as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Mktg site v3",
@@ -115,9 +115,9 @@ test('fragment-with-values-for-insert-column-bubbles-up-in-on-conflict-do-update
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB rejects RETURNING on a multi-table UPDATE (ER_NOT_SUPPORTED_YET 1235, verified on 13.0.2); single-table UPDATE ... RETURNING works.
     /*
-test('fragment-from-joined-table-registers-required-column-in-update-from-old-values', async () => {
+    test('fragment-from-joined-table-registers-required-column-in-update-from-old-values', async () => {
         // UPDATE … FROM … RETURNING with `oldValues()` and a typed
         // fragment referencing a joined-in table column. The fragment
         // sits inside RETURNING and references `tOrganization.name`
@@ -158,7 +158,7 @@ test('fragment-from-joined-table-registers-required-column-in-update-from-old-va
                 })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = project.name || $1 || organization.name from organization where project.id = $2 and project.organization_id = organization.id returning project.id as id, old.name as "oldName", project.name as "newName", (old.name || ' (was) vs ' || organization.name) as stamp"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project, organization set project.name = concat(project.name, ?, organization.name) where project.id = ? and project.organization_id = organization.id returning project.id as id, old_value(name) as oldName, project.name as newName, (old_value(name) || ' (was) vs ' || organization.name) as stamp"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 " / ",

@@ -50,7 +50,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB rejects RETURNING on a multi-table UPDATE (ER_NOT_SUPPORTED_YET 1235, verified on 13.0.2); single-table UPDATE ... RETURNING works.
     /*
     test('update-from-returning-a-from-table-column-nested', async () => {
         // A plain `update(t).from(j)` (no JOIN) whose RETURNING folds a column of the
@@ -72,7 +72,7 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = project.name || $1 || organization.name from organization where project.organization_id = organization.id and project.id = $2 returning project.id as id, organization.name as "audit.org", organization.plan as "audit.plan""`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project, organization set project.name = concat(project.name, ?, organization.name) where project.organization_id = organization.id and project.id = ? returning project.id as id, organization.name as \`audit.org\`, organization.plan as \`audit.plan\`"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 " / ",

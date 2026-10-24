@@ -9,7 +9,8 @@
 //   - `node:sqlite` requires Node >= 22.5 (built-in module is gated on
 //     a feature flag in some versions). We try the import and skip the
 //     real branch if it throws.
-//   - `better-sqlite3` is a native module that does NOT load under Bun.
+//   - `better-sqlite3` is a native (N-API) module that loads under both
+//     runtimes.
 //   - `sqlite3` and `sqlite-wasm-OO1` are universal under both runtimes.
 
 import { readFile } from 'node:fs/promises'
@@ -432,7 +433,7 @@ export function createBunSqlSqliteTestContext(spec: BunSqliteTestSpec): SqliteTe
     }), createBunSqlSqliteExactIntegerConnection)
 }
 
-// ---- better-sqlite3 (in-process, Node-only — does not load under Bun) ---
+// ---- better-sqlite3 (in-process, Node + Bun) ----------------------------
 
 export interface SqliteTestSpec {
     label: string
@@ -488,11 +489,9 @@ async function createBetterSqlite3ExactIntegerConnection(sync = false): Promise<
 // shared in-memory db, exact-integer connection — is identical to the async
 // cell, so both share this one factory.
 export function createBetterSqlite3TestContext(spec: SqliteTestSpec, sync = false): SqliteTestContext {
-    // better-sqlite3 has a native binding that fails to load under Bun's
-    // Node API shim. We only fire the real branch outside Bun.
     const version = spec.label.split(' / ')[0] ?? ''
     const connector = spec.label.split(' / ')[1] ?? ''
-    const realDbEnabled = !isBun && isRealDbEnabled(DATABASE, /* needsDocker */ false, version, connector)
+    const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ false, version, connector)
 
     return decorateSqliteContext(createTestContext<DBConnection>({
         label: spec.label,

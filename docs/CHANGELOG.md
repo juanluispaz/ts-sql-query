@@ -56,6 +56,7 @@ search:
 **Internal changes**:
 
 - The library is now compiled with TypeScript 7. The published JavaScript is the same, and the published typings only differ in how a few types are printed (parentheses and quotes), so projects that compile with TypeScript 6 keep working.
+- `BetterSqlite3QueryRunner` is now also tested under Bun, against a real database: better-sqlite3 13 loads on Bun.
 
 ## v2.0.0-beta.2
 

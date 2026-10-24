@@ -5,12 +5,11 @@
 # direct invocation defaults to bun.
 #
 # Per-runtime divergence is intentional:
-#   * node-only: BetterSqlite3*, NodeSqlite* (Node 24+), PrismaSqlite,
-#                BunSql* (require bun runtime).
+#   * node-only: NodeSqlite* (Node 24+), PrismaSqlite.
 #   * bun-only:  BunSqlite*, BunSqlSqlite*, BunSqlPostgres*,
 #                BunSqlMySql*, BunSqlMariaDB*.
 #   * common:    everything under documentation/, Sqlite3Example,
-#                Sqlite3WasmOO1*, PgLiteExample, the per-driver scripts
+#                BetterSqlite3*, Sqlite3WasmOO1*, PgLiteExample, the per-driver scripts
 #                that share between runtimes.
 
 set -x #echo on
@@ -58,13 +57,13 @@ $RUN ./src/examples/documentation/Oracle.ts || exit 1
 $RUN ./src/examples/documentation/Oracle-compatibility.ts || exit 1
 
 $RUN ./src/examples/Sqlite3Example.ts || exit 1
+$RUN ./src/examples/BetterSqlite3Example.ts || exit 1
+$RUN ./src/examples/BetterSqlite3SynchronousExample.ts || exit 1
 if [ "$runtime" = "bun" ]; then
     $RUN ./src/examples/BunSqliteExample.ts || exit 1
     $RUN ./src/examples/BunSqliteSynchronousExample.ts || exit 1
     $RUN ./src/examples/BunSqlSqliteExample.ts || exit 1
 else
-    $RUN ./src/examples/BetterSqlite3Example.ts || exit 1
-    $RUN ./src/examples/BetterSqlite3SynchronousExample.ts || exit 1
     NODE_MAJOR=$(node -p "process.versions.node.split('.')[0]")
     if [ "$NODE_MAJOR" -ge 24 ]; then
         NODE_OPTIONS='--experimental-sqlite' $RUN ./src/examples/NodeSqliteExample.ts || exit 1

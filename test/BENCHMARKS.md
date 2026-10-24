@@ -83,18 +83,18 @@ with "heap out of memory", or crawls in GC just under the limit (~2.5× slower).
 
 **‡ The `bun` and `vitest` columns are NOT the same workload.** The docker
 connectors `pg` / `postgres` / `mysql2` / `mariadb` / `oracledb` / `mssql` and the
-`sqlite3` driver run real under both runtimes. The rest split by runtime:
+`sqlite3` and `better-sqlite3(-sync)` drivers run real under both runtimes. The
+rest split by runtime:
 
 - **real only under bun**: `bun_sql_postgres`, `bun_sql_mysql` (docker) and
   `bun_sqlite(-sync)`, `bun_sql_sqlite` (embedded) — they import `bun` /
   `bun:sqlite`;
-- **real only under node**: `better-sqlite3(-sync)` (a native addon that does not
-  load under bun) and `node_sqlite(-sync)` (under bun `node:sqlite` is Bun's own
-  reimplementation, so it would validate Bun, not Node).
+- **real only under node**: `node_sqlite(-sync)` (under bun `node:sqlite` is
+  Bun's own reimplementation, so it would validate Bun, not Node).
 
 Under `--docker`, bun therefore validates 11 more docker cells against their
 engine than vitest does — and is still faster — while vitest validates the
-node-only embedded SQLite cells, which are cheap.
+node-only `node_sqlite` cells, which are cheap.
 
 ## Bun: `--parallel --no-isolate`
 
@@ -172,8 +172,8 @@ pipeline stays on npm/Node.
   tiers.
 - **Pre-merge confidence**: `bun run tests --docker --wasm` — every docker, WASM
   and bun-embedded cell runs against its real engine. **Then**
-  `npm run tests -- --run-connectors native` for the node-only embedded cells
-  (`better-sqlite3`, `node_sqlite` and their `-sync` twins), which bun mocks.
+  `npm run tests -- --run-connectors native` for the node-only `node_sqlite`
+  cells (and their `-sync` twin), which bun mocks.
 - **WASM-touching changes**: `bun run tests --run-connectors wasm --wasm`.
 - **No-docker CI (memory-bounded)**: `bun run tests --shard` runs the four CI
   shards in sequence; peak = biggest shard, not the sum. See

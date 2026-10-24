@@ -30,13 +30,13 @@ $RUN ./src/examples/documentation/Oracle.ts || exit 1
 $RUN ./src/examples/documentation/Oracle-compatibility.ts || exit 1
 
 $RUN ./src/examples/Sqlite3Example.ts || exit 1
+$RUN ./src/examples/BetterSqlite3Example.ts || exit 1
+$RUN ./src/examples/BetterSqlite3SynchronousExample.ts || exit 1
 if [ "$runtime" = "bun" ]; then
     $RUN ./src/examples/BunSqliteExample.ts || exit 1
     $RUN ./src/examples/BunSqliteSynchronousExample.ts || exit 1
     $RUN ./src/examples/BunSqlSqliteExample.ts || exit 1
 else
-    $RUN ./src/examples/BetterSqlite3Example.ts || exit 1
-    $RUN ./src/examples/BetterSqlite3SynchronousExample.ts || exit 1
     NODE_MAJOR=$(node -p "process.versions.node.split('.')[0]")
     if [ "$NODE_MAJOR" -ge 24 ]; then
         NODE_OPTIONS='--experimental-sqlite' $RUN ./src/examples/NodeSqliteExample.ts || exit 1

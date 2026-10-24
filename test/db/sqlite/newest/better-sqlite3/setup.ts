@@ -1,9 +1,7 @@
 // sqlite in the "newest" zone — compatibilityVersion =
 // Number.POSITIVE_INFINITY, the library default.
 //
-// Connector: `better-sqlite3` (npm) — native module, Node-only. Under Bun
-// the runner module falls back to mock-only mode (the native binding
-// fails to load under Bun's Node API shim).
+// Connector: `better-sqlite3`.
 
 import { createBetterSqlite3TestContext } from '../../runners.js'
 

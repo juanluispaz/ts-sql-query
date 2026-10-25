@@ -105,7 +105,8 @@ function getKnownMySql2DriverErrorReason(error: MySql2DriverError, message = get
         return { reason: 'SQL_AUTHENTICATION_ERROR', databaseErrorCode, databaseErrorMessage }
     }
     if (code === 'PROTOCOL_ERROR' || code === 'PROTOCOL_UNEXPECTED_PACKET' || code === 'HANDSHAKE_UNKNOWN_ERROR' || isMySql2ProtocolMessage(message)) {
-        return { reason: 'SQL_INTERNAL_ERROR', databaseErrorCode, databaseErrorMessage, errorType: 'api misuse' }
+        // a packet from the server the driver didn't expect: not something the caller did
+        return { reason: 'SQL_INTERNAL_ERROR', databaseErrorCode, databaseErrorMessage, errorType: 'engine internal' }
     }
     if (isMySql2PromiseOrApiMisuseMessage(message)) {
         return { reason: 'SQL_INTERNAL_ERROR', databaseErrorCode, databaseErrorMessage, errorType: 'api misuse' }

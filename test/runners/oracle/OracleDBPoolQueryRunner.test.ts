@@ -17,6 +17,7 @@ for (const promisePool of [false, true]) {
         runnerClass: promisePool ? OracleDBPoolPromiseQueryRunner : OracleDBPoolQueryRunner,
         realEnabled: isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'),
         timeoutMs: 300_000,
+        errorFields: ['code', 'errorNum', 'offset', 'isRecoverable'],
         async create(failure) {
             const db = await acquireRunnerTestDatabase(failure)
             const pool = oracledb.createPool({ user: db.user, password: db.password, connectString: db.connectString, poolMin: 0, poolMax: 2, stmtCacheSize: 0 })

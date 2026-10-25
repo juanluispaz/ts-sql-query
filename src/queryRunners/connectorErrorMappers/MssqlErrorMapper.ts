@@ -78,8 +78,13 @@ function getMssqlTransactionErrorReason(error: MssqlTransactionError): TsSqlErro
             return { reason: 'TRANSACTION_ERROR', ...metadata, transactionErrorType: 'aborted' }
         case 'EALREADYBEGUN':
             return { reason: 'NESTED_TRANSACTION_NOT_SUPPORTED', ...metadata }
-        case 'EREQINPROG':
         case 'EINVALIDSTATE':
+            // tedious names the state the connection is in: Final means it has already ended
+            if (/ not the Final state$/.test(error.message)) {
+                return { reason: 'SQL_CONNECTION_ERROR', ...metadata, errorType: 'connection lost' }
+            }
+            return { reason: 'FORBIDDEN_CONCURRENT_USAGE', ...metadata }
+        case 'EREQINPROG':
             return { reason: 'FORBIDDEN_CONCURRENT_USAGE', ...metadata }
         case 'ECANCEL':
             return { reason: 'SQL_TIMEOUT', ...metadata, timeoutType: 'cancelled' }
@@ -176,8 +181,13 @@ function getMssqlRequestErrorReason(error: MssqlRequestError): TsSqlErrorReason 
         case 'ENOTOPEN':
         case 'ECONNCLOSED':
             return { reason: 'SQL_CONNECTION_ERROR', ...metadata, errorType: 'pool error' }
-        case 'EREQINPROG':
         case 'EINVALIDSTATE':
+            // tedious names the state the connection is in: Final means it has already ended
+            if (/ not the Final state$/.test(error.message)) {
+                return { reason: 'SQL_CONNECTION_ERROR', ...metadata, errorType: 'connection lost' }
+            }
+            return { reason: 'FORBIDDEN_CONCURRENT_USAGE', ...metadata }
+        case 'EREQINPROG':
             return { reason: 'FORBIDDEN_CONCURRENT_USAGE', ...metadata }
         case 'EARGS':
             return getMssqlInvalidArgumentRequestErrorReason(error, metadata)
@@ -297,6 +307,7 @@ function getOriginalError(error: PlainMssqlDriverError): PlainMssqlDriverError |
 
 function extractMssqlParameterName(message: string): string | undefined {
     return /^SQL injection warning for param '([^']+)'$/.exec(message)?.[1]
+        ?? /^Invalid parameter name '([^']+)'\./.exec(message)?.[1]
         ?? /^The parameter name ([^\s]+) has already been declared\./.exec(message)?.[1]
         ?? /^Validation failed for parameter '([^']+)'\./.exec(message)?.[1]
 }

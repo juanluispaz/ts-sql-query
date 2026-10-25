@@ -23,6 +23,7 @@ for (const sync of [false, true]) {
     describeRunnerContract({
         label: sync ? 'NodeSqliteQueryRunner (SynchronousPromise)' : 'NodeSqliteQueryRunner',
         errorScenarios: !sync,
+        ...(sync ? {} : { errorFields: ['code', 'errcode', 'errstr'] }),
         dialect: sqliteDialect,
         runnerClass: NodeSqliteQueryRunner,
         realEnabled: nodeSqliteAvailable() && isRealDbEnabled('sqlite', 'native', 'newest', sync ? 'node_sqlite-sync' : 'node_sqlite'),

@@ -12,6 +12,7 @@ for (const sync of [false, true]) {
     describeRunnerContract({
         label: sync ? 'BunSqliteQueryRunner (SynchronousPromise)' : 'BunSqliteQueryRunner',
         errorScenarios: !sync,
+        ...(sync ? {} : { errorFields: ['code', 'errno', 'byteOffset'] }),
         dialect: sqliteDialect,
         realEnabled: isBun && isRealDbEnabled('sqlite', 'native', 'newest', sync ? 'bun_sqlite-sync' : 'bun_sqlite'),
         async create() {

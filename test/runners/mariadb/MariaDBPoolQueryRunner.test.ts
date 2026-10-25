@@ -13,6 +13,7 @@ describeRunnerContract({
     dialect: mariadbDialect,
     runnerClass: MariaDBPoolQueryRunner,
     realEnabled: isRealDbEnabled('mariadb', 'docker', 'newest', 'mariadb'),
+    errorFields: ['code', 'errno', 'sqlState', 'sqlMessage', 'fatal'],
     async create(failure) {
         const db = await acquireRunnerTestDatabase(failure)
         const pool = mariadb.createPool({ host: db.host, port: db.port, user: db.user, password: db.password, database: db.database, connectionLimit: 2, minimumIdle: 0, ...(failure ? { acquireTimeout: 2000 } : {}) })

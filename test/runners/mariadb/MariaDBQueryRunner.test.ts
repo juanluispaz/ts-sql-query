@@ -12,6 +12,7 @@ describeRunnerContract({
     dialect: mariadbDialect,
     runnerClass: MariaDBQueryRunner,
     realEnabled: isRealDbEnabled('mariadb', 'docker', 'newest', 'mariadb'),
+    errorFields: ['code', 'errno', 'sqlState', 'sqlMessage', 'fatal'],
     async create(failure) {
         const db = await acquireRunnerTestDatabase(failure)
         const connection = await mariadb.createConnection({ host: db.host, port: db.port, user: db.user, password: db.password, database: db.database })

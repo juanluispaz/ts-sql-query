@@ -151,6 +151,10 @@ function getNodeSqliteDriverErrorReason(error: NodeSqliteError): TsSqlErrorReaso
         if (upper.includes('PERMISSION MODEL IS ENABLED')) {
             return { reason: 'SQL_PERMISSION_DENIED', databaseErrorCode, databaseErrorMessage }
         }
+        if (upper.includes('SQLITE_OMIT_LOAD_EXTENSION')) {
+            // this SQLite build can't load extensions at all
+            return { reason: 'SQL_FEATURE_NOT_SUPPORTED', databaseErrorCode, databaseErrorMessage }
+        }
         return { reason: 'SQL_EXTERNAL_DATA_SOURCE_ERROR', databaseErrorCode, databaseErrorMessage }
     }
     if (code === 'ERR_MEMORY_ALLOCATION_FAILED') {

@@ -8,6 +8,7 @@ import { describeRunnerContract } from '../lib/runnerContract.js'
 describeRunnerContract({
     label: 'Sqlite3QueryRunner',
     dialect: sqliteDialect,
+    errorFields: ['code', 'errno'],
     runnerClass: Sqlite3QueryRunner,
     realEnabled: isRealDbEnabled('sqlite', 'native', 'newest', 'sqlite3'),
     async create() {

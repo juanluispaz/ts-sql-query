@@ -947,6 +947,16 @@ const sqlServerScenarios: readonly ErrorScenario[] = [
         expected: { reason: 'SQL_CONSTRAINT_VIOLATED', constraintType: 'foreign key', constraintName: 'rt_err_child_fk' },
     },
     {
+        name: 'delete-a-referenced-row',
+        setup: [
+            'create table rt_err_child (id int primary key, probe_id int constraint rt_err_child_fk references rt_probe (id))',
+            'insert into rt_err_child (id, probe_id) values (1, 1)',
+        ],
+        cleanup: ['drop table if exists rt_err_child'],
+        run: mutation(`delete from rt_probe where id = 1`),
+        expected: { reason: 'SQL_CONSTRAINT_VIOLATED', constraintType: 'foreign key', constraintName: 'rt_err_child_fk' },
+    },
+    {
         name: 'check-constraint',
         setup: ['create table rt_err_check (n int constraint rt_err_check_positive check (n > 0))'],
         cleanup: ['drop table if exists rt_err_check'],

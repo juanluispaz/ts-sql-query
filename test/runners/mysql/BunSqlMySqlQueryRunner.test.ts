@@ -11,6 +11,7 @@ describeRunnerContract({
     label: 'BunSqlMySqlQueryRunner (MySQL)',
     dialect: mysqlDialect,
     realEnabled: isBun && isRealDbEnabled('mysql', 'docker', 'newest', 'bun_sql_mysql'),
+    errorFields: ['code', 'errno', 'sqlState'],
     async create(failure) {
         const { BunSqlMySqlQueryRunner } = await import('../../../src/queryRunners/BunSqlMySqlQueryRunner.js')
         const db = await acquireRunnerTestDatabase(failure)

@@ -233,7 +233,8 @@ function getKnownMariaDbDriverErrorReason(error: SqlError, message = error.sqlMe
         case 'ER_PING_BAD_PACKET':
         case 'ER_RESET_BAD_PACKET':
         case 'ER_EOF_EXPECTED':
-            return { reason: 'SQL_INTERNAL_ERROR', databaseErrorCode, databaseErrorMessage, errorType: 'api misuse' }
+            // a packet from the server the driver didn't expect: not something the caller did
+            return { reason: 'SQL_INTERNAL_ERROR', databaseErrorCode, databaseErrorMessage, errorType: 'engine internal' }
     }
 
     if (message === 'pool is closed' || message === 'pool is already closed' || message === 'Cannot add request to pool, pool is closed' || message === 'pool is ending, connection request aborted') {

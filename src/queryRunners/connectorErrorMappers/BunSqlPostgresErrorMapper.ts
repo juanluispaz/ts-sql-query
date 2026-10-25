@@ -56,6 +56,7 @@ function getBunPostgresErrorReason(error: BunSqlPostgresError): TsSqlErrorReason
     switch (code) {
         case 'ERR_POSTGRES_CONNECTION_CLOSED':
         case 'ERR_POSTGRES_CONNECTION_REFUSED':
+        case 'ERR_POSTGRES_CONNECTION_FAILED':
         case 'ERR_POSTGRES_IDLE_TIMEOUT':
         case 'ERR_POSTGRES_LIFETIME_TIMEOUT':
             return withNumber({ reason: 'SQL_CONNECTION_ERROR', databaseErrorCode, databaseErrorMessage: error.message, errorType: 'connection lost' })
@@ -72,6 +73,8 @@ function getBunPostgresErrorReason(error: BunSqlPostgresError): TsSqlErrorReason
             return withNumber({ reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage: error.message, ...getBunPostgresTooManyParametersDetails(error.message) })
         case 'ERR_POSTGRES_UNSAFE_TRANSACTION':
             return withNumber({ reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage: error.message, transactionErrorType: 'unsupported operation' })
+        case 'ERR_POSTGRES_COMMIT_ROLLED_BACK':
+            return withNumber({ reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage: error.message, transactionErrorType: 'transaction rolled back' })
         case 'ERR_POSTGRES_INVALID_TRANSACTION_STATE':
             return withNumber({ reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage: error.message, transactionErrorType: 'invalid state' })
         case 'ERR_POSTGRES_UNSUPPORTED_AUTHENTICATION_METHOD':
@@ -81,6 +84,10 @@ function getBunPostgresErrorReason(error: BunSqlPostgresError): TsSqlErrorReason
         case 'ERR_POSTGRES_AUTHENTICATION_FAILED_PBKDF2':
         case 'ERR_POSTGRES_SASL_SIGNATURE_INVALID_BASE64':
         case 'ERR_POSTGRES_SASL_SIGNATURE_MISMATCH':
+        case 'ERR_POSTGRES_SASL_ITERATION_COUNT_OUT_OF_RANGE':
+        case 'ERR_POSTGRES_SASL_NO_KNOWN_MECHANISM':
+        case 'ERR_POSTGRES_CHANNEL_BINDING_REQUIRED':
+        case 'ERR_POSTGRES_CHANNEL_BINDING_FAILED':
             return withNumber({ reason: 'SQL_AUTHENTICATION_ERROR', databaseErrorCode, databaseErrorMessage: error.message })
         case 'ERR_POSTGRES_TLS_NOT_AVAILABLE':
         case 'ERR_POSTGRES_TLS_UPGRADE_FAILED':
@@ -88,7 +95,6 @@ function getBunPostgresErrorReason(error: BunSqlPostgresError): TsSqlErrorReason
         case 'ERR_POSTGRES_INVALID_BINARY_DATA':
         case 'ERR_POSTGRES_INVALID_TIME_FORMAT':
         case 'ERR_POSTGRES_UNSUPPORTED_NUMERIC_FORMAT':
-        case 'ERR_POSTGRES_UNKNOWN_FORMAT_CODE':
             return withNumber({ reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorMessage: error.message, errorType: 'invalid format' })
         case 'ERR_POSTGRES_INVALID_BYTE_SEQUENCE':
         case 'ERR_POSTGRES_INVALID_BYTE_SEQUENCE_FOR_ENCODING':
@@ -98,11 +104,16 @@ function getBunPostgresErrorReason(error: BunSqlPostgresError): TsSqlErrorReason
         case 'ERR_POSTGRES_OVERFLOW':
         case 'ERR_POSTGRES_UNSUPPORTED_INTEGER_SIZE':
             return withNumber({ reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorMessage: error.message, errorType: 'out of range' })
+        case 'ERR_POSTGRES_UNKNOWN_FORMAT_CODE':
+            // a column came in binary and Bun has no decoder for its data type
         case 'ERR_POSTGRES_UNSUPPORTED_BYTEA_FORMAT':
         case 'ERR_POSTGRES_UNSUPPORTED_ARRAY_FORMAT':
         case 'ERR_POSTGRES_MULTIDIMENSIONAL_ARRAY_NOT_SUPPORTED_YET':
         case 'ERR_POSTGRES_NULLS_IN_ARRAY_NOT_SUPPORTED_YET':
             return withNumber({ reason: 'SQL_FEATURE_NOT_SUPPORTED', databaseErrorCode, databaseErrorMessage: error.message })
+        case 'ERR_POSTGRES_COPY_NOT_SUPPORTED':
+            // a COPY awaited without writable() / readable()
+            return withNumber({ reason: 'SQL_INTERNAL_ERROR', databaseErrorCode, databaseErrorMessage: error.message, errorType: 'api misuse' })
         case 'ERR_POSTGRES_EXPECTED_REQUEST':
         case 'ERR_POSTGRES_EXPECTED_STATEMENT':
         case 'ERR_POSTGRES_INVALID_BACKEND_KEY_DATA':

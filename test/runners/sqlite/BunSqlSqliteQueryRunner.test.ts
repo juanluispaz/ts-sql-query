@@ -9,6 +9,7 @@ const isBun = typeof globalThis.Bun !== 'undefined'
 describeRunnerContract({
     label: 'BunSqlSqliteQueryRunner',
     dialect: sqliteDialect,
+    errorFields: ['code', 'errno'],
     realEnabled: isBun && isRealDbEnabled('sqlite', 'native', 'newest', 'bun_sql_sqlite'),
     async create() {
         const { BunSqlSqliteQueryRunner } = await import('../../../src/queryRunners/BunSqlSqliteQueryRunner.js')

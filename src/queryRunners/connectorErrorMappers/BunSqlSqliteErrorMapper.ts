@@ -36,7 +36,7 @@ function getBunSqliteEngineErrorReason(error: BunSqliteError): TsSqlErrorReason 
         case 'ERR_SQLITE_NOT_TAGGED_CALL':
             return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorNumber, databaseErrorMessage: error.message, parameterErrorType: 'invalid binding' }
         case 'ERR_SQLITE_INVALID_TRANSACTION_STATE':
-            return getSqliteEngineErrorReason({ code: 'SQLITE_ERROR', databaseErrorCode: code, databaseErrorNumber, message: error.message })
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode: code, databaseErrorNumber, databaseErrorMessage: error.message, transactionErrorType: 'invalid state' }
     }
 
     if (code.startsWith('SQLITE_')) {

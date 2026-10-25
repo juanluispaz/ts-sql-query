@@ -48,6 +48,7 @@ function getKnownBunSqlMySqlConnectorErrorReason(error: BunSqlMySqlError): TsSql
     switch (error.code) {
         case 'ERR_MYSQL_CONNECTION_CLOSED':
         case 'ERR_MYSQL_CONNECTION_REFUSED':
+        case 'ERR_MYSQL_CONNECTION_FAILED':
             return withBunSqlMySqlErrorMetadata({ reason: 'SQL_CONNECTION_ERROR', errorType: 'connection lost' }, error)
         case 'ERR_MYSQL_CONNECTION_TIMEOUT':
         case 'ERR_MYSQL_IDLE_TIMEOUT':
@@ -63,6 +64,7 @@ function getKnownBunSqlMySqlConnectorErrorReason(error: BunSqlMySqlError): TsSql
         case 'ERR_MYSQL_PASSWORD_REQUIRED':
         case 'ERR_MYSQL_MISSING_AUTH_DATA':
         case 'ERR_MYSQL_AUTHENTICATION_FAILED':
+        case 'ERR_MYSQL_PUBLIC_KEY_RETRIEVAL_NOT_ALLOWED':
         case 'ERR_MYSQL_FAILED_TO_ENCRYPT_PASSWORD':
         case 'ERR_MYSQL_INVALID_PUBLIC_KEY':
         case 'ERR_MYSQL_UNSUPPORTED_AUTH_PLUGIN':
@@ -89,6 +91,7 @@ function getKnownBunSqlMySqlConnectorErrorReason(error: BunSqlMySqlError): TsSql
         case 'ERR_MYSQL_INVALID_EOF_PACKET':
         case 'ERR_MYSQL_INVALID_ERROR_PACKET':
         case 'ERR_MYSQL_UNEXPECTED_PACKET':
+        case 'ERR_MYSQL_MALFORMED_PACKET':
         case 'ERR_MYSQL_INVALID_STATE':
             return withBunSqlMySqlErrorMetadata({ reason: 'SQL_INTERNAL_ERROR', errorType: 'engine internal' }, error)
         case 'ERR_MYSQL_UNKNOWN_ERROR':

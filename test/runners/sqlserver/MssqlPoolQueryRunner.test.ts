@@ -19,6 +19,7 @@ for (const promisePool of [false, true]) {
         realEnabled: isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'),
         timeoutMs: 300_000,
         clientTimeout: true,
+        errorFields: ['code', 'number', 'originalError'],
         async create(failure) {
             const db = await acquireRunnerTestDatabase(failure)
             const pool = new db.mssql.ConnectionPool({ ...db.config, ...(failure === 'client timeout' ? { requestTimeout: 300 } : {}), pool: { max: 2, min: 0 } })

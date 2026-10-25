@@ -15,6 +15,7 @@ for (const nested of [false, true]) {
         runnerClass: PgLiteQueryRunner,
         realEnabled: isRealDbEnabled('postgres', 'wasm', 'newest', 'pglite'),
         nestedTransactions: nested,
+        errorFields: ['message'],
         async create() {
             const { PGlite } = await import('@electric-sql/pglite')
             const db = await PGlite.create('memory://')

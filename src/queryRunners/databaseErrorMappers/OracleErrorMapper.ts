@@ -112,6 +112,9 @@ function getOracleErrorReasonFromNumber(context: OracleErrorContext): TsSqlError
             return getInvalidValue(context, 'invalid json', extractOracleTableAndColumnNames(context.message))
         case 8004:
             return getInvalidValue(context, 'sequence limit')
+        case 6502:
+            // PL/SQL: numeric or value error, a character string buffer too small included
+            return getInvalidValue(context, context.lowerMessage.includes('buffer too small') ? 'too long' : 'invalid value')
         case 31011:
         case 31013:
             return getInvalidValue(context, 'invalid xml', extractOracleTableAndColumnNames(context.message))

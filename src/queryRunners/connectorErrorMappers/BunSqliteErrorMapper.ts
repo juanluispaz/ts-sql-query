@@ -62,7 +62,7 @@ function getKnownBunSqliteDriverErrorReason(error: Error): TsSqlErrorReason | un
     if (upper.includes('INVALID DATABASE HANDLE')) {
         return { reason: 'SQL_INTERNAL_ERROR', errorType: 'api misuse', databaseErrorMessage }
     }
-    if (upper.includes("SQL STRING MUSTN'T BE BLANK") || upper.includes('SQL QUERY CANNOT BE EMPTY') || upper.includes('QUERY CONTAINED NO VALID SQL STATEMENT') || upper.includes('INVALID SQL STATEMENT')) {
+    if (upper === 'EXPECTED SQL STRING' || upper.includes("SQL STRING MUSTN'T BE BLANK") || upper.includes('SQL QUERY CANNOT BE EMPTY') || upper.includes('QUERY CONTAINED NO VALID SQL STATEMENT') || upper.includes('INVALID SQL STATEMENT')) {
         return { reason: 'SQL_INTERNAL_ERROR', errorType: 'api misuse', databaseErrorMessage }
     }
 

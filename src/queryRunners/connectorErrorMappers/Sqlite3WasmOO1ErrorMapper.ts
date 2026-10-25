@@ -58,7 +58,9 @@ function getSqlite3WasmErrorReason(error: Sqlite3WasmDbError): TsSqlErrorReason 
         return { reason: 'SQL_INVALID_VALUE', errorType: 'out of range', databaseErrorCode, databaseErrorNumber, databaseErrorMessage }
     }
     if (upper.includes('INTEGER IS OUT OF RANGE FOR JS INTEGER RANGE:')) {
-        return { reason: 'SQL_INVALID_VALUE', errorType: 'out of range', databaseErrorCode, databaseErrorNumber, databaseErrorMessage }
+        // an integer read from the database that a build without BigInt can't hand back exactly:
+        // the precision loss the other connectors report with the same reason
+        return { reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value: /:\s*(-?\d+)\s*$/.exec(message)?.[1], typeName: '' }
     }
     if (upper.includes('EXEC() REQUIRES AN SQL STRING.') || upper.includes('CANNOT PREPARE EMPTY SQL.')) {
         return { reason: 'SQL_INTERNAL_ERROR', errorType: 'api misuse', databaseErrorCode, databaseErrorNumber, databaseErrorMessage }

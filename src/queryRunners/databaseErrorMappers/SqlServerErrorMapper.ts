@@ -490,7 +490,8 @@ function getInternalError(context: SqlServerErrorContext, errorType?: InternalEr
 
 function getConstraintViolationFrom547(context: SqlServerErrorContext): TsSqlErrorReason {
     const upper = context.message.toUpperCase()
-    if (upper.includes('FOREIGN KEY CONSTRAINT')) {
+    // A parent row deleted or updated while referenced conflicts with the (SAME TABLE) REFERENCE constraint
+    if (upper.includes('FOREIGN KEY CONSTRAINT') || upper.includes('REFERENCE CONSTRAINT')) {
         return {
             reason: 'SQL_CONSTRAINT_VIOLATED',
             ...getMetadata(context),

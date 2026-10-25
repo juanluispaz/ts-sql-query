@@ -15,6 +15,7 @@ describeRunnerContract({
     timeoutMs: 300_000,
     endWithoutTransaction: true,
     clientTimeout: true,
+    errorFields: ['code', 'errorNum', 'offset', 'isRecoverable'],
     async create(failure) {
         const db = await acquireRunnerTestDatabase(failure)
         const connection = await oracledb.getConnection({ user: db.user, password: db.password, connectString: db.connectString })

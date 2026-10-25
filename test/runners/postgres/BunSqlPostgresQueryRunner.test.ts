@@ -11,6 +11,7 @@ describeRunnerContract({
     label: 'BunSqlPostgresQueryRunner',
     dialect: postgresDialect,
     realEnabled: isBun && isRealDbEnabled('postgres', 'docker', 'newest', 'bun_sql_postgres'),
+    errorFields: ['code', 'errno'],
     async create(failure) {
         const { BunSqlPostgresQueryRunner } = await import('../../../src/queryRunners/BunSqlPostgresQueryRunner.js')
         const db = await acquireRunnerTestDatabase(failure)

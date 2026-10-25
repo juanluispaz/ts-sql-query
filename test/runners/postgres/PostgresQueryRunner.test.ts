@@ -12,6 +12,7 @@ describeRunnerContract({
     dialect: postgresDialect,
     runnerClass: PostgresQueryRunner,
     realEnabled: isRealDbEnabled('postgres', 'docker', 'newest', 'postgres'),
+    errorFields: ['code', 'severity'],
     async create(failure) {
         const db = await acquireRunnerTestDatabase(failure)
         const sql = postgres(db.uri, { max: 2, onnotice: () => {} })

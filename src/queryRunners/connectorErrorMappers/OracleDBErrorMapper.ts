@@ -25,13 +25,27 @@ function getOracleDbErrorReason(error: DBError): TsSqlErrorReason {
             message: error.message,
         })
     }
+    if (code === 'ENOENT') {
+        // a file the connection configuration names (wallet, tnsnames.ora) doesn't exist; thin mode passes the fs error on
+        return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message || undefined, errorType: 'invalid connection configuration' }
+    }
     return { reason: 'SQL_UNKNOWN', databaseErrorCode: code || undefined, databaseErrorMessage: error.message || undefined }
 }
 
 function mapOracleDriverError(error: DBError, code = getOracleErrorCode(error)): TsSqlErrorReason {
+    const reason = mapOracleDriverErrorWithoutNumber(error, code)
+    // NJS-500 for a connection the server dropped keeps the ORA number that dropped it
+    return typeof error.errorNum === 'number' && error.errorNum > 0 ? { ...reason, databaseErrorNumber: error.errorNum } as TsSqlErrorReason : reason
+}
+
+function mapOracleDriverErrorWithoutNumber(error: DBError, code: string): TsSqlErrorReason {
     const databaseErrorCode = code || undefined
     const databaseErrorMessage = error.message || undefined
 
+    if (code === 'NJS-129') {
+        // the object type named doesn't exist (what OCI-22303 becomes in oracledb)
+        return { reason: 'SQL_OBJECT_NOT_FOUND', databaseErrorCode, databaseErrorMessage, objectName: extractOracleDriverQuotedObjectName(error.message) }
+    }
     if (isOracleInvalidParameterCode(code)) {
         return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage, ...getOracleInvalidParameterDetails(code, error.message) }
     }
@@ -93,6 +107,9 @@ function mapOracleDriverError(error: DBError, code = getOracleErrorCode(error)):
     if (isOracleDriverIoErrorCode(code)) {
         return { reason: 'SQL_IO_ERROR', databaseErrorCode, databaseErrorMessage, ioErrorType: 'unknown' }
     }
+    if (isOracleDriverProtocolErrorCode(code)) {
+        return { reason: 'SQL_INTERNAL_ERROR', databaseErrorCode, databaseErrorMessage, errorType: 'engine internal' }
+    }
     if (isOracleDriverInternalErrorCode(code)) {
         return { reason: 'SQL_INTERNAL_ERROR', databaseErrorCode, databaseErrorMessage, errorType: 'api misuse' }
     }
@@ -147,7 +164,6 @@ function isOracleInvalidParameterCode(code: string): boolean {
         || code === 'NJS-120'
         || code === 'NJS-121'
         || code === 'NJS-122'
-        || code === 'NJS-129'
         || code === 'NJS-131'
         || code === 'NJS-132'
         || code === 'NJS-134'
@@ -275,6 +291,7 @@ function isOracleDriverInvalidConnectionConfigurationCode(code: string): boolean
         || code === 'NJS-519'
         || code === 'NJS-520'
         || code === 'NJS-523'
+        || code === 'NJS-169'
         || code === 'NJS-524'
         || code === 'NJS-529'
         || code === 'NJS-530'
@@ -422,25 +439,30 @@ function isOracleDriverConfigurationErrorCode(code: string): boolean {
 }
 
 function isOracleDriverRoutineErrorCode(code: string): boolean {
-    return code === 'NJS-169' || code === 'NJS-700'
+    return code === 'NJS-700'
 }
 
 function isOracleDriverIoErrorCode(code: string): boolean {
     return code === 'DPI-1075'
 }
 
-function isOracleDriverInternalErrorCode(code: string): boolean {
-    return code === 'NJS-099'
-        || code === 'NJS-102'
+/** A message from the server the driver couldn't understand: not something the caller did. */
+function isOracleDriverProtocolErrorCode(code: string): boolean {
+    return code === 'NJS-102'
         || code === 'NJS-103'
-        || code === 'NJS-106'
         || code === 'NJS-111'
         || code === 'NJS-112'
         || code === 'NJS-113'
         || code === 'NJS-127'
+        || code === 'NJS-173'
+        || code === 'NJS-509'
+}
+
+function isOracleDriverInternalErrorCode(code: string): boolean {
+    return code === 'NJS-099'
+        || code === 'NJS-106'
         || code === 'NJS-128'
         || code === 'NJS-152'
-        || code === 'NJS-173'
         || code === 'DPI-1000'
         || code === 'DPI-1002'
         || code === 'DPI-1003'
@@ -462,7 +484,11 @@ function getOracleInvalidParameterDetails(code: string, message: string): Partia
             expectedParameterCount: match?.[2] === match?.[3] && match?.[2] ? Number(match[2]) : undefined,
         }
     }
-    if (code === 'NJS-097' || code === 'NJS-137') {
+    if (code === 'NJS-097') {
+        // a value given for a placeholder the statement doesn't have
+        return { parameterErrorType: 'invalid name', parameterName: extractOracleDriverBindName(message) }
+    }
+    if (code === 'NJS-137') {
         return { parameterErrorType: 'missing', parameterName: extractOracleDriverBindName(message) }
     }
     if (code === 'NJS-062' || code === 'NJS-063') {

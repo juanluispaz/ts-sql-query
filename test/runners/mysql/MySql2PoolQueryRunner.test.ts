@@ -13,6 +13,7 @@ describeRunnerContract({
     dialect: mysqlDialect,
     runnerClass: MySql2PoolQueryRunner,
     realEnabled: isRealDbEnabled('mysql', 'docker', 'newest', 'mysql2'),
+    errorFields: ['code', 'errno', 'sqlState', 'sqlMessage'],
     async create(failure) {
         const db = await acquireRunnerTestDatabase(failure)
         const pool = mysql2.createPool({ host: db.host, port: db.port, user: db.user, password: db.password, database: db.database, connectionLimit: 2 })

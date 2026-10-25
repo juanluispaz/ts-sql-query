@@ -22,6 +22,7 @@ whatever class hierarchy implements it.
 | `runners/lib/dialects.ts` | the hand-written SQL per database: the probe tables, function and procedure the contract creates, and the statement shapes the SqlBuilders emit there (RETURNING / OUTPUT / RETURNING INTO, `from dual`, …). What a database can't do is a missing entry, and the matching test is skipped |
 | `runners/lib/queryRunnerCalls.ts` | every executing `QueryRunner` method with the shape of what it returns, for the database-less tests |
 | `runners/<db>/<Runner>.test.ts` | one file per driver runner: a factory for the runner (and its variants: `SynchronousPromise`, `allowNestedTransactions`, the `*PoolPromise` twin) handed to the contract, plus what is particular to it |
+| `runners/general/mappers/` | the synthetic driver errors: one `<Mapper>.synthetic.test.ts` per error mapper — see [The synthetic driver errors](#the-synthetic-driver-errors) |
 | `runners/general/` | the runners and functions that need no database: `MockQueryRunner`, `NoopQueryRunner`, `ChainedQueryRunner` / `InterceptorQueryRunner`, `LoggingQueryRunner` / `ConsoleLog*QueryRunner`, the Bun SQL configuration checks and the functions `QueryRunner.ts` exports |
 
 Particular cases live next to their runner: Oracle's commit outside a
@@ -104,6 +105,23 @@ message or come from a connector, the client library's own codes (MySQL
 `CR_*`), the Oracle codes the thin driver treats as a broken connection, and
 the SQL Server messages that aren't in `sys.messages` or use a placeholder
 `raiserror` doesn't take.
+
+## The synthetic driver errors
+
+What neither a real condition nor the engine can produce — a socket reset,
+a pool closed under the runner, a TLS or SASL failure, a protocol message
+the driver didn't expect, a corrupted SQLite file, an SQL Server error below
+13000, the fallback paths a driver without error numbers would take — is
+checked with error objects built in the shape the driver gives them
+(`runners/general/mappers/`, helper `syntheticErrors.ts`). Each case names
+where its shape comes from (the driver's source file, the engine's
+documentation) and the reason its error means; the driver's own error class
+is used when it exports one.
+
+The shape they copy is guarded: each runner lists in `errorFields` the
+properties its synthetic cases fill, and `error.driver-error-shape` checks a
+real error of that driver still has them, so a driver upgrade that changes
+its errors fails there.
 
 ## The params the SqlBuilders annotate
 

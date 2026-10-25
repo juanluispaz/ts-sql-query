@@ -1,6 +1,7 @@
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, QueryRunner, RollbackOpts } from './QueryRunner.js'
 import type { TsSqlErrorReason } from "../TsSqlError.js"
 import { TsSqlError, TsSqlProcessingError } from "../TsSqlError.js"
+import { databaseIsolationLevel } from '../utils/transactionIsolationLevel.js'
 
 export abstract class AbstractPoolQueryRunner implements QueryRunner {
     abstract readonly database: DatabaseType
@@ -85,6 +86,13 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
             return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, this.database + " doesn't support nested transactions (using " + this.constructor.name + ")"))
         }
         if (this.transactionLevel <= 0) {
+            // The transaction begins on the connection the first query takes from the pool; the options are
+            // validated now so an unsupported one fails here, like on the other query runners
+            try {
+                this.validateTransactionOpts(opts)
+            } catch (error) {
+                return this.createRejectedPromise(error)
+            }
             this.transactionLevel = 1
             this.transactionOpts = opts
             return this.createResolvedPromise(undefined)
@@ -149,7 +157,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
     }
     executeConnectionConfiguration(query: string, params: any[] = []): Promise<void> {
         if (!this.isTransactionActive()) {
-            this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, "You are trying to configure a connection when you didn't request a dedicated connection. Begin a transaction to get a dedicated connection"))
+            return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, "You are trying to configure a connection when you didn't request a dedicated connection. Begin a transaction to get a dedicated connection"))
         }
         return this.getQueryRunner().then(queryRunner => queryRunner.executeConnectionConfiguration(query, params)).finally(() => this.releaseIfNeeded())
     }
@@ -180,6 +188,14 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
                 if (this.transactionLevel > 0) {
                     return this.currentQueryRunner.executeBeginTransaction(this.transactionOpts).then(() => {
                         return queryRunner
+                    }, (error) => {
+                        // No transaction began on this connection: give it back, so the rollback the caller
+                        // issues next has nothing to roll back on it
+                        if (this.currentQueryRunner === queryRunner) {
+                            this.currentQueryRunner = undefined
+                        }
+                        this.releaseQueryRunner(queryRunner)
+                        throw error
                     })
                 }
                 return queryRunner
@@ -194,6 +210,16 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
         }
     }
 
+    /**
+     * Throws when the database doesn't offer the isolation level or the access mode of a transaction about to begin.
+     */
+    protected validateTransactionOpts(opts: BeginTransactionOpts): void {
+        databaseIsolationLevel(this.database, opts[0])
+        const accessMode = opts[1]
+        if (accessMode && accessMode !== 'read write' && accessMode !== 'read only') {
+            throw new TsSqlProcessingError({ reason: 'TRANSACTION_ACCESS_MODE_NOT_SUPPORTED', accessMode }, this.database + " doesn't support the transactions access mode: " + accessMode)
+        }
+    }
     protected abstract createQueryRunner(): Promise<QueryRunner>
     protected abstract releaseQueryRunner(queryRunner: QueryRunner): void
 

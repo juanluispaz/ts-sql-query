@@ -35,10 +35,10 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     }
 
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
-        return this.connection.execute(query, params, {outFormat: oracleDb.OUT_FORMAT_OBJECT}).then((result) => result.rows || [])
+        return this.connection.execute(query, params, {outFormat: oracleDb.OUT_FORMAT_OBJECT, autoCommit: this.autoCommit()}).then((result) => result.rows || [])
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
-        return this.connection.execute(query, params).then((result) => {
+        return this.connection.execute(query, params, {autoCommit: this.autoCommit()}).then((result) => {
             // A multi-row INSERT is executed as an anonymous PL/SQL block, for
             // which Oracle doesn't populate rowsAffected; the SqlBuilder recorded
             // the affected-row count instead (see OracleSqlBuilder._buildInsertMultiple).
@@ -50,7 +50,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         })
     }
     protected override executeMutationReturning(query: string, params: any[] = []): Promise<any[]> {
-        return this.connection.execute(query, this.resolveOutBindTypes(params)).then((result) => {
+        return this.connection.execute(query, this.resolveOutBindTypes(params), {autoCommit: this.autoCommit()}).then((result) => {
             return this.processOutBinds(params, result.outBinds)
         })
     }
@@ -97,6 +97,18 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
             default:
                 return undefined
         }
+    }
+    /**
+     * Oracle always runs statements inside a transaction, and oracledb doesn't commit it unless asked (its autoCommit
+     * defaults to false): outside a transaction begun through ts-sql-query, each statement is committed, as on every
+     * other database; inside one, only commit() does.
+     */
+    private autoCommit(): boolean {
+        return !this.isTransactionActive()
+    }
+    override doSetTransaction(sql: string, _opts: BeginTransactionOpts): Promise<void> {
+        // SET TRANSACTION opens the transaction it configures, so it must not be committed
+        return this.connection.execute(sql, [], {autoCommit: false}).then(() => undefined)
     }
     doBeginTransaction(_opts: BeginTransactionOpts): Promise<void> {
         // Oracle automatically begins the transaction, but the level must set in a query

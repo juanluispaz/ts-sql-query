@@ -82,7 +82,8 @@ export type PromiseProvider = PromiseConstructorLike & {
     // allSettled: typeof Promise.allSettled
 }
 
-export type BeginTransactionOpts = [transactionLevel?: 'read uncommitted' | 'read committed' | 'repeatable read' | 'snapshot' | 'serializable', accessMode?: 'read write' | 'read only' ]
+// `[undefined, accessMode]` when only an access mode was requested
+export type BeginTransactionOpts = [transactionLevel?: 'read uncommitted' | 'read committed' | 'repeatable read' | 'snapshot' | 'serializable' | undefined, accessMode?: 'read write' | 'read only' | undefined]
 export type CommitOpts = []
 export type RollbackOpts = []
 

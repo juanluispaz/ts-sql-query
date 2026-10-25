@@ -25,6 +25,10 @@ This page explains how to use `ts-sql-query` with the [oracledb](https://www.npm
 
     Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
 
+!!! info "Commit outside a transaction"
+
+    Oracle runs every statement inside a transaction, and oracledb doesn't commit it unless asked (its `autoCommit` defaults to `false`). `ts-sql-query` commits each statement executed outside a transaction, as every other database does; inside a transaction begun through `ts-sql-query` (`connection.transaction(...)` or `connection.beginTransaction()`), the work is committed by `commit()` only.
+
 ## Using a connection pool promise
 
 Executes queries through a [oracledb](https://www.npmjs.com/package/oracledb) connection obtained from a pool promise.

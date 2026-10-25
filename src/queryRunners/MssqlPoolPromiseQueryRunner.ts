@@ -1,4 +1,4 @@
-import type { DatabaseType, QueryRunner } from './QueryRunner.js'
+import type { BeginTransactionOpts, DatabaseType, QueryRunner } from './QueryRunner.js'
 import type { ConnectionPool, Transaction } from 'mssql'
 import { MssqlPoolQueryRunner } from './MssqlPoolQueryRunner.js'
 import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
@@ -29,6 +29,13 @@ export class MssqlPoolPromiseQueryRunner extends ManagedTransactionPoolQueryRunn
         const index = params.length
         params.push(value)
         return '@' + index
+    }
+    protected override validateTransactionOpts(opts: BeginTransactionOpts): void {
+        super.validateTransactionOpts(opts)
+        const accessMode = opts[1]
+        if (accessMode) {
+            throw new TsSqlProcessingError({ reason: 'TRANSACTION_ACCESS_MODE_NOT_SUPPORTED', accessMode }, this.database + " doesn't support the transactions access mode: " + accessMode)
+        }
     }
     protected createQueryRunner(): Promise<QueryRunner> {
         return this.promisePool.then(pool => new MssqlPoolQueryRunner(pool))

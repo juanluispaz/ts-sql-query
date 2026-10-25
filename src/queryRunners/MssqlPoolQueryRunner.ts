@@ -10,6 +10,14 @@ import { getParamType } from '../utils/queryParamsMetadata.js'
 
 const { TYPES, ISOLATION_LEVEL } = mssql
 
+const isolationLevelWords: { [level: number]: string } = {
+    [ISOLATION_LEVEL.READ_UNCOMMITTED]: 'read uncommitted',
+    [ISOLATION_LEVEL.READ_COMMITTED]: 'read committed',
+    [ISOLATION_LEVEL.REPEATABLE_READ]: 'repeatable read',
+    [ISOLATION_LEVEL.SERIALIZABLE]: 'serializable',
+    [ISOLATION_LEVEL.SNAPSHOT]: 'snapshot',
+}
+
 export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     readonly database: DatabaseType
     readonly pool: ConnectionPool
@@ -75,44 +83,94 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
             return Promise.reject(error)
         }
 
+        let isolationLevel: number | undefined
         if (!level) {
-            this.transaction = this.pool.transaction()
-            return this.transaction.begin().then(() => undefined)
+            isolationLevel = undefined
         } else if (level === 'read uncommitted') {
-            this.transaction = this.pool.transaction()
-            return this.transaction.begin(ISOLATION_LEVEL.READ_UNCOMMITTED).then(() => undefined)
+            isolationLevel = ISOLATION_LEVEL.READ_UNCOMMITTED
         } else if (level === 'read committed') {
-            this.transaction = this.pool.transaction()
-            return this.transaction.begin(ISOLATION_LEVEL.READ_COMMITTED).then(() => undefined)
+            isolationLevel = ISOLATION_LEVEL.READ_COMMITTED
         } else if (level === 'repeatable read') {
-            this.transaction = this.pool.transaction()
-            return this.transaction.begin(ISOLATION_LEVEL.REPEATABLE_READ).then(() => undefined)
+            isolationLevel = ISOLATION_LEVEL.REPEATABLE_READ
         } else if (level === 'snapshot') {
-            this.transaction = this.pool.transaction()
-            return this.transaction.begin(ISOLATION_LEVEL.SNAPSHOT).then(() => undefined)
+            isolationLevel = ISOLATION_LEVEL.SNAPSHOT
         } else if (level === 'serializable') {
-            this.transaction = this.pool.transaction()
-            return this.transaction.begin(ISOLATION_LEVEL.SERIALIZABLE).then(() => undefined)
+            isolationLevel = ISOLATION_LEVEL.SERIALIZABLE
         } else {
             return Promise.reject(new TsSqlProcessingError({ reason: 'TRANSACTION_LEVEL_NOT_SUPPORTED', transactionLevel: level }, this.database + " doesn't support the transactions level: " + level))
         }
+
+        const transaction = this.pool.transaction()
+        this.transaction = transaction
+        // SQL Server keeps a transaction's isolation level on the session after the transaction ends, so the pooled
+        // connection would run every later query outside a transaction at that level; it is put back before the
+        // transaction ends (see restoreConnectionIsolationLevel).
+        this.restoreIsolationLevel = isolationLevel !== undefined && isolationLevel !== this.connectionIsolationLevel()
+        return (isolationLevel === undefined ? transaction.begin() : transaction.begin(isolationLevel)).then(() => {
+            if (this.restoreIsolationLevel) {
+                this.discardConnectionIfAborted(transaction)
+            }
+        }, (error) => {
+            if (this.transaction === transaction) {
+                this.transaction = undefined
+            }
+            throw error
+        })
     }
     executeCommit(_opts: CommitOpts = []): Promise<void> {
-        if (!this.transaction) {
+        const transaction = this.transaction
+        if (!transaction) {
             return Promise.reject(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in an transaction, you cannot commit the transaction'))
         }
-        return this.transaction.commit().then(() => {
+        return this.restoreConnectionIsolationLevel(transaction).then(() => transaction.commit()).then(() => {
             // Transaction count only modified when commit successful, in case of error there is still an open transaction
             this.transaction = undefined
         })
     }
     executeRollback(_opts: RollbackOpts = []): Promise<void> {
-        if (!this.transaction) {
+        const transaction = this.transaction
+        if (!transaction) {
             return Promise.reject(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in an transaction, you cannot rollback the transaction'))
         }
-        return this.transaction.rollback().finally(() => {
+        // A transaction the server already aborted refuses the statement; the rollback still has to run
+        return this.restoreConnectionIsolationLevel(transaction).catch(() => undefined).then(() => transaction.rollback()).finally(() => {
             this.transaction = undefined
         })
+    }
+    private restoreIsolationLevel = false
+    /**
+     * The isolation level a connection of the pool runs at outside a transaction: tedious' connectionIsolationLevel
+     * option, READ COMMITTED by default.
+     */
+    protected connectionIsolationLevel(): number {
+        return (this.pool as any).config?.options?.connectionIsolationLevel ?? ISOLATION_LEVEL.READ_COMMITTED
+    }
+    /**
+     * A transaction the server rolls back by itself (a deadlock victim, or an error that dooms it) is handed back to
+     * the pool by mssql right away, before its level can be put back, so the connection would serve later queries at
+     * that level. It is flagged as broken instead, the same flag mssql sets on a failed socket, so the pool closes it
+     * rather than lending it out again. Relies on mssql internals (`_acquiredConnection` / `hasError`); when they are
+     * missing nothing is flagged.
+     */
+    private discardConnectionIfAborted(transaction: Transaction): void {
+        const nativeConnection = (transaction as any)._acquiredConnection
+        if (!nativeConnection) {
+            return
+        }
+        transaction.on('rollback', (aborted: boolean) => {
+            if (aborted) {
+                nativeConnection.hasError = true
+            }
+        })
+    }
+    private restoreConnectionIsolationLevel(transaction: Transaction): Promise<void> {
+        if (!this.restoreIsolationLevel) {
+            return Promise.resolve()
+        }
+        this.restoreIsolationLevel = false
+        const words = isolationLevelWords[this.connectionIsolationLevel()] ?? 'read committed'
+        // As a batch: run through sp_executesql (what query() does) a SET only lasts until the call returns
+        return transaction.request().batch('set transaction isolation level ' + words).then(() => undefined)
     }
     isTransactionActive(): boolean {
         return !!this.transaction

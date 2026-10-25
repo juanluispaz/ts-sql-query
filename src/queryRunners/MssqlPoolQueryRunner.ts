@@ -5,6 +5,7 @@ import type { NativeValueType } from '../expressions/values.js'
 import { ManagedTransactionQueryRunner } from './ManagedTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from "../TsSqlError.js"
 import { getMssqlErrorReason, isMssqlError } from './connectorErrorMappers/MssqlErrorMapper.js'
+import { databaseIsolationLevel } from '../utils/transactionIsolationLevel.js'
 
 const { TYPES, ISOLATION_LEVEL } = mssql
 
@@ -62,10 +63,15 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         if (this.transaction) {
             return Promise.reject(new TsSqlProcessingError({ reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, this.database + " doesn't support nested transactions (using " + this.constructor.name + ")"))
         }
-        const level = opts[0]
         const accessMode = opts[1]
         if (accessMode) {
             return Promise.reject(new TsSqlProcessingError({ reason: 'TRANSACTION_ACCESS_MODE_NOT_SUPPORTED', accessMode }, this.database + " doesn't support the transactions access mode: " + accessMode))
+        }
+        let level
+        try {
+            level = databaseIsolationLevel(this.database, opts[0])
+        } catch (error) {
+            return Promise.reject(error)
         }
 
         if (!level) {

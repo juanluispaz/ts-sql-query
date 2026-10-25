@@ -108,6 +108,12 @@ const tCustomer = new class TCustomer extends Table<DBConnection, 'TCustomer'> {
 
 Set `compatibilityVersion` to your MariaDB version (or leave the default) so the rest of the SQL is emitted accordingly. There is no fallback below 10.3 — the server simply does not recognise the `SEQUENCE` syntax, so don't expose sequences when targeting older versions.
 
+## `snapshot` isolation and older versions
+
+`connection.isolationLevel('snapshot')` runs the transaction at MariaDB's `REPEATABLE READ`. Since MariaDB 11.6.2 a write to a row another transaction changed after the snapshot is refused (error 1020, _Record has changed since last read_), as on the other databases. Before that version, or with the `innodb_snapshot_isolation` system variable turned off, the write is not refused and another transaction's update can be lost without any error — the same defect MySQL has. The scenario, and what to do instead, is in [Transaction isolation](../../queries/transaction.md#mysql-and-mariadb-snapshot-writes).
+
+Further reading: [MDEV-35124](https://jira.mariadb.org/browse/MDEV-35124) (`innodb_snapshot_isolation` turned on by default), [Jepsen's note on MariaDB's fix](https://jepsen.io/blog/2024-11-07-mariadb-snapshot-isolation) and [Jepsen's analysis of MySQL 8.0.34](https://jepsen.io/analyses/mysql-8.0.34), whose anomalies MariaDB shared.
+
 ## Collations & case sensitivity
 
 MariaDB's default collation (`utf8mb4_uca1400_ai_ci`) is case- **and accent-insensitive** — so `equals` / `contains` / `like` fold both case and accents out of the box, where PostgreSQL, Oracle and SQLite would not. The plain string operations follow that configured collation; the `*Insensitive` operations force case-insensitivity over it. To force the *case-sensitive* direction, use a binary collation (`utf8mb4_bin`) with `.collate('<name>')` per value or on the column — the `SET collation_connection` session variable does **not** retarget a column comparison. `REPLACE` ignores collation on MariaDB, so `replaceAll` is byte-wise case-sensitive with nothing to configure; for a case-insensitive replace use [`.replaceAllInsensitive(...)`](../collations.md#replaceallinsensitive-the-insensitive-twin). See the dedicated [Collations & case sensitivity](../collations.md) page and the [MySQL / MariaDB tab](../collations.md#per-database).

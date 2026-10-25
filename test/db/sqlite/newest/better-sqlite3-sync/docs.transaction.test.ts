@@ -127,12 +127,12 @@ describe(ctx.label, () => {
                 return await connection.selectFromNoTable()
                     .selectOneColumn(connection.const(1, 'int'))
                     .executeSelectOne()
-            }, connection.isolationLevel('serializable', 'read only'))
+            }, connection.isolationLevel('snapshot', 'read only'))
             // doc-end
 
             // Both parts are carried through: the combined opts pair, and a
-            // real read-only serializable transaction that actually ran.
-            expect(ctx.lastTransactionOpts).toEqual(['serializable', 'read only'])
+            // real read-only snapshot transaction that actually ran.
+            expect(ctx.lastTransactionOpts).toEqual(['snapshot', 'read only'])
             expect(result).toBe(1)
         })
     })

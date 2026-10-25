@@ -1,16 +1,19 @@
 // Coverage of `connection.isolationLevel(...)` — the per-connection
-// builder that turns an isolation level / access mode into the
-// opts passed to `transaction(...)` / `beginTransaction(...)`. The three
-// overload branches (level-only, level+accessMode, accessMode-only).
+// builder that turns an isolation level / access mode into the opts passed
+// to `transaction(...)` / `beginTransaction(...)` — and of the level each
+// one becomes on the database.
 //
-// Each test runs a read-only transaction with the built isolation and
-// asserts:
-//   - `ctx.lastTransactionOpts` — the array `isolationLevel(...)` built,
-//     captured BEFORE any per-runner handling, so the assertion works for
-//     every connector (including the ones whose real-DB runner manages
-//     the transaction internally and never fire a `beginTransaction`
-//     query).
-//   - the transaction result.
+// ts-sql-query names the levels with the SQL standard's words, plus
+// `snapshot` for every read seeing the database as of one moment, and
+// translates each one to the words this database uses; a level the
+// database does not deliver is not offered. Two families of tests:
+//   - `*-builds-*-opts`: the opts `isolationLevel(...)` built —
+//     `ctx.lastTransactionOpts`, captured BEFORE any per-runner handling,
+//     so the assertion works for every connector — and the transaction
+//     result.
+//   - `*-is-active-on-the-database`: inside the transaction, the database's
+//     own report of the isolation level the running transaction has, which
+//     proves the translation reached the database.
 //
 // Docs: docs/queries/transaction.md (section "Transaction isolation").
 
@@ -27,35 +30,44 @@ async function runReadOnlyTransaction(isolation: TransactionIsolationLevel): Pro
     }, isolation)
 }
 
+// The isolation level the database reports for the transaction this runs in.
+async function activeIsolationLevel(isolation: TransactionIsolationLevel): Promise<number> {
+    const connection = ctx.conn
+    return await connection.transaction(async () => {
+        return await connection.selectFromNoTable()
+            .selectOneColumn(connection.fragmentWithType('int', 'required').sql`(select transaction_isolation_level from sys.dm_exec_sessions where session_id = @@spid)`)
+            .executeSelectOne()
+    }, isolation)
+}
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
     test('isolation-level-only-builds-level-opts', async () => {
-        // `isolationLevel('serializable')` → opts `['serializable']`
+        // `isolationLevel('read committed')` → opts `['read committed']`
         // (the level-only branch).
         ctx.mockNext(1)
-        const result = await runReadOnlyTransaction(ctx.conn.isolationLevel('serializable'))
-        expect(ctx.lastTransactionOpts).toEqual(['serializable'])
+        const result = await runReadOnlyTransaction(ctx.conn.isolationLevel('read committed'))
+        expect(ctx.lastTransactionOpts).toEqual(['read committed'])
         expect(result).toBe(1)
     })
 
-    // Bodies kept verbatim for cross-cell diff parity.
+    // Body kept verbatim for cross-cell diff parity.
     // NOT-APPLICABLE: SQL Server's `isolationLevel` takes only a level, no access mode, so neither the level+accessMode form nor the access-mode-only form exists.
     /*
     test('isolation-level-with-access-mode-builds-pair-opts', async () => {
-        // `isolationLevel('repeatable read', 'read write')` → opts
-        // `['repeatable read', 'read write']` (the level+accessMode
-        // branch).
+        // `isolationLevel('snapshot', 'read write')` → opts
+        // `['snapshot', 'read write']` (the level+accessMode branch).
         ctx.mockNext(1)
-        const result = await runReadOnlyTransaction(ctx.conn.isolationLevel('repeatable read', 'read write'))
-        expect(ctx.lastTransactionOpts).toEqual(['repeatable read', 'read write'])
+        const result = await runReadOnlyTransaction(ctx.conn.isolationLevel('snapshot', 'read write'))
+        expect(ctx.lastTransactionOpts).toEqual(['snapshot', 'read write'])
         expect(result).toBe(1)
     })
     */
 
-    // Bodies kept verbatim for cross-cell diff parity.
+    // Body kept verbatim for cross-cell diff parity.
     // NOT-APPLICABLE: SQL Server's `isolationLevel` takes only a level, no access mode, so neither the level+accessMode form nor the access-mode-only form exists.
     /*
     test('isolation-access-mode-only-builds-access-mode-opts', async () => {
@@ -63,18 +75,14 @@ describe(ctx.label, () => {
         // `[undefined, 'read only']`.
         ctx.mockNext(1)
         const result = await runReadOnlyTransaction(ctx.conn.isolationLevel('read only'))
-        expect(ctx.lastTransactionOpts).toEqual([undefined, undefined])
+        expect(ctx.lastTransactionOpts).toEqual([undefined, 'read only'])
         expect(result).toBe(1)
     })
     */
 
-    // Per-level / per-access-mode coverage of the isolation table on
-    // docs/queries/transaction.md. Each `<db>` cell runs the levels and
-    // access modes its engine supports and comments out the rest as
-    // NOT-APPLICABLE (kept verbatim per the symmetry rule). SQL Server
-    // supports every isolation level (READ UNCOMMITTED, READ COMMITTED,
-    // REPEATABLE READ, SNAPSHOT, SERIALIZABLE) but no access modes — its
-    // `isolationLevel` overload takes only a level.
+    // One test per level of the isolation table on
+    // docs/queries/transaction.md: the opts it builds, and the level the
+    // running transaction has on the database.
 
     test('isolation-level-read-uncommitted-builds-level-opts', async () => {
         // `isolationLevel('read uncommitted')` → opts `['read uncommitted']`.
@@ -84,13 +92,30 @@ describe(ctx.label, () => {
         expect(result).toBe(1)
     })
 
+    test('isolation-level-read-uncommitted-is-active-on-the-database', async () => {
+        // The running transaction reports the level `'read uncommitted'` became on
+        // this database.
+        ctx.mockNext(1)
+        const level = await activeIsolationLevel(ctx.conn.isolationLevel('read uncommitted'))
+        expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"select (select transaction_isolation_level from sys.dm_exec_sessions where session_id = @@spid) as [result]"`)
+        expect(level).toBe(1)
+    })
+
     test('isolation-level-read-committed-builds-level-opts', async () => {
-        // `isolationLevel('read committed')` → opts `['read committed']`
-        // (the engine default made explicit).
+        // `isolationLevel('read committed')` → opts `['read committed']`.
         ctx.mockNext(1)
         const result = await runReadOnlyTransaction(ctx.conn.isolationLevel('read committed'))
         expect(ctx.lastTransactionOpts).toEqual(['read committed'])
         expect(result).toBe(1)
+    })
+
+    test('isolation-level-read-committed-is-active-on-the-database', async () => {
+        // The running transaction reports the level `'read committed'` became on
+        // this database.
+        ctx.mockNext(2)
+        const level = await activeIsolationLevel(ctx.conn.isolationLevel('read committed'))
+        expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"select (select transaction_isolation_level from sys.dm_exec_sessions where session_id = @@spid) as [result]"`)
+        expect(level).toBe(2)
     })
 
     test('isolation-level-repeatable-read-builds-level-opts', async () => {
@@ -101,9 +126,20 @@ describe(ctx.label, () => {
         expect(result).toBe(1)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — `'snapshot'` type-checks and SQL Server 2025 supports it; deliberately not enabled because ALLOW_SNAPSHOT_ISOLATION is DB-wide and penalizes every write on the ARM-emulated SQL Server container (its mock opts pass-through is already covered by the other isolation levels; no other cell validates SNAPSHOT). Not a dialect boundary.
+    test('isolation-level-repeatable-read-is-active-on-the-database', async () => {
+        // The running transaction reports the level `'repeatable read'` became on
+        // this database.
+        ctx.mockNext(3)
+        const level = await activeIsolationLevel(ctx.conn.isolationLevel('repeatable read'))
+        expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"select (select transaction_isolation_level from sys.dm_exec_sessions where session_id = @@spid) as [result]"`)
+        expect(level).toBe(3)
+    })
+
+    // Body kept verbatim for cross-cell diff parity.
+    // TODO[LIMITATION]: see LIMITATIONS.md — `'snapshot'` type-checks and SQL Server 2025 supports it; deliberately not enabled because ALLOW_SNAPSHOT_ISOLATION is DB-wide and penalizes every write on the ARM-emulated SQL Server container. Not a dialect boundary.
     /*
     test('isolation-level-snapshot-builds-level-opts', async () => {
+        // `isolationLevel('snapshot')` → opts `['snapshot']`.
         ctx.mockNext(1)
         const result = await runReadOnlyTransaction(ctx.conn.isolationLevel('snapshot'))
         expect(ctx.lastTransactionOpts).toEqual(['snapshot'])
@@ -111,13 +147,42 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: SQL Server's `isolationLevel` takes only a level — no
-    // access-mode overload — so `isolationLevel('read write')` does not
-    // type-check. Body kept verbatim for cross-cell diff parity.
+    // Body kept verbatim for cross-cell diff parity.
+    // TODO[LIMITATION]: see LIMITATIONS.md — `'snapshot'` type-checks and SQL Server 2025 supports it; deliberately not enabled because ALLOW_SNAPSHOT_ISOLATION is DB-wide and penalizes every write on the ARM-emulated SQL Server container. Not a dialect boundary.
+    /*
+    test('isolation-level-snapshot-is-active-on-the-database', async () => {
+        // The running transaction reports the level `'snapshot'` became on
+        // this database.
+        ctx.mockNext(5)
+        const level = await activeIsolationLevel(ctx.conn.isolationLevel('snapshot'))
+        expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"select (select transaction_isolation_level from sys.dm_exec_sessions where session_id = @@spid) as [result]"`)
+        expect(level).toBe(5)
+    })
+    */
+
+    test('isolation-level-serializable-builds-level-opts', async () => {
+        // `isolationLevel('serializable')` → opts `['serializable']`.
+        ctx.mockNext(1)
+        const result = await runReadOnlyTransaction(ctx.conn.isolationLevel('serializable'))
+        expect(ctx.lastTransactionOpts).toEqual(['serializable'])
+        expect(result).toBe(1)
+    })
+
+    test('isolation-level-serializable-is-active-on-the-database', async () => {
+        // The running transaction reports the level `'serializable'` became on
+        // this database.
+        ctx.mockNext(4)
+        const level = await activeIsolationLevel(ctx.conn.isolationLevel('serializable'))
+        expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"select (select transaction_isolation_level from sys.dm_exec_sessions where session_id = @@spid) as [result]"`)
+        expect(level).toBe(4)
+    })
+
+    // Body kept verbatim for cross-cell diff parity.
+    // NOT-APPLICABLE: SQL Server's `isolationLevel` takes only a level, no access mode, so neither the level+accessMode form nor the access-mode-only form exists.
     /*
     test('access-mode-read-write-builds-access-mode-opts', async () => {
         // The single-arg access-mode overload with `'read write'` (the
-        // engine default made explicit) — opts `[undefined, 'read write']`.
+        // default made explicit) — opts `[undefined, 'read write']`.
         ctx.mockNext(1)
         const result = await runReadOnlyTransaction(ctx.conn.isolationLevel('read write'))
         expect(ctx.lastTransactionOpts).toEqual([undefined, 'read write'])
@@ -128,13 +193,12 @@ describe(ctx.label, () => {
     test('begin-transaction-with-isolation-level-builds-opts', async () => {
         // The docs show the isolation argument on BOTH `transaction(fn, iso)`
         // (the tests above) and the low-level `beginTransaction(iso)`. This
-        // pins the low-level form. `serializable` is the one level every
-        // dialect in the table supports, so the real-DB begin succeeds.
+        // pins the low-level form.
         ctx.mockNext(1)
         const connection = ctx.conn
         let result: number | null = null
 
-        await connection.beginTransaction(connection.isolationLevel('serializable'))
+        await connection.beginTransaction(connection.isolationLevel('read committed'))
         try {
             result = await connection.selectFromNoTable()
                 .selectOneColumn(connection.const(1, 'int'))
@@ -145,21 +209,21 @@ describe(ctx.label, () => {
             throw e
         }
 
-        expect(ctx.lastTransactionOpts).toEqual(['serializable'])
+        expect(ctx.lastTransactionOpts).toEqual(['read committed'])
         expect(result).toBe(1)
     })
-    // NOT-APPLICABLE: SQL Server's isolationLevel takes only a level, no access mode, so the level+accessMode form does not type-check.
+
+    // Body kept verbatim for cross-cell diff parity.
+    // NOT-APPLICABLE: SQL Server's `isolationLevel` takes only a level, no access mode, so neither the level+accessMode form nor the access-mode-only form exists.
     /*
     test('isolation-level-with-read-only-access-mode-builds-pair-opts', async () => {
         // The level+accessMode branch with the `'read only'` access mode:
-        // `isolationLevel('repeatable read', 'read only')` → opts
-        // `['repeatable read', 'read only']`. The existing pair test covers the
-        // `'read write'` access mode; this is its read-only twin (and the
-        // transaction body is a plain SELECT, so real DBs accept the read-only
-        // mode).
+        // `isolationLevel('snapshot', 'read only')` → opts
+        // `['snapshot', 'read only']`; the transaction body is a plain SELECT,
+        // so the read-only mode is accepted.
         ctx.mockNext(1)
-        const result = await runReadOnlyTransaction(ctx.conn.isolationLevel('repeatable read', 'read only'))
-        expect(ctx.lastTransactionOpts).toEqual(['repeatable read', 'read only'])
+        const result = await runReadOnlyTransaction(ctx.conn.isolationLevel('snapshot', 'read only'))
+        expect(ctx.lastTransactionOpts).toEqual(['snapshot', 'read only'])
         expect(result).toBe(1)
     })
     */

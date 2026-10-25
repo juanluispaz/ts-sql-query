@@ -272,6 +272,31 @@ pool.on('connection', c => c.query('SET SESSION group_concat_max_len = 1000000')
 
 
 
+### MariaDB and Oracle cannot report the running transaction's isolation level
+
+`transaction.isolation-level.test.ts` checks, inside the transaction, the
+isolation level the database reports for it (`*-is-active-on-the-database`):
+that is what proves `ts-sql-query` translated the requested level to the
+right words. PostgreSQL (`current_setting('transaction_isolation')`), SQL
+Server (`sys.dm_exec_sessions.transaction_isolation_level`) and MySQL 8.0+
+(`performance_schema.events_transactions_current`) report it; these two
+cannot, at any version:
+
+- **MariaDB** — `@@transaction_isolation` is the session's level, which a
+  `SET TRANSACTION` for the next transaction does not change;
+  `INFORMATION_SCHEMA.INNODB_TRX.TRX_ISOLATION_LEVEL` comes from a cache
+  refreshed at most every 0.1 s, so it reports a previous transaction's
+  level (verified on 10.3 and 13.0: `READ UNCOMMITTED` for every level);
+  and `performance_schema` is disabled by default.
+- **Oracle** — the level appears only in `V$TRANSACTION.FLAG`, a dynamic
+  performance view that only SYS can grant access to (`SYSTEM` gets
+  `ORA-01031` granting it), so the test users cannot read it.
+
+The `*-builds-*-opts` tests still run live on both, and Oracle and MariaDB
+refuse an isolation level they do not know, so a translation to the wrong
+words fails there; what goes unchecked is a translation to another level
+they do know.
+
 # 2. Engine version gates
 
 The dialect **does** support the feature — from a given release on. The
@@ -521,6 +546,15 @@ Verified against real `mysql:5.7`: the `cte.recursive-*`, `docs.recursive-select
 other MySQL cell (identical snapshot on 8.0+).
 
 
+
+### MySQL 5.7 does not record the running transaction's isolation level by default
+
+MySQL 8.0+ reports the isolation level of the running transaction in
+`performance_schema.events_transactions_current`, which is what the
+`*-is-active-on-the-database` tests of `transaction.isolation-level.test.ts`
+read. MySQL 5.7 ships that transaction instrumentation disabled (the
+query returns no row), so the tests are commented out on the
+`mysql/oldest` cells and run on every MySQL 8.0+ cell.
 
 ### MySQL window functions and the named `WINDOW` clause require MySQL 8.0.2+
 

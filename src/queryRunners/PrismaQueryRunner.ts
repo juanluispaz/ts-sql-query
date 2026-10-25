@@ -2,6 +2,7 @@ import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSq
 import { AbstractQueryRunner } from './AbstractQueryRunner.js'
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, QueryRunner, RollbackOpts } from './QueryRunner.js'
 import { getPrismaErrorReason, isPrismaError } from './connectorErrorMappers/PrismaErrorMapper.js'
+import { databaseIsolationLevel } from '../utils/transactionIsolationLevel.js'
 
 interface RawPrismaClient {
     $executeRawUnsafe<_T = any>(query: string, ...values: any[]): Promise<number>
@@ -129,24 +130,32 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
         if (accessMode) {
             return Promise.reject(new TsSqlProcessingError({ reason: 'TRANSACTION_ACCESS_MODE_NOT_SUPPORTED', accessMode }, this.database + " doesn't support the transactions access mode: " + accessMode + " (using " + this.constructor.name + ")"))
         }
-        if (this.database === 'sqlite' && level && level !== 'serializable') {
-            return Promise.reject(new TsSqlProcessingError({ reason: 'TRANSACTION_LEVEL_NOT_SUPPORTED', transactionLevel: level }, this.database + " doesn't support the transactions level: " + level))
+        let databaseLevel
+        if (this.database === 'sqlite') {
+            // Prisma accepts only Serializable on SQLite, which is how SQLite always runs
+            if (level && level !== 'serializable') {
+                return Promise.reject(new TsSqlProcessingError({ reason: 'TRANSACTION_LEVEL_NOT_SUPPORTED', transactionLevel: level }, this.database + " doesn't support the transactions level: " + level))
+            }
+            databaseLevel = level
+        } else {
+            try {
+                databaseLevel = databaseIsolationLevel(this.database, level)
+            } catch (error) {
+                return Promise.reject(error)
+            }
         }
 
         let isolationLevel
-        if (!level) {
-        } else if (level === 'read uncommitted') {
+        if (!databaseLevel) {
+        } else if (databaseLevel === 'read uncommitted') {
             isolationLevel = 'ReadUncommitted'
-        } else if (level === 'read committed') {
+        } else if (databaseLevel === 'read committed') {
             isolationLevel = 'ReadCommitted'
-        } else if (level === 'repeatable read') {
+        } else if (databaseLevel === 'repeatable read') {
             isolationLevel = 'RepeatableRead'
-        } else if (level === 'snapshot') {
-            if (this.database !== 'sqlServer') {
-                return Promise.reject(new TsSqlProcessingError({ reason: 'TRANSACTION_LEVEL_NOT_SUPPORTED', transactionLevel: level }, this.database + " doesn't support the transactions level: " + level))
-            }
+        } else if (databaseLevel === 'snapshot') {
             isolationLevel = 'Snapshot'
-        } else if (level === 'serializable') {
+        } else if (databaseLevel === 'serializable') {
             isolationLevel = 'Serializable'
         } else {
             return Promise.reject(new TsSqlProcessingError({ reason: 'TRANSACTION_LEVEL_NOT_SUPPORTED', transactionLevel: level }, this.database + " doesn't support the transactions level: " + level))

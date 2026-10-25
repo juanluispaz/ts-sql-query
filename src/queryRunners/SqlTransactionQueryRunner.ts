@@ -1,6 +1,7 @@
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { ManagedTransactionQueryRunner } from './ManagedTransactionQueryRunner.js'
 import type { BeginTransactionOpts, CommitOpts, RollbackOpts } from './QueryRunner.js'
+import { databaseIsolationLevel } from '../utils/transactionIsolationLevel.js'
 
 export abstract class SqlTransactionQueryRunner extends ManagedTransactionQueryRunner {
     private transactionLevel = 0
@@ -70,14 +71,7 @@ export abstract class SqlTransactionQueryRunner extends ManagedTransactionQueryR
         return this.transactionLevel > 0
     }
     getTransactionLevel(opts: BeginTransactionOpts): string | undefined {
-        const level = opts[0]
-        if (this.database === 'sqlite' && level) {
-            throw new TsSqlProcessingError({ reason: 'TRANSACTION_LEVEL_NOT_SUPPORTED', transactionLevel: level }, this.database + " doesn't support the transactions level: " + level)
-        }
-        if (!level || level === 'read uncommitted' || level === 'read committed' || level === 'repeatable read' || level === 'serializable') {
-            return level
-        }
-        throw new TsSqlProcessingError({ reason: 'TRANSACTION_LEVEL_NOT_SUPPORTED', transactionLevel: level }, this.database + " doesn't support the transactions level: " + level)
+        return databaseIsolationLevel(this.database, opts[0])
     }
     getTransactionAccessMode(opts: BeginTransactionOpts): string | undefined {
         const accessMode = opts[1]

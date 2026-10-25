@@ -103,6 +103,12 @@ There is no alternative function on this engine (`STRING_AGG` does not exist), s
 pool.on('connection', c => c.query('SET SESSION group_concat_max_len = 1000000'))
 ```
 
+## `snapshot` isolation doesn't protect writes
+
+`connection.isolationLevel('snapshot')` runs the transaction at MySQL's `REPEATABLE READ`. Its reads all see the database as of one moment, but an `UPDATE` or a `DELETE` works on the latest committed version of the row and is never refused, so a transaction can write on the strength of something that is no longer true and another transaction's update is lost without any error. Every other database `ts-sql-query` supports refuses that write; `ts-sql-query` treats it as a MySQL defect. The scenario, and what to do instead, is in [Transaction isolation](../../queries/transaction.md#mysql-and-mariadb-snapshot-writes).
+
+Further reading: [MySQL bug #117797](https://bugs.mysql.com/bug.php?id=117797), [Jepsen's analysis of MySQL 8.0.34](https://jepsen.io/analyses/mysql-8.0.34) (lost update, among other anomalies, under `REPEATABLE READ`) and [Jepsen's note on MariaDB's fix](https://jepsen.io/blog/2024-11-07-mariadb-snapshot-isolation).
+
 ## Collations & case sensitivity
 
 MySQL's default collation (`utf8mb4_0900_ai_ci`) is case- **and accent-insensitive** — so `equals` / `contains` / `like` fold both case and accents out of the box, where PostgreSQL, Oracle and SQLite would not. The plain string operations follow that configured collation; the `*Insensitive` operations force case-insensitivity over it. To force the *case-sensitive* direction, use a binary collation (`utf8mb4_bin`) with `.collate('<name>')` per value or on the column — the `SET collation_connection` session variable does **not** retarget a column comparison. `REPLACE` ignores collation on MySQL, so `replaceAll` is byte-wise case-sensitive with nothing to configure; for a case-insensitive replace use [`.replaceAllInsensitive(...)`](../collations.md#replaceallinsensitive-the-insensitive-twin). See the dedicated [Collations & case sensitivity](../collations.md) page and the [MySQL / MariaDB tab](../collations.md#per-database).

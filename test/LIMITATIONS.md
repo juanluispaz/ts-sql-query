@@ -416,14 +416,13 @@ transactions — an overhead we avoid on the SQL Server container, which
 runs x86 under ARM emulation and is already the slowest cell of the
 matrix. The trade is poor: the test's mock half (that the library
 forwards the `['snapshot']` transaction opts) is already covered by the
-other isolation levels, so all the option would buy is confirming that a
-real snapshot transaction commits — a single SQL-Server-only case (no
-other cell validates SNAPSHOT, since `isolationLevel('snapshot')` only
-type-checks here).
+other isolation levels, and `snapshot` runs for real on the PostgreSQL,
+MySQL, MariaDB and Oracle cells, so all the option would buy is
+confirming that SQL Server's own `SNAPSHOT` transaction commits.
 
-The snapshot test in
-`sqlserver/newest/mssql/transaction.isolation-level.test.ts` therefore
-stays commented with `TODO[LIMITATION]`. Re-evaluate if the cost stops
+The two snapshot tests in the SQL Server cells'
+`transaction.isolation-level.test.ts` (the opts it builds and the level
+active on the database) therefore stay commented with `TODO[LIMITATION]`. Re-evaluate if the cost stops
 mattering (e.g. a native, non-emulated SQL Server runner): enabling the
 option in the cell setup — and reading a real table inside the
 transaction to exercise the version store — would let it run.

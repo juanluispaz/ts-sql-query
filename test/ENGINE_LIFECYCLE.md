@@ -414,12 +414,44 @@ there. The two costs that make them their own gating category:
 2. **CPU-bound under parallel workers**. Several workers bootstrapping WASM
    in parallel saturate the CPU; the docker pass overlapping them then
    doesn't get full parallel benefit. That's why the full-matrix `--wasm`
-   flag triggers a **sequential second pass over WASM cells** after the
-   parallel main pass finishes — the WASM cost lands serially at the end,
-   not competing with the docker workers.
+   flag triggers a **sequential WASM pass first**, before the parallel main
+   pass (which runs the WASM cells again, mocked) — the WASM cost lands
+   serially, not competing with the docker workers.
 
 In focused mode (`tests <coord> --wasm`) the two-phase split doesn't fire —
 `--wasm` runs the WASM cells real in a single pass.
+
+### Running WASM real: the problem and the rule per case
+
+Two costs decide how a real-WASM run is shaped, and they pull differently:
+
+- **CPU** — every worker bootstraps its own PGlite and sqlite-wasm module.
+  Mixed with the other cells in a parallel pass, those bootstraps compete with
+  the docker and native workers for the CPU: the run gets slower than running
+  the WASM cells on their own, sequentially (measured on `coverage:runners`
+  below: +75 s mixed in parallel, against ~27 s for the sequential WASM phase
+  of the full matrix).
+- **Memory** — one runner process holding the whole matrix (its module graph
+  plus every result, or every coverage map) is what grows: the mocked matrix +
+  real WASM in one vitest process peaks ~15.9 GB, which a 16 GB CI runner
+  cannot hold. Running WASM in parallel does not by itself blow memory up:
+  `coverage:runners` (every connector's `newest` cell, WASM real in parallel)
+  peaks at 5.9 GB across all bun/vitest processes, against 5.2 GB with WASM
+  mocked.
+
+So each case gets the shape that avoids the cost it would otherwise hit:
+
+| Case | Problem | Rule the CLI applies |
+|---|---|---|
+| Full matrix, `--wasm` (no coverage) | CPU contention if WASM mixes with the parallel pass | **Two phases**: real WASM alone and sequential first, then the parallel main pass with WASM mocked |
+| Full matrix, `--wasm --coverage` | coverage needs ONE runner invocation, so it cannot use the two phases (merging two coverage outputs is fragile), and mixing WASM into the parallel pass is the contention above | **Rejected in parallel mode** (exit 2): pass `--mode sequential` — one sequential pass, WASM real inside it |
+| No-docker CI (`--shard`) | memory: the whole mocked matrix + WASM in one process OOMs the 16 GB runner | **Shards**: four separate invocations, WASM real in shard 1, sequential — memory frees between them |
+| Focused (`tests <coord> --wasm`), with or without `--coverage` | the cell set is small, so neither the contention nor the memory reaches a problematic size | **Single pass, parallel** allowed — `coverage:runners` uses it: one coherent report in ~5 min, the contention costs ~75 s |
+
+If a focused coverage run ever grows to where the contention matters, the way
+out is the same as on the full matrix: `--mode sequential`. A two-pass run with
+merged coverage (vitest's blob reporter + `--merge-reports`) is possible but
+not wired: it is the merge the full-matrix guard avoids.
 
 When `--wasm` is off, every WASM cell still runs — its SQL + params + type +
 mock round-trip assertions all fire — but the WebAssembly module is never

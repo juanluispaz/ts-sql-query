@@ -910,6 +910,10 @@ parallel mode splits the full matrix into two phases (real WASM sequential
 Pass `--mode sequential`, pass coords (a focused run never splits — `--wasm`
 is a single-pass override there), drop `--wasm`, or drop `--coverage`.
 
+The per-case rules (two phases, sequential coverage, shards, focused single
+pass) and the measurements behind them are in
+[`ENGINE_LIFECYCLE.md` § Running WASM real](./ENGINE_LIFECYCLE.md#running-wasm-real-the-problem-and-the-rule-per-case).
+
 `--coverage-scope runners` / `all` under `bun test` in parallel mode is
 rejected with exit 2: bun's parallel workers read only the repo's
 `bunfig.toml`. Pass `--mode sequential` or `--use-vitest`.

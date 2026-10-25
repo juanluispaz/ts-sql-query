@@ -259,6 +259,10 @@ export function getSqlServerEngineErrorReason(error: SqlServerEngineError): TsSq
         case 13643:
             return getDatabaseCorrupted(context, 'database file')
         default:
+            if (typeof context.number === 'number' && context.number >= 50000) {
+                // THROW, RAISERROR with a message of its own (50000) or a user-defined message (sp_addmessage)
+                return { reason: 'SQL_USER_DEFINED_ERROR', ...getMetadata(context) }
+            }
             return getSqlServerErrorReasonFromKnownGroup(context) || { reason: 'SQL_UNKNOWN', ...getMetadata(context) }
     }
 }

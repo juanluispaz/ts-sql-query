@@ -14,7 +14,7 @@ const MYSQL_DEPENDENT_OBJECTS_STILL_EXIST_ERROR_NUMBERS = new Set([3716])
 // The ICU regular-expression errors that mean the pattern itself is invalid
 // (the others are engine limits: buffer, stack, time, pattern size).
 const MYSQL_INVALID_REGULAR_EXPRESSION_ERROR_NUMBERS = new Set([3688, 3689, 3691, 3692, 3693, 3694, 3695, 3696, 3697, 3887, 3900])
-// SIGNAL / RESIGNAL from a stored program: an exception the routine raised.
+// SIGNAL / RESIGNAL without an own MYSQL_ERRNO: an exception user code raised.
 const MYSQL_SIGNAL_ERROR_NUMBERS = new Set([1643, 1644])
 
 export interface MySqlMariaDbEngineError {
@@ -66,7 +66,7 @@ function getMySqlMariaDbErrorReasonFromNumber(
     }
 
     if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_DUPLICATE_CONSTRAINT_ERROR_NUMBERS, database, code, 'unique')) {
-        return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage, constraintType: 'unique', constraintName: extractKeyName(message), tableName: extractMessageTableName(message) }
+        return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage, constraintType: 'unique', ...extractUniqueKeyNames(message) }
     }
     if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_NOT_NULL_CONSTRAINT_ERROR_NUMBERS, database, code, 'not_null')) {
         return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage, constraintType: 'not null', columnName: extractQuotedName(message), tableName: extractMessageTableName(message) }
@@ -187,7 +187,10 @@ function getMySqlMariaDbErrorReasonFromNumber(
     if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_INVALID_PARAMETER_ERROR_NUMBERS, database, code, 'invalid_parameter')) {
         return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage, ...getInvalidParameterDetailsFromMessage(message) }
     }
-    if (hasMariaDbSemanticErrorNumber(errorNumber, ErrorCodes.MARIADB_ROUTINE_ERROR_NUMBERS, database, code, 'routine') || hasMySqlSemanticErrorNumber(errorNumber, MYSQL_SIGNAL_ERROR_NUMBERS, database, code, 'routine')) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, MYSQL_SIGNAL_ERROR_NUMBERS, database, code, 'routine')) {
+        return { reason: 'SQL_USER_DEFINED_ERROR', databaseErrorCode, databaseErrorMessage }
+    }
+    if (hasMariaDbSemanticErrorNumber(errorNumber, ErrorCodes.MARIADB_ROUTINE_ERROR_NUMBERS, database, code, 'routine')) {
         return { reason: 'SQL_ROUTINE_ERROR', databaseErrorCode, databaseErrorMessage }
     }
     if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_PERMISSION_DENIED_ERROR_NUMBERS, database, code, 'permission')) {
@@ -611,6 +614,9 @@ function getMySqlMariaDbErrorReasonFromSqlState(
     }
 
     switch (sqlState) {
+        case '45000':
+            // unhandled user-defined exception: SIGNAL with an MYSQL_ERRNO of its own
+            return { reason: 'SQL_USER_DEFINED_ERROR', databaseErrorCode, databaseErrorMessage }
         case '01000':
         case '01S00':
         case '01S01':
@@ -753,7 +759,7 @@ function getMySqlMariaDbErrorReasonFromSymbol(
     }
 
     if (upperCode.includes('DUP') || upperCode.includes('UNIQUE')) {
-        return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage, constraintType: 'unique', constraintName: extractKeyName(message), tableName: extractMessageTableName(message) }
+        return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage, constraintType: 'unique', ...extractUniqueKeyNames(message) }
     }
     if (upperCode.includes('FOREIGN') || upperCode.includes('REFERENCED')) {
         return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage, constraintType: 'foreign key', constraintName: extractKeyName(message), tableName: extractConstraintTableName(message), columnName: extractForeignKeyColumnName(message) }
@@ -812,7 +818,7 @@ function getMySqlMariaDbErrorReasonFromMessage(
     }
 
     if (lower.includes('duplicate entry') || lower.includes('duplicate key') || lower.includes('unique constraint')) {
-        return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage, constraintType: 'unique', constraintName: extractKeyName(message), tableName: extractMessageTableName(message) }
+        return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage, constraintType: 'unique', ...extractUniqueKeyNames(message) }
     }
     if (lower.includes('foreign key constraint')) {
         return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage, constraintType: 'foreign key', constraintName: extractKeyName(message), tableName: extractConstraintTableName(message), columnName: extractForeignKeyColumnName(message) }
@@ -1153,7 +1159,7 @@ function getConstraintReasonFromMessage(
         return { reason: 'SQL_AMBIGUOUS_IDENTIFIER', databaseErrorCode, databaseErrorMessage, identifier: extractQuotedName(message), identifierErrorType: 'ambiguous' }
     }
     if (lower.includes('duplicate') || lower.includes('unique')) {
-        return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage, constraintType: 'unique', constraintName: extractKeyName(message), tableName: extractMessageTableName(message) }
+        return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage, constraintType: 'unique', ...extractUniqueKeyNames(message) }
     }
     return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage }
 }
@@ -1268,6 +1274,18 @@ function extractValueColumnName(message: string): string | undefined {
         return match[1]
     }
     return extractQuotedName(message)
+}
+
+/**
+ * The key and table of a duplicate-key error. Since 8.0.19 MySQL names the key
+ * with its table ("for key 'rt_probe.PRIMARY'"); MariaDB names the key alone.
+ */
+function extractUniqueKeyNames(message: string): { constraintName: string | undefined, tableName: string | undefined } {
+    const tableQualified = /for key '([^'.]+)\.([^']+)'/.exec(message)
+    if (tableQualified) {
+        return { constraintName: tableQualified[2], tableName: tableQualified[1] }
+    }
+    return { constraintName: extractKeyName(message), tableName: extractMessageTableName(message) }
 }
 
 function extractKeyName(message: string): string | undefined {

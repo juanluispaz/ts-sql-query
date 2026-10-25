@@ -422,7 +422,8 @@ function getSqliteConstraintReason(code: string, message: string, databaseErrorC
         return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage }
     }
     if (code === 'SQLITE_CONSTRAINT_TRIGGER') {
-        return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage }
+        // RAISE(ABORT | FAIL | ROLLBACK, message) in a trigger
+        return { reason: 'SQL_USER_DEFINED_ERROR', databaseErrorCode, databaseErrorMessage }
     }
     if (code === 'SQLITE_CONSTRAINT_VTAB') {
         return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage }

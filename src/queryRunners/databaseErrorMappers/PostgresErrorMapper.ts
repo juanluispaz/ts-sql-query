@@ -565,7 +565,8 @@ function getPostgresPlPgSqlReason(
 ): TsSqlErrorReason {
     switch (code) {
         case 'P0001':
-            return { reason: 'SQL_ROUTINE_ERROR', databaseErrorCode, databaseErrorMessage }
+            // raise_exception: RAISE EXCEPTION without its own ERRCODE
+            return { reason: 'SQL_USER_DEFINED_ERROR', databaseErrorCode, databaseErrorMessage }
         case 'P0002':
             return { reason: 'SQL_ROUTINE_ERROR', databaseErrorCode, databaseErrorMessage }
         case 'P0003':

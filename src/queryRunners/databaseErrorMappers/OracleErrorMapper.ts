@@ -40,7 +40,8 @@ export function getOracleEngineErrorReason(error: OracleEngineError): TsSqlError
     const context = getOracleErrorContext(error)
 
     if (isOracleApplicationError(context.errorNum)) {
-        return getUnknown(context)
+        // RAISE_APPLICATION_ERROR
+        return { reason: 'SQL_USER_DEFINED_ERROR', ...getMetadata(context) }
     }
 
     const byNumber = getOracleErrorReasonFromNumber(context)
@@ -78,7 +79,7 @@ function getOracleErrorContext(error: OracleEngineError): OracleErrorContext {
 function getOracleErrorReasonFromNumber(context: OracleErrorContext): TsSqlErrorReason | undefined {
     switch (context.errorNum) {
         case 1:
-            return getConstraintViolation(context, 'unique', { constraintName: extractOracleConstraintName(context.message), ...extractOracleTableAndColumnNames(context.message) })
+            return getConstraintViolation(context, 'unique', { constraintName: extractOracleConstraintName(context.message), ...extractOracleUniqueTableAndColumnNames(context.message) })
         case 1400:
         case 1407:
             return getConstraintViolation(context, 'not null', extractOracleTableAndColumnNames(context.message))
@@ -594,9 +595,23 @@ function getOracleExistingObjectTypeFromMessage(message: string): ObjectAlreadyE
     return objectType
 }
 
+/** The constraint's own name: Oracle reports it with its owner, "(TSAPP.RT_PROBE_PK)". */
 function extractOracleConstraintName(message: string): string | undefined {
     const match = /\(([^)]+)\)/.exec(message)
-    return match?.[1]
+    return match?.[1]?.split('.').at(-1)
+}
+
+/**
+ * Since 23ai ORA-00001 names the table and its columns: "... violated on table
+ * TSAPP.RT_PROBE columns (ID)"; a column is reported only when there is one.
+ */
+function extractOracleUniqueTableAndColumnNames(message: string): OracleTableColumnNames {
+    const match = /violated on table (?:[^\s.]+\.)?(\S+) columns \(([^)]+)\)/.exec(message)
+    if (!match) {
+        return extractOracleTableAndColumnNames(message)
+    }
+    const columns = match[2]!.split(',').map(column => column.trim())
+    return { tableName: match[1], columnName: columns.length === 1 ? columns[0] : undefined }
 }
 
 function extractOracleTableAndColumnNames(message: string): OracleTableColumnNames {

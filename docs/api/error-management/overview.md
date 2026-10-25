@@ -125,7 +125,7 @@ Native mapping page rules:
 - If the implementation can return the same reason both with and without a subtype, include the subtype rows plus the no-subtype row.
 - Use `-` in `Database error` and `Filled fields` when that semantic row is not implemented for a database family.
 - Keep `SQL_UNKNOWN` as the final row in every native table, using category `Fallback`.
-- The current catalog has 145 rows; treat that as a useful sanity check, not as a permanent contract if `TsSqlError.ts` changes.
+- The current catalog has 146 rows; treat that as a useful sanity check, not as a permanent contract if `TsSqlError.ts` changes.
 - Do not replace the six native pages with tabs. The current structure is one page per native database family.
 
 Canonical row catalog construction:

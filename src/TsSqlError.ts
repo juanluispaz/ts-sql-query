@@ -180,6 +180,11 @@ export type TsSqlErrorReason =
         errorType?: 'out of range' | 'too long' | 'invalid value' | 'invalid format' | 'invalid encoding' | 
             'invalid json' | 'invalid xml' | 'invalid regular expression' | 'null not allowed' | 'sequence limit' | undefined, 
         tableName?: string | undefined, columnName?: string | undefined, typeName?: string | undefined }
+    | /** Error raised on purpose by user-defined SQL code: an exception a routine, trigger or statement raises
+          (PostgreSQL RAISE EXCEPTION, MySQL/MariaDB SIGNAL, Oracle RAISE_APPLICATION_ERROR, SQL Server THROW/RAISERROR,
+          SQLite RAISE in a trigger). The code, number and message are the ones it was raised with */
+      { reason: 'SQL_USER_DEFINED_ERROR',
+        databaseErrorCode?: TsSqlDatabaseErrorCode | undefined, databaseErrorNumber?: TsSqlDatabaseErrorNumber | undefined, databaseErrorMessage?: string | undefined }
 
     /* ********************************************************************************************
      * SQL execution: Environment or deployment problems caused by discrepancies with the database model

@@ -361,9 +361,9 @@ const postgresScenarios: readonly ErrorScenario[] = [
         expected: { reason: 'TRANSACTION_ERROR', transactionErrorType: 'invalid state' },
     },
     {
-        name: 'exception-raised-by-a-routine',
+        name: 'exception-raised-by-user-code',
         run: mutation(`do $$ begin raise exception 'rt_err raised'; end $$`),
-        expected: { reason: 'SQL_ROUTINE_ERROR', databaseErrorMessage: 'rt_err raised' },
+        expected: { reason: 'SQL_USER_DEFINED_ERROR', databaseErrorNumber: 'P0001', databaseErrorMessage: 'rt_err raised' },
     },
     {
         name: 'unbounded-recursion',
@@ -595,7 +595,7 @@ const mysqlLikeScenarios: readonly ErrorScenario[] = [
     {
         name: 'duplicate-primary-key',
         run: mutation(`insert into rt_probe (id, name) values (1, 'dup')`),
-        expected: { reason: 'SQL_CONSTRAINT_VIOLATED', constraintType: 'unique', databaseErrorNumber: 1062 },
+        expected: { reason: 'SQL_CONSTRAINT_VIOLATED', constraintType: 'unique', constraintName: 'PRIMARY', databaseErrorNumber: 1062 },
     },
     {
         name: 'null-in-a-not-null-column',
@@ -733,7 +733,17 @@ const mysqlLikeScenarios: readonly ErrorScenario[] = [
         ],
         cleanup: ['drop procedure if exists rt_err_signal'],
         run: mutation('call rt_err_signal()'),
-        expected: { reason: 'SQL_ROUTINE_ERROR', databaseErrorMessage: 'rt_err raised' },
+        expected: { reason: 'SQL_USER_DEFINED_ERROR', databaseErrorNumber: 1644, databaseErrorMessage: 'rt_err raised' },
+    },
+    {
+        name: 'signal-with-its-own-error-number',
+        setup: [
+            'drop procedure if exists rt_err_signal_number',
+            `create procedure rt_err_signal_number() begin signal sqlstate '45000' set mysql_errno = 64999, message_text = 'rt_err numbered'; end`,
+        ],
+        cleanup: ['drop procedure if exists rt_err_signal_number'],
+        run: mutation('call rt_err_signal_number()'),
+        expected: { reason: 'SQL_USER_DEFINED_ERROR', databaseErrorNumber: 64999, databaseErrorMessage: 'rt_err numbered' },
     },
     {
         name: 'procedure-called-with-too-many-arguments',
@@ -1068,9 +1078,14 @@ const sqlServerScenarios: readonly ErrorScenario[] = [
         expected: { reason: 'TRANSACTION_ERROR', transactionErrorType: 'aborted' },
     },
     {
-        name: 'exception-thrown-by-a-batch',
+        name: 'exception-thrown-by-user-code',
         run: mutation(`throw 50001, 'rt_err raised', 1`),
-        expected: { reason: 'SQL_UNKNOWN', databaseErrorNumber: 50001, databaseErrorMessage: 'rt_err raised' },
+        expected: { reason: 'SQL_USER_DEFINED_ERROR', databaseErrorNumber: 50001, databaseErrorMessage: 'rt_err raised' },
+    },
+    {
+        name: 'raiserror-with-its-own-message',
+        run: mutation(`raiserror('rt_err raised', 16, 1)`),
+        expected: { reason: 'SQL_USER_DEFINED_ERROR', databaseErrorNumber: 50000, databaseErrorMessage: 'rt_err raised' },
     },
     {
         name: 'permission-denied',
@@ -1179,11 +1194,6 @@ const sqlServerScenarios: readonly ErrorScenario[] = [
 
 // ---- Oracle ----------------------------------------------------------------
 
-/** Oracle names a constraint with its owner: TSAPP_W1.RT_ERR_UNIQUE_N. */
-function ownerQualified(name: string) {
-    return expect.stringMatching(new RegExp('^[A-Z0-9_$#]+\\.' + name + '$'))
-}
-
 function oracleDrop(kind: 'table' | 'sequence' | 'procedure', name: string): string {
     const code = kind === 'table' ? -942 : kind === 'sequence' ? -2289 : -4043
     return `begin execute immediate 'drop ${kind} ${name}'; exception when others then if sqlcode != ${code} then raise; end if; end;`
@@ -1195,7 +1205,7 @@ const oracleScenarios: readonly ErrorScenario[] = [
         setup: [oracleDrop('table', 'rt_err_unique'), 'create table rt_err_unique (n number(10) constraint rt_err_unique_n unique)', 'insert into rt_err_unique (n) values (1)'],
         cleanup: [oracleDrop('table', 'rt_err_unique')],
         run: mutation(`insert into rt_err_unique (n) values (1)`),
-        expected: { reason: 'SQL_CONSTRAINT_VIOLATED', constraintType: 'unique', constraintName: ownerQualified('RT_ERR_UNIQUE_N'), databaseErrorNumber: 1 },
+        expected: { reason: 'SQL_CONSTRAINT_VIOLATED', constraintType: 'unique', constraintName: 'RT_ERR_UNIQUE_N', tableName: 'RT_ERR_UNIQUE', columnName: 'N', databaseErrorNumber: 1 },
     },
     {
         name: 'null-in-a-not-null-column',
@@ -1207,7 +1217,7 @@ const oracleScenarios: readonly ErrorScenario[] = [
         setup: [oracleDrop('table', 'rt_err_child'), 'create table rt_err_child (id number(10) primary key, probe_id number(10) constraint rt_err_child_fk references rt_probe (id))'],
         cleanup: [oracleDrop('table', 'rt_err_child')],
         run: mutation(`insert into rt_err_child (id, probe_id) values (1, 99)`),
-        expected: { reason: 'SQL_CONSTRAINT_VIOLATED', constraintType: 'foreign key', constraintName: ownerQualified('RT_ERR_CHILD_FK') },
+        expected: { reason: 'SQL_CONSTRAINT_VIOLATED', constraintType: 'foreign key', constraintName: 'RT_ERR_CHILD_FK' },
     },
     {
         name: 'delete-a-referenced-row',
@@ -1218,14 +1228,14 @@ const oracleScenarios: readonly ErrorScenario[] = [
         ],
         cleanup: [oracleDrop('table', 'rt_err_child')],
         run: mutation(`delete from rt_probe where id = 1`),
-        expected: { reason: 'SQL_CONSTRAINT_VIOLATED', constraintType: 'foreign key', constraintName: ownerQualified('RT_ERR_CHILD_FK') },
+        expected: { reason: 'SQL_CONSTRAINT_VIOLATED', constraintType: 'foreign key', constraintName: 'RT_ERR_CHILD_FK' },
     },
     {
         name: 'check-constraint',
         setup: [oracleDrop('table', 'rt_err_check'), 'create table rt_err_check (n number(10) constraint rt_err_check_positive check (n > 0))'],
         cleanup: [oracleDrop('table', 'rt_err_check')],
         run: mutation(`insert into rt_err_check (n) values (-1)`),
-        expected: { reason: 'SQL_CONSTRAINT_VIOLATED', constraintType: 'check', constraintName: ownerQualified('RT_ERR_CHECK_POSITIVE') },
+        expected: { reason: 'SQL_CONSTRAINT_VIOLATED', constraintType: 'check', constraintName: 'RT_ERR_CHECK_POSITIVE' },
     },
     {
         name: 'division-by-zero',
@@ -1323,9 +1333,9 @@ const oracleScenarios: readonly ErrorScenario[] = [
         expected: { reason: 'SQL_INVALID_VALUE', errorType: 'sequence limit' },
     },
     {
-        name: 'exception-raised-by-a-routine',
+        name: 'exception-raised-by-user-code',
         run: mutation(`begin raise_application_error(-20001, 'rt_err raised'); end;`),
-        expected: { reason: 'SQL_UNKNOWN', databaseErrorNumber: 20001 },
+        expected: { reason: 'SQL_USER_DEFINED_ERROR', databaseErrorNumber: 20001, databaseErrorMessage: expect.stringContaining('rt_err raised') },
     },
     {
         name: 'write-in-a-read-only-transaction',
@@ -1517,7 +1527,20 @@ const sqliteScenarios: readonly ErrorScenario[] = [
         ],
         cleanup: ['drop table if exists rt_err_guarded'],
         run: mutation('insert into rt_err_guarded (n) values (1)'),
-        // SQLite reports RAISE(ABORT) as a constraint failure (SQLITE_CONSTRAINT_TRIGGER)
+        // SQLITE_CONSTRAINT_TRIGGER: only RAISE in a trigger reports it
+        onlyRunners: ['BetterSqlite3QueryRunner', 'BunSqliteQueryRunner', 'BunSqlSqliteQueryRunner', 'NodeSqliteQueryRunner', 'Sqlite3WasmOO1QueryRunner'],
+        expected: { reason: 'SQL_USER_DEFINED_ERROR', databaseErrorMessage: expect.stringContaining('rt_err raised') },
+    },
+    {
+        name: 'abort-raised-by-a-trigger-without-extended-codes',
+        setup: [
+            'create table rt_err_guarded (n integer)',
+            `create trigger rt_err_guard before insert on rt_err_guarded begin select raise(abort, 'rt_err raised'); end`,
+        ],
+        cleanup: ['drop table if exists rt_err_guarded'],
+        run: mutation('insert into rt_err_guarded (n) values (1)'),
+        // sqlite3 gives the primary code only (SQLITE_CONSTRAINT): nothing tells RAISE from a constraint
+        onlyRunners: ['Sqlite3QueryRunner'],
         expected: { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorMessage: expect.stringContaining('rt_err raised') },
     },
     {

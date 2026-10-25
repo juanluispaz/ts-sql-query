@@ -43,6 +43,7 @@ Native SQL reasons can include `databaseErrorCode`, `databaseErrorNumber`, and `
 | `SQL_PERMISSION_DENIED` | Permission denied for a SQL action. |
 | `SQL_READ_ONLY_VIOLATION` | Write/action attempted against a read-only connection, transaction, or database. |
 | `SQL_ROUTINE_ERROR` | SQL routine or external routine failed. |
+| `SQL_USER_DEFINED_ERROR` | Error raised on purpose by user-defined SQL code (`RAISE EXCEPTION`, `SIGNAL`, `RAISE_APPLICATION_ERROR`, `THROW` / `RAISERROR`, `RAISE` in a SQLite trigger), with the code, number and message it was raised with. |
 | `SQL_EXTERNAL_DATA_SOURCE_ERROR` | External or remote SQL data source failed. |
 | `SQL_AUTHENTICATION_ERROR` | Authentication failed. |
 | `SQL_AUTHORIZATION_ERROR` | Authorization failed after identity was known. |

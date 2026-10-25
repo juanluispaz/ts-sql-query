@@ -28,6 +28,15 @@ transaction and its OUT binds (`oracle/OracleDBCommit.test.ts`,
 pooled connection and its parameter types
 (`sqlserver/MssqlPoolQueryRunner.test.ts`, `sqlserver/MssqlParamTypes.test.ts`).
 
+One fix relies on driver internals and has a test watching each side of it:
+`MssqlPoolQueryRunner` flags the connection of a transaction the server
+aborted (mssql's `_acquiredConnection` / `hasError`) so the pool doesn't lend
+it out at the transaction's isolation level.
+`the-mssql-internals-the-aborted-transaction-fix-relies-on` fails when an
+mssql upgrade removes those internals, and
+`does-not-outlive-a-transaction-the-server-aborted` fails when the fix stops
+working for any reason.
+
 ## The engines
 
 A docker-backed runner test gets its engine from the same lifecycle the cells
@@ -40,7 +49,7 @@ SQLite drivers open their own in-memory database.
 Whether a test runs is decided like a cell's: `isRealDbEnabled(<db>, <kind>,
 'newest', <connector folder>)`, so `--docker` / `--wasm` / `--native` (and
 their coords, e.g. `--docker postgres/newest/pg`) select them too; a runner
-whose engine isn't selected is skipped. The Bun runners run on Bun only.
+whose engine isn't selected is skipped. The Bun runners run on Bun only (`--use-bun` forces Bun under `npm run`).
 
 ## The params the SqlBuilders annotate
 

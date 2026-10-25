@@ -161,6 +161,7 @@ Orthogonal — combine freely (except for the [Forbidden combinations](#forbidde
 | `--shard [<1\|2\|3\|4>]` | Split the no-docker matrix into 4 memory-bounded shards, each its own runner invocation (memory freed between them → peak = biggest shard, not the sum). Bare = all four in sequence; `<n>` = only that shard. Full-matrix / no-docker only — rejects coords, `--coverage`, `--docker`, `--run-connectors`, `--run-versions`. See [Sharding the no-docker matrix](#sharding). | off |
 | `--use-vitest` | Force the vitest **runner**, keeping the runtime the script was invoked with: under `bun run` it runs vitest on Bun (`bun --bun vitest`), so the Bun-only cells (`bun_sql_*`, `bun_sqlite`) still run against their engines; under `npm run`, vitest on Node. Implied by `--ui`. | off |
 | `--use-node` | Force the **Node runtime** even under `bun run`. `bun test` needs Bun, so it implies the vitest runner (vitest on Node). The `coverage:report*` / `coverage:for-discover-tests*` scripts pass both flags. | off |
+| `--use-bun` | Force the **Bun runtime** even under `npm run`: `bun test`, or vitest on Bun with `--use-vitest` — what the Bun-only cells need to run against their engines. Exclusive with `--use-node`. The `coverage:runners*` scripts pass `--use-vitest --use-bun`. | off |
 | `--ui` | Launch `@vitest/ui` (implies `--use-vitest`). | off |
 | **Reports & coverage** | | |
 | `--report` | Emit test-execution report under `.test-report/`. | off |
@@ -750,8 +751,7 @@ They run the query-runner tests ([`RUNNER_TESTS.md`](./RUNNER_TESTS.md)),
 which call every exported runner directly against its engine, with
 `--coverage-scope runners` and the docker and WASM connectors real
 (`runners --docker --wasm`; the native ones are real by default), under
-vitest on Bun (`--use-vitest`, with `npm_config_user_agent` pinned to bun in
-the script so `npm run` gets the same): the Bun runners only run on Bun, and
+vitest on Bun (`--use-vitest --use-bun`, so `npm run` gets the same): the Bun runners only run on Bun, and
 Bun's `node:sqlite` exercises `NodeSqliteQueryRunner`'s code the same way
 Node's does. A run takes well under a minute with warm containers.
 `:with-matrix` adds `'*/newest'` (~6 min, ~4.3 GB plus the engines) to see
@@ -884,7 +884,7 @@ family has an all-tiers default and a `:newest` variant narrowed to the
 | `coverage:report:newest` | same, but `<per-db newest>` cells only |
 | `coverage:for-discover-tests` | `tests --use-vitest --use-node --coverage --coverage-format json --coverage-format json-summary --coverage-format text-summary --native none <per-db coords>` |
 | `coverage:for-discover-tests:newest` | same, but `<per-db newest>` cells only |
-| `coverage:runners` | `tests --use-vitest --coverage --coverage-scope runners runners --docker --wasm --open`, on Bun — see [Coverage of the query runners](#coverage-of-the-query-runners) |
+| `coverage:runners` | `tests --use-vitest --use-bun --coverage --coverage-scope runners runners --docker --wasm --open` — see [Coverage of the query runners](#coverage-of-the-query-runners) |
 | `coverage:runners:for-discover-tests` | same, with the discovery formats (`json`, `json-summary`, `text-summary`) and no html |
 | `coverage:runners:with-matrix` | the discovery run over `runners '*/newest'` |
 | `coverage:reopen` | Same script as `tests:reopen`. |

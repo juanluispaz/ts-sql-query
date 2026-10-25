@@ -21,7 +21,7 @@ Usage:
                    #   · engine / runtime controls:
                    [--docker-mode <reuse|no-reuse>]
                    [--docker-version <latest|closest>]
-                   [--use-vitest] [--use-node] [--ui]
+                   [--use-vitest] [--use-node | --use-bun] [--ui]
                    #   · no-docker CI split (memory-bounded):
                    [--shard [<1|2|3|4>]]
                    # Reports & coverage:
@@ -54,8 +54,9 @@ Dispatches to `bun test` when invoked via `bun run`, and to
 override that: `--use-vitest` (and `--ui`) forces the vitest runner,
 keeping the runtime the script was invoked with — under `bun run` it
 runs vitest on Bun (`bun --bun vitest`); `--use-node` forces the Node
-runtime, which implies vitest. `--report` works under both runners
-(formats differ — see below).
+runtime, which implies vitest, and `--use-bun` forces the Bun runtime
+(bun test, or vitest on Bun with --use-vitest) whichever way the script was
+invoked. `--report` works under both runners (formats differ — see below).
 
 Coords
   Each positional arg is a path under test/db/ — or, with the root
@@ -173,6 +174,7 @@ Defaults
   --shard            off (bare = all 4 shards in sequence; <n> = only shard n)
   --use-vitest       off (runner detected from npm_config_user_agent)
   --use-node         off (runtime detected from npm_config_user_agent)
+  --use-bun          off (runtime detected from npm_config_user_agent)
   --ui               off (implies --use-vitest)
   --report           off (test-execution report)
   --report-format    html under vitest, junit under bun
@@ -311,6 +313,12 @@ Runner flags
         needs Bun, so this implies the vitest runner (vitest on Node).
         Combine with --use-vitest to state both explicitly (the
         coverage:* scripts do).
+  --use-bun
+        Force the BUN RUNTIME even if invoked via `npm run`: bun test, or
+        vitest on Bun (`bun --bun vitest`) with --use-vitest — what the
+        Bun-only cells (bun_sql_*, bun_sqlite) need to run against their
+        engines. Exclusive with --use-node. The coverage:runners* scripts
+        pass --use-vitest --use-bun.
   --ui
         Launch @vitest/ui (browser-based interactive UI for test
         results + coverage navigation). Implies --use-vitest. Only
@@ -616,6 +624,7 @@ WASM_TOKENS=()
 NATIVE_TOKENS=()
 USE_VITEST=off
 USE_NODE=off
+USE_BUN=off
 UI=off
 REPORT=off
 REPORT_FORMAT=()
@@ -680,6 +689,7 @@ while [ $# -gt 0 ]; do
         --native=*)             NATIVE_TOKENS+=("${1#--native=}"); shift ;;
         --use-vitest)           USE_VITEST=on; shift ;;
         --use-node)             USE_NODE=on; shift ;;
+        --use-bun)              USE_BUN=on; shift ;;
         --ui)                   UI=on; USE_VITEST=on; shift ;;
         --report)               REPORT=on; shift ;;
         --report-format)        REPORT=on; REPORT_FORMAT+=("$2"); shift 2 ;;
@@ -937,8 +947,14 @@ fi
 # Two independent switches. `runtime` names the RUNNER ("bun" = bun test,
 # "npm" = vitest); VITEST_RUNTIME names the runtime vitest runs on, read by
 # run_phase. --use-vitest keeps the invoking runtime (vitest on Bun under
-# `bun run`); --use-node forces Node, which only vitest can run on.
+# `bun run`); --use-node forces Node, which only vitest can run on;
+# --use-bun forces Bun, for bun test or vitest.
+if [ "$USE_NODE" = "on" ] && [ "$USE_BUN" = "on" ]; then
+    echo "Error: --use-node and --use-bun are mutually exclusive." >&2
+    exit 2
+fi
 runtime="$(detect_runtime)"
+[ "$USE_BUN" = "on" ] && runtime="bun"
 export VITEST_RUNTIME=node
 if [ "$USE_NODE" = "on" ]; then
     runtime="npm"

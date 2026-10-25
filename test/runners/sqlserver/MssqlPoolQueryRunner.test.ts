@@ -64,6 +64,26 @@ for (const promisePool of [false, true]) {
             expect(await r.executeSelectOneColumnOneRow(sessionLevel)).toBe(2)
         })
 
+        test('the-mssql-internals-the-aborted-transaction-fix-relies-on', async () => {
+            // MssqlPoolQueryRunner.discardConnectionIfAborted uses two mssql
+            // internals: a transaction's `_acquiredConnection`, and the pool not
+            // lending out again a connection flagged `hasError`. If this fails
+            // after an mssql upgrade, the fix silently stops working (the
+            // aborted-transaction test below then fails too): update
+            // discardConnectionIfAborted to whatever mssql offers now.
+            const transaction = pool!.transaction()
+            await transaction.begin()
+            const nativeConnection = (transaction as any)._acquiredConnection
+            expect(nativeConnection).toBeDefined()
+            // connection_id identifies the physical connection (a session id is reused)
+            const connectionId = 'select cast(connection_id as nvarchar(36)) as id from sys.dm_exec_connections where session_id = @@spid'
+            const id = (await transaction.request().query(connectionId)).recordset[0].id
+            await transaction.rollback()
+            expect((await pool!.request().query(connectionId)).recordset[0].id).toBe(id)
+            nativeConnection.hasError = true
+            expect((await pool!.request().query(connectionId)).recordset[0].id).not.toBe(id)
+        })
+
         test('does-not-outlive-a-transaction-the-server-aborted', async () => {
             // The test database has no ALLOW_SNAPSHOT_ISOLATION: reading a table
             // dooms a snapshot transaction, and the server rolls it back itself.

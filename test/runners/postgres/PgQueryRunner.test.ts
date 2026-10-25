@@ -15,9 +15,10 @@ for (const nested of [false, true]) {
         runnerClass: PgQueryRunner,
         realEnabled: isRealDbEnabled('postgres', 'docker', 'newest', 'pg'),
         nestedTransactions: nested,
+        clientTimeout: true,
         async create(failure) {
             const db = await acquireRunnerTestDatabase(failure)
-            const client = new pg.Client({ connectionString: db.uri })
+            const client = new pg.Client({ connectionString: db.uri, ...(failure === 'client timeout' ? { query_timeout: 300 } : {}) })
             await client.connect()
             return {
                 runner: new PgQueryRunner(client, { allowNestedTransactions: nested }),

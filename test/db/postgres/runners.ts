@@ -631,7 +631,7 @@ export async function acquireRunnerTestDatabase(failure?: RunnerConnectionFailur
     const image = newestImage(DATABASE)
     const container = await containers.getFor(image).acquire()
     const uri = await bootstrapWorkerDbSchemaAndSeed(container.getConnectionUri())
-    if (failure) {
+    if (failure && failure !== 'client timeout') {
         await containers.getFor(image).release()
         const url = new URL(uri)
         if (failure === 'wrong password') url.password = 'rt_err_wrong'

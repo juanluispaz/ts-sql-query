@@ -73,6 +73,9 @@ function getKnownBunSqliteDriverErrorReason(error: Error): TsSqlErrorReason | un
             return { reason: 'SQL_FEATURE_NOT_SUPPORTED', databaseErrorMessage }
     }
 
+    if (/^SQLite query expected \d+ values?, received \d+$/.test(message)) {
+        return getSqliteEngineErrorReason({ message })
+    }
     if (/^SQLite doesn't support '.+' transaction mode\. Use DEFERRED, IMMEDIATE, or EXCLUSIVE\.$/.test(message)) {
         return { reason: 'SQL_FEATURE_NOT_SUPPORTED', databaseErrorMessage }
     }

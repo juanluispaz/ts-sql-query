@@ -72,9 +72,10 @@ export const BASE_WORKER_DB_NAME = 'tssqlquery'
  * A connection the query-runner tests in test/runners/ make fail on purpose:
  * `acquireRunnerTestDatabase(failure)` returns the engine's connection
  * parameters with a wrong password, a port nothing listens on, or a database
- * that doesn't exist.
+ * that doesn't exist. `client timeout` keeps the parameters: the runner's
+ * factory gives the driver a short timeout of its own.
  */
-export type RunnerConnectionFailure = 'wrong password' | 'unreachable' | 'unknown database'
+export type RunnerConnectionFailure = 'wrong password' | 'unreachable' | 'unknown database' | 'client timeout'
 
 /** A port nothing listens on: the connection is refused at once. */
 export const UNREACHABLE_PORT = 1

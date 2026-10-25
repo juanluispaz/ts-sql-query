@@ -640,7 +640,7 @@ export async function acquireRunnerTestDatabase(failure?: RunnerConnectionFailur
     const host = container.getHost()
     const port = container.getMappedPort(1521)
     const user = await bootstrapWorkerUserSchemaAndSeed(host, port, image)
-    if (failure) {
+    if (failure && failure !== 'client timeout') {
         await containers.getFor(image).release()
         return {
             user,

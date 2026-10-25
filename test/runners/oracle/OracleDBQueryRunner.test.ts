@@ -14,9 +14,11 @@ describeRunnerContract({
     realEnabled: isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'),
     timeoutMs: 300_000,
     endWithoutTransaction: true,
+    clientTimeout: true,
     async create(failure) {
         const db = await acquireRunnerTestDatabase(failure)
         const connection = await oracledb.getConnection({ user: db.user, password: db.password, connectString: db.connectString })
+        if (failure === 'client timeout') connection.callTimeout = 300
         return {
             runner: new OracleDBQueryRunner(connection),
             close: async () => { await connection.close(); await db.release() },

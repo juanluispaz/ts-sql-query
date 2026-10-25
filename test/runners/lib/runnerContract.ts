@@ -49,6 +49,8 @@ export interface RunnerContractOptions {
      * SynchronousPromise) maps errors the same way and turns them off.
      */
     readonly errorScenarios?: boolean
+    /** create('client timeout') gives the driver a short timeout of its own (see CLIENT_TIMEOUTS). */
+    readonly clientTimeout?: boolean
     /** A database server: a second create() reaches the same database (not an in-process one); default true but on SQLite. */
     readonly sharedDatabase?: boolean
 }
@@ -781,6 +783,17 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
                 }
             }, timeout)
         }
+
+        test.skipIf(opts.errorScenarios === false || !opts.clientTimeout)('error.client-timeout', async () => {
+            const slow = await opts.create('client timeout')
+            try {
+                const error = await rejectionOf(slow.runner.executeUpdate(dialect.sleep!))
+                expect(slow.runner.isSqlError(error)).toBe(true)
+                expect(slow.runner.getErrorReason(error)).toMatchObject({ reason: 'SQL_TIMEOUT', timeoutType: 'statement' })
+            } finally {
+                await Promise.race([slow.close().catch(() => undefined), new Promise(resolve => setTimeout(resolve, 2000))])
+            }
+        }, timeout)
 
         const connectionFailures = opts.errorScenarios === false ? {} : CONNECTION_FAILURES[dialect.database] ?? {}
         for (const [failure, expected] of Object.entries(connectionFailures)) {

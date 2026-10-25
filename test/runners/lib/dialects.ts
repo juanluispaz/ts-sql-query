@@ -50,6 +50,8 @@ export interface RunnerDialect {
     readonly levelWithAccessMode: boolean
     /** Whether `begin` takes an access mode alone. */
     readonly accessModeAlone: boolean
+    /** A statement that takes two seconds, for a driver's own timeout. */
+    readonly sleep?: string
 }
 
 function returningClause(names: readonly string[]) {
@@ -73,6 +75,7 @@ export const postgresDialect: RunnerDialect = {
     fromNoTable: '',
     column: (name) => name,
     connectionConfiguration: "set application_name = 'rt_probe'",
+    sleep: 'select pg_sleep(2)',
     insertReturningId: (r, p, name) => `insert into rt_auto (name) values (${r.addParam(p, name)}) returning id`,
     insertReturningIds: (r, p, names) => `insert into rt_auto (name) values ${names.map(n => '(' + r.addParam(p, n) + ')').join(', ')} returning id`,
     insertReturningRow: (r, p, id, name) => `insert into rt_probe (id, name) values (${r.addParam(p, id)}, ${r.addParam(p, name)})` + returningClause(['id', 'name']),
@@ -169,6 +172,7 @@ export const oracleDialect: RunnerDialect = {
     fromNoTable: ' from dual',
     column: (name) => name + ' as "' + name + '"',
     connectionConfiguration: "alter session set nls_date_format = 'YYYY-MM-DD'",
+    sleep: 'begin dbms_session.sleep(2); end;',
     insertReturningId: (r, p, name) => `insert into rt_auto (name) values (${r.addParam(p, name)}) returning id into ${r.addOutParam(p, '')}`,
     insertReturningRow: (r, p, id, name) => `insert into rt_probe (id, name) values (${r.addParam(p, id)}, ${r.addParam(p, name)})` + oracleReturningInto(r, p, ['id', 'name']),
     updateReturningRow: (r, p, name, minId) => `update rt_probe set name = ${r.addParam(p, name)} where id >= ${r.addParam(p, minId)}` + oracleReturningInto(r, p, ['id', 'name']),
@@ -199,6 +203,7 @@ export const sqlServerDialect: RunnerDialect = {
     fromNoTable: '',
     column: (name) => name,
     connectionConfiguration: 'set nocount off',
+    sleep: "waitfor delay '00:00:02'",
     insertReturningId: (r, p, name) => `insert into rt_auto (name)${mssqlOutput('inserted', ['id'])} values (${r.addParam(p, name)})`,
     insertReturningIds: (r, p, names) => `insert into rt_auto (name)${mssqlOutput('inserted', ['id'])} values ${names.map(n => '(' + r.addParam(p, n) + ')').join(', ')}`,
     insertReturningRow: (r, p, id, name) => `insert into rt_probe (id, name)${mssqlOutput('inserted', ['id', 'name'])} values (${r.addParam(p, id)}, ${r.addParam(p, name)})`,

@@ -98,6 +98,10 @@ export function getSqlServerEngineErrorReason(error: SqlServerEngineError): TsSq
         case 293:
             return getInvalidValue(context, 'invalid format', { columnName: extractColumnName(context.message) })
         case 572:
+        case 19300:
+        case 19307:
+        case 19308:
+        case 19309:
             return getInvalidValue(context, 'invalid regular expression')
         case 911:
         case 998:

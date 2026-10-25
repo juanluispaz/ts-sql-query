@@ -1190,6 +1190,36 @@ const sqlServerScenarios: readonly ErrorScenario[] = [
         run: query(`select json_value('{', '$.a')`),
         expected: { reason: 'SQL_INVALID_VALUE', errorType: 'invalid json' },
     },
+    {
+        name: 'undeclared-variable',
+        run: query('select @rt_err_missing'),
+        expected: { reason: 'SQL_INVALID_PARAMETER', parameterErrorType: 'missing' },
+    },
+    {
+        name: 'cast-to-an-unknown-type',
+        run: query('select cast(1 as rt_err_missing_type)'),
+        expected: { reason: 'SQL_INVALID_SQL_STATEMENT', statementErrorType: 'invalid identifier' },
+    },
+    {
+        name: 'call-of-a-missing-function',
+        run: query('select dbo.rt_err_missing()'),
+        expected: { reason: 'SQL_INVALID_SQL_STATEMENT', statementErrorType: 'invalid reference' },
+    },
+    {
+        name: 'empty-column-alias',
+        run: query('select 1 as []'),
+        expected: { reason: 'SQL_INVALID_SQL_STATEMENT', statementErrorType: 'invalid definition' },
+    },
+    {
+        name: 'sp-executesql-with-a-number',
+        run: mutation('exec sp_executesql 1'),
+        expected: { reason: 'SQL_INVALID_PARAMETER', parameterErrorType: 'invalid value' },
+    },
+    {
+        name: 'invalid-regular-expression',
+        run: query(`select 1 where regexp_like('a', '(')`),
+        expected: { reason: 'SQL_INVALID_VALUE', errorType: 'invalid regular expression' },
+    },
 ]
 
 // ---- Oracle ----------------------------------------------------------------
@@ -1476,6 +1506,41 @@ const oracleScenarios: readonly ErrorScenario[] = [
         run: ddl('create user rt_err_user identified by rt_err_password'),
         expected: { reason: 'SQL_PERMISSION_DENIED' },
     },
+    {
+        name: 'trigger-with-compilation-errors',
+        setup: [
+            oracleDrop('table', 'rt_err_triggered'),
+            'create table rt_err_triggered (n number(10))',
+            'create or replace trigger rt_err_broken_trigger before insert on rt_err_triggered for each row begin rt_err_missing; end;',
+        ],
+        cleanup: [oracleDrop('table', 'rt_err_triggered')],
+        run: mutation('insert into rt_err_triggered (n) values (1)'),
+        expected: { reason: 'SQL_OBJECT_STATE_ERROR', objectStateErrorType: 'invalid state' },
+    },
+    {
+        name: 'function-with-compilation-errors',
+        setup: ['create or replace function rt_err_broken_function return number as begin return rt_err_missing; end;'],
+        cleanup: [`begin execute immediate 'drop function rt_err_broken_function'; exception when others then null; end;`],
+        run: query('select rt_err_broken_function() from dual'),
+        expected: { reason: 'SQL_OBJECT_STATE_ERROR', objectStateErrorType: 'invalid state' },
+    },
+    {
+        name: 'invalid-xml',
+        run: query(`select xmltype('<a>') from dual`),
+        expected: { reason: 'SQL_INVALID_VALUE', errorType: 'invalid xml' },
+    },
+    {
+        name: 'statement-broken-off-by-the-client',
+        onlyRunners: ['OracleDBQueryRunner'],
+        run: async ({ runner }) => {
+            const connection = runner.getNativeRunner() as { break(): Promise<void> }
+            const sleeping = failureOf(runner.executeUpdate('begin dbms_session.sleep(5); end;'))
+            await new Promise(resolve => setTimeout(resolve, 300))
+            await connection.break()
+            throw await sleeping
+        },
+        expected: { reason: 'SQL_TIMEOUT', timeoutType: 'cancelled' },
+    },
 ]
 
 // ---- SQLite ----------------------------------------------------------------
@@ -1733,6 +1798,34 @@ const sqliteScenarios: readonly ErrorScenario[] = [
         name: 'text-as-a-rowid',
         run: mutation(`insert into rt_auto (id, name) values ('abc', 'x')`),
         expected: { reason: 'SQL_INVALID_VALUE', errorType: 'invalid value' },
+    },
+    {
+        name: 'parameter-the-statement-does-not-use',
+        // bun:sqlite, Bun SQL and sqlite-wasm ignore the extra value
+        onlyRunners: ['BetterSqlite3QueryRunner', 'NodeSqliteQueryRunner', 'Sqlite3QueryRunner'],
+        run: ({ runner }) => runner.executeSelectManyRows('select 1', [1]),
+        expected: { reason: 'SQL_INVALID_PARAMETER' },
+    },
+    {
+        name: 'parameter-the-statement-is-missing',
+        // node:sqlite, sqlite3 and sqlite-wasm bind NULL for it
+        onlyRunners: ['BetterSqlite3QueryRunner', 'BunSqliteQueryRunner', 'BunSqlSqliteQueryRunner'],
+        run: ({ runner }) => runner.executeSelectManyRows('select ?, ?', [1]),
+        // better-sqlite3 says too few values (missing), Bun how many it expected (wrong count)
+        expected: { reason: 'SQL_INVALID_PARAMETER' },
+    },
+    {
+        name: 'function-called-with-the-wrong-argument-count',
+        run: query('select abs(1, 2)'),
+        expected: { reason: 'SQL_INVALID_PARAMETER', parameterErrorType: 'wrong count' },
+    },
+    {
+        name: 'file-that-is-not-a-database',
+        // A file outside the virtual filesystem of sqlite-wasm
+        onlyRunners: ['BetterSqlite3QueryRunner', 'BunSqliteQueryRunner', 'BunSqlSqliteQueryRunner', 'NodeSqliteQueryRunner', 'Sqlite3QueryRunner'],
+        cleanup: ['detach database rt_err_not_a_db'],
+        run: ddl(`attach database '/etc/hosts' as rt_err_not_a_db`),
+        expected: { reason: 'SQL_CONNECTION_ERROR', errorType: 'invalid connection configuration' },
     },
 ]
 

@@ -535,7 +535,7 @@ export async function acquireRunnerTestDatabase(failure?: RunnerConnectionFailur
         connectionTimeout: 30_000,
         requestTimeout: 60_000,
     }
-    if (failure) {
+    if (failure && failure !== 'client timeout') {
         await containers.getFor(image).release()
         if (failure === 'wrong password') config.password = 'rt_err_wrong'
         if (failure === 'unreachable') config.port = UNREACHABLE_PORT

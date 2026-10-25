@@ -16,9 +16,10 @@ for (const nested of [false, true]) {
         runnerClass: PgPoolQueryRunner,
         realEnabled: isRealDbEnabled('postgres', 'docker', 'newest', 'pg'),
         nestedTransactions: nested,
+        clientTimeout: true,
         async create(failure) {
             const db = await acquireRunnerTestDatabase(failure)
-            const pool = new pg.Pool({ connectionString: db.uri, max: 2 })
+            const pool = new pg.Pool({ connectionString: db.uri, max: 2, ...(failure === 'client timeout' ? { query_timeout: 300 } : {}) })
             return {
                 runner: new PgPoolQueryRunner(pool, { allowNestedTransactions: nested }),
                 close: async () => { await pool.end(); await db.release() },

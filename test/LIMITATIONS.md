@@ -459,6 +459,16 @@ the symmetric placeholder in every other cell). Reactivate by adding the
 dialect-agnostic unit test described above if a home for lib-only unit
 tests is introduced.
 
+The query-runner tests in [`runners/`](./runners/) are that home for the
+runner side: their contract test
+`execute-in-transaction-keeps-the-body-error-when-the-rollback-fails` ends
+every runner's transaction through an outermost query runner whose rollback
+fails, so the attach branch of `ManagedTransactionQueryRunner` /
+`ManagedTransactionPoolQueryRunner` runs for real (see
+[`CLI.md` § Coverage of the query runners](./CLI.md#coverage-of-the-query-runners)).
+The per-cell placeholder stays: through `connection.transaction(...)` the
+path is still not drivable in the matrix.
+
 
 ## A negative `substr` / `substring` index is only resolved when it is a literal
 

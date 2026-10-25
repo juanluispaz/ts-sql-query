@@ -625,3 +625,17 @@ export function createOracleDBPoolTestContext(spec: OracleTestSpec): OracleTestC
         },
     }))
 }
+
+// ---- Direct query-runner tests (test/runners/) --------------------------
+
+// The engine and worker database the query-runner tests in test/runners/
+// connect their own driver to: the newest image, with the worker database
+// bootstrapped exactly as the cells get it.
+export async function acquireRunnerTestDatabase(): Promise<{ user: string, password: string, connectString: string, release(): Promise<void> }> {
+    const image = newestImage(DATABASE)
+    const container = await containers.getFor(image).acquire()
+    const host = container.getHost()
+    const port = container.getMappedPort(1521)
+    const user = await bootstrapWorkerUserSchemaAndSeed(host, port, image)
+    return { user, password: APP_PASSWORD, connectString: `${host}:${port}/${serviceNameForImage(image)}`, release: () => containers.getFor(image).release() }
+}

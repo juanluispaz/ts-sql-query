@@ -29,7 +29,7 @@ the `--docker` / `--wasm` flags drive see
 
 | Script | What it runs |
 |---|---|
-| `tests [<coord>…]` | No args: full matrix under `test/` (parallel, no docker, no real WASM by default; widen with flags). One or more positional coords: focused run on those paths only — globs (`'postgres/*/pg'`) and brace expansion (`postgres/*/{pg,postgres}`) supported, quoted or not. Same flag set either way. `--help` for all options. |
+| `tests [<coord>…]` | No args: full matrix under `test/` (parallel, no docker, no real WASM by default; widen with flags). One or more positional coords: focused run on those paths only — globs (`'postgres/*/pg'`) and brace expansion (`postgres/*/{pg,postgres}`) supported, quoted or not; the root `runners` (`runners`, `runners/postgres`) addresses the query-runner tests under `test/runners/` ([`RUNNER_TESTS.md`](./RUNNER_TESTS.md)). Same flag set either way. `--help` for all options. |
 | `tests:audit [<coord>…]` | Mechanical audit of `test/db/`: the symmetry check + the anti-cheat content rules (`mirror-image`, `one-sided-guard`). Static (no docker/DB), ~1 s. Accepts positional `<coord>` args to scope the run, same grammar as `tests` (see [Coord patterns](#coord-patterns)). Pre-merge check. See [`lib/audit/AUDIT.md`](./lib/audit/AUDIT.md). |
 | `tests:stop-containers` | Stops the warm docker containers that `--docker --docker-mode reuse` left running. |
 | `tests:reopen` | Re-open the previously generated `--report` / `--coverage` HTML without re-running tests. |
@@ -293,7 +293,7 @@ disjoint (`Σ shards = 16 972 files`, no overlap):
 | **1 · wasm** | `pglite`, `sqlite-wasm-OO1`, `sqlite-wasm-OO1-sync` — all versions, **real** | **sequential** | ~3 034 |
 | **2 · sqlite-A** | `better-sqlite3(+sync)`, `node_sqlite(+sync)` | parallel | ~5 060 |
 | **3 · sqlite-B** | `sqlite3`, `bun_sqlite(+sync)` | parallel | ~3 795 |
-| **4 · rest** | everything else — docker engines (mocked) + `documentation` + `types.negative` | parallel | ~5 083 |
+| **4 · rest** | everything else — docker engines (mocked) + `documentation` + `types.negative` + the query-runner tests (`test/runners/`) | parallel | ~5 110 |
 
 - **Shard 1 runs `sequential`** (`--no-file-parallelism` + `TSSQLQUERY_PARALLEL_DBS=false`)
   because the per-worker WASM module bootstrap is CPU-bound and murderous under
@@ -743,21 +743,24 @@ the library's report. They have a report of their own:
 ```bash
 bun run coverage:runners                      # html report, opens it
 bun run coverage:runners:for-discover-tests   # json + json-summary + text-summary, no html
+bun run coverage:runners:with-matrix          # the same plus every connector's newest cell
 ```
 
-Both run `--coverage-scope runners` over every connector's `newest` cell,
-with the docker and WASM connectors real (`'*/newest' --docker --wasm`; the
-native ones are real by default), under vitest on Bun (`--use-vitest`, with
-`npm_config_user_agent` pinned to bun in the script so `npm run` gets the same):
-the Bun runners only run on Bun, and Bun's `node:sqlite` exercises
-`NodeSqliteQueryRunner`'s code the same way Node's does. The older version
-tiers add nothing here — compatibility versions change the emitted SQL, not
-the runner code. A run takes ~6 min and ~4.3 GB plus the engines.
+They run the query-runner tests ([`RUNNER_TESTS.md`](./RUNNER_TESTS.md)),
+which call every exported runner directly against its engine, with
+`--coverage-scope runners` and the docker and WASM connectors real
+(`runners --docker --wasm`; the native ones are real by default), under
+vitest on Bun (`--use-vitest`, with `npm_config_user_agent` pinned to bun in
+the script so `npm run` gets the same): the Bun runners only run on Bun, and
+Bun's `node:sqlite` exercises `NodeSqliteQueryRunner`'s code the same way
+Node's does. A run takes well under a minute with warm containers.
+`:with-matrix` adds `'*/newest'` (~6 min, ~4.3 GB plus the engines) to see
+what the cells add on top.
 
 The error-mapper folders (`connectorErrorMappers/`, `databaseErrorMappers/`)
 are in neither the library nor the runners scope; `--coverage-scope all`
-covers everything. Runners no cell uses (`PrismaQueryRunner`, and the
-`Logging*` / `ConsoleLog*` / `Noop*` / `Chained*` wrappers) show as uncovered.
+covers everything. `PrismaQueryRunner` has no test yet and shows as
+uncovered.
 
 ## Coverage report formats
 
@@ -881,8 +884,9 @@ family has an all-tiers default and a `:newest` variant narrowed to the
 | `coverage:report:newest` | same, but `<per-db newest>` cells only |
 | `coverage:for-discover-tests` | `tests --use-vitest --use-node --coverage --coverage-format json --coverage-format json-summary --coverage-format text-summary --native none <per-db coords>` |
 | `coverage:for-discover-tests:newest` | same, but `<per-db newest>` cells only |
-| `coverage:runners` | `tests --use-vitest --coverage --coverage-scope runners '*/newest' --docker --wasm --open`, on Bun — see [Coverage of the query runners](#coverage-of-the-query-runners) |
+| `coverage:runners` | `tests --use-vitest --coverage --coverage-scope runners runners --docker --wasm --open`, on Bun — see [Coverage of the query runners](#coverage-of-the-query-runners) |
 | `coverage:runners:for-discover-tests` | same, with the discovery formats (`json`, `json-summary`, `text-summary`) and no html |
+| `coverage:runners:with-matrix` | the discovery run over `runners '*/newest'` |
 | `coverage:reopen` | Same script as `tests:reopen`. |
 
 `<per-db coords>` = `mariadb/*/mariadb mysql/*/mysql2 oracle/*/oracledb

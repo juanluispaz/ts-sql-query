@@ -512,3 +512,25 @@ export function createMssqlPoolTestContext(spec: MssqlTestSpec): SqlServerTestCo
         },
     }))
 }
+
+// ---- Direct query-runner tests (test/runners/) --------------------------
+
+// The engine and worker database the query-runner tests in test/runners/
+// connect their own driver to: the newest image, with the worker database
+// bootstrapped exactly as the cells get it.
+export async function acquireRunnerTestDatabase(): Promise<{ config: import('mssql').config, mssql: typeof import('mssql'), release(): Promise<void> }> {
+    const image = newestImage(DATABASE)
+    const container = await containers.getFor(image).acquire()
+    const host = container.getHost()
+    const port = container.getMappedPort(1433)
+    const database = await bootstrapWorkerDbSchemaAndSeed(host, port)
+    const config: import('mssql').config = {
+        server: host, port,
+        user: 'sa', password: SA_PASSWORD,
+        database,
+        options: { encrypt: false, trustServerCertificate: true },
+        connectionTimeout: 30_000,
+        requestTimeout: 60_000,
+    }
+    return { config, mssql: await loadMssql(), release: () => containers.getFor(image).release() }
+}

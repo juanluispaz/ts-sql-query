@@ -468,3 +468,17 @@ export function createBunSqlMariaDBTestContext(spec: MariaDBTestSpec): MariaDBTe
         },
     }))
 }
+
+// ---- Direct query-runner tests (test/runners/) --------------------------
+
+// The engine and worker database the query-runner tests in test/runners/
+// connect their own driver to: the newest image, with the worker database
+// bootstrapped exactly as the cells get it.
+export async function acquireRunnerTestDatabase(): Promise<{ host: string, port: number, user: string, password: string, database: string, release(): Promise<void> }> {
+    const image = newestImage(DATABASE)
+    const container = await containers.getFor(image).acquire()
+    const host = container.getHost()
+    const port = container.getMappedPort(3306)
+    const database = await bootstrapWorkerDbSchemaAndSeed(host, port)
+    return { host, port, user: 'root', password: ROOT_PASSWORD, database, release: () => containers.getFor(image).release() }
+}

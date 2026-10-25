@@ -70,6 +70,7 @@ validate:tests — type-check the test/ matrix with tsc (one program per connect
     validate:tests postgres/newest/pg           # one cell, ~3 s
     validate:tests postgres                     # every postgres connector
     validate:tests '*/types.negative'           # the negative-type cells
+    validate:tests runners                      # the query-runner tests (test/runners/)
     validate:tests 'postgres/*/{pg,postgres}'   # two connectors, all versions
     validate:tests mariadb/newest/mariadb mysql/newest/mysql2
 
@@ -125,7 +126,31 @@ EOF
     rm -f "$cfg"
 }
 
+# The query-runner tests (test/runners/) sit outside the cell matrix: one
+# program over them, every database's runners.ts they acquire engines from
+# and that file's domain.
+run_runners_slice() {
+    local cfg="test/tsconfig.runners.generated.json"
+    cat > "$cfg" <<EOF
+{
+    "extends": "./tsconfig.json",
+    "include": [
+        "lib/**/*.ts",
+        "runners/**/*.ts",
+        "db/*/runners.ts",
+        "db/*/domain/**/*.ts",
+        "../src/**/*.ts"
+    ]
+}
+EOF
+    echo ""
+    echo ">>> validate:tests — runners"
+    tsc -p "$cfg" --noEmit
+    rm -f "$cfg"
+}
+
 if [ "${#COORDS[@]}" -eq 0 ]; then
+    run_runners_slice
     for db in "${databases[@]}"; do
         # Connector directories live at test/db/<db>/<version>/<connector>; the
         # distinct basenames at that depth are the connectors (includes
@@ -148,7 +173,9 @@ fi
 #             re-tokenised through the vetted eval below.
 #   deep    : slash-separated literal (`postgres/newest/pg`).
 matched=()
+runners_slice=0
 for coord in "${COORDS[@]}"; do
+    if [ "$coord" = "runners" ]; then runners_slice=1; continue; fi
     case "$coord" in
         *[*?[{]*) shape=expand ;;
         */*)      shape=deep ;;
@@ -235,6 +262,7 @@ for path in "${matched[@]}"; do
     fi
 done
 
+if [ "$runners_slice" -eq 1 ]; then run_runners_slice; fi
 for i in "${!group_keys[@]}"; do
     key="${group_keys[$i]}"
     db="${key%%|*}"
@@ -245,4 +273,4 @@ for i in "${!group_keys[@]}"; do
 done
 
 echo ""
-echo ">>> validate:tests — ${#group_keys[@]} slice(s) type-checked OK"
+echo ">>> validate:tests — $(( ${#group_keys[@]} + runners_slice )) slice(s) type-checked OK"

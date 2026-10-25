@@ -299,7 +299,9 @@ shard_paths() {
                 _name_in_list "$cn" "${SHARD3_CONNECTOR_NAMES[@]}" && continue
                 printf '%s\n' "$cell"
             done < <(list_all_connector_paths)
-            list_types_negative_paths ;;
+            list_types_negative_paths
+            # The query-runner tests (outside the cell matrix)
+            printf '%s\n' test/runners/ ;;
     esac
 }
 
@@ -1306,6 +1308,13 @@ resolve_main_paths() {
             */*)            shape=deep ;;
             *)              shape=bare-db ;;
         esac
+        # `runners[/…]` addresses the query-runner tests under test/runners/
+        # (outside the cell matrix: no version tiers, so --run-versions does
+        # not narrow them); every other coord is a matrix path under test/db/.
+        local base="test/db/"
+        case "$coord" in
+            runners|runners/*) base="test/"; [ "$shape" = "bare-db" ] && shape=deep ;;
+        esac
         if [ "$RUN_VERSIONS" = "newest" ]; then
             case "$coord" in
                 */oldest|*/oldest/*)
@@ -1321,7 +1330,7 @@ resolve_main_paths() {
                 fi
                 shopt -s nullglob
                 # shellcheck disable=SC2294  # eval is intentional; input vetted above
-                eval "matches=(test/db/$coord)"
+                eval "matches=($base$coord)"
                 shopt -u nullglob
                 if [ "${#matches[@]}" -eq 0 ]; then
                     echo "Coordinate $coord matched no paths under test/db/" >&2
@@ -1352,7 +1361,7 @@ resolve_main_paths() {
                 fi
                 ;;
             deep)
-                t="test/db/$coord"
+                t="$base$coord"
                 if [ ! -e "$t" ]; then
                     echo "Coordinate not found: $coord (looked for $t)" >&2
                     return 1

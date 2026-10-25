@@ -49,6 +49,7 @@ uses.
 | Coverage runs and report formats (html, monocart, etc.) | [`CLI.md` § Coverage](./CLI.md#coverage) |
 | Wall-time numbers for each invocation, bun vs vitest | [`BENCHMARKS.md`](./BENCHMARKS.md) |
 | Validate the documentation code examples (type-check + mock SQL tests of the doc snippets) | [`DOC_CODE_EXTRACTOR.md`](./DOC_CODE_EXTRACTOR.md) |
+| Test the query runners directly (`test/runners/`, `tests:runners`) | [`RUNNER_TESTS.md`](./RUNNER_TESTS.md) |
 | The shell scripts behind the CLIs | [`scripts/tests.sh`](../scripts/tests.sh) |
 
 ### … write or port a test

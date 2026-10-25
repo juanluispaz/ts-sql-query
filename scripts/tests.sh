@@ -58,7 +58,10 @@ runtime, which implies vitest. `--report` works under both runners
 (formats differ — see below).
 
 Coords
-  Each positional arg is a path under test/db/. The structure has four
+  Each positional arg is a path under test/db/ — or, with the root
+  `runners` (`runners`, `runners/postgres`, `runners/sqlite/<file>`), under
+  test/runners/, the query-runner tests outside the cell matrix (no version
+  tiers: --run-versions doesn't narrow them). The matrix structure has four
   navigable levels — supply any prefix; the rest are walked by the
   runner:
 

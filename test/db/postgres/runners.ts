@@ -618,3 +618,15 @@ export function createBunSqlPostgresTestContext(spec: PgTestSpec): PostgresTestC
         // nesting-works test is NOT-APPLICABLE on this connector (commented out).
     }), () => null)
 }
+
+// ---- Direct query-runner tests (test/runners/) --------------------------
+
+// The engine and worker database the query-runner tests in test/runners/
+// connect their own driver to: the newest image, with the worker database
+// bootstrapped exactly as the cells get it.
+export async function acquireRunnerTestDatabase(): Promise<{ uri: string, release(): Promise<void> }> {
+    const image = newestImage(DATABASE)
+    const container = await containers.getFor(image).acquire()
+    const uri = await bootstrapWorkerDbSchemaAndSeed(container.getConnectionUri())
+    return { uri, release: () => containers.getFor(image).release() }
+}

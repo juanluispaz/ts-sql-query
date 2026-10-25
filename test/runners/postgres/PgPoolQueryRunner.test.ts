@@ -1,0 +1,27 @@
+// PgPoolQueryRunner over a pg Pool, with and without nested transactions.
+
+import pg from 'pg'
+import { PgPoolQueryRunner } from '../../../src/queryRunners/PgPoolQueryRunner.js'
+import { isRealDbEnabled } from '../../lib/backends.js'
+import { acquireRunnerTestDatabase } from '../../db/postgres/runners.js'
+import { postgresDialect } from '../lib/dialects.js'
+import { describeRunnerContract } from '../lib/runnerContract.js'
+
+for (const nested of [false, true]) {
+    describeRunnerContract({
+        label: nested ? 'PgPoolQueryRunner (allowNestedTransactions)' : 'PgPoolQueryRunner',
+        pool: true,
+        dialect: postgresDialect,
+        runnerClass: PgPoolQueryRunner,
+        realEnabled: isRealDbEnabled('postgres', 'docker', 'newest', 'pg'),
+        nestedTransactions: nested,
+        async create() {
+            const db = await acquireRunnerTestDatabase()
+            const pool = new pg.Pool({ connectionString: db.uri, max: 2 })
+            return {
+                runner: new PgPoolQueryRunner(pool, { allowNestedTransactions: nested }),
+                close: async () => { await pool.end(); await db.release() },
+            }
+        },
+    })
+}

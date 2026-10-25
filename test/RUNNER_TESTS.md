@@ -49,7 +49,13 @@ SQLite drivers open their own in-memory database.
 Whether a test runs is decided like a cell's: `isRealDbEnabled(<db>, <kind>,
 'newest', <connector folder>)`, so `--docker` / `--wasm` / `--native` (and
 their coords, e.g. `--docker postgres/newest/pg`) select them too; a runner
-whose engine isn't selected is skipped. The Bun runners run on Bun only (`--use-bun` forces Bun under `npm run`).
+whose engine isn't selected is skipped.
+
+The runtime is the one the script was launched with — `bun run` runs the
+tests on Bun, `npm run` on Node — and each runtime runs what it can: on Node
+the Bun runners are skipped. `--use-node` forces Node under `bun run`, and
+`--use-bun` forces Bun under `npm run`; Bun runs every runner, so the
+`coverage:runners*` scripts pass `--use-bun` to measure them all.
 
 ## The params the SqlBuilders annotate
 

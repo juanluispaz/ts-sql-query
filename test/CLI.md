@@ -751,9 +751,14 @@ They run the query-runner tests ([`RUNNER_TESTS.md`](./RUNNER_TESTS.md)),
 which call every exported runner directly against its engine, with
 `--coverage-scope runners` and the docker and WASM connectors real
 (`runners --docker --wasm`; the native ones are real by default), under
-vitest on Bun (`--use-vitest --use-bun`, so `npm run` gets the same): the Bun runners only run on Bun, and
-Bun's `node:sqlite` exercises `NodeSqliteQueryRunner`'s code the same way
-Node's does. A run takes well under a minute with warm containers.
+vitest on Bun (`--use-vitest --use-bun`). Without a runtime flag the tests
+CLI runs on the runtime it was launched with (`bun run` → Bun, `npm run` →
+Node), and each runtime runs what it can: the same command on Node works and
+skips the Bun runners. `--use-node` forces Node under `bun run` and
+`--use-bun` forces Bun under `npm run`; these scripts force Bun because Bun
+runs every runner — the Bun ones only exist there, and Bun's `node:sqlite`
+exercises `NodeSqliteQueryRunner`'s code the same way Node's does. A run
+takes well under a minute with warm containers.
 `:with-matrix` adds `'*/newest'` (~6 min, ~4.3 GB plus the engines) to see
 what the cells add on top.
 

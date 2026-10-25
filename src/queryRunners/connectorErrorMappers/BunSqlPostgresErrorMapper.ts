@@ -55,6 +55,7 @@ function getBunPostgresErrorReason(error: BunSqlPostgresError): TsSqlErrorReason
 
     switch (code) {
         case 'ERR_POSTGRES_CONNECTION_CLOSED':
+        case 'ERR_POSTGRES_CONNECTION_REFUSED':
         case 'ERR_POSTGRES_IDLE_TIMEOUT':
         case 'ERR_POSTGRES_LIFETIME_TIMEOUT':
             return withNumber({ reason: 'SQL_CONNECTION_ERROR', databaseErrorCode, databaseErrorMessage: error.message, errorType: 'connection lost' })

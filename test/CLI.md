@@ -168,7 +168,7 @@ Orthogonal — combine freely (except for the [Forbidden combinations](#forbidde
 | `--report-format <name>` | Repeatable. See [Test-execution report formats](#test-execution-report-formats). | runtime-dependent |
 | `--coverage` | Emit coverage report under `.test-report/coverage/`. | off |
 | `--coverage-format <name>` | Repeatable. See [Coverage report formats](#coverage-report-formats). | `html` |
-| `--coverage-scope <library\|runners\|all>` | Which source the coverage report measures: the library without its query runners, the query runners alone, or all of `src/` but the legacy examples. See [Scope](#scope-which-source-files-end-up-in-the-report). | `library` |
+| `--coverage-scope <library\|runners\|mappers\|all>` | Which source the coverage report measures: the library without its query runners, the query runners alone, the error mappers alone, or all of `src/` but the legacy examples. See [Scope](#scope-which-source-files-end-up-in-the-report). | `library` |
 | `--open` | After a green run, open the richest available HTML report. | off |
 | **Narrowing (runtime-agnostic — translated to the active runner's spelling)** | | |
 | `--update-snapshots` | Refresh the snapshots of the tests this run executes. Translated to bun's `--update-snapshots` / vitest's `--update` for you. | off |
@@ -762,10 +762,24 @@ takes well under a minute with warm containers.
 `:with-matrix` adds `'*/newest'` (~6 min, ~4.3 GB plus the engines) to see
 what the cells add on top.
 
-The error-mapper folders (`connectorErrorMappers/`, `databaseErrorMappers/`)
-are in neither the library nor the runners scope; `--coverage-scope all`
-covers everything. `PrismaQueryRunner` has no test yet and shows as
-uncovered.
+`PrismaQueryRunner` has no test yet and shows as uncovered.
+
+### Coverage of the error mappers
+
+The error mappers (`src/queryRunners/connectorErrorMappers/`,
+`src/queryRunners/databaseErrorMappers/`) turn a driver's error into an
+`errorReason`; they are in neither the library nor the runners scope, and
+have a report of their own, over the same query-runner tests (their
+`error.*` scenarios provoke real errors on each engine, see
+[`RUNNER_TESTS.md`](./RUNNER_TESTS.md#the-error-scenarios)):
+
+```bash
+bun run coverage:mappers                      # html report, opens it
+bun run coverage:mappers:for-discover-tests   # json + json-summary + text-summary, no html
+bun run coverage:mappers:with-matrix          # the same plus every connector's newest cell
+```
+
+`--coverage-scope all` covers runners, mappers and library in one report.
 
 ## Coverage report formats
 
@@ -810,12 +824,13 @@ both write `index.html`).
 
 ### Scope (which source files end up in the report)
 
-`--coverage-scope` picks one of three scopes:
+`--coverage-scope` picks one of four scopes:
 
 | Scope | Measures |
 |---|---|
 | `library` (default) | `src/` without the legacy examples (`src/examples/**`), the query runners (`src/queryRunners/*`) and the two error-mapper folders — the library's own code |
 | `runners` | the query runners alone (`src/queryRunners/*.ts`, without the error-mapper folders) — see [Coverage of the query runners](#coverage-of-the-query-runners) |
+| `mappers` | the two error-mapper folders alone — see [Coverage of the error mappers](#coverage-of-the-error-mappers) |
 | `all` | every file under `src/` but the legacy examples |
 
 `test/**` is never measured. The scopes live in three project config files
@@ -892,6 +907,9 @@ family has an all-tiers default and a `:newest` variant narrowed to the
 | `coverage:runners` | `tests --use-vitest --use-bun --coverage --coverage-scope runners runners --docker --wasm --open` — see [Coverage of the query runners](#coverage-of-the-query-runners) |
 | `coverage:runners:for-discover-tests` | same, with the discovery formats (`json`, `json-summary`, `text-summary`) and no html |
 | `coverage:runners:with-matrix` | the discovery run over `runners '*/newest'` |
+| `coverage:mappers` | `tests --use-vitest --use-bun --coverage --coverage-scope mappers runners --docker --wasm --open` — see [Coverage of the error mappers](#coverage-of-the-error-mappers) |
+| `coverage:mappers:for-discover-tests` | same, with the discovery formats and no html |
+| `coverage:mappers:with-matrix` | the discovery run over `runners '*/newest'` |
 | `coverage:reopen` | Same script as `tests:reopen`. |
 
 `<per-db coords>` = `mariadb/*/mariadb mysql/*/mysql2 oracle/*/oracledb
@@ -923,7 +941,7 @@ The per-case rules (two phases, sequential coverage, shards, focused single
 pass) and the measurements behind them are in
 [`ENGINE_LIFECYCLE.md` § Running WASM real](./ENGINE_LIFECYCLE.md#running-wasm-real-the-problem-and-the-rule-per-case).
 
-`--coverage-scope runners` / `all` under `bun test` in parallel mode is
+`--coverage-scope runners` / `mappers` / `all` under `bun test` in parallel mode is
 rejected with exit 2: bun's parallel workers read only the repo's
 `bunfig.toml`. Pass `--mode sequential` or `--use-vitest`.
 

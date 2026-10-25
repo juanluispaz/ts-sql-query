@@ -18,8 +18,8 @@ for (const promisePool of [false, true]) {
         runnerClass: promisePool ? MssqlPoolPromiseQueryRunner : MssqlPoolQueryRunner,
         realEnabled: isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'),
         timeoutMs: 300_000,
-        async create() {
-            const db = await acquireRunnerTestDatabase()
+        async create(failure) {
+            const db = await acquireRunnerTestDatabase(failure)
             const pool = new db.mssql.ConnectionPool({ ...db.config, pool: { max: 2, min: 0 } })
             const connected = pool.connect()
             const runner = promisePool ? new MssqlPoolPromiseQueryRunner(connected) : new MssqlPoolQueryRunner(await connected)

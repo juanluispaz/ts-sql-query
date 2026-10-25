@@ -14,8 +14,8 @@ describeRunnerContract({
     realEnabled: isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'),
     timeoutMs: 300_000,
     endWithoutTransaction: true,
-    async create() {
-        const db = await acquireRunnerTestDatabase()
+    async create(failure) {
+        const db = await acquireRunnerTestDatabase(failure)
         const connection = await oracledb.getConnection({ user: db.user, password: db.password, connectString: db.connectString })
         return {
             runner: new OracleDBQueryRunner(connection),

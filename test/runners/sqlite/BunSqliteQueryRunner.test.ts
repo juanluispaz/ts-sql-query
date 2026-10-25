@@ -11,6 +11,7 @@ const isBun = typeof globalThis.Bun !== 'undefined'
 for (const sync of [false, true]) {
     describeRunnerContract({
         label: sync ? 'BunSqliteQueryRunner (SynchronousPromise)' : 'BunSqliteQueryRunner',
+        errorScenarios: !sync,
         dialect: sqliteDialect,
         realEnabled: isBun && isRealDbEnabled('sqlite', 'native', 'newest', sync ? 'bun_sqlite-sync' : 'bun_sqlite'),
         async create() {

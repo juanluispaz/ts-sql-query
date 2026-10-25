@@ -11,6 +11,8 @@ import { QueryExecutionSource, TsSqlError, TsSqlProcessingError, TsSqlQueryExecu
 import { ChainedQueryRunner } from '../../../src/queryRunners/ChainedQueryRunner.js'
 import { setContainsMutationReturningClause, setParamType } from '../../../src/utils/queryParamsMetadata.js'
 import type { RunnerDialect } from './dialects.js'
+import { CONNECTION_FAILURES, ERROR_SCENARIOS } from './errorScenarios.js'
+import type { RunnerConnectionFailure } from '../../lib/containerLifecycle.js'
 
 type RunnerClass = { getErrorReason(error: unknown, database?: any): { reason: string }, isSqlError(error: unknown): boolean }
 
@@ -27,7 +29,11 @@ export interface RunnerContractOptions {
     readonly dialect: RunnerDialect
     /** Whether the runner's engine is available in this run (see isRealDbEnabled). */
     readonly realEnabled: boolean
-    create(): Promise<RunnerUnderTest>
+    /**
+     * Builds the runner. With a `failure` (a database server's runner only),
+     * one whose connection fails that way, from acquireRunnerTestDatabase(failure).
+     */
+    create(failure?: RunnerConnectionFailure): Promise<RunnerUnderTest>
     /** The runner was built with nested transactions allowed. */
     readonly nestedTransactions?: boolean
     /** A pool runner: it holds a dedicated connection only inside a transaction. */
@@ -37,6 +43,14 @@ export interface RunnerContractOptions {
     /** The runner class, whose static getErrorReason / isSqlError the runner's own methods mirror. */
     readonly runnerClass?: RunnerClass
     readonly timeoutMs?: number
+    /**
+     * Run the database's error scenarios (errorScenarios.ts) on this runner;
+     * default true. A variant of a runner already tested (nested transactions,
+     * SynchronousPromise) maps errors the same way and turns them off.
+     */
+    readonly errorScenarios?: boolean
+    /** A database server: a second create() reaches the same database (not an in-process one); default true but on SQLite. */
+    readonly sharedDatabase?: boolean
 }
 
 const SEED: readonly { id: number, name: string, amount: number | null }[] = [
@@ -730,5 +744,73 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
             expect(runner.getErrorReason(error)).toEqual({ reason: 'NOT_IN_TRANSACTION' })
             expect(runner.isSqlError(error)).toBe(true)
         })
+
+        // ---- error mapping -----------------------------------------------
+
+        const scenarios = opts.errorScenarios === false ? [] : ERROR_SCENARIOS[dialect.database] ?? []
+        const sharedDatabase = opts.sharedDatabase ?? dialect.database !== 'sqlite'
+        for (const scenario of scenarios) {
+            const skip = (!!scenario.serverOnly && !sharedDatabase) || (!!scenario.onlyRunners && !scenario.onlyRunners.includes(opts.label))
+            test.skipIf(skip)('error.' + scenario.name, async () => {
+                const runner = r()
+                const others: RunnerUnderTest[] = []
+                for (const sql of scenario.setup ?? []) {
+                    await runner.executeDatabaseSchemaModification(sql)
+                }
+                try {
+                    const error = await rejectionOf(scenario.run({
+                        runner,
+                        async otherSession() {
+                            const other = await opts.create()
+                            others.push(other)
+                            return other.runner
+                        },
+                    }))
+                    expect(runner.isSqlError(error)).toBe(true)
+                    expect(runner.getErrorReason(error)).toMatchObject(scenario.expected)
+                } finally {
+                    for (const other of others) {
+                        await other.close().catch(() => undefined)
+                    }
+                    while (runner.isTransactionActive()) {
+                        await runner.executeRollback().catch(() => undefined)
+                    }
+                    for (const sql of scenario.cleanup ?? []) {
+                        await runner.executeDatabaseSchemaModification(sql).catch(() => undefined)
+                    }
+                }
+            }, timeout)
+        }
+
+        const connectionFailures = opts.errorScenarios === false ? {} : CONNECTION_FAILURES[dialect.database] ?? {}
+        for (const [failure, expected] of Object.entries(connectionFailures)) {
+            test.skipIf(!sharedDatabase)('error.connection-' + failure.replaceAll(' ', '-'), async () => {
+                // The driver may fail while connecting (inside create) or at the first query
+                let failing: RunnerUnderTest | undefined
+                let error: unknown
+                try {
+                    failing = await opts.create(failure as RunnerConnectionFailure)
+                    await failing.runner.executeSelectManyRows('select 1' + dialect.fromNoTable)
+                } catch (e) {
+                    error = e
+                } finally {
+                    // Some drivers never finish ending a connection that failed to open
+                    await Promise.race([failing?.close().catch(() => undefined), new Promise(resolve => setTimeout(resolve, 2000))])
+                }
+                expect(error).toBeDefined()
+                const runnerClass = failing?.runnerClass ?? under?.runnerClass ?? opts.runnerClass
+                if (!runnerClass) throw new Error(opts.label + ': no runnerClass')
+                expect(runnerClass.isSqlError(error)).toBe(true)
+                expect(runnerClass.getErrorReason(error, dialect.database)).toMatchObject(expected)
+            }, timeout)
+        }
+
+        test.skipIf(opts.errorScenarios === false)('error.query-on-a-closed-connection', async () => {
+            const closed = await opts.create()
+            await closed.close()
+            const error = await rejectionOf(closed.runner.executeSelectManyRows('select 1' + dialect.fromNoTable))
+            expect(closed.runner.isSqlError(error)).toBe(true)
+            expect(closed.runner.getErrorReason(error)).toMatchObject({ reason: 'SQL_CONNECTION_ERROR' })
+        }, timeout)
     })
 }

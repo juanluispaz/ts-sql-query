@@ -10,6 +10,7 @@ import { describeRunnerContract } from '../lib/runnerContract.js'
 for (const sync of [false, true]) {
     describeRunnerContract({
         label: sync ? 'Sqlite3WasmOO1QueryRunner (SynchronousPromise)' : 'Sqlite3WasmOO1QueryRunner',
+        errorScenarios: !sync,
         dialect: sqliteDialect,
         runnerClass: Sqlite3WasmOO1QueryRunner,
         realEnabled: isRealDbEnabled('sqlite', 'wasm', 'newest', sync ? 'sqlite-wasm-OO1-sync' : 'sqlite-wasm-OO1'),

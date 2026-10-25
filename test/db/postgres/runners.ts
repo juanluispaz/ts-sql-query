@@ -26,6 +26,8 @@ import {
     VALIDATE_LOCK_KEY_BIGINT,
     workerName,
     workerNameLikePattern,
+    type RunnerConnectionFailure,
+    UNREACHABLE_PORT,
 } from '../../lib/containerLifecycle.js'
 import { imageForCell, newestImage } from '../../lib/dockerImages.js'
 import { createTestContext, type TestContext } from '../../lib/testContext.js'
@@ -623,10 +625,19 @@ export function createBunSqlPostgresTestContext(spec: PgTestSpec): PostgresTestC
 
 // The engine and worker database the query-runner tests in test/runners/
 // connect their own driver to: the newest image, with the worker database
-// bootstrapped exactly as the cells get it.
-export async function acquireRunnerTestDatabase(): Promise<{ uri: string, release(): Promise<void> }> {
+// bootstrapped exactly as the cells get it. With a `failure`, the parameters
+// of a connection that fails that way (nothing is held: release() is a no-op).
+export async function acquireRunnerTestDatabase(failure?: RunnerConnectionFailure): Promise<{ uri: string, release(): Promise<void> }> {
     const image = newestImage(DATABASE)
     const container = await containers.getFor(image).acquire()
     const uri = await bootstrapWorkerDbSchemaAndSeed(container.getConnectionUri())
+    if (failure) {
+        await containers.getFor(image).release()
+        const url = new URL(uri)
+        if (failure === 'wrong password') url.password = 'rt_err_wrong'
+        if (failure === 'unreachable') url.port = String(UNREACHABLE_PORT)
+        if (failure === 'unknown database') url.pathname = '/rt_err_missing_db'
+        return { uri: url.toString(), release: async () => undefined }
+    }
     return { uri, release: () => containers.getFor(image).release() }
 }

@@ -7,10 +7,15 @@ import * as ErrorCodes from './MySqlMariaDbErrorCodes.js'
 // explicit driver-provided symbol when the driver is known to emit one.
 const MYSQL_EXTERNAL_DATA_SOURCE_ERROR_NUMBERS = new Set([2022, 2023])
 const MYSQL_DATA_TRUNCATED_ERROR_NUMBERS = new Set([2032])
-const MYSQL_COLLATION_NOT_FOUND_ERROR_NUMBERS = new Set([28])
+const MYSQL_COLLATION_NOT_FOUND_ERROR_NUMBERS = new Set([28, 1273])
 const MYSQL_OBJECT_NOT_FOUND_EXTRA_ERROR_NUMBERS = new Set([3548, 3902])
 const MYSQL_OBJECT_ALREADY_EXISTS_EXTRA_ERROR_NUMBERS = new Set([3712])
 const MYSQL_DEPENDENT_OBJECTS_STILL_EXIST_ERROR_NUMBERS = new Set([3716])
+// The ICU regular-expression errors that mean the pattern itself is invalid
+// (the others are engine limits: buffer, stack, time, pattern size).
+const MYSQL_INVALID_REGULAR_EXPRESSION_ERROR_NUMBERS = new Set([3688, 3689, 3691, 3692, 3693, 3694, 3695, 3696, 3697, 3887, 3900])
+// SIGNAL / RESIGNAL from a stored program: an exception the routine raised.
+const MYSQL_SIGNAL_ERROR_NUMBERS = new Set([1643, 1644])
 
 export interface MySqlMariaDbEngineError {
     database?: DatabaseType | undefined
@@ -77,10 +82,10 @@ function getMySqlMariaDbErrorReasonFromNumber(
     }
 
     if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_INVALID_VALUE_TOO_LONG_ERROR_NUMBERS, database, code, 'too_long')) {
-        return { reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorMessage, errorType: 'too long', columnName: extractQuotedName(message) }
+        return { reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorMessage, errorType: 'too long', columnName: extractValueColumnName(message) }
     }
     if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_INVALID_VALUE_OUT_OF_RANGE_ERROR_NUMBERS, database, code, 'out_of_range')) {
-        return { reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorMessage, errorType: 'out of range' }
+        return { reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorMessage, errorType: 'out of range', columnName: extractValueColumnName(message) }
     }
     if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_INVALID_JSON_ERROR_NUMBERS, database, code, 'invalid_json')) {
         return { reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorMessage, errorType: 'invalid json', columnName: extractQuotedName(message) }
@@ -100,10 +105,10 @@ function getMySqlMariaDbErrorReasonFromNumber(
     if (errorNumber === 1138 || errorNumber === 1263) {
         return { reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorMessage, errorType: 'null not allowed', columnName: extractQuotedName(message) }
     }
-    if (errorNumber === 1292 || errorNumber === 1366 || errorNumber === 1367 || errorNumber === 1411 || errorNumber === 1416 || hasMySqlSemanticErrorNumber(errorNumber, MYSQL_DATA_TRUNCATED_ERROR_NUMBERS, database, code, 'invalid_value')) {
-        return { reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorMessage, errorType: 'invalid value', columnName: extractQuotedName(message) }
+    if (errorNumber === 1265 || errorNumber === 1292 || errorNumber === 1366 || errorNumber === 1367 || errorNumber === 1411 || errorNumber === 1416 || hasMySqlSemanticErrorNumber(errorNumber, MYSQL_DATA_TRUNCATED_ERROR_NUMBERS, database, code, 'invalid_value')) {
+        return { reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorMessage, errorType: 'invalid value', columnName: extractValueColumnName(message) }
     }
-    if (errorNumber === 1139) {
+    if (errorNumber === 1139 || hasMySqlSemanticErrorNumber(errorNumber, MYSQL_INVALID_REGULAR_EXPRESSION_ERROR_NUMBERS, database, code, 'invalid_regular_expression')) {
         return { reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorMessage, errorType: 'invalid regular expression' }
     }
 
@@ -115,6 +120,10 @@ function getMySqlMariaDbErrorReasonFromNumber(
     }
     if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_COLUMN_NOT_FOUND_ERROR_NUMBERS, database, code, 'object_not_found')) {
         return { reason: 'SQL_OBJECT_NOT_FOUND', databaseErrorCode, databaseErrorMessage, objectType: 'column', columnName: extractQuotedName(message), objectName: extractQuotedName(message) }
+    }
+    if (errorNumber === 1305 && /^SAVEPOINT /i.test(message)) {
+        // ER_SP_DOES_NOT_EXIST also reports a missing savepoint
+        return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'invalid savepoint' }
     }
     if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_ROUTINE_NOT_FOUND_ERROR_NUMBERS, database, code, 'object_not_found')) {
         return { reason: 'SQL_OBJECT_NOT_FOUND', databaseErrorCode, databaseErrorMessage, objectType: 'routine', objectName: extractQuotedName(message) }
@@ -161,7 +170,7 @@ function getMySqlMariaDbErrorReasonFromNumber(
     }
 
     if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_AMBIGUOUS_IDENTIFIER_ERROR_NUMBERS, database, code, 'ambiguous_identifier')) {
-        return { reason: 'SQL_AMBIGUOUS_IDENTIFIER', databaseErrorCode, databaseErrorMessage, identifier: extractQuotedName(message), identifierErrorType: errorNumber === 1066 ? 'duplicate' : 'ambiguous' }
+        return { reason: 'SQL_AMBIGUOUS_IDENTIFIER', databaseErrorCode, databaseErrorMessage, identifier: extractQuotedName(message), identifierType: errorNumber === 1066 ? 'alias' : 'column', identifierErrorType: errorNumber === 1066 ? 'duplicate' : 'ambiguous' }
     }
     if (hasMariaDbSemanticErrorNumber(errorNumber, ErrorCodes.MARIADB_DUPLICATE_IDENTIFIER_ERROR_NUMBERS, database, code, 'ambiguous_identifier')) {
         return { reason: 'SQL_AMBIGUOUS_IDENTIFIER', databaseErrorCode, databaseErrorMessage, identifier: extractQuotedName(message), identifierErrorType: 'duplicate' }
@@ -178,7 +187,7 @@ function getMySqlMariaDbErrorReasonFromNumber(
     if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_INVALID_PARAMETER_ERROR_NUMBERS, database, code, 'invalid_parameter')) {
         return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage, ...getInvalidParameterDetailsFromMessage(message) }
     }
-    if (hasMariaDbSemanticErrorNumber(errorNumber, ErrorCodes.MARIADB_ROUTINE_ERROR_NUMBERS, database, code, 'routine')) {
+    if (hasMariaDbSemanticErrorNumber(errorNumber, ErrorCodes.MARIADB_ROUTINE_ERROR_NUMBERS, database, code, 'routine') || hasMySqlSemanticErrorNumber(errorNumber, MYSQL_SIGNAL_ERROR_NUMBERS, database, code, 'routine')) {
         return { reason: 'SQL_ROUTINE_ERROR', databaseErrorCode, databaseErrorMessage }
     }
     if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_PERMISSION_DENIED_ERROR_NUMBERS, database, code, 'permission')) {
@@ -338,6 +347,7 @@ type SemanticErrorCategory =
     | 'invalid_identifier'
     | 'invalid_json'
     | 'invalid_parameter'
+    | 'invalid_regular_expression'
     | 'invalid_reference'
     | 'invalid_statement_context'
     | 'invalid_value'
@@ -482,6 +492,8 @@ function isCodeCompatibleWithSemanticCategory(code: string, category: SemanticEr
             return upperCode.includes('IDENT') || upperCode.includes('VARIABLE') || upperCode.includes('STRUCTURED') || upperCode.includes('FIELD') || upperCode.includes('COLUMN')
         case 'invalid_json':
             return upperCode.includes('JSON') || upperCode.includes('GEOJSON')
+        case 'invalid_regular_expression':
+            return upperCode.includes('REGEXP')
         case 'invalid_parameter':
             return upperCode.includes('PARAM') || upperCode.includes('ARGUMENT') || upperCode.includes('PLACEHOLDER') || upperCode.includes('BIND') || upperCode.includes('COUNT') || upperCode.includes('BAD_REPLICA_UNTIL_COND') || upperCode.includes('BAD_SLAVE_UNTIL_COND')
         case 'invalid_reference':
@@ -1244,6 +1256,18 @@ function extractQuotedName(message: string): string | undefined {
         return doubleQuoted[1]
     }
     return undefined
+}
+
+/**
+ * The column of a value error: "... for column 'amount' at row 1" (MySQL) or
+ * "... for column `db`.`table`.`amount` at row 1" (MariaDB).
+ */
+function extractValueColumnName(message: string): string | undefined {
+    const match = /for column (?:[`'"][^`'"]+[`'"]\.)*[`'"]([^`'"]+)[`'"]/i.exec(message)
+    if (match) {
+        return match[1]
+    }
+    return extractQuotedName(message)
 }
 
 function extractKeyName(message: string): string | undefined {

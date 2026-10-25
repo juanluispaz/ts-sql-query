@@ -23,7 +23,7 @@ function getSqliteEngineErrorReasonInternal(error: SqliteEngineError): TsSqlErro
     const message = error.message || ''
     const upper = message.toUpperCase()
 
-    if (code === 'SQLITE_CONSTRAINT_DATATYPE') {
+    if (code === 'SQLITE_CONSTRAINT_DATATYPE' || (code === 'SQLITE_CONSTRAINT' && /^cannot store \w+ value in \w+ column /i.test(message))) {
         return { reason: 'SQL_INVALID_VALUE', errorType: 'invalid value', columnName: extractColumnPathLastSegment(message), databaseErrorCode, databaseErrorMessage }
     }
     if (code.startsWith('SQLITE_CONSTRAINT')) {
@@ -296,7 +296,7 @@ function getSqliteEngineMessageReason(upper: string, message: string, databaseEr
     if (upper.includes('CANNOT MODIFY') && upper.includes('BECAUSE IT IS A VIEW')) {
         return { reason: 'SQL_OBJECT_STATE_ERROR', objectStateErrorType: 'wrong object type', objectType: 'table or view', objectName: extractCannotModifyObjectName(message), databaseErrorCode, databaseErrorMessage }
     }
-    if (upper.includes('CANNOT CREATE INDEX ON VIEW')) {
+    if (upper.includes('CANNOT CREATE INDEX ON VIEW') || upper.includes('VIEWS MAY NOT BE INDEXED')) {
         return { reason: 'SQL_OBJECT_STATE_ERROR', objectStateErrorType: 'wrong object type', objectType: 'table or view', objectName: extractAfterKeyword(message, 'view'), databaseErrorCode, databaseErrorMessage }
     }
     if (upper.includes('AMBIGUOUS COLUMN NAME:')) {
@@ -341,6 +341,15 @@ function getSqliteEngineMessageReason(upper: string, message: string, databaseEr
         || upper.includes('TOO MANY TERMS IN ORDER BY CLAUSE')
         || upper.includes('TOO MANY TERMS IN GROUP BY CLAUSE')) {
         return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('NO SUCH SAVEPOINT:')) {
+        return { reason: 'TRANSACTION_ERROR', transactionErrorType: 'invalid savepoint', databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper === 'INTEGER OVERFLOW') {
+        return { reason: 'SQL_INVALID_VALUE', errorType: 'out of range', databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.startsWith('MALFORMED JSON')) {
+        return { reason: 'SQL_INVALID_VALUE', errorType: 'invalid json', databaseErrorCode, databaseErrorMessage }
     }
     if (upper.includes('STRING OR BLOB TOO BIG')) {
         return { reason: 'SQL_INVALID_VALUE', errorType: 'too long', databaseErrorCode, databaseErrorMessage }
@@ -580,6 +589,7 @@ function isSqliteWindowingStatementError(upper: string): boolean {
         || upper.includes('CANNOT OVERRIDE FRAME SPECIFICATION OF WINDOW')
         || upper.includes('CANNOT OVERRIDE PARTITION CLAUSE OF WINDOW')
         || upper.includes('CANNOT OVERRIDE ORDER BY CLAUSE OF WINDOW')
+        || upper.includes('UNSUPPORTED FRAME SPECIFICATION')
 }
 
 function isSqliteRecursiveStatementError(upper: string): boolean {

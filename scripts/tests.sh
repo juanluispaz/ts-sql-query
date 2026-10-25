@@ -27,7 +27,7 @@ Usage:
                    # Reports & coverage:
                    [--report    [--report-format <name>]…]
                    [--coverage  [--coverage-format <name>]…
-                              [--coverage-scope <library|runners|all>]]
+                              [--coverage-scope <library|runners|mappers|all>]]
                    [--open]
                    # Narrowing (runtime-agnostic):
                    [--update-snapshots]
@@ -358,7 +358,7 @@ Coverage flags
         the report stays a single artifact. Forbidden combo:
         --coverage + --wasm + --mode parallel on the full matrix; use
         --mode sequential, pass coords, or drop one of the flags.
-  --coverage-scope <library|runners|all>
+  --coverage-scope <library|runners|mappers|all>
         Which source the coverage report measures. `library` (default)
         is the library without its query runners: src/ minus
         src/examples, src/queryRunners/* and the two error-mapper
@@ -368,14 +368,16 @@ Coverage flags
         connectorErrorMappers / databaseErrorMappers folders): a
         separate report so the runners' driver code doesn't dilute the
         library's. It only means something with the connectors running
-        against their real engines (--docker/--wasm/--native). `all` is
+        against their real engines (--docker/--wasm/--native). `mappers`
+        is the two error-mapper folders only (connectorErrorMappers /
+        databaseErrorMappers), the same way. `all` is
         every file under src/ but the legacy examples (library, runners
         and error mappers in one report). Works under both runners:
-        under bun test `runners` / `all` need --mode sequential (bun's
+        under bun test `runners` / `mappers` / `all` need --mode sequential (bun's
         parallel workers only read the repo's bunfig.toml); with vitest
         (--use-vitest) it runs in parallel and gains branch coverage,
         and vitest on Bun under `bun run` still runs the Bun runners
-        real. See coverage:runners.
+        real. See coverage:runners and coverage:mappers.
   --coverage-format <name>
         Repeatable. Default `html` when --coverage is on. Under
         vitest, every @vitest/coverage-v8 reporter is supported
@@ -1057,8 +1059,8 @@ validate_open_request || exit $?
 # --parallel workers ignore `--config` and read the repo's bunfig.toml, so a
 # non-default scope under bun test needs --mode sequential.
 case "$COVERAGE_SCOPE" in
-    library|runners|all) ;;
-    *) echo "Error: --coverage-scope must be 'library', 'runners' or 'all' (got '$COVERAGE_SCOPE')." >&2; exit 2 ;;
+    library|runners|mappers|all) ;;
+    *) echo "Error: --coverage-scope must be 'library', 'runners', 'mappers' or 'all' (got '$COVERAGE_SCOPE')." >&2; exit 2 ;;
 esac
 if [ "$COVERAGE_SCOPE" != "library" ] && [ "$COVERAGE" != "on" ]; then
     echo "Error: --coverage-scope $COVERAGE_SCOPE needs --coverage." >&2; exit 2

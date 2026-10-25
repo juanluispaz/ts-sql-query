@@ -1,5 +1,6 @@
 # Defaults for bun:test coverage: the tests CLI's `--coverage-scope library`,
-# mirrored from vitest.config.ts (the `runners` scope is vitest-only).
+# mirrored from vitest.config.ts (the other scopes get a generated bunfig, see
+# write_scoped_bunfig in scripts/_test-common.sh).
 #
 # The list scopes coverage to the library without its query runners:
 #   * src/examples/**  — legacy executable examples; not the test/
@@ -7,7 +8,7 @@
 #   * test/**          — test infrastructure and the test files
 #                        themselves.
 #   * src/queryRunners/* and the two error-mapper folders — driver code,
-#     measured on its own by `--coverage-scope runners`.
+#     measured on their own by `--coverage-scope runners` / `mappers`.
 [test]
 # Force UTC before any test module loads (see test/lib/setupTimezone.ts).
 preload = ["./test/lib/setupTimezone.ts"]

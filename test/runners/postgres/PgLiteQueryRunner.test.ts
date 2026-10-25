@@ -9,6 +9,8 @@ import { describeRunnerContract } from '../lib/runnerContract.js'
 for (const nested of [false, true]) {
     describeRunnerContract({
         label: nested ? 'PgLiteQueryRunner (allowNestedTransactions)' : 'PgLiteQueryRunner',
+        errorScenarios: !nested,
+        sharedDatabase: false,
         dialect: postgresDialect,
         runnerClass: PgLiteQueryRunner,
         realEnabled: isRealDbEnabled('postgres', 'wasm', 'newest', 'pglite'),

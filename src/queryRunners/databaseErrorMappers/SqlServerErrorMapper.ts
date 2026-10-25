@@ -169,6 +169,8 @@ export function getSqlServerEngineErrorReason(error: SqlServerEngineError): TsSq
         case 41305:
         case 41325:
             return { reason: 'TRANSACTION_ERROR', ...getMetadata(context), transactionErrorType: 'serialization failure' }
+        case 6401:
+            return { reason: 'TRANSACTION_ERROR', ...getMetadata(context), transactionErrorType: 'invalid savepoint' }
         case 3902:
         case 3903:
             return { reason: 'NOT_IN_TRANSACTION', ...getMetadata(context) }

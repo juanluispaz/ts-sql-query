@@ -12,8 +12,8 @@ describeRunnerContract({
     dialect: mysqlDialect,
     runnerClass: MySql2QueryRunner,
     realEnabled: isRealDbEnabled('mysql', 'docker', 'newest', 'mysql2'),
-    async create() {
-        const db = await acquireRunnerTestDatabase()
+    async create(failure) {
+        const db = await acquireRunnerTestDatabase(failure)
         const connection = mysql2.createConnection({ host: db.host, port: db.port, user: db.user, password: db.password, database: db.database })
         return {
             runner: new MySql2QueryRunner(connection),

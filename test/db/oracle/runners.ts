@@ -24,6 +24,8 @@ import {
     VALIDATE_LOCK_NAME,
     workerName,
     workerNameLikePattern,
+    type RunnerConnectionFailure,
+    UNREACHABLE_PORT,
 } from '../../lib/containerLifecycle.js'
 import { imageForCell, newestImage } from '../../lib/dockerImages.js'
 import { createTestContext, type TestContext } from '../../lib/testContext.js'
@@ -630,12 +632,22 @@ export function createOracleDBPoolTestContext(spec: OracleTestSpec): OracleTestC
 
 // The engine and worker database the query-runner tests in test/runners/
 // connect their own driver to: the newest image, with the worker database
-// bootstrapped exactly as the cells get it.
-export async function acquireRunnerTestDatabase(): Promise<{ user: string, password: string, connectString: string, release(): Promise<void> }> {
+// bootstrapped exactly as the cells get it. With a `failure`, the parameters
+// of a connection that fails that way (nothing is held: release() is a no-op).
+export async function acquireRunnerTestDatabase(failure?: RunnerConnectionFailure): Promise<{ user: string, password: string, connectString: string, release(): Promise<void> }> {
     const image = newestImage(DATABASE)
     const container = await containers.getFor(image).acquire()
     const host = container.getHost()
     const port = container.getMappedPort(1521)
     const user = await bootstrapWorkerUserSchemaAndSeed(host, port, image)
+    if (failure) {
+        await containers.getFor(image).release()
+        return {
+            user,
+            password: failure === 'wrong password' ? 'rt_err_wrong' : APP_PASSWORD,
+            connectString: `${host}:${failure === 'unreachable' ? UNREACHABLE_PORT : port}/${failure === 'unknown database' ? 'rt_err_missing_service' : serviceNameForImage(image)}`,
+            release: async () => undefined,
+        }
+    }
     return { user, password: APP_PASSWORD, connectString: `${host}:${port}/${serviceNameForImage(image)}`, release: () => containers.getFor(image).release() }
 }

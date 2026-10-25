@@ -67,6 +67,17 @@ export const META_DB_NAME = 'tssqlquery_meta'
  * `${BASE_ORACLE_USER}` as the per-worker schema-owner instead.
  */
 export const BASE_WORKER_DB_NAME = 'tssqlquery'
+
+/**
+ * A connection the query-runner tests in test/runners/ make fail on purpose:
+ * `acquireRunnerTestDatabase(failure)` returns the engine's connection
+ * parameters with a wrong password, a port nothing listens on, or a database
+ * that doesn't exist.
+ */
+export type RunnerConnectionFailure = 'wrong password' | 'unreachable' | 'unknown database'
+
+/** A port nothing listens on: the connection is refused at once. */
+export const UNREACHABLE_PORT = 1
 export const BASE_ORACLE_USER = 'tsapp'
 
 /**

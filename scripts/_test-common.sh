@@ -18,10 +18,11 @@ detect_runtime() {
 }
 
 # Write a bunfig.toml whose coveragePathIgnorePatterns select the given
-# --coverage-scope (`runners` | `all`) and echo its path. Everything else is
-# copied from the repo's bunfig.toml (the `library` scope). bun only takes the
-# ignore patterns from its config file, so `runners` lists everything under
-# src/ that is NOT a top-level src/queryRunners/*.ts file.
+# --coverage-scope (`runners` | `mappers` | `all`) and echo its path.
+# Everything else is copied from the repo's bunfig.toml (the `library` scope).
+# bun only takes the ignore patterns from its config file, so `runners` lists
+# everything under src/ that is NOT a top-level src/queryRunners/*.ts file, and
+# `mappers` everything that is NOT in the two error-mapper folders.
 #
 #   Args: <scope>
 write_scoped_bunfig() {
@@ -30,6 +31,13 @@ write_scoped_bunfig() {
         all) patterns='"src/examples/**", "test/**"' ;;
         runners)
             patterns='"test/**", "src/queryRunners/connectorErrorMappers/**", "src/queryRunners/databaseErrorMappers/**"'
+            for entry in src/*; do
+                name="${entry#src/}"
+                [ "$name" = "queryRunners" ] && continue
+                if [ -d "$entry" ]; then patterns="$patterns, \"src/$name/**\""; else patterns="$patterns, \"src/$name\""; fi
+            done ;;
+        mappers)
+            patterns='"test/**", "src/queryRunners/*.ts"'
             for entry in src/*; do
                 name="${entry#src/}"
                 [ "$name" = "queryRunners" ] && continue

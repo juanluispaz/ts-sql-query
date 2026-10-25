@@ -23,6 +23,8 @@ import {
     VALIDATE_LOCK_NAME,
     workerName,
     workerNameLikePattern,
+    type RunnerConnectionFailure,
+    UNREACHABLE_PORT,
 } from '../../lib/containerLifecycle.js'
 import { imageForCell, newestImage } from '../../lib/dockerImages.js'
 import { createTestContext, type TestContext } from '../../lib/testContext.js'
@@ -517,8 +519,9 @@ export function createMssqlPoolTestContext(spec: MssqlTestSpec): SqlServerTestCo
 
 // The engine and worker database the query-runner tests in test/runners/
 // connect their own driver to: the newest image, with the worker database
-// bootstrapped exactly as the cells get it.
-export async function acquireRunnerTestDatabase(): Promise<{ config: import('mssql').config, mssql: typeof import('mssql'), release(): Promise<void> }> {
+// bootstrapped exactly as the cells get it. With a `failure`, the parameters
+// of a connection that fails that way (nothing is held: release() is a no-op).
+export async function acquireRunnerTestDatabase(failure?: RunnerConnectionFailure): Promise<{ config: import('mssql').config, mssql: typeof import('mssql'), release(): Promise<void> }> {
     const image = newestImage(DATABASE)
     const container = await containers.getFor(image).acquire()
     const host = container.getHost()
@@ -531,6 +534,13 @@ export async function acquireRunnerTestDatabase(): Promise<{ config: import('mss
         options: { encrypt: false, trustServerCertificate: true },
         connectionTimeout: 30_000,
         requestTimeout: 60_000,
+    }
+    if (failure) {
+        await containers.getFor(image).release()
+        if (failure === 'wrong password') config.password = 'rt_err_wrong'
+        if (failure === 'unreachable') config.port = UNREACHABLE_PORT
+        if (failure === 'unknown database') config.database = 'rt_err_missing_db'
+        return { config, mssql: await loadMssql(), release: async () => undefined }
     }
     return { config, mssql: await loadMssql(), release: () => containers.getFor(image).release() }
 }

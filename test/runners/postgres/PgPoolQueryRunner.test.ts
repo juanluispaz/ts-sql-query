@@ -10,13 +10,14 @@ import { describeRunnerContract } from '../lib/runnerContract.js'
 for (const nested of [false, true]) {
     describeRunnerContract({
         label: nested ? 'PgPoolQueryRunner (allowNestedTransactions)' : 'PgPoolQueryRunner',
+        errorScenarios: !nested,
         pool: true,
         dialect: postgresDialect,
         runnerClass: PgPoolQueryRunner,
         realEnabled: isRealDbEnabled('postgres', 'docker', 'newest', 'pg'),
         nestedTransactions: nested,
-        async create() {
-            const db = await acquireRunnerTestDatabase()
+        async create(failure) {
+            const db = await acquireRunnerTestDatabase(failure)
             const pool = new pg.Pool({ connectionString: db.uri, max: 2 })
             return {
                 runner: new PgPoolQueryRunner(pool, { allowNestedTransactions: nested }),

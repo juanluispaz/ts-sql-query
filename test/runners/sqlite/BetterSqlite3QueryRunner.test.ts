@@ -11,6 +11,7 @@ import { describeRunnerContract } from '../lib/runnerContract.js'
 for (const sync of [false, true]) {
     describeRunnerContract({
         label: sync ? 'BetterSqlite3QueryRunner (SynchronousPromise)' : 'BetterSqlite3QueryRunner',
+        errorScenarios: !sync,
         dialect: sqliteDialect,
         runnerClass: BetterSqlite3QueryRunner,
         realEnabled: isRealDbEnabled('sqlite', 'native', 'newest', sync ? 'better-sqlite3-sync' : 'better-sqlite3'),

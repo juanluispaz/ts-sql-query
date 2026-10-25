@@ -47,6 +47,7 @@ function getBunSqlMySqlEngineOrConnectorErrorReason(error: BunSqlMySqlError, dat
 function getKnownBunSqlMySqlConnectorErrorReason(error: BunSqlMySqlError): TsSqlErrorReason | undefined {
     switch (error.code) {
         case 'ERR_MYSQL_CONNECTION_CLOSED':
+        case 'ERR_MYSQL_CONNECTION_REFUSED':
             return withBunSqlMySqlErrorMetadata({ reason: 'SQL_CONNECTION_ERROR', errorType: 'connection lost' }, error)
         case 'ERR_MYSQL_CONNECTION_TIMEOUT':
         case 'ERR_MYSQL_IDLE_TIMEOUT':

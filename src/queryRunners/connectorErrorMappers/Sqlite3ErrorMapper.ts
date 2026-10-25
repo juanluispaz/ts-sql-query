@@ -24,7 +24,7 @@ function getSqlite3DriverErrorReason(error: Sqlite3Error): TsSqlErrorReason {
     const databaseErrorCode = getSqlite3DatabaseErrorCode(error)
     const databaseErrorNumber = getSqlite3DatabaseErrorNumber(error)
     const databaseErrorMessage = error.message || undefined
-    const message = error.message || ''
+    const message = normalizeSqlite3ErrorMessage(error.message || '')
     const upper = message.toUpperCase()
 
     if (upper.includes('DATABASE IS NOT OPEN')
@@ -43,7 +43,22 @@ function getSqlite3DriverErrorReason(error: Sqlite3Error): TsSqlErrorReason {
         return { reason: 'SQL_INTERNAL_ERROR', errorType: 'api misuse', databaseErrorCode, databaseErrorNumber, databaseErrorMessage }
     }
 
-    return getSqliteEngineErrorReason({ code: getSqlite3ErrorCode(error), databaseErrorCode, databaseErrorNumber, message })
+    return withOriginalSqlite3ErrorMessage(
+        getSqliteEngineErrorReason({ code: getSqlite3ErrorCode(error), databaseErrorCode, databaseErrorNumber, message }),
+        databaseErrorMessage
+    )
+}
+
+/** sqlite3 prefixes the engine's message with its code: "SQLITE_CONSTRAINT: UNIQUE constraint failed: t.id". */
+function normalizeSqlite3ErrorMessage(message: string): string {
+    return message.replace(/^SQLITE_[A-Z0-9_]+:\s*/, '')
+}
+
+function withOriginalSqlite3ErrorMessage(errorReason: TsSqlErrorReason, databaseErrorMessage: string | undefined): TsSqlErrorReason {
+    if (!databaseErrorMessage) {
+        return errorReason
+    }
+    return { ...errorReason, databaseErrorMessage } as TsSqlErrorReason
 }
 
 function getSqlite3DatabaseErrorCode(error: Sqlite3Error): TsSqlDatabaseErrorCode | undefined {

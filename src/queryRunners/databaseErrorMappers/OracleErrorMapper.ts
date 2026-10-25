@@ -109,6 +109,8 @@ function getOracleErrorReasonFromNumber(context: OracleErrorContext): TsSqlError
         case 40441:
         case 40587:
             return getInvalidValue(context, 'invalid json', extractOracleTableAndColumnNames(context.message))
+        case 8004:
+            return getInvalidValue(context, 'sequence limit')
         case 31011:
         case 31013:
             return getInvalidValue(context, 'invalid xml', extractOracleTableAndColumnNames(context.message))

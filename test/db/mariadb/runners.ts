@@ -23,6 +23,8 @@ import {
     VALIDATE_LOCK_NAME,
     workerName,
     workerNameLikePattern,
+    type RunnerConnectionFailure,
+    UNREACHABLE_PORT,
 } from '../../lib/containerLifecycle.js'
 import { imageForCell, newestImage } from '../../lib/dockerImages.js'
 import { createTestContext, type TestContext } from '../../lib/testContext.js'
@@ -473,12 +475,24 @@ export function createBunSqlMariaDBTestContext(spec: MariaDBTestSpec): MariaDBTe
 
 // The engine and worker database the query-runner tests in test/runners/
 // connect their own driver to: the newest image, with the worker database
-// bootstrapped exactly as the cells get it.
-export async function acquireRunnerTestDatabase(): Promise<{ host: string, port: number, user: string, password: string, database: string, release(): Promise<void> }> {
+// bootstrapped exactly as the cells get it. With a `failure`, the parameters
+// of a connection that fails that way (nothing is held: release() is a no-op).
+export async function acquireRunnerTestDatabase(failure?: RunnerConnectionFailure): Promise<{ host: string, port: number, user: string, password: string, database: string, release(): Promise<void> }> {
     const image = newestImage(DATABASE)
     const container = await containers.getFor(image).acquire()
     const host = container.getHost()
     const port = container.getMappedPort(3306)
     const database = await bootstrapWorkerDbSchemaAndSeed(host, port)
+    if (failure) {
+        await containers.getFor(image).release()
+        return {
+            host,
+            port: failure === 'unreachable' ? UNREACHABLE_PORT : port,
+            user: 'root',
+            password: failure === 'wrong password' ? 'rt_err_wrong' : ROOT_PASSWORD,
+            database: failure === 'unknown database' ? 'rt_err_missing_db' : database,
+            release: async () => undefined,
+        }
+    }
     return { host, port, user: 'root', password: ROOT_PASSWORD, database, release: () => containers.getFor(image).release() }
 }

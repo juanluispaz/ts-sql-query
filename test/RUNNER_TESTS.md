@@ -17,6 +17,7 @@ whatever class hierarchy implements it.
 | Path | What |
 |---|---|
 | `runners/lib/runnerContract.ts` | `describeRunnerContract(...)`: the behaviour every runner promises — the five select shapes and their shape errors, inserts / updates / deletes with and without RETURNING, ids, procedures and functions, transactions (levels, access modes, nesting, the state guards), concurrent use, the rest of the interface and error classification |
+| `runners/lib/errorScenarios.ts` | the real errors provoked per database (`error.*` tests) and how a connection that fails on purpose is reported — see [The error scenarios](#the-error-scenarios) |
 | `runners/lib/dialects.ts` | the hand-written SQL per database: the probe tables, function and procedure the contract creates, and the statement shapes the SqlBuilders emit there (RETURNING / OUTPUT / RETURNING INTO, `from dual`, …). What a database can't do is a missing entry, and the matching test is skipped |
 | `runners/lib/queryRunnerCalls.ts` | every executing `QueryRunner` method with the shape of what it returns, for the database-less tests |
 | `runners/<db>/<Runner>.test.ts` | one file per driver runner: a factory for the runner (and its variants: `SynchronousPromise`, `allowNestedTransactions`, the `*PoolPromise` twin) handed to the contract, plus what is particular to it |
@@ -56,6 +57,32 @@ tests on Bun, `npm run` on Node — and each runtime runs what it can: on Node
 the Bun runners are skipped. `--use-node` forces Node under `bun run`, and
 `--use-bun` forces Bun under `npm run`; Bun runs every runner, so the
 `coverage:runners*` scripts pass `--use-bun` to measure them all.
+
+## The error scenarios
+
+The `error.*` tests check the error mappers (`connectorErrorMappers/`,
+`databaseErrorMappers/`) on real errors. Each scenario in
+`lib/errorScenarios.ts` provokes one error on the engine — a duplicate key,
+a missing table, a deadlock or a lock timeout between two sessions, a
+statement cancelled from another session — and states the `errorReason` it
+must be reported as, from what the error means, not from what the mapper
+returns. Every runner of the database runs every scenario, so each one also
+checks how that driver's error object is read (code, number, names).
+
+- A scenario creates its own objects (`rt_err_*`) and drops them afterwards.
+- `serverOnly` scenarios need a second session on the same database, or a
+  condition an in-process engine doesn't survive; they skip on PGlite and
+  SQLite. `onlyRunners` limits a scenario to the drivers the error depends
+  on.
+- A variant of a runner (nested transactions, `SynchronousPromise`) maps
+  errors the same way and passes `errorScenarios: false`.
+
+Besides them, each database server's runner is built with a wrong password,
+a port nothing listens on and a database that doesn't exist —
+`create(failure)`, from `acquireRunnerTestDatabase(failure)` — and every
+runner runs a query on a connection it already closed
+(`error.query-on-a-closed-connection`). Their coverage is
+[`coverage:mappers`](./CLI.md#coverage-of-the-error-mappers).
 
 ## The params the SqlBuilders annotate
 

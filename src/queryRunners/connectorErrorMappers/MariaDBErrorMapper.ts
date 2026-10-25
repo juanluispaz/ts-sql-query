@@ -116,6 +116,12 @@ export function isMariaDbError(error: unknown): error is SqlError {
 }
 
 function getMariaDbDriverOrEngineErrorReason(error: SqlError, database?: DatabaseType): TsSqlErrorReason {
+    // The pool reports a connection it could not open as a timeout getting one;
+    // the reason the connection failed (a wrong password, a refused port) is its cause
+    const cause = (error as { cause?: unknown }).cause
+    if (getMariaDbStringCode(error) === 'ER_GET_CONNECTION_TIMEOUT' && cause !== error && isMariaDbError(cause)) {
+        return getMariaDbDriverOrEngineErrorReason(cause, database)
+    }
     const message = error.sqlMessage || error.message || ''
 
     const reason = getKnownMariaDbDriverErrorReason(error, message, database)

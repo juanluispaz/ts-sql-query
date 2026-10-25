@@ -25,6 +25,8 @@ const filter = {
     '**/src/examples/**': false,
     ...(scope === 'runners'
         ? { '**/src/queryRunners/*/**': false, '**/src/queryRunners/**': true, '**/src/**': false }
+        : scope === 'mappers'
+            ? { '**/src/queryRunners/connectorErrorMappers/**': true, '**/src/queryRunners/databaseErrorMappers/**': true, '**/src/**': false }
         : scope === 'all'
             ? { '**/src/**': true }
             : { '**/src/queryRunners/**': false, '**/src/**': true }),
@@ -49,7 +51,7 @@ const config = {
     // (`coveragePathIgnorePatterns`) so all three entry points
     // produce coverage for the same set of files, per the tests
     // CLI's `--coverage-scope` (TS_SQL_QUERY_COVERAGE_SCOPE):
-    // `library` (default), `runners` or `all`.
+    // `library` (default), `runners`, `mappers` or `all`.
     //
     // sourceFilter applies to the source files; entryFilter to the
     // V8 raw-coverage entries before sourcemap unpacking (under the

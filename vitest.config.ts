@@ -72,9 +72,13 @@ export default defineConfig({
             //     because their driver code would dilute the library's signal.
             //   * runners: the query runners alone (the error-mapper folders
             //     are not part of it), as a separate report.
+            //   * mappers: the two error-mapper folders alone, as a separate
+            //     report.
             //   * all: every file under src/ but the legacy examples.
             ...(process.env['TS_SQL_QUERY_COVERAGE_SCOPE'] === 'runners'
                 ? { include: ['src/queryRunners/*.ts'] }
+                : process.env['TS_SQL_QUERY_COVERAGE_SCOPE'] === 'mappers'
+                    ? { include: ['src/queryRunners/connectorErrorMappers/*.ts', 'src/queryRunners/databaseErrorMappers/*.ts'] }
                 : process.env['TS_SQL_QUERY_COVERAGE_SCOPE'] === 'all'
                     ? { include: ['src/**/*.ts'], exclude: ['src/examples/**'] }
                     : { exclude: ['src/examples/**', 'test/**', 'src/queryRunners/*', 'src/queryRunners/connectorErrorMappers/*', 'src/queryRunners/databaseErrorMappers/*'] }),

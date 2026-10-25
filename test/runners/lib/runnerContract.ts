@@ -12,6 +12,7 @@ import { ChainedQueryRunner } from '../../../src/queryRunners/ChainedQueryRunner
 import { setContainsMutationReturningClause, setParamType } from '../../../src/utils/queryParamsMetadata.js'
 import type { RunnerDialect } from './dialects.js'
 import { CONNECTION_FAILURES, ERROR_SCENARIOS } from './errorScenarios.js'
+import { DRIVER_NAMED_ERROR_NUMBERS, raisedErrors } from './raisedErrors.js'
 import type { RunnerConnectionFailure } from '../../lib/containerLifecycle.js'
 
 type RunnerClass = { getErrorReason(error: unknown, database?: any): { reason: string }, isSqlError(error: unknown): boolean }
@@ -781,6 +782,31 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
                         await runner.executeDatabaseSchemaModification(sql).catch(() => undefined)
                     }
                 }
+            }, timeout)
+        }
+
+        // The codes the engine raises on demand, on a session of their own: a
+        // code that means a broken connection may break it, and then it is replaced
+        const raised = opts.errorScenarios === false || !sharedDatabase ? [] : raisedErrors(dialect.database)
+        let raiseSession: RunnerUnderTest | undefined
+        afterAll(async () => {
+            await raiseSession?.close().catch(() => undefined)
+            raiseSession = undefined
+        }, timeout)
+        for (const entry of raised) {
+            test('raised.' + entry.number, async () => {
+                raiseSession ??= await opts.create()
+                const session = raiseSession
+                const error = await rejectionOf(session.runner.executeUpdate(entry.sql))
+                try {
+                    await session.runner.executeSelectManyRows('select 1' + dialect.fromNoTable)
+                } catch {
+                    raiseSession = undefined
+                    await Promise.race([session.close().catch(() => undefined), new Promise(resolve => setTimeout(resolve, 2000))])
+                }
+                expect(session.runner.isSqlError(error)).toBe(true)
+                const code = dialect.database === 'mySql' && DRIVER_NAMED_ERROR_NUMBERS.has(entry.number as number) ? {} : { databaseErrorCode: entry.code }
+                expect(session.runner.getErrorReason(error)).toMatchObject({ ...entry.expected, ...code, databaseErrorNumber: entry.number })
             }, timeout)
         }
 

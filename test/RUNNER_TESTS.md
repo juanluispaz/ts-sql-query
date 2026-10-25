@@ -18,6 +18,7 @@ whatever class hierarchy implements it.
 |---|---|
 | `runners/lib/runnerContract.ts` | `describeRunnerContract(...)`: the behaviour every runner promises — the five select shapes and their shape errors, inserts / updates / deletes with and without RETURNING, ids, procedures and functions, transactions (levels, access modes, nesting, the state guards), concurrent use, the rest of the interface and error classification |
 | `runners/lib/errorScenarios.ts` | the real errors provoked per database (`error.*` tests) and how a connection that fails on purpose is reported — see [The error scenarios](#the-error-scenarios) |
+| `runners/lib/raisedErrors.ts`, `runners/lib/documentedMappings.ts` | the codes the engine raises on demand (`raised.*` tests), with their expected reason read from the native mapping docs — see [The raised errors](#the-raised-errors) |
 | `runners/lib/dialects.ts` | the hand-written SQL per database: the probe tables, function and procedure the contract creates, and the statement shapes the SqlBuilders emit there (RETURNING / OUTPUT / RETURNING INTO, `from dual`, …). What a database can't do is a missing entry, and the matching test is skipped |
 | `runners/lib/queryRunnerCalls.ts` | every executing `QueryRunner` method with the shape of what it returns, for the database-less tests |
 | `runners/<db>/<Runner>.test.ts` | one file per driver runner: a factory for the runner (and its variants: `SynchronousPromise`, `allowNestedTransactions`, the `*PoolPromise` twin) handed to the contract, plus what is particular to it |
@@ -83,6 +84,26 @@ a port nothing listens on and a database that doesn't exist —
 runner runs a query on a connection it already closed
 (`error.query-on-a-closed-connection`). Their coverage is
 [`coverage:mappers`](./CLI.md#coverage-of-the-error-mappers).
+
+## The raised errors
+
+Most error codes have no condition a test can provoke — a full disk, a
+corrupted page, a replication failure — but the engine can raise them on
+demand: PostgreSQL's `raise exception ... using errcode`, MySQL and MariaDB's
+`signal ... set mysql_errno`, Oracle's `pragma exception_init` + `raise`,
+SQL Server's `raiserror` (only from 13000). The engine and the driver are
+real; only the condition is not.
+
+The `raised.<code>` tests take every code the native mapping docs
+(`docs/api/error-management/native-mappings/*.md`) list, have the engine
+raise it on a session of their own (replaced if the code breaks it), and
+check the library reports the reason and subtype of its row: the docs are
+the expectation, so a mapper change that doesn't update its row fails here.
+Left out, with the reason in `raisedErrors.ts`: entries that depend on the
+message or come from a connector, the client library's own codes (MySQL
+`CR_*`), the Oracle codes the thin driver treats as a broken connection, and
+the SQL Server messages that aren't in `sys.messages` or use a placeholder
+`raiserror` doesn't take.
 
 ## The params the SqlBuilders annotate
 

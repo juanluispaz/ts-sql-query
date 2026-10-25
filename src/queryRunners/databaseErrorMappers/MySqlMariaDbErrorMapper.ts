@@ -11,6 +11,11 @@ const MYSQL_COLLATION_NOT_FOUND_ERROR_NUMBERS = new Set([28, 1273])
 const MYSQL_OBJECT_NOT_FOUND_EXTRA_ERROR_NUMBERS = new Set([3548, 3902])
 const MYSQL_OBJECT_ALREADY_EXISTS_EXTRA_ERROR_NUMBERS = new Set([3712])
 const MYSQL_DEPENDENT_OBJECTS_STILL_EXIST_ERROR_NUMBERS = new Set([3716])
+// Numbers both engines name differently that still mean the same error: a spelling
+// MySQL kept (ER_KEY_DOES_NOT_EXITS) or a name one of them revised.
+const MYSQL_MARIADB_RENAMED_ERROR_NUMBERS = new Set([1072, 1176, 1252, 1506, 1507, 1796, 1826])
+// ER_QUERY_TIMEOUT: MAX_EXECUTION_TIME / max_execution_time exceeded (MariaDB has its own, in MARIADB_STATEMENT_TIMEOUT_ERROR_NUMBERS).
+const MYSQL_STATEMENT_TIMEOUT_ERROR_NUMBERS = new Set([3024])
 // The ICU regular-expression errors that mean the pattern itself is invalid
 // (the others are engine limits: buffer, stack, time, pattern size).
 const MYSQL_INVALID_REGULAR_EXPRESSION_ERROR_NUMBERS = new Set([3688, 3689, 3691, 3692, 3693, 3694, 3695, 3696, 3697, 3887, 3900])
@@ -205,7 +210,7 @@ function getMySqlMariaDbErrorReasonFromNumber(
     if (hasMySqlSemanticErrorNumber(errorNumber, MYSQL_EXTERNAL_DATA_SOURCE_ERROR_NUMBERS, database, code, 'external_data_source') || hasMariaDbSemanticErrorNumber(errorNumber, ErrorCodes.MARIADB_EXTERNAL_DATA_SOURCE_ERROR_NUMBERS, database, code, 'external_data_source')) {
         return { reason: 'SQL_EXTERNAL_DATA_SOURCE_ERROR', databaseErrorCode, databaseErrorMessage }
     }
-    if (hasMariaDbSemanticErrorNumber(errorNumber, ErrorCodes.MARIADB_STATEMENT_TIMEOUT_ERROR_NUMBERS, database, code, 'timeout')) {
+    if (hasMariaDbSemanticErrorNumber(errorNumber, ErrorCodes.MARIADB_STATEMENT_TIMEOUT_ERROR_NUMBERS, database, code, 'timeout') || hasMySqlSemanticErrorNumber(errorNumber, MYSQL_STATEMENT_TIMEOUT_ERROR_NUMBERS, database, code, 'timeout')) {
         return { reason: 'SQL_TIMEOUT', databaseErrorCode, databaseErrorMessage, timeoutType: 'statement' }
     }
     if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_CONNECTION_TIMEOUT_ERROR_NUMBERS, database, code, 'timeout')) {
@@ -444,6 +449,9 @@ function hasMariaDbSemanticErrorNumber(
 }
 
 function isCollidingErrorNumber(errorNumber: number): boolean {
+    if (MYSQL_MARIADB_RENAMED_ERROR_NUMBERS.has(errorNumber)) {
+        return false
+    }
     const mySqlCode = getMySqlMariaDbErrorCodeName(errorNumber, 'mySql')
     const mariaDbCode = getMySqlMariaDbErrorCodeName(errorNumber, 'mariaDB')
     return !!mySqlCode && !!mariaDbCode && mySqlCode !== mariaDbCode

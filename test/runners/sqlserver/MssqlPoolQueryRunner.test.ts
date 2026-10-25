@@ -64,6 +64,36 @@ for (const promisePool of [false, true]) {
             expect(await r.executeSelectOneColumnOneRow(sessionLevel)).toBe(2)
         })
 
+        test('does-not-outlive-a-doomed-transaction', async () => {
+            // XACT_ABORT plus a caught error leaves the transaction uncommittable:
+            // the server rolls it back at the end of the batch (error 3998).
+            const r = runner!
+            await r.executeBeginTransaction(['serializable'])
+            const doom = 'set xact_abort on; begin try select 1/0 end try begin catch end catch'
+            expect(r.isSqlError(await rejectionOf(r.executeSelectManyRows(doom)))).toBe(true)
+            await r.executeRollback().catch(() => undefined)
+            expect(r.isTransactionActive()).toBe(false)
+            expect(await r.executeSelectOneColumnOneRow(sessionLevel)).toBe(2)
+        })
+
+        test('a-level-that-cannot-be-put-back-discards-the-connection', async () => {
+            // A SET that fails on a healthy connection can't be provoked, so the
+            // transaction's requests are made to fail (injected) once the
+            // transaction has done its work: the level can't be put back, the
+            // connection is discarded — and the transaction still commits.
+            const r = runner!
+            const connectionId = 'select cast(connection_id as nvarchar(36)) as id from sys.dm_exec_connections where session_id = @@spid'
+            await r.executeBeginTransaction(['serializable'])
+            const id = await r.executeSelectOneColumnOneRow(connectionId)
+            const transaction = r.getCurrentNativeTransaction() as any
+            expect(transaction).toBeDefined()
+            transaction.request = () => ({ batch: () => Promise.reject(new Error('injected SET failure')) })
+            await r.executeCommit()
+            expect(r.isTransactionActive()).toBe(false)
+            expect(await r.executeSelectOneColumnOneRow(connectionId)).not.toBe(id)
+            expect(await r.executeSelectOneColumnOneRow(sessionLevel)).toBe(2)
+        })
+
         test('the-mssql-internals-the-aborted-transaction-fix-relies-on', async () => {
             // MssqlPoolQueryRunner.discardConnectionIfAborted uses two mssql
             // internals: a transaction's `_acquiredConnection`, and the pool not

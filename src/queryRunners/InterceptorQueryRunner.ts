@@ -254,7 +254,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
                     const query: string = ''
                     const params: any[] = opts || []
                     const playload = this.onQuery('commit', query, params)
-                    this.onQueryResult('commit', query, params, r, playload)
+                    this.onQueryResult('commit', query, params, undefined, playload)
                 } catch {
                     // Keep same behaviour of the transaction
                 }

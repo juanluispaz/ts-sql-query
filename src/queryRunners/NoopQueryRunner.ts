@@ -113,11 +113,15 @@ export class NoopQueryRunner implements QueryRunner {
         return this.promise.resolve()
     }
     executeCommit(_opts: CommitOpts = []): Promise<void> {
-        this.transactionLevel--
+        if (this.transactionLevel > 0) {
+            this.transactionLevel--
+        }
         return this.promise.resolve()
     }
     executeRollback(_opts: RollbackOpts = []): Promise<void> {
-        this.transactionLevel--
+        if (this.transactionLevel > 0) {
+            this.transactionLevel--
+        }
         return this.promise.resolve()
     }
     isTransactionActive(): boolean {

@@ -240,7 +240,8 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     protected inferType(value: any): ISqlTypeFactory {
         // Inspired by: https://github.com/Hypermediaisobar-admin/node-any-db-mssql/blob/master/index.js
         if (value === null || value === undefined) {
-            return TYPES.Variant; // TYPES.Null not included in mssql
+            // A typed NULL: mssql has no TYPES.Null, and tedious can't send a Variant
+            return TYPES.NVarChar
         } else if (typeof value === 'number') {
             if (Number.isSafeInteger(value)) {
                 return TYPES.Int
@@ -252,7 +253,7 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         } else if (typeof value === 'boolean') {
             return TYPES.Bit
         } else if (value instanceof Array) {
-            return (value.length > 0 ? this.inferType(value[0]) : TYPES.Variant); // TYPES.Null not included in mssql
+            return (value.length > 0 ? this.inferType(value[0]) : TYPES.NVarChar)
         } else if (value instanceof Date) {
             switch ((value as any).___type___) {
                 case 'LocalDateTime':
@@ -276,7 +277,8 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
             } else if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
                 return TYPES.Date
             } else if (/^\d{2}\:\d{2}(?:\:\d{2})?(?:\+\d{4})?$/.test(value)) {
-                return TYPES.Time
+                // tedious binds only a Date as TIME; SQL Server converts the text where a time is expected
+                return TYPES.NVarChar
             } else if (/^\d{4}-\d{2}-\d{2}\s+\d{2}\:\d{2}(?:\:\d{2}(?:\.\d+)?)?$/.test(value)) {
                 return TYPES.DateTime2
             } else if (/^\d{4}-\d{2}-\d{2}T\d{2}\:\d{2}\:\d{2}(?:\.\d+)?$/.test(value)) {

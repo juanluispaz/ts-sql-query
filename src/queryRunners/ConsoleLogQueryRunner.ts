@@ -40,17 +40,17 @@ export class ConsoleLogQueryRunner<T extends QueryRunner> extends LoggingQueryRu
                     }${timeGranularity}]`
                     : ''
                 const separator = opts?.logTimestamps ||  opts?.logDurations ? ' ' : ''
-                if ( opts?.logResults) {
-                    if (opts?.paramsAsObject) {
-                        console.log(`${ts}${duration}${separator}${queryType}${phase}`, { query, params })
-                    } else {
-                        console.log(`${ts}${duration}${separator}${queryType}${phase}`, query, params)
-                    }
-                } else {
+                if (opts?.logResults) {
                     if (opts?.paramsAsObject) {
                         console.log(`${ts}${duration}${separator}${queryType}${phase}`, { query, params, result })
                     } else {
                         console.log(`${ts}${duration}${separator}${queryType}${phase}`, query, params, result)
+                    }
+                } else {
+                    if (opts?.paramsAsObject) {
+                        console.log(`${ts}${duration}${separator}${queryType}${phase}`, { query, params })
+                    } else {
+                        console.log(`${ts}${duration}${separator}${queryType}${phase}`, query, params)
                     }
                 }
             } : undefined,

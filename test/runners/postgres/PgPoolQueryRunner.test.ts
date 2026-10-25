@@ -17,6 +17,7 @@ for (const nested of [false, true]) {
         realEnabled: isRealDbEnabled('postgres', 'docker', 'newest', 'pg'),
         nestedTransactions: nested,
         clientTimeout: true,
+        errorFields: ['code', 'severity', 'schema', 'table', 'column', 'dataType', 'constraint'],
         async create(failure) {
             const db = await acquireRunnerTestDatabase(failure)
             const pool = new pg.Pool({ connectionString: db.uri, max: 2, ...(failure === 'client timeout' ? { query_timeout: 300 } : {}) })

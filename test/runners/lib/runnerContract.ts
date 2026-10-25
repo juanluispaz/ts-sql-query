@@ -50,6 +50,12 @@ export interface RunnerContractOptions {
      * SynchronousPromise) maps errors the same way and turns them off.
      */
     readonly errorScenarios?: boolean
+    /**
+     * Properties a real error of this driver has, that the synthetic error
+     * cases of its mapper (test/runners/general/mappers/) fill in: the guard
+     * that the shape they copy is still the driver's.
+     */
+    readonly errorFields?: readonly string[]
     /** create('client timeout') gives the driver a short timeout of its own (see CLIENT_TIMEOUTS). */
     readonly clientTimeout?: boolean
     /** A database server: a second create() reaches the same database (not an in-process one); default true but on SQLite. */
@@ -809,6 +815,13 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
                 expect(session.runner.getErrorReason(error)).toMatchObject({ ...entry.expected, ...code, databaseErrorNumber: entry.number })
             }, timeout)
         }
+
+        test.skipIf(opts.errorScenarios === false || !opts.errorFields)('error.driver-error-shape', async () => {
+            const error = await rejectionOf(r().executeSelectManyRows('select rt_err_missing from rt_probe'))
+            for (const field of opts.errorFields!) {
+                expect({ field, present: !!error && typeof error === 'object' && field in error }).toEqual({ field, present: true })
+            }
+        }, timeout)
 
         test.skipIf(opts.errorScenarios === false || !opts.clientTimeout)('error.client-timeout', async () => {
             const slow = await opts.create('client timeout')

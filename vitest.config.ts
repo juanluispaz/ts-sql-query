@@ -63,12 +63,21 @@ export default defineConfig({
             json: '.test-report/report.json',
         },
         coverage: {
-            // Coverage scope. Mirrored in bunfig.toml's
-            // `coveragePathIgnorePatterns` so both runners report on
-            // the same set of files. Drops the legacy examples and
-            // the test infrastructure itself, keeping the report
-            // focused on the library's public surface.
-            exclude: ['src/examples/**', 'test/**', 'src/queryRunners/*', 'src/queryRunners/connectorErrorMappers/*', 'src/queryRunners/databaseErrorMappers/*'],
+            // Coverage scope, chosen by the tests CLI's `--coverage-scope`
+            // (TS_SQL_QUERY_COVERAGE_SCOPE).
+            //   * library (default): the library without its query runners,
+            //     the legacy examples and the test infrastructure. Mirrored in
+            //     bunfig.toml's `coveragePathIgnorePatterns` so both runners
+            //     report on the same set of files. The runners are excluded
+            //     because their driver code would dilute the library's signal.
+            //   * runners: the query runners alone (the error-mapper folders
+            //     are not part of it), as a separate report.
+            //   * all: every file under src/ but the legacy examples.
+            ...(process.env['TS_SQL_QUERY_COVERAGE_SCOPE'] === 'runners'
+                ? { include: ['src/queryRunners/*.ts'] }
+                : process.env['TS_SQL_QUERY_COVERAGE_SCOPE'] === 'all'
+                    ? { include: ['src/**/*.ts'], exclude: ['src/examples/**'] }
+                    : { exclude: ['src/examples/**', 'test/**', 'src/queryRunners/*', 'src/queryRunners/connectorErrorMappers/*', 'src/queryRunners/databaseErrorMappers/*'] }),
             reportsDirectory: '.test-report/coverage',
         },
     },

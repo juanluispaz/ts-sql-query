@@ -15,6 +15,21 @@
 // "Unknown file extension". JSDoc + the @type import below keeps it
 // typechecked under tsc via verbatim-import inference.
 
+// The object-form filter is evaluated top-to-bottom; the first
+// matching pattern wins. Negative entries come first so they
+// pre-empt the catch-all at the bottom.
+const scope = process.env['TS_SQL_QUERY_COVERAGE_SCOPE'] ?? 'library'
+const filter = {
+    '**/node_modules/**': false,
+    '**/test/**': false,
+    '**/src/examples/**': false,
+    ...(scope === 'runners'
+        ? { '**/src/queryRunners/*/**': false, '**/src/queryRunners/**': true, '**/src/**': false }
+        : scope === 'all'
+            ? { '**/src/**': true }
+            : { '**/src/queryRunners/**': false, '**/src/**': true }),
+}
+
 /** @type {import('monocart-coverage-reports').CoverageReportOptions} */
 const config = {
     name: 'ts-sql-query coverage',
@@ -29,33 +44,19 @@ const config = {
 
     // MCR does NOT honour vitest's `coverage.exclude` automatically
     // when used as a custom provider via vitest-monocart-coverage;
-    // its own filtering is the only path. Keep this list in sync
-    // with vitest.config.ts (`test.coverage.exclude`) and
-    // bunfig.toml (`coveragePathIgnorePatterns`) so all three
-    // entry points produce coverage for the same set of files —
-    // the library's public source surface, excluding the
-    // documentation example suite and the test matrix itself.
+    // its own filtering is the only path. Keep `filter` in sync
+    // with vitest.config.ts (`test.coverage`) and bunfig.toml
+    // (`coveragePathIgnorePatterns`) so all three entry points
+    // produce coverage for the same set of files, per the tests
+    // CLI's `--coverage-scope` (TS_SQL_QUERY_COVERAGE_SCOPE):
+    // `library` (default), `runners` or `all`.
     //
-    // The object-form filter is evaluated top-to-bottom; the first
-    // matching pattern wins. Negative entries come first so they
-    // pre-empt the catch-all `'**/src/**': true` at the bottom.
-    sourceFilter: {
-        '**/node_modules/**': false,
-        '**/test/**': false,
-        '**/src/examples/**': false,
-        '**/src/**': true,
-    },
-    // entryFilter applies to V8 raw-coverage entries before
-    // sourcemap unpacking. Under the vitest+v8 path, vitest's
-    // own collector already produces entries for src files only,
-    // so this is belt-and-braces — the keys mirror sourceFilter
-    // so any leaked entry still gets caught.
-    entryFilter: {
-        '**/node_modules/**': false,
-        '**/test/**': false,
-        '**/src/examples/**': false,
-        '**/src/**': true,
-    },
+    // sourceFilter applies to the source files; entryFilter to the
+    // V8 raw-coverage entries before sourcemap unpacking (under the
+    // vitest+v8 path vitest's own collector already produces entries
+    // for src files only, so it is belt-and-braces).
+    sourceFilter: filter,
+    entryFilter: filter,
 }
 
 export default config

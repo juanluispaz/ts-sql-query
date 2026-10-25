@@ -17,6 +17,33 @@ detect_runtime() {
     printf '%s\n' "$rt"
 }
 
+# Write a bunfig.toml whose coveragePathIgnorePatterns select the given
+# --coverage-scope (`runners` | `all`) and echo its path. Everything else is
+# copied from the repo's bunfig.toml (the `library` scope). bun only takes the
+# ignore patterns from its config file, so `runners` lists everything under
+# src/ that is NOT a top-level src/queryRunners/*.ts file.
+#
+#   Args: <scope>
+write_scoped_bunfig() {
+    local scope="$1" patterns entry name
+    case "$scope" in
+        all) patterns='"src/examples/**", "test/**"' ;;
+        runners)
+            patterns='"test/**", "src/queryRunners/connectorErrorMappers/**", "src/queryRunners/databaseErrorMappers/**"'
+            for entry in src/*; do
+                name="${entry#src/}"
+                [ "$name" = "queryRunners" ] && continue
+                if [ -d "$entry" ]; then patterns="$patterns, \"src/$name/**\""; else patterns="$patterns, \"src/$name\""; fi
+            done ;;
+        *) echo "write_scoped_bunfig: unsupported scope '$scope'" >&2; return 2 ;;
+    esac
+    local dir file
+    dir="$(mktemp -d)" || return 2
+    file="$dir/bunfig.toml"
+    sed "s|^coveragePathIgnorePatterns = .*|coveragePathIgnorePatterns = [$patterns]|" bunfig.toml > "$file" || return 2
+    printf '%s\n' "$file"
+}
+
 # Run one test pass.
 #
 # Args: <runtime> <mode> <paths…>
@@ -59,10 +86,14 @@ run_phase() {
         fi
         # An empty "$@" turns into a literal "" token that `bun test`
         # interprets as a filter matching every project file AND exits 99.
+        # BUN_TEST_CONFIG: a generated bunfig with another coverage scope
+        # (--coverage-scope, see write_scoped_bunfig).
+        local config_flag=
+        if [ -n "${BUN_TEST_CONFIG:-}" ]; then config_flag="--config=$BUN_TEST_CONFIG"; fi
         if [ "$#" -gt 0 ]; then
-            bun test $parallel_flag --timeout "$tmo" "$@"
+            bun $config_flag test $parallel_flag --timeout "$tmo" "$@"
         else
-            bun test $parallel_flag --timeout "$tmo"
+            bun $config_flag test $parallel_flag --timeout "$tmo"
         fi
         ec=$?
         if [ "$ec" -eq 99 ] || [ "$ec" -eq 100 ]; then ec=0; fi
@@ -81,7 +112,15 @@ run_phase() {
         # in GC just under it). The flag is passed to the main process
         # only — forks don't inherit it, so the per-worker ceiling (and
         # the CI shards' RAM budget) is unchanged.
-        node --max-old-space-size="${VITEST_MAIN_HEAP_MB:-8192}" "$(command -v vitest || echo node_modules/.bin/vitest)" run $serial_flag --testTimeout="$tmo" "$@"
+        local vitest_bin
+        vitest_bin="$(command -v vitest || echo node_modules/.bin/vitest)"
+        if [ "${VITEST_RUNTIME:-node}" = "bun" ]; then
+            # vitest on the Bun runtime (`--use-vitest` under `bun run`): Bun
+            # manages its own heap, so the Node heap flag does not apply.
+            bun --bun "$vitest_bin" run $serial_flag --testTimeout="$tmo" "$@"
+        else
+            node --max-old-space-size="${VITEST_MAIN_HEAP_MB:-8192}" "$vitest_bin" run $serial_flag --testTimeout="$tmo" "$@"
+        fi
         ec=$?
     fi
     return $ec
@@ -1055,7 +1094,7 @@ emit_phase_legend() {
     local runner
     case "$runtime" in
         bun) runner='bun test' ;;
-        npm) runner='vitest' ;;
+        npm) runner="vitest (${VITEST_RUNTIME:-node})" ;;
         *)   runner="$runtime" ;;
     esac
     {

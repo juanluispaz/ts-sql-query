@@ -223,8 +223,10 @@ import { describe, test, expect, beforeAll, afterAll, beforeEach } from '../../.
 
 It re-exports from `#test-runtime`, an
 [imports map](../package.json) entry that resolves to
-[`testRuntime.bun.ts`](./lib/testRuntime.bun.ts) under Bun and
-[`testRuntime.vitest.ts`](./lib/testRuntime.vitest.ts) under Node. The split
+[`testRuntime.bun.ts`](./lib/testRuntime.bun.ts) under `bun test` and
+[`testRuntime.vitest.ts`](./lib/testRuntime.vitest.ts) under vitest — on Node,
+and also on Bun (`--use-vitest` under `bun run`), since vitest's resolver does
+not apply the `bun` condition. The split
 exists because a previous version used `await import('bun:test')` / `import('vitest')`
 under a top-level await — under `bun test --parallel=N` worker processes
 evaluated the importing test files before that await resolved, producing
@@ -233,9 +235,11 @@ test. Static re-exports gated by the imports map resolve at parse time, no
 TDZ window. See the comment block in
 [`testRunner.ts:9-18`](./lib/testRunner.ts#L9-L18).
 
-`TEST_RUNTIME: 'bun' | 'vitest'` ([`testRunner.ts:36`](./lib/testRunner.ts#L36))
+`TEST_RUNTIME: 'bun' | 'vitest'` ([`testRunner.ts:42`](./lib/testRunner.ts#L42))
 is the detection if you ever need to branch (you almost never do — the two
-runners' hooks are identical on the surface this suite uses).
+runners' hooks are identical on the surface this suite uses). It detects the
+**runtime** (`globalThis.Bun`), not the runner: under vitest on Bun it is
+`'bun'`, which is what a test that needs a Bun API (Bun SQL) wants.
 
 To add a new primitive (a custom matcher, a new lifecycle hook) the order is:
 1. Add to BOTH `testRuntime.bun.ts` AND `testRuntime.vitest.ts` so the import

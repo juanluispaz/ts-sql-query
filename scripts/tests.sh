@@ -21,12 +21,13 @@ Usage:
                    #   · engine / runtime controls:
                    [--docker-mode <reuse|no-reuse>]
                    [--docker-version <latest|closest>]
-                   [--use-vitest] [--ui]
+                   [--use-vitest] [--use-node] [--ui]
                    #   · no-docker CI split (memory-bounded):
                    [--shard [<1|2|3|4>]]
                    # Reports & coverage:
                    [--report    [--report-format <name>]…]
-                   [--coverage  [--coverage-format <name>]…]
+                   [--coverage  [--coverage-format <name>]…
+                              [--coverage-scope <library|runners|all>]]
                    [--open]
                    # Narrowing (runtime-agnostic):
                    [--update-snapshots]
@@ -48,10 +49,13 @@ Runs the test/ matrix. With no positional args, walks every test under
 test/. With one or more <coord> args, only those paths are visited
 (focused run — same script, same flags, narrower path set).
 Dispatches to `bun test` when invoked via `bun run`, and to
-`vitest run` when invoked via `npm run`. Direct invocation
-(`sh scripts/tests.sh`) defaults to bun. `--use-vitest` and `--ui`
-force the vitest path regardless of how the script was invoked;
-`--report` works under both runtimes (formats differ — see below).
+`vitest run` on Node when invoked via `npm run`. Direct invocation
+(`sh scripts/tests.sh`) defaults to bun. Two independent switches
+override that: `--use-vitest` (and `--ui`) forces the vitest runner,
+keeping the runtime the script was invoked with — under `bun run` it
+runs vitest on Bun (`bun --bun vitest`); `--use-node` forces the Node
+runtime, which implies vitest. `--report` works under both runners
+(formats differ — see below).
 
 Coords
   Each positional arg is a path under test/db/. The structure has four
@@ -151,7 +155,8 @@ Runner trade-off
                            because the @vitest/coverage-v8 provider
                            isn't running. MCR options live in
                            mcr.config.mjs at the repo root.
-  Pass --use-vitest from a `bun run` invocation to switch.
+  Pass --use-vitest from a `bun run` invocation to switch (vitest on
+  Bun); add --use-node for vitest on Node.
 
 Defaults
   --mode             parallel
@@ -163,12 +168,14 @@ Defaults
   --docker-mode      reuse  (containers stay alive between invocations)
   --docker-version   latest (closest = version-appropriate image per cell)
   --shard            off (bare = all 4 shards in sequence; <n> = only shard n)
-  --use-vitest       off (runtime detected from npm_config_user_agent)
+  --use-vitest       off (runner detected from npm_config_user_agent)
+  --use-node         off (runtime detected from npm_config_user_agent)
   --ui               off (implies --use-vitest)
   --report           off (test-execution report)
   --report-format    html under vitest, junit under bun
   --coverage         off
   --coverage-format  html (when --coverage is on)
+  --coverage-scope   library (src/ minus the query runners and error mappers)
   --open             off
   --update-snapshots off
   --test-name-pattern (none — runs every test the path filter selects)
@@ -290,9 +297,17 @@ Runner flags
                   (one container). Run one image per engine per invocation:
                     bun run tests postgres/oldest/pg --docker --docker-version closest
   --use-vitest
-        Force vitest even if invoked via `bun run`. The test process
-        runs under Node; vitest's richer V8 coverage and full
-        reporter set become available.
+        Force the vitest RUNNER even if invoked via `bun run`, keeping
+        the runtime: under `bun run` vitest runs on Bun (`bun --bun
+        vitest`), so the Bun-only cells (bun_sql_*, bun_sqlite) still
+        run against their engines; under `npm run` it runs on Node.
+        vitest's richer V8 coverage and full reporter set become
+        available.
+  --use-node
+        Force the NODE RUNTIME even if invoked via `bun run`. bun test
+        needs Bun, so this implies the vitest runner (vitest on Node).
+        Combine with --use-vitest to state both explicitly (the
+        coverage:* scripts do).
   --ui
         Launch @vitest/ui (browser-based interactive UI for test
         results + coverage navigation). Implies --use-vitest. Only
@@ -330,8 +345,26 @@ Coverage flags
         When set, the two-phase WASM split is bypassed — a single
         runner invocation covers the whole matrix in one shot so
         the report stays a single artifact. Forbidden combo:
-        --coverage + --wasm + --mode parallel; use --mode sequential
-        or drop one of the flags.
+        --coverage + --wasm + --mode parallel on the full matrix; use
+        --mode sequential, pass coords, or drop one of the flags.
+  --coverage-scope <library|runners|all>
+        Which source the coverage report measures. `library` (default)
+        is the library without its query runners: src/ minus
+        src/examples, src/queryRunners/* and the two error-mapper
+        folders — the scope every coverage:report* /
+        coverage:for-discover-tests* script drives. `runners` is the
+        query runners only (src/queryRunners/*.ts, without the
+        connectorErrorMappers / databaseErrorMappers folders): a
+        separate report so the runners' driver code doesn't dilute the
+        library's. It only means something with the connectors running
+        against their real engines (--docker/--wasm/--native). `all` is
+        every file under src/ but the legacy examples (library, runners
+        and error mappers in one report). Works under both runners:
+        under bun test `runners` / `all` need --mode sequential (bun's
+        parallel workers only read the repo's bunfig.toml); with vitest
+        (--use-vitest) it runs in parallel and gains branch coverage,
+        and vitest on Bun under `bun run` still runs the Bun runners
+        real. See coverage:runners.
   --coverage-format <name>
         Repeatable. Default `html` when --coverage is on. Under
         vitest, every @vitest/coverage-v8 reporter is supported
@@ -579,11 +612,13 @@ DOCKER_TOKENS=()
 WASM_TOKENS=()
 NATIVE_TOKENS=()
 USE_VITEST=off
+USE_NODE=off
 UI=off
 REPORT=off
 REPORT_FORMAT=()
 COVERAGE=off
 COVERAGE_FORMAT=()
+COVERAGE_SCOPE=library
 OPEN_AFTER=off
 UPDATE_SNAPSHOTS=off
 TEST_NAME_PATTERN=
@@ -641,6 +676,7 @@ while [ $# -gt 0 ]; do
             case "${2:-}" in ''|-*) NATIVE_TOKENS+=(all); shift ;; *) NATIVE_TOKENS+=("$2"); shift 2 ;; esac ;;
         --native=*)             NATIVE_TOKENS+=("${1#--native=}"); shift ;;
         --use-vitest)           USE_VITEST=on; shift ;;
+        --use-node)             USE_NODE=on; shift ;;
         --ui)                   UI=on; USE_VITEST=on; shift ;;
         --report)               REPORT=on; shift ;;
         --report-format)        REPORT=on; REPORT_FORMAT+=("$2"); shift 2 ;;
@@ -648,6 +684,8 @@ while [ $# -gt 0 ]; do
         --coverage)             COVERAGE=on; shift ;;
         --coverage-format)      COVERAGE_FORMAT+=("$2"); shift 2 ;;
         --coverage-format=*)    COVERAGE_FORMAT+=("${1#--coverage-format=}"); shift ;;
+        --coverage-scope)       COVERAGE_SCOPE="$2"; shift 2 ;;
+        --coverage-scope=*)     COVERAGE_SCOPE="${1#--coverage-scope=}"; shift ;;
         --open)                 OPEN_AFTER=on; shift ;;
         --update-snapshots)     UPDATE_SNAPSHOTS=on; shift ;;
         --test-name-pattern)    TEST_NAME_PATTERN="$2"; shift 2 ;;
@@ -893,8 +931,18 @@ if [ "$LIST_TESTS" = "on" ]; then
     exit $?
 fi
 
+# Two independent switches. `runtime` names the RUNNER ("bun" = bun test,
+# "npm" = vitest); VITEST_RUNTIME names the runtime vitest runs on, read by
+# run_phase. --use-vitest keeps the invoking runtime (vitest on Bun under
+# `bun run`); --use-node forces Node, which only vitest can run on.
 runtime="$(detect_runtime)"
-if [ "$USE_VITEST" = "on" ]; then runtime="npm"; fi
+export VITEST_RUNTIME=node
+if [ "$USE_NODE" = "on" ]; then
+    runtime="npm"
+elif [ "$USE_VITEST" = "on" ]; then
+    [ "$runtime" = "bun" ] && VITEST_RUNTIME=bun
+    runtime="npm"
+fi
 
 # Translate the two narrowing knobs (--update-snapshots /
 # --test-name-pattern) into the active runner's spelling. These are
@@ -983,18 +1031,43 @@ fi
 resolve_runner_format_defaults
 validate_open_request || exit $?
 
-# Forbidden combo: parallel + wasm + coverage. Coverage merging across
-# the two-phase WASM split is fragile, and parallel workers further
-# compound the problem (each worker emits its own shard, two phases =
-# 2N shards). Forcing the user to choose keeps the report a single
-# coherent artifact.
-if [ "$COVERAGE" = "on" ] && [ "$WASM_REAL" = "on" ] && [ "$MODE" = "parallel" ]; then
+# --coverage-scope: which source the coverage report measures. vitest reads
+# TS_SQL_QUERY_COVERAGE_SCOPE in vitest.config.ts; bun test gets the matching
+# coveragePathIgnorePatterns through a generated bunfig (BUN_TEST_CONFIG, read
+# by run_phase), since bun takes them only from its config file. bun's
+# --parallel workers ignore `--config` and read the repo's bunfig.toml, so a
+# non-default scope under bun test needs --mode sequential.
+case "$COVERAGE_SCOPE" in
+    library|runners|all) ;;
+    *) echo "Error: --coverage-scope must be 'library', 'runners' or 'all' (got '$COVERAGE_SCOPE')." >&2; exit 2 ;;
+esac
+if [ "$COVERAGE_SCOPE" != "library" ] && [ "$COVERAGE" != "on" ]; then
+    echo "Error: --coverage-scope $COVERAGE_SCOPE needs --coverage." >&2; exit 2
+fi
+export TS_SQL_QUERY_COVERAGE_SCOPE="$COVERAGE_SCOPE"
+if [ "$runtime" = "bun" ] && [ "$COVERAGE_SCOPE" != "library" ]; then
+    if [ "$MODE" = "parallel" ]; then
+        echo "Error: --coverage-scope $COVERAGE_SCOPE under bun test needs --mode sequential: bun's parallel" >&2
+        echo "  workers read only the repo's bunfig.toml (library scope). Or pass --use-vitest." >&2
+        exit 2
+    fi
+    BUN_TEST_CONFIG="$(write_scoped_bunfig "$COVERAGE_SCOPE")" || exit 2
+    export BUN_TEST_CONFIG
+fi
+
+# Forbidden combo: parallel + wasm + coverage on the FULL matrix. Coverage
+# merging across the two-phase WASM split is fragile, and parallel workers
+# further compound the problem (each worker emits its own shard, two phases =
+# 2N shards). Forcing the user to choose keeps the report a single coherent
+# artifact. A focused run (coords) never splits — `--wasm` is a single-pass
+# override there — so it is allowed.
+if [ "$COVERAGE" = "on" ] && [ "$WASM_REAL" = "on" ] && [ "$MODE" = "parallel" ] && [ "$FOCUSED" = "off" ]; then
     echo "Error: --coverage cannot be combined with real --wasm under --mode parallel." >&2
     echo "  Reason: coverage requires a single runner invocation. With --wasm" >&2
     echo "  in parallel mode the matrix splits into two phases (real WASM," >&2
     echo "  sequential + main parallel mocked), and the two coverage outputs" >&2
     echo "  can't be merged reliably." >&2
-    echo "  Fix: pass --mode sequential, drop --wasm, or drop --coverage." >&2
+    echo "  Fix: pass --mode sequential, pass coords, drop --wasm, or drop --coverage." >&2
     exit 2
 fi
 
@@ -1045,7 +1118,7 @@ if [ "$COVERAGE" = "on" ]; then
     # runs, all of which are sequential). Restored right after so the bump
     # doesn't leak downstream.
     cov_saved_node_options="${NODE_OPTIONS:-}"
-    if [ "$runtime" = "npm" ] && [ "$MODE" = "sequential" ] && [[ "${NODE_OPTIONS:-}" != *max-old-space-size* ]]; then
+    if [ "$runtime" = "npm" ] && [ "$VITEST_RUNTIME" = "node" ] && [ "$MODE" = "sequential" ] && [[ "${NODE_OPTIONS:-}" != *max-old-space-size* ]]; then
         export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--max-old-space-size=8192"
     fi
     run_phase "$runtime" "$MODE" "${MAIN_PATHS[@]}" --coverage "${COV_FLAGS[@]}" "${EXTRA_ARGS[@]}"

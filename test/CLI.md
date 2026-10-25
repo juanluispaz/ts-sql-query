@@ -159,13 +159,15 @@ Orthogonal — combine freely (except for the [Forbidden combinations](#forbidde
 | `--docker-version <latest\|closest>` | Which image a real docker cell runs against. `latest` (default) uses the database's `newest` image for every cell. `closest` runs each real docker cell against **its own version folder's** image (e.g. `postgres/oldest` on a real PostgreSQL 17 instead of 18), so version-specific SQL can be confirmed on a real engine of that version. The map mirrors the version folders on disk — `ENGINE_IMAGES[<db>][<version>]` in [`test/lib/dockerImages.ts`](./lib/dockerImages.ts), one hand-maintained image per folder (the image may be a different repo); a version folder with no entry is a **hard error** (fails loud), and adding a tier means adding one entry — see [`ENGINE_LIFECYCLE.md` § Adding a version tier](./ENGINE_LIFECYCLE.md#adding-a-version-tier--the-maintenance-step). **Narrow by design**: `closest` also requires focused coords and at most one `<version>` folder per engine (older images are separate containers that must not all start at once). | `latest` |
 | `--mode <parallel\|sequential>` | Parallel uses one worker per logical core (minus reserved); sequential runs everything in one worker. | `parallel` |
 | `--shard [<1\|2\|3\|4>]` | Split the no-docker matrix into 4 memory-bounded shards, each its own runner invocation (memory freed between them → peak = biggest shard, not the sum). Bare = all four in sequence; `<n>` = only that shard. Full-matrix / no-docker only — rejects coords, `--coverage`, `--docker`, `--run-connectors`, `--run-versions`. See [Sharding the no-docker matrix](#sharding). | off |
-| `--use-vitest` | Force vitest runtime even under `bun run`. Implied by `--ui`. | off |
+| `--use-vitest` | Force the vitest **runner**, keeping the runtime the script was invoked with: under `bun run` it runs vitest on Bun (`bun --bun vitest`), so the Bun-only cells (`bun_sql_*`, `bun_sqlite`) still run against their engines; under `npm run`, vitest on Node. Implied by `--ui`. | off |
+| `--use-node` | Force the **Node runtime** even under `bun run`. `bun test` needs Bun, so it implies the vitest runner (vitest on Node). The `coverage:report*` / `coverage:for-discover-tests*` scripts pass both flags. | off |
 | `--ui` | Launch `@vitest/ui` (implies `--use-vitest`). | off |
 | **Reports & coverage** | | |
 | `--report` | Emit test-execution report under `.test-report/`. | off |
 | `--report-format <name>` | Repeatable. See [Test-execution report formats](#test-execution-report-formats). | runtime-dependent |
 | `--coverage` | Emit coverage report under `.test-report/coverage/`. | off |
 | `--coverage-format <name>` | Repeatable. See [Coverage report formats](#coverage-report-formats). | `html` |
+| `--coverage-scope <library\|runners\|all>` | Which source the coverage report measures: the library without its query runners, the query runners alone, or all of `src/` but the legacy examples. See [Scope](#scope-which-source-files-end-up-in-the-report). | `library` |
 | `--open` | After a green run, open the richest available HTML report. | off |
 | **Narrowing (runtime-agnostic — translated to the active runner's spelling)** | | |
 | `--update-snapshots` | Refresh the snapshots of the tests this run executes. Translated to bun's `--update-snapshots` / vitest's `--update` for you. | off |
@@ -674,8 +676,9 @@ Pass `--coverage` to any of the test CLIs; output lands under
 # Whole matrix, mock-only, parallel — fastest coverage pass.
 bun run tests --coverage
 
-# Full real coverage (docker + WASM). Sequential because --wasm +
-# parallel + coverage is forbidden — see "Forbidden combinations" below.
+# Full real coverage (docker + WASM) over the full matrix. Sequential
+# because --wasm + parallel + coverage on the full matrix is forbidden —
+# see "Forbidden combinations" below. With coords it can stay parallel.
 bun run tests --coverage --docker --wasm --mode sequential
 
 # One cell.
@@ -710,10 +713,11 @@ for the heaviest full-real `--docker --wasm` coverage runs.
 For **src** coverage specifically, `coverage:report` (mock-only, parallel,
 one connector per db) is enough: the only source that runs differently
 under a real DB is `src/queryRunners/**`, which is **excluded** from the
-coverage scope (see "Scope" below). Adding `--docker` / `--wasm` therefore
-adds coverage only to out-of-scope driver code while costing far more time
-and memory — reach for a real-backend pass only when you specifically need
-one, not to see uncovered `src/`.
+default coverage scope (see "Scope" below). Adding `--docker` / `--wasm`
+therefore adds coverage only to out-of-scope driver code while costing far
+more time and memory — reach for a real-backend pass only when you
+specifically need one, not to see uncovered `src/`. The query runners have
+their own report: see [Coverage of the query runners](#coverage-of-the-query-runners).
 
 ### Vitest is the recommended path for coverage
 
@@ -722,9 +726,38 @@ with no column or branch info — and its test-exec reporter is limited to
 `junit` and `dots`. The HTML test-execution SPA is vitest-only. Bun handles
 both `--report` and `--coverage` natively, but the artifacts are leaner.
 
-To force vitest even when invoking via `bun run` (so you keep bun as the
-default runtime and still get vitest's coverage stack), pass `--use-vitest`.
-`--ui` implies it.
+To use vitest when invoking via `bun run`, pass `--use-vitest`: it runs
+vitest on Bun, so every cell — the Bun-only ones included — runs as under
+`bun test`, with vitest's coverage stack (measured: the same numbers as
+vitest on Node). Add `--use-node` for vitest on Node, which is what
+the `coverage:report*` / `coverage:for-discover-tests*` scripts use: it is
+faster than vitest on Bun for the mock-only library passes. `--ui` implies
+`--use-vitest`.
+
+### Coverage of the query runners
+
+The query runners (`src/queryRunners/*.ts`) are out of the default scope on
+purpose: their driver code only runs against a real engine and would dilute
+the library's report. They have a report of their own:
+
+```bash
+bun run coverage:runners                      # html report, opens it
+bun run coverage:runners:for-discover-tests   # json + json-summary + text-summary, no html
+```
+
+Both run `--coverage-scope runners` over every connector's `newest` cell,
+with the docker and WASM connectors real (`'*/newest' --docker --wasm`; the
+native ones are real by default), under vitest on Bun (`--use-vitest`, with
+`npm_config_user_agent` pinned to bun in the script so `npm run` gets the same):
+the Bun runners only run on Bun, and Bun's `node:sqlite` exercises
+`NodeSqliteQueryRunner`'s code the same way Node's does. The older version
+tiers add nothing here — compatibility versions change the emitted SQL, not
+the runner code. A run takes ~6 min and ~4.3 GB plus the engines.
+
+The error-mapper folders (`connectorErrorMappers/`, `databaseErrorMappers/`)
+are in neither the library nor the runners scope; `--coverage-scope all`
+covers everything. Runners no cell uses (`PrismaQueryRunner`, and the
+`Logging*` / `ConsoleLog*` / `Noop*` / `Chained*` wrappers) show as uncovered.
 
 ## Coverage report formats
 
@@ -769,19 +802,28 @@ both write `index.html`).
 
 ### Scope (which source files end up in the report)
 
-Defaults live in three project config files (kept in sync):
+`--coverage-scope` picks one of three scopes:
 
-- [`bunfig.toml`](../bunfig.toml): `coveragePathIgnorePatterns`
-- [`vitest.config.ts`](../vitest.config.ts): `test.coverage.exclude`
+| Scope | Measures |
+|---|---|
+| `library` (default) | `src/` without the legacy examples (`src/examples/**`), the query runners (`src/queryRunners/*`) and the two error-mapper folders — the library's own code |
+| `runners` | the query runners alone (`src/queryRunners/*.ts`, without the error-mapper folders) — see [Coverage of the query runners](#coverage-of-the-query-runners) |
+| `all` | every file under `src/` but the legacy examples |
+
+`test/**` is never measured. The scopes live in three project config files
+(kept in sync), which read the scope from `TS_SQL_QUERY_COVERAGE_SCOPE`:
+
+- [`vitest.config.ts`](../vitest.config.ts): `test.coverage.include` / `exclude`
 - [`mcr.config.mjs`](../mcr.config.mjs): `sourceFilter` / `entryFilter`
+- [`bunfig.toml`](../bunfig.toml): `coveragePathIgnorePatterns` — the
+  `library` scope; for the others the script generates a bunfig with the
+  matching patterns (`write_scoped_bunfig` in
+  [`scripts/_test-common.sh`](../scripts/_test-common.sh)). bun's parallel
+  workers only read the repo's `bunfig.toml`, so under `bun test` the
+  `runners` and `all` scopes need `--mode sequential` (or `--use-vitest`).
 
-All three exclude `src/examples/**` (legacy examples) and `test/**` (the
-test suite itself) so the report focuses on the library's public surface.
-
-There's no CLI flag to override the scope at run time. To narrow the
-report for a specific cell, use `tests <coord>` — coverage then only sees
-files imported by that cell's tests. To change the project-wide scope, edit
-the three config files.
+To narrow the report for a specific cell, use `tests <coord>` — coverage
+then only sees files imported by that cell's tests.
 
 `.test-report/` is wiped at the start of every run with `--report` or
 `--coverage`, so older reports or different-format artifacts never seed the
@@ -835,10 +877,12 @@ family has an all-tiers default and a `:newest` variant narrowed to the
 
 | Alias | Equivalent |
 |---|---|
-| `coverage:report` | `tests --use-vitest --coverage --native none --open <per-db coords>` |
+| `coverage:report` | `tests --use-vitest --use-node --coverage --native none --open <per-db coords>` |
 | `coverage:report:newest` | same, but `<per-db newest>` cells only |
-| `coverage:for-discover-tests` | `tests --use-vitest --coverage --coverage-format json --coverage-format json-summary --coverage-format text-summary --native none <per-db coords>` |
+| `coverage:for-discover-tests` | `tests --use-vitest --use-node --coverage --coverage-format json --coverage-format json-summary --coverage-format text-summary --native none <per-db coords>` |
 | `coverage:for-discover-tests:newest` | same, but `<per-db newest>` cells only |
+| `coverage:runners` | `tests --use-vitest --coverage --coverage-scope runners '*/newest' --docker --wasm --open`, on Bun — see [Coverage of the query runners](#coverage-of-the-query-runners) |
+| `coverage:runners:for-discover-tests` | same, with the discovery formats (`json`, `json-summary`, `text-summary`) and no html |
 | `coverage:reopen` | Same script as `tests:reopen`. |
 
 `<per-db coords>` = `mariadb/*/mariadb mysql/*/mysql2 oracle/*/oracledb
@@ -859,11 +903,16 @@ coverage-driven test generation.
 
 ## Forbidden combinations
 
-`--coverage --wasm --mode parallel` is rejected with exit 2. Coverage
-requires a single runner invocation, but `--wasm` in parallel mode splits
-the matrix into two phases (real WASM sequential + main parallel mocked)
-and merging the two coverage shards is fragile. Pass `--mode sequential`,
-drop `--wasm`, or drop `--coverage`.
+`--coverage --wasm --mode parallel` on the **full matrix** is rejected
+with exit 2. Coverage requires a single runner invocation, but `--wasm` in
+parallel mode splits the full matrix into two phases (real WASM sequential
++ main parallel mocked) and merging the two coverage shards is fragile.
+Pass `--mode sequential`, pass coords (a focused run never splits — `--wasm`
+is a single-pass override there), drop `--wasm`, or drop `--coverage`.
+
+`--coverage-scope runners` / `all` under `bun test` in parallel mode is
+rejected with exit 2: bun's parallel workers read only the repo's
+`bunfig.toml`. Pass `--mode sequential` or `--use-vitest`.
 
 When `--coverage` is set, `tests --wasm` bypasses the two-phase split
 entirely and runs everything in one invocation with WASM real (sequential

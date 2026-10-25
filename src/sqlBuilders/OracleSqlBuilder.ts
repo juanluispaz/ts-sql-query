@@ -12,6 +12,7 @@ import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import { SqlOperation1ValueSource, SqlOperation1ValueSourceIfValueOrIgnore } from '../internal/ValueSourceImpl.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
+import { setParamType } from '../utils/queryParamsMetadata.js'
 
 export class OracleSqlBuilder extends AbstractSqlBuilder {
     oracle: true = true
@@ -1247,12 +1248,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
      * and no change to the shared `addOutParam` signature.
      */
     private _registerOutBindColumnType(params: any[], placeholder: string, columnType: ValueType): void {
-        Object.defineProperty(params, placeholder, {
-            value: columnType,
-            writable: true,
-            enumerable: false,
-            configurable: true
-        })
+        setParamType(params, placeholder, columnType)
     }
     override _isNull(params: any[], valueSource: ToSql): string {
         if (isColumn(valueSource)) {

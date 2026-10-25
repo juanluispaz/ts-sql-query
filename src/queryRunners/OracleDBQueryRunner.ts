@@ -4,6 +4,7 @@ import oracleDb from 'oracledb'
 import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getOracleDBErrorReason, isOracleDBError } from './connectorErrorMappers/OracleDBErrorMapper.js'
+import { getParamType } from '../utils/queryParamsMetadata.js'
 
 export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     readonly database: DatabaseType
@@ -67,7 +68,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
             if (!param || typeof param !== 'object' || param.dir !== oracleDb.BIND_OUT) {
                 continue
             }
-            const dbType = this.oracleOutBindDbType((params as any)[':' + i])
+            const dbType = this.oracleOutBindDbType(getParamType(params, ':' + i))
             if (dbType === undefined) {
                 continue
             }

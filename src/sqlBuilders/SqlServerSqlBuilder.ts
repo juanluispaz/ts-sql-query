@@ -11,6 +11,7 @@ import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { ITable } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
+import { setParamType } from '../utils/queryParamsMetadata.js'
 
 export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     sqlServer: true = true
@@ -171,12 +172,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     }
     override _appendParam(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         // keep the data type to use in the query runner
-        Object.defineProperty(params, '@' + params.length, {
-            value: columnType in nativeTypedValueType ? columnType : columnTypeName,
-            writable: true,
-            enumerable: false,
-            configurable: true
-        })
+        setParamType(params, '@' + params.length, columnType in nativeTypedValueType ? columnType : columnTypeName)
         return super._appendParam(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
     override _appendColumnName(column: DBColumn, params: any[]): string {

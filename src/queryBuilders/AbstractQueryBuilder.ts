@@ -6,6 +6,7 @@ import type { DBColumn } from '../utils/Column.js'
 import type { AnyTableOrView, IWithView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate, __registerRequiredColumn } from '../utils/ITableOrView.js'
 import { TsSqlError, TsSqlProcessingError } from '../TsSqlError.js'
+import { setQueryExecutionMetadata, setQueryExecutionSource, setSelectPageCountQuery } from '../utils/queryParamsMetadata.js'
 
 export class AbstractQueryBuilder {
     __sqlBuilder: SqlBuilder
@@ -490,27 +491,12 @@ export class AbstractQueryBuilder {
 }
 
 export function  __setQueryMetadata(source: Error, params: any[], queryMetadata?: {queryExecutionName?: string,  queryExecutionMetadata?: any} | undefined, isSelectPageCountQuery?: boolean) {
-    Object.defineProperty(params, '$source', {
-        value: source,
-        writable: true,
-        enumerable: false,
-        configurable: true
-    })
+    setQueryExecutionSource(params, source)
     if (queryMetadata) {
-        Object.defineProperty(params, '$metadata', {
-            value: queryMetadata,
-            writable: true,
-            enumerable: false,
-            configurable: true
-        })
+        setQueryExecutionMetadata(params, queryMetadata)
     }
     if (isSelectPageCountQuery) {
-        Object.defineProperty(params, '$isSelectPageCountQuery', {
-            value: true,
-            writable: true,
-            enumerable: false,
-            configurable: true
-        })
+        setSelectPageCountQuery(params)
     }
 }
 

@@ -6,6 +6,7 @@ import { ManagedTransactionQueryRunner } from './ManagedTransactionQueryRunner.j
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from "../TsSqlError.js"
 import { getMssqlErrorReason, isMssqlError } from './connectorErrorMappers/MssqlErrorMapper.js'
 import { databaseIsolationLevel } from '../utils/transactionIsolationLevel.js'
+import { getParamType } from '../utils/queryParamsMetadata.js'
 
 const { TYPES, ISOLATION_LEVEL } = mssql
 
@@ -168,7 +169,7 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     } satisfies {[type in NativeValueType | 'stringInt' | 'stringDouble']: ISqlTypeFactory | undefined}
 
     protected getType(params: any[], index: number): ISqlTypeFactory {
-        const definedType: string | undefined = (params as any)['@' + index]
+        const definedType = getParamType(params, '@' + index)
         if (definedType) {
             const type = this.predefinedTypes[definedType]
             if (type) {

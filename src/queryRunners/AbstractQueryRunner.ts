@@ -1,6 +1,7 @@
 import type { QueryRunner, DatabaseType, BeginTransactionOpts, CommitOpts, RollbackOpts } from './QueryRunner.js'
 import type { TsSqlErrorReason } from "../TsSqlError.js"
 import { TsSqlError, TsSqlProcessingError } from "../TsSqlError.js"
+import { getContainsInsertReturningClause, getContainsMutationReturningClause, getForcedAffectedRowCount } from '../utils/queryParamsMetadata.js'
 
 export abstract class AbstractQueryRunner implements QueryRunner {
     abstract readonly database: DatabaseType
@@ -246,10 +247,10 @@ export abstract class AbstractQueryRunner implements QueryRunner {
     protected abstract executeQueryReturning(query: string, params: any[]): Promise<any[]>
     protected abstract executeMutation(query: string, params: any[]): Promise<number>
     protected containsInsertReturningClause(query: string, params: any[]) {
-        const p = params as any
-        if (p._containsInsertReturningClause === true) {
+        const containsInsertReturningClause = getContainsInsertReturningClause(params)
+        if (containsInsertReturningClause === true) {
             return true
-        } else if (p._containsInsertReturningClause === false) {
+        } else if (containsInsertReturningClause === false) {
             return false
         } else {
             return /\sreturning\s/.test(query)
@@ -260,10 +261,10 @@ export abstract class AbstractQueryRunner implements QueryRunner {
     // AbstractSqlBuilder._setForcedAffectedRowCount — Oracle's multi-row INSERT
     // PL/SQL block). `undefined` when the driver's own count should be used.
     protected getForcedAffectedRowCount(params: any[]): number | undefined {
-        return (params as any)._forcedAffectedRowCount
+        return getForcedAffectedRowCount(params)
     }
     protected executeMutationReturning(query: string, params: any[]): Promise<any[]> {
-        if ((params as any)._containsMutationReturningClause === false) {
+        if (getContainsMutationReturningClause(params) === false) {
             // The outermost mutation's returning projection collapsed to nothing
             // (an empty `returning({})`), so the emitted SQL carries no returning
             // clause and there is no data to read back. Run it as a plain mutation:

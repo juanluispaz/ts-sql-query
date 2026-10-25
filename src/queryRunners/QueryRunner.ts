@@ -1,4 +1,5 @@
 import type { TsSqlErrorReason, QueryExecutionSource } from "../TsSqlError.js"
+import { getQueryExecutionMetadataOf, getQueryExecutionSourceOf, isSelectPageCountQueryParams } from '../utils/queryParamsMetadata.js'
 
 export interface QueryRunner {
     readonly database: DatabaseType
@@ -87,21 +88,19 @@ export type RollbackOpts = []
 
 export function getQueryExecutionName(query: string, params: any[]): string | undefined {
     query
-    return (params as any).$metadata?.queryExecutionName
+    return getQueryExecutionMetadataOf(params)?.queryExecutionName
 }
 export function getQueryExecutionMetadata(query: string, params: any[]): unknown {
     query
-    return (params as any).$metadata?.queryExecutionMetadata
+    return getQueryExecutionMetadataOf(params)?.queryExecutionMetadata
 }
 export function getQueryExecutionSource(query: string, params: any[]): QueryExecutionSource | undefined {
     query
-    const source : QueryExecutionSource | undefined = (params as any).$source
-    return source
+    return getQueryExecutionSourceOf(params)
 }
 export function getQueryExecutionStack(query: string, params: any[]): string | undefined {
     query
-    const source : Error | undefined = (params as any).$source
-    return source?.stack
+    return getQueryExecutionSourceOf(params)?.stack
 }
 export interface FunctionExecutingQueryInformation {
     functionName?: string | undefined,
@@ -149,5 +148,5 @@ export function getFunctionExecutingQuery(query: string, params: any[]): Functio
 }
 export function isSelectPageCountQuery(query: string, params: any[]): boolean {
     query
-    return !!(params as any).$isSelectPageCountQuery
+    return isSelectPageCountQueryParams(params)
 }

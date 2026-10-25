@@ -20,6 +20,7 @@ import { getWithData } from './SqlBuilder.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { RawFragment } from '../utils/RawFragment.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
+import { getContainsInsertReturningClause, setContainsInsertReturningClause, setContainsMutationReturningClause, setForcedAffectedRowCount } from '../utils/queryParamsMetadata.js'
 
 export class AbstractSqlBuilder implements SqlBuilder {
     // @ts-ignore
@@ -195,15 +196,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     // Read in the query runner
     _getContainsInsertReturningClause(params: any[]): boolean | undefined {
-        return (params as any)._containsInsertReturningClause
+        return getContainsInsertReturningClause(params)
     }
     _setContainsInsertReturningClause(params: any[], value: boolean | undefined): void {
-        Object.defineProperty(params, '_containsInsertReturningClause', {
-            value: value,
-            writable: true,
-            enumerable: false,
-            configurable: true
-        })
+        setContainsInsertReturningClause(params, value)
     }
     // Read in the query runner (AbstractQueryRunner.executeMutationReturning).
     // Set to `false` when the outermost mutation's returning projection collapses
@@ -214,12 +210,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     // instead of rows (mysql2, mariadb). Only set for the outermost query, whose
     // statement is the one actually executed.
     _setContainsMutationReturningClause(params: any[], value: boolean | undefined): void {
-        Object.defineProperty(params, '_containsMutationReturningClause', {
-            value: value,
-            writable: true,
-            enumerable: false,
-            configurable: true
-        })
+        setContainsMutationReturningClause(params, value)
     }
     // Read in the query runner (see AbstractQueryRunner.getForcedAffectedRowCount).
     // Set when the affected-row count is known while building the query but the
@@ -228,12 +219,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     // rowsAffected for PL/SQL blocks). The query runner returns this value as the
     // affected-row count instead of the driver's (absent) one.
     _setForcedAffectedRowCount(params: any[], value: number | undefined): void {
-        Object.defineProperty(params, '_forcedAffectedRowCount', {
-            value: value,
-            writable: true,
-            enumerable: false,
-            configurable: true
-        })
+        setForcedAffectedRowCount(params, value)
     }
     _ensureRootQuery(query: SelectData | InsertData | UpdateData | DeleteData, params: any[]) {
         const rootQuery = (params as any)._rootQuery
@@ -262,7 +248,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
     }
     _getRootQuery(params: any[]): object | undefined {
-        return (params as any)._containsInsertReturningClause
+        return (params as any)._rootQuery
     }
     _setRootQuery(params: any[], value: object | undefined): void {
         Object.defineProperty(params, '_rootQuery', {

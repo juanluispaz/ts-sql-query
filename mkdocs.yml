@@ -7,8 +7,10 @@ site_url: !ENV [READTHEDOCS_CANONICAL_URL, 'https://ts-sql-query.readthedocs.io/
 repo_url: https://github.com/juanluispaz/ts-sql-query
 repo_name: juanluispaz/ts-sql-query
 # Theme overrides live under docs/overrides (theme.custom_dir); exclude them from the built site.
+# docs/README.md is for browsing the folder on GitHub; the site's home page is docs/index.md.
 exclude_docs: |
   overrides/
+  /README.md
 copyright: >
     Copyright &copy; Juan Luis Paz Rojas
     <span style="color: var(--md-footer-fg-color--lighter);"> · Released under the </span><a href="https://opensource.org/licenses/MIT" target="_blank">MIT License</a>.

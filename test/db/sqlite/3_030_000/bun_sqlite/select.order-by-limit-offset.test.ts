@@ -82,7 +82,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .limit(2).offset(1)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id limit ? offset ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id limit ?1 offset ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -102,7 +102,7 @@ describe(ctx.label, () => {
             })
             .limit(1).offset(1)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, id as id from issue limit ? offset ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, id as id from issue limit ?1 offset ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -122,7 +122,7 @@ describe(ctx.label, () => {
             })
             .limit(1).offset(1)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue limit ? offset ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue limit ?1 offset ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -145,7 +145,7 @@ describe(ctx.label, () => {
             .limitIfValue(undefined)
             .offset(1)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id limit 2147483647 offset ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id limit 2147483647 offset ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -165,7 +165,7 @@ describe(ctx.label, () => {
             .limit(2)
             .offsetIfValue(1)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id limit ? offset ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id limit ?1 offset ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -186,7 +186,7 @@ describe(ctx.label, () => {
             .limit(2)
             .offsetIfValue(undefined)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id limit ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id limit ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -206,7 +206,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .limitIfValue(2)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id limit ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id limit ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

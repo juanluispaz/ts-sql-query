@@ -287,7 +287,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id })
             .orderByFromStringArrayIfValue(sortList)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

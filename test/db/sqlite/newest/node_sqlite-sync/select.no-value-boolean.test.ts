@@ -27,7 +27,7 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id, name: tOrganization.name })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from organization where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from organization where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

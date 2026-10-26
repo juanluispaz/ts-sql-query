@@ -39,7 +39,7 @@ describe(ctx.label, () => {
                     .or(tProject.published.equals(false))
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ? where (project.name <> ? and project.archived_at is null) or (project.published = 't') = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4 where (project.name <> ?5 and project.archived_at is null) or (project.published = 't') = ?6"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -74,7 +74,7 @@ describe(ctx.label, () => {
                 .doUpdateSet({ name: 'Marketing site v7' })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) where ((published = 't') = ? and archived_at is null) or name = ? do update set name = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) where ((published = 't') = ?4 and archived_at is null) or name = ?5 do update set name = ?6"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -120,7 +120,7 @@ describe(ctx.label, () => {
             expect(viaWhere.query()).toBe(dynamicSql)
             expect(viaWhere.params()).toEqual(dynamicParams)
 
-            expect(dynamicSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ? where (project.name <> ? and project.archived_at is null) or (project.published = 't') = ?"`)
+            expect(dynamicSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4 where (project.name <> ?5 and project.archived_at is null) or (project.published = 't') = ?6"`)
             expect(dynamicParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -166,7 +166,7 @@ describe(ctx.label, () => {
             expect(viaWhere.query()).toBe(dynamicSql)
             expect(viaWhere.params()).toEqual(dynamicParams)
 
-            expect(dynamicSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) where ((published = 't') = ? and archived_at is null) or name = ? do update set name = ?"`)
+            expect(dynamicSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) where ((published = 't') = ?4 and archived_at is null) or name = ?5 do update set name = ?6"`)
             expect(dynamicParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -199,7 +199,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tProject.id)
                 .executeInsertNoneOrOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ? where project.name <> ? returning id as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4 where project.name <> ?5 returning id as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -232,7 +232,7 @@ describe(ctx.label, () => {
                 .returning({ id: tProject.id, name: tProject.name })
                 .executeInsertNoneOrOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ? where (project.name <> ? and project.archived_at is null) or (project.published = 't') = ? returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4 where (project.name <> ?5 and project.archived_at is null) or (project.published = 't') = ?6 returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -272,7 +272,7 @@ describe(ctx.label, () => {
                 .returning({ id: tProject.id, name: tProject.name })
                 .executeInsertMany())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?), (?, ?, ?) on conflict (organization_id, slug) do update set name = excluded.name where project.archived_at is null returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3), (?4, ?5, ?6) on conflict (organization_id, slug) do update set name = excluded.name where project.archived_at is null returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -306,7 +306,7 @@ describe(ctx.label, () => {
                 .where(tProject.name.notEquals('Marketing site v8'))
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) where archived_at is null do update set name = ? where project.name <> ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) where archived_at is null do update set name = ?4 where project.name <> ?5"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -349,7 +349,7 @@ describe(ctx.label, () => {
             expect(viaWhere.query()).toBe(dynSql)
             expect(viaWhere.params()).toEqual(dynParams)
 
-            expect(dynSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ? where project.name <> ? or (project.published = 't') = ?"`)
+            expect(dynSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4 where project.name <> ?5 or (project.published = 't') = ?6"`)
             expect(dynParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -381,7 +381,7 @@ describe(ctx.label, () => {
                 .doUpdateSet({ name: 'Marketing site v10' })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) where (published = 't') = ? or name = ? do update set name = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) where (published = 't') = ?4 or name = ?5 do update set name = ?6"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

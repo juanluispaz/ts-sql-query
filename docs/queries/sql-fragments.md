@@ -81,9 +81,9 @@ The executed query is:
     ```sqlite
     select 
         id::varchar as idAsString, 
-        first_name || ? || last_name as name 
+        first_name || ?1 || last_name as name 
     from customer 
-    where !!id = !!?
+    where !!id = !!?2
     ```
 === "SQL Server"
     ```sqlserver
@@ -185,9 +185,9 @@ The executed query is:
     select 
         id as id, 
         name as name, 
-        id << ? as idMultiplyBy2 
+        id << ?1 as idMultiplyBy2 
     from company 
-    where (id * ?) = (id << ?)
+    where (id * ?2) = (id << ?3)
     ```
 === "SQL Server"
     ```sqlserver
@@ -292,7 +292,7 @@ The executed query is:
         id as id, 
         name as name 
     from company 
-    where id + 1 = ?
+    where id + 1 = ?1
     ```
 === "SQL Server"
     ```sqlserver
@@ -403,9 +403,9 @@ The executed query is:
     select 
         id as id, 
         name as name, 
-        id << ? as idMultiplyBy2 
+        id << ?1 as idMultiplyBy2 
     from company 
-    where (id * ?) = (id << ?)
+    where (id * ?2) = (id << ?3)
     ```
 === "SQL Server"
     ```sqlserver
@@ -555,8 +555,8 @@ The executed query is:
         first_name as firstName, 
         last_name as lastName, 
         birthday as birthday 
-    from customer for system_time between ? and ?  
-    where id = ?
+    from customer for system_time between ?1 and ?2  
+    where id = ?3
     ```
 === "SQL Server"
     ```sqlserver
@@ -677,7 +677,7 @@ The executed query is:
         last_name as lastName, 
         birthday as birthday 
     from customer 
-    where id = ? for update
+    where id = ?1 for update
     ```
 === "SQL Server"
     ```sqlserver
@@ -763,7 +763,7 @@ The executed query is:
     ```sqlite
     insert /*+ some hints */ 
     into customer (first_name, last_name, company_id) 
-    values (?, ?, ?) 
+    values (?1, ?2, ?3) 
     log errors reject limit unlimited
     ```
 === "SQL Server"
@@ -847,9 +847,9 @@ The executed query is:
     ```sqlite
     update /*+ some hints */ customer 
     set 
-        first_name = ?, 
-        last_name = ? 
-    where id = ? 
+        first_name = ?1, 
+        last_name = ?2 
+    where id = ?3 
     keep plan
     ```
 === "SQL Server"
@@ -925,7 +925,7 @@ The executed query is:
     ```sqlite
     delete /*+ some hints */ 
     from customer 
-    where id = ? 
+    where id = ?1 
     keep plan
     ```
 === "SQL Server"

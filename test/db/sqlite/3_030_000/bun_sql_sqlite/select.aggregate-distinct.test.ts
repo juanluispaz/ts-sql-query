@@ -70,7 +70,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select avg(distinct cast(priority as real)) as avgPriority from issue where project_id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select avg(distinct cast(priority as real)) as avgPriority from issue where project_id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

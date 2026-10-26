@@ -44,7 +44,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tAppUser)
             .selectOneColumn(ctx.conn.stringConcat(tAppUser.fullName, ' | '))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select group_concat(full_name, $1) as result from app_user"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select group_concat(full_name, ?1) as result from app_user"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             " | ",

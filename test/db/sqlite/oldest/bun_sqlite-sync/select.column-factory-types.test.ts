@@ -51,7 +51,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, work_date as workDate, started_at as startedAt from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, work_date as workDate, started_at as startedAt from issue_worklog where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -99,7 +99,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, duration_ms as durationMs from issue_worklog where id in (?, ?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, duration_ms as durationMs from issue_worklog where id in (?1, ?2) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -151,7 +151,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, minutes as minutes from issue_worklog where id in (?, ?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, minutes as minutes from issue_worklog where id in (?1, ?2) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -212,7 +212,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, released_on as releasedOn, cutoff_time as cutoffTime, signed_off_at as signedOffAt from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, released_on as releasedOn, cutoff_time as cutoffTime, signed_off_at as signedOffAt from project_release where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -233,7 +233,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id, channel: tProjectRelease.channel })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, channel as channel from project_release where channel = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, channel as channel from project_release where channel = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "stable",
@@ -259,7 +259,7 @@ describe(ctx.label, () => {
             .orderBy('version', 'desc')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as version from project_release where version < ? order by version desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as version from project_release where version < ?1 order by version desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "1.3.0",
@@ -288,7 +288,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version <= ? as le, version between ? and ? as bt, version in (?, ?) as isin, version <> ? as ne from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version <= ?1 as le, version between ?2 and ?3 as bt, version in (?4, ?5) as isin, version <> ?6 as ne from project_release where id = ?7"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "1.3.0",
@@ -319,7 +319,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, channel in (?, ?) as isin, channel not in (?) as notin, channel <> ? as ne from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, channel in (?1, ?2) as isin, channel not in (?3) as notin, channel <> ?4 as ne from project_release where id = ?5"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "stable",
@@ -352,7 +352,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(signing_key, ?) as "key", released_on as ro from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(signing_key, ?1) as "key", released_on as ro from project_release where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "00000000-0000-0000-0000-000000000000",
@@ -376,7 +376,7 @@ describe(ctx.label, () => {
                     .lessThan(tProjectRelease.version),
             })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ? < version as lt from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ?1 < version as lt from project_release where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0.5.0",

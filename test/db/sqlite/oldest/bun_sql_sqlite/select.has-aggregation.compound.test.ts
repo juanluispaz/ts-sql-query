@@ -96,7 +96,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as projectId from project where organization_id = $1 union select project_id as projectId from issue order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as projectId from project where organization_id = ?1 union select project_id as projectId from issue order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -147,7 +147,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) as issueCount from issue group by project_id union select id as projectId, $1 as issueCount from project where archived_at is not null order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) as issueCount from issue group by project_id union select id as projectId, ?1 as issueCount from project where archived_at is not null order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -197,7 +197,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as projectId, $1 as issueCount from project where archived_at is not null union select project_id as projectId, count(id) as issueCount from issue group by project_id order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as projectId, ?1 as issueCount from project where archived_at is not null union select project_id as projectId, count(id) as issueCount from issue group by project_id order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -246,7 +246,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  select id as projectId from project where organization_id = $1 union select project_id as projectId from issue order by projectId  /* tail keyed-by=project.slug */"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  select id as projectId from project where organization_id = ?1 union select project_id as projectId from issue order by projectId  /* tail keyed-by=project.slug */"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -299,7 +299,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  select id as projectId from project where organization_id = $1 union select project_id as projectId from issue order by projectId  /* tail issues=(select count(id) as result from issue) */"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  select id as projectId from project where organization_id = ?1 union select project_id as projectId from issue order by projectId  /* tail issues=(select count(id) as result from issue) */"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -347,7 +347,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head issues=(select count(id) as result from issue) */  select id as projectId from project where organization_id = $1 union select project_id as projectId from issue order by projectId  /* tail */"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head issues=(select count(id) as result from issue) */  select id as projectId from project where organization_id = ?1 union select project_id as projectId from issue order by projectId  /* tail */"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -396,7 +396,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  select id as projectId from project where organization_id = $1 union select project_id as projectId from issue order by projectId  /* tail */"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  select id as projectId from project where organization_id = ?1 union select project_id as projectId from issue order by projectId  /* tail */"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -443,7 +443,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  select id as projectId from project where organization_id = $1 union select project_id as projectId from issue order by projectId  /* tail */"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  select id as projectId from project where organization_id = ?1 union select project_id as projectId from issue order by projectId  /* tail */"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -478,7 +478,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as projectId from project where organization_id = $1 union select project_id as projectId from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as projectId from project where organization_id = ?1 union select project_id as projectId from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

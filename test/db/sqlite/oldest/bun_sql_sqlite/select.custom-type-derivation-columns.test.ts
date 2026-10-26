@@ -83,7 +83,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.cents.add(9))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + $1 as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + ?1 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             900,
@@ -113,7 +113,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.money.add(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + $1 as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + ?1 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -131,7 +131,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.money.modulo(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double % $1 as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double % ?1 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -150,7 +150,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tDerivedOptional)
             .select({ derived: tDerivedOptional.cents.add(9) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + $1 as derived from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + ?1 as derived from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             900,
@@ -180,7 +180,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tDerivedOptional)
             .select({ derived: tDerivedOptional.money.add(1) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + $1 as derived from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + ?1 as derived from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -198,7 +198,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tDerivedOptional)
             .select({ derived: tDerivedOptional.money.modulo(1) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double % $1 as derived from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double % ?1 as derived from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -217,7 +217,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedDefault)
             .selectOneColumn(tDerivedDefault.cents.add(9))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + $1 as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + ?1 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             900,
@@ -247,7 +247,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedDefault)
             .selectOneColumn(tDerivedDefault.money.add(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + $1 as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + ?1 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -265,7 +265,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedDefault)
             .selectOneColumn(tDerivedDefault.money.modulo(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double % $1 as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double % ?1 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -284,7 +284,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tDerivedOptionalDefault)
             .select({ derived: tDerivedOptionalDefault.cents.add(9) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + $1 as derived from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + ?1 as derived from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             900,
@@ -314,7 +314,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tDerivedOptionalDefault)
             .select({ derived: tDerivedOptionalDefault.money.add(1) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + $1 as derived from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + ?1 as derived from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -332,7 +332,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tDerivedOptionalDefault)
             .select({ derived: tDerivedOptionalDefault.money.modulo(1) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double % $1 as derived from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double % ?1 as derived from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -351,7 +351,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedComputed)
             .selectOneColumn(tDerivedComputed.cents.add(9))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + $1 as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + ?1 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             900,
@@ -381,7 +381,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedComputed)
             .selectOneColumn(tDerivedComputed.money.add(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + $1 as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + ?1 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -399,7 +399,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedComputed)
             .selectOneColumn(tDerivedComputed.money.modulo(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double % $1 as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double % ?1 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -418,7 +418,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tDerivedOptionalComputed)
             .select({ derived: tDerivedOptionalComputed.cents.add(9) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + $1 as derived from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + ?1 as derived from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             900,
@@ -448,7 +448,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tDerivedOptionalComputed)
             .select({ derived: tDerivedOptionalComputed.money.add(1) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + $1 as derived from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + ?1 as derived from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -466,7 +466,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tDerivedOptionalComputed)
             .select({ derived: tDerivedOptionalComputed.money.modulo(1) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double % $1 as derived from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double % ?1 as derived from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -485,7 +485,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedPk)
             .selectOneColumn(tDerivedPk.centsPk.add(9))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + $1 as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + ?1 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             900,
@@ -517,7 +517,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedAutogenPk)
             .selectOneColumn(tDerivedAutogenPk.centsPk.add(9))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + $1 as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + ?1 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             900,
@@ -549,7 +549,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedVirtual)
             .selectOneColumn(tDerivedVirtual.cents.add(9))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + $1 as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + ?1 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             900,
@@ -579,7 +579,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedVirtual)
             .selectOneColumn(tDerivedVirtual.money.add(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + $1 as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + ?1 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -597,7 +597,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedVirtual)
             .selectOneColumn(tDerivedVirtual.money.modulo(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double % $1 as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double % ?1 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -616,7 +616,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tDerivedVirtual)
             .select({ derived: tDerivedVirtual.centsOptional.add(9) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + $1 as derived from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + ?1 as derived from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             900,
@@ -646,7 +646,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tDerivedVirtual)
             .select({ derived: tDerivedVirtual.moneyOptional.add(1) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + $1 as derived from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + ?1 as derived from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -664,7 +664,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tDerivedVirtual)
             .select({ derived: tDerivedVirtual.moneyOptional.modulo(1) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double % $1 as derived from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double % ?1 as derived from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -683,7 +683,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(vDerivedColumn)
             .selectOneColumn(vDerivedColumn.cents.add(9))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + $1 as result from col_matrix_view"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + ?1 as result from col_matrix_view"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             900,
@@ -713,7 +713,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(vDerivedColumn)
             .selectOneColumn(vDerivedColumn.money.add(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + $1 as result from col_matrix_view"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + ?1 as result from col_matrix_view"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -731,7 +731,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(vDerivedColumn)
             .selectOneColumn(vDerivedColumn.money.modulo(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double % $1 as result from col_matrix_view"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double % ?1 as result from col_matrix_view"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -750,7 +750,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(vDerivedColumn)
             .select({ derived: vDerivedColumn.centsOptional.add(9) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + $1 as derived from col_matrix_view"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + ?1 as derived from col_matrix_view"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             900,
@@ -780,7 +780,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(vDerivedColumn)
             .select({ derived: vDerivedColumn.moneyOptional.add(1) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + $1 as derived from col_matrix_view"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + ?1 as derived from col_matrix_view"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -798,7 +798,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(vDerivedColumn)
             .select({ derived: vDerivedColumn.moneyOptional.modulo(1) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double % $1 as derived from col_matrix_view"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double % ?1 as derived from col_matrix_view"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -817,7 +817,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(vDerivedColumn)
             .selectOneColumn(vDerivedColumn.centsVirtual.add(9))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + $1 as result from col_matrix_view"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + ?1 as result from col_matrix_view"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             900,
@@ -847,7 +847,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(vDerivedColumn)
             .selectOneColumn(vDerivedColumn.moneyVirtual.add(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + $1 as result from col_matrix_view"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + ?1 as result from col_matrix_view"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -865,7 +865,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(vDerivedColumn)
             .selectOneColumn(vDerivedColumn.moneyVirtual.modulo(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double % $1 as result from col_matrix_view"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double % ?1 as result from col_matrix_view"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -884,7 +884,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(vDerivedColumn)
             .select({ derived: vDerivedColumn.centsVirtualOptional.add(9) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + $1 as derived from col_matrix_view"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + ?1 as derived from col_matrix_view"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             900,
@@ -914,7 +914,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(vDerivedColumn)
             .select({ derived: vDerivedColumn.moneyVirtualOptional.add(1) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + $1 as derived from col_matrix_view"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + ?1 as derived from col_matrix_view"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -932,7 +932,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(vDerivedColumn)
             .select({ derived: vDerivedColumn.moneyVirtualOptional.modulo(1) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double % $1 as derived from col_matrix_view"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double % ?1 as derived from col_matrix_view"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -951,7 +951,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.cents.subtract(4))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int - $1 as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int - ?1 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             400,
@@ -968,7 +968,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.cents.multiply(3))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int * $1 as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int * ?1 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             300,
@@ -985,7 +985,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.cents.modulo(5))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int % $1 as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int % ?1 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             500,
@@ -1002,7 +1002,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.cents.minValue(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(m_int, $1) as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(m_int, ?1) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -1019,7 +1019,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.cents.maxValue(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select min(m_int, $1) as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select min(m_int, ?1) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -1060,7 +1060,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.money.subtract(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double - $1 as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double - ?1 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -1077,7 +1077,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.money.multiply(2))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double * $1 as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double * ?1 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             200,
@@ -1094,7 +1094,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.money.divide(0.005))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(m_double as real) / $1 as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(m_double as real) / ?1 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0.5,
@@ -1136,7 +1136,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.money.minValue(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(m_double, $1) as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(m_double, ?1) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -1216,7 +1216,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(billing)
             .selectOneColumn(billing.cents.add(9))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with derivedBilling(cents, money) as (values ($1, $2)) select cents + $3 as result from derivedBilling"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with derivedBilling(cents, money) as (values (?1, ?2)) select cents + ?3 as result from derivedBilling"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             500,
@@ -1238,7 +1238,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(billing)
             .selectOneColumn(billing.money.add(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with derivedBilling(cents, money) as (values ($1, $2)) select money + $3 as result from derivedBilling"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with derivedBilling(cents, money) as (values (?1, ?2)) select money + ?3 as result from derivedBilling"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             500,
@@ -1260,7 +1260,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(billing)
             .select({ derived: billing.cents.add(9) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with derivedBillingOpt(cents, money) as (values ($1, $2)) select cents + $3 as derived from derivedBillingOpt"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with derivedBillingOpt(cents, money) as (values (?1, ?2)) select cents + ?3 as derived from derivedBillingOpt"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             500,
@@ -1281,7 +1281,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(billing)
             .select({ derived: billing.money.add(1) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with derivedBillingOpt(cents, money) as (values ($1, $2)) select money + $3 as derived from derivedBillingOpt"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with derivedBillingOpt(cents, money) as (values (?1, ?2)) select money + ?3 as derived from derivedBillingOpt"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             500,

@@ -47,7 +47,7 @@ describe(ctx.label, () => {
                 .and(tAppUser.id.equals(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update organization set verified = app_user.verified from app_user where organization.id = $1 and app_user.id = $2"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update organization set verified = app_user.verified from app_user where organization.id = ?1 and app_user.id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,
@@ -72,7 +72,7 @@ describe(ctx.label, () => {
                 .where(tIssueWorklog.id.equals(3))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set approved = case invoiced when 1 then 'A' when 0 then 'R' else null end where id = $1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set approved = case invoiced when 1 then 'A' when 0 then 'R' else null end where id = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 3,
@@ -99,7 +99,7 @@ describe(ctx.label, () => {
                 .and(tColMatrixColumn.id.equals(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update organization set verified = case when col_matrix.m_bool then 'Y' else 'N' end from col_matrix where organization.id = $1 and col_matrix.id = $2"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update organization set verified = case when col_matrix.m_bool then 'Y' else 'N' end from col_matrix where organization.id = ?1 and col_matrix.id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,
@@ -129,7 +129,7 @@ describe(ctx.label, () => {
                 .and(tColMatrixColumn.id.equals(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set approved = case col_matrix.m_bool when 1 then 'A' when 0 then 'R' else null end from col_matrix where issue_worklog.id in ($1, $2) and col_matrix.id = $3"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set approved = case col_matrix.m_bool when 1 then 'A' when 0 then 'R' else null end from col_matrix where issue_worklog.id in (?1, ?2) and col_matrix.id = ?3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,
@@ -174,7 +174,7 @@ describe(ctx.label, () => {
                 .where(tIssueWorklog.id.equals(2))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set approved = case when minutes > $1 then 'A' when not (minutes > $2) then 'R' else null end where id = $3"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set approved = case when minutes > ?1 then 'A' when not (minutes > ?2) then 'R' else null end where id = ?3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 60,
@@ -198,7 +198,7 @@ describe(ctx.label, () => {
                 .where(tIssueWorklog.id.equals(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set approved = case when duration_ms is null then 'A' when not duration_ms is null then 'R' else null end where id = $1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set approved = case when duration_ms is null then 'A' when not duration_ms is null then 'R' else null end where id = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -220,7 +220,7 @@ describe(ctx.label, () => {
                 .where(tOrganization.id.equals(2))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update organization set verified = case when $1 then 'Y' else 'N' end where id = $2"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update organization set verified = case when ?1 then 'Y' else 'N' end where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 true,
@@ -244,7 +244,7 @@ describe(ctx.label, () => {
                 .where(tIssueWorklog.id.equals(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set approved = case $1 when 1 then 'A' when 0 then 'R' else null end where id = $2"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set approved = case ?1 when 1 then 'A' when 0 then 'R' else null end where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 false,

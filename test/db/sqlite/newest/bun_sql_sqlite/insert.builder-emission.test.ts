@@ -43,7 +43,7 @@ describe(ctx.label, () => {
         const second = built.query()
         expect(second).toBe(first)
 
-        expect(first).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values ($1, $2, $3, $4, $5)"`)
+        expect(first).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)"`)
         expect(built.params()).toMatchInlineSnapshot(`
           [
             1,
@@ -74,7 +74,7 @@ describe(ctx.label, () => {
           ]
         `)
 
-        expect(built.query()).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values ($1, $2, $3, $4, $5)"`)
+        expect(built.query()).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)"`)
     })
 
     test('mutating-a-built-insert-drops-the-cache-and-rebinds-params-from-scratch', () => {
@@ -89,11 +89,11 @@ describe(ctx.label, () => {
             .dynamicSet()
             .set({ projectId: 1, number: 9452, title: 'Before', status: 'open', priority: 1 })
 
-        expect(built.query()).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values ($1, $2, $3, $4, $5)"`)
+        expect(built.query()).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)"`)
 
         built.set({ title: 'After', priority: 5 })
 
-        expect(built.query()).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values ($1, $2, $3, $4, $5)"`)
+        expect(built.query()).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)"`)
         expect(built.params()).toMatchInlineSnapshot(`
           [
             1,
@@ -146,7 +146,7 @@ describe(ctx.label, () => {
                 afterSelectKeyword: connection.rawFragment`/* audit: ${fromSelect} | ${multiRow} | ${defaultValues} | ${plain} */`,
             })
 
-        expect(built.query()).toMatchInlineSnapshot(`"select /* audit: insert into issue (project_id, number, title, status, priority) select project_id as projectId, number as number, title as title, status as status, priority as priority from issue where status = $1 | insert into issue (project_id, number, title, status, priority) values ($2, $3, $4, $5, $6), ($7, $8, $9, $10, $11) | insert into ledger_entry default values | insert into issue (project_id, number, title, status, priority) values ($12, $13, $14, $15, $16) */ id as id from project where id = $17"`)
+        expect(built.query()).toMatchInlineSnapshot(`"select /* audit: insert into issue (project_id, number, title, status, priority) select project_id as projectId, number as number, title as title, status as status, priority as priority from issue where status = ?1 | insert into issue (project_id, number, title, status, priority) values (?2, ?3, ?4, ?5, ?6), (?7, ?8, ?9, ?10, ?11) | insert into ledger_entry default values | insert into issue (project_id, number, title, status, priority) values (?12, ?13, ?14, ?15, ?16) */ id as id from project where id = ?17"`)
         expect(built.params()).toMatchInlineSnapshot(`
           [
             "open",

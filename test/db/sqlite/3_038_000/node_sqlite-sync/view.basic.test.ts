@@ -39,7 +39,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, organization_name as organizationName, organization_plan as organizationPlan from project_overview where organization_id = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, organization_name as organizationName, organization_plan as organizationPlan from project_overview where organization_id = ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -69,7 +69,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, upper(name) as nameUpper from project_overview where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, upper(name) as nameUpper from project_overview where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -93,7 +93,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, archived_at as archivedAt from project_overview where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, archived_at as archivedAt from project_overview where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -114,7 +114,7 @@ describe(ctx.label, () => {
             .select({ id: po.id, name: po.name })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select po.id as id, po.name as name from project_overview as po where po.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select po.id as id, po.name as name from project_overview as po where po.id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -141,7 +141,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.name as orgName, project_overview.name as projectName, upper(project_overview.name) as projectNameUpper from organization left join project_overview on project_overview.id = organization.id where organization.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.name as orgName, project_overview.name as projectName, upper(project_overview.name) as projectNameUpper from organization left join project_overview on project_overview.id = organization.id where organization.id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -173,7 +173,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.name as orgName, po.name as projectName from organization left join project_overview as po on po.id = ? where organization.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.name as orgName, po.name as projectName from organization left join project_overview as po on po.id = ?1 where organization.id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             999,

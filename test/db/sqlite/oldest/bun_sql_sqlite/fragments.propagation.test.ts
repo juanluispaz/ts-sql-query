@@ -98,7 +98,7 @@ test('fragment-with-old-values-column-bubbles-up-in-update-returning', async () 
                 })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = (project.name || ' / ' || excluded.name)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = (project.name || ' / ' || excluded.name)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

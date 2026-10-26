@@ -35,7 +35,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select count(*) as result from issue where project_id = project.id) as issueCount from project where organization_id = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select count(*) as result from issue where project_id = project.id) as issueCount from project where organization_id = ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -289,7 +289,7 @@ describe(ctx.label, () => {
             .orderBy('projectId')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as orgId, project.id as projectId, (select count(*) as result from issue where project_id = project.id) as issueCount from organization left join project on project.organization_id = organization.id where organization.id = ? order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as orgId, project.id as projectId, (select count(*) as result from issue where project_id = project.id) as issueCount from organization left join project on project.organization_id = organization.id where organization.id = ?1 order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -329,7 +329,7 @@ describe(ctx.label, () => {
             .orderBy('projectId')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as orgId, project.id as projectId, (select distinct count(*) as result from issue where project_id = project.id) as issueCount from organization left join project on project.organization_id = organization.id where organization.id = ? order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as orgId, project.id as projectId, (select distinct count(*) as result from issue where project_id = project.id) as issueCount from organization left join project on project.organization_id = organization.id where organization.id = ?1 order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

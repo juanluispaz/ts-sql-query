@@ -49,7 +49,7 @@ The executed query is:
 === "SQLite"
     ```sqlite
     insert into customer (first_name, last_name, company_id, birthday) 
-    values (?, ?, ?, ?) 
+    values (?1, ?2, ?3, ?4) 
     returning id
     ```
 === "SQL Server"
@@ -134,8 +134,8 @@ The executed query is:
     ```sqlite
     insert into customer (first_name, last_name, company_id) 
     values 
-        (?, ?, ?), 
-        (?, ?, ?) 
+        (?1, ?2, ?3), 
+        (?4, ?5, ?6) 
     returning id
     ```
 === "SQL Server"
@@ -226,7 +226,7 @@ The executed query is:
         last_name as lastName, 
         company_id as companyId 
     from customer 
-    where company_id = ?
+    where company_id = ?1
     ```
 === "SQL Server"
     ```sqlserver
@@ -305,7 +305,7 @@ The executed query is:
 === "SQLite"
     ```sqlite
     insert into customer (first_name, last_name, company_id) 
-    values (?, ?, ?) 
+    values (?1, ?2, ?3) 
     returning 
         id as id, 
         first_name as firstName, 
@@ -398,7 +398,7 @@ The executed query is:
 === "SQLite"
     ```sqlite
     insert into customer (first_name, last_name, company_id) 
-    values (?, ?, ?) 
+    values (?1, ?2, ?3) 
     returning id
     ```
 === "SQL Server"
@@ -491,8 +491,8 @@ The executed query is:
     ```sqlite
     insert into customer (first_name, last_name, company_id) 
     values 
-        (?, ?, ?), 
-        (?, ?, ?) 
+        (?1, ?2, ?3), 
+        (?4, ?5, ?6) 
     returning id
     ```
 === "SQL Server"
@@ -889,7 +889,7 @@ The executed query is:
 === "SQLite"
     ```sqlite
     insert into customer (first_name, last_name, company_id) 
-    values (?, ?, ?) 
+    values (?1, ?2, ?3) 
     on conflict do nothing 
     returning 
         id as id, 
@@ -1062,8 +1062,8 @@ The executed query is:
 === "SQLite"
     ```sqlite
     insert into customer (first_name, last_name, company_id) 
-    values (?, ?, ?) 
-    on conflict (id) do update set company_id = ? 
+    values (?1, ?2, ?3) 
+    on conflict (id) do update set company_id = ?4 
     returning 
         id as id, 
         first_name as firstName, 
@@ -1236,10 +1236,10 @@ The executed query is:
 === "SQLite"
     ```sqlite
     insert into customer (first_name, last_name, company_id) 
-    values (?, ?, ?) 
+    values (?1, ?2, ?3) 
     on conflict (id) do update set 
-        first_name = customer.first_name || ? || excluded.first_name, 
-        last_name = customer.last_name || ? || excluded.last_name 
+        first_name = customer.first_name || ?4 || excluded.first_name, 
+        last_name = customer.last_name || ?5 || excluded.last_name 
     returning 
         id as id, 
         first_name as firstName, 

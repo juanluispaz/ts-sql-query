@@ -53,8 +53,8 @@ describe(ctx.label, () => {
                 .executeUpdate())
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"update issue set status = ? where id = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"update issue set status = ?, title = ? where id = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"update issue set status = ?1 where id = ?2"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update issue set status = ?1, title = ?2 where id = ?3"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -80,8 +80,8 @@ describe(ctx.label, () => {
                 .executeUpdate())
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"update issue set status = ? where id = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"update issue set status = ?, title = ? where id = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"update issue set status = ?1 where id = ?2"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update issue set status = ?1, title = ?2 where id = ?3"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -176,8 +176,8 @@ describe(ctx.label, () => {
                 .executeUpdate())
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"update issue set status = ? where id = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"update issue set status = ?, body = ? where id = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"update issue set status = ?1 where id = ?2"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update issue set status = ?1, body = ?2 where id = ?3"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -200,8 +200,8 @@ describe(ctx.label, () => {
                 .executeUpdate())
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"update issue set status = ? where id = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"update issue set status = ?, body = ? where id = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"update issue set status = ?1 where id = ?2"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update issue set status = ?1, body = ?2 where id = ?3"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -226,8 +226,8 @@ describe(ctx.label, () => {
                 .executeUpdate())
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"update issue set status = ?, body = ? where id = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"update issue set status = ? where id = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"update issue set status = ?1, body = ?2 where id = ?3"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update issue set status = ?1 where id = ?2"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -253,8 +253,8 @@ describe(ctx.label, () => {
                 .executeUpdate())
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"update issue set status = ?, body = ? where id = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"update issue set status = ? where id = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"update issue set status = ?1, body = ?2 where id = ?3"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update issue set status = ?1 where id = ?2"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -424,8 +424,8 @@ describe(ctx.label, () => {
                 .executeUpdate())
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"update issue set status = ?, body = ? where id = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"update issue set body = ? where id = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"update issue set status = ?1, body = ?2 where id = ?3"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update issue set body = ?1 where id = ?2"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -448,8 +448,8 @@ describe(ctx.label, () => {
                 .executeUpdate())
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"update issue set status = ?, body = ? where id = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"update issue set status = ? where id = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"update issue set status = ?1, body = ?2 where id = ?3"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update issue set status = ?1 where id = ?2"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -472,8 +472,8 @@ describe(ctx.label, () => {
                 .executeUpdate())
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"update issue set status = ?, body = ? where id = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"update issue set status = ? where id = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"update issue set status = ?1, body = ?2 where id = ?3"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update issue set status = ?1 where id = ?2"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })

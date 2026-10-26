@@ -30,7 +30,7 @@ describe(ctx.label, () => {
                 .set({ status: 'archived' })
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "archived",
@@ -51,7 +51,7 @@ describe(ctx.label, () => {
                 .where(tIssue.priority.greaterOrEqual(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where priority >= ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?1 where priority >= ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "archived",
@@ -129,7 +129,7 @@ describe(ctx.label, () => {
             expect(viaSet.query()).toBe(dynamicSql)
             expect(viaSet.params()).toEqual(dynamicParams)
 
-            expect(dynamicSql).toMatchInlineSnapshot(`"update issue set status = ?"`)
+            expect(dynamicSql).toMatchInlineSnapshot(`"update issue set status = ?1"`)
             expect(dynamicParams).toMatchInlineSnapshot(`
               [
                 "archived",
@@ -150,7 +150,7 @@ describe(ctx.label, () => {
                 .setIfValue({ status: 'archived', body: undefined })
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "archived",
@@ -177,7 +177,7 @@ describe(ctx.label, () => {
                 .returning({ id: tIssue.id, status: tIssue.status })
                 .executeUpdateMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? returning id as id, status as status"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?1 returning id as id, status as status"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "archived",

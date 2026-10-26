@@ -42,7 +42,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select distinct project.organization_id as orgId from project inner join issue on issue.project_id = project.id where issue.status = ? order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select distinct project.organization_id as orgId from project inner join issue on issue.project_id = project.id where issue.status = ?1 order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",

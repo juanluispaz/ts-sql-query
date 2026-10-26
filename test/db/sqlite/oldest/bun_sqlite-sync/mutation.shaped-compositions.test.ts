@@ -25,7 +25,7 @@ describe(ctx.label, () => {
                 .set({ orgId: 1, projectName: 'Shaped + customize', projectSlug: 'shaped-customize' })
                 .customizeQuery({ beforeQuery: connection.rawFragment`/* shaped-insert */ ` })
                 .executeInsert())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* shaped-insert */  insert into project (organization_id, name, slug) values (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* shaped-insert */  insert into project (organization_id, name, slug) values (?1, ?2, ?3)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -49,7 +49,7 @@ describe(ctx.label, () => {
                 .set({ orgId: 1, projectName: 'Shaped + returning id', projectSlug: 'shaped-ret-id' })
                 .returningLastInsertedId()
                 .executeInsert())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -77,7 +77,7 @@ describe(ctx.label, () => {
                 .where(tProject.id.equals(1))
                 .customizeQuery({ beforeQuery: connection.rawFragment`/* shaped-update */ ` })
                 .executeUpdate())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* shaped-update */  update project set name = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* shaped-update */  update project set name = ?1 where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Shaped update + customize",
@@ -103,7 +103,7 @@ describe(ctx.label, () => {
                 .where(tProject.id.equals(1))
                 .returning({ id: tProject.id, name: tProject.name })
                 .executeUpdateOne())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ? returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1 where id = ?2 returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Shaped update + returning",
@@ -130,7 +130,7 @@ describe(ctx.label, () => {
                 .where(tProject.id.equals(1))
                 .returning({ id: tProject.id, audit: { name: tProject.name, slug: tProject.slug } })
                 .executeUpdateOne())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ? returning id as id, name as "audit.name", slug as "audit.slug""`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1 where id = ?2 returning id as id, name as "audit.name", slug as "audit.slug""`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Shaped nested returning",
@@ -157,7 +157,7 @@ describe(ctx.label, () => {
                 .dynamicSet({ projectName: 'Widened shape', projectSlug: 'widened-shape' })
                 .where(tProject.id.equals(1))
                 .executeUpdate())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?, slug = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1, slug = ?2 where id = ?3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Widened shape",
@@ -184,7 +184,7 @@ describe(ctx.label, () => {
                 .set({ projectName: 'Widened via set', projectSlug: 'widened-via-set' })
                 .where(tProject.id.equals(1))
                 .executeUpdate())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?, slug = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1, slug = ?2 where id = ?3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Widened via set",
@@ -213,7 +213,7 @@ describe(ctx.label, () => {
                 .set({ projectName: 'No-arg opener', projectSlug: 'no-arg-opener' })
                 .where(tProject.id.equals(1))
                 .executeUpdate())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?, slug = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1, slug = ?2 where id = ?3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "No-arg opener",
@@ -239,7 +239,7 @@ describe(ctx.label, () => {
                 .dynamicSet()
                 .set({ projectName: 'No-where widened', orgId: 1 })
                 .executeUpdate())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?, organization_id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1, organization_id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "No-where widened",

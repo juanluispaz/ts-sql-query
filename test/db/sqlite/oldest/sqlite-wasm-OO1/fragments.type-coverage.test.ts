@@ -77,7 +77,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select work_date as wd, started_at as st, activity as act from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select work_date as wd, started_at as st, activity as act from issue_worklog where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -115,7 +115,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select 1.5 as avg, channel as ch, signing_key as "key", released_on as rOn, cutoff_time as cut, signed_off_at as soff from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select 1.5 as avg, channel as ch, signing_key as "key", released_on as rOn, cutoff_time as cut, signed_off_at as soff from project_release where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -150,7 +150,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as "v", 1.5 as avg, signing_key as "key", channel as ch from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as "v", 1.5 as avg, signing_key as "key", channel as ch from project_release where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -211,7 +211,7 @@ describe(ctx.label, () => {
                 mb: c.aggregateFragmentWithType('boolean', 'optional').sql`max(${tIssue.priority}) > 5`,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority) as mi, avg(priority) as md, max(title) as ms, max(priority) > 5 as mb from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority) as mi, avg(priority) as md, max(title) as ms, max(priority) > 5 as mb from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             -1,
@@ -235,7 +235,7 @@ describe(ctx.label, () => {
                 mlt: c.aggregateFragmentWithType('localTime', 'optional').sql`max(${tIssueWorklog.startedAt})`,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(work_date) as mld, max(started_at) as mlt from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(work_date) as mld, max(started_at) as mlt from issue_worklog where id = ?1"`)
         assertType<Exact<typeof plain, { mld?: Date; mlt?: Date }>>()
         expect(plain).toEqual({})
 
@@ -244,7 +244,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(-1))
             .select({ mldt: c.aggregateFragmentWithType('localDateTime', 'optional').sql`max(${tIssue.createdAt})` })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(created_at) as mldt from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(created_at) as mldt from issue where id = ?1"`)
         assertType<Exact<typeof dt, { mldt?: Date }>>()
         expect(dt).toEqual({})
 
@@ -257,7 +257,7 @@ describe(ctx.label, () => {
                 mcldt: c.aggregateFragmentWithType<Date, 'SignOffStamp'>('customLocalDateTime', 'SignOffStamp', 'optional').sql`max(${tProjectRelease.signedOffAt})`,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(released_on) as mcld, max(cutoff_time) as mclt, max(signed_off_at) as mcldt from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(released_on) as mcld, max(cutoff_time) as mclt, max(signed_off_at) as mcldt from project_release where id = ?1"`)
         assertType<Exact<typeof custom, { mcld?: Date; mclt?: Date; mcldt?: Date }>>()
         expect(custom).toEqual({})
     })
@@ -277,7 +277,7 @@ describe(ctx.label, () => {
                 men: c.aggregateFragmentWithType<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', 'optional').sql`max(${tIssueWorklog.activity})`,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(cost_cents) as mci, max(billed_amount) as mcd, max(activity) as men from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(cost_cents) as mci, max(billed_amount) as mcd, max(activity) as men from issue_worklog where id = ?1"`)
         assertType<Exact<typeof wl, { mci?: number; mcd?: number; men?: WorklogActivity }>>()
         expect(wl).toEqual({})
 
@@ -289,7 +289,7 @@ describe(ctx.label, () => {
                 mc:  c.aggregateFragmentWithType<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', 'optional').sql`max(${tProjectRelease.channel})`,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(version) as mcc, max(channel) as mc from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(version) as mcc, max(channel) as mc from project_release where id = ?1"`)
         assertType<Exact<typeof rel, { mcc?: string; mc?: ReleaseChannel }>>()
         expect(rel).toEqual({})
     })
@@ -308,7 +308,7 @@ describe(ctx.label, () => {
                 maxActivity: c.aggregateFragmentWithType<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', 'required').sql`max(${tIssueWorklog.activity})`,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(activity) as maxActivity from issue_worklog where issue_id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(activity) as maxActivity from issue_worklog where issue_id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -345,7 +345,7 @@ describe(ctx.label, () => {
                 amt: c.fragmentWithType<number, 'Money'>('customDouble', 'Money', 'required').sql`${tIssueWorklog.billedAmount}`,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select billed_amount as amt from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select billed_amount as amt from issue_worklog where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -362,7 +362,7 @@ describe(ctx.label, () => {
                 soff: c.fragmentWithType('localDateTime', 'required').sql`${tProjectRelease.signedOffAt}`,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select signed_off_at as soff from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select signed_off_at as soff from project_release where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -386,7 +386,7 @@ describe(ctx.label, () => {
                 tagged: ctx.conn.fragmentWithType('string', 'required', bracketAdapter).sql`upper(${tIssueWorklog.activity})`,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select upper(activity) as tagged from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select upper(activity) as tagged from issue_worklog where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -410,7 +410,7 @@ describe(ctx.label, () => {
                 tagged: ctx.conn.aggregateFragmentWithType('string', 'required', bracketAdapter).sql`max(upper(${tIssueWorklog.activity}))`,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(upper(activity)) as tagged from issue_worklog where issue_id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(upper(activity)) as tagged from issue_worklog where issue_id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -433,7 +433,7 @@ describe(ctx.label, () => {
                 v: ctx.conn.fragmentWithType<string, 'Semver'>('customComparable', 'Semver', 'required', bracketAdapter).sql`${tProjectRelease.version}`,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as "v" from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as "v" from project_release where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -476,7 +476,7 @@ describe(ctx.label, () => {
                 mlt: ctx.conn.aggregateFragmentWithType('localTime', 'required', shiftHourAdapter).sql`max(${tIssueWorklog.startedAt})`,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(started_at) as mlt from issue_worklog where issue_id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(started_at) as mlt from issue_worklog where issue_id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -615,7 +615,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select billable as bill, work_date as wd, started_at as st, cost_cents as cost, billed_amount as amt, activity as act from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select billable as bill, work_date as wd, started_at as st, cost_cents as cost, billed_amount as amt, activity as act from issue_worklog where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -656,7 +656,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select signing_key as "key", released_on as rOn, cutoff_time as cut, signed_off_at as soff, version as "v" from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select signing_key as "key", released_on as rOn, cutoff_time as cut, signed_off_at as soff, version as "v" from project_release where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -687,7 +687,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select created_at as ca from organization where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select created_at as ca from organization where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -713,7 +713,7 @@ describe(ctx.label, () => {
                 opt: c.fragmentWithType('boolean', 'optional', negateBoolAdapter).sql`${tIssueWorklog.billable}`,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select billable as req, billable as opt from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select billable as req, billable as opt from issue_worklog where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -757,7 +757,7 @@ describe(ctx.label, () => {
                 any: c.aggregateFragmentWithType('boolean', 'optional', negateBoolAdapter).sql`max(${tIssue.priority}) > 5`,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority) > 5 as any from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority) > 5 as any from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             -1,
@@ -780,7 +780,7 @@ describe(ctx.label, () => {
                 wd: ctx.conn.fragmentWithType('localDate', 'required', shiftHourAdapter).sql`${tIssueWorklog.workDate}`,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select work_date as wd from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select work_date as wd from issue_worklog where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -803,7 +803,7 @@ describe(ctx.label, () => {
                 rOn: ctx.conn.fragmentWithType<Date, 'ReleaseDay'>('customLocalDate', 'ReleaseDay', 'required', shiftHourAdapter).sql`${tProjectRelease.releasedOn}`,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select released_on as rOn from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select released_on as rOn from project_release where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

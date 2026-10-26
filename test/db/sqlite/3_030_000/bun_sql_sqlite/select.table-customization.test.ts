@@ -82,7 +82,7 @@ describe(ctx.label, () => {
             .select({ id: tOrgFiltered.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select "o".id as id from (select * from organization where $1 >= 0) as "o" order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select "o".id as id from (select * from organization where ?1 >= 0) as "o" order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -110,7 +110,7 @@ describe(ctx.label, () => {
             .select({ projectId: tProject.id, orgName: tOrgFiltered.name })
             .orderBy('projectId')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as projectId, "o".name as orgName from project inner join (select * from organization where $1 >= 0) as "o" on "o".id = project.organization_id where project.organization_id = $2 order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as projectId, "o".name as orgName from project inner join (select * from organization where ?1 >= 0) as "o" on "o".id = project.organization_id where project.organization_id = ?2 order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -133,7 +133,7 @@ describe(ctx.label, () => {
             .select({ id: vProjCustom.id, name: vProjCustom.name })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select "v".id as id, "v".name as name from /*+ hint */ project_overview as "v" where "v".id = $1 order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select "v".id as id, "v".name as name from /*+ hint */ project_overview as "v" where "v".id = ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -156,7 +156,7 @@ describe(ctx.label, () => {
             .select({ id: tOrgFiltered.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select "o".id as id from (select * from organization where $1 >= 0 and $2 >= 0) as "o" order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select "o".id as id from (select * from organization where ?1 >= 0 and ?2 >= 0) as "o" order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -180,7 +180,7 @@ describe(ctx.label, () => {
             .select({ id: tOrgFiltered.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select "o".id as id from (select * from organization where $1 >= 0 and $2 >= 0 and $3 >= 0) as "o" order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select "o".id as id from (select * from organization where ?1 >= 0 and ?2 >= 0 and ?3 >= 0) as "o" order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -201,7 +201,7 @@ describe(ctx.label, () => {
             .select({ id: tOrgFiltered.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select "o".id as id from (select * from organization where $1 >= 0 and $2 >= 0 and $3 >= 0 and $4 >= 0) as "o" order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select "o".id as id from (select * from organization where ?1 >= 0 and ?2 >= 0 and ?3 >= 0 and ?4 >= 0) as "o" order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -223,7 +223,7 @@ describe(ctx.label, () => {
             .select({ id: tOrgFiltered.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select "o".id as id from (select * from organization where $1 >= 0 and $2 >= 0 and $3 >= 0 and $4 >= 0 and $5 >= 0) as "o" order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select "o".id as id from (select * from organization where ?1 >= 0 and ?2 >= 0 and ?3 >= 0 and ?4 >= 0 and ?5 >= 0) as "o" order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,

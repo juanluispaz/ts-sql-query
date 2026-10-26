@@ -48,7 +48,7 @@ describe(ctx.label, () => {
                 .executeInsert())
             const trueParams = ctx.lastParams
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)"`)
             expect(falseParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -133,8 +133,8 @@ describe(ctx.label, () => {
                 .executeInsert())
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (?, ?, ?, ?, ?, ?)"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (?1, ?2, ?3, ?4, ?5, ?6)"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -170,8 +170,8 @@ describe(ctx.label, () => {
                 .executeInsert())
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (?, ?, ?, ?, ?, ?)"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (?1, ?2, ?3, ?4, ?5, ?6)"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -209,8 +209,8 @@ describe(ctx.label, () => {
                 .executeInsert())
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (?, ?, ?, ?, ?, ?)"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (?1, ?2, ?3, ?4, ?5, ?6)"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -346,8 +346,8 @@ describe(ctx.label, () => {
                 .executeInsert())
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (?, ?, ?, ?, ?, ?)"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (?1, ?2, ?3, ?4, ?5, ?6)"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -549,8 +549,8 @@ describe(ctx.label, () => {
                 .executeInsert())
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (?, ?, ?, ?, ?, ?)"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (?1, ?2, ?3, ?4, ?5, ?6)"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -575,8 +575,8 @@ describe(ctx.label, () => {
                 .executeInsert())
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (?, ?, ?, ?, ?, ?)"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (?1, ?2, ?3, ?4, ?5, ?6)"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -602,8 +602,8 @@ describe(ctx.label, () => {
                 .executeInsert())
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (?, ?, ?, ?, ?, ?)"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (?1, ?2, ?3, ?4, ?5, ?6)"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })

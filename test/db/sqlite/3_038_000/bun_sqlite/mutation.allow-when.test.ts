@@ -45,7 +45,7 @@ describe(ctx.label, () => {
 
             const affected = await query.executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -100,7 +100,7 @@ describe(ctx.label, () => {
 
             const affected = await query.executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = name || ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = name || ?1 where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 " / updated",
@@ -171,7 +171,7 @@ describe(ctx.label, () => {
 
             const affected = await query.executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1 where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "updated-name",
@@ -217,7 +217,7 @@ describe(ctx.label, () => {
 
             const affected = await query.executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 99999,

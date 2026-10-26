@@ -470,7 +470,7 @@ async function createBetterSqlite3ExactIntegerConnection(sync = false): Promise<
                 const stmt = this.connection.prepare(query)
                 stmt.safeIntegers(true)
                 try {
-                    return this.promise.resolve(stmt.all(params))
+                    return this.promise.resolve(stmt.all(this.bindParams(params)))
                 } finally {
                     stmt.safeIntegers(false)
                 }

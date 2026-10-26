@@ -39,7 +39,7 @@ describe(ctx.label, () => {
         const v = sync(ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(ctx.conn.derivedArgMoneyModulo(1))
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? % ? as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 % ?2 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -56,7 +56,7 @@ describe(ctx.label, () => {
         const v = sync(ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(ctx.conn.derivedAggArgMoneyModulo(1))
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(? % ?) as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(?1 % ?2) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -75,7 +75,7 @@ describe(ctx.label, () => {
             .where(ctx.conn.derivedValueArgMoneyModuloIfValue(1))
             .selectOneColumn(tDerivedColumn.plainInt)
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int as result from col_matrix where (? % ?) < ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int as result from col_matrix where (?1 % ?2) < ?3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -97,7 +97,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(ctx.conn.derivedArgCents(5, tDerivedColumn.plainCents))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? + m_int + ? as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 + m_int + ?2 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             500,
@@ -115,7 +115,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(ctx.conn.derivedArgMoney(1, tDerivedColumn.plainMoney))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? + m_double + ? as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 + m_double + ?2 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -134,7 +134,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(ctx.conn.derivedArgCentsRead(5, tDerivedColumn.plainCents))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? + m_int as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 + m_int as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             500,
@@ -150,7 +150,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(ctx.conn.derivedArgMoneyRead(1, tDerivedColumn.plainMoney))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? + m_double as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 + m_double as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -167,7 +167,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(ctx.conn.derivedMaybeOptionalArgCents(5, tDerivedColumn.plainCents))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? + m_int + ? as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 + m_int + ?2 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             500,
@@ -186,7 +186,7 @@ describe(ctx.label, () => {
             .where(ctx.conn.derivedArgCentsIfValue(5, tDerivedColumn.plainCents, 1000))
             .selectOneColumn(tDerivedColumn.plainInt)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int as result from col_matrix where (? + m_int + ?) > ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int as result from col_matrix where (?1 + m_int + ?2) > ?3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             500,
@@ -206,7 +206,7 @@ describe(ctx.label, () => {
             .where(ctx.conn.derivedValueArgCentsIfValue(tDerivedColumn.plainCents, 5))
             .selectOneColumn(tDerivedColumn.plainInt)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int as result from col_matrix where (? + m_int + ?) > (m_int * ?)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int as result from col_matrix where (?1 + m_int + ?2) > (m_int * ?3)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             500,
@@ -224,7 +224,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(ctx.conn.derivedAggArgCents(5, tDerivedColumn.plainCents))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(? + m_int + ?) as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(?1 + m_int + ?2) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             500,
@@ -242,7 +242,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(ctx.conn.derivedAggMaybeOptionalArgMoney(1, tDerivedColumn.plainMoney))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(? + m_double + ?) as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(?1 + m_double + ?2) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -264,7 +264,7 @@ describe(ctx.label, () => {
             .having(ctx.conn.derivedAggValueArgCentsIfValue(tDerivedColumn.plainCents, 5))
             .select({ id: tDerivedColumn.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from col_matrix group by id having sum(? + m_int + ?) > sum(m_int) * 20"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from col_matrix group by id having sum(?1 + m_int + ?2) > sum(m_int) * 20"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             500,

@@ -39,7 +39,7 @@ The executed query is:
 === "SQLite"
     ```sqlite
     delete from customer 
-    where id = ?
+    where id = ?1
     ```
 === "SQL Server"
     ```sqlserver
@@ -110,7 +110,7 @@ The executed query is:
 === "SQLite"
     ```sqlite
     delete from company 
-    where name = ? 
+    where name = ?1 
     returning 
         id as id, 
         name as name

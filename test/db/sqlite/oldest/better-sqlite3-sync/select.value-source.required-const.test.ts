@@ -54,7 +54,7 @@ describe(ctx.label, () => {
                 b:  ctx.conn.const(true, 'boolean'),
             })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as "i", ? as "d", ? as bi, ? as "b""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as "i", ?2 as "d", ?3 as bi, ?4 as "b""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             7,
@@ -81,7 +81,7 @@ describe(ctx.label, () => {
                 cc: ctx.conn.const<string, 'Semver'>('1.2.0', 'customComparable', 'Semver'),
             })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as "u", ? as "e", ? as "c", ? as cc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as "u", ?2 as "e", ?3 as "c", ?4 as cc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556666",
@@ -107,7 +107,7 @@ describe(ctx.label, () => {
                 cu: ctx.conn.const<string, 'SigningKey'>(UUID_V, 'customUuid', 'SigningKey'),
             })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as ci, ? as cd, ? as cu"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as ci, ?2 as cd, ?3 as cu"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             7,
@@ -136,7 +136,7 @@ describe(ctx.label, () => {
                 cldt: ctx.conn.const<Date, 'SignOffStamp'>(ldt, 'customLocalDateTime', 'SignOffStamp'),
             })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as lt, ? as ldt, ? as clt, ? as cldt"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as lt, ?2 as ldt, ?3 as clt, ?4 as cldt"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "17:00:00",
@@ -161,7 +161,7 @@ describe(ctx.label, () => {
         const v = sync(ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const('hello', 'string', bracketAdapter))
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "hello",
@@ -185,7 +185,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, name: tProject.name })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where id = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where id = ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

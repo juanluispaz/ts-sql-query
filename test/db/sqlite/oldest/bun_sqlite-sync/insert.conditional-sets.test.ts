@@ -44,7 +44,7 @@ describe(ctx.label, () => {
                 .setIfHasValue({ title: 'Triaged', body: 'should-be-ignored' })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, body, status, priority) values (?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, body, status, priority) values (?1, ?2, ?3, ?4, ?5, ?6)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -79,7 +79,7 @@ describe(ctx.label, () => {
                 .setIfHasNoValue({ title: 'should-be-ignored', body: 'Backfilled' })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, body, status, priority) values (?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, body, status, priority) values (?1, ?2, ?3, ?4, ?5, ?6)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -115,7 +115,7 @@ describe(ctx.label, () => {
                 .setIfSetIfValue({ status: null })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -150,7 +150,7 @@ describe(ctx.label, () => {
                 .setIfNotSetIfValue({ body: 'New body text' })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (?1, ?2, ?3, ?4, ?5, ?6)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -182,7 +182,7 @@ describe(ctx.label, () => {
                 .setIfHasNoValueIfValue({ body: 'Backfilled', title: '' })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, body, status, priority) values (?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, body, status, priority) values (?1, ?2, ?3, ?4, ?5, ?6)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -216,7 +216,7 @@ describe(ctx.label, () => {
                 .ignoreIfHasValue('body', 'assigneeId')
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, assignee_id, status, priority) values (?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, assignee_id, status, priority) values (?1, ?2, ?3, ?4, ?5, ?6)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -247,7 +247,7 @@ describe(ctx.label, () => {
                 .ignoreIfHasNoValue('body', 'assigneeId')
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -279,7 +279,7 @@ describe(ctx.label, () => {
                 .ignoreAnySetWithNoValue()
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -312,7 +312,7 @@ describe(ctx.label, () => {
                 .setForAllIfNotSet({ body: 'triage' })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, body, status, priority) values (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, body, status, priority) values (?1, ?2, ?3, ?4, ?5, ?6), (?7, ?8, ?9, ?10, ?11, ?12)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -348,7 +348,7 @@ describe(ctx.label, () => {
                 .setForAllIfNotSetIfValue({ body: 'staged-only' })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, body, status, priority) values (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, body, status, priority) values (?1, ?2, ?3, ?4, ?5, ?6), (?7, ?8, ?9, ?10, ?11, ?12)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -383,7 +383,7 @@ describe(ctx.label, () => {
                 .setForAllIfHasNoValue({ body: 'backfilled' })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, body, status, priority) values (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, body, status, priority) values (?1, ?2, ?3, ?4, ?5, ?6), (?7, ?8, ?9, ?10, ?11, ?12)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -419,7 +419,7 @@ describe(ctx.label, () => {
                 .setForAllIfHasNoValueIfValue({ body: 'backfilled' })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, body, status, priority) values (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, body, status, priority) values (?1, ?2, ?3, ?4, ?5, ?6), (?7, ?8, ?9, ?10, ?11, ?12)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -454,7 +454,7 @@ describe(ctx.label, () => {
                 .setForAllIfHasNoValueIfValue({ body: undefined })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, body, status, priority) values (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, body, status, priority) values (?1, ?2, ?3, ?4, ?5, ?6), (?7, ?8, ?9, ?10, ?11, ?12)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -490,7 +490,7 @@ describe(ctx.label, () => {
                 .ignoreIfHasValue('body')
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (?1, ?2, ?3, ?4, ?5, ?6), (?7, ?8, ?9, ?10, ?11, ?12)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -527,7 +527,7 @@ describe(ctx.label, () => {
                 .ignoreIfHasNoValue('body')
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (?1, ?2, ?3, ?4, ?5, ?6), (?7, ?8, ?9, ?10, ?11, ?12)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -564,7 +564,7 @@ describe(ctx.label, () => {
                 .ignoreAnySetWithNoValue()
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, body, status, priority) values (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, body, status, priority) values (?1, ?2, ?3, ?4, ?5, ?6), (?7, ?8, ?9, ?10, ?11, ?12)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -603,7 +603,7 @@ describe(ctx.label, () => {
                 .setIfValueWhen(true, { priority: 7 })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (?1, ?2, ?3, ?4, ?5, ?6)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -651,7 +651,7 @@ describe(ctx.label, () => {
                 .ignoreIfHasNoValueWhen(true, 'body')
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -683,7 +683,7 @@ describe(ctx.label, () => {
                 .disallowAnyOtherSet('only core fields allowed', 'projectId', 'number', 'title', 'status', 'priority')
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -719,7 +719,7 @@ describe(ctx.label, () => {
                 .set({ number: 216, title: 'Folded', status: 'open', priority: 3 })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -754,7 +754,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -788,7 +788,7 @@ describe(ctx.label, () => {
             expect(viaSet.query()).toBe(dynamicSql)
             expect(viaSet.params()).toEqual(dynamicParams)
 
-            expect(dynamicSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)"`)
+            expect(dynamicSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)"`)
             expect(dynamicParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -826,7 +826,7 @@ describe(ctx.label, () => {
             expect(viaSet.query()).toBe(dynamicSql)
             expect(viaSet.params()).toEqual(dynamicParams)
 
-            expect(dynamicSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)"`)
+            expect(dynamicSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)"`)
             expect(dynamicParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -896,7 +896,7 @@ describe(ctx.label, () => {
                 .ignoreIfHasNoValue('body', 'assigneeId')
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, body, status, priority) values (?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, body, status, priority) values (?1, ?2, ?3, ?4, ?5, ?6)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -931,7 +931,7 @@ describe(ctx.label, () => {
                 .setForAllIfNotSetIfValue({ assigneeId: 2 })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, assignee_id) values (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, assignee_id) values (?1, ?2, ?3, ?4, ?5, ?6), (?7, ?8, ?9, ?10, ?11, ?12)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1043,7 +1043,7 @@ describe(ctx.label, () => {
                 )
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

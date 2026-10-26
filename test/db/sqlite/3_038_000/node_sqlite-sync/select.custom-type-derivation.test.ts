@@ -72,7 +72,7 @@ describe(ctx.label, () => {
                     .add(9),
             )
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (sum(cost_cents)) + ? as result from issue_worklog"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (sum(cost_cents)) + ?1 as result from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             900,
@@ -111,7 +111,7 @@ describe(ctx.label, () => {
                     .add(5),
             )
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (sum(billed_amount)) + ? as result from issue_worklog"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (sum(billed_amount)) + ?1 as result from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             500,
@@ -150,7 +150,7 @@ describe(ctx.label, () => {
                     .divide(3),
             )
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((sum(billed_amount)) as real) / ? as result from issue_worklog"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((sum(billed_amount)) as real) / ?1 as result from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             300,
@@ -173,7 +173,7 @@ describe(ctx.label, () => {
                     .modulo(3),
             )
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (sum(billed_amount)) % ? as result from issue_worklog"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (sum(billed_amount)) % ?1 as result from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             300,
@@ -216,7 +216,7 @@ describe(ctx.label, () => {
                     .add(9),
             )
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (cost_cents) + ? as result from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (cost_cents) + ?1 as result from issue_worklog where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             900,
@@ -239,7 +239,7 @@ describe(ctx.label, () => {
                     .add(tIssueWorklog.billedAmount),
             )
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? + billed_amount as result from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 + billed_amount as result from issue_worklog where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             450,

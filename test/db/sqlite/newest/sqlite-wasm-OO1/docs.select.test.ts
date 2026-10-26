@@ -37,7 +37,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.title as title, proj.name as projectName from issue inner join project as proj on issue.project_id = proj.id where issue.status = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.title as title, proj.name as projectName from issue inner join project as proj on issue.project_id = proj.id where issue.status = ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -69,7 +69,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where id = ? order by project.archived_at desc nulls last"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where id = ?1 order by project.archived_at desc nulls last"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -105,7 +105,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as projectId, name as projectName, slug as projectSlug from project where organization_id in (select id as result from organization where name like ('%' || ? || '%') escape '\\') order by projectName asc nulls first, projectSlug"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as projectId, name as projectName, slug as projectSlug from project where organization_id in (select id as result from organization where name like ('%' || ?1 || '%') escape '\\') order by projectName asc nulls first, projectSlug"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Acme",
@@ -261,7 +261,7 @@ describe(ctx.label, () => {
             ).executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, ? as kind from organization union all select id as id, name as name, ? as kind from project"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, ?1 as kind from organization union all select id as id, name as name, ?2 as kind from project"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "organization",
@@ -306,7 +306,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCountPerOrg as (select organization.id as organizationId, organization.name as organizationName, count(project.id) as projectCount from organization inner join project on project.organization_id = organization.id group by organization.id, organization.name) select organizationId as acmeOrgId, organizationName as acmeOrgName, projectCount as acmeProjectCount from projectCountPerOrg where lower(organizationName) like lower('%' || ? || '%') escape '\\'"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCountPerOrg as (select organization.id as organizationId, organization.name as organizationName, count(project.id) as projectCount from organization inner join project on project.organization_id = organization.id group by organization.id, organization.name) select organizationId as acmeOrgId, organizationName as acmeOrgName, projectCount as acmeProjectCount from projectCountPerOrg where lower(organizationName) like lower('%' || ?1 || '%') escape '\\'"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Acme",
@@ -335,7 +335,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as result from project where organization_id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as result from project where organization_id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -372,7 +372,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where organization_id = (select id as result from organization where name = ?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where organization_id = (select id as result from organization where name = ?1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Acme Corp",
@@ -446,7 +446,7 @@ describe(ctx.label, () => {
             .orderBy('organizationId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, count(id) as projectCount from project where archived_at is null group by organization_id having count(id) > ? order by organizationId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, count(id) as projectCount from project where archived_at is null group by organization_id having count(id) > ?1 order by organizationId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -480,7 +480,7 @@ describe(ctx.label, () => {
             .orderBy('organizationId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, count(id) as projectCount from project where archived_at is null group by organization_id having count(id) > ? order by organizationId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, count(id) as projectCount from project where archived_at is null group by organization_id having count(id) > ?1 order by organizationId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -514,7 +514,7 @@ describe(ctx.label, () => {
             .where(tProject.archivedAt.isNull())
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, count(id) as projectCount from project where archived_at is null group by organization_id having count(id) > ? order by organizationId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, count(id) as projectCount from project where archived_at is null group by organization_id having count(id) > ?1 order by organizationId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -548,7 +548,7 @@ describe(ctx.label, () => {
             .orderBy('organizationId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, count(id) as projectCount from project where archived_at is null group by organization_id having count(id) > ? order by organizationId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, count(id) as projectCount from project where archived_at is null group by organization_id having count(id) > ?1 order by organizationId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -581,7 +581,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, email as email, full_name as fullName from app_user where email = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, email as email, full_name as fullName from app_user where email = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ada@acme.test",
@@ -611,7 +611,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select "u".id as id, "u".full_name as fullName from app_user as "u" where "u".email like (? || '%') escape '\\'"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select "u".id as id, "u".full_name as fullName from app_user as "u" where "u".email like (?1 || '%') escape '\\'"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ada@",

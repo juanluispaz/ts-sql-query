@@ -207,7 +207,7 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
                 result = '$' + (index + 1)
                 break
             case 'sqlite':
-                result = '?'
+                result = '?' + (index + 1)
                 break
             case 'sqlServer':
                 result = '@P' + (index  + 1)

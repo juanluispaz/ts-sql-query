@@ -79,7 +79,7 @@ export class Sqlite3WasmOO1QueryRunner extends SqlTransactionQueryRunner {
         } else {
             params.push(value)
         }
-        return '?'
+        return '?' + params.length
     }    
     override createResolvedPromise<RESULT>(result: RESULT | PromiseLike<RESULT>): Promise<RESULT> {
         return this.promise.resolve(result) 

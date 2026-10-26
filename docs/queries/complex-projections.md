@@ -94,7 +94,7 @@ The executed query is:
         last_name as "name.lastName", 
         birthday as birthday 
     from customer 
-    where company_id = ? 
+    where company_id = ?1 
     order by 
         "name.firstName", 
         "name.lastName"
@@ -364,7 +364,7 @@ The executed query is:
         company.name as "company.name" 
     from customer 
     inner join company on company.id = customer.company_id 
-    where customer.id = ?
+    where customer.id = ?1
     ```
 === "SQL Server"
     ```sqlserver

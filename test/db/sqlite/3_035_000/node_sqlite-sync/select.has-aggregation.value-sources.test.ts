@@ -124,7 +124,7 @@ describe(ctx.label, () => {
 
         const rows = sync(query.executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) > ? as busy from issue group by project_id order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) > ?1 as busy from issue group by project_id order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -163,7 +163,7 @@ describe(ctx.label, () => {
 
         const rows = sync(query.executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) > ? as busy from issue group by project_id order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) > ?1 as busy from issue group by project_id order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -203,7 +203,7 @@ describe(ctx.label, () => {
 
         const rows = sync(query.executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, project_id > ? as busy from issue group by project_id order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, project_id > ?1 as busy from issue group by project_id order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -238,7 +238,7 @@ describe(ctx.label, () => {
 
         const rows = sync(query.executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) in (?, ?) as busy from issue group by project_id order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) in (?1, ?2) as busy from issue group by project_id order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -278,7 +278,7 @@ describe(ctx.label, () => {
 
         const rows = sync(query.executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, project_id in (?, count(id)) as busy from issue group by project_id order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, project_id in (?1, count(id)) as busy from issue group by project_id order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -315,7 +315,7 @@ describe(ctx.label, () => {
 
         const rows = sync(query.executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, project_id in (?, ?) as busy from issue group by project_id order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, project_id in (?1, ?2) as busy from issue group by project_id order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -390,7 +390,7 @@ describe(ctx.label, () => {
 
         const rows = sync(query.executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where project_id in (select id as result from project where slug = ?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where project_id in (select id as result from project where slug = ?1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "mktg-site",
@@ -427,7 +427,7 @@ describe(ctx.label, () => {
 
         const rows = sync(query.executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, ifnull(max(assignee_id), ?) as lead from issue group by project_id order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, ifnull(max(assignee_id), ?1) as lead from issue group by project_id order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -467,7 +467,7 @@ describe(ctx.label, () => {
 
         const rows = sync(query.executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where ifnull(assignee_id, (select count(id) as result from project)) = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where ifnull(assignee_id, (select count(id) as result from project)) = ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             4,
@@ -507,7 +507,7 @@ describe(ctx.label, () => {
 
         const rows = sync(query.executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where ifnull(assignee_id, (select id as result from project where slug = ?)) = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where ifnull(assignee_id, (select id as result from project where slug = ?1)) = ?2 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "legacy",
@@ -546,7 +546,7 @@ describe(ctx.label, () => {
 
         const rows = sync(query.executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, max(assignee_id) is ? as matches from issue group by project_id order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, max(assignee_id) is ?1 as matches from issue group by project_id order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -612,7 +612,7 @@ describe(ctx.label, () => {
 
         const rows = sync(query.executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, project_id is ? as matches from issue group by project_id order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, project_id is ?1 as matches from issue group by project_id order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -645,7 +645,7 @@ describe(ctx.label, () => {
 
         const rows = sync(query.executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId from issue group by project_id having count(id) > ? order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId from issue group by project_id having count(id) > ?1 order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -712,7 +712,7 @@ describe(ctx.label, () => {
 
         const rows = sync(query.executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId from issue group by project_id having count(id) in (?, ?) order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId from issue group by project_id having count(id) in (?1, ?2) order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -784,7 +784,7 @@ describe(ctx.label, () => {
 
         const rows = sync(query.executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId from issue group by project_id having project_id > ? and project_id in (?, ?, ?) order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId from issue group by project_id having project_id > ?1 and project_id in (?2, ?3, ?4) order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -820,7 +820,7 @@ describe(ctx.label, () => {
 
         const rows = sync(query.executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title as title from issue group by title having (max(title) || ?) = ? order by title"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title as title from issue group by title having (max(title) || ?1) = ?2 order by title"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "!",
@@ -855,7 +855,7 @@ describe(ctx.label, () => {
 
         const rows = sync(query.executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title as title from issue group by title having (max(title)) = ? order by title"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title as title from issue group by title having (max(title)) = ?1 order by title"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Redesign navbar",
@@ -887,7 +887,7 @@ describe(ctx.label, () => {
 
         const rows = sync(query.executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title as title from issue group by title having (title || ?) = ? order by title"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title as title from issue group by title having (title || ?1) = ?2 order by title"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "!",
@@ -924,7 +924,7 @@ describe(ctx.label, () => {
 
         const rows = sync(query.executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) between ? and ? as inRange from issue group by project_id order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) between ?1 and ?2 as inRange from issue group by project_id order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -961,7 +961,7 @@ describe(ctx.label, () => {
 
         const rows = sync(query.executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, project_id between count(id) and ? as inRange from issue group by project_id order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, project_id between count(id) and ?1 as inRange from issue group by project_id order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             5,
@@ -997,7 +997,7 @@ describe(ctx.label, () => {
 
         const rows = sync(query.executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, project_id between ? and count(id) as inRange from issue group by project_id order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, project_id between ?1 and count(id) as inRange from issue group by project_id order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1032,7 +1032,7 @@ describe(ctx.label, () => {
 
         const rows = sync(query.executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, project_id between ? and ? as inRange from issue group by project_id order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, project_id between ?1 and ?2 as inRange from issue group by project_id order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1066,7 +1066,7 @@ describe(ctx.label, () => {
 
         const rows = sync(query.executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title as title from issue group by title having replace(max(title), ?, ?) = ? order by title"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title as title from issue group by title having replace(max(title), ?1, ?2) = ?3 order by title"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "navbar",
@@ -1107,7 +1107,7 @@ describe(ctx.label, () => {
 
         const rows = sync(query.executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title as title from issue group by title having replace(title, ?, max(status)) = ? order by title"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title as title from issue group by title having replace(title, ?1, max(status)) = ?2 order by title"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "navbar",
@@ -1149,7 +1149,7 @@ describe(ctx.label, () => {
 
         const rows = sync(query.executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as name from project group by name having replace(name, max(slug), ?) = ? order by name"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as name from project group by name having replace(name, max(slug), ?1) = ?2 order by name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "squad",
@@ -1185,7 +1185,7 @@ describe(ctx.label, () => {
 
         const rows = sync(query.executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title as title from issue group by title having max(title) = ? order by title"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title as title from issue group by title having max(title) = ?1 order by title"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Redesign navbar",
@@ -1216,7 +1216,7 @@ describe(ctx.label, () => {
 
         const rows = sync(query.executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title as title from issue group by title having replace(title, ?, ?) = ? order by title"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title as title from issue group by title having replace(title, ?1, ?2) = ?3 order by title"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "navbar",
@@ -1349,7 +1349,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) > ? as busy from issue group by project_id order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) > ?1 as busy from issue group by project_id order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1389,7 +1389,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, exists(select project_id as result from issue where project_id = project.id group by project_id having count(id) > ?) as hasSeveralIssues from project order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, exists(select project_id as result from issue where project_id = project.id group by project_id having count(id) > ?1) as hasSeveralIssues from project order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1486,7 +1486,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, ifnull(count(id), ?) as issues from issue group by project_id order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, ifnull(count(id), ?1) as issues from issue group by project_id order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -1512,7 +1512,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where upper(activity) = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where upper(activity) = ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "CODING",
@@ -1548,7 +1548,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(json_object('id', id, 'title', title)) from issue where project_id = project.id) as issues from project where id in (?, ?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(json_object('id', id, 'title', title)) from issue where project_id = project.id) as issues from project where id in (?1, ?2) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -1581,7 +1581,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, json_group_array(json_object('id', id, 'title', title)) as issues from issue where project_id in (?, ?) group by project_id order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, json_group_array(json_object('id', id, 'title', title)) as issues from issue where project_id in (?1, ?2) group by project_id order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -1616,7 +1616,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, null as issues from project where id in (?, ?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, null as issues from project where id in (?1, ?2) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -1647,7 +1647,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, null as issues from issue where project_id in (?, ?) order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, null as issues from issue where project_id in (?1, ?2) order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

@@ -28,7 +28,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values ($1, $2)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Initech",
@@ -64,7 +64,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsertOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values ($1, $2, $3) returning id as id, name as name, slug as slug"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3) returning id as id, name as name, slug as slug"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -101,7 +101,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsertOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values ($1, $2, $3) returning id as id, name || $4 as tag"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3) returning id as id, name || ?4 as tag"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -132,7 +132,7 @@ describe(ctx.label, () => {
                 .returning({ id: tOrganization.id })
                 .executeInsertMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values ($1, $2), ($3, $4) returning id as id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2), (?3, ?4) returning id as id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Acme East",
@@ -164,7 +164,7 @@ describe(ctx.label, () => {
                 .projectingOptionalValuesAsNullable()
                 .executeInsertOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values ($1, $2, $3) returning id as id, archived_at as archivedAt"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3) returning id as id, archived_at as archivedAt"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -194,7 +194,7 @@ describe(ctx.label, () => {
                 .returning({ id: tProject.id, archivedAt: tProject.archivedAt })
                 .executeInsertOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values ($1, $2, $3) returning id as id, archived_at as archivedAt"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3) returning id as id, archived_at as archivedAt"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -227,7 +227,7 @@ describe(ctx.label, () => {
                 .projectingOptionalValuesAsNullable()
                 .executeInsertOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values ($1, $2, $3) returning id as id, archived_at as "meta.archivedAt""`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3) returning id as id, archived_at as "meta.archivedAt""`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -265,7 +265,7 @@ describe(ctx.label, () => {
                 .projectingOptionalValuesAsNullable()
                 .executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values ($1, $2, $3) on conflict do nothing returning id as id, archived_at as archivedAt"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3) on conflict do nothing returning id as id, archived_at as archivedAt"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -303,7 +303,7 @@ describe(ctx.label, () => {
                 .returning({ id: tOrganization.id, name: tOrganization.name })
                 .executeInsertMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values ($1, $2), ($3, $4) on conflict do nothing returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2), (?3, ?4) on conflict do nothing returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Conflict many A",
@@ -339,7 +339,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tOrganization.name)
                 .executeInsertMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values ($1, $2), ($3, $4) on conflict do nothing returning name as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2), (?3, ?4) on conflict do nothing returning name as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Conflict one-column A",
@@ -372,7 +372,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.body)
                 .executeInsertMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values ($1, $2, $3, $4, $5, $6), ($7, $8, $9, $10, $11, $12) returning body as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (?1, ?2, ?3, ?4, ?5, ?6), (?7, ?8, ?9, ?10, ?11, ?12) returning body as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -408,7 +408,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tProject.archivedAt)
                 .executeInsertOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values ($1, $2, $3) returning archived_at as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3) returning archived_at as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -438,7 +438,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsertOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values ($1, $2, $3) returning id as id, slug as "meta.sibling", archived_at as "meta.gate""`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3) returning id as id, slug as "meta.sibling", archived_at as "meta.gate""`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -468,7 +468,7 @@ describe(ctx.label, () => {
                 .projectingOptionalValuesAsNullable()
                 .executeInsertOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values ($1, $2, $3) returning id as id, slug as "meta.sibling", archived_at as "meta.gate""`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3) returning id as id, slug as "meta.sibling", archived_at as "meta.gate""`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -500,7 +500,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsertOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values ($1, $2, $3, $4) returning id as id, archived_at as "meta.archivedAt""`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?1, ?2, ?3, ?4) returning id as id, archived_at as "meta.archivedAt""`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -542,7 +542,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values ($1, $2, $3) on conflict do nothing returning id as id, archived_at as "meta.archivedAt""`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3) on conflict do nothing returning id as id, archived_at as "meta.archivedAt""`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -573,7 +573,7 @@ describe(ctx.label, () => {
                 .values({ projectId: 1, reviewerCode: 'R-Z9', score: 90, reviewDate, reviewTime })
                 .returning({ id: tProjectReview.id, reviewDate: tProjectReview.reviewDate, reviewTime: tProjectReview.reviewTime })
                 .executeInsertOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_review (project_id, reviewer_code, score, review_date, review_time) values ($1, $2, $3, $4, $5) returning id as id, review_date as reviewDate, review_time as reviewTime"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_review (project_id, reviewer_code, score, review_date, review_time) values (?1, ?2, ?3, ?4, ?5) returning id as id, review_date as reviewDate, review_time as reviewTime"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -616,7 +616,7 @@ describe(ctx.label, () => {
                     publishedAt: tProjectRelease.publishedAt,
                 })
                 .executeInsertOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_release (project_id, version, channel, released_on, cutoff_time, published_at) values ($1, $2, $3, $4, $5, $6) returning id as id, released_on as releasedOn, cutoff_time as cutoffTime, published_at as publishedAt"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_release (project_id, version, channel, released_on, cutoff_time, published_at) values (?1, ?2, ?3, ?4, ?5, ?6) returning id as id, released_on as releasedOn, cutoff_time as cutoffTime, published_at as publishedAt"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -658,7 +658,7 @@ describe(ctx.label, () => {
                 .values({ projectId: 1, reviewerCode: 'R-Z8', score: 70, reviewTime })
                 .returningOneColumn(tProjectReview.reviewTime)
                 .executeInsertOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_review (project_id, reviewer_code, score, review_time) values ($1, $2, $3, $4) returning review_time as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_review (project_id, reviewer_code, score, review_time) values (?1, ?2, ?3, ?4) returning review_time as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

@@ -46,7 +46,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, view_count) values (?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, view_count) values (?1, ?2, ?3, ?4, ?5, ?6)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -65,7 +65,7 @@ describe(ctx.label, () => {
                 .select({ id: tIssue.id, views: tIssue.viewCount })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, view_count as views from issue where number = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, view_count as views from issue where number = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 9002,
@@ -91,7 +91,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, estimated_hours) values (?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, estimated_hours) values (?1, ?2, ?3, ?4, ?5, ?6)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -110,7 +110,7 @@ describe(ctx.label, () => {
                 .select({ id: tIssue.id, hours: tIssue.estimatedHours })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, estimated_hours as hours from issue where number = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, estimated_hours as hours from issue where number = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 9003,
@@ -137,7 +137,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, external_ref) values (?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, external_ref) values (?1, ?2, ?3, ?4, ?5, ?6)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -156,7 +156,7 @@ describe(ctx.label, () => {
                 .select({ id: tIssue.id, ref: tIssue.externalRef })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, external_ref as ref from issue where number = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, external_ref as ref from issue where number = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 9004,
@@ -241,7 +241,7 @@ describe(ctx.label, () => {
     test('marshalling/localtime-milliseconds-three-digits', async () => {
         await ctx.withRollback(async () => {
             const updated = await clockIn(123)
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set started_at = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set started_at = ?1 where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "09:15:00.123",
@@ -256,7 +256,7 @@ describe(ctx.label, () => {
     test('marshalling/localtime-milliseconds-two-digits-are-left-padded', async () => {
         await ctx.withRollback(async () => {
             const updated = await clockIn(45)
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set started_at = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set started_at = ?1 where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "09:15:00.045",
@@ -271,7 +271,7 @@ describe(ctx.label, () => {
     test('marshalling/localtime-milliseconds-one-digit-is-left-padded', async () => {
         await ctx.withRollback(async () => {
             const updated = await clockIn(7)
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set started_at = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set started_at = ?1 where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "09:15:00.007",

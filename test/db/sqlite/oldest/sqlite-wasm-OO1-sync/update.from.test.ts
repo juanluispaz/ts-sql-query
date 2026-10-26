@@ -33,7 +33,7 @@ describe(ctx.label, () => {
                 .and(tOrganization.plan.equals('pro'))
                 .executeUpdate())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = project.name || ? || organization.name from organization where project.organization_id = organization.id and organization."plan" = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = project.name || ?1 || organization.name from organization where project.organization_id = organization.id and organization."plan" = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 " / ",
@@ -104,7 +104,7 @@ describe(ctx.label, () => {
                     .and(tIssue.id.equals(1))
                 .executeUpdate())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set assignee_id = min(issue.assignee_id, issue.parent_id) from project where issue.project_id = project.id and issue.id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set assignee_id = min(issue.assignee_id, issue.parent_id) from project where issue.project_id = project.id and issue.id = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

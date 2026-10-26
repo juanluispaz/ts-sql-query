@@ -186,7 +186,7 @@ describe(ctx.label, () => {
 
             const affected = await query.executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* gated issue.id */  update /* gated issue.project_id */ project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = $1  /* gated project.slug */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* gated issue.id */  update /* gated issue.project_id */ project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = ?1  /* gated project.slug */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -224,7 +224,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = $1 returning project.id as id, project.name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = ?1 returning project.id as id, project.name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

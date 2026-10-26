@@ -44,7 +44,7 @@ describe(ctx.label, () => {
                 .where(tIssue.priority.greaterOrEqual(1))
                 .executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where priority >= ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where priority >= ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

@@ -63,7 +63,7 @@ describe(ctx.label, () => {
             priority: { greaterThan: 1, lessThan: 5 },
             status:   { notEquals: 'closed' },
         })
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where id = ? and priority > ? and priority < ? and status <> ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where id = ?1 and priority > ?2 and priority < ?3 and status <> ?4 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -78,7 +78,7 @@ describe(ctx.label, () => {
         await run({
             priority: { greaterOrEqual: 1, lessOrEqual: 3 },
         })
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where priority >= ? and priority <= ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where priority >= ?1 and priority <= ?2 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -92,7 +92,7 @@ describe(ctx.label, () => {
             status: { in: ['open', 'in_progress'] },
             id:     { notIn: [99, 100] },
         })
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where status in (?, ?) and id not in (?, ?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where status in (?1, ?2) and id not in (?3, ?4) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -116,7 +116,7 @@ describe(ctx.label, () => {
         await run({
             title: { like: '%triage%', notLike: '%draft%' },
         })
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title like ? escape '\\' and title not like ? escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title like ?1 escape '\\' and title not like ?2 escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "%triage%",
@@ -129,7 +129,7 @@ describe(ctx.label, () => {
         await run({
             title: { likeInsensitive: '%TRIAGE%', notLikeInsensitive: '%DRAFT%' },
         })
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where lower(title) like lower(?) escape '\\' and lower(title) not like lower(?) escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where lower(title) like lower(?1) escape '\\' and lower(title) not like lower(?2) escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "%TRIAGE%",
@@ -142,7 +142,7 @@ describe(ctx.label, () => {
         await run({
             title: { startsWith: 'Re', endsWith: 'me', contains: 'esi' },
         })
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title like (? || '%') escape '\\' and title like ('%' || ?) escape '\\' and title like ('%' || ? || '%') escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title like (?1 || '%') escape '\\' and title like ('%' || ?2) escape '\\' and title like ('%' || ?3 || '%') escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Re",
@@ -160,7 +160,7 @@ describe(ctx.label, () => {
                 notContains:   'esi',
             },
         })
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title not like (? || '%') escape '\\' and title not like ('%' || ?) escape '\\' and title not like ('%' || ? || '%') escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title not like (?1 || '%') escape '\\' and title not like ('%' || ?2) escape '\\' and title not like ('%' || ?3 || '%') escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Re",
@@ -219,7 +219,7 @@ describe(ctx.label, () => {
                 ] },
             ],
         })
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where status = ? and (priority > ? or not (title like ('%' || ? || '%') escape '\\')) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where status = ?1 and (priority > ?2 or not (title like ('%' || ?3 || '%') escape '\\')) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",

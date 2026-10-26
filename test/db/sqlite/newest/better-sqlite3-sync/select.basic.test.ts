@@ -62,7 +62,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, email as email, full_name as fullName from app_user where email = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, email as email, full_name as fullName from app_user where email = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ada@acme.test",
@@ -99,7 +99,7 @@ describe(ctx.label, () => {
             .orderBy('name')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, slug as slug from project where organization_id = ? and archived_at is null order by name"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, slug as slug from project where organization_id = ?1 and archived_at is null order by name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -136,7 +136,7 @@ describe(ctx.label, () => {
             .orderBy('issueId')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as issueId, issue.title as title, project.name as projectName from issue inner join project on project.id = issue.project_id where issue.status = ? order by issueId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as issueId, issue.title as title, project.name as projectName from issue inner join project on project.id = issue.project_id where issue.status = ?1 order by issueId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -190,7 +190,7 @@ describe(ctx.label, () => {
 
         const sql = built.query()
         const params = built.params()
-        expect(sql).toMatchInlineSnapshot(`"select id as id, name as name from project where id = ? order by id"`)
+        expect(sql).toMatchInlineSnapshot(`"select id as id, name as name from project where id = ?1 order by id"`)
         expect(params).toMatchInlineSnapshot(`
           [
             1,
@@ -235,7 +235,7 @@ describe(ctx.label, () => {
         const first = built.query()
         const second = built.query()
         expect(second).toBe(first)
-        expect(first).toMatchInlineSnapshot(`"select id as id, name as name from project where id = ? order by id"`)
+        expect(first).toMatchInlineSnapshot(`"select id as id, name as name from project where id = ?1 order by id"`)
         assertType<Exact<typeof first, string>>()
 
         // Still exactly one bound value: neither `query()` call re-bound it.

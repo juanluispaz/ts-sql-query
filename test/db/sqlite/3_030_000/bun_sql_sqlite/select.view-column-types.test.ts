@@ -45,7 +45,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as version, released_on as releasedOn, signed_off_at as signedOffAt, project_name as projectName, upper(version) as versionUpper from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as version, released_on as releasedOn, signed_off_at as signedOffAt, project_name as projectName, upper(version) as versionUpper from release_overview where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -77,7 +77,7 @@ describe(ctx.label, () => {
             .orderBy('version', 'desc')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as version from release_overview where version < $1 order by version desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as version from release_overview where version < ?1 order by version desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "1.3.0",
@@ -100,7 +100,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, versionBracketed: vReleaseOverview.versionBracketed })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version_bracketed as versionBracketed from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version_bracketed as versionBracketed from release_overview where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -123,7 +123,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, versionTagged: vReleaseOverview.versionTagged })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, upper(version) as versionTagged from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, upper(version) as versionTagged from release_overview where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -144,7 +144,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, cutoffClock: vReleaseOverview.cutoffClock })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cutoff_clock as cutoffClock from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cutoff_clock as cutoffClock from release_overview where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -226,7 +226,7 @@ describe(ctx.label, () => {
             .where(vReleaseOverview.id.equals(2))
             .select({ id: vReleaseOverview.id, versionUpperTagged: vReleaseOverview.versionUpperTagged })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, upper(version) as versionUpperTagged from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, upper(version) as versionUpperTagged from release_overview where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -274,7 +274,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select is_signed as isSigned, download_count as downloadCount, avg_rating as avgRating, signing_uuid as signingUuid, release_day_plain as releaseDayPlain, cutoff_plain as cutoffPlain, release_ordinal as releaseOrdinal from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select is_signed as isSigned, download_count as downloadCount, avg_rating as avgRating, signing_uuid as signingUuid, release_day_plain as releaseDayPlain, cutoff_plain as cutoffPlain, release_ordinal as releaseOrdinal from release_overview where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -325,7 +325,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select is_signed as isSigned, download_count as downloadCount, avg_rating as avgRating, signing_uuid as signingUuid, release_day_plain as releaseDayPlain, cutoff_plain as cutoffPlain, release_ordinal as releaseOrdinal from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select is_signed as isSigned, download_count as downloadCount, avg_rating as avgRating, signing_uuid as signingUuid, release_day_plain as releaseDayPlain, cutoff_plain as cutoffPlain, release_ordinal as releaseOrdinal from release_overview where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

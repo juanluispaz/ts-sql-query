@@ -35,7 +35,7 @@ describe(ctx.label, () => {
                 .doUpdateSet({ channel: tProjectRelease.valuesForInsert().channel })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_release (project_id, version, channel, released_on, cutoff_time) values (?, ?, ?, ?, ?) on conflict (project_id, version) do update set channel = excluded.channel"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_release (project_id, version, channel, released_on, cutoff_time) values (?1, ?2, ?3, ?4, ?5) on conflict (project_id, version) do update set channel = excluded.channel"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

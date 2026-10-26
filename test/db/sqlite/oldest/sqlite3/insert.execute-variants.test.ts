@@ -53,7 +53,7 @@ describe(ctx.label, () => {
                 .values({ name: 'Hooli', plan: 'free' })
                 .executeInsert(1, 5)
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Hooli",
@@ -100,7 +100,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert(2, 5)
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?), (?, ?) returning id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2), (?3, ?4) returning id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Stark Industries",
@@ -172,7 +172,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tOrganization.id)
                 .executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?) returning id as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2) returning id as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Umbrella Corp",
@@ -199,7 +199,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tOrganization.id)
                 .executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?) returning id as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2) returning id as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Oscorp",
@@ -227,7 +227,7 @@ describe(ctx.label, () => {
                 .returning({ id: tOrganization.id })
                 .executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") select name as name, "plan" as "plan" from organization where id = ? returning id as id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") select name as name, "plan" as "plan" from organization where id = ?1 returning id as id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 -1,
@@ -259,7 +259,7 @@ describe(ctx.label, () => {
             } catch (e) {
                 caught = e
             }
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") select name as name, "plan" as "plan" from organization where id = ? returning id as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") select name as name, "plan" as "plan" from organization where id = ?1 returning id as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 -1,
@@ -280,7 +280,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tOrganization.id)
                 .executeInsertOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?) returning id as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2) returning id as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "LexCorp",
@@ -329,7 +329,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tOrganization.id)
                 .executeInsertMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?), (?, ?) returning id as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2), (?3, ?4) returning id as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Initrode",
@@ -410,7 +410,7 @@ describe(ctx.label, () => {
                     priority:  ctx.conn.const(3, 'int'),
                 })
                 .executeInsert()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, upper(?), ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, upper(?3), ?4, ?5)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -434,7 +434,7 @@ describe(ctx.label, () => {
             const count = await ctx.conn.insertInto(tCountry)
                 .values({ code: 'DE', name: 'Germany', region: 'Europe' })
                 .executeInsert()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into country (code, name, region) values (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into country (code, name, region) values (?1, ?2, ?3)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "DE",
@@ -458,7 +458,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert(1, 1)
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Cyberdyne",
@@ -525,7 +525,7 @@ describe(ctx.label, () => {
                 .returning({ id: tOrganization.id, name: tOrganization.name, plan: tOrganization.plan })
                 .executeInsertMany(1, 5)
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?), (?, ?) returning id as id, name as name, "plan" as "plan""`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2), (?3, ?4) returning id as id, name as name, "plan" as "plan""`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Initech",
@@ -557,7 +557,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tOrganization.id)
                 .executeInsertMany(1, 5)
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?), (?, ?) returning id as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2), (?3, ?4) returning id as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Umbrella",
@@ -584,7 +584,7 @@ describe(ctx.label, () => {
                 .returning({ id: tOrganization.id, name: tOrganization.name, plan: tOrganization.plan })
                 .executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?) returning id as id, name as name, "plan" as "plan""`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2) returning id as id, name as name, "plan" as "plan""`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Wonka",
@@ -645,7 +645,7 @@ describe(ctx.label, () => {
             } catch (e) {
                 caught = e
             }
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") select name as name, "plan" as "plan" from organization where id >= ? returning id as id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") select name as name, "plan" as "plan" from organization where id >= ?1 returning id as id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -682,7 +682,7 @@ describe(ctx.label, () => {
             } catch (e) {
                 caught = e
             }
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") select name as name, "plan" as "plan" from organization where id >= ? returning id as id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") select name as name, "plan" as "plan" from organization where id >= ?1 returning id as id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -718,7 +718,7 @@ describe(ctx.label, () => {
             } catch (e) {
                 caught = e
             }
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") select name as name, "plan" as "plan" from organization where id >= ? returning id as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") select name as name, "plan" as "plan" from organization where id >= ?1 returning id as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -754,7 +754,7 @@ describe(ctx.label, () => {
             } catch (e) {
                 caught = e
             }
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") select name as name, "plan" as "plan" from organization where id >= ? returning id as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") select name as name, "plan" as "plan" from organization where id >= ?1 returning id as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

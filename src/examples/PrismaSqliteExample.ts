@@ -1,5 +1,4 @@
 import { Table } from '../Table.js'
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
 import { PrismaLibSql } from '@prisma/adapter-libsql'
 import { assertEquals } from './assertEquals.js'
 import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
@@ -71,11 +70,10 @@ const tBoolean = new class TBoolean extends Table<DBConnection, 'TBoolean'> {
     }
 }()
 
-// Prisma's better-sqlite3 adapter does not run on Bun; Prisma documents the libsql adapter for Bun instead.
+// Prisma's better-sqlite3 adapter binds every parameter by position, and better-sqlite3 only binds the numbered
+// placeholders ts-sql-query emits for SQLite (?1, ?2, …) by name; the libsql adapter binds them (on Node and Bun).
 const prisma = new PrismaClient({
-    adapter: typeof globalThis.Bun !== 'undefined'
-        ? new PrismaLibSql({ url: 'file:src/examples/prisma/generated/prismasqlitetest.db' })
-        : new PrismaBetterSqlite3({ url: 'src/examples/prisma/generated/prismasqlitetest.db' })
+    adapter: new PrismaLibSql({ url: 'file:src/examples/prisma/generated/prismasqlitetest.db' })
 })
 
 async function main() {

@@ -50,7 +50,7 @@ describe(ctx.label, () => {
                 .doUpdateSet({ projectName: 'Renamed via shape' })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -94,7 +94,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -130,7 +130,7 @@ describe(ctx.label, () => {
                 .doNothing()
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?) on conflict (organization_id, slug) do nothing"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3) on conflict (organization_id, slug) do nothing"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -210,7 +210,7 @@ describe(ctx.label, () => {
                     .and(tProject.archivedAt.isNull())
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ? where project.name <> ? and project.archived_at is null"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4 where project.name <> ?5 and project.archived_at is null"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -251,7 +251,7 @@ describe(ctx.label, () => {
                 .setWhen(true, { projectName: 'via-set-when' })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -292,7 +292,7 @@ describe(ctx.label, () => {
                 .onConflictDoUpdateSet({ projectName: 'Renamed via shape' })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?) on conflict do update set name = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3) on conflict do update set name = ?4"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -332,7 +332,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?) on conflict do update set name = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3) on conflict do update set name = ?4"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -372,7 +372,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?) on conflict do update set name = project.name || ? || excluded.name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3) on conflict do update set name = project.name || ?4 || excluded.name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -416,7 +416,7 @@ describe(ctx.label, () => {
                 .onConflictDoNothing()
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?) on conflict do nothing"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3) on conflict do nothing"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -450,7 +450,7 @@ describe(ctx.label, () => {
                 .onConflictDoNothing()
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?), (?, ?, ?) on conflict do nothing"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3), (?4, ?5, ?6) on conflict do nothing"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -495,7 +495,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?), (?, ?, ?) on conflict (organization_id, slug) do update set name = excluded.name returning id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3), (?4, ?5, ?6) on conflict (organization_id, slug) do update set name = excluded.name returning id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -531,7 +531,7 @@ describe(ctx.label, () => {
                 .doUpdateSet(conflictPayload)
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -563,7 +563,7 @@ describe(ctx.label, () => {
                 .doUpdateSetIfValue(conflictPayload)
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -597,7 +597,7 @@ describe(ctx.label, () => {
                 .doUpdateSet(conflictPayload)
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ?, archived_at = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4, archived_at = ?5"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -630,7 +630,7 @@ describe(ctx.label, () => {
                 .onConflictDoUpdateSet(conflictPayload)
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?) on conflict do update set name = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3) on conflict do update set name = ?4"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -661,7 +661,7 @@ describe(ctx.label, () => {
                 .onConflictDoUpdateSetIfValue(conflictPayload)
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?) on conflict do update set name = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3) on conflict do update set name = ?4"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

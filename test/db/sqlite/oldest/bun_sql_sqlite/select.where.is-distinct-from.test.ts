@@ -19,7 +19,7 @@ describe(ctx.label, () => {
             .where(tIssue.assigneeId.is(null))
             .select({ id: tIssue.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where assignee_id is $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where assignee_id is ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,
@@ -33,7 +33,7 @@ describe(ctx.label, () => {
             .where(tIssue.assigneeId.is(2))
             .select({ id: tIssue.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where assignee_id is $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where assignee_id is ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -47,7 +47,7 @@ describe(ctx.label, () => {
             .where(tIssue.assigneeId.isNot(null))
             .select({ id: tIssue.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where assignee_id is not $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where assignee_id is not ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,
@@ -61,7 +61,7 @@ describe(ctx.label, () => {
             .where(tIssue.assigneeId.isNot(2))
             .select({ id: tIssue.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where assignee_id is not $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where assignee_id is not ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -95,7 +95,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where $1 is body order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where ?1 is body order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,
@@ -113,7 +113,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where $1 is not body order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where ?1 is not body order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,
@@ -133,7 +133,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where $1 is $2 order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where ?1 is ?2 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,
@@ -154,7 +154,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where $1 is not $2 order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where ?1 is not ?2 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,

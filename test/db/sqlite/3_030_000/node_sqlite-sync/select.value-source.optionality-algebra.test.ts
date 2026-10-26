@@ -42,7 +42,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, minutes + minutes as sum from issue_worklog where id in (?, ?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, minutes + minutes as sum from issue_worklog where id in (?1, ?2) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -69,7 +69,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, issue_id + minutes as total from issue_worklog where id in (?, ?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, issue_id + minutes as total from issue_worklog where id in (?1, ?2) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -95,7 +95,7 @@ describe(ctx.label, () => {
                 flag: tIssueWorklog.activity.equals('meeting').and(tIssueWorklog.billable),
             })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, activity = ? and billable as flag from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, activity = ?1 and billable as flag from issue_worklog where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "meeting",
@@ -121,7 +121,7 @@ describe(ctx.label, () => {
             })
             .projectingOptionalValuesAsNullable()
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, activity = ? and billable as flag from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, activity = ?1 and billable as flag from issue_worklog where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "meeting",
@@ -152,7 +152,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, issue_id in (?, minutes) as hit, issue_id not in (?, minutes) as miss from issue_worklog where id in (?, ?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, issue_id in (?1, minutes) as hit, issue_id not in (?2, minutes) as miss from issue_worklog where id in (?3, ?4) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             99,
@@ -188,7 +188,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, issue_id in (?, id) as hit, issue_id not in (?, id) as miss from issue_worklog where id in (?, ?, ?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, issue_id in (?1, id) as hit, issue_id not in (?2, id) as miss from issue_worklog where id in (?3, ?4, ?5) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             99,
@@ -224,7 +224,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, minutes is ? as same, minutes is not ? as diff from issue_worklog where id in (?, ?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, minutes is ?1 as same, minutes is not ?2 as diff from issue_worklog where id in (?3, ?4) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             90,
@@ -261,7 +261,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, minutes is ? as same, 1 as noOperand from issue_worklog where id in (?, ?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, minutes is ?1 as same, 1 as noOperand from issue_worklog where id in (?2, ?3) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             90,
@@ -298,7 +298,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, coalesce((app_user.full_name || ?), '') || coalesce(issue.body, '') as "note.text" from issue left join app_user on app_user.id = issue.assignee_id order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, coalesce((app_user.full_name || ?1), '') || coalesce(issue.body, '') as "note.text" from issue left join app_user on app_user.id = issue.assignee_id order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             ": ",
@@ -332,7 +332,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, coalesce((app_user.full_name || ?), '') || coalesce(app_user.email, '') as "contact.line" from issue left join app_user on app_user.id = issue.assignee_id order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, coalesce((app_user.full_name || ?1), '') || coalesce(app_user.email, '') as "contact.line" from issue left join app_user on app_user.id = issue.assignee_id order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             " ",

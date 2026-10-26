@@ -55,7 +55,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, slug as slug from project where lower(name) like lower('%' || ? || '%') escape '\\' or lower(slug) like lower(? || '%') escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, slug as slug from project where lower(name) like lower('%' || ?1 || '%') escape '\\' or lower(slug) like lower(?2 || '%') escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "tools",
@@ -365,7 +365,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.title as title, app_user.id as "assignee.id", app_user.full_name as "assignee.fullName" from issue left join app_user on app_user.id = issue.assignee_id where lower(app_user.full_name) like lower('%' || ? || '%') escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.title as title, app_user.id as "assignee.id", app_user.full_name as "assignee.fullName" from issue left join app_user on app_user.id = issue.assignee_id where lower(app_user.full_name) like lower('%' || ?1 || '%') escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Ada",
@@ -415,7 +415,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where lower(name) like lower('%' || ? || '%') escape '\\' and (slug like (? || '%') escape '\\' or slug like (? || '%') escape '\\') order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where lower(name) like lower('%' || ?1 || '%') escape '\\' and (slug like (?2 || '%') escape '\\' or slug like (?3 || '%') escape '\\') order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "mark",
@@ -451,7 +451,7 @@ describe(ctx.label, () => {
             .select(fields)
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

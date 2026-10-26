@@ -94,7 +94,7 @@ describe(ctx.label, () => {
             .having(ctx.conn.count(tIssue.id).greaterThan(1))
             .orderBy('status')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by status having count(id) > $1 order by status"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by status having count(id) > ?1 order by status"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -124,7 +124,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select avg(cast(priority as real)) as avgPriority from issue where project_id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select avg(cast(priority as real)) as avgPriority from issue where project_id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -555,7 +555,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFrom(tIssue)
             .select({ x: ctx.conn.sum(tIssue.priority).add(1) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(priority) + $1 as "x" from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(priority) + ?1 as "x" from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -588,7 +588,7 @@ describe(ctx.label, () => {
             .orderBy(ctx.conn.sum(tIssue.priority).add(1))
             .orderBy('projectId')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, sum(priority) as total from issue group by project_id order by sum(issue.priority) + $1, projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, sum(priority) as total from issue group by project_id order by sum(issue.priority) + ?1, projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

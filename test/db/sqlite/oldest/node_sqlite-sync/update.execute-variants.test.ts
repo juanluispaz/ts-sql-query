@@ -34,7 +34,7 @@ describe(ctx.label, () => {
                 .where(tIssue.priority.greaterOrEqual(1))
                 .executeUpdate(2, 5))
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where priority >= ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?1 where priority >= ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "reviewed",
@@ -96,7 +96,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.status)
                 .executeUpdateNoneOrOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where id = ? returning status as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?1 where id = ?2 returning status as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "reviewed",
@@ -120,7 +120,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.status)
                 .executeUpdateNoneOrOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where id = ? returning status as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?1 where id = ?2 returning status as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "reviewed",
@@ -190,7 +190,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.status)
                 .executeUpdateMany())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where id = ? returning status as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?1 where id = ?2 returning status as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "reviewed",
@@ -311,7 +311,7 @@ describe(ctx.label, () => {
                 .returning({ id: tIssue.id, status: tIssue.status })
                 .executeUpdateMany(1, 5))
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where project_id = ? returning id as id, status as status"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?1 where project_id = ?2 returning id as id, status as status"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "reviewed",
@@ -337,7 +337,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.status)
                 .executeUpdateMany())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where project_id = ? returning status as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?1 where project_id = ?2 returning status as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "reviewed",
@@ -363,7 +363,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.status)
                 .executeUpdateMany(1, 5))
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where project_id = ? returning status as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?1 where project_id = ?2 returning status as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "reviewed",
@@ -416,7 +416,7 @@ describe(ctx.label, () => {
             } catch (e) {
                 caught = e
             }
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where project_id = ? returning id as id, status as status"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?1 where project_id = ?2 returning id as id, status as status"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "reviewed",
@@ -452,7 +452,7 @@ describe(ctx.label, () => {
             } catch (e) {
                 caught = e
             }
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where project_id = ? returning id as id, status as status"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?1 where project_id = ?2 returning id as id, status as status"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "reviewed",
@@ -487,7 +487,7 @@ describe(ctx.label, () => {
             } catch (e) {
                 caught = e
             }
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where project_id = ? returning status as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?1 where project_id = ?2 returning status as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "reviewed",
@@ -522,7 +522,7 @@ describe(ctx.label, () => {
             } catch (e) {
                 caught = e
             }
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where project_id = ? returning status as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?1 where project_id = ?2 returning status as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "reviewed",
@@ -556,7 +556,7 @@ describe(ctx.label, () => {
         const second = built.query()
         expect(second).toBe(first)
 
-        expect(first).toMatchInlineSnapshot(`"update issue set title = ?, status = ? where id = ?"`)
+        expect(first).toMatchInlineSnapshot(`"update issue set title = ?1, status = ?2 where id = ?3"`)
         assertType<Exact<typeof first, string>>()
         expect(built.params()).toMatchInlineSnapshot(`
           [
@@ -586,7 +586,7 @@ describe(ctx.label, () => {
         `)
 
         const sql = built.query()
-        expect(sql).toMatchInlineSnapshot(`"update issue set title = ?, status = ? where id = ?"`)
+        expect(sql).toMatchInlineSnapshot(`"update issue set title = ?1, status = ?2 where id = ?3"`)
         assertType<Exact<typeof sql, string>>()
     })
 })

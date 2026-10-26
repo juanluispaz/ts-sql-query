@@ -98,7 +98,7 @@ export class Sqlite3QueryRunner extends SqlTransactionQueryRunner {
         } else {
             params.push(value)
         }
-        return '?'
+        return '?' + params.length
     }
     override getErrorReason(error: unknown): TsSqlErrorReason {
         return Sqlite3QueryRunner.getErrorReason(error)

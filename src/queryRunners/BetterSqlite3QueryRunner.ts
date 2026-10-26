@@ -3,6 +3,7 @@ import type { Database } from 'better-sqlite3'
 import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from "../TsSqlError.js"
 import { getBetterSqlite3ErrorReason, isBetterSqlite3Error } from './connectorErrorMappers/BetterSqlite3ErrorMapper.js'
+import { areParamsBoundByNumber, setParamsBoundByNumber } from '../utils/queryParamsMetadata.js'
 
 export interface BetterSqlite3QueryRunnerConfig {
     promise?: PromiseProvider
@@ -40,7 +41,7 @@ export class BetterSqlite3QueryRunner extends SqlTransactionQueryRunner {
 
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
         try {
-            const rows = this.connection.prepare(query).all(params)
+            const rows = this.connection.prepare(query).all(this.bindParams(params))
             return this.promise.resolve(rows)
         } catch (e) {
             return this.promise.reject(e)
@@ -48,7 +49,7 @@ export class BetterSqlite3QueryRunner extends SqlTransactionQueryRunner {
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
         try {
-            return this.promise.resolve(this.connection.prepare(query).run(params).changes)
+            return this.promise.resolve(this.connection.prepare(query).run(this.bindParams(params)).changes)
         } catch (e) {
             return this.promise.reject(e)
         }
@@ -59,7 +60,7 @@ export class BetterSqlite3QueryRunner extends SqlTransactionQueryRunner {
         }
 
         try {
-            const result = this.connection.prepare(query).run(params)
+            const result = this.connection.prepare(query).run(this.bindParams(params))
             // A suppressed `on conflict do nothing` inserts no row; `lastInsertRowid`
             // then still holds the previous statement's id, so fall back to null (the
             // same absence the RETURNING path reports) when nothing was inserted.
@@ -74,7 +75,24 @@ export class BetterSqlite3QueryRunner extends SqlTransactionQueryRunner {
         } else {
             params.push(value)
         }
-        return '?'
+        // Numbered placeholders, bound by number (see bindParams)
+        setParamsBoundByNumber(params)
+        return '?' + params.length
+    }
+    /**
+     * The params as better-sqlite3 binds them: an array binds only the anonymous `?` parameters, so the numbered `?NNN`
+     * placeholders this runner emits are bound from an object keyed by their number. Params of a query not built by
+     * ts-sql-query (anonymous `?` parameters) are returned as they are.
+     */
+    protected bindParams(params: any[]): any[] | Record<number, any> {
+        if (!areParamsBoundByNumber(params)) {
+            return params
+        }
+        const result: Record<number, any> = {}
+        for (let i = 0, length = params.length; i < length; i++) {
+            result[i + 1] = params[i]
+        }
+        return result
     }
     override createResolvedPromise<RESULT>(result: RESULT | PromiseLike<RESULT>): Promise<RESULT> {
         return this.promise.resolve(result)

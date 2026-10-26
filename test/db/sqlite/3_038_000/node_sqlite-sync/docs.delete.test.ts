@@ -27,7 +27,7 @@ describe(ctx.label, () => {
                 .executeDelete())
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 4,
@@ -50,7 +50,7 @@ describe(ctx.label, () => {
                 .executeDelete())
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where status = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where status = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "open",
@@ -77,7 +77,7 @@ describe(ctx.label, () => {
                 .executeDeleteOne())
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ? returning id as id, title as title"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ?1 returning id as id, title as title"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 4,
@@ -130,7 +130,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.title)
                 .executeDeleteOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ? returning title as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ?1 returning title as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 4,

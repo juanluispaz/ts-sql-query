@@ -133,7 +133,7 @@ describe(ctx.label, () => {
 
             const affected = sync(query.executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint */ into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint */ into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -186,7 +186,7 @@ describe(ctx.label, () => {
 
             const affected = sync(query.executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint */ into issue (project_id, number, title, status, priority) select ? as projectId, ? as number, name as title, ? as status, organization_id as priority from project where id = ?  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint */ into issue (project_id, number, title, status, priority) select ?1 as projectId, ?2 as number, name as title, ?3 as status, organization_id as priority from project where id = ?4  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -238,7 +238,7 @@ describe(ctx.label, () => {
 
             const affected = sync(query.executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint */ into issue (project_id, number, title, status, priority) select ? as projectId, ? as number, ? as title, ? as status, count(id) as priority from project where organization_id = ?  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint */ into issue (project_id, number, title, status, priority) select ?1 as projectId, ?2 as number, ?3 as title, ?4 as status, count(id) as priority from project where organization_id = ?5  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -293,7 +293,7 @@ describe(ctx.label, () => {
 
             const affected = sync(query.executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint */ into issue (project_id, number, title, status, priority, assignee_id) values (?, ?, ?, ?, ?, (select count(id) as result from app_user))  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint */ into issue (project_id, number, title, status, priority, assignee_id) values (?1, ?2, ?3, ?4, ?5, (select count(id) as result from app_user))  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -337,7 +337,7 @@ describe(ctx.label, () => {
 
             const affected = sync(query.executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint */ into issue (project_id, number, title, status, priority, assignee_id) values (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?)  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint */ into issue (project_id, number, title, status, priority, assignee_id) values (?1, ?2, ?3, ?4, ?5, ?6), (?7, ?8, ?9, ?10, ?11, ?12)  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -393,7 +393,7 @@ describe(ctx.label, () => {
 
             const affected = sync(query.executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint */ into issue (project_id, number, title, status, priority, assignee_id) values (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, (select count(id) as result from app_user))  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint */ into issue (project_id, number, title, status, priority, assignee_id) values (?1, ?2, ?3, ?4, ?5, ?6), (?7, ?8, ?9, ?10, ?11, (select count(id) as result from app_user))  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -448,7 +448,7 @@ describe(ctx.label, () => {
 
             const row = sync(query.executeInsertOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint */ into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?) returning title as title, status as status  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint */ into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5) returning title as title, status as status  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -498,7 +498,7 @@ describe(ctx.label, () => {
 
             const affected = sync(query.executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint */ into project (organization_id, name, slug) values (?, ?, ?) on conflict (organization_id, slug) where (published = 't') = ? do update set name = project.name || ? where project.archived_at is null  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint */ into project (organization_id, name, slug) values (?1, ?2, ?3) on conflict (organization_id, slug) where (published = 't') = ?4 do update set name = project.name || ?5 where project.archived_at is null  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -635,7 +635,7 @@ describe(ctx.label, () => {
 
             const affected = sync(query.executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint */ into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?) on conflict (project_id, number) do update set assignee_id = (select count(id) as result from app_user) where issue.priority > ?  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint */ into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5) on conflict (project_id, number) do update set assignee_id = (select count(id) as result from app_user) where issue.priority > ?6  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -684,7 +684,7 @@ describe(ctx.label, () => {
 
             const affected = sync(query.executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint */ into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?) on conflict (project_id, number) do update set title = ? where issue.priority <= (select count(id) as result from app_user)  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint */ into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5) on conflict (project_id, number) do update set title = ?6 where issue.priority <= (select count(id) as result from app_user)  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -729,7 +729,7 @@ describe(ctx.label, () => {
 
             const affected = sync(query.executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head users=(select count(id) as result from app_user) */  insert /* hint */ into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head users=(select count(id) as result from app_user) */  insert /* hint */ into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -773,7 +773,7 @@ describe(ctx.label, () => {
 
             const affected = sync(query.executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint users=(select count(id) as result from app_user) */ into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint users=(select count(id) as result from app_user) */ into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -817,7 +817,7 @@ describe(ctx.label, () => {
 
             const affected = sync(query.executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint */ into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)  /* tail users=(select count(id) as result from app_user) */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint */ into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)  /* tail users=(select count(id) as result from app_user) */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -866,7 +866,7 @@ describe(ctx.label, () => {
 
             const affected = sync(query.executeUpdate())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /* hint */ project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = ?  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /* hint */ project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = ?1  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -906,7 +906,7 @@ describe(ctx.label, () => {
 
             const affected = sync(query.executeUpdate())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /* hint */ issue set assignee_id = (select count(id) as result from app_user) where id = ?  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /* hint */ issue set assignee_id = (select count(id) as result from app_user) where id = ?1  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -956,7 +956,7 @@ describe(ctx.label, () => {
 
             const affected = sync(query.executeUpdate())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /* hint */ project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id and issue.project_id <= (select count(id) as result from organization) where project.id = issue.project_id and issue.id = ?  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /* hint */ project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id and issue.project_id <= (select count(id) as result from organization) where project.id = issue.project_id and issue.id = ?1  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -997,7 +997,7 @@ describe(ctx.label, () => {
 
             const affected = sync(query.executeUpdate())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /* hint */ issue set status = ? where id = ? and priority <= (select count(id) as result from app_user)  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /* hint */ issue set status = ?1 where id = ?2 and priority <= (select count(id) as result from app_user)  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "archived",
@@ -1046,7 +1046,7 @@ describe(ctx.label, () => {
 
             const row = sync(query.executeUpdateOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /* hint */ project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = ? returning project.id as id, project.name as name  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /* hint */ project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = ?1 returning project.id as id, project.name as name  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1085,7 +1085,7 @@ describe(ctx.label, () => {
 
             const affected = sync(query.executeUpdate())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head users=(select count(id) as result from app_user) */  update /* hint */ issue set status = ? where id = ?  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head users=(select count(id) as result from app_user) */  update /* hint */ issue set status = ?1 where id = ?2  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "archived",
@@ -1125,7 +1125,7 @@ describe(ctx.label, () => {
 
             const affected = sync(query.executeUpdate())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /* hint users=(select count(id) as result from app_user) */ issue set status = ? where id = ?  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /* hint users=(select count(id) as result from app_user) */ issue set status = ?1 where id = ?2  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "archived",
@@ -1166,7 +1166,7 @@ describe(ctx.label, () => {
 
             const affected = sync(query.executeUpdate())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /* hint */ issue set status = ? where id = ?  /* tail users=(select count(id) as result from app_user) */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /* hint */ issue set status = ?1 where id = ?2  /* tail users=(select count(id) as result from app_user) */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "archived",
@@ -1209,7 +1209,7 @@ describe(ctx.label, () => {
 
             const affected = sync(query.executeDelete())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  delete /* hint */ from issue where id = ?  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  delete /* hint */ from issue where id = ?1  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 4,
@@ -1334,7 +1334,7 @@ describe(ctx.label, () => {
 
             const affected = sync(query.executeDelete())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  delete /* hint */ from issue where id = ? and priority <= (select count(id) as result from app_user)  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  delete /* hint */ from issue where id = ?1 and priority <= (select count(id) as result from app_user)  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 4,
@@ -1377,7 +1377,7 @@ describe(ctx.label, () => {
 
             const row = sync(query.executeDeleteOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  delete /* hint */ from issue where id = ? returning id as id, title as title  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  delete /* hint */ from issue where id = ?1 returning id as id, title as title  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 4,
@@ -1416,7 +1416,7 @@ describe(ctx.label, () => {
 
             const affected = sync(query.executeDelete())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head users=(select count(id) as result from app_user) */  delete /* hint */ from issue where id = ?  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head users=(select count(id) as result from app_user) */  delete /* hint */ from issue where id = ?1  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 4,
@@ -1455,7 +1455,7 @@ describe(ctx.label, () => {
 
             const affected = sync(query.executeDelete())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  delete /* hint users=(select count(id) as result from app_user) */ from issue where id = ?  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  delete /* hint users=(select count(id) as result from app_user) */ from issue where id = ?1  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 4,
@@ -1495,7 +1495,7 @@ describe(ctx.label, () => {
 
             const affected = sync(query.executeDelete())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  delete /* hint */ from issue where id = ?  /* tail users=(select count(id) as result from app_user) */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  delete /* hint */ from issue where id = ?1  /* tail users=(select count(id) as result from app_user) */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 4,
@@ -1524,7 +1524,7 @@ describe(ctx.label, () => {
 
             const affected = sync(query.executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1559,7 +1559,7 @@ describe(ctx.label, () => {
 
             const affected = sync(query.executeUpdate())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1585,7 +1585,7 @@ describe(ctx.label, () => {
 
             const affected = sync(query.executeDelete())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 4,
@@ -1620,7 +1620,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?) returning title as title, (select count(id) as result from app_user) as userCount"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5) returning title as title, (select count(id) as result from app_user) as userCount"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1659,7 +1659,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ? where id = ? returning id as id, (select count(id) as result from app_user) as userCount"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?1 where id = ?2 returning id as id, (select count(id) as result from app_user) as userCount"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Document /v3/users",
@@ -1694,7 +1694,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeDeleteOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ? returning id as id, (select count(id) as result from app_user) as userCount"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ?1 returning id as id, (select count(id) as result from app_user) as userCount"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 4,

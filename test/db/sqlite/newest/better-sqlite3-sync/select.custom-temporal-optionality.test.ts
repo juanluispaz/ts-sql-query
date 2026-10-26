@@ -29,7 +29,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id, releasedOn: tProjectRelease.releasedOn.asOptional() })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, released_on as releasedOn from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, released_on as releasedOn from project_release where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -49,7 +49,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id, cutoffTime: tProjectRelease.cutoffTime.asOptional() })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cutoff_time as cutoffTime from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cutoff_time as cutoffTime from project_release where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -73,7 +73,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id, publishedAt: tProjectRelease.publishedAt })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, published_at as publishedAt from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, published_at as publishedAt from project_release where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

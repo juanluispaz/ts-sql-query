@@ -36,7 +36,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_release (project_id, version, channel, signing_key, released_on, cutoff_time, signed_off_at) values (?, ?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_release (project_id, version, channel, signing_key, released_on, cutoff_time, signed_off_at) values (?1, ?2, ?3, ?4, ?5, ?6, ?7)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -77,7 +77,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue_worklog (issue_id, work_date, started_at, minutes, duration_ms, billable, activity) values (?, ?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue_worklog (issue_id, work_date, started_at, minutes, duration_ms, billable, activity) values (?1, ?2, ?3, ?4, ?5, ?6, ?7)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -115,7 +115,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue_worklog (issue_id, work_date, minutes, billable, activity) values (?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue_worklog (issue_id, work_date, minutes, billable, activity) values (?1, ?2, ?3, ?4, ?5)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,
@@ -153,7 +153,7 @@ describe(ctx.label, () => {
                 )
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_release (project_id, version, channel, signing_key, released_on, cutoff_time, signed_off_at) select project_id as projectId, ? as version, channel as channel, signing_key as signingKey, released_on as releasedOn, cutoff_time as cutoffTime, signed_off_at as signedOffAt from project_release where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_release (project_id, version, channel, signing_key, released_on, cutoff_time, signed_off_at) select project_id as projectId, ?1 as version, channel as channel, signing_key as signingKey, released_on as releasedOn, cutoff_time as cutoffTime, signed_off_at as signedOffAt from project_release where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "9.9.9",
@@ -189,7 +189,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tProjectRelease.channel)
                 .executeInsertOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_release (project_id, version, channel, released_on, cutoff_time) values (?, ?, ?, ?, ?) returning channel as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_release (project_id, version, channel, released_on, cutoff_time) values (?1, ?2, ?3, ?4, ?5) returning channel as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -219,7 +219,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_review (project_id, reviewer_code, score, review_date, review_time) values (?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_review (project_id, reviewer_code, score, review_date, review_time) values (?1, ?2, ?3, ?4, ?5)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -259,7 +259,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue_worklog (issue_id, work_date, activity, billed_amount, cost_cents, invoiced) values (?, ?, ?, ?, ?, case when ? then 1 else 0 end)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue_worklog (issue_id, work_date, activity, billed_amount, cost_cents, invoiced) values (?1, ?2, ?3, ?4, ?5, case when ?6 then 1 else 0 end)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

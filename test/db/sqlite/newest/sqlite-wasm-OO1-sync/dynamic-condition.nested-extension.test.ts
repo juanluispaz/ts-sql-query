@@ -69,7 +69,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id from issue left join project on project.id = issue.project_id left join app_user on app_user.id = issue.assignee_id where lower(app_user.full_name) like lower('%' || ? || '%') escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id from issue left join project on project.id = issue.project_id left join app_user on app_user.id = issue.assignee_id where lower(app_user.full_name) like lower('%' || ?1 || '%') escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Ada",
@@ -126,7 +126,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id from issue left join project on project.id = issue.project_id where exists(select id as result from project where id = issue.project_id and lower(name) like lower('%' || ? || '%') escape '\\') order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id from issue left join project on project.id = issue.project_id where exists(select id as result from project where id = issue.project_id and lower(name) like lower('%' || ?1 || '%') escape '\\') order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "mktg",
@@ -211,7 +211,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where id > ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where id > ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,
@@ -239,7 +239,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where id > ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where id > ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,

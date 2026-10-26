@@ -29,7 +29,7 @@ describe(ctx.label, () => {
             .executeSelectPage()
 
         expect(ctx.history.length).toBe(2)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select distinct status as status from issue order by status limit ? offset ?"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select distinct status as status from issue order by status limit ?1 offset ?2"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
           [
             10,
@@ -67,7 +67,7 @@ describe(ctx.label, () => {
             .executeSelectPage()
 
         expect(ctx.history.length).toBe(2)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by status order by status limit ? offset ?"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by status order by status limit ?1 offset ?2"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
           [
             10,
@@ -104,7 +104,7 @@ describe(ctx.label, () => {
             .executeSelectPage()
 
         expect(ctx.history.length).toBe(2)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select distinct status as status, priority as priority from issue group by status, priority order by status limit ? offset ?"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select distinct status as status, priority as priority from issue group by status, priority order by status limit ?1 offset ?2"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
           [
             10,
@@ -148,7 +148,7 @@ describe(ctx.label, () => {
             .executeSelectPage()
 
         expect(ctx.history.length).toBe(2)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select project.id as id, issue.title as title from project inner join issue on issue.project_id = project.id where project.id > ? order by title limit ? offset ?"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select project.id as id, issue.title as title from project inner join issue on issue.project_id = project.id where project.id > ?1 order by title limit ?2 offset ?3"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
           [
             0,
@@ -156,7 +156,7 @@ describe(ctx.label, () => {
             0,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"select count(*) from project inner join issue on issue.project_id = project.id where project.id > ?"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"select count(*) from project inner join issue on issue.project_id = project.id where project.id > ?1"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
           [
             0,
@@ -208,7 +208,7 @@ describe(ctx.label, () => {
             .executeSelectPage()
 
         expect(ctx.history.length).toBe(2)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select project.id as id, issue.title as title from project left join issue on issue.project_id = project.id where project.id > ? order by title limit ? offset ?"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select project.id as id, issue.title as title from project left join issue on issue.project_id = project.id where project.id > ?1 order by title limit ?2 offset ?3"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
           [
             0,
@@ -216,7 +216,7 @@ describe(ctx.label, () => {
             0,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"select count(*) from project left join issue on issue.project_id = project.id where project.id > ?"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"select count(*) from project left join issue on issue.project_id = project.id where project.id > ?1"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
           [
             0,

@@ -29,7 +29,7 @@ describe(ctx.label, () => {
                 })
                 .executeDelete())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* op=purge */  delete from project where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* op=purge */  delete from project where id = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 9999,
@@ -52,7 +52,7 @@ describe(ctx.label, () => {
                 })
                 .executeDelete())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ?  /* keyed-by project_id */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ?1  /* keyed-by project_id */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 99999,
@@ -77,7 +77,7 @@ describe(ctx.label, () => {
                 })
                 .executeDelete())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  delete /*+ hint */ from project where id = ?  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  delete /*+ hint */ from project where id = ?1  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 9999,
@@ -103,7 +103,7 @@ describe(ctx.label, () => {
                 .customizeQuery({ afterDeleteKeyword: connection.rawFragment`/*+ hint */` })
                 .executeDeleteOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete /*+ hint */ from issue where id = ? returning id as id, title as title"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete /*+ hint */ from issue where id = ?1 returning id as id, title as title"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -129,7 +129,7 @@ describe(ctx.label, () => {
                 .customizeQuery({ afterDeleteKeyword: connection.rawFragment`/*+ hint */` })
                 .executeDeleteOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete /*+ hint */ from issue where id = ? returning title as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete /*+ hint */ from issue where id = ?1 returning title as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

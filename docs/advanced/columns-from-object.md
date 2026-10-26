@@ -81,10 +81,10 @@ The executed query is:
         last_name as lastName, 
         birthday as birthday, 
         company_id as companyId, 
-        first_name || ? || last_name as name, 
+        first_name || ?1 || last_name as name, 
         calculateAge(birthday) as age 
     from customer 
-    where id = ?
+    where id = ?2
     ```
 === "SQL Server"
     ```sqlserver
@@ -191,7 +191,7 @@ The executed query is:
         birthday as birthday, 
         company_id as companyId 
     from customer 
-    where id = ?
+    where id = ?1
     ```
 === "SQL Server"
     ```sqlserver

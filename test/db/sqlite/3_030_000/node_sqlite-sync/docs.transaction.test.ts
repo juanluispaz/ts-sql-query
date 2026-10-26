@@ -38,7 +38,7 @@ describe(ctx.label, () => {
             // emits via the empty-query fallback). `lastNoTransactionSql`
             // skips transaction-control ops so the assertion lands on the
             // insert in both mock and real-DB mode.
-            expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?)"`)
+            expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2)"`)
             expect(ctx.lastNoTransactionParams).toMatchInlineSnapshot(`
               [
                 "Inside-tx Co",
@@ -106,7 +106,7 @@ describe(ctx.label, () => {
             // The history includes the synthetic begin/commit entries
             // plus the actual INSERT (asserted via lastNoTransactionSql
             // since `commit` is the most recent capture).
-            expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?)"`)
+            expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2)"`)
         })
     })
 

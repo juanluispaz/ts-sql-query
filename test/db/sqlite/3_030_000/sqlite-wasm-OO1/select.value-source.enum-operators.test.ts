@@ -28,7 +28,7 @@ describe(ctx.label, () => {
             .select({ id: tIssueWorklog.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity = ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "coding",
@@ -44,7 +44,7 @@ describe(ctx.label, () => {
             .select({ id: tIssueWorklog.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity <> ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity <> ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "coding",
@@ -64,7 +64,7 @@ describe(ctx.label, () => {
             .select({ id: tIssueWorklog.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity is ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity is ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "review",
@@ -80,7 +80,7 @@ describe(ctx.label, () => {
             .select({ id: tIssueWorklog.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity is not ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity is not ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "review",
@@ -101,7 +101,7 @@ describe(ctx.label, () => {
             .select({ id: tIssueWorklog.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity in (?, ?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity in (?1, ?2) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "coding",
@@ -118,7 +118,7 @@ describe(ctx.label, () => {
             .select({ id: tIssueWorklog.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity in (?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity in (?1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "review",
@@ -137,7 +137,7 @@ describe(ctx.label, () => {
             .select({ id: tIssueWorklog.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity not in (?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity not in (?1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "coding",
@@ -164,7 +164,7 @@ describe(ctx.label, () => {
             .select({ id: tIssueWorklog.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity in (select activity as result from issue_worklog where id = ?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity in (select activity as result from issue_worklog where id = ?1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -180,7 +180,7 @@ describe(ctx.label, () => {
             .select({ id: tIssueWorklog.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity not in (select activity as result from issue_worklog where id = ?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity not in (select activity as result from issue_worklog where id = ?1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

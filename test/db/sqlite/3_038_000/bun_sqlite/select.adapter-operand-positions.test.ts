@@ -37,7 +37,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as projectId, project_review.reviewer_code as reviewer from project inner join project_review on project_review.project_id = project.id and project_review.score = ? where project.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as projectId, project_review.reviewer_code as reviewer from project inner join project_review on project_review.project_id = project.id and project_review.score = ?1 where project.id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             850,
@@ -65,7 +65,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, reviewer: reviewerSub })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select reviewer_code as result from project_review where project_id = project.id and score = ?) as reviewer from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select reviewer_code as result from project_review where project_id = project.id and score = ?1) as reviewer from project where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             850,
@@ -92,7 +92,7 @@ describe(ctx.label, () => {
             .orderBy('projectId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId from issue group by project_id having count(id) > ? order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId from issue group by project_id having count(id) > ?1 order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,
@@ -117,7 +117,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as projectId, replace(project.slug, project_review.reviewer_code, ?) as label from project inner join project_review on project_review.project_id = project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as projectId, replace(project.slug, project_review.reviewer_code, ?1) as label from project inner join project_review on project_review.project_id = project.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "-",

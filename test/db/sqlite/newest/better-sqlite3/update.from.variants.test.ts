@@ -43,7 +43,7 @@ describe(ctx.label, () => {
                 .and(tOrganization.plan.equals('pro'))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = organization.name from organization where project.organization_id = organization.id and organization."plan" = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = organization.name from organization where project.organization_id = organization.id and organization."plan" = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "pro",
@@ -70,7 +70,7 @@ describe(ctx.label, () => {
                 .and(tOrganization.id.equals(99999))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? from project, organization where issue.project_id = project.id and project.organization_id = organization.id and organization.id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?1 from project, organization where issue.project_id = project.id and project.organization_id = organization.id and organization.id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "archived",
@@ -101,7 +101,7 @@ describe(ctx.label, () => {
                 .and(tProject.id.equals(99999))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"with verified_orgs as (select id as id, name as name from organization where (verified = 'Y') = ?) update project set name = verified_orgs.name from verified_orgs where project.organization_id = verified_orgs.id and project.id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with verified_orgs as (select id as id, name as name from organization where (verified = 'Y') = ?1) update project set name = verified_orgs.name from verified_orgs where project.organization_id = verified_orgs.id and project.id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -136,7 +136,7 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = organization.name from organization where project.id = ? and project.organization_id = organization.id returning project.id as id, project.name as newName, project.slug as slug"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = organization.name from organization where project.id = ?1 and project.organization_id = organization.id returning project.id as id, project.name as newName, project.slug as slug"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -183,7 +183,7 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = organization.name from organization where project.id = ? and project.organization_id = organization.id returning project.id as id, project.name as newName, project.slug as slug"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = organization.name from organization where project.id = ?1 and project.organization_id = organization.id returning project.id as id, project.name as newName, project.slug as slug"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -220,7 +220,7 @@ describe(ctx.label, () => {
                 .returning({ score: tProjectReview.score })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_review set score = ? from project where project_review.project_id = project.id and project_review.id = ? returning project_review.score as score"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_review set score = ?1 from project where project_review.project_id = project.id and project_review.id = ?2 returning project_review.score as score"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 900,
@@ -247,7 +247,7 @@ describe(ctx.label, () => {
                 .and(tProject.id.equals(99999))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"with orgNames(id, name) as (values (?, ?)) update project set name = orgNames.name from orgNames where project.organization_id = orgNames.id and project.id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with orgNames(id, name) as (values (?1, ?2)) update project set name = orgNames.name from orgNames where project.organization_id = orgNames.id and project.id = ?3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

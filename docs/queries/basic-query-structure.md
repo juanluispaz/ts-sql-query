@@ -72,7 +72,7 @@ The executed query is:
         last_name as lastName, 
         birthday as birthday 
     from customer 
-    where id = ?
+    where id = ?1
     ```
 === "SQL Server"
     ```sqlserver
@@ -168,7 +168,7 @@ The executed query is:
         last_name as lastName, 
         birthday as birthday 
     from customer 
-    where id = ?
+    where id = ?1
     ```
 === "SQL Server"
     ```sqlserver

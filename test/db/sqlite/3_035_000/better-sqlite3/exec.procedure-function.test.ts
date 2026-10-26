@@ -602,7 +602,7 @@ describe(ctx.label, () => {
         const conn = ctx.withConnection(FunctionCallConnection)
         ctx.mockNext(2)
         const remainder = await conn.callMod(17, 5)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select mod(?, ?)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select mod(?1, ?2)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             17,

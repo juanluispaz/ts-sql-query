@@ -51,8 +51,8 @@ describe(ctx.label, () => {
             const trueSql = ctx.lastSql
             const trueParams = ctx.lastParams
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4"`)
             expect(falseSql).toBe(trueSql) // same column list — only the param value differs
             expect(falseParams).toMatchInlineSnapshot(`
               [
@@ -98,8 +98,8 @@ describe(ctx.label, () => {
             const trueSql = ctx.lastSql
             const trueParams = ctx.lastParams
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4"`)
             expect(falseSql).toBe(trueSql) // same column list — only the param value differs
             expect(falseParams).toMatchInlineSnapshot(`
               [
@@ -227,8 +227,8 @@ describe(ctx.label, () => {
                 .executeInsert()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4, slug = $5"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4, slug = ?5"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -256,8 +256,8 @@ describe(ctx.label, () => {
                 .executeInsert()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4, slug = $5"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4, slug = ?5"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -285,8 +285,8 @@ describe(ctx.label, () => {
                 .executeInsert()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4, slug = $5"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4, slug = ?5"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -314,8 +314,8 @@ describe(ctx.label, () => {
                 .executeInsert()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4, slug = $5"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4, slug = ?5"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -427,8 +427,8 @@ describe(ctx.label, () => {
                 .executeInsert()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4, slug = $5"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4, slug = ?5"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -456,8 +456,8 @@ describe(ctx.label, () => {
                 .executeInsert()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4, slug = $5"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4, slug = ?5"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -485,8 +485,8 @@ describe(ctx.label, () => {
                 .executeInsert()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4, slug = $5"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4, slug = ?5"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -515,8 +515,8 @@ describe(ctx.label, () => {
                 .executeInsert()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4, archived_at = $5"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4, archived_at = ?5"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -544,8 +544,8 @@ describe(ctx.label, () => {
                 .executeInsert()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4, archived_at = $5"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4, archived_at = ?5"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })

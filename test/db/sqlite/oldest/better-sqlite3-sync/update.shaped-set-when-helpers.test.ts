@@ -91,8 +91,8 @@ describe(ctx.label, () => {
                 .executeUpdate())
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"update project set name = ? where id = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"update project set name = ?, slug = ? where id = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"update project set name = ?1 where id = ?2"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update project set name = ?1, slug = ?2 where id = ?3"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -122,8 +122,8 @@ describe(ctx.label, () => {
                 .executeUpdate())
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"update project set name = ? where id = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"update project set name = ?, slug = ? where id = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"update project set name = ?1 where id = ?2"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update project set name = ?1, slug = ?2 where id = ?3"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -319,8 +319,8 @@ describe(ctx.label, () => {
                 .executeUpdate())
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"update project set name = ?, slug = ? where id = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"update project set name = ? where id = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"update project set name = ?1, slug = ?2 where id = ?3"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update project set name = ?1 where id = ?2"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -349,8 +349,8 @@ describe(ctx.label, () => {
                 .executeUpdate())
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"update project set name = ?, archived_at = ? where id = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"update project set name = ? where id = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"update project set name = ?1, archived_at = ?2 where id = ?3"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update project set name = ?1 where id = ?2"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })

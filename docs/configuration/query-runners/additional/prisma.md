@@ -16,7 +16,7 @@ This query runner allows executing SQL queries using a [Prisma](https://www.pris
 
 !!! info "Tested with"
 
-    [prisma](https://www.npmjs.com/package/prisma) and [@prisma/client](https://www.npmjs.com/package/@prisma/client) `^7.10.1` on **Node.js** and **Bun**. With SQLite, through `@prisma/adapter-better-sqlite3` on Node.js and `@prisma/adapter-libsql` on Bun.
+    [prisma](https://www.npmjs.com/package/prisma) and [@prisma/client](https://www.npmjs.com/package/@prisma/client) `^7.10.1` on **Node.js** and **Bun**. With SQLite, through `@prisma/adapter-libsql`.
 
     This information reflects the driver version pinned in this project's `devDependencies` and the runtimes the test suite runs it on against a real database. Other compatible versions may work but are not actively tested.
 
@@ -102,13 +102,13 @@ The generated Prisma client and the adapter must correspond to the same database
     ```
 === "SQLite"
     ```ts
-    import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
+    import { PrismaLibSql } from '@prisma/adapter-libsql'
     import { PrismaClient } from './prisma/generated/sqlite/client.js'
     import { PrismaQueryRunner } from 'ts-sql-query/queryRunners/PrismaQueryRunner'
 
     const prisma = new PrismaClient({
-        adapter: new PrismaBetterSqlite3({
-            url: 'src/examples/prisma/generated/prismasqlitetest.db'
+        adapter: new PrismaLibSql({
+            url: 'file:src/examples/prisma/generated/prismasqlitetest.db'
         })
     })
 
@@ -119,9 +119,9 @@ The generated Prisma client and the adapter must correspond to the same database
     }
     ```
 
-    !!! note "On Bun"
+    !!! warning "Prisma's better-sqlite3 adapter is not supported"
 
-        Prisma's `@prisma/adapter-better-sqlite3` does not run on Bun. Use Prisma's libsql adapter there, as Prisma documents: install `@prisma/adapter-libsql` and create the client with `new PrismaLibSql({ url: 'file:src/examples/prisma/generated/prismasqlitetest.db' })` (imported from `@prisma/adapter-libsql`); the rest of the code is the same.
+        `ts-sql-query` writes numbered placeholders for SQLite (`?1`, `?2`, …). Prisma's `@prisma/adapter-better-sqlite3` binds every parameter by position, and better-sqlite3 only binds numbered placeholders by name, so every query fails with `Too many parameter values were provided`. Use Prisma's libsql adapter (`@prisma/adapter-libsql`), on Node.js and Bun.
 === "SQL Server"
     ```ts
     import { PrismaMssql } from '@prisma/adapter-mssql'

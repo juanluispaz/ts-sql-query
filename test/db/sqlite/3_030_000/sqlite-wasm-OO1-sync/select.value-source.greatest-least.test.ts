@@ -38,7 +38,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, max(priority, ?) as floored from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, max(priority, ?1) as floored from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -65,7 +65,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, min(priority, ?) as capped from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, min(priority, ?1) as capped from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -129,7 +129,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, min(assignee_id, ?) as capped from issue where assignee_id is not null order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, min(assignee_id, ?1) as capped from issue where assignee_id is not null order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             99,
@@ -163,7 +163,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, max(assignee_id, ?) as floored, min(assignee_id, ?) as capped from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, max(assignee_id, ?1) as floored, min(assignee_id, ?2) as capped from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             5,

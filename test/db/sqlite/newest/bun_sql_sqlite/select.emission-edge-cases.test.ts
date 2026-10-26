@@ -61,7 +61,7 @@ describe(ctx.label, () => {
             })
             .limit(10)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select upper(title) as up, id as id from issue limit $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select upper(title) as up, id as id from issue limit ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,
@@ -82,7 +82,7 @@ describe(ctx.label, () => {
                 .where(tIssue.id.equals(1))
                 .returning({})
                 .executeDeleteMany()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = $1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

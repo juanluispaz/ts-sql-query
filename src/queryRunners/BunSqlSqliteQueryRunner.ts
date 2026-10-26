@@ -35,7 +35,7 @@ export class BunSqlSqliteQueryRunner extends AbstractBunSqlQueryRunner {
     }
     override addParam(params: any[], value: any): string {
         params.push(value)
-        return '$' + params.length
+        return '?' + params.length
     }
     override getErrorReason(error: unknown): TsSqlErrorReason {
         return BunSqlSqliteQueryRunner.getErrorReason(error)

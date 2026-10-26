@@ -25,7 +25,7 @@ describe(ctx.label, () => {
             .where(tAppUser.email.equalsInsensitive('ADA@ACME.TEST'))
             .select({ id: tAppUser.id })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where lower(email) = lower(?)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where lower(email) = lower(?1)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ADA@ACME.TEST",
@@ -43,7 +43,7 @@ describe(ctx.label, () => {
             .select({ id: tAppUser.id })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where lower(email) <> lower(?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where lower(email) <> lower(?1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ADA@ACME.TEST",
@@ -61,7 +61,7 @@ describe(ctx.label, () => {
             .select({ id: tAppUser.id })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where lower(email) like lower(?) escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where lower(email) like lower(?1) escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "%@ACME.TEST",
@@ -79,7 +79,7 @@ describe(ctx.label, () => {
             .select({ id: tAppUser.id })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where lower(email) not like lower(?) escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where lower(email) not like lower(?1) escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "%@ACME.TEST",
@@ -97,7 +97,7 @@ describe(ctx.label, () => {
             .select({ id: tAppUser.id })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where lower(email) not like lower(? || '%') escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where lower(email) not like lower(?1 || '%') escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ADA",
@@ -115,7 +115,7 @@ describe(ctx.label, () => {
             .select({ id: tAppUser.id })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where lower(email) not like lower('%' || ?) escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where lower(email) not like lower('%' || ?1) escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "@ACME.TEST",
@@ -133,7 +133,7 @@ describe(ctx.label, () => {
             .select({ id: tAppUser.id })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where lower(email) not like lower('%' || ? || '%') escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where lower(email) not like lower('%' || ?1 || '%') escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ACME",
@@ -153,7 +153,7 @@ describe(ctx.label, () => {
             .select({ id: tAppUser.id })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where lower(email) like lower(? || '%') escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where lower(email) like lower(?1 || '%') escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ADA",
@@ -173,7 +173,7 @@ describe(ctx.label, () => {
             .select({ id: tAppUser.id })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where lower(email) like lower('%' || ?) escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where lower(email) like lower('%' || ?1) escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "@ACME.TEST",
@@ -194,7 +194,7 @@ describe(ctx.label, () => {
             .select({ id: tAppUser.id })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where lower(email) like lower('%' || ? || '%') escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where lower(email) like lower('%' || ?1 || '%') escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ACME",
@@ -220,7 +220,7 @@ describe(ctx.label, () => {
                 neq: tAppUser.email.notEqualsInsensitive(tAppUser.fullName),
             })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select lower(email) = lower(full_name) as eq, lower(email) <> lower(full_name) as neq from app_user where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select lower(email) = lower(full_name) as eq, lower(email) <> lower(full_name) as neq from app_user where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -240,7 +240,7 @@ describe(ctx.label, () => {
                 nlk: tAppUser.email.notLikeInsensitive(tAppUser.fullName),
             })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select lower(email) like lower(full_name) escape '\\' as lk, lower(email) not like lower(full_name) escape '\\' as nlk from app_user where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select lower(email) like lower(full_name) escape '\\' as lk, lower(email) not like lower(full_name) escape '\\' as nlk from app_user where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -264,7 +264,7 @@ describe(ctx.label, () => {
                 nct: tAppUser.email.notContainsInsensitive(tAppUser.fullName),
             })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select lower(email) like lower(replace(replace(replace(full_name, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') escape '\\' as sw, lower(email) not like lower(replace(replace(replace(full_name, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') escape '\\' as nsw, lower(email) like lower('%' || replace(replace(replace(full_name, '\\', '\\\\'), '%', '\\%'), '_', '\\_')) escape '\\' as ew, lower(email) not like lower('%' || replace(replace(replace(full_name, '\\', '\\\\'), '%', '\\%'), '_', '\\_')) escape '\\' as new, lower(email) like lower('%' || replace(replace(replace(full_name, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') escape '\\' as ct, lower(email) not like lower('%' || replace(replace(replace(full_name, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') escape '\\' as nct from app_user where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select lower(email) like lower(replace(replace(replace(full_name, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') escape '\\' as sw, lower(email) not like lower(replace(replace(replace(full_name, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') escape '\\' as nsw, lower(email) like lower('%' || replace(replace(replace(full_name, '\\', '\\\\'), '%', '\\%'), '_', '\\_')) escape '\\' as ew, lower(email) not like lower('%' || replace(replace(replace(full_name, '\\', '\\\\'), '%', '\\%'), '_', '\\_')) escape '\\' as new, lower(email) like lower('%' || replace(replace(replace(full_name, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') escape '\\' as ct, lower(email) not like lower('%' || replace(replace(replace(full_name, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') escape '\\' as nct from app_user where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

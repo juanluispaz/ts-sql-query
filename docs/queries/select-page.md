@@ -109,13 +109,13 @@ The executed query to get the data is:
         last_name as lastName 
     from customer 
     where 
-           lower(first_name) like lower(? || '%') escape '\' 
-        or lower(last_name) like lower(? || '%') escape '\' 
+           lower(first_name) like lower(?1 || '%') escape '\' 
+        or lower(last_name) like lower(?2 || '%') escape '\' 
     order by 
         firstName, 
         lastName 
-    limit ? 
-    offset ?
+    limit ?3 
+    offset ?4
     ```
 === "SQL Server"
     ```sqlserver
@@ -175,8 +175,8 @@ The executed query to get the count is:
     select count(*) 
     from customer 
     where 
-           lower(first_name) like lower(? || '%') escape '\' 
-        or lower(last_name) like lower(? || '%') escape '\'
+           lower(first_name) like lower(?1 || '%') escape '\' 
+        or lower(last_name) like lower(?2 || '%') escape '\'
     ```
 === "SQL Server"
     ```sqlserver

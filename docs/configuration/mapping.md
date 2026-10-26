@@ -169,7 +169,7 @@ The executed query is:
     ```sqlite
     select 
         id as id, 
-        first_name || ? || last_name as name, 
+        first_name || ?1 || last_name as name, 
         calculateAge(birthday) as age 
     from customer
     ```
@@ -230,7 +230,7 @@ The executed query is:
     ```
 === "SQLite"
     ```sqlite
-    call myOwnprocedure(?)
+    call myOwnprocedure(?1)
     ```
 === "SQL Server"
     ```sqlserver
@@ -281,7 +281,7 @@ The executed query is:
     ```
 === "SQLite"
     ```sqlite
-    select myOwnFunction(?)
+    select myOwnFunction(?1)
     ```
 === "SQL Server"
     ```sqlserver

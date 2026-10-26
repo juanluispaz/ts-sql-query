@@ -101,7 +101,7 @@ The executed query is:
         comp.name as companyName 
     from customer 
     inner join company as comp on customer.company_id = comp.id 
-    where lower(customer.first_name) like lower(? || '%') escape '\' 
+    where lower(customer.first_name) like lower(?1 || '%') escape '\' 
     order by 
         lower(firstName), 
         lower(lastName) asc
@@ -218,7 +218,7 @@ The executed query is:
         first_name as firstName, 
         last_name as lastName 
     from customer 
-    where id = ? 
+    where id = ?1 
     order by customer.birthday desc nulls last
     ```
 === "SQL Server"
@@ -337,7 +337,7 @@ The executed query is:
     where company_id in (
         select id as result 
         from company 
-        where name like ('%' || ? || '%') escape '\'
+        where name like ('%' || ?1 || '%') escape '\'
     ) 
     order by 
         customerFirstName asc nulls first, 
@@ -747,8 +747,8 @@ The executed query is:
     ```sqlite
     select 
         id as id, 
-        first_name || ? || last_name as name, 
-        ? as type 
+        first_name || ?1 || last_name as name, 
+        ?2 as type 
     from customer 
     
     union all 
@@ -756,7 +756,7 @@ The executed query is:
     select 
         id as id, 
         name as name, 
-        ? as type 
+        ?3 as type 
     from company
     ```
 === "SQL Server"
@@ -926,7 +926,7 @@ The executed query is:
         companyName as acmeCompanyName, 
         customerCount as acmeCustomerCount 
     from customerCountPerCompany 
-    where lower(companyName) like lower('%' || ? || '%') escape '\'
+    where lower(companyName) like lower('%' || ?1 || '%') escape '\'
     ```
 === "SQL Server"
     ```sqlserver
@@ -1002,7 +1002,7 @@ The executed query is:
     ```sqlite
     select count(*) as result 
     from customer 
-    where company_id = ?
+    where company_id = ?1
     ```
 === "SQL Server"
     ```sqlserver
@@ -1091,12 +1091,12 @@ The executed query is:
     ```sqlite
     select 
         id as id, 
-        first_name || ? || last_name as name 
+        first_name || ?1 || last_name as name 
     from customer 
     where company_id = (
         select id as result 
         from company 
-        where name = ?
+        where name = ?2
     )
     ```
 === "SQL Server"

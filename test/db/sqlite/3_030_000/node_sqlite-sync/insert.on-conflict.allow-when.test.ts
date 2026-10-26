@@ -172,7 +172,7 @@ describe(ctx.label, () => {
 
             const row = sync(query.executeInsertNoneOrOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* gated id */  insert  /* gated id */ into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = project.name || ? where project.name <> ? returning id as id  /* gated id */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* gated id */  insert  /* gated id */ into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = project.name || ?4 where project.name <> ?5 returning id as id  /* gated id */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

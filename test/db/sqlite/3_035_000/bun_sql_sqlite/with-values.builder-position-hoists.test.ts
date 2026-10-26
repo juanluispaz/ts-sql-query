@@ -70,7 +70,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with optNoteSampler(id, note) as (values ($1, $2), ($3, $4)) select id as id, note as note from optNoteSampler order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with optNoteSampler(id, note) as (values (?1, ?2), (?3, ?4)) select id as id, note as note from optNoteSampler order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -110,7 +110,7 @@ describe(ctx.label, () => {
                 .from(source)
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"with newYears(yearValue, label) as (values ($1, $2), ($3, $4)) insert into calendar_year (year_value, year_label) select yearValue as yearValue, label as label from newYears"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with newYears(yearValue, label) as (values (?1, ?2), (?3, ?4)) insert into calendar_year (year_value, year_label) select yearValue as yearValue, label as label from newYears"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2025,

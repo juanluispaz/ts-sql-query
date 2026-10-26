@@ -46,7 +46,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into webhook_event (issue_id, event_type) values (?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into webhook_event (issue_id, event_type) values (?1, ?2)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -81,7 +81,7 @@ describe(ctx.label, () => {
                 .selectOneColumn(tWebhookEvent.eventType)
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select event_type as result from webhook_event where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select event_type as result from webhook_event where id = ?1"`)
             if (!ctx.realDbEnabled) {
                 expect(ctx.lastParams).toMatchInlineSnapshot(`
                   [
@@ -103,7 +103,7 @@ describe(ctx.label, () => {
             .select({ yearValue: tCalendarYear.yearValue, label: tCalendarYear.label })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year_value as yearValue, year_label as label from calendar_year where year_value = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year_value as yearValue, year_label as label from calendar_year where year_value = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2023,
@@ -122,7 +122,7 @@ describe(ctx.label, () => {
                 .values({ yearValue: 2030, label: 'FY2030' })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into calendar_year (year_value, year_label) values (?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into calendar_year (year_value, year_label) values (?1, ?2)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2030,

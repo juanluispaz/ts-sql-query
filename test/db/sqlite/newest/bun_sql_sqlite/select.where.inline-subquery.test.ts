@@ -29,7 +29,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         assertType<Exact<typeof result, Array<{ id: number }>>>()
         expect(result).toEqual(expected)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where (select (published = 't') as result from project where id = $1) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where (select (published = 't') as result from project where id = ?1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -56,7 +56,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         assertType<Exact<typeof result, Array<{ id: number }>>>()
         expect(result).toEqual(expected)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where not (select (published = 't') as result from project where id = $1) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where not (select (published = 't') as result from project where id = ?1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

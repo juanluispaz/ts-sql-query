@@ -52,7 +52,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* compound-head */  select name as label from project where archived_at is null union select title as label from issue where status = ? order by label  /* compound-tail */"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* compound-head */  select name as label from project where archived_at is null union select title as label from issue where status = ?1 order by label  /* compound-tail */"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "done",
@@ -88,7 +88,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with openIssues as (select id as id from issue where status = ?) select id as id from openIssues intersect select id as id from issue where id <= ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with openIssues as (select id as id from issue where status = ?1) select id as id from openIssues intersect select id as id from issue where id <= ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -123,7 +123,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  with allIssueIds as (select id as id from issue) select id as id from allIssueIds except select id as id from issue where priority = ? order by id  /* tail */"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  with allIssueIds as (select id as id from issue) select id as id from allIssueIds except select id as id from issue where priority = ?1 order by id  /* tail */"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -149,7 +149,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project where id = ? union select title as label from issue where id = ? order by label"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project where id = ?1 union select title as label from issue where id = ?2 order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -184,7 +184,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with combined as (/* compound-head */  select id as id, name as label from project where id = ? union select id as id, name as label from project where id = ?  /* compound-tail */) select id as id, label as label from combined order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with combined as (/* compound-head */  select id as id, name as label from project where id = ?1 union select id as id, name as label from project where id = ?2  /* compound-tail */) select id as id, label as label from combined order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -216,7 +216,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, label })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (/* compound-head */  select name as result from project where id = ? union select name as result from project where id = ?  /* compound-tail */) as label from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (/* compound-head */  select name as result from project where id = ?1 union select name as result from project where id = ?2  /* compound-tail */) as label from project where id = ?3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -253,7 +253,7 @@ describe(ctx.label, () => {
             .executeSelectPage())
 
         expect(ctx.history.length).toBe(2)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"/* head */  select id as id, name as label from project where id in (?, ?) union select id as id, name as label from project where id = ? order by id limit ?  /* tail */"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"/* head */  select id as id, name as label from project where id in (?1, ?2) union select id as id, name as label from project where id = ?3 order by id limit ?4  /* tail */"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
           [
             1,
@@ -262,7 +262,7 @@ describe(ctx.label, () => {
             2,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (/* head */  select id as id, name as label from project where id in (?, ?) union select id as id, name as label from project where id = ?  /* tail */) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (/* head */  select id as id, name as label from project where id in (?1, ?2) union select id as id, name as label from project where id = ?3  /* tail */) select count(*) from result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
           [
             1,
@@ -304,7 +304,7 @@ describe(ctx.label, () => {
             .executeSelectPage())
 
         expect(ctx.history.length).toBe(2)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"/* head */  select id as id, name as label from project where id in (?, ?) union select id as id, name as label from project where id = ? order by id  /* tail */"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"/* head */  select id as id, name as label from project where id in (?1, ?2) union select id as id, name as label from project where id = ?3 order by id  /* tail */"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
           [
             1,
@@ -312,7 +312,7 @@ describe(ctx.label, () => {
             3,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (/* head */  select id as id, name as label from project where id in (?, ?) union select id as id, name as label from project where id = ?  /* tail */) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (/* head */  select id as id, name as label from project where id in (?1, ?2) union select id as id, name as label from project where id = ?3  /* tail */) select count(*) from result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
           [
             1,
@@ -357,7 +357,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with combined as /* with-head */  (/* compound-head */  select id as id, name as label from project where id = ? union select id as id, name as label from project where id = ?  /* compound-tail */)  /* with-tail */ select id as id, label as label from combined order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with combined as /* with-head */  (/* compound-head */  select id as id, name as label from project where id = ?1 union select id as id, name as label from project where id = ?2  /* compound-tail */)  /* with-tail */ select id as id, label as label from combined order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -389,7 +389,7 @@ describe(ctx.label, () => {
             .select({ names })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_group_array(a_1_.result) from (/* compound-head */  select name as result from project where id = ? union select name as result from project where id = ?  /* compound-tail */) as a_1_) as names"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_group_array(a_1_.result) from (/* compound-head */  select name as result from project where id = ?1 union select name as result from project where id = ?2  /* compound-tail */) as a_1_) as names"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -419,7 +419,7 @@ describe(ctx.label, () => {
             .select({ label: tProject.name })
         const result = sync(arm1.union(arm2).orderBy('label').executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project where id = ? window w1 as (partition by organization_id) union select name as label from project where id = ? order by label"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project where id = ?1 window w1 as (partition by organization_id) union select name as label from project where id = ?2 order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -446,7 +446,7 @@ describe(ctx.label, () => {
             .select({ label: tProject.name })
         const result = sync(arm1.union(arm2).orderBy('label').executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select /* hint */ name as label from project where id = ? union select name as label from project where id = ? order by label"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select /* hint */ name as label from project where id = ?1 union select name as label from project where id = ?2 order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -474,7 +474,7 @@ describe(ctx.label, () => {
             .select({ label: tProject.name })
         const result = sync(arm1.union(arm2).orderBy('label').executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select /* cols */  name as label from project where id = ? union select name as label from project where id = ? order by label"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select /* cols */  name as label from project where id = ?1 union select name as label from project where id = ?2 order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -508,7 +508,7 @@ describe(ctx.label, () => {
         // hooks (`/* wq-before */` / `/* wq-after */`) — a directly-executed compound is not
         // a CTE body, so the hooks have no attachment point (the no-op boundary, pinned by
         // the full SQL).
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where id in (?, ?) union select id as id from project where id = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where id in (?1, ?2) union select id as id from project where id = ?3 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

@@ -33,7 +33,7 @@ describe(ctx.label, () => {
                 ))
                 .executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where project_id in (select id as result from project where name = ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where project_id in (select id as result from project where name = ?1)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "does-not-exist",
@@ -96,7 +96,7 @@ describe(ctx.label, () => {
                 .where(tIssue.status.equals('archived').or(tIssue.priority.lessThan(0)))
                 .executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where status = ? or priority < ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where status = ?1 or priority < ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "archived",
@@ -120,7 +120,7 @@ describe(ctx.label, () => {
                 .or(tIssue.assigneeId.isNull())
                 .executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where status = ? or assignee_id is null"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where status = ?1 or assignee_id is null"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "closed",
@@ -145,7 +145,7 @@ describe(ctx.label, () => {
                 .or(tIssue.assigneeId.isNull())
                 .executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where status = ? or assignee_id is null"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where status = ?1 or assignee_id is null"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "closed",
@@ -170,7 +170,7 @@ describe(ctx.label, () => {
                 .and(tIssue.priority.greaterThan(1))
                 .executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where project_id = ? and priority > ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where project_id = ?1 and priority > ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

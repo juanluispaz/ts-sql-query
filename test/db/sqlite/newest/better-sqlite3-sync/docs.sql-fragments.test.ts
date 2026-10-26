@@ -33,7 +33,7 @@ describe(ctx.label, () => {
             .executeSelectMany())
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(id + id) as idDoubled from app_user where email = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(id + id) as idDoubled from app_user where email = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ada@acme.test",
@@ -79,7 +79,7 @@ describe(ctx.label, () => {
             .executeSelectOne())
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select /*+ some hints */ id as id, email as email, full_name as fullName from app_user where id = ? /* trailing comment */"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select /*+ some hints */ id as id, email as email, full_name as fullName from app_user where id = ?1 /* trailing comment */"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -115,7 +115,7 @@ describe(ctx.label, () => {
                 .executeInsert())
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ some hints */ into app_user (email, full_name) values (?, ?) returning id /* trailing comment */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ some hints */ into app_user (email, full_name) values (?1, ?2) returning id /* trailing comment */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "new@acme.test",
@@ -144,7 +144,7 @@ describe(ctx.label, () => {
                 .executeUpdate())
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update /*+ some hints */ project set name = ? where id = ? /* trailing comment */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update /*+ some hints */ project set name = ?1 where id = ?2 /* trailing comment */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Marketing site (v2)",
@@ -172,7 +172,7 @@ describe(ctx.label, () => {
                 .executeDelete())
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete /*+ some hints */ from project where id = ? /* trailing comment */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete /*+ some hints */ from project where id = ?1 /* trailing comment */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 9999,
@@ -204,7 +204,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, email as email, full_name as fullName from app_user where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, email as email, full_name as fullName from app_user where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

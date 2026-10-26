@@ -89,7 +89,7 @@ describe(ctx.label, () => {
                 .executeSelectMany()
         } catch (e) { caught = e }
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -119,7 +119,7 @@ describe(ctx.label, () => {
                     .executeDeleteNoneOrOne()
             } catch (e) { caught = e }
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = $1 returning id as id, title as title"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ?1 returning id as id, title as title"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 4,
@@ -147,7 +147,7 @@ describe(ctx.label, () => {
                     .executeDeleteNoneOrOne()
             } catch (e) { caught = e }
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = $1 returning title as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ?1 returning title as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 4,
@@ -175,7 +175,7 @@ describe(ctx.label, () => {
                     .executeDeleteMany()
             } catch (e) { caught = e }
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where status = $1 returning id as id, title as title"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where status = ?1 returning id as id, title as title"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "closed",
@@ -204,7 +204,7 @@ describe(ctx.label, () => {
                     .executeDeleteMany()
             } catch (e) { caught = e }
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where status = $1 returning title as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where status = ?1 returning title as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "closed",
@@ -235,7 +235,7 @@ describe(ctx.label, () => {
                     .executeUpdateNoneOrOne()
             } catch (e) { caught = e }
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = $1 where id = $2 returning id as id, title as title"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = ?1 where id = ?2 returning id as id, title as title"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -265,7 +265,7 @@ describe(ctx.label, () => {
                     .executeUpdateNoneOrOne()
             } catch (e) { caught = e }
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = $1 where id = $2 returning title as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = ?1 where id = ?2 returning title as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -295,7 +295,7 @@ describe(ctx.label, () => {
                     .executeUpdateMany()
             } catch (e) { caught = e }
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = $1 where project_id = $2 returning id as id, title as title"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = ?1 where project_id = ?2 returning id as id, title as title"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -326,7 +326,7 @@ describe(ctx.label, () => {
                     .executeUpdateMany()
             } catch (e) { caught = e }
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = $1 where project_id = $2 returning title as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = ?1 where project_id = ?2 returning title as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -357,7 +357,7 @@ describe(ctx.label, () => {
                     .executeInsertOne()
             } catch (e) { caught = e }
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values ($1, $2, $3, $4, $5) returning title as title"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5) returning title as title"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,
@@ -389,7 +389,7 @@ describe(ctx.label, () => {
                     .executeInsertOne()
             } catch (e) { caught = e }
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values ($1, $2, $3, $4, $5) returning title as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5) returning title as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,
@@ -423,7 +423,7 @@ describe(ctx.label, () => {
                     .executeInsertMany()
             } catch (e) { caught = e }
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values ($1, $2, $3, $4, $5), ($6, $7, $8, $9, $10) returning title as title"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5), (?6, ?7, ?8, ?9, ?10) returning title as title"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,
@@ -464,7 +464,7 @@ describe(ctx.label, () => {
                     .executeInsertMany()
             } catch (e) { caught = e }
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values ($1, $2, $3, $4, $5), ($6, $7, $8, $9, $10) returning title as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5), (?6, ?7, ?8, ?9, ?10) returning title as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,
@@ -504,7 +504,7 @@ describe(ctx.label, () => {
                     .executeInsert()
             } catch (e) { caught = e }
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into ledger_entry (amount) values ($1)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into ledger_entry (amount) values (?1)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 100,
@@ -535,7 +535,7 @@ describe(ctx.label, () => {
                     .executeInsert()
             } catch (e) { caught = e }
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into ledger_entry (amount) values ($1), ($2) returning entry_no"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into ledger_entry (amount) values (?1), (?2) returning entry_no"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 100,

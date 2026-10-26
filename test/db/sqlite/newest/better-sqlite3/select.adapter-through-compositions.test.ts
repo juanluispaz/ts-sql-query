@@ -33,7 +33,7 @@ describe(ctx.label, () => {
             .orderBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as pid, score as score, reviewer_code as reviewerCode from project_review union select project_id as pid, score as score, reviewer_code as reviewerCode from project_review where id = ? order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as pid, score as score, reviewer_code as reviewerCode from project_review union select project_id as pid, score as score, reviewer_code as reviewerCode from project_review where id = ?1 order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -62,7 +62,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, scores })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(score) from project_review where project_id = project.id) as scores from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(score) from project_review where project_id = project.id) as scores from project where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

@@ -31,7 +31,7 @@ describe(ctx.label, () => {
                 mix: { ownId: tIssue.id, projName: tProjLeft.name },
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.id as "mix.ownId", project.name as "mix.projName" from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.id as "mix.ownId", project.name as "mix.projName" from issue left join project on project.id = issue.project_id where issue.id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -61,7 +61,7 @@ describe(ctx.label, () => {
             })
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.id as "mix.ownId", project.name as "mix.projName" from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.id as "mix.ownId", project.name as "mix.projName" from issue left join project on project.id = issue.project_id where issue.id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -93,7 +93,7 @@ describe(ctx.label, () => {
                 proj: { name: tProjLeft.name, tag: ctx.conn.const('rel', 'string') },
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.name as "proj.name", ? as "proj.tag" from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.name as "proj.name", ?1 as "proj.tag" from issue left join project on project.id = issue.project_id where issue.id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "rel",
@@ -124,7 +124,7 @@ describe(ctx.label, () => {
             })
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.name as "proj.name", ? as "proj.tag" from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.name as "proj.name", ?1 as "proj.tag" from issue left join project on project.id = issue.project_id where issue.id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "rel",
@@ -166,7 +166,7 @@ describe(ctx.label, () => {
             })
             .orderBy('pid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "iss.title", ? as "iss.tag" from project left join issue on issue.project_id = project.id where project.id in (?, ?) order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "iss.title", ?1 as "iss.tag" from project left join issue on issue.project_id = project.id where project.id in (?2, ?3) order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "rel",
@@ -204,7 +204,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .orderBy('pid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "iss.title", ? as "iss.tag" from project left join issue on issue.project_id = project.id where project.id in (?, ?) order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "iss.title", ?1 as "iss.tag" from project left join issue on issue.project_id = project.id where project.id in (?2, ?3) order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "rel",
@@ -240,7 +240,7 @@ describe(ctx.label, () => {
                 obj: { projName: tProjLeft.name, orgName: tOrgLeft.name },
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.name as "obj.projName", organization.name as "obj.orgName" from issue left join project on project.id = issue.project_id left join organization on organization.id = project.organization_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.name as "obj.projName", organization.name as "obj.orgName" from issue left join project on project.id = issue.project_id left join organization on organization.id = project.organization_id where issue.id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -272,7 +272,7 @@ describe(ctx.label, () => {
             })
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.name as "obj.projName", organization.name as "obj.orgName" from issue left join project on project.id = issue.project_id left join organization on organization.id = project.organization_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.name as "obj.projName", organization.name as "obj.orgName" from issue left join project on project.id = issue.project_id left join organization on organization.id = project.organization_id where issue.id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -302,7 +302,7 @@ describe(ctx.label, () => {
                 proj: { name: tProjLeft.name.asRequiredInOptionalObject(), slug: tProjLeft.slug },
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.name as "proj.name", project.slug as "proj.slug" from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.name as "proj.name", project.slug as "proj.slug" from issue left join project on project.id = issue.project_id where issue.id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -332,7 +332,7 @@ describe(ctx.label, () => {
             })
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.name as "proj.name", project.slug as "proj.slug" from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.name as "proj.name", project.slug as "proj.slug" from issue left join project on project.id = issue.project_id where issue.id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -404,7 +404,7 @@ describe(ctx.label, () => {
             })
             .orderBy('pid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, project.id as "mix.ownId", issue.title as "mix.issTitle" from project left join issue on issue.project_id = project.id where project.id in (?, ?) order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, project.id as "mix.ownId", issue.title as "mix.issTitle" from project left join issue on issue.project_id = project.id where project.id in (?1, ?2) order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -445,7 +445,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .orderBy('pid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, project.id as "mix.ownId", issue.title as "mix.issTitle" from project left join issue on issue.project_id = project.id where project.id in (?, ?) order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, project.id as "mix.ownId", issue.title as "mix.issTitle" from project left join issue on issue.project_id = project.id where project.id in (?1, ?2) order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -489,7 +489,7 @@ describe(ctx.label, () => {
             })
             .orderBy('pid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "obj.issTitle", app_user.full_name as "obj.assigneeName" from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id in (?, ?) order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "obj.issTitle", app_user.full_name as "obj.assigneeName" from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id in (?1, ?2) order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -530,7 +530,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .orderBy('pid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "obj.issTitle", app_user.full_name as "obj.assigneeName" from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id in (?, ?) order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "obj.issTitle", app_user.full_name as "obj.assigneeName" from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id in (?1, ?2) order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -565,7 +565,7 @@ describe(ctx.label, () => {
                 obj: { issTitle: tIssueLeft.title, assigneeName: tUserLeft.fullName },
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "obj.issTitle", app_user.full_name as "obj.assigneeName" from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "obj.issTitle", app_user.full_name as "obj.assigneeName" from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -600,7 +600,7 @@ describe(ctx.label, () => {
             })
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "obj.issTitle", app_user.full_name as "obj.assigneeName" from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "obj.issTitle", app_user.full_name as "obj.assigneeName" from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -638,7 +638,7 @@ describe(ctx.label, () => {
                 mix: { title: tIssueLeft.title.asRequiredInOptionalObject(), assigneeName: tUserLeft.fullName },
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "mix.title", app_user.full_name as "mix.assigneeName" from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "mix.title", app_user.full_name as "mix.assigneeName" from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -674,7 +674,7 @@ describe(ctx.label, () => {
             })
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "mix.title", app_user.full_name as "mix.assigneeName" from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "mix.title", app_user.full_name as "mix.assigneeName" from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -714,7 +714,7 @@ describe(ctx.label, () => {
             })
             .orderBy('pid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, ? as "iss.tag", issue.title as "iss.title" from project left join issue on issue.project_id = project.id where project.id in (?, ?) order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, ?1 as "iss.tag", issue.title as "iss.title" from project left join issue on issue.project_id = project.id where project.id in (?2, ?3) order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "rel",
@@ -754,7 +754,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .orderBy('pid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, ? as "iss.tag", issue.title as "iss.title" from project left join issue on issue.project_id = project.id where project.id in (?, ?) order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, ?1 as "iss.tag", issue.title as "iss.title" from project left join issue on issue.project_id = project.id where project.id in (?2, ?3) order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "rel",
@@ -784,7 +784,7 @@ describe(ctx.label, () => {
                 tags: { a: ctx.conn.const('x', 'string'), b: ctx.conn.const('y', 'string') },
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, ? as "tags.a", ? as "tags.b" from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, ?1 as "tags.a", ?2 as "tags.b" from project where id = ?3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "x",
@@ -827,7 +827,7 @@ describe(ctx.label, () => {
             })
             .orderBy('pid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "obj.issTitle", app_user.full_name as "obj.assigneeName", ? as "obj.tag" from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id in (?, ?) order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "obj.issTitle", app_user.full_name as "obj.assigneeName", ?1 as "obj.tag" from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id in (?2, ?3) order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "rel",
@@ -874,7 +874,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .orderBy('pid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "obj.issTitle", app_user.full_name as "obj.assigneeName", ? as "obj.tag" from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id in (?, ?) order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "obj.issTitle", app_user.full_name as "obj.assigneeName", ?1 as "obj.tag" from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id in (?2, ?3) order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "rel",
@@ -923,7 +923,7 @@ describe(ctx.label, () => {
             })
             .orderBy('iid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id + app_user.id as "obj.combined", ? as "obj.tag" from issue left join project on project.id = issue.project_id left join app_user on app_user.id = issue.assignee_id where issue.id in (?, ?) order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id + app_user.id as "obj.combined", ?1 as "obj.tag" from issue left join project on project.id = issue.project_id left join app_user on app_user.id = issue.assignee_id where issue.id in (?2, ?3) order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "rel",
@@ -969,7 +969,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .orderBy('iid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id + app_user.id as "obj.combined", ? as "obj.tag" from issue left join project on project.id = issue.project_id left join app_user on app_user.id = issue.assignee_id where issue.id in (?, ?) order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id + app_user.id as "obj.combined", ?1 as "obj.tag" from issue left join project on project.id = issue.project_id left join app_user on app_user.id = issue.assignee_id where issue.id in (?2, ?3) order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "rel",
@@ -1016,7 +1016,7 @@ describe(ctx.label, () => {
             })
             .orderBy('iid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id + app_user.id as "obj.combined" from issue left join project on project.id = issue.project_id left join app_user on app_user.id = issue.assignee_id where issue.id in (?, ?) order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id + app_user.id as "obj.combined" from issue left join project on project.id = issue.project_id left join app_user on app_user.id = issue.assignee_id where issue.id in (?1, ?2) order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -1060,7 +1060,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .orderBy('iid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id + app_user.id as "obj.combined" from issue left join project on project.id = issue.project_id left join app_user on app_user.id = issue.assignee_id where issue.id in (?, ?) order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id + app_user.id as "obj.combined" from issue left join project on project.id = issue.project_id left join app_user on app_user.id = issue.assignee_id where issue.id in (?1, ?2) order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -1095,7 +1095,7 @@ describe(ctx.label, () => {
                 obj: { issTitle: tIssueLeft.title, projArchived: tProject.archivedAt },
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "obj.issTitle", project.archived_at as "obj.projArchived" from project left join issue on issue.project_id = project.id where project.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "obj.issTitle", project.archived_at as "obj.projArchived" from project left join issue on issue.project_id = project.id where project.id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             4,
@@ -1132,7 +1132,7 @@ describe(ctx.label, () => {
             })
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "obj.issTitle", project.archived_at as "obj.projArchived" from project left join issue on issue.project_id = project.id where project.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "obj.issTitle", project.archived_at as "obj.projArchived" from project left join issue on issue.project_id = project.id where project.id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             4,
@@ -1176,7 +1176,7 @@ describe(ctx.label, () => {
             })
             .orderBy('iid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id + app_user.id as "obj.combined", issue.id as "obj.ownId" from issue left join project on project.id = issue.project_id left join app_user on app_user.id = issue.assignee_id where issue.id in (?, ?) order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id + app_user.id as "obj.combined", issue.id as "obj.ownId" from issue left join project on project.id = issue.project_id left join app_user on app_user.id = issue.assignee_id where issue.id in (?1, ?2) order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -1219,7 +1219,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .orderBy('iid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id + app_user.id as "obj.combined", issue.id as "obj.ownId" from issue left join project on project.id = issue.project_id left join app_user on app_user.id = issue.assignee_id where issue.id in (?, ?) order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id + app_user.id as "obj.combined", issue.id as "obj.ownId" from issue left join project on project.id = issue.project_id left join app_user on app_user.id = issue.assignee_id where issue.id in (?1, ?2) order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -1260,7 +1260,7 @@ describe(ctx.label, () => {
             })
             .orderBy('iid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.id + app_user.id as "obj.combined", ? as "obj.tag" from issue left join app_user on app_user.id = issue.assignee_id where issue.id in (?, ?) order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.id + app_user.id as "obj.combined", ?1 as "obj.tag" from issue left join app_user on app_user.id = issue.assignee_id where issue.id in (?2, ?3) order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "rel",
@@ -1303,7 +1303,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .orderBy('iid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.id + app_user.id as "obj.combined", ? as "obj.tag" from issue left join app_user on app_user.id = issue.assignee_id where issue.id in (?, ?) order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.id + app_user.id as "obj.combined", ?1 as "obj.tag" from issue left join app_user on app_user.id = issue.assignee_id where issue.id in (?2, ?3) order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "rel",
@@ -1347,7 +1347,7 @@ describe(ctx.label, () => {
             })
             .orderBy('iid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id + app_user.id as "outer.inner.combined", ? as "outer.inner.tag" from issue left join project on project.id = issue.project_id left join app_user on app_user.id = issue.assignee_id where issue.id in (?, ?) order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id + app_user.id as "outer.inner.combined", ?1 as "outer.inner.tag" from issue left join project on project.id = issue.project_id left join app_user on app_user.id = issue.assignee_id where issue.id in (?2, ?3) order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "rel",
@@ -1391,7 +1391,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .orderBy('iid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id + app_user.id as "outer.inner.combined", ? as "outer.inner.tag" from issue left join project on project.id = issue.project_id left join app_user on app_user.id = issue.assignee_id where issue.id in (?, ?) order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id + app_user.id as "outer.inner.combined", ?1 as "outer.inner.tag" from issue left join project on project.id = issue.project_id left join app_user on app_user.id = issue.assignee_id where issue.id in (?2, ?3) order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "rel",
@@ -1433,7 +1433,7 @@ describe(ctx.label, () => {
             })
             .orderBy('pid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.id + issue.number as "obj.m" from project left join issue on issue.project_id = project.id where project.id in (?, ?) order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.id + issue.number as "obj.m" from project left join issue on issue.project_id = project.id where project.id in (?1, ?2) order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -1472,7 +1472,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .orderBy('pid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.id + issue.number as "obj.m" from project left join issue on issue.project_id = project.id where project.id in (?, ?) order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.id + issue.number as "obj.m" from project left join issue on issue.project_id = project.id where project.id in (?1, ?2) order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -1512,7 +1512,7 @@ describe(ctx.label, () => {
             })
             .orderBy('iid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.body as "obj.body", project.archived_at as "obj.arch" from issue left join project on project.id = issue.project_id where issue.id in (?, ?) order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.body as "obj.body", project.archived_at as "obj.arch" from issue left join project on project.id = issue.project_id where issue.id in (?1, ?2) order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1555,7 +1555,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .orderBy('iid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.body as "obj.body", project.archived_at as "obj.arch" from issue left join project on project.id = issue.project_id where issue.id in (?, ?) order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.body as "obj.body", project.archived_at as "obj.arch" from issue left join project on project.id = issue.project_id where issue.id in (?1, ?2) order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1597,7 +1597,7 @@ describe(ctx.label, () => {
             })
             .groupBy('pid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, json_group_array(json_object('combined', issue.id + app_user.id, 'tag', 'rel')) as items from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id = ? group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, json_group_array(json_object('combined', issue.id + app_user.id, 'tag', 'rel')) as items from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id = ?1 group by project.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -1636,7 +1636,7 @@ describe(ctx.label, () => {
             })
             .groupBy('pid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, json_group_array(json_object('combined', issue.id + app_user.id, 'tag', 'rel')) as items from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id = ? group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, json_group_array(json_object('combined', issue.id + app_user.id, 'tag', 'rel')) as items from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id = ?1 group by project.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -1684,7 +1684,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, coalesce(issue.title, issue.status, issue.body) as "grp.frag", project.name as "grp.projName" from project left join issue on issue.project_id = project.id where project.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, coalesce(issue.title, issue.status, issue.body) as "grp.frag", project.name as "grp.projName" from project left join issue on issue.project_id = project.id where project.id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             4,

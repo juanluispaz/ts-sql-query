@@ -71,7 +71,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where priority = ? and priority <> ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where priority = ?1 and priority <> ?2 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             2,
@@ -98,7 +98,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where priority is ? and status is not ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where priority is ?1 and status is not ?2 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             2,
@@ -122,7 +122,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where priority in (?, ?) and priority not in (?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where priority in (?1, ?2) and priority not in (?3) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             1,
@@ -152,7 +152,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where priority > ? and priority < ? and priority >= ? and priority <= ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where priority > ?1 and priority < ?2 and priority >= ?3 and priority <= ?4 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             1,
@@ -202,7 +202,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(title) = lower(?) and lower(title) <> lower(?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(title) = lower(?1) and lower(title) <> lower(?2) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "Triage",
@@ -231,7 +231,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where title like ? escape '\\' and title not like ? escape '\\' and lower(title) like lower(?) escape '\\' and lower(title) not like lower(?) escape '\\' order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where title like ?1 escape '\\' and title not like ?2 escape '\\' and lower(title) like lower(?3) escape '\\' and lower(title) not like lower(?4) escape '\\' order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "%a%",
@@ -268,7 +268,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where title like (? || '%') escape '\\' and title not like (? || '%') escape '\\' and title like ('%' || ?) escape '\\' and title not like ('%' || ?) escape '\\' and title like ('%' || ? || '%') escape '\\' and title not like ('%' || ? || '%') escape '\\' order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where title like (?1 || '%') escape '\\' and title not like (?2 || '%') escape '\\' and title like ('%' || ?3) escape '\\' and title not like ('%' || ?4) escape '\\' and title like ('%' || ?5 || '%') escape '\\' and title not like ('%' || ?6 || '%') escape '\\' order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "Re",
@@ -307,7 +307,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(title) like lower(? || '%') escape '\\' and lower(title) not like lower(? || '%') escape '\\' and lower(title) like lower('%' || ?) escape '\\' and lower(title) not like lower('%' || ?) escape '\\' and lower(title) like lower('%' || ? || '%') escape '\\' and lower(title) not like lower('%' || ? || '%') escape '\\' order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(title) like lower(?1 || '%') escape '\\' and lower(title) not like lower(?2 || '%') escape '\\' and lower(title) like lower('%' || ?3) escape '\\' and lower(title) not like lower('%' || ?4) escape '\\' and lower(title) like lower('%' || ?5 || '%') escape '\\' and lower(title) not like lower('%' || ?6 || '%') escape '\\' order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "Re",
@@ -339,7 +339,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where priority = ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where priority = ?1 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             7,
@@ -362,7 +362,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours > ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours > ?1 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             2.5,
@@ -386,7 +386,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where created_at >= ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where created_at >= ?1 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "2020-01-01 00:00:00",
@@ -409,7 +409,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where view_count > ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where view_count > ?1 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             10n,
@@ -440,7 +440,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project where (published = 't') = ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project where (published = 't') = ?1 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             1,
@@ -466,7 +466,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) like lower('%' || ? || '%') escape '\\' order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) like lower('%' || ?1 || '%') escape '\\' order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "abc",
@@ -491,7 +491,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where status = ? and priority = ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where status = ?1 and priority = ?2 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -515,7 +515,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where status = ? or priority = ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where status = ?1 or priority = ?2 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -539,7 +539,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where not (status = ?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where not (status = ?1) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "closed",
@@ -575,7 +575,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where priority = ? and priority <> ? and priority is ? and priority is not ? and priority in (?, ?) and priority not in (?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where priority = ?1 and priority <> ?2 and priority is ?3 and priority is not ?4 and priority in (?5, ?6) and priority not in (?7) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             2,
@@ -612,7 +612,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where priority < ? and priority > ? and priority <= ? and priority >= ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where priority < ?1 and priority > ?2 and priority <= ?3 and priority >= ?4 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             9,
@@ -649,7 +649,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(title) = lower(?) and lower(title) <> lower(?) and title like ? escape '\\' and title not like ? escape '\\' and lower(title) like lower(?) escape '\\' and lower(title) not like lower(?) escape '\\' order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(title) = lower(?1) and lower(title) <> lower(?2) and title like ?3 escape '\\' and title not like ?4 escape '\\' and lower(title) like lower(?5) escape '\\' and lower(title) not like lower(?6) escape '\\' order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "Foo",
@@ -688,7 +688,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where title like (? || '%') escape '\\' and title not like (? || '%') escape '\\' and title like ('%' || ?) escape '\\' and title not like ('%' || ?) escape '\\' and title like ('%' || ? || '%') escape '\\' and title not like ('%' || ? || '%') escape '\\' order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where title like (?1 || '%') escape '\\' and title not like (?2 || '%') escape '\\' and title like ('%' || ?3) escape '\\' and title not like ('%' || ?4) escape '\\' and title like ('%' || ?5 || '%') escape '\\' and title not like ('%' || ?6 || '%') escape '\\' order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "Re",
@@ -727,7 +727,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(title) like lower(? || '%') escape '\\' and lower(title) not like lower(? || '%') escape '\\' and lower(title) like lower('%' || ?) escape '\\' and lower(title) not like lower('%' || ?) escape '\\' and lower(title) like lower('%' || ? || '%') escape '\\' and lower(title) not like lower('%' || ? || '%') escape '\\' order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(title) like lower(?1 || '%') escape '\\' and lower(title) not like lower(?2 || '%') escape '\\' and lower(title) like lower('%' || ?3) escape '\\' and lower(title) not like lower('%' || ?4) escape '\\' and lower(title) like lower('%' || ?5 || '%') escape '\\' and lower(title) not like lower('%' || ?6 || '%') escape '\\' order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "Re",
@@ -769,7 +769,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where status = ? and status in (?, ?) and status <> ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where status = ?1 and status in (?2, ?3) and status <> ?4 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -805,7 +805,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where version > ? and version < ? and version = ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where version > ?1 and version < ?2 and version = ?3 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "0.5.0",
@@ -842,7 +842,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key = ? and signing_key like ('%' || ? || '%') escape '\\' and signing_key like (? || '%') escape '\\' order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key = ?1 and signing_key like ('%' || ?2 || '%') escape '\\' and signing_key like (?3 || '%') escape '\\' order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556666",
@@ -876,7 +876,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date >= ? and work_date < ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date >= ?1 and work_date < ?2 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "2024-03-01",
@@ -909,7 +909,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at >= ? and started_at < ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at >= ?1 and started_at < ?2 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "09:00:00",
@@ -939,7 +939,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where version <= ? and version in (?, ?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where version <= ?1 and version in (?2, ?3) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "1.3.0",
@@ -969,7 +969,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where channel <> ? and channel in (?, ?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where channel <> ?1 and channel in (?2, ?3) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "canary",
@@ -999,7 +999,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where body is ? and estimated_hours is not ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where body is ?1 and estimated_hours is not ?2 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             null,
@@ -1031,7 +1031,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on >= ? and released_on < ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on >= ?1 and released_on < ?2 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "2024-01-01",
@@ -1060,7 +1060,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time >= ? and cutoff_time < ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time >= ?1 and cutoff_time < ?2 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "09:00:00",
@@ -1090,7 +1090,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at >= ? and signed_off_at < ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at >= ?1 and signed_off_at < ?2 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "2024-01-01 00:00:00",
@@ -1122,7 +1122,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where ? > ? and ? < ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where ?1 > ?2 and ?3 < ?4 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             5,
@@ -1154,7 +1154,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) like lower('%' || ? || '%') escape '\\' order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) like lower('%' || ?1 || '%') escape '\\' order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "abc",
@@ -1182,7 +1182,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours > ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours > ?1 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             2.5,
@@ -1213,7 +1213,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where ? > ? and ? < ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where ?1 > ?2 and ?3 < ?4 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             5,
@@ -1244,7 +1244,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where channel <> ? and channel in (?, ?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where channel <> ?1 and channel in (?2, ?3) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "canary",
@@ -1277,7 +1277,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on >= ? and released_on < ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on >= ?1 and released_on < ?2 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "2024-01-01",
@@ -1308,7 +1308,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time >= ? and cutoff_time < ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time >= ?1 and cutoff_time < ?2 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "09:00:00",
@@ -1339,7 +1339,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at >= ? and signed_off_at < ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at >= ?1 and signed_off_at < ?2 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "2024-01-01 00:00:00",
@@ -1369,7 +1369,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where lower(signing_key) = lower(?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where lower(signing_key) = lower(?1) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "0A8F9C1E-1111-4222-8333-444455556666",
@@ -1395,7 +1395,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project where (published = 't') <> ? and (published = 't') in (?, ?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project where (published = 't') <> ?1 and (published = 't') in (?2, ?3) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1423,7 +1423,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable is ? and billable is null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable is ?1 and billable is null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1451,7 +1451,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable <> ? and billable in (?, ?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable <> ?1 and billable in (?2, ?3) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1482,7 +1482,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where view_count > ? and view_count <= ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where view_count > ?1 and view_count <= ?2 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             10n,
@@ -1514,7 +1514,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) <> lower(?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) <> lower(?1) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "0A8F9C1E-1111-4222-8333-444455556666",
@@ -1544,7 +1544,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where lower(signing_key) <> lower(?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where lower(signing_key) <> lower(?1) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "0A8F9C1E-1111-4222-8333-444455556666",
@@ -1576,7 +1576,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents > ? and cost_cents < ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents > ?1 and cost_cents < ?2 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             50,
@@ -1607,7 +1607,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount > ? and billed_amount < ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount > ?1 and billed_amount < ?2 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             100,
@@ -1639,7 +1639,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date >= ? and work_date < ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date >= ?1 and work_date < ?2 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "2024-03-01",
@@ -1669,7 +1669,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at >= ? and started_at < ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at >= ?1 and started_at < ?2 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "09:00:00",
@@ -1700,7 +1700,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key = ? and signing_key like ('%' || ? || '%') escape '\\' and signing_key like (? || '%') escape '\\' order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key = ?1 and signing_key like ('%' || ?2 || '%') escape '\\' and signing_key like (?3 || '%') escape '\\' order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556666",
@@ -1732,7 +1732,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where created_at >= ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where created_at >= ?1 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "2020-01-01 00:00:00",
@@ -1772,7 +1772,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms = ? and duration_ms <> ? and duration_ms is ? and duration_ms is not ? and duration_ms in (?, ?) and duration_ms not in (?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms = ?1 and duration_ms <> ?2 and duration_ms is ?3 and duration_ms is not ?4 and duration_ms in (?5, ?6) and duration_ms not in (?7) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             10n,
@@ -1807,7 +1807,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms = ? and duration_ms <> ? and duration_ms is ? and duration_ms is not ? and duration_ms in (?, ?) and duration_ms not in (?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms = ?1 and duration_ms <> ?2 and duration_ms is ?3 and duration_ms is not ?4 and duration_ms in (?5, ?6) and duration_ms not in (?7) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             10n,
@@ -1841,7 +1841,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms < ? and duration_ms >= ? and duration_ms is null and duration_ms is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms < ?1 and duration_ms >= ?2 and duration_ms is null and duration_ms is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             100n,
@@ -1869,7 +1869,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms < ? and duration_ms >= ? and duration_ms is null and duration_ms is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms < ?1 and duration_ms >= ?2 and duration_ms is null and duration_ms is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             100n,
@@ -1905,7 +1905,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms = ? and duration_ms <> ? and duration_ms is ? and duration_ms is not ? and duration_ms in (?, ?) and duration_ms not in (?) and duration_ms < ? and duration_ms >= ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms = ?1 and duration_ms <> ?2 and duration_ms is ?3 and duration_ms is not ?4 and duration_ms in (?5, ?6) and duration_ms not in (?7) and duration_ms < ?8 and duration_ms >= ?9 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             10n,
@@ -1947,7 +1947,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms = ? and duration_ms <> ? and duration_ms is ? and duration_ms is not ? and duration_ms in (?, ?) and duration_ms not in (?) and duration_ms < ? and duration_ms >= ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms = ?1 and duration_ms <> ?2 and duration_ms is ?3 and duration_ms is not ?4 and duration_ms in (?5, ?6) and duration_ms not in (?7) and duration_ms < ?8 and duration_ms >= ?9 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             10n,
@@ -2003,7 +2003,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours = ? and estimated_hours <> ? and estimated_hours is ? and estimated_hours in (?, ?) and estimated_hours not in (?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours = ?1 and estimated_hours <> ?2 and estimated_hours is ?3 and estimated_hours in (?4, ?5) and estimated_hours not in (?6) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             2.5,
@@ -2036,7 +2036,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours = ? and estimated_hours <> ? and estimated_hours is ? and estimated_hours in (?, ?) and estimated_hours not in (?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours = ?1 and estimated_hours <> ?2 and estimated_hours is ?3 and estimated_hours in (?4, ?5) and estimated_hours not in (?6) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             2.5,
@@ -2070,7 +2070,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours < ? and estimated_hours <= ? and estimated_hours >= ? and estimated_hours is null and estimated_hours is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours < ?1 and estimated_hours <= ?2 and estimated_hours >= ?3 and estimated_hours is null and estimated_hours is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             9.5,
@@ -2100,7 +2100,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours < ? and estimated_hours <= ? and estimated_hours >= ? and estimated_hours is null and estimated_hours is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours < ?1 and estimated_hours <= ?2 and estimated_hours >= ?3 and estimated_hours is null and estimated_hours is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             9.5,
@@ -2137,7 +2137,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours = ? and estimated_hours <> ? and estimated_hours is ? and estimated_hours in (?, ?) and estimated_hours not in (?) and estimated_hours < ? and estimated_hours <= ? and estimated_hours >= ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours = ?1 and estimated_hours <> ?2 and estimated_hours is ?3 and estimated_hours in (?4, ?5) and estimated_hours not in (?6) and estimated_hours < ?7 and estimated_hours <= ?8 and estimated_hours >= ?9 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             2.5,
@@ -2179,7 +2179,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours = ? and estimated_hours <> ? and estimated_hours is ? and estimated_hours in (?, ?) and estimated_hours not in (?) and estimated_hours < ? and estimated_hours <= ? and estimated_hours >= ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours = ?1 and estimated_hours <> ?2 and estimated_hours is ?3 and estimated_hours in (?4, ?5) and estimated_hours not in (?6) and estimated_hours < ?7 and estimated_hours <= ?8 and estimated_hours >= ?9 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             2.5,
@@ -2230,7 +2230,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable is not ? and billable not in (?, ?) and billable is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable is not ?1 and billable not in (?2, ?3) and billable is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             1,
@@ -2258,7 +2258,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable is not ? and billable not in (?, ?) and billable is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable is not ?1 and billable not in (?2, ?3) and billable is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             1,
@@ -2293,7 +2293,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable = ? and billable <> ? and billable is ? and billable is not ? and billable in (?, ?) and billable not in (?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable = ?1 and billable <> ?2 and billable is ?3 and billable is not ?4 and billable in (?5, ?6) and billable not in (?7) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             1,
@@ -2331,7 +2331,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable = ? and billable <> ? and billable is ? and billable is not ? and billable in (?, ?) and billable not in (?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable = ?1 and billable <> ?2 and billable is ?3 and billable is not ?4 and billable in (?5, ?6) and billable not in (?7) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             1,
@@ -2382,7 +2382,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity is ? and activity is not ? and activity not in (?) and activity is null and activity is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity is ?1 and activity is not ?2 and activity not in (?3) and activity is null and activity is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "coding",
@@ -2412,7 +2412,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity is ? and activity is not ? and activity not in (?) and activity is null and activity is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity is ?1 and activity is not ?2 and activity not in (?3) and activity is null and activity is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "coding",
@@ -2447,7 +2447,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity = ? and activity <> ? and activity is ? and activity is not ? and activity in (?, ?) and activity not in (?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity = ?1 and activity <> ?2 and activity is ?3 and activity is not ?4 and activity in (?5, ?6) and activity not in (?7) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "coding",
@@ -2485,7 +2485,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity = ? and activity <> ? and activity is ? and activity is not ? and activity in (?, ?) and activity not in (?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity = ?1 and activity <> ?2 and activity is ?3 and activity is not ?4 and activity in (?5, ?6) and activity not in (?7) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "coding",
@@ -2602,7 +2602,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where title < ? and title > ? and title <= ? and title >= ? and title not in (?, ?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where title < ?1 and title > ?2 and title <= ?3 and title >= ?4 and title not in (?5, ?6) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "m",
@@ -2635,7 +2635,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where title < ? and title > ? and title <= ? and title >= ? and title not in (?, ?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where title < ?1 and title > ?2 and title <= ?3 and title >= ?4 and title not in (?5, ?6) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "m",
@@ -2673,7 +2673,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where title = ? and title <> ? and title < ? and title > ? and title <= ? and title >= ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where title = ?1 and title <> ?2 and title < ?3 and title > ?4 and title <= ?5 and title >= ?6 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "a",
@@ -2710,7 +2710,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where title = ? and title <> ? and title < ? and title > ? and title <= ? and title >= ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where title = ?1 and title <> ?2 and title < ?3 and title > ?4 and title <= ?5 and title >= ?6 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "a",
@@ -2766,7 +2766,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date = ? and work_date <> ? and work_date is ? and work_date is not ? and work_date in (?, ?) and work_date not in (?) and work_date <= ? and work_date > ? and work_date is null and work_date is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date = ?1 and work_date <> ?2 and work_date is ?3 and work_date is not ?4 and work_date in (?5, ?6) and work_date not in (?7) and work_date <= ?8 and work_date > ?9 and work_date is null and work_date is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "2024-01-01",
@@ -2808,7 +2808,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date = ? and work_date <> ? and work_date is ? and work_date is not ? and work_date in (?, ?) and work_date not in (?) and work_date <= ? and work_date > ? and work_date is null and work_date is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date = ?1 and work_date <> ?2 and work_date is ?3 and work_date is not ?4 and work_date in (?5, ?6) and work_date not in (?7) and work_date <= ?8 and work_date > ?9 and work_date is null and work_date is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "2024-01-01",
@@ -2852,7 +2852,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date = ? and work_date <> ? and work_date is ? and work_date is not ? and work_date in (?, ?) and work_date not in (?) and work_date <= ? and work_date > ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date = ?1 and work_date <> ?2 and work_date is ?3 and work_date is not ?4 and work_date in (?5, ?6) and work_date not in (?7) and work_date <= ?8 and work_date > ?9 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "2024-01-01",
@@ -2895,7 +2895,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date = ? and work_date <> ? and work_date is ? and work_date is not ? and work_date in (?, ?) and work_date not in (?) and work_date <= ? and work_date > ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date = ?1 and work_date <> ?2 and work_date is ?3 and work_date is not ?4 and work_date in (?5, ?6) and work_date not in (?7) and work_date <= ?8 and work_date > ?9 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "2024-01-01",
@@ -2954,7 +2954,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at = ? and started_at <> ? and started_at is ? and started_at is not ? and started_at in (?, ?) and started_at not in (?) and started_at <= ? and started_at > ? and started_at is null and started_at is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at = ?1 and started_at <> ?2 and started_at is ?3 and started_at is not ?4 and started_at in (?5, ?6) and started_at not in (?7) and started_at <= ?8 and started_at > ?9 and started_at is null and started_at is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "08:00:00",
@@ -2996,7 +2996,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at = ? and started_at <> ? and started_at is ? and started_at is not ? and started_at in (?, ?) and started_at not in (?) and started_at <= ? and started_at > ? and started_at is null and started_at is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at = ?1 and started_at <> ?2 and started_at is ?3 and started_at is not ?4 and started_at in (?5, ?6) and started_at not in (?7) and started_at <= ?8 and started_at > ?9 and started_at is null and started_at is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "08:00:00",
@@ -3040,7 +3040,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at = ? and started_at <> ? and started_at is ? and started_at is not ? and started_at in (?, ?) and started_at not in (?) and started_at <= ? and started_at > ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at = ?1 and started_at <> ?2 and started_at is ?3 and started_at is not ?4 and started_at in (?5, ?6) and started_at not in (?7) and started_at <= ?8 and started_at > ?9 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "08:00:00",
@@ -3083,7 +3083,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at = ? and started_at <> ? and started_at is ? and started_at is not ? and started_at in (?, ?) and started_at not in (?) and started_at <= ? and started_at > ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at = ?1 and started_at <> ?2 and started_at is ?3 and started_at is not ?4 and started_at in (?5, ?6) and started_at not in (?7) and started_at <= ?8 and started_at > ?9 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "08:00:00",
@@ -3143,7 +3143,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where created_at = ? and created_at <> ? and created_at is ? and created_at is not ? and created_at in (?, ?) and created_at not in (?) and created_at < ? and created_at <= ? and created_at > ? and created_at is null and created_at is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where created_at = ?1 and created_at <> ?2 and created_at is ?3 and created_at is not ?4 and created_at in (?5, ?6) and created_at not in (?7) and created_at < ?8 and created_at <= ?9 and created_at > ?10 and created_at is null and created_at is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "2020-01-01 00:00:00",
@@ -3187,7 +3187,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where created_at = ? and created_at <> ? and created_at is ? and created_at is not ? and created_at in (?, ?) and created_at not in (?) and created_at < ? and created_at <= ? and created_at > ? and created_at is null and created_at is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where created_at = ?1 and created_at <> ?2 and created_at is ?3 and created_at is not ?4 and created_at in (?5, ?6) and created_at not in (?7) and created_at < ?8 and created_at <= ?9 and created_at > ?10 and created_at is null and created_at is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "2020-01-01 00:00:00",
@@ -3233,7 +3233,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where created_at = ? and created_at <> ? and created_at is ? and created_at is not ? and created_at in (?, ?) and created_at not in (?) and created_at < ? and created_at <= ? and created_at > ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where created_at = ?1 and created_at <> ?2 and created_at is ?3 and created_at is not ?4 and created_at in (?5, ?6) and created_at not in (?7) and created_at < ?8 and created_at <= ?9 and created_at > ?10 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "2020-01-01 00:00:00",
@@ -3278,7 +3278,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where created_at = ? and created_at <> ? and created_at is ? and created_at is not ? and created_at in (?, ?) and created_at not in (?) and created_at < ? and created_at <= ? and created_at > ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where created_at = ?1 and created_at <> ?2 and created_at is ?3 and created_at is not ?4 and created_at in (?5, ?6) and created_at not in (?7) and created_at < ?8 and created_at <= ?9 and created_at > ?10 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "2020-01-01 00:00:00",
@@ -3337,7 +3337,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents = ? and cost_cents <> ? and cost_cents is ? and cost_cents is not ? and cost_cents in (?, ?) and cost_cents not in (?) and cost_cents <= ? and cost_cents >= ? and cost_cents is null and cost_cents is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents = ?1 and cost_cents <> ?2 and cost_cents is ?3 and cost_cents is not ?4 and cost_cents in (?5, ?6) and cost_cents not in (?7) and cost_cents <= ?8 and cost_cents >= ?9 and cost_cents is null and cost_cents is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             10,
@@ -3378,7 +3378,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents = ? and cost_cents <> ? and cost_cents is ? and cost_cents is not ? and cost_cents in (?, ?) and cost_cents not in (?) and cost_cents <= ? and cost_cents >= ? and cost_cents is null and cost_cents is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents = ?1 and cost_cents <> ?2 and cost_cents is ?3 and cost_cents is not ?4 and cost_cents in (?5, ?6) and cost_cents not in (?7) and cost_cents <= ?8 and cost_cents >= ?9 and cost_cents is null and cost_cents is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             10,
@@ -3421,7 +3421,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents = ? and cost_cents <> ? and cost_cents is ? and cost_cents is not ? and cost_cents in (?, ?) and cost_cents not in (?) and cost_cents <= ? and cost_cents >= ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents = ?1 and cost_cents <> ?2 and cost_cents is ?3 and cost_cents is not ?4 and cost_cents in (?5, ?6) and cost_cents not in (?7) and cost_cents <= ?8 and cost_cents >= ?9 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             10,
@@ -3463,7 +3463,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents = ? and cost_cents <> ? and cost_cents is ? and cost_cents is not ? and cost_cents in (?, ?) and cost_cents not in (?) and cost_cents <= ? and cost_cents >= ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents = ?1 and cost_cents <> ?2 and cost_cents is ?3 and cost_cents is not ?4 and cost_cents in (?5, ?6) and cost_cents not in (?7) and cost_cents <= ?8 and cost_cents >= ?9 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             10,
@@ -3521,7 +3521,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount = ? and billed_amount <> ? and billed_amount is ? and billed_amount is not ? and billed_amount in (?, ?) and billed_amount not in (?) and billed_amount <= ? and billed_amount >= ? and billed_amount is null and billed_amount is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount = ?1 and billed_amount <> ?2 and billed_amount is ?3 and billed_amount is not ?4 and billed_amount in (?5, ?6) and billed_amount not in (?7) and billed_amount <= ?8 and billed_amount >= ?9 and billed_amount is null and billed_amount is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             10.5,
@@ -3562,7 +3562,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount = ? and billed_amount <> ? and billed_amount is ? and billed_amount is not ? and billed_amount in (?, ?) and billed_amount not in (?) and billed_amount <= ? and billed_amount >= ? and billed_amount is null and billed_amount is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount = ?1 and billed_amount <> ?2 and billed_amount is ?3 and billed_amount is not ?4 and billed_amount in (?5, ?6) and billed_amount not in (?7) and billed_amount <= ?8 and billed_amount >= ?9 and billed_amount is null and billed_amount is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             10.5,
@@ -3605,7 +3605,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount = ? and billed_amount <> ? and billed_amount is ? and billed_amount is not ? and billed_amount in (?, ?) and billed_amount not in (?) and billed_amount <= ? and billed_amount >= ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount = ?1 and billed_amount <> ?2 and billed_amount is ?3 and billed_amount is not ?4 and billed_amount in (?5, ?6) and billed_amount not in (?7) and billed_amount <= ?8 and billed_amount >= ?9 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             10.5,
@@ -3647,7 +3647,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount = ? and billed_amount <> ? and billed_amount is ? and billed_amount is not ? and billed_amount in (?, ?) and billed_amount not in (?) and billed_amount <= ? and billed_amount >= ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount = ?1 and billed_amount <> ?2 and billed_amount is ?3 and billed_amount is not ?4 and billed_amount in (?5, ?6) and billed_amount not in (?7) and billed_amount <= ?8 and billed_amount >= ?9 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             10.5,
@@ -3704,7 +3704,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where version <> ? and version is ? and version is not ? and version in (?, ?) and version not in (?) and version <= ? and version >= ? and version is null and version is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where version <> ?1 and version is ?2 and version is not ?3 and version in (?4, ?5) and version not in (?6) and version <= ?7 and version >= ?8 and version is null and version is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "2.0.0",
@@ -3743,7 +3743,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where version <> ? and version is ? and version is not ? and version in (?, ?) and version not in (?) and version <= ? and version >= ? and version is null and version is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where version <> ?1 and version is ?2 and version is not ?3 and version in (?4, ?5) and version not in (?6) and version <= ?7 and version >= ?8 and version is null and version is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "2.0.0",
@@ -3785,7 +3785,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where version = ? and version <> ? and version is ? and version is not ? and version not in (?) and version < ? and version > ? and version >= ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where version = ?1 and version <> ?2 and version is ?3 and version is not ?4 and version not in (?5) and version < ?6 and version > ?7 and version >= ?8 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "1.2.0",
@@ -3826,7 +3826,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where version = ? and version <> ? and version is ? and version is not ? and version not in (?) and version < ? and version > ? and version >= ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where version = ?1 and version <> ?2 and version is ?3 and version is not ?4 and version not in (?5) and version < ?6 and version > ?7 and version >= ?8 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "1.2.0",
@@ -3879,7 +3879,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where channel = ? and channel is ? and channel is not ? and channel not in (?) and channel is null and channel is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where channel = ?1 and channel is ?2 and channel is not ?3 and channel not in (?4) and channel is null and channel is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "stable",
@@ -3911,7 +3911,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where channel = ? and channel is ? and channel is not ? and channel not in (?) and channel is null and channel is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where channel = ?1 and channel is ?2 and channel is not ?3 and channel not in (?4) and channel is null and channel is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "stable",
@@ -3942,7 +3942,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where channel = ? and channel is ? and channel is not ? and channel not in (?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where channel = ?1 and channel is ?2 and channel is not ?3 and channel not in (?4) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "stable",
@@ -3972,7 +3972,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where channel = ? and channel is ? and channel is not ? and channel not in (?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where channel = ?1 and channel is ?2 and channel is not ?3 and channel not in (?4) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "stable",
@@ -4023,7 +4023,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on = ? and released_on <> ? and released_on is ? and released_on is not ? and released_on in (?, ?) and released_on not in (?) and released_on <= ? and released_on > ? and released_on is null and released_on is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on = ?1 and released_on <> ?2 and released_on is ?3 and released_on is not ?4 and released_on in (?5, ?6) and released_on not in (?7) and released_on <= ?8 and released_on > ?9 and released_on is null and released_on is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "2024-01-01",
@@ -4065,7 +4065,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on = ? and released_on <> ? and released_on is ? and released_on is not ? and released_on in (?, ?) and released_on not in (?) and released_on <= ? and released_on > ? and released_on is null and released_on is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on = ?1 and released_on <> ?2 and released_on is ?3 and released_on is not ?4 and released_on in (?5, ?6) and released_on not in (?7) and released_on <= ?8 and released_on > ?9 and released_on is null and released_on is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "2024-01-01",
@@ -4109,7 +4109,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on = ? and released_on <> ? and released_on is ? and released_on is not ? and released_on in (?, ?) and released_on not in (?) and released_on <= ? and released_on > ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on = ?1 and released_on <> ?2 and released_on is ?3 and released_on is not ?4 and released_on in (?5, ?6) and released_on not in (?7) and released_on <= ?8 and released_on > ?9 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "2024-01-01",
@@ -4152,7 +4152,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on = ? and released_on <> ? and released_on is ? and released_on is not ? and released_on in (?, ?) and released_on not in (?) and released_on <= ? and released_on > ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on = ?1 and released_on <> ?2 and released_on is ?3 and released_on is not ?4 and released_on in (?5, ?6) and released_on not in (?7) and released_on <= ?8 and released_on > ?9 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "2024-01-01",
@@ -4211,7 +4211,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time = ? and cutoff_time <> ? and cutoff_time is ? and cutoff_time is not ? and cutoff_time in (?, ?) and cutoff_time not in (?) and cutoff_time <= ? and cutoff_time > ? and cutoff_time is null and cutoff_time is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time = ?1 and cutoff_time <> ?2 and cutoff_time is ?3 and cutoff_time is not ?4 and cutoff_time in (?5, ?6) and cutoff_time not in (?7) and cutoff_time <= ?8 and cutoff_time > ?9 and cutoff_time is null and cutoff_time is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "08:00:00",
@@ -4253,7 +4253,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time = ? and cutoff_time <> ? and cutoff_time is ? and cutoff_time is not ? and cutoff_time in (?, ?) and cutoff_time not in (?) and cutoff_time <= ? and cutoff_time > ? and cutoff_time is null and cutoff_time is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time = ?1 and cutoff_time <> ?2 and cutoff_time is ?3 and cutoff_time is not ?4 and cutoff_time in (?5, ?6) and cutoff_time not in (?7) and cutoff_time <= ?8 and cutoff_time > ?9 and cutoff_time is null and cutoff_time is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "08:00:00",
@@ -4297,7 +4297,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time = ? and cutoff_time <> ? and cutoff_time is ? and cutoff_time is not ? and cutoff_time in (?, ?) and cutoff_time not in (?) and cutoff_time <= ? and cutoff_time > ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time = ?1 and cutoff_time <> ?2 and cutoff_time is ?3 and cutoff_time is not ?4 and cutoff_time in (?5, ?6) and cutoff_time not in (?7) and cutoff_time <= ?8 and cutoff_time > ?9 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "08:00:00",
@@ -4340,7 +4340,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time = ? and cutoff_time <> ? and cutoff_time is ? and cutoff_time is not ? and cutoff_time in (?, ?) and cutoff_time not in (?) and cutoff_time <= ? and cutoff_time > ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time = ?1 and cutoff_time <> ?2 and cutoff_time is ?3 and cutoff_time is not ?4 and cutoff_time in (?5, ?6) and cutoff_time not in (?7) and cutoff_time <= ?8 and cutoff_time > ?9 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "08:00:00",
@@ -4399,7 +4399,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at = ? and signed_off_at <> ? and signed_off_at is ? and signed_off_at is not ? and signed_off_at in (?, ?) and signed_off_at not in (?) and signed_off_at <= ? and signed_off_at > ? and signed_off_at is null and signed_off_at is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at = ?1 and signed_off_at <> ?2 and signed_off_at is ?3 and signed_off_at is not ?4 and signed_off_at in (?5, ?6) and signed_off_at not in (?7) and signed_off_at <= ?8 and signed_off_at > ?9 and signed_off_at is null and signed_off_at is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "2024-01-01 00:00:00",
@@ -4441,7 +4441,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at = ? and signed_off_at <> ? and signed_off_at is ? and signed_off_at is not ? and signed_off_at in (?, ?) and signed_off_at not in (?) and signed_off_at <= ? and signed_off_at > ? and signed_off_at is null and signed_off_at is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at = ?1 and signed_off_at <> ?2 and signed_off_at is ?3 and signed_off_at is not ?4 and signed_off_at in (?5, ?6) and signed_off_at not in (?7) and signed_off_at <= ?8 and signed_off_at > ?9 and signed_off_at is null and signed_off_at is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "2024-01-01 00:00:00",
@@ -4485,7 +4485,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at = ? and signed_off_at <> ? and signed_off_at is ? and signed_off_at is not ? and signed_off_at in (?, ?) and signed_off_at not in (?) and signed_off_at <= ? and signed_off_at > ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at = ?1 and signed_off_at <> ?2 and signed_off_at is ?3 and signed_off_at is not ?4 and signed_off_at in (?5, ?6) and signed_off_at not in (?7) and signed_off_at <= ?8 and signed_off_at > ?9 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "2024-01-01 00:00:00",
@@ -4528,7 +4528,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at = ? and signed_off_at <> ? and signed_off_at is ? and signed_off_at is not ? and signed_off_at in (?, ?) and signed_off_at not in (?) and signed_off_at <= ? and signed_off_at > ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at = ?1 and signed_off_at <> ?2 and signed_off_at is ?3 and signed_off_at is not ?4 and signed_off_at in (?5, ?6) and signed_off_at not in (?7) and signed_off_at <= ?8 and signed_off_at > ?9 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "2024-01-01 00:00:00",
@@ -4592,7 +4592,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref = ? and external_ref <> ? and external_ref is ? and external_ref is not ? and external_ref in (?, ?) and external_ref not in (?) and external_ref < ? and external_ref <= ? and external_ref > ? and external_ref >= ? and external_ref is null and external_ref is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref = ?1 and external_ref <> ?2 and external_ref is ?3 and external_ref is not ?4 and external_ref in (?5, ?6) and external_ref not in (?7) and external_ref < ?8 and external_ref <= ?9 and external_ref > ?10 and external_ref >= ?11 and external_ref is null and external_ref is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556661",
@@ -4638,7 +4638,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref = ? and external_ref <> ? and external_ref is ? and external_ref is not ? and external_ref in (?, ?) and external_ref not in (?) and external_ref < ? and external_ref <= ? and external_ref > ? and external_ref >= ? and external_ref is null and external_ref is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref = ?1 and external_ref <> ?2 and external_ref is ?3 and external_ref is not ?4 and external_ref in (?5, ?6) and external_ref not in (?7) and external_ref < ?8 and external_ref <= ?9 and external_ref > ?10 and external_ref >= ?11 and external_ref is null and external_ref is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556661",
@@ -4696,7 +4696,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) = lower(?) and lower(external_ref) <> lower(?) and external_ref like ? escape '\\' and external_ref not like ? escape '\\' and lower(external_ref) like lower(?) escape '\\' and lower(external_ref) not like lower(?) escape '\\' and external_ref like (? || '%') escape '\\' and external_ref not like (? || '%') escape '\\' and external_ref like ('%' || ?) escape '\\' and external_ref not like ('%' || ?) escape '\\' and external_ref like ('%' || ? || '%') escape '\\' and external_ref not like ('%' || ? || '%') escape '\\' and lower(external_ref) like lower(? || '%') escape '\\' and lower(external_ref) not like lower(? || '%') escape '\\' and lower(external_ref) like lower('%' || ?) escape '\\' and lower(external_ref) not like lower('%' || ?) escape '\\' and lower(external_ref) like lower('%' || ? || '%') escape '\\' and lower(external_ref) not like lower('%' || ? || '%') escape '\\' order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) = lower(?1) and lower(external_ref) <> lower(?2) and external_ref like ?3 escape '\\' and external_ref not like ?4 escape '\\' and lower(external_ref) like lower(?5) escape '\\' and lower(external_ref) not like lower(?6) escape '\\' and external_ref like (?7 || '%') escape '\\' and external_ref not like (?8 || '%') escape '\\' and external_ref like ('%' || ?9) escape '\\' and external_ref not like ('%' || ?10) escape '\\' and external_ref like ('%' || ?11 || '%') escape '\\' and external_ref not like ('%' || ?12 || '%') escape '\\' and lower(external_ref) like lower(?13 || '%') escape '\\' and lower(external_ref) not like lower(?14 || '%') escape '\\' and lower(external_ref) like lower('%' || ?15) escape '\\' and lower(external_ref) not like lower('%' || ?16) escape '\\' and lower(external_ref) like lower('%' || ?17 || '%') escape '\\' and lower(external_ref) not like lower('%' || ?18 || '%') escape '\\' order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "0A8F",
@@ -4760,7 +4760,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) = lower(?) and lower(external_ref) <> lower(?) and external_ref like ? escape '\\' and external_ref not like ? escape '\\' and lower(external_ref) like lower(?) escape '\\' and lower(external_ref) not like lower(?) escape '\\' and external_ref like (? || '%') escape '\\' and external_ref not like (? || '%') escape '\\' and external_ref like ('%' || ?) escape '\\' and external_ref not like ('%' || ?) escape '\\' and external_ref like ('%' || ? || '%') escape '\\' and external_ref not like ('%' || ? || '%') escape '\\' and lower(external_ref) like lower(? || '%') escape '\\' and lower(external_ref) not like lower(? || '%') escape '\\' and lower(external_ref) like lower('%' || ?) escape '\\' and lower(external_ref) not like lower('%' || ?) escape '\\' and lower(external_ref) like lower('%' || ? || '%') escape '\\' and lower(external_ref) not like lower('%' || ? || '%') escape '\\' order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) = lower(?1) and lower(external_ref) <> lower(?2) and external_ref like ?3 escape '\\' and external_ref not like ?4 escape '\\' and lower(external_ref) like lower(?5) escape '\\' and lower(external_ref) not like lower(?6) escape '\\' and external_ref like (?7 || '%') escape '\\' and external_ref not like (?8 || '%') escape '\\' and external_ref like ('%' || ?9) escape '\\' and external_ref not like ('%' || ?10) escape '\\' and external_ref like ('%' || ?11 || '%') escape '\\' and external_ref not like ('%' || ?12 || '%') escape '\\' and lower(external_ref) like lower(?13 || '%') escape '\\' and lower(external_ref) not like lower(?14 || '%') escape '\\' and lower(external_ref) like lower('%' || ?15) escape '\\' and lower(external_ref) not like lower('%' || ?16) escape '\\' and lower(external_ref) like lower('%' || ?17 || '%') escape '\\' and lower(external_ref) not like lower('%' || ?18 || '%') escape '\\' order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "0A8F",
@@ -4820,7 +4820,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref = ? and external_ref <> ? and external_ref is ? and external_ref is not ? and external_ref in (?, ?) and external_ref not in (?) and external_ref < ? and external_ref <= ? and external_ref > ? and external_ref >= ? and external_ref like ? escape '\\' and external_ref like ('%' || ? || '%') escape '\\' and external_ref like (? || '%') escape '\\' and lower(external_ref) = lower(?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref = ?1 and external_ref <> ?2 and external_ref is ?3 and external_ref is not ?4 and external_ref in (?5, ?6) and external_ref not in (?7) and external_ref < ?8 and external_ref <= ?9 and external_ref > ?10 and external_ref >= ?11 and external_ref like ?12 escape '\\' and external_ref like ('%' || ?13 || '%') escape '\\' and external_ref like (?14 || '%') escape '\\' and lower(external_ref) = lower(?15) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556661",
@@ -4876,7 +4876,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref = ? and external_ref <> ? and external_ref is ? and external_ref is not ? and external_ref in (?, ?) and external_ref not in (?) and external_ref < ? and external_ref <= ? and external_ref > ? and external_ref >= ? and external_ref like ? escape '\\' and external_ref like ('%' || ? || '%') escape '\\' and external_ref like (? || '%') escape '\\' and lower(external_ref) = lower(?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref = ?1 and external_ref <> ?2 and external_ref is ?3 and external_ref is not ?4 and external_ref in (?5, ?6) and external_ref not in (?7) and external_ref < ?8 and external_ref <= ?9 and external_ref > ?10 and external_ref >= ?11 and external_ref like ?12 escape '\\' and external_ref like ('%' || ?13 || '%') escape '\\' and external_ref like (?14 || '%') escape '\\' and lower(external_ref) = lower(?15) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556661",
@@ -4942,7 +4942,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key <> ? and signing_key is ? and signing_key is not ? and signing_key in (?, ?) and signing_key not in (?) and signing_key < ? and signing_key > ? and signing_key <= ? and signing_key >= ? and signing_key is null and signing_key is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key <> ?1 and signing_key is ?2 and signing_key is not ?3 and signing_key in (?4, ?5) and signing_key not in (?6) and signing_key < ?7 and signing_key > ?8 and signing_key <= ?9 and signing_key >= ?10 and signing_key is null and signing_key is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556662",
@@ -4986,7 +4986,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key <> ? and signing_key is ? and signing_key is not ? and signing_key in (?, ?) and signing_key not in (?) and signing_key < ? and signing_key > ? and signing_key <= ? and signing_key >= ? and signing_key is null and signing_key is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key <> ?1 and signing_key is ?2 and signing_key is not ?3 and signing_key in (?4, ?5) and signing_key not in (?6) and signing_key < ?7 and signing_key > ?8 and signing_key <= ?9 and signing_key >= ?10 and signing_key is null and signing_key is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556662",
@@ -5038,7 +5038,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key like ? escape '\\' and signing_key not like ? escape '\\' and lower(signing_key) like lower(?) escape '\\' and lower(signing_key) not like lower(?) escape '\\' and signing_key not like (? || '%') escape '\\' and signing_key like ('%' || ?) escape '\\' and signing_key not like ('%' || ?) escape '\\' and signing_key not like ('%' || ? || '%') escape '\\' and lower(signing_key) like lower(? || '%') escape '\\' and lower(signing_key) not like lower(? || '%') escape '\\' and lower(signing_key) like lower('%' || ?) escape '\\' and lower(signing_key) not like lower('%' || ?) escape '\\' and lower(signing_key) like lower('%' || ? || '%') escape '\\' and lower(signing_key) not like lower('%' || ? || '%') escape '\\' order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key like ?1 escape '\\' and signing_key not like ?2 escape '\\' and lower(signing_key) like lower(?3) escape '\\' and lower(signing_key) not like lower(?4) escape '\\' and signing_key not like (?5 || '%') escape '\\' and signing_key like ('%' || ?6) escape '\\' and signing_key not like ('%' || ?7) escape '\\' and signing_key not like ('%' || ?8 || '%') escape '\\' and lower(signing_key) like lower(?9 || '%') escape '\\' and lower(signing_key) not like lower(?10 || '%') escape '\\' and lower(signing_key) like lower('%' || ?11) escape '\\' and lower(signing_key) not like lower('%' || ?12) escape '\\' and lower(signing_key) like lower('%' || ?13 || '%') escape '\\' and lower(signing_key) not like lower('%' || ?14 || '%') escape '\\' order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "%1111%",
@@ -5093,7 +5093,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key like ? escape '\\' and signing_key not like ? escape '\\' and lower(signing_key) like lower(?) escape '\\' and lower(signing_key) not like lower(?) escape '\\' and signing_key not like (? || '%') escape '\\' and signing_key like ('%' || ?) escape '\\' and signing_key not like ('%' || ?) escape '\\' and signing_key not like ('%' || ? || '%') escape '\\' and lower(signing_key) like lower(? || '%') escape '\\' and lower(signing_key) not like lower(? || '%') escape '\\' and lower(signing_key) like lower('%' || ?) escape '\\' and lower(signing_key) not like lower('%' || ?) escape '\\' and lower(signing_key) like lower('%' || ? || '%') escape '\\' and lower(signing_key) not like lower('%' || ? || '%') escape '\\' order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key like ?1 escape '\\' and signing_key not like ?2 escape '\\' and lower(signing_key) like lower(?3) escape '\\' and lower(signing_key) not like lower(?4) escape '\\' and signing_key not like (?5 || '%') escape '\\' and signing_key like ('%' || ?6) escape '\\' and signing_key not like ('%' || ?7) escape '\\' and signing_key not like ('%' || ?8 || '%') escape '\\' and lower(signing_key) like lower(?9 || '%') escape '\\' and lower(signing_key) not like lower(?10 || '%') escape '\\' and lower(signing_key) like lower('%' || ?11) escape '\\' and lower(signing_key) not like lower('%' || ?12) escape '\\' and lower(signing_key) like lower('%' || ?13 || '%') escape '\\' and lower(signing_key) not like lower('%' || ?14 || '%') escape '\\' order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "%1111%",
@@ -5149,7 +5149,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key = ? and signing_key <> ? and signing_key is ? and signing_key is not ? and signing_key in (?, ?) and signing_key not in (?) and signing_key < ? and signing_key <= ? and signing_key > ? and signing_key >= ? and signing_key like ? escape '\\' and lower(signing_key) like lower('%' || ? || '%') escape '\\' and signing_key not like (? || '%') escape '\\' and lower(signing_key) <> lower(?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key = ?1 and signing_key <> ?2 and signing_key is ?3 and signing_key is not ?4 and signing_key in (?5, ?6) and signing_key not in (?7) and signing_key < ?8 and signing_key <= ?9 and signing_key > ?10 and signing_key >= ?11 and signing_key like ?12 escape '\\' and lower(signing_key) like lower('%' || ?13 || '%') escape '\\' and signing_key not like (?14 || '%') escape '\\' and lower(signing_key) <> lower(?15) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556661",
@@ -5205,7 +5205,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key = ? and signing_key <> ? and signing_key is ? and signing_key is not ? and signing_key in (?, ?) and signing_key not in (?) and signing_key < ? and signing_key <= ? and signing_key > ? and signing_key >= ? and signing_key like ? escape '\\' and lower(signing_key) like lower('%' || ? || '%') escape '\\' and signing_key not like (? || '%') escape '\\' and lower(signing_key) <> lower(?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key = ?1 and signing_key <> ?2 and signing_key is ?3 and signing_key is not ?4 and signing_key in (?5, ?6) and signing_key not in (?7) and signing_key < ?8 and signing_key <= ?9 and signing_key > ?10 and signing_key >= ?11 and signing_key like ?12 escape '\\' and lower(signing_key) like lower('%' || ?13 || '%') escape '\\' and signing_key not like (?14 || '%') escape '\\' and lower(signing_key) <> lower(?15) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556661",
@@ -5282,7 +5282,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms > ? and duration_ms <= ? and cost_cents < ? and cost_cents > ? and billed_amount < ? and billed_amount > ? and work_date < ? and work_date >= ? and started_at < ? and started_at >= ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms > ?1 and duration_ms <= ?2 and cost_cents < ?3 and cost_cents > ?4 and billed_amount < ?5 and billed_amount > ?6 and work_date < ?7 and work_date >= ?8 and started_at < ?9 and started_at >= ?10 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             10n,
@@ -5334,7 +5334,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours > ? and estimated_hours is not ? and created_at >= ? and title is ? and title is not ? and title in (?, ?) and title not in (?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours > ?1 and estimated_hours is not ?2 and created_at >= ?3 and title is ?4 and title is not ?5 and title in (?6, ?7) and title not in (?8) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             2.5,
@@ -5388,7 +5388,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on < ? and released_on >= ? and cutoff_time < ? and cutoff_time >= ? and signed_off_at < ? and signed_off_at >= ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on < ?1 and released_on >= ?2 and cutoff_time < ?3 and cutoff_time >= ?4 and signed_off_at < ?5 and signed_off_at >= ?6 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "2024-12-31",
@@ -5432,7 +5432,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where priority is not ? and status = ? and status <> ? and status in (?, ?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where priority is not ?1 and status = ?2 and status <> ?3 and status in (?4, ?5) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             4,

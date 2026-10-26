@@ -28,7 +28,7 @@ describe(ctx.label, () => {
                 .where(tProjectRelease.id.equals(1))
                 .executeUpdate())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_release set version = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_release set version = ?1 where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "1.2.1",
@@ -52,7 +52,7 @@ describe(ctx.label, () => {
                 .where(tReleaseDraft.id.equals(1))
                 .executeUpdate())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update release_draft set min_version = min_version where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update release_draft set min_version = min_version where id = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -76,7 +76,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tProjectRelease.channel)
                 .executeUpdateOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_release set channel = ? where id = ? returning channel as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_release set channel = ?1 where id = ?2 returning channel as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "beta",
@@ -103,7 +103,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssueWorklog.activityTagged)
                 .executeUpdateOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set minutes = ? where id = ? returning upper(activity) as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set minutes = ?1 where id = ?2 returning upper(activity) as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 95,
@@ -125,7 +125,7 @@ describe(ctx.label, () => {
                 .where(tCountry.code.equals('US'))
                 .executeUpdate())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update country set name = ? where code = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update country set name = ?1 where code = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "United States of America",
@@ -146,7 +146,7 @@ describe(ctx.label, () => {
                 .where(tCountry.code.equals('JP'))
                 .executeDelete())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from country where code = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from country where code = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "JP",
@@ -167,7 +167,7 @@ describe(ctx.label, () => {
                 .where(tProjectReview.id.equals(1))
                 .executeUpdate())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_review set score = ?, reviewer_code = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_review set score = ?1, reviewer_code = ?2 where id = ?3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 92,
@@ -192,7 +192,7 @@ describe(ctx.label, () => {
                 .where(tIssueWorklog.id.equals(2))
                 .executeUpdate())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set invoiced = case when ? then 1 else 0 end, cost_cents = ?, billed_amount = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set invoiced = case when ?1 then 1 else 0 end, cost_cents = ?2, billed_amount = ?3 where id = ?4"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -221,7 +221,7 @@ describe(ctx.label, () => {
                 .set({ shiftedStamp: stamp, shiftedCount: count })
                 .where(tReleaseDraft.id.equals(1))
                 .executeUpdate())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update release_draft set shifted_stamp = ?, shifted_count = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update release_draft set shifted_stamp = ?1, shifted_count = ?2 where id = ?3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "2025-01-15 11:00:00",
@@ -236,7 +236,7 @@ describe(ctx.label, () => {
                 .where(tReleaseDraft.id.equals(1))
                 .select({ stamp: tReleaseDraft.shiftedStamp, count: tReleaseDraft.shiftedCount })
                 .executeSelectOne())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select shifted_stamp as stamp, shifted_count as count from release_draft where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select shifted_stamp as stamp, shifted_count as count from release_draft where id = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -262,7 +262,7 @@ describe(ctx.label, () => {
                 .set({ scaledCost: 1, shiftedAmount: 5 })
                 .where(tReleaseDraft.id.equals(1))
                 .executeUpdate())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update release_draft set scaled_cost = ?, shifted_amount = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update release_draft set scaled_cost = ?1, shifted_amount = ?2 where id = ?3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 10,
@@ -277,7 +277,7 @@ describe(ctx.label, () => {
                 .where(tReleaseDraft.id.equals(1))
                 .select({ cost: tReleaseDraft.scaledCost, amount: tReleaseDraft.shiftedAmount })
                 .executeSelectOne())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select scaled_cost as cost, shifted_amount as amount from release_draft where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select scaled_cost as cost, shifted_amount as amount from release_draft where id = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

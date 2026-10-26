@@ -44,7 +44,7 @@ describe(ctx.label, () => {
                 .select({ id: tIssue.id, bumped: tIssue.priority.add(tIssue.estimatedHours) })
                 .executeSelectOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority + estimated_hours as bumped from issue where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority + estimated_hours as bumped from issue where id = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -74,7 +74,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id, p: tIssue.priority })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority as "p" from issue where id = ? and priority < ? and priority <> ? and priority between ? and ? and priority in (?, ?)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority as "p" from issue where id = ?1 and priority < ?2 and priority <> ?3 and priority between ?4 and ?5 and priority in (?6, ?7)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -111,7 +111,7 @@ describe(ctx.label, () => {
                 .select({ id: tIssue.id, net: tIssue.priority.subtract(tIssue.estimatedHours) })
                 .executeSelectOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority - estimated_hours as net from issue where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority - estimated_hours as net from issue where id = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -140,7 +140,7 @@ describe(ctx.label, () => {
                 .select({ id: tIssue.id, scaled: tIssue.priority.multiply(tIssue.estimatedHours) })
                 .executeSelectOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority * estimated_hours as scaled from issue where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority * estimated_hours as scaled from issue where id = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -205,7 +205,7 @@ describe(ctx.label, () => {
                 .select({ id: tIssue.id, hi: tIssue.priority.maxValue(tIssue.estimatedHours) })
                 .executeSelectOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, min(priority, estimated_hours) as hi from issue where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, min(priority, estimated_hours) as hi from issue where id = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -235,7 +235,7 @@ describe(ctx.label, () => {
                 .select({ id: tIssue.id, lo: tIssue.priority.minValue(tIssue.estimatedHours) })
                 .executeSelectOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, max(priority, estimated_hours) as lo from issue where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, max(priority, estimated_hours) as lo from issue where id = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

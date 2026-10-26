@@ -27,7 +27,7 @@ describe(ctx.label, () => {
                 })
                 .executeDeleteOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = $1 returning id as id, title as title, priority as priority"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ?1 returning id as id, title as title, priority as priority"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -64,7 +64,7 @@ describe(ctx.label, () => {
                 })
                 .executeDeleteMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where project_id = $1 returning id as id, title as title"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where project_id = ?1 returning id as id, title as title"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -93,7 +93,7 @@ describe(ctx.label, () => {
                 .projectingOptionalValuesAsNullable()
                 .executeDeleteOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = $1 returning id as id, body as body"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ?1 returning id as id, body as body"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 3,
@@ -118,7 +118,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.priority.add(100))
                 .executeDeleteOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = $1 returning priority + $2 as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ?1 returning priority + ?2 as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 3,
@@ -148,7 +148,7 @@ describe(ctx.label, () => {
                 })
                 .executeDeleteOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = $1 returning id as id, title || $2 as tag"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ?1 returning id as id, title || ?2 as tag"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 3,
@@ -181,7 +181,7 @@ describe(ctx.label, () => {
                 })
                 .executeDeleteOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = $1 returning id as id, title as "meta.title", priority as "meta.priority""`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ?1 returning id as id, title as "meta.title", priority as "meta.priority""`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 3,
@@ -208,7 +208,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tProjectRelease.channel)
                 .executeDeleteOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_release where id = $1 returning channel as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_release where id = ?1 returning channel as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -230,7 +230,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tReleaseDraft.stage)
                 .executeDeleteOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from release_draft where id = $1 returning stage as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from release_draft where id = ?1 returning stage as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -254,7 +254,7 @@ describe(ctx.label, () => {
                 .returning({ id: tReleaseDraft.id, stage: tReleaseDraft.stage })
                 .executeDeleteOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from release_draft where id = $1 returning id as id, stage as stage"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from release_draft where id = ?1 returning id as id, stage as stage"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -278,7 +278,7 @@ describe(ctx.label, () => {
                 .projectingOptionalValuesAsNullable()
                 .executeDeleteOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from release_draft where id = $1 returning id as id, stage as stage"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from release_draft where id = ?1 returning id as id, stage as stage"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,
@@ -307,7 +307,7 @@ describe(ctx.label, () => {
                 })
                 .executeDeleteOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from release_draft where id = $1 returning id as id, title as "meta.sibling", stage as "meta.gate""`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from release_draft where id = ?1 returning id as id, title as "meta.sibling", stage as "meta.gate""`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,
@@ -335,7 +335,7 @@ describe(ctx.label, () => {
                 .projectingOptionalValuesAsNullable()
                 .executeDeleteOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from release_draft where id = $1 returning id as id, title as "meta.sibling", stage as "meta.gate""`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from release_draft where id = ?1 returning id as id, title as "meta.sibling", stage as "meta.gate""`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,
@@ -363,7 +363,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.body)
                 .executeDeleteMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where project_id = $1 returning body as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where project_id = ?1 returning body as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -389,7 +389,7 @@ describe(ctx.label, () => {
                 })
                 .executeDeleteOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = $1 returning id as id, body as "meta.body""`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ?1 returning id as id, body as "meta.body""`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,
@@ -430,7 +430,7 @@ describe(ctx.label, () => {
                 .where(tProjectReview.id.equals(1))
                 .returning({ reviewDate: tProjectReview.reviewDate, reviewTime: tProjectReview.reviewTime })
                 .executeDeleteOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_review where id = $1 returning review_date as reviewDate, review_time as reviewTime"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_review where id = ?1 returning review_date as reviewDate, review_time as reviewTime"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -463,7 +463,7 @@ describe(ctx.label, () => {
                     publishedAt: tProjectRelease.publishedAt,
                 })
                 .executeDeleteOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_release where id = $1 returning released_on as releasedOn, cutoff_time as cutoffTime, published_at as publishedAt"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_release where id = ?1 returning released_on as releasedOn, cutoff_time as cutoffTime, published_at as publishedAt"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -495,7 +495,7 @@ describe(ctx.label, () => {
                 .where(tProject.id.equals(4))
                 .returning({ archivedAt: tProject.archivedAt })
                 .executeDeleteOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project where id = $1 returning archived_at as archivedAt"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project where id = ?1 returning archived_at as archivedAt"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 4,
@@ -515,7 +515,7 @@ describe(ctx.label, () => {
                 .where(tProjectReview.id.equals(1))
                 .returningOneColumn(tProjectReview.reviewTime)
                 .executeDeleteOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_review where id = $1 returning review_time as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_review where id = ?1 returning review_time as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

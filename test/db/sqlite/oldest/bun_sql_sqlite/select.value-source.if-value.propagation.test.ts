@@ -67,7 +67,7 @@ describe(ctx.label, () => {
                   .and(tProject.name.equalsIfValue(filterName))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = $1 where id = $2 and name = $3"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1 where id = ?2 and name = ?3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Marketing site v9",
@@ -100,7 +100,7 @@ describe(ctx.label, () => {
                   .and(tIssue.priority.inIfValue(priorities))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = $1 where project_id = $2 and priority in ($3, $4, $5)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?1 where project_id = ?2 and priority in (?3, ?4, ?5)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "archived",
@@ -133,7 +133,7 @@ describe(ctx.label, () => {
                   .and(tIssue.priority.between(1, 3))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = $1 where project_id = $2 and priority between $3 and $4"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?1 where project_id = ?2 and priority between ?3 and ?4"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "archived",
@@ -167,7 +167,7 @@ describe(ctx.label, () => {
                 .where(tProject.id.equals(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = name || $1 where id = $2"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = name || ?1 where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 " (was)",
@@ -198,7 +198,7 @@ describe(ctx.label, () => {
                 .where(tProject.id.equals(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = replace(name, $1, $2) where id = $3"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = replace(name, ?1, ?2) where id = ?3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "site",

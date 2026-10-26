@@ -30,7 +30,7 @@ describe(ctx.label, () => {
                 score: tProjectReview.score,
             })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, reviewer_code as code, score as score from project_review where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, reviewer_code as code, score as score from project_review where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -50,7 +50,7 @@ describe(ctx.label, () => {
             .where(tProjectReview.score.equals(85))
             .select({ id: tProjectReview.id })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_review where score = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_review where score = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             850,

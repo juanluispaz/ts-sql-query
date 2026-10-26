@@ -119,7 +119,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, name) as (values (?, ?), (?, ?)) select pp.id as id, pp.name as name from projectPatch as pp order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, name) as (values (?1, ?2), (?3, ?4)) select pp.id as id, pp.name as name from projectPatch as pp order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -156,7 +156,7 @@ describe(ctx.label, () => {
             .orderBy('pid')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, name) as (values (?, ?)) select project.id as pid, pp.name as newName from project left join projectPatch as pp on pp.id = project.id where project.id <= ? order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, name) as (values (?1, ?2)) select project.id as pid, pp.name as newName from project left join projectPatch as pp on pp.id = project.id where project.id <= ?3 order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -189,7 +189,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatchOpt(id, newName) as (values (?, ?), (?, ?)) select id as id, newName as newName from projectPatchOpt order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatchOpt(id, newName) as (values (?1, ?2), (?3, ?4)) select id as id, newName as newName from projectPatchOpt order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -231,7 +231,7 @@ describe(ctx.label, () => {
             .orderBy('issueId')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (values (?, ?), (?, ?)) select issueId as issueId, amount as amount from issueBilling order by issueId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (values (?1, ?2), (?3, ?4)) select issueId as issueId, amount as amount from issueBilling order by issueId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             101,
@@ -269,7 +269,7 @@ describe(ctx.label, () => {
             .orderBy('issueId')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (values (?, ?), (?, ?)) select issueId as issueId, 'open' as state from issueBilling order by issueId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (values (?1, ?2), (?3, ?4)) select issueId as issueId, 'open' as state from issueBilling order by issueId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             101,
@@ -307,7 +307,7 @@ describe(ctx.label, () => {
             .orderBy('issueId')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (values (?, ?), (?, ?)) select issueId as issueId, null as billingRef from issueBilling order by issueId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (values (?1, ?2), (?3, ?4)) select issueId as issueId, null as billingRef from issueBilling order by issueId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             101,
@@ -361,7 +361,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with batchRow(id, label) as (values (?, ?), (?, ?)) select id as id, label as label, null as rank, null as note from batchRow order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with batchRow(id, label) as (values (?1, ?2), (?3, ?4)) select id as id, label as label, null as rank, null as note from batchRow order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -406,7 +406,7 @@ describe(ctx.label, () => {
             .orderBy('base')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (values (?, ?), (?, ?)), issueBillingJoin(issueId, amount) as (values (?, ?)) select issueBilling.issueId as base, ibj.issueId as joined from issueBilling left join issueBillingJoin as ibj on ibj.issueId = issueBilling.issueId order by base"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (values (?1, ?2), (?3, ?4)), issueBillingJoin(issueId, amount) as (values (?5, ?6)) select issueBilling.issueId as base, ibj.issueId as joined from issueBilling left join issueBillingJoin as ibj on ibj.issueId = issueBilling.issueId order by base"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             101,
@@ -443,7 +443,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with reqBatch(id) as (values (?), (?)) select id as id, 7 as seq, 'BATCH' as tag from reqBatch order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with reqBatch(id) as (values (?1), (?2)) select id as id, 7 as seq, 'BATCH' as tag from reqBatch order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -469,7 +469,7 @@ describe(ctx.label, () => {
             .select({ id: nums.id, doubled: nums.doubled })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vdouble(id) as (values (?), (?)) select id as id, id * 2 as doubled from vdouble order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vdouble(id) as (values (?1), (?2)) select id as id, id * 2 as doubled from vdouble order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,

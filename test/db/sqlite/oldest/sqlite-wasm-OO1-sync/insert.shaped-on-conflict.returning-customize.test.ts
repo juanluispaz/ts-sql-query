@@ -54,7 +54,7 @@ describe(ctx.label, () => {
                 .customizeQuery({ afterInsertKeyword: connection.rawFragment`/*+ hint */` })
                 .executeInsertOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ hint */ into project (organization_id, name, slug) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ? returning id as id, name as name, slug as slug"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ hint */ into project (organization_id, name, slug) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4 returning id as id, name as name, slug as slug"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -86,7 +86,7 @@ describe(ctx.label, () => {
                 .returning({ num: tIssue.number })
                 .executeInsertNoneOrOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?) on conflict (project_id, number) do nothing returning number as num"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5) on conflict (project_id, number) do nothing returning number as num"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

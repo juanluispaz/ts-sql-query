@@ -43,7 +43,7 @@ describe(ctx.label, () => {
                 ),
             })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version = (select version as result from project_release where id = ?) as sameSemver, signing_key = (select signing_key as result from project_release where id = ?) as sameKey from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version = (select version as result from project_release where id = ?1) as sameSemver, signing_key = (select signing_key as result from project_release where id = ?2) as sameKey from project_release where id = ?3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -81,7 +81,7 @@ describe(ctx.label, () => {
                 ),
             })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billed_amount = (select billed_amount as result from issue_worklog where id = ?) as sameMoney, cost_cents = (select cost_cents as result from issue_worklog where id = ?) as sameCents from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billed_amount = (select billed_amount as result from issue_worklog where id = ?1) as sameMoney, cost_cents = (select cost_cents as result from issue_worklog where id = ?2) as sameCents from issue_worklog where id = ?3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

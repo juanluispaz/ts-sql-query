@@ -64,7 +64,7 @@ The executed query is:
 === "SQLite"
     ```sqlite
     insert into custom_company (name, is_big) 
-    values (?, case when ? then 'Y' else 'N' end) 
+    values (?1, case when ?2 then 'Y' else 'N' end) 
     returning id
     ```
 === "SQL Server"

@@ -44,7 +44,7 @@ describe(ctx.label, () => {
                     .and(tIssue.id.equals(1))
                 .executeUpdate())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -80,7 +80,7 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = ? returning project.id as id, project.name as "meta.name", project.slug as "meta.slug""`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = ?1 returning project.id as id, project.name as "meta.name", project.slug as "meta.slug""`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -111,7 +111,7 @@ describe(ctx.label, () => {
                     .and(tIssue.id.equals(3))
                 .executeUpdate())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ifnull(app_user.full_name, ?) from issue left join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ifnull(app_user.full_name, ?1) from issue left join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Unassigned",
@@ -141,7 +141,7 @@ describe(ctx.label, () => {
                     .and(tIssue.id.equals(3))
                 .executeUpdate())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ifnull(app_user.full_name, ?) from issue left outer join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ifnull(app_user.full_name, ?1) from issue left outer join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Unassigned",
@@ -257,7 +257,7 @@ describe(ctx.label, () => {
                     .and(tIssue.id.equals(1))
                 .executeUpdate())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id and app_user.full_name = ? where project.id = issue.project_id and issue.id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id and app_user.full_name = ?1 where project.id = issue.project_id and issue.id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Ada Lovelace",
@@ -286,7 +286,7 @@ describe(ctx.label, () => {
                     .and(tIssue.id.equals(1))
                 .executeUpdate())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -316,7 +316,7 @@ describe(ctx.label, () => {
                     .and(tIssue.id.equals(1))
                 .executeUpdate())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id or app_user.full_name = ? where project.id = issue.project_id and issue.id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id or app_user.full_name = ?1 where project.id = issue.project_id and issue.id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "never-matches",
@@ -685,7 +685,7 @@ describe(ctx.label, () => {
                 .set({ name: tAppUser.fullName })
                 .executeUpdate())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id and issue.id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id and issue.id = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -713,7 +713,7 @@ describe(ctx.label, () => {
                     .and(tIssue.id.equals(1))
                 .executeUpdate())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -813,7 +813,7 @@ describe(ctx.label, () => {
                     .and(tIssue.id.equals(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id inner join project_review on project_review.project_id = issue.project_id where project.id = issue.project_id and issue.id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id inner join project_review on project_review.project_id = issue.project_id where project.id = issue.project_id and issue.id = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

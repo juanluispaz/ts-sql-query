@@ -23,7 +23,7 @@ describe(ctx.label, () => {
                 .executeUpdate()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1 where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Marketing site (v2)",
@@ -53,7 +53,7 @@ describe(ctx.label, () => {
                 .executeUpdate()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?1 where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Update hero copy (revised)",
@@ -83,7 +83,7 @@ describe(ctx.label, () => {
                 .executeUpdateOne()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ? returning id as id, name as name, slug as slug"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1 where id = ?2 returning id as id, name as name, slug as slug"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Marketing site (v2)",
@@ -147,7 +147,7 @@ describe(ctx.label, () => {
                 .executeUpdate()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = project.name || ? || organization.name from organization where project.organization_id = organization.id and organization."plan" = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = project.name || ?1 || organization.name from organization where project.organization_id = organization.id and organization."plan" = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 " / ",
@@ -191,7 +191,7 @@ describe(ctx.label, () => {
                 .executeUpdate()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?, priority = ?, assignee_id = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?1, priority = ?2, assignee_id = ?3 where id = ?4"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Update hero copy (revised)",
@@ -218,7 +218,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tProject.name)
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ? returning name as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1 where id = ?2 returning name as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Marketing site (v2)",
@@ -244,7 +244,7 @@ describe(ctx.label, () => {
                 .where(tProject.id.equals(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1 where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Marketing site (v3)",
@@ -270,7 +270,7 @@ describe(ctx.label, () => {
                 .where(tIssue.id.equals(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?, priority = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?1, priority = ?2 where id = ?3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Triage",
@@ -296,7 +296,7 @@ describe(ctx.label, () => {
                 .where(tIssue.id.equals(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?, priority = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?1, priority = ?2 where id = ?3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Triage",
@@ -323,7 +323,7 @@ describe(ctx.label, () => {
                 .where(tIssue.id.equals(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?, priority = ?, status = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?1, priority = ?2, status = ?3 where id = ?4"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Triage",
@@ -351,7 +351,7 @@ describe(ctx.label, () => {
                 .where(tIssue.id.equals(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?1 where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Triage",
@@ -376,7 +376,7 @@ describe(ctx.label, () => {
                 .where(tIssue.id.equals(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?1 where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Triage",
@@ -404,7 +404,7 @@ describe(ctx.label, () => {
                 .where(tIssue.id.equals(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?1 where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Triage",

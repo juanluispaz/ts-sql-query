@@ -42,7 +42,7 @@ describe(ctx.label, () => {
                 .where(tProject.id.equals(1))
                 .executeUpdate())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1 where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Renamed via shaped set",
@@ -137,7 +137,7 @@ describe(ctx.label, () => {
                 .disallowIfSetWhen(false, 'slug is read-only on this endpoint', 'projectSlug')
                 .where(tProject.id.equals(1))
                 .executeUpdate())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?, slug = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1, slug = ?2 where id = ?3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Stays",
@@ -174,7 +174,7 @@ describe(ctx.label, () => {
                 .disallowIfNotSetWhen(false, 'slug must be provided on this endpoint', 'projectSlug')
                 .where(tProject.id.equals(1))
                 .executeUpdate())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1 where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Renamed",
@@ -210,7 +210,7 @@ describe(ctx.label, () => {
                 .disallowIfValueWhen(false, 'name changes go through the rename endpoint', 'projectName')
                 .where(tProject.id.equals(1))
                 .executeUpdate())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1 where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "New name",
@@ -247,7 +247,7 @@ describe(ctx.label, () => {
                 .disallowIfNoValueWhen(false, 'archivedAt cannot be cleared via this path', 'archived')
                 .where(tProject.id.equals(1))
                 .executeUpdate())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?, archived_at = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1, archived_at = ?2 where id = ?3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Renamed",
@@ -284,7 +284,7 @@ describe(ctx.label, () => {
                 .disallowAnyOtherSetWhen(false, 'this endpoint only updates name', 'projectName')
                 .where(tProject.id.equals(1))
                 .executeUpdate())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?, slug = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1, slug = ?2 where id = ?3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Stays",

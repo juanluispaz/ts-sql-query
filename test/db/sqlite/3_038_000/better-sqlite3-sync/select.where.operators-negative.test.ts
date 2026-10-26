@@ -22,7 +22,7 @@ describe(ctx.label, () => {
             .select({ id: tAppUser.id })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email like ? escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email like ?1 escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "%@acme.test",
@@ -40,7 +40,7 @@ describe(ctx.label, () => {
             .select({ id: tAppUser.id })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not like ? escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not like ?1 escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "%@acme.test",
@@ -58,7 +58,7 @@ describe(ctx.label, () => {
             .select({ id: tAppUser.id })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not like (? || '%') escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not like (?1 || '%') escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ada",
@@ -76,7 +76,7 @@ describe(ctx.label, () => {
             .select({ id: tAppUser.id })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not like ('%' || ?) escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not like ('%' || ?1) escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "@acme.test",
@@ -94,7 +94,7 @@ describe(ctx.label, () => {
             .select({ id: tAppUser.id })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not like ('%' || ? || '%') escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not like ('%' || ?1 || '%') escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "acme",
@@ -114,7 +114,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where priority not between ? and ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where priority not between ?1 and ?2 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

@@ -49,7 +49,7 @@ describe(ctx.label, () => {
             .executeSelectMany())
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCountPerOrg as (select organization.id as orgId, organization.name as orgName, count(project.id) as projects from project inner join organization on organization.id = project.organization_id group by organization.id, organization.name) select orgName as orgName, projects as projects from projectCountPerOrg where projects > ? order by orgName"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCountPerOrg as (select organization.id as orgId, organization.name as orgName, count(project.id) as projects from project inner join organization on organization.id = project.organization_id group by organization.id, organization.name) select orgName as orgName, projects as projects from projectCountPerOrg where projects > ?1 order by orgName"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -85,7 +85,7 @@ describe(ctx.label, () => {
             .executeSelectMany())
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where organization_id = (select id as result from organization where name = ?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where organization_id = (select id as result from organization where name = ?1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Acme Corp",
@@ -166,7 +166,7 @@ describe(ctx.label, () => {
             .orderBy('pid')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with reviewScores as (select project_id as pid, score as score, reviewer_code as reviewerCode from project_review) select pid as pid, score as score, reviewerCode as reviewerCode from reviewScores where pid = ? order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with reviewScores as (select project_id as pid, score as score, reviewer_code as reviewerCode from project_review) select pid as pid, score as score, reviewerCode as reviewerCode from reviewScores where pid = ?1 order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -196,7 +196,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, title as title from issue where status = ?) select id as id, (select count(*) as result from open_issues) as openCount from open_issues order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, title as title from issue where status = ?1) select id as id, (select count(*) as result from open_issues) as openCount from open_issues order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -224,7 +224,7 @@ describe(ctx.label, () => {
             .select({ id: openIssues.id, worklogs })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, title as title from issue where status = ?) select id as id, (select count(*) as result from issue_worklog where issue_id = open_issues.id) as worklogs from open_issues order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, title as title from issue where status = ?1) select id as id, (select count(*) as result from issue_worklog where issue_id = open_issues.id) as worklogs from open_issues order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",

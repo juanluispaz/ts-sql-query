@@ -181,7 +181,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, app_user.full_name = ? as isAda from issue left outer join app_user on app_user.id = issue.assignee_id order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, app_user.full_name = ?1 as isAda from issue left outer join app_user on app_user.id = issue.assignee_id order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Ada Lovelace",
@@ -207,7 +207,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, app_user.email = ? as matches from issue left outer join app_user on app_user.id = issue.assignee_id order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, app_user.email = ?1 as matches from issue left outer join app_user on app_user.id = issue.assignee_id order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ada@acme.test",
@@ -363,7 +363,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, app_user.id in (?, ?) as watched from issue left outer join app_user on app_user.id = issue.assignee_id order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, app_user.id in (?1, ?2) as watched from issue left outer join app_user on app_user.id = issue.assignee_id order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -387,7 +387,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.id between app_user.id and ? as inRange from issue left outer join app_user on app_user.id = issue.assignee_id order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.id between app_user.id and ?1 as inRange from issue left outer join app_user on app_user.id = issue.assignee_id order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -420,7 +420,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, replace(app_user.email, ?, ?) as login from issue left outer join app_user on app_user.id = issue.assignee_id order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, replace(app_user.email, ?1, ?2) as login from issue left outer join app_user on app_user.id = issue.assignee_id order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "@acme.test",
@@ -477,7 +477,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, app_user.id in (select closedIssue.assignee_id as result from issue as closedIssue where closedIssue.status = ?) as ownsClosed from issue left outer join app_user on app_user.id = issue.assignee_id order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, app_user.id in (select closedIssue.assignee_id as result from issue as closedIssue where closedIssue.status = ?1) as ownsClosed from issue left outer join app_user on app_user.id = issue.assignee_id order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "closed",
@@ -532,7 +532,7 @@ describe(ctx.label, () => {
             .groupBy('projectId')
             .orderBy('projectId')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.project_id as projectId, group_concat(app_user.full_name, ?) as assignees from issue left outer join app_user on app_user.id = issue.assignee_id where issue.project_id in (?, ?) group by issue.project_id order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.project_id as projectId, group_concat(app_user.full_name, ?1) as assignees from issue left outer join app_user on app_user.id = issue.assignee_id where issue.project_id in (?2, ?3) group by issue.project_id order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             ", ",
@@ -656,7 +656,7 @@ describe(ctx.label, () => {
                 afterQuery: connection.rawFragment` /* ${archiveProject}; ${deleteProject}; ${createProject} */`,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where id = ?  /* update project set published = case when ? then 't' else 'f' end where id = ?; delete from project where id = ?; insert into project (organization_id, name, slug) values (?, ?, ?) */"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where id = ?1  /* update project set published = case when ?2 then 't' else 'f' end where id = ?3; delete from project where id = ?4; insert into project (organization_id, name, slug) values (?5, ?6, ?7) */"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,

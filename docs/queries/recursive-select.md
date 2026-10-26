@@ -155,7 +155,7 @@ The executed query is:
                 name as name, 
                 parent_id as parentId 
             from company 
-            where id = ? 
+            where id = ?1 
             
             union all 
             
@@ -359,7 +359,7 @@ The executed query is:
                 name as name, 
                 parent_id as parentId 
             from company 
-            where id = ? 
+            where id = ?1 
             
             union all 
             

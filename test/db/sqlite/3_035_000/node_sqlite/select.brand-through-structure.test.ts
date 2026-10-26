@@ -37,7 +37,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, project_release.version as version, project_release.channel as channel from project left join project_release on project_release.project_id = project.id and project_release.channel = ? where project.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, project_release.version as version, project_release.channel as channel from project left join project_release on project_release.project_id = project.id and project_release.channel = ?1 where project.id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "stable",
@@ -64,7 +64,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue_worklog.activity as activity from issue left join issue_worklog on issue_worklog.issue_id = issue.id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue_worklog.activity as activity from issue left join issue_worklog on issue_worklog.issue_id = issue.id where issue.id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -90,7 +90,7 @@ describe(ctx.label, () => {
             .groupBy('projectId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, json_group_array(version) as versions, json_group_array(channel) as channels from project_release where project_id = ? group by project_id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, json_group_array(version) as versions, json_group_array(channel) as channels from project_release where project_id = ?1 group by project_id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -122,7 +122,7 @@ describe(ctx.label, () => {
             .groupBy('issueId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_id as issueId, json_group_array(activity) as activities from issue_worklog where issue_id = ? group by issue_id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_id as issueId, json_group_array(activity) as activities from issue_worklog where issue_id = ?1 group by issue_id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -148,7 +148,7 @@ describe(ctx.label, () => {
             .select({ channel: tProjectRelease.channel })
         const rows = await p1.union(p2).orderBy('channel').executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select channel as channel from project_release where project_id = ? union select channel as channel from project_release where project_id = ? order by channel"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select channel as channel from project_release where project_id = ?1 union select channel as channel from project_release where project_id = ?2 order by channel"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -202,7 +202,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, release_overview.version as version, upper(release_overview.version) as versionUpper from project left join release_overview on release_overview.project_id = project.id and release_overview.version = ? where project.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, release_overview.version as version, upper(release_overview.version) as versionUpper from project left join release_overview on release_overview.project_id = project.id and release_overview.version = ?1 where project.id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "1.3.0-beta.1",
@@ -232,7 +232,7 @@ describe(ctx.label, () => {
                     .select({ id: tProjectRelease.id, channel: tProjectRelease.channel }))
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, channel as channel from project_release where id = ? union all select project_release.id as id, project_release.channel as channel from project_release join recursive_select_1 on project_release.id = (recursive_select_1.id + ?)) select id as id, channel as channel from recursive_select_1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, channel as channel from project_release where id = ?1 union all select project_release.id as id, project_release.channel as channel from project_release join recursive_select_1 on project_release.id = (recursive_select_1.id + ?2)) select id as id, channel as channel from recursive_select_1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -260,7 +260,7 @@ describe(ctx.label, () => {
                     .select({ id: tIssueWorklog.id, activity: tIssueWorklog.activity }))
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, activity as activity from issue_worklog where id = ? union all select issue_worklog.id as id, issue_worklog.activity as activity from issue_worklog join recursive_select_1 on issue_worklog.id = (recursive_select_1.id + ?)) select id as id, activity as activity from recursive_select_1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, activity as activity from issue_worklog where id = ?1 union all select issue_worklog.id as id, issue_worklog.activity as activity from issue_worklog join recursive_select_1 on issue_worklog.id = (recursive_select_1.id + ?2)) select id as id, activity as activity from recursive_select_1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

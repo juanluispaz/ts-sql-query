@@ -54,7 +54,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, project_id as projectId, priority as priority from issue where status = $1), top_priority_open as (select id as id, projectId as projectId from open_issues where priority >= $2) select project.name as projectName, top_priority_open.id as issueId from project inner join top_priority_open on top_priority_open.projectId = project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, project_id as projectId, priority as priority from issue where status = ?1), top_priority_open as (select id as id, projectId as projectId from open_issues where priority >= ?2) select project.name as projectName, top_priority_open.id as issueId from project inner join top_priority_open on top_priority_open.projectId = project.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -91,7 +91,7 @@ describe(ctx.label, () => {
             .groupBy('id', 'name')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select project_id as projectId from issue where status = $1) select project.id as id, project.name as name, (select count(projectId) as result from open_issues) as totalOpen from project inner join open_issues on open_issues.projectId = project.id group by project.id, project.name"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select project_id as projectId from issue where status = ?1) select project.id as id, project.name as name, (select count(projectId) as result from open_issues) as totalOpen from project inner join open_issues on open_issues.projectId = project.id group by project.id, project.name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -143,14 +143,14 @@ describe(ctx.label, () => {
             .dynamicWhere()
             .and(tProject.organizationId.equals(1))
 
-        expect(query.query()).toMatchInlineSnapshot(`"select id as id, name as name from project where organization_id = $1 order by id"`)
+        expect(query.query()).toMatchInlineSnapshot(`"select id as id, name as name from project where organization_id = ?1 order by id"`)
 
         ctx.mockNext([{ id: 1, name: 'Marketing site' }, { id: 2, name: 'Internal tools' }])
         const result = await query
             .and(tProject.id.notIn(connection.selectFrom(archivedProjects).selectOneColumn(archivedProjects.id)))
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with archived_projects as (select id as id from project where archived_at is not null) select id as id, name as name from project where organization_id = $1 and id not in (select id as result from archived_projects) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with archived_projects as (select id as id from project where archived_at is not null) select id as id, name as name from project where organization_id = ?1 and id not in (select id as result from archived_projects) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -194,7 +194,7 @@ describe(ctx.label, () => {
             .orderBy('label')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, priority as priority, title as title from issue where status = $1), top_open as (select title as label from open_issues where priority >= $2) select label as label from top_open union select name as label from project where id = $3 order by label"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, priority as priority, title as title from issue where status = ?1), top_open as (select title as label from open_issues where priority >= ?2) select label as label from top_open union select name as label from project where id = ?3 order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",

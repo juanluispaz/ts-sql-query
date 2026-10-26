@@ -56,9 +56,9 @@ The executed query is:
     ```sqlite
     update customer 
     set 
-        first_name = ?, 
-        last_name = ? 
-    where id = ?
+        first_name = ?1, 
+        last_name = ?2 
+    where id = ?3
     ```
 === "SQL Server"
     ```sqlserver
@@ -128,8 +128,8 @@ The executed query is:
 === "SQLite"
     ```sqlite
     update customer 
-    set first_name = ? 
-    where id = ? 
+    set first_name = ?1 
+    where id = ?2 
     returning first_name as result
     ```
 === "SQL Server"
@@ -300,11 +300,11 @@ The executed query is:
 === "SQLite"
     ```sqlite
     update customer 
-    set last_name = customer.last_name || ? || company.name 
+    set last_name = customer.last_name || ?1 || company.name 
     from company 
     where 
             customer.company_id = company.id 
-        and lower(company.name) like lower('%' || ? || '%') escape '\'
+        and lower(company.name) like lower('%' || ?2 || '%') escape '\'
     ```
 === "SQL Server"
     ```sqlserver
@@ -405,7 +405,7 @@ The executed query is:
     ```sqlite
     with 
         customerForUpdate(id, firstName, lastName) as (
-            values (?, ?, ?)
+            values (?1, ?2, ?3)
         ) 
     update customer 
     set 
@@ -512,10 +512,10 @@ The executed query is:
     ```sqlite
     update customer 
     set 
-        first_name = ?, 
-        last_name = ?, 
-        company_id = ? 
-    where id = ?
+        first_name = ?1, 
+        last_name = ?2, 
+        company_id = ?3 
+    where id = ?4
     ```
 === "SQL Server"
     ```sqlserver

@@ -55,7 +55,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(body, ?) as body from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(body, ?1) as body from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "(empty)",

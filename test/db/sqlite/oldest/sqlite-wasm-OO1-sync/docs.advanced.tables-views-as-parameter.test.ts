@@ -99,7 +99,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, ifnull((select count(*) as result from issue where project_id = project.id), ?) as issueCount from project as project where project.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, ifnull((select count(*) as result from issue where project_id = project.id), ?1) as issueCount from project as project where project.id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,

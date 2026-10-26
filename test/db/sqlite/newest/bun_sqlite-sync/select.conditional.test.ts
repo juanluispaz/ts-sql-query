@@ -31,7 +31,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(body, ?) as body from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(body, ?1) as body from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "<empty>",
@@ -52,7 +52,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, status as status from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, status as status from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -75,7 +75,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where priority > ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where priority > ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -126,7 +126,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where status = ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where status = ?1 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -162,7 +162,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where project_id = ? and priority > ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where project_id = ?1 and priority > ?2 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             1,
@@ -199,7 +199,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where status = ? or assignee_id is null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where status = ?1 or assignee_id is null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "closed",

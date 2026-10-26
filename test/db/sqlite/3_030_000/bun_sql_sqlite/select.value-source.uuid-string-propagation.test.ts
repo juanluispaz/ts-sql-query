@@ -41,7 +41,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().allowWhen(true, 'ref gate').concat('-x'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select external_ref || $1 as result from issue where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select external_ref || ?1 as result from issue where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "-x",
@@ -66,7 +66,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().disallowWhen(false, 'ref gate').concat('-x'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select external_ref || $1 as result from issue where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select external_ref || ?1 as result from issue where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "-x",
@@ -91,7 +91,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().asOptional().concat('-x'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select external_ref || $1 as result from issue where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select external_ref || ?1 as result from issue where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "-x",
@@ -117,7 +117,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().asRequiredInOptionalObject().concat('-x'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select external_ref || $1 as result from issue where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select external_ref || ?1 as result from issue where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "-x",
@@ -144,7 +144,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.title.allowWhen(true, 'title gate').concat('-x'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title || $1 as result from issue where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title || ?1 as result from issue where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "-x",

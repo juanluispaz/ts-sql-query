@@ -23,7 +23,7 @@ describe(ctx.label, () => {
                 .setIfValue({ priority: newPriority })
                 .where(tIssue.id.equals(1))
                 .executeUpdate()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?1 where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Updated title",
@@ -45,7 +45,7 @@ describe(ctx.label, () => {
                 .setIfNotSet({ title: 'Default (ignored)' })
                 .where(tIssue.id.equals(1))
                 .executeUpdate()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?1 where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Forced",
@@ -66,7 +66,7 @@ describe(ctx.label, () => {
                 .setIfNotSet({ title: 'Restored to default' })
                 .where(tIssue.id.equals(1))
                 .executeUpdate()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?1 where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Restored to default",
@@ -88,7 +88,7 @@ describe(ctx.label, () => {
                 .set({ assigneeId: tIssue.assigneeId.maxValue(tIssue.parentId) })
                 .where(tIssue.id.equals(1))
                 .executeUpdate()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set assignee_id = min(assignee_id, parent_id) where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set assignee_id = min(assignee_id, parent_id) where id = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -120,7 +120,7 @@ describe(ctx.label, () => {
                 .where(tAppUser.email.collate('BINARY').equals('ada@acme.test'))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update app_user set full_name = replace(full_name, ?, ?) where (email collate BINARY) = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update app_user set full_name = replace(full_name, ?1, ?2) where (email collate BINARY) = ?3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Love",
@@ -152,7 +152,7 @@ describe(ctx.label, () => {
                 .set({ body: tIssue.title.concat(tIssue.body) })
                 .where(tIssue.id.equals(2))
                 .executeUpdate()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set body = title || body where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set body = title || body where id = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,

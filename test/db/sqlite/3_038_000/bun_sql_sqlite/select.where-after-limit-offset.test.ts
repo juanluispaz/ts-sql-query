@@ -31,7 +31,7 @@ describe(ctx.label, () => {
             .where(tIssue.projectId.equals(1))
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where project_id = $1 order by id limit $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where project_id = ?1 order by id limit ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -54,7 +54,7 @@ describe(ctx.label, () => {
             .where(tIssue.projectId.equals(1))
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where project_id = $1 order by id limit $2 offset $3"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where project_id = ?1 order by id limit ?2 offset ?3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -79,7 +79,7 @@ describe(ctx.label, () => {
                 .and(tIssue.projectId.equals(1))
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where project_id = $1 order by id limit $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where project_id = ?1 order by id limit ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -103,7 +103,7 @@ describe(ctx.label, () => {
                 .and(tIssue.projectId.equals(1))
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where project_id = $1 order by id limit $2 offset $3"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where project_id = ?1 order by id limit ?2 offset ?3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

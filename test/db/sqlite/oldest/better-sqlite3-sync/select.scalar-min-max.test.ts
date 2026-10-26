@@ -39,7 +39,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, max(priority, ?) as clamped from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, max(priority, ?1) as clamped from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -66,7 +66,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, min(priority, ?) as clamped from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, min(priority, ?1) as clamped from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -116,7 +116,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, min(priority, ?) + ? as score from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, min(priority, ?1) + ?2 as score from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

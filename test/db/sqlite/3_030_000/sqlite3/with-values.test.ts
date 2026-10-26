@@ -30,7 +30,7 @@ describe(ctx.label, () => {
         await ctx.conn.selectFrom(patch)
             .select({ id: patch.id, name: patch.name })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, name) as (values (?, ?), (?, ?)) select id as id, name as name from projectPatch"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, name) as (values (?1, ?2), (?3, ?4)) select id as id, name as name from projectPatch"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -56,7 +56,7 @@ describe(ctx.label, () => {
                 .set({ name: patch.name })
                 .where(tProject.id.equals(patch.id))
                 .executeUpdate()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, name) as (values (?, ?)) update project set name = projectPatch.name from projectPatch where project.id = projectPatch.id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, name) as (values (?1, ?2)) update project set name = projectPatch.name from projectPatch where project.id = projectPatch.id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -99,7 +99,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, name) as (values (?, ?), (?, ?)) select id as id, name as name from projectPatch union select id as id, name as name from project where id = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, name) as (values (?1, ?2), (?3, ?4)) select id as id, name as name from projectPatch union select id as id, name as name from project where id = ?5 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -158,7 +158,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with idList(id) as (values (?), (?), (?)) select id as id from idList intersect select id as id from project order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with idList(id) as (values (?1), (?2), (?3)) select id as id from idList intersect select id as id from project order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -188,7 +188,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with idList(id) as (values (?), (?), (?)) select id as id from idList except select id as id from project order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with idList(id) as (values (?1), (?2), (?3)) select id as id from idList except select id as id from project order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -218,7 +218,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with idList(id) as (values (?), (?)) select id as id from idList union all select id as id from project where id = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with idList(id) as (values (?1), (?2)) select id as id from idList union all select id as id from project where id = ?3 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -250,7 +250,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with idList(id) as (values (?), (?)) select id as id from project where id in (?, ?) union select id as id from idList order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with idList(id) as (values (?1), (?2)) select id as id from project where id in (?3, ?4) union select id as id from idList order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -277,7 +277,7 @@ describe(ctx.label, () => {
             .limit(2)
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with idList(id) as (values (?), (?), (?)) select id as id from idList order by id limit ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with idList(id) as (values (?1), (?2), (?3)) select id as id from idList order by id limit ?4"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -305,7 +305,7 @@ describe(ctx.label, () => {
             .offset(1)
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with idList(id) as (values (?), (?), (?)) select id as id from idList order by id limit ? offset ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with idList(id) as (values (?1), (?2), (?3)) select id as id from idList order by id limit ?4 offset ?5"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -331,7 +331,7 @@ describe(ctx.label, () => {
             .select({ total: ctx.conn.count(ids.id) })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with idList(id) as (values (?), (?), (?)) select count(id) as total from idList"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with idList(id) as (values (?1), (?2), (?3)) select count(id) as total from idList"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -358,7 +358,7 @@ describe(ctx.label, () => {
             .orderBy('grp')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with groupRows("n", grp) as (values (?, ?), (?, ?), (?, ?)) select grp as grp, count("n") as total from groupRows group by grp order by grp"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with groupRows("n", grp) as (values (?1, ?2), (?3, ?4), (?5, ?6)) select grp as grp, count("n") as total from groupRows group by grp order by grp"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -398,7 +398,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPick(projectId, tag) as (values (?, ?), (?, ?)) select id as id, name as name from project where id = (select projectId as result from projectPick where tag = ?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPick(projectId, tag) as (values (?1, ?2), (?3, ?4)) select id as id, name as name from project where id = (select projectId as result from projectPick where tag = ?5) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -436,7 +436,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with treeNode(id, parentId, name) as (values (?, ?, ?), (?, ?, ?)) select treeNode.id as id, anc.name as ancName from treeNode inner join treeNode as anc on anc.id = treeNode.parentId order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with treeNode(id, parentId, name) as (values (?1, ?2, ?3), (?4, ?5, ?6)) select treeNode.id as id, anc.name as ancName from treeNode inner join treeNode as anc on anc.id = treeNode.parentId order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -471,7 +471,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with treeNode(id, parentId, name) as (values (?, ?, ?), (?, ?, ?)) select treeNode.id as id, anc.name as ancName from treeNode left join treeNode as anc on anc.id = treeNode.parentId order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with treeNode(id, parentId, name) as (values (?1, ?2, ?3), (?4, ?5, ?6)) select treeNode.id as id, anc.name as ancName from treeNode left join treeNode as anc on anc.id = treeNode.parentId order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -507,7 +507,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with treeNode(id, parentId, name) as (values (?, ?, ?), (?, ?, ?)) select "a".id as id, "b".name as ancName from treeNode as "a" inner join treeNode as "b" on "b".id = "a".parentId order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with treeNode(id, parentId, name) as (values (?1, ?2, ?3), (?4, ?5, ?6)) select "a".id as id, "b".name as ancName from treeNode as "a" inner join treeNode as "b" on "b".id = "a".parentId order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -535,7 +535,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, name) as (values (?, ?), (?, ?)), idList(id) as (values (?), (?)) select id as id from projectPatch union all select id as id from idList order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, name) as (values (?1, ?2), (?3, ?4)), idList(id) as (values (?5), (?6)) select id as id from projectPatch union all select id as id from idList order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -563,7 +563,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with idList(id) as (values (?)) select id as id from project where exists(select id as result from idList) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with idList(id) as (values (?1)) select id as id from project where exists(select id as result from idList) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

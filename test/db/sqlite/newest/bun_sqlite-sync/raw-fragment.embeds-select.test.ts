@@ -42,7 +42,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where status = ?) as "openCount",  id as id from project"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where status = ?1) as "openCount",  id as id from project"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -71,7 +71,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project order by (select count(id) as result from issue where status = ?) asc, id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project order by (select count(id) as result from issue where status = ?1) asc, id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -101,7 +101,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where status = ?) as "openCount", (select count(id) as result from issue where status = ?) as "closedCount",  id as id from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where status = ?1) as "openCount", (select count(id) as result from issue where status = ?2) as "closedCount",  id as id from project where id = ?3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -136,7 +136,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as result from issue where id = ? union all select issue.id as result from issue join recursive_select_1 on issue.parent_id = recursive_select_1.result) select ((select result as result from recursive_select_1)) as root,  id as id from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as result from issue where id = ?1 union all select issue.id as result from issue join recursive_select_1 on issue.parent_id = recursive_select_1.result) select ((select result as result from recursive_select_1)) as root,  id as id from project where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -165,7 +165,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where status = ?) as "x1", (select count(id) as result from issue where status = ?) as "x2", (select count(id) as result from issue where status = ?) as "x3",  id as id from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where status = ?1) as "x1", (select count(id) as result from issue where status = ?2) as "x2", (select count(id) as result from issue where status = ?3) as "x3",  id as id from project where id = ?4"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -195,7 +195,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where status = ?) as "x1", (select count(id) as result from issue where status = ?) as "x2", (select count(id) as result from issue where status = ?) as "x3", (select count(id) as result from issue where priority = ?) as "x4",  id as id from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where status = ?1) as "x1", (select count(id) as result from issue where status = ?2) as "x2", (select count(id) as result from issue where status = ?3) as "x3", (select count(id) as result from issue where priority = ?4) as "x4",  id as id from project where id = ?5"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -227,7 +227,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where status = ?) as "x1", (select count(id) as result from issue where status = ?) as "x2", (select count(id) as result from issue where status = ?) as "x3", (select count(id) as result from issue where priority = ?) as "x4", (select count(id) as result from issue where priority = ?) as "x5",  id as id from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where status = ?1) as "x1", (select count(id) as result from issue where status = ?2) as "x2", (select count(id) as result from issue where status = ?3) as "x3", (select count(id) as result from issue where priority = ?4) as "x4", (select count(id) as result from issue where priority = ?5) as "x5",  id as id from project where id = ?6"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -261,7 +261,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where status = ?) as "x1", (select count(id) as result from issue where status = ?) as "x2", (select count(id) as result from issue where status = ?) as "x3", (select count(id) as result from issue where priority = ?) as "x4", (select count(id) as result from issue where priority = ?) as "x5", (select count(id) as result from issue where priority = ?) as "x6",  id as id from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where status = ?1) as "x1", (select count(id) as result from issue where status = ?2) as "x2", (select count(id) as result from issue where status = ?3) as "x3", (select count(id) as result from issue where priority = ?4) as "x4", (select count(id) as result from issue where priority = ?5) as "x5", (select count(id) as result from issue where priority = ?6) as "x6",  id as id from project where id = ?7"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -298,7 +298,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where status = ?) as "x1", (select count(id) as result from issue where status = ?) as "x2", (select count(id) as result from issue where status = ?) as "x3", (select count(id) as result from issue where priority = ?) as "x4", (select count(id) as result from issue where priority = ?) as "x5", (select count(id) as result from issue where priority = ?) as "x6", (select count(id) as result from issue where number = ?) as "x7",  id as id from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where status = ?1) as "x1", (select count(id) as result from issue where status = ?2) as "x2", (select count(id) as result from issue where status = ?3) as "x3", (select count(id) as result from issue where priority = ?4) as "x4", (select count(id) as result from issue where priority = ?5) as "x5", (select count(id) as result from issue where priority = ?6) as "x6", (select count(id) as result from issue where number = ?7) as "x7",  id as id from project where id = ?8"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -331,7 +331,7 @@ describe(ctx.label, () => {
                 beforeColumns: connection.rawFragment`(${connection.const(10, 'int')}) as "a1", `,
             })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (?) as "a1",  id as id from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (?1) as "a1",  id as id from project where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,
@@ -352,7 +352,7 @@ describe(ctx.label, () => {
                 beforeColumns: connection.rawFragment`(${connection.const(10, 'int')}) as "a1", (${connection.const(20, 'int')}) as "a2", `,
             })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (?) as "a1", (?) as "a2",  id as id from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (?1) as "a1", (?2) as "a2",  id as id from project where id = ?3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,
@@ -374,7 +374,7 @@ describe(ctx.label, () => {
                 beforeColumns: connection.rawFragment`(${connection.const(10, 'int')}) as "a1", (${connection.const(20, 'int')}) as "a2", (${connection.const(30, 'int')}) as "a3", `,
             })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (?) as "a1", (?) as "a2", (?) as "a3",  id as id from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (?1) as "a1", (?2) as "a2", (?3) as "a3",  id as id from project where id = ?4"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,
@@ -397,7 +397,7 @@ describe(ctx.label, () => {
                 beforeColumns: connection.rawFragment`(${connection.const(10, 'int')}) as "a1", (${connection.const(20, 'int')}) as "a2", (${connection.const(30, 'int')}) as "a3", (${connection.const(40, 'int')}) as "a4", `,
             })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (?) as "a1", (?) as "a2", (?) as "a3", (?) as "a4",  id as id from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (?1) as "a1", (?2) as "a2", (?3) as "a3", (?4) as "a4",  id as id from project where id = ?5"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,
@@ -421,7 +421,7 @@ describe(ctx.label, () => {
                 beforeColumns: connection.rawFragment`(${connection.const(10, 'int')}) as "a1", (${connection.const(20, 'int')}) as "a2", (${connection.const(30, 'int')}) as "a3", (${connection.const(40, 'int')}) as "a4", (${connection.const(50, 'int')}) as "a5", (${connection.const(60, 'int')}) as "a6", `,
             })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (?) as "a1", (?) as "a2", (?) as "a3", (?) as "a4", (?) as "a5", (?) as "a6",  id as id from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (?1) as "a1", (?2) as "a2", (?3) as "a3", (?4) as "a4", (?5) as "a5", (?6) as "a6",  id as id from project where id = ?7"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,

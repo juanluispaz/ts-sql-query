@@ -89,7 +89,7 @@ describe(ctx.label, () => {
 
             const affected = await query.executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "archived",
@@ -116,7 +116,7 @@ describe(ctx.label, () => {
 
             const affected = await query.executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where status = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?1 where status = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "archived",
@@ -190,7 +190,7 @@ describe(ctx.label, () => {
 
             const affected = await query.executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where status = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where status = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "open",

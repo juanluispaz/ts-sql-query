@@ -52,7 +52,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue_worklog (issue_id, work_date, activity, approved) values (?, ?, ?, case ? when 1 then 'A' when 0 then 'R' else null end)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue_worklog (issue_id, work_date, activity, approved) values (?1, ?2, ?3, case ?4 when 1 then 'A' when 0 then 'R' else null end)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -81,7 +81,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue_worklog (issue_id, work_date, activity, approved) values (?, ?, ?, case ? when 1 then 'A' when 0 then 'R' else null end)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue_worklog (issue_id, work_date, activity, approved) values (?1, ?2, ?3, case ?4 when 1 then 'A' when 0 then 'R' else null end)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,

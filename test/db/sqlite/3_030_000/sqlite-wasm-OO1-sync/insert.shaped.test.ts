@@ -42,7 +42,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -77,7 +77,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -115,7 +115,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -146,7 +146,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -176,7 +176,7 @@ describe(ctx.label, () => {
                 .set({ projectSlug: 'shaped-dyn-noarg' })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -207,7 +207,7 @@ describe(ctx.label, () => {
                 ])
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?), (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3), (?4, ?5, ?6)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -243,7 +243,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -275,7 +275,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tProject.id)
                 .executeInsertOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?) returning id as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3) returning id as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -312,7 +312,7 @@ describe(ctx.label, () => {
                 .setForAll({ isPublished: true })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, published) values (?, ?, ?, case when ? then 't' else 'f' end), (?, ?, ?, case when ? then 't' else 'f' end)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, published) values (?1, ?2, ?3, case when ?4 then 't' else 'f' end), (?5, ?6, ?7, case when ?8 then 't' else 'f' end)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -351,7 +351,7 @@ describe(ctx.label, () => {
                 .setForAllIfValue({ isPublished: undefined })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, published) values (?, ?, ?, case when ? then 't' else 'f' end), (?, ?, ?, case when ? then 't' else 'f' end)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, published) values (?1, ?2, ?3, case when ?4 then 't' else 'f' end), (?5, ?6, ?7, case when ?8 then 't' else 'f' end)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -520,7 +520,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -550,7 +550,7 @@ describe(ctx.label, () => {
                 .setIfSet({ projectName: 'Overwritten', archived: new Date('2024-06-06T00:00:00Z') })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -581,7 +581,7 @@ describe(ctx.label, () => {
                 .setIfSetIfValue({ projectName: 'Overwritten', archived: undefined })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?1, ?2, ?3, ?4)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -612,7 +612,7 @@ describe(ctx.label, () => {
                 .setIfNotSet({ projectName: 'dropped', archived: new Date('2024-06-06T00:00:00Z') })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?1, ?2, ?3, ?4)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -645,7 +645,7 @@ describe(ctx.label, () => {
                 .setIfNotSetIfValue({ archived: new Date('2024-06-06T00:00:00Z') })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?1, ?2, ?3, ?4)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -676,7 +676,7 @@ describe(ctx.label, () => {
                 .setIfHasValue({ projectName: 'Overwritten', archived: new Date('2024-06-06T00:00:00Z') })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?1, ?2, ?3, ?4)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -708,7 +708,7 @@ describe(ctx.label, () => {
                 .setIfHasValueIfValue({ projectName: 'Overwritten', archived: undefined })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?1, ?2, ?3, ?4)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -739,7 +739,7 @@ describe(ctx.label, () => {
                 .setIfHasNoValue({ projectName: 'skip', archived: new Date('2024-06-06T00:00:00Z') })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?1, ?2, ?3, ?4)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -771,7 +771,7 @@ describe(ctx.label, () => {
                 .setIfHasNoValueIfValue({ projectName: 'skip', archived: new Date('2024-06-06T00:00:00Z') })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?1, ?2, ?3, ?4)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -803,7 +803,7 @@ describe(ctx.label, () => {
                 .ignoreIfSet('archived')
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -833,7 +833,7 @@ describe(ctx.label, () => {
                 .keepOnly('orgId', 'projectName', 'projectSlug')
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -863,7 +863,7 @@ describe(ctx.label, () => {
                 .ignoreIfHasValue('archived')
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -892,7 +892,7 @@ describe(ctx.label, () => {
                 .ignoreIfHasNoValue('archived')
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -922,7 +922,7 @@ describe(ctx.label, () => {
                 .ignoreAnySetWithNoValue()
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1043,7 +1043,7 @@ describe(ctx.label, () => {
                 .setForAllIfSet({ archived: new Date('2024-06-06T00:00:00Z') })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?, ?, ?, ?), (?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?1, ?2, ?3, ?4), (?5, ?6, ?7, ?8)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1075,7 +1075,7 @@ describe(ctx.label, () => {
                 .setForAllIfNotSet({ archived: new Date('2024-06-06T00:00:00Z') })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?, ?, ?, ?), (?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?1, ?2, ?3, ?4), (?5, ?6, ?7, ?8)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1107,7 +1107,7 @@ describe(ctx.label, () => {
                 .setForAllIfHasValue({ archived: new Date('2024-06-06T00:00:00Z') })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?, ?, ?, ?), (?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?1, ?2, ?3, ?4), (?5, ?6, ?7, ?8)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1139,7 +1139,7 @@ describe(ctx.label, () => {
                 .setForAllIfHasNoValue({ archived: new Date('2024-06-06T00:00:00Z') })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?, ?, ?, ?), (?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?1, ?2, ?3, ?4), (?5, ?6, ?7, ?8)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1172,7 +1172,7 @@ describe(ctx.label, () => {
                 .setForAllIfSetIfValue({ archived: new Date('2024-06-06T00:00:00Z') })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?, ?, ?, ?), (?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?1, ?2, ?3, ?4), (?5, ?6, ?7, ?8)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1205,7 +1205,7 @@ describe(ctx.label, () => {
                 .setForAllIfNotSetIfValue({ archived: new Date('2024-06-06T00:00:00Z') })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?, ?, ?, ?), (?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?1, ?2, ?3, ?4), (?5, ?6, ?7, ?8)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1238,7 +1238,7 @@ describe(ctx.label, () => {
                 .setForAllIfHasValueIfValue({ archived: new Date('2024-06-06T00:00:00Z') })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?, ?, ?, ?), (?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?1, ?2, ?3, ?4), (?5, ?6, ?7, ?8)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1271,7 +1271,7 @@ describe(ctx.label, () => {
                 .setForAllIfHasNoValueIfValue({ archived: new Date('2024-06-06T00:00:00Z') })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?, ?, ?, ?), (?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?1, ?2, ?3, ?4), (?5, ?6, ?7, ?8)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1744,7 +1744,7 @@ describe(ctx.label, () => {
                 .returning({ id: tProject.id, name: tProject.name })
                 .executeInsertOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?) returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3) returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1777,7 +1777,7 @@ describe(ctx.label, () => {
                 .projectingOptionalValuesAsNullable()
                 .executeInsertOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?) returning id as id, archived_at as archivedAt"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3) returning id as id, archived_at as archivedAt"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1808,7 +1808,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1846,7 +1846,7 @@ describe(ctx.label, () => {
                     .or(tProject.published.equals(false))
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ? where (project.name <> ? and project.archived_at is null) or (project.published = 't') = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4 where (project.name <> ?5 and project.archived_at is null) or (project.published = 't') = ?6"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1879,7 +1879,7 @@ describe(ctx.label, () => {
                 ])
                 .ignoreIfSet('archived')
                 .executeInsert())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?), (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3), (?4, ?5, ?6)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1910,7 +1910,7 @@ describe(ctx.label, () => {
                 ])
                 .keepOnly('orgId', 'projectName', 'projectSlug')
                 .executeInsert())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?), (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3), (?4, ?5, ?6)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1940,7 +1940,7 @@ describe(ctx.label, () => {
                 ])
                 .ignoreIfHasValue('archived')
                 .executeInsert())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?, ?, ?, ?), (?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?1, ?2, ?3, ?4), (?5, ?6, ?7, ?8)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1972,7 +1972,7 @@ describe(ctx.label, () => {
                 ])
                 .ignoreIfHasNoValue('archived')
                 .executeInsert())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?, ?, ?, ?), (?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (?1, ?2, ?3, ?4), (?5, ?6, ?7, ?8)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -2004,7 +2004,7 @@ describe(ctx.label, () => {
                 ])
                 .ignoreAnySetWithNoValue()
                 .executeInsert())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?), (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?1, ?2, ?3), (?4, ?5, ?6)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -2169,7 +2169,7 @@ describe(ctx.label, () => {
                 .shapedAs({ iss: 'issueId', evt: 'eventType' })
                 .setIfValue({ iss: 1, evt: null })
                 .executeInsert())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into webhook_event (issue_id) values (?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into webhook_event (issue_id) values (?1)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -2189,7 +2189,7 @@ describe(ctx.label, () => {
                 .shapedAs({ pid: 'projectId', num: 'number', ttl: 'title', st: 'status', pr: 'priority', vc: 'viewCount' })
                 .setIfValue({ pid: 1, num: 9001, ttl: 'Bigint default skip', st: 'open', pr: 2, vc: null })
                 .executeInsert())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -2214,7 +2214,7 @@ describe(ctx.label, () => {
                 .shapedAs({ n: 'name', p: 'plan', v: 'verified' })
                 .setIfValue({ n: 'Skip Verified Inc', p: 'free', v: null })
                 .executeInsert())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Skip Verified Inc",
@@ -2235,7 +2235,7 @@ describe(ctx.label, () => {
                 .shapedAs({ iss: 'issueId', evt: 'eventType' })
                 .setIfValue({ iss: 1, evt: undefined })
                 .executeInsert())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into webhook_event (issue_id) values (?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into webhook_event (issue_id) values (?1)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

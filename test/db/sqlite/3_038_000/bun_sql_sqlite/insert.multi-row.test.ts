@@ -41,7 +41,7 @@ describe(ctx.label, () => {
                 ])
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values ($1, $2), ($3, $4)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2), (?3, ?4)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "RowA",
@@ -72,7 +72,7 @@ describe(ctx.label, () => {
                 ])
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan", verified) values ($1, $2, case when $3 then 'Y' else 'N' end), ($4, $5, case when $6 then 'Y' else 'N' end), ($7, $8, case when $9 then 'Y' else 'N' end)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan", verified) values (?1, ?2, case when ?3 then 'Y' else 'N' end), (?4, ?5, case when ?6 then 'Y' else 'N' end), (?7, ?8, case when ?9 then 'Y' else 'N' end)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Mixed-A",
@@ -104,7 +104,7 @@ describe(ctx.label, () => {
                 ])
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values ($1, $2), ($3, $4)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2), (?3, ?4)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Dyn-A",
@@ -127,7 +127,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values ($1, $2) returning id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2) returning id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Solo",
@@ -150,7 +150,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values ($1, $2) returning id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2) returning id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Wrapped",
@@ -180,7 +180,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3), ($4, $5, $6) on conflict do nothing returning id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3), (?4, ?5, ?6) on conflict do nothing returning id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -221,7 +221,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3), ($4, $5, $6) on conflict (organization_id, slug) do nothing returning id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3), (?4, ?5, ?6) on conflict (organization_id, slug) do nothing returning id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -255,7 +255,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3), ($4, $5, $6) on conflict (organization_id, slug) do update set name = excluded.name returning id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3), (?4, ?5, ?6) on conflict (organization_id, slug) do update set name = excluded.name returning id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -287,7 +287,7 @@ describe(ctx.label, () => {
                 .setForAll({ plan: 'pro' })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values ($1, $2)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "SoloArray",
@@ -316,7 +316,7 @@ describe(ctx.label, () => {
                 .onConflictDoUpdateSet({ name: tProject.valuesForInsert().name })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3), ($4, $5, $6) on conflict do update set name = excluded.name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3), (?4, ?5, ?6) on conflict do update set name = excluded.name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -364,7 +364,7 @@ describe(ctx.label, () => {
                 .setForAllIfValue({ plan: 'enterprise' })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values ($1, $2)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "SoloArrayTwice",
@@ -389,7 +389,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into ledger_entry (amount) values ($1), ($2) returning entry_no"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into ledger_entry (amount) values (?1), (?2) returning entry_no"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 100,
@@ -406,7 +406,7 @@ describe(ctx.label, () => {
                 .orderBy('entryNo')
                 .executeSelectMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select entry_no as entryNo, amount as amount from ledger_entry where entry_no in ($1, $2) order by entryNo"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select entry_no as entryNo, amount as amount from ledger_entry where entry_no in (?1, ?2) order by entryNo"`)
             expect(ctx.lastParams).toEqual(ids.map((entryNo) => entryNo - 1000))
             assertType<Exact<typeof rows, Array<{ entryNo: number, amount: number }>>>()
             expect(rows).toEqual([

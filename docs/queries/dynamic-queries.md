@@ -128,10 +128,10 @@ The executed query is:
     ```sqlite
     select 
         id as id, 
-        first_name || ? || last_name as name, 
+        first_name || ?1 || last_name as name, 
         birthday as birthday 
     from customer 
-    where first_name like ('%' || ? || '%') escape '\' 
+    where first_name like ('%' || ?2 || '%') escape '\' 
     order by 
         lower(name), 
         birthday asc nulls last
@@ -224,7 +224,7 @@ The executed query is:
         last_name as lastName, 
         birthday as birthday 
     from customer 
-    where company_id = ?
+    where company_id = ?1
     ```
 === "SQL Server"
     ```sqlserver
@@ -384,7 +384,7 @@ The executed query is:
         last_name as lastName, 
         birthday as birthday 
     from customer 
-    where id = ?
+    where id = ?1
     ```
 === "SQL Server"
     ```sqlserver
@@ -475,7 +475,7 @@ The executed query is:
         null as lastName, 
         birthday as birthday 
     from customer 
-    where id = ?
+    where id = ?1
     ```
 === "SQL Server"
     ```sqlserver
@@ -565,7 +565,7 @@ The executed query is:
         customer.birthday as birthday 
     from customer 
     join company on company.id = customer.company_id 
-    where company.name = ?
+    where company.name = ?1
     ```
 === "SQL Server"
     ```sqlserver
@@ -740,7 +740,7 @@ The executed query is:
         null as companyId, 
         null as companyName 
     from customer 
-    where id = ?
+    where id = ?1
     ```
 === "SQL Server"
     ```sqlserver
@@ -852,7 +852,7 @@ The executed query is:
         company.name as companyName 
     from customer 
     inner join company on company.id = customer.company_id 
-    where customer.id = ?
+    where customer.id = ?1
     ```
 === "SQL Server"
     ```sqlserver

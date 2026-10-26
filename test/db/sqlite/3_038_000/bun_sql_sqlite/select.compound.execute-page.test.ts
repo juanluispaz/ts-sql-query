@@ -44,7 +44,7 @@ describe(ctx.label, () => {
             .executeSelectPage()
 
         expect(ctx.history.length).toBe(2)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select title as label from issue union all select name as label from project order by label limit $1"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select title as label from issue union all select name as label from project order by label limit ?1"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
           [
             5,
@@ -156,7 +156,7 @@ describe(ctx.label, () => {
             .executeSelectPage()
 
         expect(ctx.history.length).toBe(2)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select id as iid, title as "detail.title", number as "detail.num" from issue where id = $1 union all select id as iid, title as "detail.title", number as "detail.num" from issue where id = $2 order by iid limit $3"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select id as iid, title as "detail.title", number as "detail.num" from issue where id = ?1 union all select id as iid, title as "detail.title", number as "detail.num" from issue where id = ?2 order by iid limit ?3"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
           [
             1,
@@ -165,7 +165,7 @@ describe(ctx.label, () => {
           ]
         `)
         // The count query wraps the compound (nested dot-columns included) in a CTE.
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (select id as iid, title as "detail.title", number as "detail.num" from issue where id = $1 union all select id as iid, title as "detail.title", number as "detail.num" from issue where id = $2) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (select id as iid, title as "detail.title", number as "detail.num" from issue where id = ?1 union all select id as iid, title as "detail.title", number as "detail.num" from issue where id = ?2) select count(*) from result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
           [
             1,

@@ -29,7 +29,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* route=primary */  insert into project (name, slug, organization_id) values ($1, $2, $3)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* route=primary */  insert into project (name, slug, organization_id) values (?1, ?2, ?3)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Mobile app",
@@ -54,7 +54,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values ($1, $2, $3, $4, $5)  /* keyed-by project_id */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5)  /* keyed-by project_id */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -87,7 +87,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /*+ hint */ into project (name, slug, organization_id) values ($1, $2, $3), ($4, $5, $6)  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /*+ hint */ into project (name, slug, organization_id) values (?1, ?2, ?3), (?4, ?5, ?6)  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Status page",
@@ -125,7 +125,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ NO_LOG */ into project (organization_id, name, slug) select organization_id as organizationId, name || $1 as name, slug || $2 as slug from project where name like ($3 || '%') escape '\\'  /* batch-clone */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ NO_LOG */ into project (organization_id, name, slug) select organization_id as organizationId, name || ?1 as name, slug || ?2 as slug from project where name like (?3 || '%') escape '\\'  /* batch-clone */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 " (clone)",
@@ -156,7 +156,7 @@ describe(ctx.label, () => {
                 .customizeQuery({ afterInsertKeyword: connection.rawFragment`/*+ hint */` })
                 .executeInsertOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ hint */ into project (name, slug, organization_id) values ($1, $2, $3) returning organization_id as organizationId, name as name, slug as slug"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ hint */ into project (name, slug, organization_id) values (?1, ?2, ?3) returning organization_id as organizationId, name as name, slug as slug"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Mobile app",
@@ -192,7 +192,7 @@ describe(ctx.label, () => {
                 .customizeQuery({ afterInsertKeyword: connection.rawFragment`/*+ hint */` })
                 .executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ hint */ into project (name, slug, organization_id) values ($1, $2, $3) on conflict do nothing returning organization_id as organizationId, name as name, slug as slug"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ hint */ into project (name, slug, organization_id) values (?1, ?2, ?3) on conflict do nothing returning organization_id as organizationId, name as name, slug as slug"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Mobile app",
@@ -220,7 +220,7 @@ describe(ctx.label, () => {
                 .customizeQuery({ afterInsertKeyword: connection.rawFragment`/*+ hint */` })
                 .executeInsertOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ hint */ into project (name, slug, organization_id) values ($1, $2, $3) returning slug as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ hint */ into project (name, slug, organization_id) values (?1, ?2, ?3) returning slug as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Mobile app",
@@ -247,7 +247,7 @@ describe(ctx.label, () => {
                 .customizeQuery({ afterInsertKeyword: connection.rawFragment`/*+ hint */` })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ hint */ into project (name, slug, organization_id) values ($1, $2, $3)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ hint */ into project (name, slug, organization_id) values (?1, ?2, ?3)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Mobile app",
@@ -279,7 +279,7 @@ describe(ctx.label, () => {
                 .customizeQuery({ afterInsertKeyword: connection.rawFragment`/*+ hint */` })
                 .executeInsertOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ hint */ into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4 returning id as id, name as name, slug as slug"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ hint */ into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4 returning id as id, name as name, slug as slug"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -309,7 +309,7 @@ describe(ctx.label, () => {
                 .customizeQuery({ afterInsertKeyword: connection.rawFragment`/*+ hint */` })
                 .executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ hint */ into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4 returning slug as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ hint */ into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4 returning slug as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -347,7 +347,7 @@ describe(ctx.label, () => {
                 .customizeQuery({ afterInsertKeyword: connection.rawFragment`/*+ hint */` })
                 .executeInsertMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ hint */ into project (organization_id, slug, name) select organization_id as organizationId, slug as slug, name as name from project where id = $1 on conflict (organization_id, slug) do update set name = $2 returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ hint */ into project (organization_id, slug, name) select organization_id as organizationId, slug as slug, name as name from project where id = ?1 on conflict (organization_id, slug) do update set name = ?2 returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

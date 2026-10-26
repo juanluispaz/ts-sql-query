@@ -408,7 +408,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ? returning id as id, (select name as result from organization where id = project.organization_id) as organization"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1 where id = ?2 returning id as id, (select name as result from organization where id = project.organization_id) as organization"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Marketing site v2",
@@ -442,7 +442,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ? returning id as id, (select count(id) as result from app_user) as userCount"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1 where id = ?2 returning id as id, (select count(id) as result from app_user) as userCount"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Marketing site v2",

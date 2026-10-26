@@ -51,7 +51,7 @@ describe(ctx.label, () => {
         await conn.selectFromNoTable()
             .selectOneColumn(conn.const(UUID_VALUE, 'uuid').asString())
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "123e4567-e89b-12d3-a456-426614174000",
@@ -70,7 +70,7 @@ describe(ctx.label, () => {
         // _asString wraps with uuid_str; _appendParam also wraps the
         // bound literal with uuid_blob so the round-trip through the
         // ext-UUID storage stays consistent.
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select uuid_str(uuid_blob(?)) as result"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select uuid_str(uuid_blob(?1)) as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "123e4567-e89b-12d3-a456-426614174000",
@@ -89,7 +89,7 @@ describe(ctx.label, () => {
         await conn.selectFromNoTable()
             .selectOneColumn(conn.const(UUID_VALUE, 'uuid'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select uuid_str(uuid_blob(?)) as result"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select uuid_str(uuid_blob(?1)) as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "123e4567-e89b-12d3-a456-426614174000",
@@ -107,7 +107,7 @@ describe(ctx.label, () => {
         await conn.selectFromNoTable()
             .selectOneColumn(conn.const(UUID_VALUE, 'uuid'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "123e4567-e89b-12d3-a456-426614174000",
@@ -142,7 +142,7 @@ describe(ctx.label, () => {
                     .forUseAsInlineAggregatedArrayValue(),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(uuid_str(uuid_blob(external_ref))) from issue where project_id = project.id) as refs, (select json_group_array(json_object('ref', uuid_str(uuid_blob(external_ref)), 'title', title)) from issue where project_id = project.id) as issues from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(uuid_str(uuid_blob(external_ref))) from issue where project_id = project.id) as refs, (select json_group_array(json_object('ref', uuid_str(uuid_blob(external_ref)), 'title', title)) from issue where project_id = project.id) as issues from project where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -194,7 +194,7 @@ describe(ctx.label, () => {
                     .forUseAsInlineAggregatedArrayValue(),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(uuid_str(a_1_.result)) from (select uuid_blob(external_ref) as result from issue where project_id = project.id order by result desc) as a_1_) as refs, (select json_group_array(json_object('ref', uuid_str(a_2_.ref), 'title', a_2_.title)) from (select uuid_blob(external_ref) as ref, title as title from issue where project_id = project.id order by title) as a_2_) as issues from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(uuid_str(a_1_.result)) from (select uuid_blob(external_ref) as result from issue where project_id = project.id order by result desc) as a_1_) as refs, (select json_group_array(json_object('ref', uuid_str(a_2_.ref), 'title', a_2_.title)) from (select uuid_blob(external_ref) as ref, title as title from issue where project_id = project.id order by title) as a_2_) as issues from project where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

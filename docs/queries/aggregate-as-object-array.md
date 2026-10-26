@@ -121,7 +121,7 @@ The executed query is:
         )) as customers 
     from company 
     left join customer on customer.company_id = company.id 
-    where company.id = ? 
+    where company.id = ?1 
     group by company.id, company.name
     ```
 === "SQL Server"
@@ -230,10 +230,10 @@ The executed query is:
     select 
         company.id as id, 
         company.name as name, 
-        json_group_array(customer.first_name || ? || customer.last_name) as customers 
+        json_group_array(customer.first_name || ?1 || customer.last_name) as customers 
     from company 
     left join customer on customer.company_id = company.id 
-    where company.id = ? 
+    where company.id = ?2 
     group by company.id, company.name
     ```
 === "SQL Server"
@@ -401,7 +401,7 @@ The executed query is:
             ) as a_1_
         ) as customers 
     from company 
-    where id = ?
+    where id = ?1
     ```
 === "SQL Server"
     ```sqlserver
@@ -537,14 +537,14 @@ The executed query is:
         (
             select json_group_array(a_1_.result) 
             from (
-                select first_name || ? || last_name as result 
+                select first_name || ?1 || last_name as result 
                 from customer 
                 where company_id = company.id 
                 order by result
             ) as a_1_
         ) as customers 
     from company 
-    where id = ?
+    where id = ?2
     ```
 === "SQL Server"
     ```sqlserver
@@ -736,7 +736,7 @@ The executed query is:
             from recursive_select_1
         ) as parents 
     from company 
-    where id = ?
+    where id = ?1
     ```
 === "SQL Server"
     ```sqlserver

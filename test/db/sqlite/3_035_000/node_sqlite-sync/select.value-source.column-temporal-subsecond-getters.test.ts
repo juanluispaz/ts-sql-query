@@ -30,7 +30,7 @@ describe(ctx.label, () => {
                 ms: tTemporalPrecision.microStamp.getMilliseconds(),
             })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%S', micro_stamp) as integer) as "s", cast(round(strftime('%f', micro_stamp) * 1000) as integer) % 1000 as ms from temporal_precision where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%S', micro_stamp) as integer) as "s", cast(round(strftime('%f', micro_stamp) * 1000) as integer) % 1000 as ms from temporal_precision where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -54,7 +54,7 @@ describe(ctx.label, () => {
                 t: tTemporalPrecision.microStamp.getTime(),
             })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select round((julianday(micro_stamp) - 2440587.5) * 86400000.0) as "t" from temporal_precision where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select round((julianday(micro_stamp) - 2440587.5) * 86400000.0) as "t" from temporal_precision where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -91,7 +91,7 @@ describe(ctx.label, () => {
                 t:   tReleaseDraft.shiftedStamp.getTime(),
             })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', shifted_stamp) as integer) as "y", cast(strftime('%m', shifted_stamp) as integer) - 1 as mo, cast(strftime('%d', shifted_stamp) as integer) as "d", cast(strftime('%w',shifted_stamp) as integer) as dow, cast(strftime('%H', shifted_stamp) as integer) as "h", cast(strftime('%M', shifted_stamp) as integer) as "m", cast(strftime('%S', shifted_stamp) as integer) as "s", cast(round(strftime('%f', shifted_stamp) * 1000) as integer) % 1000 as ms, round((julianday(shifted_stamp) - 2440587.5) * 86400000.0) as "t" from release_draft where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', shifted_stamp) as integer) as "y", cast(strftime('%m', shifted_stamp) as integer) - 1 as mo, cast(strftime('%d', shifted_stamp) as integer) as "d", cast(strftime('%w',shifted_stamp) as integer) as dow, cast(strftime('%H', shifted_stamp) as integer) as "h", cast(strftime('%M', shifted_stamp) as integer) as "m", cast(strftime('%S', shifted_stamp) as integer) as "s", cast(round(strftime('%f', shifted_stamp) * 1000) as integer) % 1000 as ms, round((julianday(shifted_stamp) - 2440587.5) * 86400000.0) as "t" from release_draft where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -117,7 +117,7 @@ describe(ctx.label, () => {
                 dow: tReleaseDraft.shiftedReleaseDay.getDay(),
             })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', shifted_release_day) as integer) as "y", cast(strftime('%m', shifted_release_day) as integer) - 1 as mo, cast(strftime('%d', shifted_release_day) as integer) as "d", cast(strftime('%w',shifted_release_day) as integer) as dow from release_draft where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', shifted_release_day) as integer) as "y", cast(strftime('%m', shifted_release_day) as integer) - 1 as mo, cast(strftime('%d', shifted_release_day) as integer) as "d", cast(strftime('%w',shifted_release_day) as integer) as dow from release_draft where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -143,7 +143,7 @@ describe(ctx.label, () => {
                 ms: tReleaseDraft.shiftedCutoff.getMilliseconds(),
             })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%H', shifted_cutoff) as integer) as "h", cast(strftime('%M', shifted_cutoff) as integer) as "m", cast(strftime('%S', shifted_cutoff) as integer) as "s", cast(round(strftime('%f', shifted_cutoff) * 1000) as integer) % 1000 as ms from release_draft where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%H', shifted_cutoff) as integer) as "h", cast(strftime('%M', shifted_cutoff) as integer) as "m", cast(strftime('%S', shifted_cutoff) as integer) as "s", cast(round(strftime('%f', shifted_cutoff) * 1000) as integer) % 1000 as ms from release_draft where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

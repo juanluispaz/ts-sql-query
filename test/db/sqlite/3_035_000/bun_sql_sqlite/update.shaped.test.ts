@@ -28,7 +28,7 @@ describe(ctx.label, () => {
                 .setIfValue({ projectName: 'Renamed via shaped setIfValue', archived: undefined })
                 .where(tProject.id.equals(1))
                 .executeUpdate()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = $1 where id = $2"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1 where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Renamed via shaped setIfValue",
@@ -51,7 +51,7 @@ describe(ctx.label, () => {
                 .setIfSet({ projectName: 'Overwritten name', projectSlug: 'should-be-skipped' })
                 .where(tProject.id.equals(1))
                 .executeUpdate()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = $1 where id = $2"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1 where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Overwritten name",
@@ -74,7 +74,7 @@ describe(ctx.label, () => {
                 .setIfNotSet({ projectName: 'ignored', projectSlug: 'mktg-site-shaped' })
                 .where(tProject.id.equals(1))
                 .executeUpdate()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = $1, slug = $2 where id = $3"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1, slug = ?2 where id = ?3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Kept name",
@@ -98,7 +98,7 @@ describe(ctx.label, () => {
                 .ignoreIfSet('projectSlug')
                 .where(tProject.id.equals(1))
                 .executeUpdate()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = $1 where id = $2"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1 where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Stays",
@@ -121,7 +121,7 @@ describe(ctx.label, () => {
                 .keepOnly('projectName')
                 .where(tProject.id.equals(1))
                 .executeUpdate()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = $1 where id = $2"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1 where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Only name kept",
@@ -146,7 +146,7 @@ describe(ctx.label, () => {
                 .setIfHasNoValue({ projectSlug: 'filled-slug' })
                 .where(tProject.id.equals(1))
                 .executeUpdate()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = $1, slug = $2 where id = $3"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1, slug = ?2 where id = ?3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Overwritten because had value",
@@ -171,7 +171,7 @@ describe(ctx.label, () => {
                 .ignoreAnySetWithNoValue()
                 .where(tProject.id.equals(1))
                 .executeUpdate()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = $1 where id = $2"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1 where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Survives",
@@ -195,7 +195,7 @@ describe(ctx.label, () => {
                 .set({ projectSlug: 'via-dynamic-slug' })
                 .where(tProject.id.equals(1))
                 .executeUpdate()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = $1, slug = $2 where id = $3"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1, slug = ?2 where id = ?3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Via dynamicSet",
@@ -218,7 +218,7 @@ describe(ctx.label, () => {
                 .shapedAs({ projectName: 'name' })
                 .set({ projectName: 'Bulk renamed' })
                 .executeUpdate()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = $1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Bulk renamed",
@@ -253,8 +253,8 @@ describe(ctx.label, () => {
                 .executeUpdate()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"update project set name = $1 where id = $2"`)
-            expect(trueSql).toMatchInlineSnapshot(`"update project set name = $1, slug = $2 where id = $3"`)
+            expect(falseSql).toMatchInlineSnapshot(`"update project set name = ?1 where id = ?2"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update project set name = ?1, slug = ?2 where id = ?3"`)
             expect(trueSql).not.toBe(falseSql)
             assertType<Exact<typeof affected, number>>()
             expect(affected).toBe(1)
@@ -273,7 +273,7 @@ describe(ctx.label, () => {
                 .setIfValueWhen(true, { projectName: 'Renamed via setIfValueWhen', archived: undefined })
                 .where(tProject.id.equals(1))
                 .executeUpdate()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = $1 where id = $2"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1 where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Renamed via setIfValueWhen",
@@ -297,7 +297,7 @@ describe(ctx.label, () => {
                 .keepOnlyWhen(true, 'projectName')
                 .where(tProject.id.equals(1))
                 .executeUpdate()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = $1 where id = $2"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1 where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Only name kept",
@@ -321,7 +321,7 @@ describe(ctx.label, () => {
                 .dynamicSet({ projectName: 'Via dynamicSet one-arg', projectSlug: 'via-dynamic-one-arg' })
                 .where(tProject.id.equals(1))
                 .executeUpdate()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = $1, slug = $2 where id = $3"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1, slug = ?2 where id = ?3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Via dynamicSet one-arg",
@@ -346,7 +346,7 @@ describe(ctx.label, () => {
                 .dynamicSet()
                 .set({ projectName: 'Bulk renamed via dynamicSet no-arg' })
                 .executeUpdate()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = $1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Bulk renamed via dynamicSet no-arg",
@@ -368,7 +368,7 @@ describe(ctx.label, () => {
                 .shapedAs({ projectName: 'name' })
                 .dynamicSet({ projectName: 'Bulk renamed via dynamicSet one-arg' })
                 .executeUpdate()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = $1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Bulk renamed via dynamicSet one-arg",
@@ -401,7 +401,7 @@ describe(ctx.label, () => {
                 .where(tProject.organizationId.equals(tOrganization.id))
                 .and(tOrganization.plan.equals('pro'))
                 .executeUpdate()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = project.name || $1 || organization.name from organization where project.organization_id = organization.id and organization."plan" = $2"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = project.name || ?1 || organization.name from organization where project.organization_id = organization.id and organization."plan" = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 " / ",
@@ -436,7 +436,7 @@ describe(ctx.label, () => {
                 .where(tProject.id.equals(1))
                 .returning({ id: tProject.id, name: tProject.name, slug: tProject.slug })
                 .executeUpdateOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = $1, slug = $2 where id = $3 returning id as id, name as name, slug as slug"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?1, slug = ?2 where id = ?3 returning id as id, name as name, slug as slug"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Renamed via shaped setWhen",
@@ -463,7 +463,7 @@ describe(ctx.label, () => {
                 .extendShape({ orgPlan: tOrganization.plan })
                 .set({ orgName: 'Column-shaped rename', orgPlan: 'column-shaped-plan' })
                 .executeUpdate()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update organization set name = $1, "plan" = $2"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update organization set name = ?1, "plan" = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Column-shaped rename",
@@ -491,7 +491,7 @@ describe(ctx.label, () => {
                 .extendShape({ orgPlan: 'plan' })
                 .set({ orgPlan: 'bulk-plan' })
                 .executeUpdate()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update organization set name = $1, "plan" = $2"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update organization set name = ?1, "plan" = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Bulk renamed",

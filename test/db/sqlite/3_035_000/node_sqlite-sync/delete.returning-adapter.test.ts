@@ -33,7 +33,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tProjectReview.reviewerCode)
                 .executeDeleteOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_review where id = ? returning reviewer_code as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_review where id = ?1 returning reviewer_code as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -55,7 +55,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tProjectReview.score)
                 .executeDeleteOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_review where id = ? returning score as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_review where id = ?1 returning score as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -80,7 +80,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tProjectRelease.versionTag)
                 .executeDeleteOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_release where id = ? returning upper(channel) as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_release where id = ?1 returning upper(channel) as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -104,7 +104,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tColMatrixVirtualAdapter.cents)
                 .executeDeleteOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from col_matrix where id = ? returning m_int as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from col_matrix where id = ?1 returning m_int as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

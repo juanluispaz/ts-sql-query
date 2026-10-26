@@ -80,7 +80,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where exists(select id as result from project where id = issue.project_id and lower(name) like lower('%' || ? || '%') escape '\\') order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where exists(select id as result from project where id = issue.project_id and lower(name) like lower('%' || ?1 || '%') escape '\\') order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "mktg",
@@ -128,7 +128,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where status = ? and exists(select id as result from project where id = issue.project_id and lower(name) like lower('%' || ? || '%') escape '\\') order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where status = ?1 and exists(select id as result from project where id = issue.project_id and lower(name) like lower('%' || ?2 || '%') escape '\\') order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -153,7 +153,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where not (exists(select id as result from project where id = issue.project_id and lower(name) like lower('%' || ? || '%') escape '\\')) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where not (exists(select id as result from project where id = issue.project_id and lower(name) like lower('%' || ?1 || '%') escape '\\')) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "legacy",

@@ -134,7 +134,7 @@ describe('MockQueryRunner', () => {
 
     const PLACEHOLDERS: [DatabaseType, string, string][] = [
         ['mariaDB', '?', '?'], ['mySql', '?', '?'], ['noopDB', '$0', '$1'], ['oracle', ':0', ':1'],
-        ['postgreSql', '$1', '$2'], ['sqlite', '?', '?'], ['sqlServer', '@0', '@1'],
+        ['postgreSql', '$1', '$2'], ['sqlite', '?1', '?2'], ['sqlServer', '@0', '@1'],
     ]
     for (const [database, first, second] of PLACEHOLDERS) {
         test(`params-on-${database}`, () => {

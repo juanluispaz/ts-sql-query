@@ -42,7 +42,7 @@ describe(ctx.label, () => {
         // executeSelectPage runs two queries: first the data page, then
         // the unpaginated count. We assert both via ctx.history.
         expect(ctx.history.length).toBe(2)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select id as id, name as name, slug as slug from project order by name limit ? offset ?"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select id as id, name as name, slug as slug from project order by name limit ?1 offset ?2"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
           [
             10,
@@ -88,7 +88,7 @@ describe(ctx.label, () => {
         // Two queries: the data page (keeps order by / limit / offset), then the
         // count (keeps the WHERE, drops the paging, no `from (select …)` wrap).
         expect(ctx.history.length).toBe(2)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select id as id, title as title from issue where priority > ? order by id limit ? offset ?"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select id as id, title as title from issue where priority > ?1 order by id limit ?2 offset ?3"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
           [
             1,
@@ -96,7 +96,7 @@ describe(ctx.label, () => {
             0,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"select count(*) from issue where priority > ?"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"select count(*) from issue where priority > ?1"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
           [
             1,
@@ -138,7 +138,7 @@ describe(ctx.label, () => {
 
         // Only the data query was fired.
         expect(ctx.history.length).toBe(1)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select id as id, name as name, slug as slug from project order by id limit ? offset ?"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select id as id, name as name, slug as slug from project order by id limit ?1 offset ?2"`)
         assertType<Exact<typeof page, {
             data:  Array<{ id: number; name: string; slug: string }>
             count: number

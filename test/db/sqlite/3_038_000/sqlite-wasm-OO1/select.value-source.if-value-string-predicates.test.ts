@@ -46,7 +46,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title like ? escape '\\' and title not like ? escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title like ?1 escape '\\' and title not like ?2 escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "%nav%",
@@ -102,7 +102,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title like (? || '%') escape '\\' and title like ('%' || ?) escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title like (?1 || '%') escape '\\' and title like ('%' || ?2) escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Migrate",
@@ -161,7 +161,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title not like (? || '%') escape '\\' and title not like ('%' || ?) escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title not like (?1 || '%') escape '\\' and title not like ('%' || ?2) escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Update",
@@ -193,7 +193,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title not like ('%' || ? || '%') escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title not like ('%' || ?1 || '%') escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "nav",
@@ -228,7 +228,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(status, ?, ?) as masked from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(status, ?1, ?2) as masked from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "o",

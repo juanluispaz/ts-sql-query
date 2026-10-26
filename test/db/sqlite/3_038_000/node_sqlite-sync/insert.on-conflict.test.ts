@@ -23,7 +23,7 @@ describe(ctx.label, () => {
                 .onConflictDoNothing()
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?) on conflict do nothing"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2) on conflict do nothing"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Acme Corp",
@@ -54,7 +54,7 @@ describe(ctx.label, () => {
                 .onConflictDoUpdateSet({ name: 'Marketing site v2' })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict do update set name = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict do update set name = ?4"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -88,7 +88,7 @@ describe(ctx.label, () => {
                 .onConflictOn(tProject.organizationId, tProject.slug)
                 .doUpdateSet({ name: 'Updated mktg' })
                 .executeInsert())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -116,7 +116,7 @@ describe(ctx.label, () => {
                 .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
                 .onConflictDoUpdateSet({ name: tProject.name.concat(' v2') })
                 .executeInsert())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict do update set name = project.name || ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict do update set name = project.name || ?4"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -151,7 +151,7 @@ describe(ctx.label, () => {
                     name: tProject.name.concat(' / ').concat(tProjectForInsert.name),
                 })
                 .executeInsert())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict do update set name = project.name || ? || excluded.name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict do update set name = project.name || ?4 || excluded.name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -223,7 +223,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?) on conflict do nothing returning id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2) on conflict do nothing returning id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Conflict demo",
@@ -263,7 +263,7 @@ describe(ctx.label, () => {
                 .onConflictOn(tProject.organizationId, tProject.slug)
                 .doUpdateSet({ name: tProject.name.concat(tProject.valuesForInsert().name) })
                 .executeInsert())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = project.name || excluded.name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = project.name || excluded.name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -325,7 +325,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tOrganization.name)
                 .executeInsertNoneOrOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?) on conflict do nothing returning name as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2) on conflict do nothing returning name as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Conflict demo",
@@ -352,7 +352,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tProject.name)
                 .executeInsertOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ? returning name as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4 returning name as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -384,7 +384,7 @@ describe(ctx.label, () => {
                 .returning({ id: tProject.id, name: tProject.name })
                 .executeInsertNoneOrOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ? where project.name <> ? returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4 where project.name <> ?5 returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -421,7 +421,7 @@ describe(ctx.label, () => {
                 .returning({ id: tProject.id, name: tProject.name })
                 .executeInsertMany())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?), (?, ?, ?) on conflict (organization_id, slug) do update set name = excluded.name returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3), (?4, ?5, ?6) on conflict (organization_id, slug) do update set name = excluded.name returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -456,7 +456,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tProject.name)
                 .executeInsertMany())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?), (?, ?, ?) on conflict (organization_id, slug) do update set name = excluded.name returning name as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3), (?4, ?5, ?6) on conflict (organization_id, slug) do update set name = excluded.name returning name as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -498,7 +498,7 @@ describe(ctx.label, () => {
                 .returning({ id: tIssue.id, assigneeId: tIssue.assigneeId })
                 .executeInsertMany())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?), (?, ?, ?, ?, ?) on conflict (project_id, number) do update set title = excluded.title returning id as id, assignee_id as assigneeId"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5), (?6, ?7, ?8, ?9, ?10) on conflict (project_id, number) do update set title = excluded.title returning id as id, assignee_id as assigneeId"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -543,7 +543,7 @@ describe(ctx.label, () => {
                 .returning({ score: tProjectReview.score })
                 .executeInsertNoneOrOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_review (project_id, reviewer_code, score, review_time) values (?, ?, ?, ?) on conflict (id) do update set score = ? where project_review.score > ? returning score as score"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_review (project_id, reviewer_code, score, review_time) values (?1, ?2, ?3, ?4) on conflict (id) do update set score = ?5 where project_review.score > ?6 returning score as score"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -572,7 +572,7 @@ describe(ctx.label, () => {
                 .onConflictOn(tReleaseDraft.id)
                 .doUpdateSet({ stage: 'final', channel: 'stable', minVersion: '3.0.0' })
                 .executeInsert())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into release_draft (id, title, stage, channel, min_version) values (?, ?, ?, ?, ?) on conflict (id) do update set stage = ?, channel = ?, min_version = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into release_draft (id, title, stage, channel, min_version) values (?1, ?2, ?3, ?4, ?5) on conflict (id) do update set stage = ?6, channel = ?7, min_version = ?8"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -609,7 +609,7 @@ describe(ctx.label, () => {
                 .doNothing()
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) where (published = 't') = ? do nothing"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) where (published = 't') = ?4 do nothing"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -640,7 +640,7 @@ describe(ctx.label, () => {
                 .doNothing()
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) where (published = 't') = ? do nothing"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) where (published = 't') = ?4 do nothing"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -679,7 +679,7 @@ describe(ctx.label, () => {
                 .doNothing()
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) select organization_id as organizationId, slug as slug, name as name from project where id = ? on conflict (organization_id, slug) where (published = 't') = ? do nothing"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) select organization_id as organizationId, slug as slug, name as name from project where id = ?1 on conflict (organization_id, slug) where (published = 't') = ?2 do nothing"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -916,7 +916,7 @@ describe(ctx.label, () => {
                 .returning({ id: tProject.id, audit: { name: tProject.name, slug: tProject.slug } })
                 .executeInsertOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ? returning id as id, name as "audit.name", slug as "audit.slug""`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4 returning id as id, name as "audit.name", slug as "audit.slug""`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -942,7 +942,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into app_user (email, full_name) values (?, ?) on conflict do nothing returning id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into app_user (email, full_name) values (?1, ?2) on conflict do nothing returning id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "ada@acme.test",

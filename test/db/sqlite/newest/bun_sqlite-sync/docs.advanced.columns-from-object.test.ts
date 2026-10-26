@@ -40,7 +40,7 @@ describe(ctx.label, () => {
             .executeSelectOne())
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, "plan" as "plan", (verified = 'Y') as verified, created_at as createdAt from organization where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, "plan" as "plan", (verified = 'Y') as verified, created_at as createdAt from organization where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

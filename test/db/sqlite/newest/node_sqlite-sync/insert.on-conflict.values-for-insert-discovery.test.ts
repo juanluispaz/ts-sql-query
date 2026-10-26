@@ -59,7 +59,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ? returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4 returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -89,7 +89,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = excluded.name returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = excluded.name returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -124,7 +124,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set published = case when 1 then 't' else 'f' end, slug = ?, name = excluded.name returning id as id, name as name, (published = 't') as published"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set published = case when 1 then 't' else 'f' end, slug = ?4, name = excluded.name returning id as id, name as name, (published = 't') as published"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -156,7 +156,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set published = case when excluded.name = ? then 't' else 'f' end returning id as id, (published = 't') as published"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set published = case when excluded.name = ?4 then 't' else 'f' end returning id as id, (published = 't') as published"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -190,7 +190,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set published = case when excluded.name = ? then 't' else 'f' end returning id as id, (published = 't') as published"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set published = case when excluded.name = ?4 then 't' else 'f' end returning id as id, (published = 't') as published"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -223,7 +223,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set published = case when excluded.published = 't' then 't' else 'f' end returning id as id, (published = 't') as published"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set published = case when excluded.published = 't' then 't' else 'f' end returning id as id, (published = 't') as published"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -251,7 +251,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = lower(excluded.name) returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = lower(excluded.name) returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -281,7 +281,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = excluded.name collate BINARY returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = excluded.name collate BINARY returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -309,7 +309,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = excluded.name || ? returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = excluded.name || ?4 returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -340,7 +340,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = replace(project.name, ?, excluded.slug) returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = replace(project.name, ?4, excluded.slug) returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -376,7 +376,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name, archived_at) values (?, ?, ?, ?) on conflict (organization_id, slug) do update set archived_at = ifnull(project.archived_at, excluded.archived_at) returning id as id, archived_at is not null as archived"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name, archived_at) values (?1, ?2, ?3, ?4) on conflict (organization_id, slug) do update set archived_at = ifnull(project.archived_at, excluded.archived_at) returning id as id, archived_at is not null as archived"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -410,7 +410,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name, archived_at) values (?, ?, ?, ?) on conflict (organization_id, slug) do update set archived_at = excluded.archived_at returning id as id, archived_at is not null as archived"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name, archived_at) values (?1, ?2, ?3, ?4) on conflict (organization_id, slug) do update set archived_at = excluded.archived_at returning id as id, archived_at is not null as archived"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -439,7 +439,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = excluded.name returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = excluded.name returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -468,7 +468,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = upper(excluded.name) returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = upper(excluded.name) returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -504,7 +504,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ? where project.archived_at is ? and project.name is not excluded.name returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4 where project.archived_at is ?5 and project.name is not excluded.name returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -536,7 +536,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ? where project.slug in (?, excluded.slug) returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4 where project.slug in (?5, excluded.slug) returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -567,7 +567,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ? where excluded.slug in (?, ?) returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4 where excluded.slug in (?5, ?6) returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -600,7 +600,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ? where project.name not in (excluded.name) returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4 where project.name not in (excluded.name) returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -640,7 +640,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ? where project.slug in (?, ?) and project.id in (select project_id as result from issue where status = ?) and project.name <> excluded.name returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4 where project.slug in (?5, ?6) and project.id in (select project_id as result from issue where status = ?7) and project.name <> excluded.name returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -680,7 +680,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ? where exists(select id as result from issue where project_id = project.id) and project.name <> excluded.name returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4 where exists(select id as result from issue where project_id = project.id) and project.name <> excluded.name returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -710,7 +710,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ? where excluded.name = ? returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4 where excluded.name = ?5 returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -747,7 +747,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ? where project.id in (?, ?) and project.name <> excluded.name returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4 where project.id in (?5, ?6) and project.name <> excluded.name returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -779,7 +779,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ? where excluded.organization_id in (?, ?) returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4 where excluded.organization_id in (?5, ?6) returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -811,7 +811,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ? where excluded.organization_id between ? and ? returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4 where excluded.organization_id between ?5 and ?6 returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -843,7 +843,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ? where project.organization_id between excluded.organization_id and ? returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4 where project.organization_id between excluded.organization_id and ?5 returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -874,7 +874,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ? where project.organization_id between ? and excluded.organization_id returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4 where project.organization_id between ?5 and excluded.organization_id returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -908,7 +908,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue_worklog (id, issue_id, work_date, activity) values (?, ?, ?, ?) on conflict (id) do update set activity = ? where upper(excluded.activity) = ? returning id as id, activity as activity"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue_worklog (id, issue_id, work_date, activity) values (?1, ?2, ?3, ?4) on conflict (id) do update set activity = ?5 where upper(excluded.activity) = ?6 returning id as id, activity as activity"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -950,7 +950,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ifnull((select name as result from organization where id = project.organization_id), ?) returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ifnull((select name as result from organization where id = project.organization_id), ?4) returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -991,7 +991,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ifnull((select name as result from organization where "plan" = ? intersect select name as result from organization where (verified = 'Y') = ?), ?) returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ifnull((select name as result from organization where "plan" = ?4 intersect select name as result from organization where (verified = 'Y') = ?5), ?6) returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1033,7 +1033,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ? where project.slug in (select slug as result from project where organization_id = ? union select slug as result from project where archived_at is not null) returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4 where project.slug in (select slug as result from project where organization_id = ?5 union select slug as result from project where archived_at is not null) returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1070,7 +1070,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ? where project.organization_id in (select id as result from organization where id = project.organization_id) returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ?4 where project.organization_id in (select id as result from organization where id = project.organization_id) returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

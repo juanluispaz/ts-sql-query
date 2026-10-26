@@ -42,7 +42,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, lc: vReleaseOverview.versionBracketed.toLowerCase() })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, lower(version_bracketed) as lc from release_overview where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, lower(version_bracketed) as lc from release_overview where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -64,7 +64,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, uc: vReleaseOverview.versionBracketed.toUpperCase() })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, upper(version_bracketed) as uc from release_overview where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, upper(version_bracketed) as uc from release_overview where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -86,7 +86,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, tm: vReleaseOverview.versionBracketed.trim() })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, trim(version_bracketed) as tm from release_overview where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, trim(version_bracketed) as tm from release_overview where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -107,7 +107,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, tl: vReleaseOverview.versionBracketed.trimLeft() })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ltrim(version_bracketed) as tl from release_overview where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ltrim(version_bracketed) as tl from release_overview where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -128,7 +128,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, tr: vReleaseOverview.versionBracketed.trimRight() })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, rtrim(version_bracketed) as tr from release_overview where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, rtrim(version_bracketed) as tr from release_overview where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -174,7 +174,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, sg: vReleaseOverview.versionBracketed.substring(0, 3) })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substr(version_bracketed, ?, ?) as sg from release_overview where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substr(version_bracketed, ?1, ?2) as sg from release_overview where id = ?3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -197,7 +197,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, sb: vReleaseOverview.versionBracketed.substr(0, 3) })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substr(version_bracketed, ?, ?) as sb from release_overview where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substr(version_bracketed, ?1, ?2) as sb from release_overview where id = ?3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -220,7 +220,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, cc: vReleaseOverview.versionBracketed.concat('!') })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version_bracketed || ? as cc from release_overview where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version_bracketed || ?1 as cc from release_overview where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "!",
@@ -243,7 +243,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, rp: vReleaseOverview.versionBracketed.replaceAll('.', '_') })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(version_bracketed, ?, ?) as rp from release_overview where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(version_bracketed, ?1, ?2) as rp from release_overview where id = ?3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             ".",
@@ -267,7 +267,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, len: vReleaseOverview.versionBracketed.length() })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, length(version_bracketed) as len from release_overview where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, length(version_bracketed) as len from release_overview where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -289,7 +289,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, lc: vReleaseOverview.channelBracketed.toLowerCase() })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, lower(channel_bracketed) as lc from release_overview where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, lower(channel_bracketed) as lc from release_overview where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -311,7 +311,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, uc: vReleaseOverview.channelBracketed.toUpperCase() })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, upper(channel_bracketed) as uc from release_overview where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, upper(channel_bracketed) as uc from release_overview where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -333,7 +333,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, tm: vReleaseOverview.channelBracketed.trim() })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, trim(channel_bracketed) as tm from release_overview where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, trim(channel_bracketed) as tm from release_overview where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -355,7 +355,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, tl: vReleaseOverview.channelBracketed.trimLeft() })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ltrim(channel_bracketed) as tl from release_overview where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ltrim(channel_bracketed) as tl from release_overview where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -377,7 +377,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, tr: vReleaseOverview.channelBracketed.trimRight() })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, rtrim(channel_bracketed) as tr from release_overview where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, rtrim(channel_bracketed) as tr from release_overview where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -423,7 +423,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, sg: vReleaseOverview.channelBracketed.substring(0, 3) })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substr(channel_bracketed, ?, ?) as sg from release_overview where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substr(channel_bracketed, ?1, ?2) as sg from release_overview where id = ?3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -446,7 +446,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, sb: vReleaseOverview.channelBracketed.substr(0, 3) })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substr(channel_bracketed, ?, ?) as sb from release_overview where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substr(channel_bracketed, ?1, ?2) as sb from release_overview where id = ?3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -469,7 +469,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, cc: vReleaseOverview.channelBracketed.concat('!') })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, channel_bracketed || ? as cc from release_overview where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, channel_bracketed || ?1 as cc from release_overview where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "!",
@@ -492,7 +492,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, rp: vReleaseOverview.channelBracketed.replaceAll('a', 'A') })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(channel_bracketed, ?, ?) as rp from release_overview where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(channel_bracketed, ?1, ?2) as rp from release_overview where id = ?3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "a",
@@ -516,7 +516,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, len: vReleaseOverview.channelBracketed.length() })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, length(channel_bracketed) as len from release_overview where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, length(channel_bracketed) as len from release_overview where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -548,7 +548,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(project_name, ?, version_bracketed) as rp from release_overview where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(project_name, ?1, version_bracketed) as rp from release_overview where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "site",

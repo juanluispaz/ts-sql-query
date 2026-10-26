@@ -31,7 +31,7 @@ describe(ctx.label, () => {
         const rows = sync(ctx.conn.selectFrom(tIssueWorklog)
             .where(ctx.conn.localDateEq(tIssueWorklog.workDate, new Date(Date.UTC(2024, 2, 4))))
             .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date = ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "2024-03-04",
@@ -49,7 +49,7 @@ describe(ctx.label, () => {
         const rows = sync(ctx.conn.selectFrom(tIssueWorklog)
             .where(ctx.conn.localTimeEq(tIssueWorklog.startedAt, new Date('1970-01-01T09:15:00Z')))
             .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at = ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "09:15:00",
@@ -68,7 +68,7 @@ describe(ctx.label, () => {
         const rows = sync(ctx.conn.selectFrom(tIssue)
             .where(ctx.conn.localDateTimeEq(tIssue.createdAt, new Date('2020-01-01T00:00:00Z')))
             .select({ id: tIssue.id }).orderBy('id').executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where created_at = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where created_at = ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "2020-01-01 00:00:00",
@@ -85,7 +85,7 @@ describe(ctx.label, () => {
         const rows = sync(ctx.conn.selectFrom(tIssueWorklog)
             .where(ctx.conn.customDoubleEq(tIssueWorklog.billedAmount, 50))
             .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount = ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             50,

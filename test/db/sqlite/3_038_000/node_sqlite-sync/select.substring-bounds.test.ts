@@ -38,7 +38,7 @@ describe(ctx.label, () => {
                 sub: tIssue.title.substring(-3, tIssue.id),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substr(title, 1, id) as sub from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substr(title, 1, id) as sub from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             4,
@@ -62,7 +62,7 @@ describe(ctx.label, () => {
                 sub: tIssue.title.substring(1, tIssue.id),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substr(title, ?, id - ?) as sub from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substr(title, ?1, id - ?2) as sub from issue where id = ?3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -92,7 +92,7 @@ describe(ctx.label, () => {
                 sub: tIssue.title.substring(3, -2),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substr(title, ?, ?) as sub from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substr(title, ?1, ?2) as sub from issue where id = ?3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

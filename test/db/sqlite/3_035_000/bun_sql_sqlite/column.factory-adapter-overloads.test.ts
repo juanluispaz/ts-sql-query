@@ -39,7 +39,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select entry_no as entryNo, amount as amount, memo as memo, upper('led') as tag from ledger_entry where entry_no = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select entry_no as entryNo, amount as amount, memo as memo, upper('led') as tag from ledger_entry where entry_no = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -59,7 +59,7 @@ describe(ctx.label, () => {
                 .values({ amount: 15, memo: 8 })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into ledger_entry (amount, memo) values ($1, $2)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into ledger_entry (amount, memo) values (?1, ?2)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 150,
@@ -115,7 +115,7 @@ describe(ctx.label, () => {
                 })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select amount as amount, memo as memo from ledger_entry where amount = $1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select amount as amount, memo as memo from ledger_entry where amount = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 100,
@@ -147,7 +147,7 @@ describe(ctx.label, () => {
                 })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select amount as amount, memo as memo from ledger_entry where amount = $1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select amount as amount, memo as memo from ledger_entry where amount = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 120,
@@ -172,7 +172,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select entry_no as entryNo, discount as discount from ledger_entry where entry_no = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select entry_no as entryNo, discount as discount from ledger_entry where entry_no = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -192,7 +192,7 @@ describe(ctx.label, () => {
                 .values({ amount: 10, discount: 4 })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into ledger_entry (amount, discount) values ($1, $2)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into ledger_entry (amount, discount) values (?1, ?2)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 100,
@@ -224,7 +224,7 @@ describe(ctx.label, () => {
                 })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select amount as amount, discount as discount from ledger_entry where amount = $1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select amount as amount, discount as discount from ledger_entry where amount = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 130,

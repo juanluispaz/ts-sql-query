@@ -114,10 +114,10 @@ The executed query is:
     ```sqlite
     select 
         id as id, 
-        first_name || ? || last_name as name, 
+        first_name || ?1 || last_name as name, 
         birthday as birthday 
     from customer 
-    where first_name like ('%' || ? || '%') escape '\' 
+    where first_name like ('%' || ?2 || '%') escape '\' 
     order by 
         lower(name), 
         birthday asc nulls last
@@ -295,12 +295,12 @@ The executed query is:
     inner join company on customer.company_id = company.id 
     where 
         (
-               lower(customer.first_name) like lower(? || '%') escape '\' 
+               lower(customer.first_name) like lower(?1 || '%') escape '\' 
             or (
-                    lower(customer.last_name) like lower(? || '%') escape '\' 
-                and customer.last_name like ('%' || ?) escape '\'
+                    lower(customer.last_name) like lower(?2 || '%') escape '\' 
+                and customer.last_name like ('%' || ?3) escape '\'
             )
-        ) and company.name = ? 
+        ) and company.name = ?4 
     order by 
         lower(firstName), 
         lower(lastName) asc
@@ -526,7 +526,7 @@ The executed query is:
         first_name as firstName, 
         last_name as lastName 
     from customer 
-    where id = ?
+    where id = ?1
     ```
 === "SQL Server"
     ```sqlserver
@@ -638,7 +638,7 @@ The executed query is:
         company.name as companyName 
     from customer 
     inner join company on company.id = customer.company_id 
-    where customer.id = ?
+    where customer.id = ?1
     ```
 === "SQL Server"
     ```sqlserver
@@ -760,7 +760,7 @@ The executed query is:
         first_name as firstName, 
         last_name as lastName 
     from customer 
-    where id = ?
+    where id = ?1
     ```
 === "SQL Server"
     ```sqlserver
@@ -946,10 +946,10 @@ The executed query is:
     from customer 
     inner join company on company.id = customer.company_id 
     where 
-            company.name = ? 
+            company.name = ?1 
         and (
-               lower(customer.first_name) like lower('%' || ? || '%') escape '\' 
-            or lower(customer.last_name) like lower('%' || ? || '%') escape '\'
+               lower(customer.first_name) like lower('%' || ?2 || '%') escape '\' 
+            or lower(customer.last_name) like lower('%' || ?3 || '%') escape '\'
         ) 
     order by 
         lower("company.name") asc, 
@@ -1077,7 +1077,7 @@ The executed query is:
         first_name as "name.firstName", 
         last_name as "name.lastName" 
     from customer 
-    where id = ?
+    where id = ?1
     ```
 === "SQL Server"
     ```sqlserver
@@ -1200,7 +1200,7 @@ The executed query is:
         company.name as "company.name" 
     from customer 
     inner join company on company.id = customer.company_id 
-    where customer.id = ?
+    where customer.id = ?1
     ```
 === "SQL Server"
     ```sqlserver
@@ -1375,8 +1375,8 @@ The executed query is:
         name as name 
     from company 
     where 
-            lower(name) like lower('%' || ? || '%') escape '\' 
-        and parent_id = ?
+            lower(name) like lower('%' || ?1 || '%') escape '\' 
+        and parent_id = ?2
     ```
 === "SQL Server"
     ```sqlserver
@@ -1474,15 +1474,15 @@ The executed query is:
     select 
         company.id as id, 
         company.name as name, 
-        favouriteCustomer.first_name || ? || favouriteCustomer.last_name as "favouriteCustomer.name" 
+        favouriteCustomer.first_name || ?1 || favouriteCustomer.last_name as "favouriteCustomer.name" 
     from company 
     left outer join customer as favouriteCustomer on company.parent_id = favouriteCustomer.id 
     where 
         exists(
             select id as result 
             from customer 
-            where lower(first_name || ? || last_name) like lower('%' || ? || '%') escape '\'
-        ) and company.parent_id = ?
+            where lower(first_name || ?2 || last_name) like lower('%' || ?3 || '%') escape '\'
+        ) and company.parent_id = ?4
     ```
 === "SQL Server"
     ```sqlserver
@@ -1590,8 +1590,8 @@ The executed query is:
         favouriteCustomer.id in (
             select parent_id as result 
             from company 
-            where lower(name) like lower('%' || ? || '%') escape '\'
-        ) and company.parent_id = ?
+            where lower(name) like lower('%' || ?1 || '%') escape '\'
+        ) and company.parent_id = ?2
     ```
 === "SQL Server"
     ```sqlserver
@@ -1718,13 +1718,13 @@ The executed query is:
             exists(
                 select id as result 
                 from customer 
-                where lower(first_name || ? || last_name) like lower('%' || ? || '%') escape '\'
+                where lower(first_name || ?1 || last_name) like lower('%' || ?2 || '%') escape '\'
             ) or exists(
                 select id as result 
                 from customer 
-                where birthday = ?
+                where birthday = ?3
             )
-        ) and parent_id = ?
+        ) and parent_id = ?4
     ```
 === "SQL Server"
     ```sqlserver

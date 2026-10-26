@@ -30,7 +30,7 @@ describe(ctx.label, () => {
                 })
                 .executeUpdate())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* op=rename */  update project set name = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* op=rename */  update project set name = ?1 where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Marketing site (renamed)",
@@ -55,7 +55,7 @@ describe(ctx.label, () => {
                 })
                 .executeUpdate())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where id = ?  /* keyed-by project_id */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?1 where id = ?2  /* keyed-by project_id */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "closed",
@@ -82,7 +82,7 @@ describe(ctx.label, () => {
                 })
                 .executeUpdate())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /*+ hint */ project set name = ? where id = ?  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /*+ hint */ project set name = ?1 where id = ?2  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Mobile app (v2)",
@@ -110,7 +110,7 @@ describe(ctx.label, () => {
                 .customizeQuery({ afterUpdateKeyword: connection.rawFragment`/*+ hint */` })
                 .executeUpdateOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update /*+ hint */ issue set title = ? where id = ? returning id as id, title as title"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update /*+ hint */ issue set title = ?1 where id = ?2 returning id as id, title as title"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Patched hero copy",
@@ -138,7 +138,7 @@ describe(ctx.label, () => {
                 .customizeQuery({ afterUpdateKeyword: connection.rawFragment`/*+ hint */` })
                 .executeUpdateOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update /*+ hint */ issue set status = ? where id = ? returning status as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update /*+ hint */ issue set status = ?1 where id = ?2 returning status as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "reviewed",
@@ -170,7 +170,7 @@ describe(ctx.label, () => {
                 })
                 .executeUpdate())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /*+ hint */ project set name = organization.name from organization where project.organization_id = organization.id and organization.id = ?  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /*+ hint */ project set name = organization.name from organization where project.organization_id = organization.id and organization.id = ?1  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 99999,

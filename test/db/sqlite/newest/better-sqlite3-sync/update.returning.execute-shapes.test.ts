@@ -52,7 +52,7 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateNoneOrOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = ? where id = ? returning id as id, status as status"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = ?1 where id = ?2 returning id as id, status as status"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 5,
@@ -88,7 +88,7 @@ describe(ctx.label, () => {
             caught = e
         }
         expect(String(caught)).toMatch(/NO_RESULT|No result/)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = ? where id = ? returning id as id, status as status"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = ?1 where id = ?2 returning id as id, status as status"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             5,
@@ -114,7 +114,7 @@ describe(ctx.label, () => {
             caught = e
         }
         expect(String(caught)).toMatch(/NO_RESULT|No result/)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = ? where id = ? returning status as result"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = ?1 where id = ?2 returning status as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             5,
@@ -140,7 +140,7 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateNoneOrOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = ? where id = ? returning id as id, status as status"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = ?1 where id = ?2 returning id as id, status as status"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 5,

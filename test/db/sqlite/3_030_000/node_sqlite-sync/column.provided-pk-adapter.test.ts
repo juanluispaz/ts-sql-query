@@ -26,7 +26,7 @@ describe(ctx.label, () => {
             .select({ invoiceNo: tInvoice.invoiceNo, total: tInvoice.total })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select invoice_no as invoiceNo, total as total from invoice where invoice_no = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select invoice_no as invoiceNo, total as total from invoice where invoice_no = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -45,7 +45,7 @@ describe(ctx.label, () => {
                 .values({ invoiceNo: 30, total: 750 })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into invoice (invoice_no, total) values (?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into invoice (invoice_no, total) values (?1, ?2)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 300,
@@ -80,7 +80,7 @@ describe(ctx.label, () => {
                 .returning({ invoiceNo: tInvoice.invoiceNo, total: tInvoice.total })
                 .executeInsertOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into invoice (invoice_no, total) values (?, ?) returning invoice_no as invoiceNo, total as total"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into invoice (invoice_no, total) values (?1, ?2) returning invoice_no as invoiceNo, total as total"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 400,

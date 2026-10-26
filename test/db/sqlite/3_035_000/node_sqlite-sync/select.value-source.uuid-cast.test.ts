@@ -40,7 +40,7 @@ describe(ctx.label, () => {
         const result = sync(connection.selectFromNoTable()
             .selectOneColumn(connection.const(UUID_VALUE, 'uuid').asString())
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "f47ac10b-58cc-4372-a567-0e02b2c3d479",
@@ -55,7 +55,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString())
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select external_ref as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select external_ref as result from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -74,7 +74,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().concat(tIssue.externalRef.asString()))
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select external_ref || external_ref as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select external_ref || external_ref as result from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -90,7 +90,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().trim())
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select trim(external_ref) as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select trim(external_ref) as result from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -107,7 +107,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().substring(0, 8))
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select substr(external_ref, ?, ?) as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select substr(external_ref, ?1, ?2) as result from issue where id = ?3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -127,7 +127,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(3))
             .selectOneColumn(tIssue.externalRef.asString().valueWhenNull('(no ref)'))
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ifnull(external_ref, ?) as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ifnull(external_ref, ?1) as result from issue where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "(no ref)",
@@ -146,7 +146,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.body.valueWhenNull(tIssue.externalRef.asString()))
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ifnull(body, external_ref) as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ifnull(body, external_ref) as result from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -165,7 +165,7 @@ describe(ctx.label, () => {
             .where(tIssue.projectId.equals(1))
             .selectOneColumn(ctx.conn.stringConcat(tIssue.externalRef.asString(), ','))
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select group_concat(external_ref, ?) as result from issue where project_id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select group_concat(external_ref, ?1) as result from issue where project_id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             ",",
@@ -208,7 +208,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) like lower(? || '%') escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) like lower(?1 || '%') escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0A8F",
@@ -226,7 +226,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) not like lower(? || '%') escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) not like lower(?1 || '%') escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ffff",
@@ -244,7 +244,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) like lower('%' || ?) escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) like lower('%' || ?1) escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "6666",
@@ -262,7 +262,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) not like lower('%' || ?) escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) not like lower('%' || ?1) escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ffff",
@@ -280,7 +280,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) like lower('%' || ? || '%') escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) like lower('%' || ?1 || '%') escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "1111",
@@ -298,7 +298,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) not like lower('%' || ? || '%') escape '\\' order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) not like lower('%' || ?1 || '%') escape '\\' order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "beef",
@@ -315,7 +315,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(ctx.conn.fragmentWithType('string', 'required').sql`upper(${tIssue.externalRef.asString()})`)
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select upper(external_ref) as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select upper(external_ref) as result from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -335,7 +335,7 @@ describe(ctx.label, () => {
                 beforeColumns: ctx.conn.rawFragment`upper(${tIssue.externalRef.asString()}) as ref_upper, `,
             })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select upper(external_ref) as ref_upper,  id as id from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select upper(external_ref) as ref_upper,  id as id from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -358,7 +358,7 @@ describe(ctx.label, () => {
         const ref = sync(ctx.conn.selectFrom(inner)
             .selectOneColumn(inner.ref.concat('-x'))
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with w_uuid as (select external_ref as ref from issue where id = ?) select ref || ? as result from w_uuid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with w_uuid as (select external_ref as ref from issue where id = ?1) select ref || ?2 as result from w_uuid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -378,7 +378,7 @@ describe(ctx.label, () => {
             .where(tProjectRelease.id.equals(1))
             .selectOneColumn(tProjectRelease.signingKey.asString())
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select signing_key as result from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select signing_key as result from project_release where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -400,7 +400,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key <> ? and signing_key in (?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key <> ?1 and signing_key in (?2) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556666",
@@ -420,7 +420,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(3))
             .selectOneColumn(tIssue.externalRef.valueWhenNull(UUID_VALUE))
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ifnull(external_ref, ?) as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ifnull(external_ref, ?1) as result from issue where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "f47ac10b-58cc-4372-a567-0e02b2c3d479",
@@ -440,7 +440,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(2))
             .selectOneColumn(tIssue.externalRef.nullIfValue(REF1))
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select nullif(external_ref, ?) as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select nullif(external_ref, ?1) as result from issue where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556666",
@@ -460,7 +460,7 @@ describe(ctx.label, () => {
             .where(tProjectRelease.id.equals(1))
             .selectOneColumn(tProjectRelease.signingKey.nullIfValue(SIGNING_KEY3))
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select nullif(signing_key, ?) as result from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select nullif(signing_key, ?1) as result from project_release where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "7b3e9d20-2222-4c55-9b66-dddd00009999",
@@ -480,7 +480,7 @@ describe(ctx.label, () => {
             .where(tProjectRelease.id.equals(2))
             .selectOneColumn(tProjectRelease.signingKey.valueWhenNull(UUID_VALUE))
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ifnull(signing_key, ?) as result from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ifnull(signing_key, ?1) as result from project_release where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "f47ac10b-58cc-4372-a567-0e02b2c3d479",
@@ -501,7 +501,7 @@ describe(ctx.label, () => {
             .where(tProjectRelease.id.equals(1))
             .selectOneColumn(tProjectRelease.signingKey.valueWhenNull(tProjectRelease.signingKey.asOptional()))
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ifnull(signing_key, signing_key) as result from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ifnull(signing_key, signing_key) as result from project_release where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -530,7 +530,7 @@ describe(ctx.label, () => {
                 ign: tIssue.externalRef.ignoreWhenAsNull(true),
             })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, external_ref as req, null as own, null as ign from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, external_ref as req, null as own, null as ign from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -549,7 +549,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.valueWhenNull(tIssue.externalRef.asOptional()))
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ifnull(external_ref, external_ref) as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ifnull(external_ref, external_ref) as result from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -570,7 +570,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(3))
             .selectOneColumn(tIssue.externalRef.valueWhenNull(tIssue.externalRef.asOptional()))
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ifnull(external_ref, external_ref) as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ifnull(external_ref, external_ref) as result from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -586,7 +586,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(3))
             .select({ id: tIssue.id, ref: tIssue.externalRef.valueWhenNull(tIssue.externalRef.asOptional()) })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(external_ref, external_ref) as ref from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(external_ref, external_ref) as ref from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -605,7 +605,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.nullIfValue(ctx.conn.const(UUID_VALUE, 'uuid')))
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select nullif(external_ref, ?) as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select nullif(external_ref, ?1) as result from issue where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "f47ac10b-58cc-4372-a567-0e02b2c3d479",
@@ -632,7 +632,7 @@ describe(ctx.label, () => {
                 ign: tProjectRelease.signingKey.ignoreWhenAsNull(true),
             })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signing_key as req, null as own, null as ign from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signing_key as req, null as own, null as ign from project_release where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -651,7 +651,7 @@ describe(ctx.label, () => {
             .where(tProjectRelease.id.equals(1))
             .selectOneColumn(tProjectRelease.signingKey.nullIfValue(ctx.conn.const<string, 'SigningKey'>(SIGNING_KEY3, 'customUuid', 'SigningKey')))
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select nullif(signing_key, ?) as result from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select nullif(signing_key, ?1) as result from project_release where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "7b3e9d20-2222-4c55-9b66-dddd00009999",
@@ -695,7 +695,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().trimLeft())
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ltrim(external_ref) as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ltrim(external_ref) as result from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -713,7 +713,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().trimRight())
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select rtrim(external_ref) as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select rtrim(external_ref) as result from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -733,7 +733,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().substr(-8, 4))
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select substr(substr(external_ref, ?), 1, ?) as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select substr(substr(external_ref, ?1), 1, ?2) as result from issue where id = ?3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             -8,
@@ -754,7 +754,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().substrToEnd(-6))
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select substr(external_ref, ?) as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select substr(external_ref, ?1) as result from issue where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             -6,
@@ -774,7 +774,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().substringToEnd(24))
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select substr(external_ref, ?) as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select substr(external_ref, ?1) as result from issue where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             25,

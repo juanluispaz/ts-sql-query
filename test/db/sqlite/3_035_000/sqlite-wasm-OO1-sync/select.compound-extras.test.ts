@@ -52,7 +52,7 @@ describe(ctx.label, () => {
             .select({ status: tIssue.status })
         const result = sync(all.minus(small).executeSelectMany())
         assertType<Exact<typeof result, Array<{ status: string }>>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue except select status as status from issue where id <= ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue except select status as status from issue where id <= ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -88,7 +88,7 @@ describe(ctx.label, () => {
         const c = ctx.conn.selectFrom(tIssue).where(tIssue.status.equals('open')).select({ status: tIssue.status })
         const result = sync(a.union(b).except(c).executeSelectMany())
         assertType<Exact<typeof result, Array<{ status: string }>>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue where id <= ? union select status as status from issue where id = ? except select status as status from issue where status = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue where id <= ?1 union select status as status from issue where id = ?2 except select status as status from issue where status = ?3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -142,7 +142,7 @@ describe(ctx.label, () => {
         const c = ctx.conn.selectFrom(tIssue).where(tIssue.id.lessOrEqual(3)).select({ status: tIssue.status })
         const result = sync(a.union(b).intersect(c).executeSelectMany())
         assertType<Exact<typeof result, Array<{ status: string }>>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue where id <= ? union select status as status from issue where id = ? intersect select status as status from issue where id <= ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue where id <= ?1 union select status as status from issue where id = ?2 intersect select status as status from issue where id <= ?3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -221,7 +221,7 @@ describe(ctx.label, () => {
         const c = ctx.conn.selectFrom(tIssue).where(tIssue.status.equals('open')).select({ status: tIssue.status })
         const result = sync(a.union(b).minus(c).executeSelectMany())
         assertType<Exact<typeof result, Array<{ status: string }>>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue where id <= ? union select status as status from issue where id = ? except select status as status from issue where status = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue where id <= ?1 union select status as status from issue where id = ?2 except select status as status from issue where status = ?3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

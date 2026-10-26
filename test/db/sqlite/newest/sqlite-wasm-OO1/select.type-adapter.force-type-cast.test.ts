@@ -46,7 +46,7 @@ describe(ctx.label, () => {
             .where(tProjectForcedCast.id.equals(1))
             .select({ id: tProjectForcedCast.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -64,7 +64,7 @@ describe(ctx.label, () => {
             .where(tProjectForcedCast.name.equals('Marketing site'))
             .select({ id: tProjectForcedCast.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where name = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where name = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Marketing site",
@@ -81,7 +81,7 @@ describe(ctx.label, () => {
         const built = ctx.conn.insertInto(tProjectForcedCast)
             .set({ id: 1, name: 'Marketing site' })
 
-        expect(built.query()).toMatchInlineSnapshot(`"insert into project (id, name) values (?, ?)"`)
+        expect(built.query()).toMatchInlineSnapshot(`"insert into project (id, name) values (?1, ?2)"`)
         expect(built.params()).toMatchInlineSnapshot(`
           [
             1,
@@ -98,7 +98,7 @@ describe(ctx.label, () => {
             .set({ name: 'Renamed' })
             .where(tProjectForcedCast.id.equals(1))
 
-        expect(built.query()).toMatchInlineSnapshot(`"update project set name = ? where id = ?"`)
+        expect(built.query()).toMatchInlineSnapshot(`"update project set name = ?1 where id = ?2"`)
         expect(built.params()).toMatchInlineSnapshot(`
           [
             "Renamed",
@@ -122,7 +122,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
         assertType<Exact<typeof rows, Array<{ id: number; lowest?: number; label?: string }>>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, max(?, id) as lowest, ? || name as label from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, max(?1, id) as lowest, ?2 || name as label from project where id = ?3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,

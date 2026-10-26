@@ -8,6 +8,7 @@ search:
 
 **New features**:
 
+- New `groupByNonAggregatedColumns()`, after the select: groups by every column of the select that is not an aggregate and refers to a table or view (constants are left out), each one referred to as a column of the select like `groupBy('<alias>')`, so a query can group by everything it doesn't aggregate without listing it again (see [Grouping by every non-aggregated column](queries/select.md#grouping-by-every-non-aggregated-column)).
 - New `connection.anyValue(value)` aggregate function, the SQL:2023 `any_value`: any value of the group, for a column that is not grouped (`select({ projectId: tIssue.projectId, projectName: connection.anyValue(tProject.name) }).groupBy('projectId')`). It is written `any_value(...)` on PostgreSQL, MySQL and Oracle, and as the plain value on SQLite (a bare column, which takes the value of one of the rows of the group); it is not offered on MariaDB and SQL Server, which have no such function.
 - New `.concatIgnoringNull(...)` / `.concatIgnoringNullIfValue(...)` on string value expressions: a concatenation that reads a `NULL` operand as the empty string instead of propagating it, next to the existing `.concat(...)`, which keeps propagating it. `tCustomer.firstName.concatIgnoringNull(tCustomer.middleName)` gives the first name when there is no middle name, where `.concat(...)` gives `NULL`.
     - Because a `NULL` operand no longer poisons the result, the result is optional only when **every** operand is, and the returned type says so: the example above is typed `string`, not `string | undefined`.

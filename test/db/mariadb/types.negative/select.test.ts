@@ -638,6 +638,12 @@ function _typeNegatives() {
     // @ts-expect-error anyValue is not offered on MariaDBConnection
     void connection.anyValue(tIssue.title)
 
+
+    // Rule: `groupByNonAggregatedColumns()` reads the columns of the select, so
+    // it is only offered once the select clause is written.
+    void connection.selectFrom(tIssue).select({ projectId: tIssue.projectId, issues: connection.countAll() }).groupByNonAggregatedColumns()
+    // @ts-expect-error groupByNonAggregatedColumns needs the select clause first
+    void connection.selectFrom(tIssue).groupByNonAggregatedColumns()
 }
 
 test('select-negative-types', () => {

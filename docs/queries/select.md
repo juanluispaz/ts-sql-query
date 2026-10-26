@@ -471,6 +471,108 @@ const customerCountPerCompany: Promise<{
 }[]>
 ```
 
+### Grouping by every non-aggregated column
+
+Every column of the select that is not an aggregate must be grouped. Instead of listing them, once the select is written you can call `groupByNonAggregatedColumns()`: it groups by every column of the select that is not an aggregate and refers to a table or view (a constant is left out, it doesn't need to be grouped). Each one is referred to as a column of the select, like `groupBy('<column name>')` does.
+
+```ts
+const customerCountPerCompany = connection.selectFrom(tCompany)
+    .innerJoin(tCustomer).on(tCustomer.companyId.equals(tCompany.id))
+    .select({
+        companyId: tCompany.id,
+        companyName: tCompany.name,
+        customerCount: connection.count(tCustomer.id)
+    })
+    .groupByNonAggregatedColumns()
+    .executeSelectMany();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company.id as companyId, 
+        company.name as companyName, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.name
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company.id as companyId, 
+        company.`name` as companyName, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.`name`
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company.id as "companyId", 
+        company.name as "companyName", 
+        count(customer.id) as "customerCount" 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.name
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company.id as "companyId", 
+        company.name as "companyName", 
+        count(customer.id) as "customerCount" 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.name
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company.id as companyId, 
+        company.name as companyName, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.name
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company.id as companyId, 
+        company.name as companyName, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.name
+    ```
+
+The parameters are: `[]`
+
+The result type is:
+```tsx
+const customerCountPerCompany: Promise<{
+    companyId: number;
+    companyName: string;
+    customerCount: number;
+}[]>
+```
+
 ## Select with left join
 
 To use a table or view in a left join, you must create a left join representation first by calling the method `forUseInLeftJoin` or `forUseInLeftJoinAs`.

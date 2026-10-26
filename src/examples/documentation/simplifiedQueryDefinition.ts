@@ -2057,12 +2057,20 @@ interface SelectExpression {
      * Allows to specify the group by of the select query.
      * 
      * If you already defined the select clause, you can use the name of
-     * the properties returned by the select instead of its definition, it
-     * will be replace by the definition automatically.
+     * the properties returned by the select instead of its definition: the
+     * group by refers to that column of the select.
      * 
      * Note: this overload is only available if you define the select clause first.
      */
     groupBy(...columns: string[]): this
+    /**
+     * Groups by every column of the select that is not an aggregate and refers
+     * to a table or view (constants are left out), each one referred to as a
+     * column of the select, like groupBy('<column name>').
+     * 
+     * Note: only available if you define the select clause first.
+     */
+    groupByNonAggregatedColumns(): this
     /** Allows to create the having clause of the group by dynamically */
     dynamicHaving(): this
     /** Allows to specify the having clause of the group by */

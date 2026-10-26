@@ -87,8 +87,8 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         }
         throw new TsSqlProcessingError({ reason: 'UNKNOWN_DATA_TYPE' }, 'Unable to determine the value source type')
     }
-    override _appendGroupBySelectColumn(entry: AnyValueSource, selectColumn: SelectColumnSql, params: any[], isOutermostQuery: boolean): string {
-        return this._appendGroupByPosition(entry, selectColumn, params, isOutermostQuery)
+    override _appendGroupBySelectColumn(_entry: AnyValueSource, selectColumn: SelectColumnSql, _params: any[], _isOutermostQuery: boolean): string {
+        return this._appendGroupByPosition(selectColumn)
     }
     override _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords

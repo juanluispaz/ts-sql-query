@@ -30,8 +30,8 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
      * multiplication by an approximate literal.
      */
     _castAsDoubleMinCompatibilityVersion: number = Number.POSITIVE_INFINITY
-    override _appendGroupBySelectColumn(entry: AnyValueSource, selectColumn: SelectColumnSql, params: any[], isOutermostQuery: boolean): string {
-        return this._appendGroupByPosition(entry, selectColumn, params, isOutermostQuery)
+    override _appendGroupBySelectColumn(_entry: AnyValueSource, selectColumn: SelectColumnSql, _params: any[], _isOutermostQuery: boolean): string {
+        return this._appendGroupByPosition(selectColumn)
     }
     override _forceAsIdentifier(identifier: string): string {
         return '`' + identifier + '`'

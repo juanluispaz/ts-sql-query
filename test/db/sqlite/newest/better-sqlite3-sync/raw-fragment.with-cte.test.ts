@@ -124,7 +124,7 @@ describe(ctx.label, () => {
                 id:        tProject.id,
                 openCount: connection.count(openIssues.projectId),
             })
-            .groupBy('id')
+            .groupBy(tProject.id)
             .customizeQuery({
                 beforeColumns: connection.rawFragment`(${closedCount}) as "closedCount", `,
             })

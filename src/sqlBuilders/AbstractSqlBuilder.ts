@@ -23,7 +23,7 @@ import { TsSqlProcessingError } from '../TsSqlError.js'
 import { getContainsInsertReturningClause, setContainsInsertReturningClause, setContainsMutationReturningClause, setForcedAffectedRowCount } from '../utils/queryParamsMetadata.js'
 
 /** A column of the select list as it was written, for the group by that refers to it */
-export type SelectColumnSql = { sql: string, position: number | undefined }
+export type SelectColumnSql = { sql: string, position: number }
 
 export class AbstractSqlBuilder implements SqlBuilder {
     // @ts-ignore
@@ -829,11 +829,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // engines don't take as the same expression.
         return this._appendSelectColumn(entry, params, undefined, isOutermostQuery)
     }
-    _appendGroupByPosition(entry: AnyValueSource, selectColumn: SelectColumnSql, params: any[], isOutermostQuery: boolean): string {
-        if (selectColumn.position === undefined) {
-            // A customization may write columns before the select list's ones
-            return this._appendSelectColumn(entry, params, undefined, isOutermostQuery)
-        }
+    _appendGroupByPosition(selectColumn: SelectColumnSql): string {
         return '' + selectColumn.position
     }
     _buildSelectGroupBy(query: PlainSelectData, params: any[], isOutermostQuery: boolean, selectColumnsSql?: Map<AnyValueSource, SelectColumnSql> | undefined): string {
@@ -1022,7 +1018,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 const columnForInsert = columnsForInsert[property]
                 const columnSql = this._appendSelectColumn(columns[property]!, params, columnForInsert, isOutermostQuery)
                 if (selectColumnsSql && !columnForInsert && groupByColumnNames!.has(columns[property]!)) {
-                    selectColumnsSql.set(columns[property]!, { sql: columnSql, position: customization && customization.beforeColumns ? undefined : position })
+                    selectColumnsSql.set(columns[property]!, { sql: columnSql, position })
                 }
                 selectQuery += columnSql
                 if (property) {

@@ -5,9 +5,9 @@
 // clause - otherwise the rendered SQL would reference an
 // undeclared CTE name.
 //
-// All tests use the `beforeColumns` hook so the embedded sub-query
-// lands as a valid SQL projection (real DB executes it instead of
-// the placeholder living inside a `/* ... */` comment).
+// The rawFragment is an `orderBy` item: the sub-query is correlated
+// with the outer row, so the order of the result shows the database
+// evaluated it against the hoisted CTE.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -26,7 +26,8 @@ describe(ctx.label, () => {
         // params via `__addWiths`. If the forwarder dropped the
         // CTE, the snapshot would render `from open_issues` without
         // a preceding `with open_issues as (...)`.
-        ctx.mockNext([{ openCount: 3, id: 1 }, { openCount: 0, id: 2 }])
+        // Projects 1 and 2 have one open issue each, 3 and 4 none.
+        ctx.mockNext([{ id: 3 }, { id: 4 }, { id: 1 }, { id: 2 }])
         const connection = ctx.conn
 
         const openIssues = connection.selectFrom(tIssue)
@@ -34,22 +35,23 @@ describe(ctx.label, () => {
             .select({ projectId: tIssue.projectId })
             .forUseInQueryAs('open_issues')
 
-        const openCount = connection.selectFrom(openIssues)
+        const openCount = connection.subSelectUsing(tProject).from(openIssues)
+            .where(openIssues.projectId.equals(tProject.id))
             .selectOneColumn(connection.count(openIssues.projectId))
 
         const result = await connection.selectFrom(tProject)
             .select({ id: tProject.id })
-            .customizeQuery({
-                beforeColumns: connection.rawFragment`(${openCount}) as "openCount", `,
-            })
+            .orderBy(connection.rawFragment`(${openCount})`)
+            .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select project_id as projectId from issue where status = $1) select (select count(projectId) as result from open_issues) as "openCount",  id as id from project"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select project_id as projectId from issue where status = $1) select id as id from project order by (select count(projectId) as result from open_issues where projectId = project.id), id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
           ]
         `)
+        expect(result).toEqual([{ id: 3 }, { id: 4 }, { id: 1 }, { id: 2 }])
         assertType<Exact<typeof result, Array<{ id: number }>>>()
     })
 
@@ -58,7 +60,8 @@ describe(ctx.label, () => {
         // distinct CTE; both CTEs must show up in the outer `WITH`
         // clause, comma-separated, in the order `__addWiths`
         // visits them.
-        ctx.mockNext([{ openCount: 3, closedCount: 1, id: 1 }])
+        // Closed minus open issues: project 3 = 1, projects 1 and 2 = -1.
+        ctx.mockNext([{ id: 3 }, { id: 1 }, { id: 2 }])
         const connection = ctx.conn
 
         const openIssues = connection.selectFrom(tIssue)
@@ -71,28 +74,32 @@ describe(ctx.label, () => {
             .select({ projectId: tIssue.projectId })
             .forUseInQueryAs('closed_issues')
 
-        const openCount = connection.selectFrom(openIssues)
+        const openCount = connection.subSelectUsing(tProject).from(openIssues)
+            .where(openIssues.projectId.equals(tProject.id))
             .selectOneColumn(connection.count(openIssues.projectId))
 
-        const closedCount = connection.selectFrom(closedIssues)
+        const closedCount = connection.subSelectUsing(tProject).from(closedIssues)
+            .where(closedIssues.projectId.equals(tProject.id))
             .selectOneColumn(connection.count(closedIssues.projectId))
 
         const result = await connection.selectFrom(tProject)
-            .where(tProject.id.equals(1))
+            .where(tProject.id.in([1, 2, 3]))
             .select({ id: tProject.id })
-            .customizeQuery({
-                beforeColumns: connection.rawFragment`(${openCount}) as "openCount", (${closedCount}) as "closedCount", `,
-            })
+            .orderBy(connection.rawFragment`(${closedCount}) - (${openCount})`, 'desc')
+            .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select project_id as projectId from issue where status = $1), closed_issues as (select project_id as projectId from issue where status = $2) select (select count(projectId) as result from open_issues) as "openCount", (select count(projectId) as result from closed_issues) as "closedCount",  id as id from project where id = $3"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with closed_issues as (select project_id as projectId from issue where status = $1), open_issues as (select project_id as projectId from issue where status = $2) select id as id from project where id in ($3, $4, $5) order by (select count(projectId) as result from closed_issues where projectId = project.id) - (select count(projectId) as result from open_issues where projectId = project.id) desc, id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "open",
             "closed",
+            "open",
             1,
+            2,
+            3,
           ]
         `)
+        expect(result).toEqual([{ id: 3 }, { id: 1 }, { id: 2 }])
         assertType<Exact<typeof result, Array<{ id: number }>>>()
     })
 
@@ -101,7 +108,8 @@ describe(ctx.label, () => {
         // it joins a CTE), and the rawFragment contributes another
         // CTE through `__addWiths`. The combined `WITH` should list
         // both, comma-separated, ahead of the outer SELECT.
-        ctx.mockNext([{ closedCount: 1, id: 1, openCount: 3 }])
+        // Project 1 has one issue in progress, project 2 none.
+        ctx.mockNext([{ id: 2, openCount: 1 }, { id: 1, openCount: 1 }])
         const connection = ctx.conn
 
         const openIssues = connection.selectFrom(tIssue)
@@ -109,13 +117,14 @@ describe(ctx.label, () => {
             .select({ projectId: tIssue.projectId })
             .forUseInQueryAs('open_issues')
 
-        const closedIssues = connection.selectFrom(tIssue)
-            .where(tIssue.status.equals('closed'))
+        const inProgressIssues = connection.selectFrom(tIssue)
+            .where(tIssue.status.equals('in_progress'))
             .select({ projectId: tIssue.projectId })
-            .forUseInQueryAs('closed_issues')
+            .forUseInQueryAs('in_progress_issues')
 
-        const closedCount = connection.selectFrom(closedIssues)
-            .selectOneColumn(connection.count(closedIssues.projectId))
+        const inProgressCount = connection.subSelectUsing(tProject).from(inProgressIssues)
+            .where(inProgressIssues.projectId.equals(tProject.id))
+            .selectOneColumn(connection.count(inProgressIssues.projectId))
 
         const result = await connection.selectFrom(tProject)
             .innerJoin(openIssues).on(openIssues.projectId.equals(tProject.id))
@@ -124,18 +133,18 @@ describe(ctx.label, () => {
                 openCount: connection.count(openIssues.projectId),
             })
             .groupBy(tProject.id)
-            .customizeQuery({
-                beforeColumns: connection.rawFragment`(${closedCount}) as "closedCount", `,
-            })
+            .orderBy(connection.rawFragment`(${inProgressCount})`)
+            .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select project_id as projectId from issue where status = $1), closed_issues as (select project_id as projectId from issue where status = $2) select (select count(projectId) as result from closed_issues) as "closedCount",  project.id as id, count(open_issues.projectId) as "openCount" from project inner join open_issues on open_issues.projectId = project.id group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select project_id as projectId from issue where status = $1), in_progress_issues as (select project_id as projectId from issue where status = $2) select project.id as id, count(open_issues.projectId) as "openCount" from project inner join open_issues on open_issues.projectId = project.id group by project.id order by (select count(projectId) as result from in_progress_issues where projectId = project.id), id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
-            "closed",
+            "in_progress",
           ]
         `)
+        expect(result).toEqual([{ id: 2, openCount: 1 }, { id: 1, openCount: 1 }])
         assertType<Exact<typeof result, Array<{ id: number; openCount: number }>>>()
     })
 })

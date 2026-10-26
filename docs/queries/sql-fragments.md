@@ -608,6 +608,10 @@ The extension points supported by the `customizeQuery` method for a `SELECT` que
 | `queryExecutionName`    | Assign a human-readable name for query execution.                           |
 | `queryExecutionMetadata`| Attach metadata to the query execution.                                     |
 
+!!! warning "`afterSelectKeyword` and `beforeColumns` are for hints and modifiers, not for columns"
+
+    Use these two extension points for optimizer hints or select modifiers (like `/*+ ... */` or `SQL_NO_CACHE`), never to add columns to the select list. `ts-sql-query` relies on the position of the columns it writes in the select list: for example, on some databases `groupBy('<column name>')` is emitted as `group by <position of the column>`, and an extra column placed before the list shifts those positions, making the query group by a different column. To use a raw SQL fragment as a value, select it as a column with an [inline fragment](#inline-fragments), or pass the `rawFragment` to `orderBy`.
+
 ```ts
 const customizedSelect = connection.selectFrom(tCustomer)
     .where(tCustomer.id.equals(10))

@@ -573,6 +573,119 @@ const customerCountPerCompany: Promise<{
 }[]>
 ```
 
+### Filtering the groups by the columns of the select
+
+Once the select is written, `having` also accepts a function that receives the columns of the select (with the same shape, nested objects included). Each column is written as the same expression the select list computes, with the same parameters, so a grouped expression that carries a parameter can be filtered too; MySQL and MariaDB only accept a column of the select in a `having` through its alias, so it is written that way there.
+
+```ts
+const companiesWithSeveralCustomers = connection.selectFrom(tCompany)
+    .innerJoin(tCustomer).on(tCustomer.companyId.equals(tCompany.id))
+    .select({
+        companyId: tCompany.id,
+        companyName: tCompany.name,
+        customerCount: connection.count(tCustomer.id)
+    })
+    .groupByNonAggregatedColumns()
+    .having(columns => columns.customerCount.greaterThan(1))
+    .executeSelectMany();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company.id as companyId, 
+        company.name as companyName, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.name 
+    having customerCount > ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company.id as companyId, 
+        company.`name` as companyName, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.`name` 
+    having customerCount > ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company.id as "companyId", 
+        company.name as "companyName", 
+        count(customer.id) as "customerCount" 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.name 
+    having count(customer.id) > :0
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company.id as "companyId", 
+        company.name as "companyName", 
+        count(customer.id) as "customerCount" 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.name 
+    having count(customer.id) > $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company.id as companyId, 
+        company.name as companyName, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.name 
+    having count(customer.id) > ?1
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company.id as companyId, 
+        company.name as companyName, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.name 
+    having count(customer.id) > @0
+    ```
+
+The parameters are: `[ 1 ]`
+
+The result type is:
+```tsx
+const companiesWithSeveralCustomers: Promise<{
+    companyId: number;
+    companyName: string;
+    customerCount: number;
+}[]>
+```
+
+!!! warning "MySQL and MariaDB: an alias named like a grouped column"
+
+    On MySQL and MariaDB a name in a `having` refers to a column of the `group by` before the alias of a column of the select. If a column of the select whose alias is the name of another column grouped as it is (`{ priority: tIssue.priority.modulo(2), raw: tIssue.priority }` grouped by both) is used in `having(columns => …)`, MySQL filters by the grouped column instead, and MariaDB reports the name as ambiguous. Give that column of the select another alias.
+
 ## Select with left join
 
 To use a table or view in a left join, you must create a left join representation first by calling the method `forUseInLeftJoin` or `forUseInLeftJoinAs`.

@@ -602,6 +602,12 @@ function _typeNegatives() {
     void connection.selectFrom(tIssue).select({ projectId: tIssue.projectId, issues: connection.countAll() }).groupByNonAggregatedColumns()
     // @ts-expect-error groupByNonAggregatedColumns needs the select clause first
     void connection.selectFrom(tIssue).groupByNonAggregatedColumns()
+
+    // Rule: `having(columns => …)` receives the columns of the select, so it is
+    // only offered once the select clause is written.
+    void connection.selectFrom(tIssue).select({ projectId: tIssue.projectId, issues: connection.countAll() }).groupBy('projectId').having(columns => columns.issues.greaterThan(1))
+    // @ts-expect-error having(columns => …) needs the select clause first
+    void connection.selectFrom(tIssue).groupBy(tIssue.projectId).having(columns => columns.issues.greaterThan(1))
 }
 
 test('select-negative-types', () => {

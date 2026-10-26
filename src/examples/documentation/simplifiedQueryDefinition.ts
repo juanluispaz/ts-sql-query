@@ -2075,6 +2075,15 @@ interface SelectExpression {
     dynamicHaving(): this
     /** Allows to specify the having clause of the group by */
     having(condition: BooleanValueSource): this
+    /**
+     * Allows to create the having clause using the columns of the select: the
+     * function receives them (with the same shape as the select) and each one is
+     * written as the same expression the select list computes, with the same
+     * parameters (by its alias on MySQL and MariaDB).
+     * 
+     * Note: this overload is only available if you define the select clause first.
+     */
+    having(condition: (columns: SelectValues) => BooleanValueSource): this
 
     /** 
      * Allows to specify the select clause.

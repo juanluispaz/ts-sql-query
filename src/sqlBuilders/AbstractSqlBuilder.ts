@@ -23,9 +23,8 @@ import { TsSqlProcessingError } from '../TsSqlError.js'
 import { getContainsInsertReturningClause, setContainsInsertReturningClause, setContainsMutationReturningClause, setForcedAffectedRowCount } from '../utils/queryParamsMetadata.js'
 
 /** A column of the select list as it was written, for the group by that refers to it */
-// `paramsStart` / `paramsEnd`: the range of the params the column's SQL consumed (a database that binds by position
-// needs those values again to repeat that SQL)
-export type SelectColumnSql = { sql: string, position: number, paramsStart: number, paramsEnd: number }
+// `name`: the alias of the column; `paramsStart` / `paramsEnd`: the range of the params the column's SQL consumed
+export type SelectColumnSql = { sql: string, name: string, position: number, paramsStart: number, paramsEnd: number }
 
 export class AbstractSqlBuilder implements SqlBuilder {
     // @ts-ignore
@@ -106,6 +105,17 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _setOrderBySafeTableOrView(params: any[], tableOrView: AnyTableOrView | undefined): void {
         Object.defineProperty(params, '_orderBySafeTableOrView', {
             value: tableOrView,
+            writable: true,
+            enumerable: false,
+            configurable: true
+        })
+    }
+    _getSelectColumnsSql(params: any[]): Map<AnyValueSource, SelectColumnSql> | undefined {
+        return (params as any)._selectColumnsSql
+    }
+    _setSelectColumnsSql(params: any[], value: Map<AnyValueSource, SelectColumnSql> | undefined): void {
+        Object.defineProperty(params, '_selectColumnsSql', {
+            value: value,
             writable: true,
             enumerable: false,
             configurable: true
@@ -841,6 +851,18 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return this._appendGroupByPosition(selectColumn)
     }
+    _appendSelectColumnReference(column: AnyValueSource, params: any[]): string {
+        // A column of the select the having refers to (having(columns => ...))
+        const selectColumn = this._getSelectColumnsSql(params)?.get(column)
+        if (!selectColumn) {
+            return this._appendSql(column, params, false)
+        }
+        return this._appendSelectColumnReferenceSql(selectColumn, params)
+    }
+    _appendSelectColumnReferenceSql(selectColumn: SelectColumnSql, _params: any[]): string {
+        // The same SQL as the select list, with the same parameters: the same expression for the database
+        return selectColumn.sql
+    }
     _appendGroupByPosition(selectColumn: SelectColumnSql): string {
         return '' + selectColumn.position
     }
@@ -1018,7 +1040,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
         flattenQueryColumns(query.__columns, columns, '')
 
         const groupByColumnNames = query.__groupByColumnNames
-        const selectColumnsSql = groupByColumnNames ? new Map<AnyValueSource, SelectColumnSql>() : undefined
+        const havingColumnNames = query.__havingColumnNames
+        const selectColumnsSql = groupByColumnNames || havingColumnNames ? new Map<AnyValueSource, SelectColumnSql>() : undefined
         if (needAgggregateArrayWrapper || !this._needAgggregateArrayColumnsTransformation(query, params)) {
             let requireComma = false
             let position = 0
@@ -1030,8 +1053,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 const columnForInsert = columnsForInsert[property]
                 const paramsStart = params.length
                 const columnSql = this._appendSelectColumn(columns[property]!, params, columnForInsert, isOutermostQuery)
-                if (selectColumnsSql && !columnForInsert && groupByColumnNames!.has(columns[property]!)) {
-                    selectColumnsSql.set(columns[property]!, { sql: columnSql, position, paramsStart, paramsEnd: params.length })
+                if (selectColumnsSql && !columnForInsert && (groupByColumnNames?.has(columns[property]!) || havingColumnNames?.has(columns[property]!))) {
+                    selectColumnsSql.set(columns[property]!, { sql: columnSql, name: property, position, paramsStart, paramsEnd: params.length })
                 }
                 selectQuery += columnSql
                 if (property) {
@@ -1098,7 +1121,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         const having = query.__having
         if (having) {
+            const oldSelectColumnsSql = this._getSelectColumnsSql(params)
+            this._setSelectColumnsSql(params, selectColumnsSql)
             const havingCondition = this._appendCondition(having, params)
+            this._setSelectColumnsSql(params, oldSelectColumnsSql)
             if (havingCondition) {
                 selectQuery += ' having ' + havingCondition
             }

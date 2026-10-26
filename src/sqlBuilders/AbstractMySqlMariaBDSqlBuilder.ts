@@ -3,7 +3,7 @@ import { getQueryColumn, flattenQueryColumns } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import type { AnyValueSource, __AggregatedArrayColumns, ValueType } from '../expressions/values.js'
 import { isValueSource } from '../expressions/values.js'
-import { AbstractSqlBuilder } from './AbstractSqlBuilder.js'
+import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { DBColumn } from '../utils/Column.js'
 import { isColumn, __getColumnPrivate } from '../utils/Column.js'
@@ -30,6 +30,11 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
      * multiplication by an approximate literal.
      */
     _castAsDoubleMinCompatibilityVersion: number = Number.POSITIVE_INFINITY
+    override _appendSelectColumnReferenceSql(selectColumn: SelectColumnSql, params: any[]): string {
+        // In a having, a column outside an aggregate can only be referred to by its alias (written again, the
+        // expression refers to columns that aren't grouped as they are: unknown column)
+        return this._appendColumnAlias(selectColumn.name, params)
+    }
     override _forceAsIdentifier(identifier: string): string {
         return '`' + identifier + '`'
     }

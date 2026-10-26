@@ -295,6 +295,7 @@ export interface GroupByOrderByHavingExecutableSelectExpression</*in|out*/ FROM 
 
     dynamicHaving(): DynamicHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     having(condition: IAnyBooleanValueSource<NSourceAllowingAggregate<FROM[typeof source]>, any>): DynamicHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    having(condition: (columns: COLUMNS) => IAnyBooleanValueSource<NSourceAllowingAggregate<FROM[typeof source]>, any>): DynamicHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
 export interface DynamicHavingExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
@@ -380,6 +381,7 @@ export interface GroupByOrderByHavingExecutableSelectExpressionWithoutWhere</*in
 
     dynamicHaving(): DynamicHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     having(condition: IAnyBooleanValueSource<NSourceAllowingAggregate<FROM[typeof source]>, any>): DynamicHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    having(condition: (columns: COLUMNS) => IAnyBooleanValueSource<NSourceAllowingAggregate<FROM[typeof source]>, any>): DynamicHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
 export interface DynamicHavingExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends WhereableExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {

@@ -828,6 +828,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     __having?: AlwaysIfValueSource<any, any> | undefined
     __groupBy:  Array<AnyValueSource> = []
     __groupByColumnNames?: Set<AnyValueSource> | undefined
+    __havingColumnNames?: Set<AnyValueSource> | undefined
     __requiredTablesOrViews?: Set<AnyTableOrView> | undefined
 
     __lastJoin?: JoinData | undefined
@@ -1136,15 +1137,39 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__inHaving = true
         return this
     }
-    having(condition: IAnyBooleanValueSource<any, any>): any {
+    having(condition: IAnyBooleanValueSource<any, any> | ((columns: any) => IAnyBooleanValueSource<any, any>)): any {
         this.__finishJoinHaving()
         this.__invalidateQuery()
         this.__inHaving = true
         if (this.__having) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
+        if (typeof condition === 'function') {
+            condition = condition(this.__createSelectColumnReferences(this.__columns))
+        }
         this.__having = asAlwaysIfValueSource(condition)
         return this
+    }
+    __createSelectColumnReferences(columns: QueryColumns): any {
+        // Each column of the select, referred to as a column of the select when it is written in the having (the
+        // same SQL with the same parameters, or its alias where the database requires it)
+        const result: any = {}
+        for (const property in columns) {
+            const column = columns[property]
+            if (isValueSource(column)) {
+                const reference = Object.create(column)
+                reference.__toSql = (sqlBuilder: SqlBuilder, params: any[]) => sqlBuilder._appendSelectColumnReference(column, params)
+                reference.__toSqlForCondition = reference.__toSql
+                result[property] = reference
+                if (!this.__havingColumnNames) {
+                    this.__havingColumnNames = new Set()
+                }
+                this.__havingColumnNames.add(column)
+            } else if (column && typeof column === 'object') {
+                result[property] = this.__createSelectColumnReferences(column as QueryColumns)
+            }
+        }
+        return result
     }
     groupBy(...columns: Array<string | AnyValueSource>): any {
         this.__finishJoinHaving()

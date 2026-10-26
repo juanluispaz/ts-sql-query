@@ -188,6 +188,8 @@ export interface PlainSelectData extends WithQueryData {
     __groupBy:  Array<AnyValueSource>
     /** The group by entries the user named by their select column name (`groupBy('alias')`) */
     __groupByColumnNames?: Set<AnyValueSource> | undefined
+    // The columns of the select the having refers to (having(columns => ...))
+    __havingColumnNames?: Set<AnyValueSource> | undefined
     __orderBy?: OrderByEntry[] | undefined
     __orderingSiblingsOnly?: boolean | undefined // Oracle
     __limit?: number | INumberValueSource<any, any> | undefined
@@ -295,6 +297,7 @@ export interface SqlBuilder extends SqlOperation {
     _buildUpdate(query: UpdateData, params: any[]): string
     _buildDelete(query: DeleteData, params: any[]): string
     _typedOperand<T>(operand: T, otherOperands: any[], operation?: string): T
+    _appendSelectColumnReference(column: AnyValueSource, params: any[]): string
     _typedConst(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
     _typedConstForCondition(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
     _buildCallProcedure(params: any[], procedureName: string, procedureParams: AnyValueSource[]): string

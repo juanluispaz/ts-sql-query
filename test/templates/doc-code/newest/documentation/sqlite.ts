@@ -29,7 +29,7 @@ import {
 import { deepPick, deepOmit, type DeepPick, type DeepOmit, type DeepPickPaths } from '../../../../../src/extras/deepUtilities.js'
 import { fromRef, type TableOrViewLeftJoinOf, type TableOrViewOf } from '../../../../../src/extras/types.js'
 
-const PrismaBetterSqlite3 = null as any
+const PrismaLibSql = null as any
 const BetterSqlite3QueryRunner = null as any
 const Sqlite3QueryRunner = null as any
 const BunSqliteQueryRunner = null as any
@@ -191,7 +191,7 @@ void connection
 void options
 void Values
 
-void PrismaBetterSqlite3
+void PrismaLibSql
 void PrismaClient
 void PrismaQueryRunner
 

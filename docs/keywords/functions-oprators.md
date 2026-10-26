@@ -37,6 +37,7 @@ This page provides a comprehensive mapping between SQL keywords and their corres
 | value IS NOT NULL                   | value `.isNotNull()`                                | Checks if value is NOT NULL                                 | [Value expressions API](../api/value-expressions.md) |
 | ABS(value)                          | value `.abs()`                                      | Absolute value                                              | [Value expressions API](../api/value-expressions.md) |
 | ACOS(value)                         | value `.acos()`                                     | Arc cosine                                                  | [Value expressions API](../api/value-expressions.md) |
+| ANY_VALUE(x)                        | connection `.anyValue(x)`                           | Aggregate: any value of the group (not on MariaDB / SQL Server) | [Connection API](../api/connection.md)               |
 | ASIN(value)                         | value `.asin()`                                     | Arc sine                                                    | [Value expressions API](../api/value-expressions.md) |
 | ATAN(value)                         | value `.atan()`                                     | Arc tangent                                                 | [Value expressions API](../api/value-expressions.md) |
 | ATAN2(y, x)                         | value `.atan2(x)`                                   | Arc tangent of y/x                                          | [Value expressions API](../api/value-expressions.md) |

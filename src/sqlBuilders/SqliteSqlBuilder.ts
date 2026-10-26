@@ -91,6 +91,11 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         // The same SQL as the select list: a numbered placeholder (?1) can be repeated, and it is the same expression
         return selectColumn.sql
     }
+    override _anyValue(params: any[], value: any): string {
+        // SQLite has no any_value: a column outside an aggregate in a grouped query (a bare column) takes the value
+        // of one of the rows of the group, which is what any_value means
+        return this._appendSqlParenthesis(value, params, false)
+    }
     override _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords
     }

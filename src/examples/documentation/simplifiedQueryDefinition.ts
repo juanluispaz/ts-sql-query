@@ -544,6 +544,8 @@ interface Connection {
     stringConcat(value: StringValueSource, separator?: string): StringValueSource
     /** group_concat(distinct value, separator) sometimes called string_agg or listagg. The default separator is ',' */
     stringConcatDistinct(value: StringValueSource, separator?: string): StringValueSource
+    /** any_value(value): any value of the group (SQL:2023); not available on MariaDB and SQL Server. On SQLite the value is written as is (a bare column) */
+    anyValue<TYPE extends AnyValueSource>(value: TYPE): TYPE
     /** Aggregate as object array */
     aggregateAsArray<T extends SelectValues>(columns: T): AggregatedArrayValueSourceProjectableAsNullable<T>
     aggregateAsArrayDistinct<T extends SelectValues>(columns: T): AggregatedArrayValueSourceProjectableAsNullable<T>

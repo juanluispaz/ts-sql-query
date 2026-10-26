@@ -630,6 +630,14 @@ function _typeNegatives() {
     // @ts-expect-error getFullYear is a date getter, absent on a customLocalTime leaf
     void tProjectRelease.cutoffTime.getFullYear()
 
+    // Rule: `anyValue(...)` is not exposed on MariaDBConnection because MariaDB
+    // has no `any_value` aggregate function (error 1305 "FUNCTION any_value does
+    // not exist", verified against MariaDB 10.3 and 13). Group by the column or
+    // use `min` / `max` instead.
+    void connection.max(tIssue.title)
+    // @ts-expect-error anyValue is not offered on MariaDBConnection
+    void connection.anyValue(tIssue.title)
+
 }
 
 test('select-negative-types', () => {

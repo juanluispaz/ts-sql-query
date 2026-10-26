@@ -515,6 +515,7 @@ export interface AggregateFunctions1 {
     _sumDistinct(params: any[], value: any): string
     _average(params: any[], value: any): string
     _averageDistinct(params: any[], value: any): string
+    _anyValue(params: any[], value: any): string
 }
 
 export interface AggregateFunctions1or2 {

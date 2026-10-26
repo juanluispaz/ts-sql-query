@@ -215,6 +215,14 @@ function _typeNegatives() {
     // @ts-expect-error stringConcatDistinct is removed on SqlServerConnection
     void connection.stringConcatDistinct(tAppUser.fullName, '|')
 
+    // Rule: `anyValue(...)` is not exposed on SqlServerConnection because SQL
+    // Server has no `any_value` aggregate function ("'any_value' is not a
+    // recognized built-in function name", verified against SQL Server 2019 and
+    // 2025). Group by the column or use `min` / `max` instead.
+    void connection.max(tIssue.title)
+    // @ts-expect-error anyValue is not offered on SqlServerConnection
+    void connection.anyValue(tIssue.title)
+
     // Rule: aggregate functions are not allowed in a WHERE clause. An
     // aggregate carries an aggregate marker in its source that the FROM
     // source does not include, so the condition is not assignable to where().

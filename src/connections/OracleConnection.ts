@@ -3,9 +3,10 @@ import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { OracleSqlBuilder } from '../sqlBuilders/OracleSqlBuilder.js'
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
 import type { TransactionIsolationLevel } from './AbstractConnection.js'
-import type { IStringValueSource, StringValueSource, ValueSourceOf } from '../expressions/values.js'
+import type { IStringValueSource, IValueSource, StringValueSource, ValueSourceOf , RemapValueSourceTypeWithOptionalType} from '../expressions/values.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
-import { AggregateFunctions1or2ValueSource } from '../internal/ValueSourceImpl.js'
+import type { source } from '../utils/symbols.js'
+import { AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource } from '../internal/ValueSourceImpl.js'
 import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
@@ -122,6 +123,11 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
     stringConcatDistinct(value: ValueSourceOf<any>, separator?: string): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', separator, value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
+    }
+
+    anyValue<TYPE extends IValueSource<any, any, any, any>>(value: TYPE & SameDB<NConnection<'oracle', NAME>>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<NConnection<'oracle', NAME>>, TYPE, 'optional'> {
+        const valuePrivate = __getValueSourcePrivate(value)
+        return (new AggregateFunctions1ValueSource('_anyValue', value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)) as any
     }
 
     default(): Default {

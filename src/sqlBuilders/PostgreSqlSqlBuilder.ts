@@ -142,6 +142,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
             case '_sumDistinct':
             case '_average':
             case '_averageDistinct':
+            case '_anyValue':
                 return true
             case '_divide':
                 // An exact division casts the dividend to double itself

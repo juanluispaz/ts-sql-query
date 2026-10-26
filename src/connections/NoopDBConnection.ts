@@ -5,12 +5,12 @@ import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
 import { ChainedQueryRunner } from '../queryRunners/ChainedQueryRunner.js'
 import type { AggregatedArrayColumns, SourceOfAggregatedArray, TransactionIsolationLevel } from './AbstractConnection.js'
 import type { NAggregate, NConnection, NSource } from '../utils/sourceName.js'
-import type { AggregatedArrayValueSource, AggregatedArrayValueSourceProjectableAsNullable, IStringValueSource, IValueSource, StringValueSource, ValueSourceOf } from '../expressions/values.js'
+import type { AggregatedArrayValueSource, AggregatedArrayValueSourceProjectableAsNullable, IStringValueSource, IValueSource, StringValueSource, ValueSourceOf , RemapValueSourceTypeWithOptionalType} from '../expressions/values.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
 import { source, valueType } from '../utils/symbols.js'
-import { AggregateFunctions1or2ValueSource, AggregateValueAsArrayValueSource } from '../internal/ValueSourceImpl.js'
+import { AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource, AggregateValueAsArrayValueSource } from '../internal/ValueSourceImpl.js'
 import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
@@ -34,6 +34,11 @@ export abstract class NoopDBConnection</*in|out*/ NAME extends string> extends A
     stringConcatDistinct(value: ValueSourceOf<any>, separator?: string): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', separator, value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
+    }
+
+    anyValue<TYPE extends IValueSource<any, any, any, any>>(value: TYPE & SameDB<NConnection<'noopDB', NAME>>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<NConnection<'noopDB', NAME>>, TYPE, 'optional'> {
+        const valuePrivate = __getValueSourcePrivate(value)
+        return (new AggregateFunctions1ValueSource('_anyValue', value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)) as any
     }
 
     default(): Default {

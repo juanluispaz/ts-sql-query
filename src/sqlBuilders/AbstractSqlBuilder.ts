@@ -4007,6 +4007,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _averageDistinct(params: any[], value: any): string {
         return 'avg(distinct ' + this._averageOperandSql(params, value) + ')'
     }
+    _anyValue(params: any[], value: any): string {
+        return 'any_value(' + this._appendSql(value, params, false) + ')'
+    }
     _averageOperandSql(params: any[], value: any): string {
         // `average` exposes a fractional NumberValueSource on the typed surface of every
         // dialect, but an engine averaging an exact operand answers in an exact type, and

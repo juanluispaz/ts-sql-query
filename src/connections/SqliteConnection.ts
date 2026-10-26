@@ -5,12 +5,12 @@ import type { AggregatedArrayColumns, SourceOfAggregatedArray } from './Abstract
 import { AbstractConnection } from './AbstractConnection.js'
 import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from './SqliteConfiguration.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import type { AggregatedArrayValueSource, AggregatedArrayValueSourceProjectableAsNullable, IStringValueSource, IValueSource, StringValueSource } from '../expressions/values.js'
+import type { AggregatedArrayValueSource, AggregatedArrayValueSourceProjectableAsNullable, IStringValueSource, IValueSource, StringValueSource , RemapValueSourceTypeWithOptionalType} from '../expressions/values.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
 import { source, valueType } from '../utils/symbols.js'
-import { AggregateFunctions1or2ValueSource, AggregateValueAsArrayValueSource } from '../internal/ValueSourceImpl.js'
+import { AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource, AggregateValueAsArrayValueSource } from '../internal/ValueSourceImpl.js'
 import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { SameDB } from '../utils/ITableOrView.js'
 
@@ -61,6 +61,11 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
     stringConcatDistinct(value: IStringValueSource<any, any>): StringValueSource<any, 'optional'> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', undefined, value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
+    }
+
+    anyValue<TYPE extends IValueSource<any, any, any, any>>(value: TYPE & SameDB<NConnection<'sqlite', NAME>>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<NConnection<'sqlite', NAME>>, TYPE, 'optional'> {
+        const valuePrivate = __getValueSourcePrivate(value)
+        return (new AggregateFunctions1ValueSource('_anyValue', value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)) as any
     }
 
     /**

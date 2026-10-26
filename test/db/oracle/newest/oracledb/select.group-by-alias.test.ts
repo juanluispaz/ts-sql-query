@@ -30,7 +30,6 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
-            1,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ level: number; issues: number }>>>()
@@ -62,7 +61,6 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
-            1,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ projectId: number; level: number; issues: number }>>>()
@@ -87,7 +85,6 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select mod(priority, :0) as "priority", count(*) as "issues" from issue group by mod(priority, :0) order by "priority""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2,
             2,
           ]
         `)
@@ -116,7 +113,6 @@ describe(ctx.label, () => {
           [
             10,
             1,
-            10,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ level: number; issues: number }>>>()

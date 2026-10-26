@@ -52,14 +52,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return '1 / tan(' + this._appendSql(valueSource, params, false) + ')'
     }
 
-    override _appendGroupBySelectColumn(_entry: AnyValueSource, selectColumn: SelectColumnSql, params: any[], _isOutermostQuery: boolean): string {
+    override _appendGroupBySelectColumn(_entry: AnyValueSource, selectColumn: SelectColumnSql, _params: any[], _isOutermostQuery: boolean): string {
         // Neither the alias (resolved against the columns of the from first) nor the position (it needs
-        // group_by_position_enabled) are safe: the same SQL of the select list, with the same placeholder names, is
-        // the same expression for Oracle. The runners bind by position, one value per occurrence of a placeholder in
-        // the text, so the values that SQL consumed are added again, in order
-        for (let i = selectColumn.paramsStart; i < selectColumn.paramsEnd; i++) {
-            params.push(params[i])
-        }
+        // group_by_position_enabled) are safe: the same SQL as the select list, with the same placeholders (bound by
+        // name, every occurrence takes the same value), is the same expression for Oracle
         return selectColumn.sql
     }
     // Oracle is strict ANSI about GROUP BY: every non-aggregated SELECT

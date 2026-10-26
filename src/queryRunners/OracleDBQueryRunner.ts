@@ -35,10 +35,10 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     }
 
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
-        return this.connection.execute(query, params, {outFormat: oracleDb.OUT_FORMAT_OBJECT, autoCommit: this.autoCommit()}).then((result) => result.rows || [])
+        return this.connection.execute(query, this.bindParams(params), {outFormat: oracleDb.OUT_FORMAT_OBJECT, autoCommit: this.autoCommit()}).then((result) => result.rows || [])
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
-        return this.connection.execute(query, params, {autoCommit: this.autoCommit()}).then((result) => {
+        return this.connection.execute(query, this.bindParams(params), {autoCommit: this.autoCommit()}).then((result) => {
             // A multi-row INSERT is executed as an anonymous PL/SQL block, for
             // which Oracle doesn't populate rowsAffected; the SqlBuilder recorded
             // the affected-row count instead (see OracleSqlBuilder._buildInsertMultiple).
@@ -50,9 +50,38 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         })
     }
     protected override executeMutationReturning(query: string, params: any[] = []): Promise<any[]> {
-        return this.connection.execute(query, this.resolveOutBindTypes(params), {autoCommit: this.autoCommit()}).then((result) => {
-            return this.processOutBinds(params, result.outBinds)
+        return this.connection.execute(query, this.bindParams(this.resolveOutBindTypes(params)), {autoCommit: this.autoCommit()}).then((result) => {
+            return this.processOutBinds(params, this.outBindsInParamsOrder(params, result.outBinds))
         })
+    }
+    /**
+     * The params as oracledb binds them by name: the placeholders this runner emits are named after the index of their
+     * value (`:0`, `:1`, …), and binding by name gives every occurrence of a placeholder the same value, so the same
+     * placeholder can be repeated in the query (an array binds one value per occurrence, in the order of the text).
+     */
+    protected bindParams(params: any[]): Record<string, any> {
+        const result: Record<string, any> = {}
+        for (let i = 0, length = params.length; i < length; i++) {
+            result[i] = params[i]
+        }
+        return result
+    }
+    /**
+     * Bound by name, oracledb returns the OUT binds as an object keyed by their name; processOutBinds reads them in the
+     * order of the OUT params.
+     */
+    private outBindsInParamsOrder(params: any[], outBinds: any): any {
+        if (!outBinds || Array.isArray(outBinds) || typeof outBinds !== 'object') {
+            return outBinds
+        }
+        const result: any[] = []
+        for (let i = 0, length = params.length; i < length; i++) {
+            const param = params[i]
+            if (param && typeof param === 'object' && param.dir === oracleDb.BIND_OUT) {
+                result.push(outBinds[i])
+            }
+        }
+        return result
     }
     private resolveOutBindTypes(params: any[]): any[] {
         // OracleSqlBuilder records each RETURNING OUT bind's column value type as a non-enumerable

@@ -247,4 +247,40 @@ describe(ctx.label, () => {
           ]
         `)
     })
+
+    test('const-custom-localdate-in-a-date-part-carries-its-base-type', async () => {
+        // The same `customLocalDate` const as the receiver of a date part: inside
+        // `extract(... from $1)` nothing gives the parameter a type, so it is cast
+        // to the type its custom type is based on.
+        type SettlementDate = Date & { readonly __brand: 'SettlementDate' }
+        const d = new Date('2024-02-20T00:00:00Z') as SettlementDate
+        ctx.mockNext(2024)
+        const year = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const<SettlementDate, 'SettlementDate'>(d, 'customLocalDate', 'SettlementDate').getFullYear())
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from $1::date) as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-02-20T00:00:00.000Z,
+          ]
+        `)
+        expect(year).toBe(2024)
+    })
+
+    test('roundn-with-a-fractional-scale-rounds-the-scale', async () => {
+        // `round(numeric, integer)` is the only overload: a fractional scale (1.6)
+        // is cast to an integer (2), so 2.345 rounds to 2.35.
+        ctx.mockNext(2.35)
+        const rounded = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const(2.345, 'double').roundn(1.6))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select round(($1)::numeric, ($2::float8)::int4) as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2.345,
+            1.6,
+          ]
+        `)
+        expect(rounded).toBe(2.35)
+    })
 })

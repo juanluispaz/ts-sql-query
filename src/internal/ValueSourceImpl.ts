@@ -951,10 +951,18 @@ export class SqlOperationConstValueSource extends ValueSourceImpl implements Has
         this.__operation = '_const'
         this.__value = value
     }
+    // Set on a copy (see SqlBuilder._typedOperand) when the const is an operand nothing else gives a type to
+    __forceTypeCast?: boolean | undefined
     __toSql(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
+        if (this.__forceTypeCast) {
+            return sqlBuilder._typedConst(params, this.__value, this.__valueType, this.__valueTypeName, this.__typeAdapter)
+        }
         return sqlBuilder._const(params, this.__value, this.__valueType, this.__valueTypeName, this.__typeAdapter, forceTypeCast)
     }
     override __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
+        if (this.__forceTypeCast) {
+            return sqlBuilder._typedConstForCondition(params, this.__value, this.__valueType, this.__valueTypeName, this.__typeAdapter)
+        }
         return sqlBuilder._constForCondition(params, this.__value, this.__valueType, this.__valueTypeName, this.__typeAdapter, forceTypeCast)
     }
     override isConstValue(): boolean {
@@ -1104,7 +1112,7 @@ export class SqlOperation1ValueSource extends ValueSourceImpl implements HasOper
         this.__value = value
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
-        return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
+        return sqlBuilder[this.__operation](params, sqlBuilder._typedOperand(this.__valueSource, [this.__value], this.__operation), this.__value, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
     }
     override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         this.__valueSource.__addWiths(sqlBuilder, withs)
@@ -1144,7 +1152,7 @@ export class SqlOperationInValueSource extends ValueSourceImpl implements HasOpe
         this.__value = value
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
-        return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
+        return sqlBuilder[this.__operation](params, sqlBuilder._typedOperand(this.__valueSource, [this.__value], this.__operation), this.__value, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
     }
     override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         this.__valueSource.__addWiths(sqlBuilder, withs)
@@ -1266,7 +1274,7 @@ export class SqlOperationValueWhenNullValueSource extends ValueSourceImpl implem
         this.__value = value
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
-        return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
+        return sqlBuilder[this.__operation](params, sqlBuilder._typedOperand(this.__valueSource, [this.__value], this.__operation), this.__value, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
     }
     override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         this.__valueSource.__addWiths(sqlBuilder, withs)
@@ -1306,7 +1314,7 @@ export class SqlOperation1NotOptionalValueSource extends ValueSourceImpl impleme
         this.__value = value
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
-        return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
+        return sqlBuilder[this.__operation](params, sqlBuilder._typedOperand(this.__valueSource, [this.__value], this.__operation), this.__value, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
     }
     override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         this.__valueSource.__addWiths(sqlBuilder, withs)
@@ -1349,7 +1357,7 @@ export class SqlOperation1ValueSourceIfValueOrNoop extends ValueSourceImpl imple
         if (!sqlBuilder._isValue(this.__value)) {
             return ''
         }
-        return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
+        return sqlBuilder[this.__operation](params, sqlBuilder._typedOperand(this.__valueSource, [this.__value], this.__operation), this.__value, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
     }
     override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         if (!sqlBuilder._isValue(this.__value)) {
@@ -1413,7 +1421,7 @@ export class SqlOperationInValueSourceIfValueOrNoop extends ValueSourceImpl impl
         if (!sqlBuilder._isValue(this.__value)) {
             return ''
         }
-        return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
+        return sqlBuilder[this.__operation](params, sqlBuilder._typedOperand(this.__valueSource, [this.__value], this.__operation), this.__value, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
     }
     override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         if (!sqlBuilder._isValue(this.__value)) {
@@ -1590,7 +1598,7 @@ export class SqlOperation1ValueSourceIfValueOrIgnore extends ValueSourceImpl imp
         if (!sqlBuilder._isValue(this.__value)) {
             return this.__valueSource.__toSql(sqlBuilder, params, forceTypeCast)
         }
-        return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
+        return sqlBuilder[this.__operation](params, sqlBuilder._typedOperand(this.__valueSource, [this.__value], this.__operation), this.__value, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
     }
     override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         this.__valueSource.__addWiths(sqlBuilder, withs)
@@ -1632,7 +1640,7 @@ export class SqlOperation2ValueSource extends ValueSourceImpl implements HasOper
         this.__value2 = value2
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
-        return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__value2, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
+        return sqlBuilder[this.__operation](params, sqlBuilder._typedOperand(this.__valueSource, [this.__value, this.__value2], this.__operation), this.__value, this.__value2, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
     }
     override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         this.__valueSource.__addWiths(sqlBuilder, withs)
@@ -1683,7 +1691,7 @@ export class SqlOperation2ValueSourceIfValueOrIgnore extends ValueSourceImpl imp
         if (!sqlBuilder._isValue(this.__value2)) {
             return this.__valueSource.__toSql(sqlBuilder, params, forceTypeCast)
         }
-        return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__value2, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
+        return sqlBuilder[this.__operation](params, sqlBuilder._typedOperand(this.__valueSource, [this.__value, this.__value2], this.__operation), this.__value, this.__value2, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
     }
     override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         this.__valueSource.__addWiths(sqlBuilder, withs)
@@ -2033,7 +2041,7 @@ export class AggregateFunctions1ValueSource extends ValueSourceImpl implements H
         this.__isAggregate = true
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
-        return sqlBuilder[this.__operation](params, this.__value)
+        return sqlBuilder[this.__operation](params, sqlBuilder._typedOperand(this.__value, [], this.__operation))
     }
     override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         __addWiths(this.__value, sqlBuilder, withs)

@@ -290,6 +290,9 @@ export interface SqlBuilder extends SqlOperation {
     _buildInsertMultiple(query: InsertData, params: any[]): string
     _buildUpdate(query: UpdateData, params: any[]): string
     _buildDelete(query: DeleteData, params: any[]): string
+    _typedOperand<T>(operand: T, otherOperands: any[], operation?: string): T
+    _typedConst(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _typedConstForCondition(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
     _buildCallProcedure(params: any[], procedureName: string, procedureParams: AnyValueSource[]): string
     _buildCallFunction(params: any[], functionName: string, functionParams: AnyValueSource[]): string
     _generateUnique(): number

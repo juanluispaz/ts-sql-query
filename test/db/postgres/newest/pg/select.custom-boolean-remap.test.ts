@@ -156,7 +156,7 @@ describe(ctx.label, () => {
                     published:      ctx.conn.const(1, 'int').greaterThan(0),
                 })
                 .executeInsert()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, published) values ($1, $2, $3, case when $4 > $5 then 't' else 'f' end)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, published) values ($1, $2, $3, case when $4::int4 > $5 then 't' else 'f' end)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

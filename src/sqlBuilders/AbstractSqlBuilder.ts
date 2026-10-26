@@ -3341,7 +3341,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // A const receiver is forced to carry its type cast: an untyped placeholder inside
         // `extract(... from $1)` has no type for the engine to resolve.
         if (isValueSource(valueSource) && __getValueSourcePrivate(valueSource).isConstValue()) {
-            return this._appendSql(valueSource, params, true)
+            return this._appendSql(this._typedOperand(valueSource, []), params, true)
         }
         return this._appendSql(valueSource, params, false)
     }
@@ -3855,6 +3855,18 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return "replace(" + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ", '\\', '\\\\')"
     }
+    _typedConst(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        // A const that must carry its type (see _typedOperand)
+        return this._const(params, value, columnType, columnTypeName, typeAdapter, true)
+    }
+    _typedConstForCondition(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return this._constForCondition(params, value, columnType, columnTypeName, typeAdapter, true)
+    }
+    _typedOperand<T>(operand: T, _otherOperands: any[], _operation?: string): T {
+        // The operand of an operation, written with its type when the database can't learn it from the other
+        // operands (see PostgreSqlSqlBuilder); no other database needs it
+        return operand
+    }
     _forceTypeCastInCallArguments(): boolean {
         // The argument types decide which overload of a function or procedure the database calls
         return false
@@ -4053,7 +4065,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], _query: SelectData | undefined): string {
         const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         if (isValueSource(aggregatedArrayColumns)) {
-            return 'json_agg(' + distict + this._appendSql(aggregatedArrayColumns, params, false) + ')'
+            return 'json_agg(' + distict + this._appendSql(this._typedOperand(aggregatedArrayColumns, []), params, false) + ')'
         } else {
             const columns: FlatQueryColumns = {}
             flattenQueryColumns(aggregatedArrayColumns, columns, '')
@@ -4063,7 +4075,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 if (result) {
                     result += ', '
                 }
-                result += "'" + prop + "', " + this._appendSql(columns[prop]!, params, false)
+                result += "'" + prop + "', " + this._appendSql(this._typedOperand(columns[prop]!, []), params, false)
             }
 
             return 'json_agg(' +  distict + 'json_build_object(' + result + '))'

@@ -858,7 +858,7 @@ describe(ctx.label, () => {
                 niv: tag.nullIfValue(0 as ReleaseTag),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce($1, $2) as vwn, nullif($3, $4) as niv from issue where id = $5"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce($1::int4, $2) as vwn, nullif($3::int4, $4) as niv from issue where id = $5"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             6,
@@ -1155,7 +1155,7 @@ describe(ctx.label, () => {
                 niv: money.nullIfValue(0 as Money),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce($1, $2) as vwn, nullif($3, $4) as niv from issue where id = $5"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce($1::int4, $2) as vwn, nullif($3::int4, $4) as niv from issue where id = $5"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             8,

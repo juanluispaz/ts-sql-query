@@ -59,6 +59,120 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         }
         return super._appendColumnValue(value, params, isOutermostQuery)
     }
+    override _typedConst(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return this._withCustomTypeCast(super._typedConst(params, value, columnType, columnTypeName, typeAdapter), columnType)
+    }
+    override _typedConstForCondition(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return this._withCustomTypeCast(super._typedConstForCondition(params, value, columnType, columnTypeName, typeAdapter), columnType)
+    }
+    _withCustomTypeCast(sql: string, columnType: ValueType): string {
+        // The type name of a custom type means nothing to PostgreSQL, so a placeholder of a custom type no type
+        // adapter wrote a cast for (a null, a Date) takes the one of the value type it is based on; without it the
+        // parameter stays `unknown` (`extract(year from $1)`, `$1 + $2` are not unique)
+        if (!/^\$\d+$/.test(sql)) {
+            return sql
+        }
+        switch (columnType) {
+            case 'customInt':
+                return sql + '::int4'
+            case 'customDouble':
+                return sql + '::float8'
+            case 'customUuid':
+                return sql + '::uuid'
+            case 'customLocalDate':
+                return sql + '::date'
+            case 'customLocalTime':
+                return sql + '::time'
+            case 'customLocalDateTime':
+                return sql + '::timestamp'
+        }
+        return sql
+    }
+    override _typedOperand<T>(operand: T, otherOperands: any[], operation?: string): T {
+        // A const is a parameter, `unknown` to PostgreSQL until something next to it gives it a type: a column, an
+        // expression. When every other operand is a parameter too, some operations fail or compute on text
+        // (`$1 + $2`, `$1 < $2`, `coalesce($1, $2)`, `greatest($1, $2)`, `sum($1)`, a uuid or a date compared with
+        // `=`); only there the const is written with its type. Next to a typed operand, in an operation that
+        // resolves `unknown` well (a single overload, a string read as text) or in one that casts the operand
+        // itself, it stays a bare parameter.
+        if (!isValueSource(operand)) {
+            return operand
+        }
+        const operandPrivate = __getValueSourcePrivate(operand)
+        if (!operandPrivate.isConstValue()) {
+            return operand
+        }
+        if (operation !== undefined) {
+            // An aggregated array (`json_agg($1)`, `json_build_object('a', $1)`) has no operation and always needs it
+            if (operandPrivate.__valueType === 'string' || !this._operationNeedsTypedConst(operation, operand, operandPrivate.__valueType, otherOperands)) {
+                return operand
+            }
+        }
+        if (otherOperands.some(other => this._isTypedOperand(other))) {
+            return operand
+        }
+        const typed = Object.create(operand as object)
+        typed.__forceTypeCast = true
+        return typed
+    }
+    _operationNeedsTypedConst(operation: string, operand: unknown, valueType: ValueType, otherOperands: any[]): boolean {
+        switch (operation) {
+            case '_add':
+            case '_subtract':
+            case '_multiply':
+            case '_lessThan':
+            case '_greaterThan':
+            case '_lessOrEqual':
+            case '_greaterOrEqual':
+            case '_between':
+            case '_notBetween':
+            case '_minimumBetweenTwoValues':
+            case '_maximumBetweenTwoValues':
+            case '_valueWhenNull':
+            case '_nullIfValue':
+            case '_count':
+            case '_countDistinct':
+            case '_max':
+            case '_min':
+            case '_sum':
+            case '_sumDistinct':
+            case '_average':
+            case '_averageDistinct':
+                return true
+            case '_divide':
+                // An exact division casts the dividend to double itself
+                return this._numericKindOf(operand) === 'approximate' || this._numericKindOf(otherOperands[0]) === 'approximate'
+            case '_modulo':
+                // The fractional form casts its operands to numeric itself
+                return !this._moduloRequiresFloatHandling(valueType, otherOperands[0])
+            case '_equals':
+            case '_notEquals':
+            case '_is':
+            case '_isNot':
+            case '_in':
+            case '_notIn':
+                // Compared as text, a uuid ignores the case and a date the time of day it was sent with
+                switch (valueType) {
+                    case 'uuid':
+                    case 'customUuid':
+                    case 'localDate':
+                    case 'localTime':
+                    case 'localDateTime':
+                    case 'customLocalDate':
+                    case 'customLocalTime':
+                    case 'customLocalDateTime':
+                        return true
+                }
+                return false
+        }
+        return false
+    }
+    _isTypedOperand(operand: any): boolean {
+        if (Array.isArray(operand)) {
+            return operand.some(element => this._isTypedOperand(element))
+        }
+        return isValueSource(operand) && !__getValueSourcePrivate(operand).isConstValue()
+    }
     override _forceTypeCastInCallArguments(): boolean {
         // The drivers send the parameters untyped, and PostgreSQL can't choose an overload by an unknown type
         // (`function mod(unknown, unknown) is not unique`)
@@ -199,7 +313,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
                 if (result) {
                     result += ', '
                 }
-                result += "'" + prop + "', " + this._appendSql(columns[prop]!, params, false)
+                result += "'" + prop + "', " + this._appendSql(this._typedOperand(columns[prop]!, []), params, false)
             }
             return 'json_agg(distinct jsonb_build_object(' + result + '))'
         }
@@ -335,7 +449,29 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // NOT opt out here because the alternative is invalid SQL, not a
         // different tie-breaking rule. `round(numeric, s)` breaks ties away from
         // zero, the rule ts-sql-query follows on every dialect.
-        return 'round((' + this._appendSql(valueSource, params, false) + ')::numeric, ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')'
+        const receiver = this._appendSql(valueSource, params, false)
+        const integerScale = this._isIntegerOperand(value, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter)
+        const scale = this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, !integerScale)
+        if (integerScale) {
+            return 'round((' + receiver + ')::numeric, ' + scale + ')'
+        }
+        // The scale must be an integer (`round(numeric, integer)`): a double operand or a fractional number is
+        // rounded to one
+        return 'round((' + receiver + ')::numeric, (' + scale + ')::int4)'
+    }
+    _isIntegerOperand(value: any, valueType: ValueType, valueTypeName: string, typeAdapter: TypeAdapter | undefined): boolean {
+        // As sent to the database: a type adapter can turn a fractional number into an integer one
+        if (typeof value === 'number') {
+            return Number.isInteger(this._transformParamToDB(value, valueType, valueTypeName, typeAdapter))
+        }
+        if (isValueSource(value)) {
+            const valuePrivate = __getValueSourcePrivate(value)
+            if (valuePrivate.isConstValue()) {
+                return Number.isInteger(this._transformParamToDB(valuePrivate.getConstValue(), valuePrivate.__valueType, valuePrivate.__valueTypeName, valuePrivate.__typeAdapter))
+            }
+            return valuePrivate.__valueType === 'int' || valuePrivate.__valueType === 'bigint' || valuePrivate.__valueType === 'customInt'
+        }
+        return false
     }
     override _round(params: any[], valueSource: ToSql): string {
         // PostgreSQL has two overloads of `round`: `round(numeric)` breaks ties

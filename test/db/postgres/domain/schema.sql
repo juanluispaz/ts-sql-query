@@ -82,7 +82,7 @@ CREATE TABLE issue (
     -- bigint (view_count), double (estimated_hours), uuid (external_ref).
     view_count BIGINT NOT NULL DEFAULT 0,
     estimated_hours DOUBLE PRECISION,
-    external_ref VARCHAR(36),
+    external_ref UUID,
     UNIQUE (project_id, number)
 );
 
@@ -148,7 +148,7 @@ CREATE TABLE project_release (
     project_id INTEGER NOT NULL REFERENCES project(id),
     version VARCHAR(32) NOT NULL,
     channel VARCHAR(16) NOT NULL,
-    signing_key VARCHAR(36),
+    signing_key UUID,
     released_on DATE NOT NULL,
     cutoff_time TIME NOT NULL,
     signed_off_at TIMESTAMP,
@@ -240,9 +240,7 @@ LANGUAGE sql IMMUTABLE AS $$ SELECT CASE WHEN a IS NULL OR b IS NULL THEN NULL E
 -- Constant-returning functions, one per remaining executeFunction return kind
 -- (boolean / uuid / date / time / and the varchar bases behind enum / custom /
 -- customComparable). Each takes an ignored int arg to keep the `select fn($1)`
--- call shape identical to the functions above. The uuid function returns the
--- string form (not a native uuid/raw) so the value reaches the driver already
--- unwrapped.
+-- call shape identical to the functions above.
 DROP FUNCTION IF EXISTS ret_flag(integer);
 DROP FUNCTION IF EXISTS ret_uuid(integer);
 DROP FUNCTION IF EXISTS ret_day(integer);
@@ -254,8 +252,8 @@ DROP FUNCTION IF EXISTS ret_semver(integer);
 CREATE FUNCTION ret_flag(p_id integer) RETURNS boolean
 LANGUAGE sql AS $$ SELECT true $$;
 
-CREATE FUNCTION ret_uuid(p_id integer) RETURNS varchar
-LANGUAGE sql AS $$ SELECT CAST('0a8f9c1e-1111-4222-8333-444455556666' AS varchar) $$;
+CREATE FUNCTION ret_uuid(p_id integer) RETURNS uuid
+LANGUAGE sql AS $$ SELECT CAST('0a8f9c1e-1111-4222-8333-444455556666' AS uuid) $$;
 
 CREATE FUNCTION ret_day(p_id integer) RETURNS date
 LANGUAGE sql AS $$ SELECT DATE '2024-02-03' $$;
@@ -348,7 +346,7 @@ CREATE TABLE release_draft (
     shifted_stamp TIMESTAMP NOT NULL DEFAULT '2024-06-01 10:00:00',
     shifted_count BIGINT NOT NULL DEFAULT 5000,
     shifted_rating DOUBLE PRECISION NOT NULL DEFAULT 4.5,
-    bracket_signing_key VARCHAR(36) NOT NULL DEFAULT '00000000-0000-4000-8000-000000000000',
+    bracket_signing_key UUID NOT NULL DEFAULT '00000000-0000-4000-8000-000000000000',
     shifted_release_day DATE NOT NULL DEFAULT '2025-03-01',
     shifted_cutoff TIME NOT NULL DEFAULT '09:00:00'
 );
@@ -367,7 +365,7 @@ CREATE TABLE col_matrix (
     m_bigint BIGINT NOT NULL,
     m_double DOUBLE PRECISION NOT NULL,
     m_bool BOOLEAN NOT NULL,
-    m_uuid VARCHAR(36) NOT NULL,
+    m_uuid UUID NOT NULL,
     m_date DATE NOT NULL,
     m_time TIME NOT NULL,
     m_datetime TIMESTAMP NOT NULL,
@@ -421,7 +419,7 @@ LANGUAGE sql AS $$ SELECT m_double FROM col_matrix WHERE id = 1 $$;
 CREATE FUNCTION cm_bool() RETURNS boolean
 LANGUAGE sql AS $$ SELECT m_bool FROM col_matrix WHERE id = 1 $$;
 
-CREATE FUNCTION cm_uuid() RETURNS varchar
+CREATE FUNCTION cm_uuid() RETURNS uuid
 LANGUAGE sql AS $$ SELECT m_uuid FROM col_matrix WHERE id = 1 $$;
 
 CREATE FUNCTION cm_date() RETURNS date

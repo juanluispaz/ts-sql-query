@@ -51,7 +51,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     }
     protected override executeMutationReturning(query: string, params: any[] = []): Promise<any[]> {
         return this.connection.execute(query, this.bindParams(this.resolveOutBindTypes(params)), {autoCommit: this.autoCommit()}).then((result) => {
-            return this.processOutBinds(params, this.outBindsInParamsOrder(params, result.outBinds))
+            return this.processOutBinds(params, result.outBinds)
         })
     }
     /**
@@ -63,23 +63,6 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         const result: Record<string, any> = {}
         for (let i = 0, length = params.length; i < length; i++) {
             result[i] = params[i]
-        }
-        return result
-    }
-    /**
-     * Bound by name, oracledb returns the OUT binds as an object keyed by their name; processOutBinds reads them in the
-     * order of the OUT params.
-     */
-    private outBindsInParamsOrder(params: any[], outBinds: any): any {
-        if (!outBinds || Array.isArray(outBinds) || typeof outBinds !== 'object') {
-            return outBinds
-        }
-        const result: any[] = []
-        for (let i = 0, length = params.length; i < length; i++) {
-            const param = params[i]
-            if (param && typeof param === 'object' && param.dir === oracleDb.BIND_OUT) {
-                result.push(outBinds[i])
-            }
         }
         return result
     }
@@ -171,27 +154,19 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         if (!outBinds) {
             return []
         }
-        if (!Array.isArray(outBinds)) {
+        if (typeof outBinds !== 'object' || Array.isArray(outBinds)) {
+            // Bound by name, oracledb returns the OUT binds as an object keyed by their name (the index of the param)
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid out binds returned', value: outBinds }, 'Invalid outBinds returned by the database')
-        }
-
-        if (outBinds.length <= 0) {
-            return []
-        }
-
-        const out: any[] = []
-        for (let i = 0, length = params.length; i < length; i++) {
-            const param = params[i]
-            if (param && typeof param === 'object' && param.dir === oracleDb.BIND_OUT ) {
-                out.push(param)
-            }
         }
 
         const rows: any[][] = []
         let current: any[] = []
         rows.push(current)
-        for (let i = 0, length = outBinds.length; i < length; i++) {
-            const param: any = out[i]
+        for (let i = 0, length = params.length; i < length; i++) {
+            const param = params[i]
+            if (!param || typeof param !== 'object' || param.dir !== oracleDb.BIND_OUT) {
+                continue
+            }
             const name: string = param.as || ''
             const value = outBinds[i]
 

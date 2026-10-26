@@ -1037,7 +1037,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const connectdBy = query.__connectBy
         if (connectdBy) {
             const connectByCondition = this._appendCondition(connectdBy, params)
-            if (connectByCondition) {
+            if (!connectByCondition) {
+                // Every part of the condition was an IfValue without value. There is no condition with the same
+                // meaning: always true walks without end, always false returns only the start rows, and dropping
+                // the hierarchical clauses returns every row
+                throw new TsSqlProcessingError({ reason: 'MISSING_CONNECT_BY' }, 'No connect by condition generated for the hierarchical query')
+            } else {
                 if (query.__connectByNoCycle) {
                     selectQuery += ' connect by nocycle ' + connectByCondition
                 } else {

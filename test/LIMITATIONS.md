@@ -599,3 +599,28 @@ body preserved) on the PostgreSQL and SQLite cells; the collation-honouring path
 live on Oracle and SQL Server, whose `REPLACE` reads the forced collation. (Distinct
 from `replaceCollation`, which is a config declared only on Oracle/SQL Server and stays
 a genuine `NOT-APPLICABLE` elsewhere.)
+
+
+## A projected property whose name starts with `__` is silently dropped
+
+```ts
+connection.selectFrom(tProject)
+    .select({ id: tProject.id, __internal: tProject.organizationId })
+// SQL:    select id as id from project …
+// result: [{ id: 1 }]
+// type:   Array<{ id: number; __internal: number }>
+```
+
+The library walks objects that mix public data with its own bookkeeping, and that
+bookkeeping lives in plain properties whose name starts with `__` (tables and views
+carry `__name`, `__as`, `__template`…, value sources their `__…` fields): the library
+predates `Symbol`-keyed properties. `isUsableValue` (`src/sqlBuilders/SqlBuilder.ts`)
+skips every `__` property so that projecting a whole table (`select({ u: tTable })`)
+or walking a projection never mistakes that bookkeeping for a column. The price is
+that a user property with that prefix is dropped too, while the result type keeps it.
+
+Closing it is not a local change: it needs the internal fields moved out of the way
+(symbols or a separate private record) across tables, views, value sources and the
+query builders, or the types to refuse `__`-prefixed keys everywhere a projection is
+accepted. **Deliberately deferred** (user decision, 2026-10-26); don't add tests that
+project a `__` key expecting it in the result.

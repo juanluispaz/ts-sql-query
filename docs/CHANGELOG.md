@@ -97,6 +97,7 @@ search:
 - `.valueWhenNoValue(condition)` over an `*IfValue` condition is now optional when the condition put in its place is, as its type says; when that condition was `null` (a left-joined column) the result failed with `MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE`.
 - MySQL / MariaDB (`MySql2QueryRunner`, `MariaDBQueryRunner`, `BunSqlMySqlQueryRunner`): `returningLastInsertedId()` of an insert that `onConflictDoNothing()` skips now resolves `null` (and `executeInsert(1)` fails with `MINIMUM_ROWS_NOT_REACHED`) where the id is read from the driver instead of a `RETURNING` clause; it resolved `0`, the insert id the driver reports when no row was inserted.
 - PostgreSQL: the arguments of `executeFunction(...)` / `executeProcedure(...)` are now written with their type (`select mod($1::int4, $2::int4)`). The drivers send the parameters untyped, and PostgreSQL can't choose between the overloads of a function by an unknown type (`function mod(unknown, unknown) is not unique`).
+- Oracle: a hierarchical query whose `connectBy(...)` condition ends up empty (every part of it an `*IfValue` without value, e.g. `connection.true().and(x.equalsIfValue(undefined))`) now fails with the new reason `MISSING_CONNECT_BY` instead of emitting `start with` without `connect by`, which Oracle rejects.
 
 **Internal changes**:
 

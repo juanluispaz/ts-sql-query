@@ -1590,4 +1590,70 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ projectId: number; issues: Array<{ id: number; title: string }> }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('has-aggregation/inline-aggregated-array-replaced-by-null-reports-false', async () => {
+        // `onlyWhenOrNull(false)` projects null in place of the aggregated
+        // subquery, which is not emitted: nothing aggregates, as for any other
+        // value replaced by null.
+        const expected = [{ id: 2 }, { id: 3 }]
+        ctx.mockNext([{ id: 2, issues: null }, { id: 3, issues: null }])
+        const connection = ctx.conn
+        const showIssues = false
+
+        const projectIssues = connection.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .select({ id: tIssue.id, title: tIssue.title })
+            .forUseAsInlineAggregatedArrayValue()
+            .onlyWhenOrNull(showIssues)
+
+        const query = connection.selectFrom(tProject)
+            .where(tProject.id.in([2, 3]))
+            .select({ id: tProject.id, issues: projectIssues })
+            .orderBy('id')
+
+        expect(queryHasAggregation(query)).toBe(false)
+
+        const rows = await query.executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, null as issues from project where id in ($1, $2) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; issues?: Array<{ id: number; title: string }> }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('has-aggregation/aggregate-as-array-replaced-by-null-reports-false', async () => {
+        // `ignoreWhenAsNull(true)` projects null in place of the aggregate, so the
+        // query aggregates nothing and needs no `group by`: one row per issue.
+        const expected = [{ projectId: 2 }, { projectId: 3 }]
+        ctx.mockNext([{ projectId: 2, issues: null }, { projectId: 3, issues: null }])
+        const connection = ctx.conn
+        const hideIssues = true
+
+        const query = connection.selectFrom(tIssue)
+            .where(tIssue.projectId.in([2, 3]))
+            .select({
+                projectId: tIssue.projectId,
+                issues:    connection.aggregateAsArray({ id: tIssue.id, title: tIssue.title }).ignoreWhenAsNull(hideIssues),
+            })
+            .orderBy('projectId')
+
+        expect(queryHasAggregation(query)).toBe(false)
+
+        const rows = await query.executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, null as issues from issue where project_id in ($1, $2) order by projectId"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ projectId: number; issues?: Array<{ id: number; title: string }> }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

@@ -577,4 +577,28 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
     */
+
+    // NOT-APPLICABLE: `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` on MariaDB (`START WITH … CONNECT BY` is Oracle's hierarchical-query syntax); the equivalent shape here is a recursive CTE.
+    /*
+    test('connect-by-if-value-without-value-throws-missing-connect-by', async () => {
+        // The connect by condition is built dynamically (`true()` and an optional
+        // part) and the optional part has no value, so it renders nothing; `start with` without `connect by` is no
+        // query Oracle runs, and no condition keeps its meaning, so it is refused
+        // before anything is sent.
+        const parentId: number | null = null
+        let caught: unknown
+        try {
+            await ctx.conn.selectFrom(tIssue)
+                .startWith(tIssue.parentId.isNull())
+                .connectBy(() => ctx.conn.true().and(tIssue.parentId.equalsIfValue(parentId)))
+                .select({ id: tIssue.id })
+                .executeSelectMany()
+        } catch (e) {
+            caught = e
+        }
+        expect(caught).toBeInstanceOf(TsSqlError)
+        expect((caught as TsSqlError).errorReason).toEqual({ reason: 'MISSING_CONNECT_BY' })
+        expect(ctx.history).toEqual([])
+    })
+    */
 })

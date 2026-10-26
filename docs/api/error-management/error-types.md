@@ -58,6 +58,7 @@ Native SQL reasons can include `databaseErrorCode`, `databaseErrorNumber`, and `
 | `ORDER_BY_COLUMN_NOT_IN_SELECT` | `column` |
 | `INVALID_ORDER_BY_ORDERING` | `column`, `ordering` |
 | `MISSING_WHERE` | none |
+| `MISSING_CONNECT_BY` | none |
 | `MINIMUM_ROWS_NOT_REACHED` | `count`, `min` |
 | `MAXIMUM_ROWS_EXCEEDED` | `count`, `max` |
 | `MORE_THAN_ONE_ROW` | `count` |

@@ -12,6 +12,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { TsSqlError } from '../../../../../src/TsSqlError.js'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -547,5 +548,26 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows).toEqual(expected)
+    })
+
+    test('connect-by-if-value-without-value-throws-missing-connect-by', async () => {
+        // The connect by condition is built dynamically (`true()` and an optional
+        // part) and the optional part has no value, so it renders nothing; `start with` without `connect by` is no
+        // query Oracle runs, and no condition keeps its meaning, so it is refused
+        // before anything is sent.
+        const parentId: number | null = null
+        let caught: unknown
+        try {
+            await ctx.conn.selectFrom(tIssue)
+                .startWith(tIssue.parentId.isNull())
+                .connectBy(() => ctx.conn.true().and(tIssue.parentId.equalsIfValue(parentId)))
+                .select({ id: tIssue.id })
+                .executeSelectMany()
+        } catch (e) {
+            caught = e
+        }
+        expect(caught).toBeInstanceOf(TsSqlError)
+        expect((caught as TsSqlError).errorReason).toEqual({ reason: 'MISSING_CONNECT_BY' })
+        expect(ctx.history).toEqual([])
     })
 })

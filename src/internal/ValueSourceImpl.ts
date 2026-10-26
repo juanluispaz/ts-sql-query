@@ -2489,7 +2489,9 @@ export class NullAggregateSelectValueSource implements ValueSource<any, any, any
     [aggregatedArrayValueSource]!: 'AggregatedArrayValueSource'
 
     [isValueSourceObject]: true = true
-    __isAggregate = true
+    // Replaced by null (onlyWhenOrNull / ignoreWhenAsNull): nothing is aggregated, as for any other value
+    // replaced by null (NullValueSource); the other walkers ignore the replaced query too
+    __isAggregate = false
     __valueType: ValueType = 'aggregatedArray'
     __valueTypeName: string = 'aggregatedArray'
     __optionalType: OptionalType
@@ -2868,7 +2870,9 @@ export class NullAggregateValueAsArrayValueSource implements ValueSource<any, an
     [aggregatedArrayValueSource]!: 'AggregatedArrayValueSource'
 
     [isValueSourceObject]: true = true
-    __isAggregate = true
+    // Replaced by null (onlyWhenOrNull / ignoreWhenAsNull): nothing is aggregated, as for any other value
+    // replaced by null (NullValueSource); the other walkers ignore the replaced query too
+    __isAggregate = false
     __valueType: ValueType = 'aggregatedArray'
     __valueTypeName: string = 'aggregatedArray'
     __optionalType: OptionalType

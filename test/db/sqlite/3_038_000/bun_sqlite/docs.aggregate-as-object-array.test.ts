@@ -49,7 +49,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as id, organization.name as name, json_group_array(json_object('id', project.id, 'name', project.name)) as projects from organization left join project on project.organization_id = organization.id and project.archived_at is null where organization.id = ? group by 1, 2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as id, organization.name as name, json_group_array(json_object('id', project.id, 'name', project.name)) as projects from organization left join project on project.organization_id = organization.id and project.archived_at is null where organization.id = ? group by organization.id, organization.name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -88,7 +88,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as id, organization.name as name, json_group_array(project.name) as projectNames from organization left join project on project.organization_id = organization.id where organization.id = ? group by 1, 2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as id, organization.name as name, json_group_array(project.name) as projectNames from organization left join project on project.organization_id = organization.id where organization.id = ? group by organization.id, organization.name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -219,7 +219,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, json_group_array(distinct issue.priority) as priorities from project left join issue on issue.project_id = project.id where project.id = ? group by 1, 2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, json_group_array(distinct issue.priority) as priorities from project left join issue on issue.project_id = project.id where project.id = ? group by project.id, project.name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

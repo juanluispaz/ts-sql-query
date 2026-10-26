@@ -1262,7 +1262,7 @@ describe(ctx.label, () => {
             .groupBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, cast(json_arrayagg((select json_arrayagg(json_object('id', id, 'body', body)) from issue where project_id = project.id)) as char) as \`nested\` from project where id = ? group by 1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, cast(json_arrayagg((select json_arrayagg(json_object('id', id, 'body', body)) from issue where project_id = project.id)) as char) as \`nested\` from project where id = ? group by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

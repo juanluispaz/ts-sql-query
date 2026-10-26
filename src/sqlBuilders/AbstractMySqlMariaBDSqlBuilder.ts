@@ -3,7 +3,7 @@ import { getQueryColumn, flattenQueryColumns } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import type { AnyValueSource, __AggregatedArrayColumns, ValueType } from '../expressions/values.js'
 import { isValueSource } from '../expressions/values.js'
-import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
+import { AbstractSqlBuilder } from './AbstractSqlBuilder.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { DBColumn } from '../utils/Column.js'
 import { isColumn, __getColumnPrivate } from '../utils/Column.js'
@@ -30,9 +30,6 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
      * multiplication by an approximate literal.
      */
     _castAsDoubleMinCompatibilityVersion: number = Number.POSITIVE_INFINITY
-    override _appendGroupBySelectColumn(_entry: AnyValueSource, selectColumn: SelectColumnSql, _params: any[], _isOutermostQuery: boolean): string {
-        return this._appendGroupByPosition(selectColumn)
-    }
     override _forceAsIdentifier(identifier: string): string {
         return '`' + identifier + '`'
     }

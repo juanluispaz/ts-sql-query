@@ -374,7 +374,7 @@ describe(ctx.label, () => {
             .orderBy('projectId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.project_id as projectId, count(issue.id) as total from issue left join app_user on app_user.id = issue.assignee_id group by 1 having count(app_user.id) > $1 order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.project_id as projectId, count(issue.id) as total from issue left join app_user on app_user.id = issue.assignee_id group by issue.project_id having count(app_user.id) > $1 order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,

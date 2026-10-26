@@ -13,7 +13,8 @@ import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     postgreSql: true = true
     override _appendGroupBySelectColumn(_entry: AnyValueSource, selectColumn: SelectColumnSql, _params: any[], _isOutermostQuery: boolean): string {
-        return this._appendGroupByPosition(selectColumn)
+        // The same SQL as the select list: a numbered placeholder ($1) can be repeated, and it is the same expression
+        return selectColumn.sql
     }
     override _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords

@@ -654,13 +654,13 @@ describe(ctx.label, () => {
             .executeSelectPage()
 
         expect(ctx.history.length).toBe(2)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"/* head */  select \`status\` as \`status\`, count(id) as total from issue group by 1 order by \`status\` limit ?  /* tail */"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"/* head */  select \`status\` as \`status\`, count(id) as total from issue group by \`status\` order by \`status\` limit ?  /* tail */"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
           [
             2,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"select count(*) from (/* head */  select \`status\` as \`status\`, count(id) as total from issue group by 1  /* tail */) as result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"select count(*) from (/* head */  select \`status\` as \`status\`, count(id) as total from issue group by \`status\`  /* tail */) as result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof page, {
             data:  Array<{ status: string; total: number }>

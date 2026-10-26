@@ -3339,7 +3339,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org_projects_cte.orgId as orgId, cast(org_projects_cte.projects as char) as projects from (select \`organization\`.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id group by 1) as org_projects_cte order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org_projects_cte.orgId as orgId, cast(org_projects_cte.projects as char) as projects from (select \`organization\`.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id group by \`organization\`.id) as org_projects_cte order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId:    number
@@ -3402,7 +3402,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org_projects_cte.orgId as orgId, cast(org_projects_cte.\`wrap.projects\` as char) as \`wrap.projects\` from (select \`organization\`.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as \`wrap.projects\` from \`organization\` left join project on project.organization_id = \`organization\`.id group by 1) as org_projects_cte order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org_projects_cte.orgId as orgId, cast(org_projects_cte.\`wrap.projects\` as char) as \`wrap.projects\` from (select \`organization\`.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as \`wrap.projects\` from \`organization\` left join project on project.organization_id = \`organization\`.id group by \`organization\`.id) as org_projects_cte order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId: number
@@ -3452,7 +3452,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org_projects_cte.orgId as orgId, cast(org_projects_cte.projects as char) as projects from (select \`organization\`.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id group by 1) as org_projects_cte order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org_projects_cte.orgId as orgId, cast(org_projects_cte.projects as char) as projects from (select \`organization\`.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id group by \`organization\`.id) as org_projects_cte order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId:    number
@@ -3510,7 +3510,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org_projects_cte.orgId as orgId, cast(org_projects_cte.\`wrap.projects\` as char) as \`wrap.projects\` from (select \`organization\`.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as \`wrap.projects\` from \`organization\` left join project on project.organization_id = \`organization\`.id group by 1) as org_projects_cte order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org_projects_cte.orgId as orgId, cast(org_projects_cte.\`wrap.projects\` as char) as \`wrap.projects\` from (select \`organization\`.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as \`wrap.projects\` from \`organization\` left join project on project.organization_id = \`organization\`.id group by \`organization\`.id) as org_projects_cte order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId: number
@@ -3571,7 +3571,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org_projects_cte.orgId as orgId, cast(org_projects_cte.projects as char) as projects from (select \`organization\`.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id group by 1) as org_projects_cte order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org_projects_cte.orgId as orgId, cast(org_projects_cte.projects as char) as projects from (select \`organization\`.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id group by \`organization\`.id) as org_projects_cte order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId:    number
@@ -3625,7 +3625,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org_projects_cte.orgId as orgId, cast(org_projects_cte.projects as char) as projects from (select \`organization\`.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id group by 1) as org_projects_cte order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org_projects_cte.orgId as orgId, cast(org_projects_cte.projects as char) as projects from (select \`organization\`.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id group by \`organization\`.id) as org_projects_cte order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId:     number
@@ -3688,7 +3688,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org_projects_cte.orgId as orgId, cast(org_projects_cte.\`meta.projects\` as char) as \`meta.projects\` from (select \`organization\`.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as \`meta.projects\` from \`organization\` left join project on project.organization_id = \`organization\`.id group by 1) as org_projects_cte order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org_projects_cte.orgId as orgId, cast(org_projects_cte.\`meta.projects\` as char) as \`meta.projects\` from (select \`organization\`.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as \`meta.projects\` from \`organization\` left join project on project.organization_id = \`organization\`.id group by \`organization\`.id) as org_projects_cte order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId: number

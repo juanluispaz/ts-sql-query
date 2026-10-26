@@ -59,7 +59,7 @@ describe(ctx.label, () => {
         // json_arrayagg order is not guaranteed; sort by id before comparing.
         row.projectStats.sort((a, b) => a.id - b.id)
         expect(row).toEqual(expected)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, cast((select json_arrayagg(json_object('id', a_1_.id, 'count', a_1_.count)) from (select project.id as id, count(issue.id) as count from project inner join issue on issue.project_id = project.id where project.organization_id = \`organization\`.id group by 1) as a_1_) as char) as projectStats from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, cast((select json_arrayagg(json_object('id', a_1_.id, 'count', a_1_.count)) from (select project.id as id, count(issue.id) as count from project inner join issue on issue.project_id = project.id where project.organization_id = \`organization\`.id group by project.id) as a_1_) as char) as projectStats from \`organization\` where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -106,7 +106,7 @@ describe(ctx.label, () => {
         // json_arrayagg order is not guaranteed; sort by id before comparing.
         row.busyProjects.sort((a, b) => a.id - b.id)
         expect(row).toEqual(expected)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, cast((select json_arrayagg(json_object('id', a_1_.id, 'count', a_1_.count)) from (select project.id as id, count(issue.id) as count from project inner join issue on issue.project_id = project.id where project.organization_id = \`organization\`.id group by 1 having count(issue.id) > ?) as a_1_) as char) as busyProjects from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, cast((select json_arrayagg(json_object('id', a_1_.id, 'count', a_1_.count)) from (select project.id as id, count(issue.id) as count from project inner join issue on issue.project_id = project.id where project.organization_id = \`organization\`.id group by project.id having count(issue.id) > ?) as a_1_) as char) as busyProjects from \`organization\` where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -826,7 +826,7 @@ describe(ctx.label, () => {
             name:       string
             byAssignee: Array<{ assigneeId: number | null; count: number }>
         }>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, cast((select json_arrayagg(json_object('assigneeId', a_1_.assigneeId, 'count', a_1_.count)) from (select issue.assignee_id as assigneeId, count(issue.id) as count from project inner join issue on issue.project_id = project.id where project.organization_id = \`organization\`.id group by 1) as a_1_) as char) as byAssignee from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, cast((select json_arrayagg(json_object('assigneeId', a_1_.assigneeId, 'count', a_1_.count)) from (select issue.assignee_id as assigneeId, count(issue.id) as count from project inner join issue on issue.project_id = project.id where project.organization_id = \`organization\`.id group by issue.assignee_id) as a_1_) as char) as byAssignee from \`organization\` where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -876,7 +876,7 @@ describe(ctx.label, () => {
             name:       string
             byAssignee: Array<{ assigneeId: number | null; count: number }>
         }>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, cast((select json_arrayagg(json_object('assigneeId', a_1_.assigneeId, 'count', a_1_.count)) from (select issue.assignee_id as assigneeId, count(issue.id) as count from project inner join issue on issue.project_id = project.id where project.organization_id = \`organization\`.id group by 1 having count(issue.id) > ?) as a_1_) as char) as byAssignee from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, cast((select json_arrayagg(json_object('assigneeId', a_1_.assigneeId, 'count', a_1_.count)) from (select issue.assignee_id as assigneeId, count(issue.id) as count from project inner join issue on issue.project_id = project.id where project.organization_id = \`organization\`.id group by issue.assignee_id having count(issue.id) > ?) as a_1_) as char) as byAssignee from \`organization\` where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -1204,7 +1204,7 @@ describe(ctx.label, () => {
             .groupBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, cast(json_arrayagg((select json_arrayagg(json_object('id', id, 'body', body)) from issue where project_id = project.id)) as char) as \`nested\` from project where id = ? group by 1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, cast(json_arrayagg((select json_arrayagg(json_object('id', id, 'body', body)) from issue where project_id = project.id)) as char) as \`nested\` from project where id = ? group by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

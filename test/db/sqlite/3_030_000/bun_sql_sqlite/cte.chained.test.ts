@@ -91,7 +91,7 @@ describe(ctx.label, () => {
             .groupBy('id', 'name')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select project_id as projectId from issue where status = $1) select project.id as id, project.name as name, (select count(projectId) as result from open_issues) as totalOpen from project inner join open_issues on open_issues.projectId = project.id group by 1, 2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select project_id as projectId from issue where status = $1) select project.id as id, project.name as name, (select count(projectId) as result from open_issues) as totalOpen from project inner join open_issues on open_issues.projectId = project.id group by project.id, project.name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",

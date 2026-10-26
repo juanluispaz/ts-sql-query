@@ -1081,7 +1081,7 @@ describe(ctx.label, () => {
             .groupBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, cast(json_arrayagg(webhook_event.event_type) as char) as events from issue inner join webhook_event on webhook_event.issue_id = issue.id where issue.id = ? group by 1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, cast(json_arrayagg(webhook_event.event_type) as char) as events from issue inner join webhook_event on webhook_event.issue_id = issue.id where issue.id = ? group by issue.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

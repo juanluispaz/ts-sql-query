@@ -829,14 +829,17 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         return fromJoins
     }
-    _appendGroupBySelectColumn(entry: AnyValueSource, _selectColumn: SelectColumnSql, params: any[], isOutermostQuery: boolean): string {
-        // A group by entry the user named by its column of the select list (`groupBy('level')`). Each database
-        // overrides it with the safest way it has to refer to that column: its position in the select list (a name
-        // in a group by is resolved against the columns of the from first, so the alias can end up grouping by a
-        // column the query doesn't know about), or the select list's SQL with the same parameters. Written again, an
-        // expression that carries a parameter gets a new one (`priority + $1` / `priority + $2`) that the strict
-        // engines don't take as the same expression.
-        return this._appendSelectColumn(entry, params, undefined, isOutermostQuery)
+    _appendGroupBySelectColumn(_entry: AnyValueSource, selectColumn: SelectColumnSql, _params: any[], _isOutermostQuery: boolean): string {
+        // A group by entry the user named by its column of the select list (`groupBy('level')`). The alias is not
+        // safe: a name in a group by is resolved against the columns of the from first, so it can end up grouping by
+        // a column the query doesn't know about. The select list's SQL is the same expression while it has no
+        // parameters; with parameters, these databases take each placeholder as a different parameter
+        // (`priority + ?` / `priority + ?`), so the position in the select list is used. The databases whose
+        // placeholders can be repeated override it to reuse the select list's SQL with the same parameters.
+        if (selectColumn.paramsStart === selectColumn.paramsEnd) {
+            return selectColumn.sql
+        }
+        return this._appendGroupByPosition(selectColumn)
     }
     _appendGroupByPosition(selectColumn: SelectColumnSql): string {
         return '' + selectColumn.position

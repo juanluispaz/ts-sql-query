@@ -160,7 +160,7 @@ describe(ctx.label, () => {
             .orderBy('projectId')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId from issue group by 1 order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId from issue group by project_id order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(rows).toEqual(expected)
     })

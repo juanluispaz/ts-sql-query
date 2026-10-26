@@ -48,7 +48,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCountPerOrg as (select organization.id as orgId, organization.name as orgName, count(project.id) as projects from project inner join organization on organization.id = project.organization_id group by 1, 2) select orgName as orgName, projects as projects from projectCountPerOrg where projects > $1 order by orgName"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCountPerOrg as (select organization.id as orgId, organization.name as orgName, count(project.id) as projects from project inner join organization on organization.id = project.organization_id group by organization.id, organization.name) select orgName as orgName, projects as projects from projectCountPerOrg where projects > $1 order by orgName"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

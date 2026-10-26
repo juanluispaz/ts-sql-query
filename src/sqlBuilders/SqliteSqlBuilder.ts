@@ -3,7 +3,7 @@ import { flattenQueryColumns } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import type { AnyValueSource, __AggregatedArrayColumns, ValueType } from '../expressions/values.js'
 import { isValueSource, __isUuidValueSource, __isLocalDateValueSource, __isLocalTimeValueSource, __isLocalDateTimeValueSource, __isUuidValueType } from '../expressions/values.js'
-import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
+import { AbstractSqlBuilder } from './AbstractSqlBuilder.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { DBColumn } from '../utils/Column.js'
 import { isColumn } from '../utils/Column.js'
@@ -86,9 +86,6 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             }
         }
         throw new TsSqlProcessingError({ reason: 'UNKNOWN_DATA_TYPE' }, 'Unable to determine the value source type')
-    }
-    override _appendGroupBySelectColumn(_entry: AnyValueSource, selectColumn: SelectColumnSql, _params: any[], _isOutermostQuery: boolean): string {
-        return this._appendGroupByPosition(selectColumn)
     }
     override _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords

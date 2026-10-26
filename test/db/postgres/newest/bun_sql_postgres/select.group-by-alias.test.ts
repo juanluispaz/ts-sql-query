@@ -26,7 +26,7 @@ describe(ctx.label, () => {
             .groupBy('level')
             .orderBy('level')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority + $1 as level, count(*) as issues from issue group by 1 order by level"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority + $1 as level, count(*) as issues from issue group by priority + $1 order by level"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -57,7 +57,7 @@ describe(ctx.label, () => {
             .orderBy('projectId')
             .orderBy('level')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", priority + $1 as level, count(*) as issues from issue group by 1, 2 order by "projectId", level"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", priority + $1 as level, count(*) as issues from issue group by project_id, priority + $1 order by "projectId", level"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -82,7 +82,7 @@ describe(ctx.label, () => {
             .groupBy('priority')
             .orderBy('priority')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority % $1 as priority, count(*) as issues from issue group by 1 order by priority"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority % $1 as priority, count(*) as issues from issue group by priority % $1 order by priority"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -108,7 +108,7 @@ describe(ctx.label, () => {
             .groupBy('level')
             .orderBy('level')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority + $1 as level, count(*) as issues from issue where id > $2 group by 1 order by level"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority + $1 as level, count(*) as issues from issue where id > $2 group by priority + $1 order by level"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,

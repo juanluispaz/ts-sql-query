@@ -307,7 +307,7 @@ describe(ctx.label, () => {
             .executeSelectMany())
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCountPerOrg as (select organization.id as organizationId, organization.name as organizationName, count(project.id) as projectCount from organization inner join project on project.organization_id = organization.id group by 1, 2) select organizationId as acmeOrgId, organizationName as acmeOrgName, projectCount as acmeProjectCount from projectCountPerOrg where lower(organizationName) like lower('%' || ? || '%') escape '\\'"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCountPerOrg as (select organization.id as organizationId, organization.name as organizationName, count(project.id) as projectCount from organization inner join project on project.organization_id = organization.id group by organization.id, organization.name) select organizationId as acmeOrgId, organizationName as acmeOrgName, projectCount as acmeProjectCount from projectCountPerOrg where lower(organizationName) like lower('%' || ? || '%') escape '\\'"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Acme",
@@ -549,7 +549,7 @@ describe(ctx.label, () => {
             .orderBy('organizationId')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, count(id) as projectCount from project where archived_at is null group by 1 having count(id) > ? order by organizationId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, count(id) as projectCount from project where archived_at is null group by organization_id having count(id) > ? order by organizationId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,

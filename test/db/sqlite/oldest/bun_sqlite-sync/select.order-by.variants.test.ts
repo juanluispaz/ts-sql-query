@@ -170,7 +170,7 @@ describe(ctx.label, () => {
             .orderBy(ctx.conn.count(tIssue.id), 'desc')
             .orderBy('status')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as cnt from issue group by status order by count(issue.id) desc, status"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as cnt from issue group by 1 order by count(issue.id) desc, status"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ status: string; cnt: number }>>>()
         expect(result).toEqual(expected)

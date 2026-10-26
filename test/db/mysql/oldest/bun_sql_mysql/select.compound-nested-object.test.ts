@@ -299,7 +299,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`organization\`.id as orgId, cast(json_arrayagg(json_object('id', project.id, 'name', project.\`name\`)) as char) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by \`organization\`.id union all select \`organization\`.id as orgId, cast(json_arrayagg(json_object('id', project.id, 'name', project.\`name\`)) as char) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by \`organization\`.id order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`organization\`.id as orgId, cast(json_arrayagg(json_object('id', project.id, 'name', project.\`name\`)) as char) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by 1 union all select \`organization\`.id as orgId, cast(json_arrayagg(json_object('id', project.id, 'name', project.\`name\`)) as char) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by 1 order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -666,7 +666,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`organization\`.id as orgId, cast(json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as char) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by \`organization\`.id union all select \`organization\`.id as orgId, cast(json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as char) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by \`organization\`.id order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`organization\`.id as orgId, cast(json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as char) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by 1 union all select \`organization\`.id as orgId, cast(json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as char) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by 1 order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -974,7 +974,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`organization\`.id as orgId, cast(json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as char) as \`wrap.projects\` from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by \`organization\`.id union all select \`organization\`.id as orgId, cast(json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as char) as \`wrap.projects\` from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by \`organization\`.id order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`organization\`.id as orgId, cast(json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as char) as \`wrap.projects\` from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by 1 union all select \`organization\`.id as orgId, cast(json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as char) as \`wrap.projects\` from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by 1 order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1053,7 +1053,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`organization\`.id as orgId, cast(json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as char) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by \`organization\`.id union all select \`organization\`.id as orgId, cast(json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as char) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by \`organization\`.id order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`organization\`.id as orgId, cast(json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as char) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by 1 union all select \`organization\`.id as orgId, cast(json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as char) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by 1 order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1131,7 +1131,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`organization\`.id as orgId, cast(json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as char) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by \`organization\`.id union all select \`organization\`.id as orgId, cast(json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as char) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by \`organization\`.id order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`organization\`.id as orgId, cast(json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as char) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by 1 union all select \`organization\`.id as orgId, cast(json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as char) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by 1 order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1208,7 +1208,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`organization\`.id as orgId, cast(json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as char) as \`meta.projects\` from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by \`organization\`.id union all select \`organization\`.id as orgId, cast(json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as char) as \`meta.projects\` from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by \`organization\`.id order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`organization\`.id as orgId, cast(json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as char) as \`meta.projects\` from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by 1 union all select \`organization\`.id as orgId, cast(json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as char) as \`meta.projects\` from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by 1 order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

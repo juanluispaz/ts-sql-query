@@ -22,6 +22,9 @@ import type { RawFragment } from '../utils/RawFragment.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { getContainsInsertReturningClause, setContainsInsertReturningClause, setContainsMutationReturningClause, setForcedAffectedRowCount } from '../utils/queryParamsMetadata.js'
 
+/** A column of the select list as it was written, for the group by that refers to it */
+export type SelectColumnSql = { sql: string, position: number | undefined }
+
 export class AbstractSqlBuilder implements SqlBuilder {
     // @ts-ignore
     _defaultTypeAdapter: DefaultTypeAdapter
@@ -817,7 +820,23 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         return fromJoins
     }
-    _buildSelectGroupBy(query: PlainSelectData, params: any[], isOutermostQuery: boolean): string {
+    _appendGroupBySelectColumn(entry: AnyValueSource, _selectColumn: SelectColumnSql, params: any[], isOutermostQuery: boolean): string {
+        // A group by entry the user named by its column of the select list (`groupBy('level')`). Each database
+        // overrides it with the safest way it has to refer to that column: its position in the select list (a name
+        // in a group by is resolved against the columns of the from first, so the alias can end up grouping by a
+        // column the query doesn't know about), or the select list's SQL with the same parameters. Written again, an
+        // expression that carries a parameter gets a new one (`priority + $1` / `priority + $2`) that the strict
+        // engines don't take as the same expression.
+        return this._appendSelectColumn(entry, params, undefined, isOutermostQuery)
+    }
+    _appendGroupByPosition(entry: AnyValueSource, selectColumn: SelectColumnSql, params: any[], isOutermostQuery: boolean): string {
+        if (selectColumn.position === undefined) {
+            // A customization may write columns before the select list's ones
+            return this._appendSelectColumn(entry, params, undefined, isOutermostQuery)
+        }
+        return '' + selectColumn.position
+    }
+    _buildSelectGroupBy(query: PlainSelectData, params: any[], isOutermostQuery: boolean, selectColumnsSql?: Map<AnyValueSource, SelectColumnSql> | undefined): string {
         const groupBy = query.__groupBy
         if (groupBy.length <= 0) {
             return ''
@@ -827,7 +846,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (i > 0) {
                 result += ', '
             }
-            result += this._appendSelectColumn(groupBy[i]!, params, undefined, isOutermostQuery)
+            const entry = groupBy[i]!
+            // Only an entry the user named by its select column refers to that column; an expression is written as is
+            const selectColumn = query.__groupByColumnNames?.has(entry) ? selectColumnsSql?.get(entry) : undefined
+            if (selectColumn) {
+                result += this._appendGroupBySelectColumn(entry, selectColumn, params, isOutermostQuery)
+            } else {
+                result += this._appendSelectColumn(entry, params, undefined, isOutermostQuery)
+            }
         }
         return result
     }
@@ -983,14 +1009,22 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const columns: FlatQueryColumns = {}
         flattenQueryColumns(query.__columns, columns, '')
 
+        const groupByColumnNames = query.__groupByColumnNames
+        const selectColumnsSql = groupByColumnNames ? new Map<AnyValueSource, SelectColumnSql>() : undefined
         if (needAgggregateArrayWrapper || !this._needAgggregateArrayColumnsTransformation(query, params)) {
             let requireComma = false
+            let position = 0
             for (const property in columns) {
                 if (requireComma) {
                     selectQuery += ', '
                 }
+                position++
                 const columnForInsert = columnsForInsert[property]
-                selectQuery += this._appendSelectColumn(columns[property]!, params, columnForInsert, isOutermostQuery)
+                const columnSql = this._appendSelectColumn(columns[property]!, params, columnForInsert, isOutermostQuery)
+                if (selectColumnsSql && !columnForInsert && groupByColumnNames!.has(columns[property]!)) {
+                    selectColumnsSql.set(columns[property]!, { sql: columnSql, position: customization && customization.beforeColumns ? undefined : position })
+                }
+                selectQuery += columnSql
                 if (property) {
                     selectQuery += ' as ' + this._appendColumnAlias(property, params)
                 }
@@ -1051,7 +1085,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
         }
 
-        selectQuery += this._buildSelectGroupBy(query, params, isOutermostQuery)
+        selectQuery += this._buildSelectGroupBy(query, params, isOutermostQuery, selectColumnsSql)
 
         const having = query.__having
         if (having) {

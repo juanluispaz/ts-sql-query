@@ -67,14 +67,14 @@ describe(ctx.label, () => {
             .executeSelectPage()
 
         expect(ctx.history.length).toBe(2)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select \`status\` as \`status\`, count(id) as total from issue group by \`status\` order by \`status\` limit ? offset ?"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select \`status\` as \`status\`, count(id) as total from issue group by 1 order by \`status\` limit ? offset ?"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
           [
             10,
             0,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"select count(*) from (select \`status\` as \`status\`, count(id) as total from issue group by \`status\`) as result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"select count(*) from (select \`status\` as \`status\`, count(id) as total from issue group by 1) as result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof page, {
             data:  Array<{ status: string; total: number }>
@@ -104,14 +104,14 @@ describe(ctx.label, () => {
             .executeSelectPage()
 
         expect(ctx.history.length).toBe(2)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select distinct \`status\` as \`status\`, priority as priority from issue group by \`status\`, priority order by \`status\` limit ? offset ?"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select distinct \`status\` as \`status\`, priority as priority from issue group by 1, 2 order by \`status\` limit ? offset ?"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
           [
             10,
             0,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"select count(*) from (select distinct \`status\` as \`status\`, priority as priority from issue group by \`status\`, priority) as result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"select count(*) from (select distinct \`status\` as \`status\`, priority as priority from issue group by 1, 2) as result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof page, {
             data:  Array<{ status: string; priority: number }>

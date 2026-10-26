@@ -3340,7 +3340,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with org_projects_cte as (select organization.id as orgId, json_group_array(json_object('id', project.id, 'name', project.name, 'archivedAt', project.archived_at)) as projects from organization left join project on project.organization_id = organization.id group by organization.id) select orgId as orgId, projects as projects from org_projects_cte order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with org_projects_cte as (select organization.id as orgId, json_group_array(json_object('id', project.id, 'name', project.name, 'archivedAt', project.archived_at)) as projects from organization left join project on project.organization_id = organization.id group by 1) select orgId as orgId, projects as projects from org_projects_cte order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId:    number
@@ -3403,7 +3403,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with org_projects_cte as (select organization.id as orgId, json_group_array(json_object('id', project.id, 'name', project.name, 'archivedAt', project.archived_at)) as "wrap.projects" from organization left join project on project.organization_id = organization.id group by organization.id) select orgId as orgId, "wrap.projects" as "wrap.projects" from org_projects_cte order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with org_projects_cte as (select organization.id as orgId, json_group_array(json_object('id', project.id, 'name', project.name, 'archivedAt', project.archived_at)) as "wrap.projects" from organization left join project on project.organization_id = organization.id group by 1) select orgId as orgId, "wrap.projects" as "wrap.projects" from org_projects_cte order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId: number
@@ -3453,7 +3453,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with org_projects_cte as (select organization.id as orgId, json_group_array(json_object('id', project.id, 'name', project.name, 'archivedAt', project.archived_at)) as projects from organization left join project on project.organization_id = organization.id group by organization.id) select orgId as orgId, projects as projects from org_projects_cte order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with org_projects_cte as (select organization.id as orgId, json_group_array(json_object('id', project.id, 'name', project.name, 'archivedAt', project.archived_at)) as projects from organization left join project on project.organization_id = organization.id group by 1) select orgId as orgId, projects as projects from org_projects_cte order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId:    number
@@ -3511,7 +3511,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with org_projects_cte as (select organization.id as orgId, json_group_array(json_object('id', project.id, 'name', project.name, 'archivedAt', project.archived_at)) as "wrap.projects" from organization left join project on project.organization_id = organization.id group by organization.id) select orgId as orgId, "wrap.projects" as "wrap.projects" from org_projects_cte order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with org_projects_cte as (select organization.id as orgId, json_group_array(json_object('id', project.id, 'name', project.name, 'archivedAt', project.archived_at)) as "wrap.projects" from organization left join project on project.organization_id = organization.id group by 1) select orgId as orgId, "wrap.projects" as "wrap.projects" from org_projects_cte order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId: number
@@ -3572,7 +3572,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with org_projects_cte as (select organization.id as orgId, json_group_array(json_object('id', project.id, 'name', project.name, 'archivedAt', project.archived_at)) as projects from organization left join project on project.organization_id = organization.id group by organization.id) select orgId as orgId, projects as projects from org_projects_cte order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with org_projects_cte as (select organization.id as orgId, json_group_array(json_object('id', project.id, 'name', project.name, 'archivedAt', project.archived_at)) as projects from organization left join project on project.organization_id = organization.id group by 1) select orgId as orgId, projects as projects from org_projects_cte order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId:    number
@@ -3626,7 +3626,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with org_projects_cte as (select organization.id as orgId, json_group_array(json_object('id', project.id, 'name', project.name, 'archivedAt', project.archived_at)) as projects from organization left join project on project.organization_id = organization.id group by organization.id) select orgId as orgId, projects as projects from org_projects_cte order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with org_projects_cte as (select organization.id as orgId, json_group_array(json_object('id', project.id, 'name', project.name, 'archivedAt', project.archived_at)) as projects from organization left join project on project.organization_id = organization.id group by 1) select orgId as orgId, projects as projects from org_projects_cte order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId:     number
@@ -3689,7 +3689,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with org_projects_cte as (select organization.id as orgId, json_group_array(json_object('id', project.id, 'name', project.name, 'archivedAt', project.archived_at)) as "meta.projects" from organization left join project on project.organization_id = organization.id group by organization.id) select orgId as orgId, "meta.projects" as "meta.projects" from org_projects_cte order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with org_projects_cte as (select organization.id as orgId, json_group_array(json_object('id', project.id, 'name', project.name, 'archivedAt', project.archived_at)) as "meta.projects" from organization left join project on project.organization_id = organization.id group by 1) select orgId as orgId, "meta.projects" as "meta.projects" from org_projects_cte order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId: number

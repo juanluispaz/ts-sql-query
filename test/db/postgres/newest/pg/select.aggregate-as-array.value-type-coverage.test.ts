@@ -37,7 +37,7 @@ describe(ctx.label, () => {
             .groupBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, (json_agg((project.published = 't')))::text as published from issue left join project on project.id = issue.project_id where issue.id = $1 group by issue.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, (json_agg((project.published = 't')))::text as published from issue left join project on project.id = issue.project_id where issue.id = $1 group by 1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -71,7 +71,7 @@ describe(ctx.label, () => {
             .groupBy('projectId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", (json_agg(created_at))::text as "createdAts" from issue where project_id = $1 group by project_id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", (json_agg(created_at))::text as "createdAts" from issue where project_id = $1 group by 1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -103,7 +103,7 @@ describe(ctx.label, () => {
             .groupBy('issueId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_id as "issueId", (json_agg(work_date))::text as dates from issue_worklog where issue_id = $1 group by issue_id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_id as "issueId", (json_agg(work_date))::text as dates from issue_worklog where issue_id = $1 group by 1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -137,7 +137,7 @@ describe(ctx.label, () => {
             .groupBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, (json_agg(project.archived_at))::text as "archivedAts" from issue left join project on project.id = issue.project_id where issue.id = $1 group by issue.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, (json_agg(project.archived_at))::text as "archivedAts" from issue left join project on project.id = issue.project_id where issue.id = $1 group by 1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -186,7 +186,7 @@ describe(ctx.label, () => {
                 .groupBy('projectId')
                 .executeSelectMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", (json_agg(view_count))::text as views from issue where project_id = $1 group by project_id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", (json_agg(view_count))::text as views from issue where project_id = $1 group by 1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -229,7 +229,7 @@ describe(ctx.label, () => {
                 .groupBy('projectId')
                 .executeSelectMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", (json_agg(estimated_hours))::text as hours from issue where project_id = $1 group by project_id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", (json_agg(estimated_hours))::text as hours from issue where project_id = $1 group by 1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -308,7 +308,7 @@ describe(ctx.label, () => {
                 .groupBy('projectId')
                 .executeSelectMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", (json_agg(external_ref))::text as refs from issue where project_id = $1 group by project_id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", (json_agg(external_ref))::text as refs from issue where project_id = $1 group by 1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -378,7 +378,7 @@ describe(ctx.label, () => {
                 .groupBy('projectId')
                 .executeSelectMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", (json_agg(json_build_object('views', view_count, 'externalRef', external_ref, 'estimatedHours', estimated_hours)))::text as issues from issue where project_id = $1 group by project_id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", (json_agg(json_build_object('views', view_count, 'externalRef', external_ref, 'estimatedHours', estimated_hours)))::text as issues from issue where project_id = $1 group by 1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -434,7 +434,7 @@ describe(ctx.label, () => {
             .groupBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, (json_agg(json_build_object('published', (project.published = 't'), 'createdAt', project.created_at)))::text as projects from issue left join project on project.id = issue.project_id where issue.id = $1 group by issue.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, (json_agg(json_build_object('published', (project.published = 't'), 'createdAt', project.created_at)))::text as projects from issue left join project on project.id = issue.project_id where issue.id = $1 group by 1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -476,7 +476,7 @@ describe(ctx.label, () => {
             .groupBy('projectId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", (json_agg(json_build_object('score', score, 'reviewer', reviewer_code)))::text as reviews from project_review where project_id = $1 group by project_id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", (json_agg(json_build_object('score', score, 'reviewer', reviewer_code)))::text as reviews from project_review where project_id = $1 group by 1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -509,7 +509,7 @@ describe(ctx.label, () => {
                 .groupBy('projectId')
                 .executeSelectMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", (json_agg(estimated_hours))::text as hours from issue where project_id = $1 group by project_id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", (json_agg(estimated_hours))::text as hours from issue where project_id = $1 group by 1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -537,7 +537,7 @@ describe(ctx.label, () => {
             .groupBy('projectId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", (json_agg(optional_release_ordinal))::text as ords from release_overview where project_id = $1 group by project_id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", (json_agg(optional_release_ordinal))::text as ords from release_overview where project_id = $1 group by 1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -800,7 +800,7 @@ describe(ctx.label, () => {
             .groupBy('issueId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_id as "issueId", (json_agg(billed_amount))::text as amounts from issue_worklog where issue_id = $1 group by issue_id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_id as "issueId", (json_agg(billed_amount))::text as amounts from issue_worklog where issue_id = $1 group by 1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -973,7 +973,7 @@ describe(ctx.label, () => {
                 .select({ id: tProject.id, refs })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ((select json_agg(json_build_object('ref', a_1_.ref, 'cnt', a_1_.cnt)) from (select external_ref as ref, count(id) as cnt from issue where project_id = project.id group by external_ref) as a_1_))::text as refs from project where id = $1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ((select json_agg(json_build_object('ref', a_1_.ref, 'cnt', a_1_.cnt)) from (select external_ref as ref, count(id) as cnt from issue where project_id = project.id group by 1) as a_1_))::text as refs from project where id = $1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1003,7 +1003,7 @@ describe(ctx.label, () => {
             .groupBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, (json_agg(webhook_event.event_type))::text as events from issue inner join webhook_event on webhook_event.issue_id = issue.id where issue.id = $1 group by issue.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, (json_agg(webhook_event.event_type))::text as events from issue inner join webhook_event on webhook_event.issue_id = issue.id where issue.id = $1 group by 1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

@@ -438,7 +438,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, null as kept, null as dropped, null as ignored, null as keptIgnored from project left join issue on issue.project_id = project.id where project.id = $1 group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, null as kept, null as dropped, null as ignored, null as keptIgnored from project left join issue on issue.project_id = project.id where project.id = $1 group by 1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

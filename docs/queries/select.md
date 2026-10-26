@@ -834,8 +834,8 @@ The executed query is:
             from company 
             inner join customer on customer.company_id = company.id 
             group by 
-                company.id, 
-                company.name
+                1, 
+                2
         ) 
     select 
         companyId as acmeCompanyId, 
@@ -855,8 +855,8 @@ The executed query is:
             from company 
             inner join customer on customer.company_id = company.id 
             group by 
-                company.id, 
-                company.`name`
+                1, 
+                2
         ) 
     select 
         companyId as acmeCompanyId, 
@@ -897,8 +897,8 @@ The executed query is:
             from company 
             inner join customer on customer.company_id = company.id 
             group by 
-                company.id, 
-                company.name
+                1, 
+                2
         ) 
     select 
         companyId as "acmeCompanyId", 
@@ -918,8 +918,8 @@ The executed query is:
             from company 
             inner join customer on customer.company_id = company.id 
             group by 
-                company.id, 
-                company.name
+                1, 
+                2
         ) 
     select 
         companyId as acmeCompanyId, 

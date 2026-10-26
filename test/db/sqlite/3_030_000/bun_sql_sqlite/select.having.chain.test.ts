@@ -40,7 +40,7 @@ describe(ctx.label, () => {
             .orderBy('status')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by status having (count(id) > $1 and count(id) < $2) or max(priority) = $3 order by status"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by 1 having (count(id) > $1 and count(id) < $2) or max(priority) = $3 order by status"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -70,7 +70,7 @@ describe(ctx.label, () => {
             .orderBy('status')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by status having count(id) > $1 order by status"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by 1 having count(id) > $1 order by status"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -102,7 +102,7 @@ describe(ctx.label, () => {
             .orderBy('status')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by status order by status"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by 1 order by status"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ status: string; total: number }>>>()
         if (!ctx.realDbEnabled) expect(result).toEqual(expected)
@@ -124,7 +124,7 @@ describe(ctx.label, () => {
                 .or(ctx.conn.count(tIssue.id).greaterThan(1))
             .orderBy('status')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by status having count(id) > $1 order by status"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by 1 having count(id) > $1 order by status"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -199,7 +199,7 @@ describe(ctx.label, () => {
             .having(ctx.conn.count(tIssue.id).multiply(2).greaterThan(6))
             .orderBy('projectId')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) as total from issue group by project_id having (count(id) * $1) > $2 order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) as total from issue group by 1 having (count(id) * $1) > $2 order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -231,7 +231,7 @@ describe(ctx.label, () => {
                 .and(ctx.conn.min(tIssue.priority).greaterOrEqual(2))
             .orderBy('projectId')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) as total from issue group by project_id having sum(priority) >= $1 and avg(cast(priority as real)) > $2 and min(priority) >= $3 order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) as total from issue group by 1 having sum(priority) >= $1 and avg(cast(priority as real)) > $2 and min(priority) >= $3 order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -265,7 +265,7 @@ describe(ctx.label, () => {
             .having(ctx.conn.stringConcat(tIssue.status).contains('open'))
             .orderBy('projectId')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) as total from issue group by project_id having group_concat(status) like ('%' || $1 || '%') escape '\\' order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) as total from issue group by 1 having group_concat(status) like ('%' || $1 || '%') escape '\\' order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",

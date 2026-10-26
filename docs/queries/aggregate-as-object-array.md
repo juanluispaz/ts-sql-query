@@ -62,7 +62,7 @@ The executed query is:
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = ? 
-    group by company.id, company.name
+    group by 1, 2
     ```
 === "MySQL"
     ```mysql
@@ -77,7 +77,7 @@ The executed query is:
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = ? 
-    group by company.id, company.`name`
+    group by 1, 2
     ```
 === "Oracle"
     ```oracle
@@ -107,7 +107,7 @@ The executed query is:
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = $1 
-    group by company.id, company.name
+    group by 1, 2
     ```
 === "SQLite"
     ```sqlite
@@ -122,7 +122,7 @@ The executed query is:
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = ? 
-    group by company.id, company.name
+    group by 1, 2
     ```
 === "SQL Server"
     ```sqlserver
@@ -190,7 +190,7 @@ The executed query is:
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = ? 
-    group by company.id, company.name
+    group by 1, 2
     ```
 === "MySQL"
     ```mysql
@@ -201,7 +201,7 @@ The executed query is:
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = ? 
-    group by company.id, company.`name`
+    group by 1, 2
     ```
 === "Oracle"
     ```oracle
@@ -223,7 +223,7 @@ The executed query is:
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = $2 
-    group by company.id, company.name
+    group by 1, 2
     ```
 === "SQLite"
     ```sqlite
@@ -234,7 +234,7 @@ The executed query is:
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = ? 
-    group by company.id, company.name
+    group by 1, 2
     ```
 === "SQL Server"
     ```sqlserver

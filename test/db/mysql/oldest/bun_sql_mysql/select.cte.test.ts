@@ -48,7 +48,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select projectCountPerOrg.orgName as orgName, projectCountPerOrg.projects as projects from (select \`organization\`.id as orgId, \`organization\`.\`name\` as orgName, count(project.id) as projects from project inner join \`organization\` on \`organization\`.id = project.organization_id group by \`organization\`.id, \`organization\`.\`name\`) as projectCountPerOrg where projectCountPerOrg.projects > ? order by orgName"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select projectCountPerOrg.orgName as orgName, projectCountPerOrg.projects as projects from (select \`organization\`.id as orgId, \`organization\`.\`name\` as orgName, count(project.id) as projects from project inner join \`organization\` on \`organization\`.id = project.organization_id group by 1, 2) as projectCountPerOrg where projectCountPerOrg.projects > ? order by orgName"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

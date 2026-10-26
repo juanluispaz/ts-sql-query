@@ -1597,7 +1597,7 @@ describe(ctx.label, () => {
             })
             .groupBy('pid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, json_group_array(json_object('combined', issue.id + app_user.id, 'tag', 'rel')) as items from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id = $1 group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, json_group_array(json_object('combined', issue.id + app_user.id, 'tag', 'rel')) as items from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id = $1 group by 1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -1636,7 +1636,7 @@ describe(ctx.label, () => {
             })
             .groupBy('pid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, json_group_array(json_object('combined', issue.id + app_user.id, 'tag', 'rel')) as items from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id = $1 group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, json_group_array(json_object('combined', issue.id + app_user.id, 'tag', 'rel')) as items from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id = $1 group by 1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

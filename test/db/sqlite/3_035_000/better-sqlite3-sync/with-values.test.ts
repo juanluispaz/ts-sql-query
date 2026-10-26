@@ -359,7 +359,7 @@ describe(ctx.label, () => {
             .orderBy('grp')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with groupRows("n", grp) as (values (?, ?), (?, ?), (?, ?)) select grp as grp, count("n") as total from groupRows group by grp order by grp"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with groupRows("n", grp) as (values (?, ?), (?, ?), (?, ?)) select grp as grp, count("n") as total from groupRows group by 1 order by grp"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

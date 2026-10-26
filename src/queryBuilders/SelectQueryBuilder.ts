@@ -827,6 +827,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     __connectByNoCycle?: boolean | undefined // Oracle
     __having?: AlwaysIfValueSource<any, any> | undefined
     __groupBy:  Array<AnyValueSource> = []
+    __groupByColumnNames?: Set<AnyValueSource> | undefined
     __requiredTablesOrViews?: Set<AnyTableOrView> | undefined
 
     __lastJoin?: JoinData | undefined
@@ -1158,6 +1159,10 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
                     throw new TsSqlProcessingError({ reason: 'GROUP_BY_COLUMN_NOT_IN_SELECT', column }, 'The column "' + column + '" is not part of the select clause')
                 }
                 this.__groupBy.push(valueSource)
+                if (!this.__groupByColumnNames) {
+                    this.__groupByColumnNames = new Set()
+                }
+                this.__groupByColumnNames.add(valueSource)
             }
         }
         return this

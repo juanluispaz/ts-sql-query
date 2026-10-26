@@ -423,7 +423,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select company.id as companyId, company.name as companyName, count(customer.id) as customerCount from company inner join customer on customer.company_id = company.id group by company.id, company.name`)
+    expectedQuery.push(`select company.id as companyId, company.name as companyName, count(customer.id) as customerCount from company inner join customer on customer.company_id = company.id group by 1, 2`)
     expectedParams.push(`[]`)
     expectedType.push(`selectManyRows`)
     
@@ -881,7 +881,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`with customerCountPerCompany as (select company.id as companyId, company.name as companyName, count(customer.id) as customerCount from company inner join customer on customer.company_id = company.id group by company.id, company.name) select companyId as acmeCompanyId, companyName as acmeCompanyName, customerCount as acmeCustomerCount from customerCountPerCompany where lower(companyName) like concat('%', lower(?), '%')`)
+    expectedQuery.push(`with customerCountPerCompany as (select company.id as companyId, company.name as companyName, count(customer.id) as customerCount from company inner join customer on customer.company_id = company.id group by 1, 2) select companyId as acmeCompanyId, companyName as acmeCompanyName, customerCount as acmeCustomerCount from customerCountPerCompany where lower(companyName) like concat('%', lower(?), '%')`)
     expectedParams.push(`["ACME"]`)
     expectedType.push(`selectManyRows`)
     
@@ -2386,7 +2386,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select company.id as id, company.name as name, cast(json_arrayagg(json_object('id', customer.id, 'firstName', customer.first_name, 'lastName', customer.last_name)) as char) as customers from company left join customer on customer.company_id = company.id where company.id = ? group by company.id`)
+    expectedQuery.push(`select company.id as id, company.name as name, cast(json_arrayagg(json_object('id', customer.id, 'firstName', customer.first_name, 'lastName', customer.last_name)) as char) as customers from company left join customer on customer.company_id = company.id where company.id = ? group by 1`)
     expectedParams.push(`[1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2455,7 +2455,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select company.id as id, company.name as name, cast(json_arrayagg(concat(customer.first_name, ?, customer.last_name)) as char) as customers from company left join customer on customer.company_id = company.id where company.id = ? group by company.id`)
+    expectedQuery.push(`select company.id as id, company.name as name, cast(json_arrayagg(concat(customer.first_name, ?, customer.last_name)) as char) as customers from company left join customer on customer.company_id = company.id where company.id = ? group by 1`)
     expectedParams.push(`[" ",1]`)
     expectedType.push(`selectOneRow`)
 
@@ -3540,7 +3540,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`with customerCountPerCompany as BEFORE (select company.id as companyId, company.name as companyName, count(customer.id) as customerCount from company inner join customer on customer.company_id = company.id group by company.id, company.name) AFTER select companyId as acmeCompanyId, companyName as acmeCompanyName, customerCount as acmeCustomerCount from customerCountPerCompany where lower(companyName) like concat('%', lower(?), '%')`)
+    expectedQuery.push(`with customerCountPerCompany as BEFORE (select company.id as companyId, company.name as companyName, count(customer.id) as customerCount from company inner join customer on customer.company_id = company.id group by 1, 2) AFTER select companyId as acmeCompanyId, companyName as acmeCompanyName, customerCount as acmeCustomerCount from customerCountPerCompany where lower(companyName) like concat('%', lower(?), '%')`)
     expectedParams.push(`["ACME"]`)
     expectedType.push(`selectManyRows`)
     

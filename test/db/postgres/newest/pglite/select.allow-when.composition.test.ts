@@ -238,7 +238,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project group by id having count(id) > $1 order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project group by 1 having count(id) > $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,

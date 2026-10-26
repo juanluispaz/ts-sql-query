@@ -95,7 +95,7 @@ describe(ctx.label, () => {
             .having(ctx.conn.count(tIssue.id).greaterThan(1))
             .orderBy('status')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by status having count(id) > $1 order by status"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by 1 having count(id) > $1 order by status"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -592,7 +592,7 @@ describe(ctx.label, () => {
             .orderBy(ctx.conn.sum(tIssue.priority).add(1))
             .orderBy('projectId')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", sum(priority) as total from issue group by project_id order by sum(issue.priority) + $1, "projectId""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", sum(priority) as total from issue group by 1 order by sum(issue.priority) + $1, "projectId""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -631,7 +631,7 @@ describe(ctx.label, () => {
             .groupBy('projectId')
             .orderBy('projectId')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", count(id) as "stats.total", max(assignee_id) as "stats.hi" from issue group by project_id order by "projectId""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", count(id) as "stats.total", max(assignee_id) as "stats.hi" from issue group by 1 order by "projectId""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{
             projectId: number

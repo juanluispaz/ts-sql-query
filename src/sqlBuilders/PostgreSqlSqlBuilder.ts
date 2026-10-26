@@ -2,7 +2,7 @@ import type { ToSql, SelectData, WithValuesData, OrderByEntry, FlatQueryColumns 
 import { flattenQueryColumns } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
-import { AbstractSqlBuilder } from './AbstractSqlBuilder.js'
+import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { isColumn, __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
 import type { AnyValueSource, ValueType, __AggregatedArrayColumns } from '../expressions/values.js'
@@ -12,6 +12,9 @@ import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 
 export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     postgreSql: true = true
+    override _appendGroupBySelectColumn(entry: AnyValueSource, selectColumn: SelectColumnSql, params: any[], isOutermostQuery: boolean): string {
+        return this._appendGroupByPosition(entry, selectColumn, params, isOutermostQuery)
+    }
     override _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords
     }

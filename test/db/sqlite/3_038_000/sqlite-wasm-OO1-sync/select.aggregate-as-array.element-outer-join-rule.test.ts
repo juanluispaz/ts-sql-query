@@ -49,7 +49,7 @@ describe(ctx.label, () => {
             .groupBy('org')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as org, json_group_array(json_object('id', project.id, 'name', project.name, 'archivedAt', project.archived_at)) as projects from organization left join project on project.organization_id = organization.id where organization.id = ? group by organization.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as org, json_group_array(json_object('id', project.id, 'name', project.name, 'archivedAt', project.archived_at)) as projects from organization left join project on project.organization_id = organization.id where organization.id = ? group by 1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -92,7 +92,7 @@ describe(ctx.label, () => {
             .groupBy('org')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as org, json_group_array(json_object('id', project.id, 'name', project.name, 'archivedAt', project.archived_at)) as projects from organization left join project on project.organization_id = organization.id where organization.id = ? group by organization.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as org, json_group_array(json_object('id', project.id, 'name', project.name, 'archivedAt', project.archived_at)) as projects from organization left join project on project.organization_id = organization.id where organization.id = ? group by 1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

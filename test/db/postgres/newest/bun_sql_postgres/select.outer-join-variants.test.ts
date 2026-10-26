@@ -532,7 +532,7 @@ describe(ctx.label, () => {
             .groupBy('projectId')
             .orderBy('projectId')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.project_id as "projectId", string_agg(app_user.full_name, $1) as assignees from issue left outer join app_user on app_user.id = issue.assignee_id where issue.project_id in ($2, $3) group by issue.project_id order by "projectId""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.project_id as "projectId", string_agg(app_user.full_name, $1) as assignees from issue left outer join app_user on app_user.id = issue.assignee_id where issue.project_id in ($2, $3) group by 1 order by "projectId""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             ", ",

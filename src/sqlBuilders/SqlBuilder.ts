@@ -184,6 +184,8 @@ export interface PlainSelectData extends WithQueryData {
     __connectByNoCycle?: boolean | undefined // Oracle
     __having?: AlwaysIfValueSource<any, any> | undefined
     __groupBy:  Array<AnyValueSource>
+    /** The group by entries the user named by their select column name (`groupBy('alias')`) */
+    __groupByColumnNames?: Set<AnyValueSource> | undefined
     __orderBy?: OrderByEntry[] | undefined
     __orderingSiblingsOnly?: boolean | undefined // Oracle
     __limit?: number | INumberValueSource<any, any> | undefined

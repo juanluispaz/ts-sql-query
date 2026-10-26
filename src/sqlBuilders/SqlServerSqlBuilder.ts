@@ -4,7 +4,7 @@ import type { TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import type { AnyValueSource, IExecutableSelectQuery, __AggregatedArrayColumns, ValueType, NativeValueType } from '../expressions/values.js'
 import { isValueSource, __isUuidValueSource, __isBooleanValueSource, __isBooleanValueType } from '../expressions/values.js'
-import { AbstractSqlBuilder } from './AbstractSqlBuilder.js'
+import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { isColumn, __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
@@ -39,6 +39,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // `_concatIgnoringNull` is a `concat(...)` call here, never the `+` operator `_concat`
         // uses, so it is self-delimiting and needs no wrapping as an operand.
         this._operationsThatNeedParenthesis._concatIgnoringNull = false
+    }
+    override _appendGroupBySelectColumn(_entry: AnyValueSource, selectColumn: SelectColumnSql, _params: any[], _isOutermostQuery: boolean): string {
+        // No alias nor position in a group by: the same SQL, with the same named parameters
+        return selectColumn.sql
     }
     override _appendRawColumnName(column: DBColumn, params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)

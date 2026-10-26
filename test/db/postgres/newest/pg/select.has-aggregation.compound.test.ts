@@ -149,7 +149,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", count(id) as "issueCount" from issue group by project_id union select id as "projectId", $1::int4 as "issueCount" from project where archived_at is not null order by "projectId""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", count(id) as "issueCount" from issue group by 1 union select id as "projectId", $1::int4 as "issueCount" from project where archived_at is not null order by "projectId""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -199,7 +199,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "projectId", $1::int4 as "issueCount" from project where archived_at is not null union select project_id as "projectId", count(id) as "issueCount" from issue group by project_id order by "projectId""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "projectId", $1::int4 as "issueCount" from project where archived_at is not null union select project_id as "projectId", count(id) as "issueCount" from issue group by 1 order by "projectId""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,

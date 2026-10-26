@@ -58,7 +58,7 @@ describe(ctx.label, () => {
                 { id: 2, count: 1 },
             ],
         })
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, ((select json_agg(json_build_object('id', a_1_.id, 'count', a_1_.count)) from (select project.id as id, count(issue.id) as count from project inner join issue on issue.project_id = project.id where project.organization_id = organization.id group by project.id) as a_1_))::text as "projectStats" from organization where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, ((select json_agg(json_build_object('id', a_1_.id, 'count', a_1_.count)) from (select project.id as id, count(issue.id) as count from project inner join issue on issue.project_id = project.id where project.organization_id = organization.id group by 1) as a_1_))::text as "projectStats" from organization where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -104,7 +104,7 @@ describe(ctx.label, () => {
             id: 1, name: 'Acme Corp',
             busyProjects: [{ id: 1, count: 2 }],
         })
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, ((select json_agg(json_build_object('id', a_1_.id, 'count', a_1_.count)) from (select project.id as id, count(issue.id) as count from project inner join issue on issue.project_id = project.id where project.organization_id = organization.id group by project.id having count(issue.id) > $1) as a_1_))::text as "busyProjects" from organization where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, ((select json_agg(json_build_object('id', a_1_.id, 'count', a_1_.count)) from (select project.id as id, count(issue.id) as count from project inner join issue on issue.project_id = project.id where project.organization_id = organization.id group by 1 having count(issue.id) > $1) as a_1_))::text as "busyProjects" from organization where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -824,7 +824,7 @@ describe(ctx.label, () => {
             name:       string
             byAssignee: Array<{ assigneeId: number | null; count: number }>
         }>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, ((select json_agg(json_build_object('assigneeId', a_1_.assigneeId, 'count', a_1_.count)) from (select issue.assignee_id as assigneeId, count(issue.id) as count from project inner join issue on issue.project_id = project.id where project.organization_id = organization.id group by issue.assignee_id) as a_1_))::text as "byAssignee" from organization where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, ((select json_agg(json_build_object('assigneeId', a_1_.assigneeId, 'count', a_1_.count)) from (select issue.assignee_id as assigneeId, count(issue.id) as count from project inner join issue on issue.project_id = project.id where project.organization_id = organization.id group by 1) as a_1_))::text as "byAssignee" from organization where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -874,7 +874,7 @@ describe(ctx.label, () => {
             name:       string
             byAssignee: Array<{ assigneeId: number | null; count: number }>
         }>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, ((select json_agg(json_build_object('assigneeId', a_1_.assigneeId, 'count', a_1_.count)) from (select issue.assignee_id as assigneeId, count(issue.id) as count from project inner join issue on issue.project_id = project.id where project.organization_id = organization.id group by issue.assignee_id having count(issue.id) > $1) as a_1_))::text as "byAssignee" from organization where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, ((select json_agg(json_build_object('assigneeId', a_1_.assigneeId, 'count', a_1_.count)) from (select issue.assignee_id as assigneeId, count(issue.id) as count from project inner join issue on issue.project_id = project.id where project.organization_id = organization.id group by 1 having count(issue.id) > $1) as a_1_))::text as "byAssignee" from organization where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -1202,7 +1202,7 @@ describe(ctx.label, () => {
             .groupBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (json_agg((select json_agg(json_build_object('id', id, 'body', body)) from issue where project_id = project.id)))::text as nested from project where id = $1 group by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (json_agg((select json_agg(json_build_object('id', id, 'body', body)) from issue where project_id = project.id)))::text as nested from project where id = $1 group by 1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

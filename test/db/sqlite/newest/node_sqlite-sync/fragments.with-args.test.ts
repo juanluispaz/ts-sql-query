@@ -702,7 +702,7 @@ describe(ctx.label, () => {
         const rows = sync(ctx.conn.selectFrom(tIssue)
             .select({ pid: tIssue.projectId }).groupBy('pid')
             .having(ctx.conn.aggIV0Predicate()).orderBy('pid').executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as pid from issue group by project_id having count(*) > 0 order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as pid from issue group by 1 having count(*) > 0 order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(rows).toEqual(expected)
     })
@@ -713,7 +713,7 @@ describe(ctx.label, () => {
         const rows = sync(ctx.conn.selectFrom(tIssue)
             .select({ pid: tIssue.projectId }).groupBy('pid')
             .having(ctx.conn.aggIV1Count(0)).orderBy('pid').executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as pid from issue group by project_id having count(*) > ? order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as pid from issue group by 1 having count(*) > ? order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -728,7 +728,7 @@ describe(ctx.label, () => {
         const rows = sync(ctx.conn.selectFrom(tIssue)
             .select({ pid: tIssue.projectId }).groupBy('pid')
             .having(ctx.conn.aggIV3Sum(tIssue.priority, tIssue.id, 0)).orderBy('pid').executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as pid from issue group by project_id having sum(priority + id) > ? order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as pid from issue group by 1 having sum(priority + id) > ? order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -743,7 +743,7 @@ describe(ctx.label, () => {
         const rows = sync(ctx.conn.selectFrom(tIssue)
             .select({ pid: tIssue.projectId }).groupBy('pid')
             .having(ctx.conn.aggIV4Sum(tIssue.priority, tIssue.id, tIssue.number, 0)).orderBy('pid').executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as pid from issue group by project_id having sum(priority + id + number) > ? order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as pid from issue group by 1 having sum(priority + id + number) > ? order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -758,7 +758,7 @@ describe(ctx.label, () => {
         const rows = sync(ctx.conn.selectFrom(tIssue)
             .select({ pid: tIssue.projectId }).groupBy('pid')
             .having(ctx.conn.aggIV5Sum(tIssue.priority, tIssue.id, tIssue.number, tIssue.projectId, 0)).orderBy('pid').executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as pid from issue group by project_id having sum(priority + id + number + project_id) > ? order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as pid from issue group by 1 having sum(priority + id + number + project_id) > ? order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,

@@ -300,6 +300,7 @@
         "dist-alpha": "npm run build && cp LICENSE.md package.json README.md dist && cd dist && npm stage publish --tag alpha",
         "dist-beta": "npm run build && cp LICENSE.md package.json README.md dist && cd dist && npm stage publish --tag beta",
         "docs": "mkdocs serve",
+        "docs:check": "mkdocs build --strict --site-dir \"$(mktemp -d)\"",
         "create-single-doc-file": "sh ./scripts/create-single-doc-file.sh"
     },
     "repository": {

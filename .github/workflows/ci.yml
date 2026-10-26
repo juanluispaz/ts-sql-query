@@ -62,6 +62,22 @@ jobs:
       - name: New test suite — shard 4 (rest)
         run: npm run test:no-docker:shard -- 4
 
+  # Documentation build in strict mode (a broken link, anchor or nav entry
+  # fails), installed like Read the Docs does (.readthedocs.yaml).
+  docs:
+    name: docs build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Use Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install MkDocs (docs/requirements.txt, as Read the Docs)
+        run: pip install -r docs/requirements.txt
+      - name: Build the documentation (strict)
+        run: mkdocs build --strict --site-dir "$RUNNER_TEMP/docs-site"
+
   bun:
     name: bun validation
     runs-on: ubuntu-latest

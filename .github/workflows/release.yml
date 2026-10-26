@@ -42,8 +42,9 @@ permissions:
 jobs:
   # ── v2 line (master) ───────────────────────────────────────────────────────
   # Full test suite on BOTH runtimes, in parallel: Bun (`bun test`) and
-  # Node/vitest. Both gate the v2 publish via `needs: [bun, node]`. The
-  # Node/vitest run was dropped in the past because vitest took ~25 min, but with
+  # Node/vitest. Both (and the strict docs build) gate the v2 publish via
+  # `needs: [bun, node, docs]`. The Node/vitest run was dropped in the past
+  # because vitest took ~25 min, but with
   # `isolate: false` in vitest.config.ts it is fast again (see
   # test/BENCHMARKS.md), so it is back as an independent gate — the artifact
   # publishes from Node, so validating the Node/vitest path before publishing is
@@ -164,9 +165,26 @@ jobs:
       - name: New test suite (vitest) — shard 4 (rest)
         run: npm run test:no-docker:shard -- 4
 
+  # Documentation build in strict mode (a broken link, anchor or nav entry
+  # fails), installed like Read the Docs does (.readthedocs.yaml).
+  docs:
+    if: inputs.release_type != 'v1'
+    name: docs build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Use Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install MkDocs (docs/requirements.txt, as Read the Docs)
+        run: pip install -r docs/requirements.txt
+      - name: Build the documentation (strict)
+        run: mkdocs build --strict --site-dir "$RUNNER_TEMP/docs-site"
+
   publish:
     if: inputs.release_type != 'v1'
-    needs: [bun, node]
+    needs: [bun, node, docs]
     name: build & publish (v2)
     runs-on: ubuntu-latest
     environment: npm-release
@@ -200,7 +218,7 @@ jobs:
         run: npm run build
 
       # Tests (new matrix + legacy examples) and the test-tree typecheck run on
-      # the `bun` and `node` jobs above (in parallel); `needs: [bun, node]` gates
+      # the `bun` and `node` jobs above (in parallel); `needs: [bun, node, docs]` gates
       # this job on both being green, so this Node step only builds the
       # publishable artifact and publishes it.
 

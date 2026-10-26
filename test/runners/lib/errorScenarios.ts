@@ -1811,8 +1811,9 @@ const sqliteScenarios: readonly ErrorScenario[] = [
     },
     {
         name: 'parameter-the-statement-does-not-use',
-        // bun:sqlite, Bun SQL and sqlite-wasm ignore the extra value
-        onlyRunners: ['BetterSqlite3QueryRunner', 'NodeSqliteQueryRunner', 'Sqlite3QueryRunner'],
+        // bun:sqlite, Bun SQL and sqlite-wasm ignore the extra value, and so does better-sqlite3 binding the values
+        // from an object (only the parameters the statement has are read from it)
+        onlyRunners: ['NodeSqliteQueryRunner', 'Sqlite3QueryRunner'],
         run: ({ runner }) => runner.executeSelectManyRows('select 1', [1]),
         expected: { reason: 'SQL_INVALID_PARAMETER' },
     },
@@ -1820,8 +1821,8 @@ const sqliteScenarios: readonly ErrorScenario[] = [
         name: 'parameter-the-statement-is-missing',
         // node:sqlite, sqlite3 and sqlite-wasm bind NULL for it
         onlyRunners: ['BetterSqlite3QueryRunner', 'BunSqliteQueryRunner', 'BunSqlSqliteQueryRunner'],
-        run: ({ runner }) => runner.executeSelectManyRows('select ?, ?', [1]),
-        // better-sqlite3 says too few values (missing), Bun how many it expected (wrong count)
+        run: ({ runner }) => runner.executeSelectManyRows('select ?1, ?2', [1]),
+        // better-sqlite3 names the missing parameter (missing), Bun says how many it expected (wrong count)
         expected: { reason: 'SQL_INVALID_PARAMETER' },
     },
     {

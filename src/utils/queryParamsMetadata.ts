@@ -33,18 +33,6 @@ export function getParamType(params: any[], placeholder: string): string | undef
 }
 
 /**
- * The placeholders of the query are numbered (`?1`, `?2`, …) and the driver binds them by that number, not by position
- * (better-sqlite3 binds them from an object keyed by the number). Set by the query runner that emits them.
- */
-export function setParamsBoundByNumber(params: any[]): void {
-    defineHiddenParamsProperty(params, '_boundByNumber', true)
-}
-
-export function areParamsBoundByNumber(params: any[]): boolean {
-    return !!getHiddenParamsProperty(params, '_boundByNumber')
-}
-
-/**
  * Whether the insert carries a RETURNING clause; when undefined the query runner looks for it in the SQL.
  */
 export function setContainsInsertReturningClause(params: any[], value: boolean | undefined): void {

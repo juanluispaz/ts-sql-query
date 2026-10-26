@@ -3,7 +3,6 @@ import type { Database } from 'better-sqlite3'
 import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from "../TsSqlError.js"
 import { getBetterSqlite3ErrorReason, isBetterSqlite3Error } from './connectorErrorMappers/BetterSqlite3ErrorMapper.js'
-import { areParamsBoundByNumber, setParamsBoundByNumber } from '../utils/queryParamsMetadata.js'
 
 export interface BetterSqlite3QueryRunnerConfig {
     promise?: PromiseProvider
@@ -75,19 +74,13 @@ export class BetterSqlite3QueryRunner extends SqlTransactionQueryRunner {
         } else {
             params.push(value)
         }
-        // Numbered placeholders, bound by number (see bindParams)
-        setParamsBoundByNumber(params)
         return '?' + params.length
     }
     /**
      * The params as better-sqlite3 binds them: an array binds only the anonymous `?` parameters, so the numbered `?NNN`
-     * placeholders this runner emits are bound from an object keyed by their number. Params of a query not built by
-     * ts-sql-query (anonymous `?` parameters) are returned as they are.
+     * placeholders this runner emits are bound from an object keyed by their number.
      */
-    protected bindParams(params: any[]): any[] | Record<number, any> {
-        if (!areParamsBoundByNumber(params)) {
-            return params
-        }
+    protected bindParams(params: any[]): Record<number, any> {
         const result: Record<number, any> = {}
         for (let i = 0, length = params.length; i < length; i++) {
             result[i + 1] = params[i]

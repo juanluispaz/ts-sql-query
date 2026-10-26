@@ -624,26 +624,3 @@ Closing it is not a local change: it needs the internal fields moved out of the 
 query builders, or the types to refuse `__`-prefixed keys everywhere a projection is
 accepted. **Deliberately deferred** (user decision, 2026-10-26); don't add tests that
 project a `__` key expecting it in the result.
-
-
-## Oracle: `groupBy('<alias>')` of a selected expression that carries a parameter
-
-`groupBy('level')` refers to a column of the select list. Each database refers to it
-the safest way it has: its position in the select list (PostgreSQL, MySQL, MariaDB,
-SQLite — a name in a group by resolves to a column of the `from` before the alias,
-and the query can't know every column there), or the select list's SQL with the same
-named parameters (SQL Server, which has neither). Oracle has no safe way today, so the
-expression is written again, and an expression with a parameter gets a new bind
-(`priority + :0` / `priority + :1`) that Oracle doesn't take as the same expression
-(ORA-00979):
-
-- the column alias (Oracle 23ai) resolves to a column of the `from` first — a probe
-  with alias `PRIORITY` over `mod(priority, :0)` grouped by the column, silently;
-- the position needs the `group_by_position_enabled` parameter, off by default;
-- the Oracle query runners bind by position, one value per placeholder, so `:0`
-  can't be repeated.
-
-The close path is binding by name in the Oracle runners when a placeholder repeats.
-The tests in `oracle/*/oracledb/select.group-by-alias.test.ts` stay commented with
-`// TODO[LIMITATION]:`.
-

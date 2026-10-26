@@ -91,4 +91,31 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ priority: number; issues: number }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('group-by-alias-of-an-expression-with-a-parameter-and-a-where-parameter', async () => {
+        // The where carries its own parameter between the select list and the group
+        // by. Issues 2, 3 and 4 have priorities 1, 3 and 2: shifted by ten, one issue
+        // per level.
+        const expected = [{ level: 11, issues: 1 }, { level: 12, issues: 1 }, { level: 13, issues: 1 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const rows = await connection.selectFrom(tIssue)
+            .where(tIssue.id.greaterThan(1))
+            .select({
+                level:  tIssue.priority.add(10),
+                issues: connection.countAll(),
+            })
+            .groupBy('level')
+            .orderBy('level')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority + ? as \`level\`, count(*) as issues from issue where id > ? group by 1 order by \`level\`"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            10,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ level: number; issues: number }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

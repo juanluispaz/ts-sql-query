@@ -5,7 +5,7 @@ import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import type { AnyValueSource, __AggregatedArrayColumns, ValueType } from '../expressions/values.js'
 import { isValueSource, __isUuidValueSource, __isBooleanValueSource, __isBooleanValueType, __isUuidValueType } from '../expressions/values.js'
 import { isDefault } from '../expressions/Default.js'
-import { AbstractSqlBuilder } from './AbstractSqlBuilder.js'
+import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { isColumn, __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
@@ -52,6 +52,16 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return '1 / tan(' + this._appendSql(valueSource, params, false) + ')'
     }
 
+    override _appendGroupBySelectColumn(_entry: AnyValueSource, selectColumn: SelectColumnSql, params: any[], _isOutermostQuery: boolean): string {
+        // Neither the alias (resolved against the columns of the from first) nor the position (it needs
+        // group_by_position_enabled) are safe: the same SQL of the select list, with the same placeholder names, is
+        // the same expression for Oracle. The runners bind by position, one value per occurrence of a placeholder in
+        // the text, so the values that SQL consumed are added again, in order
+        for (let i = selectColumn.paramsStart; i < selectColumn.paramsEnd; i++) {
+            params.push(params[i])
+        }
+        return selectColumn.sql
+    }
     // Oracle is strict ANSI about GROUP BY: every non-aggregated SELECT
     // column must appear in the GROUP BY clause, otherwise it raises
     // `ORA-00979: not a GROUP BY expression`. PostgreSQL relaxes this via

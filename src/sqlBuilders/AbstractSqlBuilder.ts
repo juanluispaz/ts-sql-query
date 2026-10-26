@@ -23,7 +23,9 @@ import { TsSqlProcessingError } from '../TsSqlError.js'
 import { getContainsInsertReturningClause, setContainsInsertReturningClause, setContainsMutationReturningClause, setForcedAffectedRowCount } from '../utils/queryParamsMetadata.js'
 
 /** A column of the select list as it was written, for the group by that refers to it */
-export type SelectColumnSql = { sql: string, position: number }
+// `paramsStart` / `paramsEnd`: the range of the params the column's SQL consumed (a database that binds by position
+// needs those values again to repeat that SQL)
+export type SelectColumnSql = { sql: string, position: number, paramsStart: number, paramsEnd: number }
 
 export class AbstractSqlBuilder implements SqlBuilder {
     // @ts-ignore
@@ -1023,9 +1025,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 }
                 position++
                 const columnForInsert = columnsForInsert[property]
+                const paramsStart = params.length
                 const columnSql = this._appendSelectColumn(columns[property]!, params, columnForInsert, isOutermostQuery)
                 if (selectColumnsSql && !columnForInsert && groupByColumnNames!.has(columns[property]!)) {
-                    selectColumnsSql.set(columns[property]!, { sql: columnSql, position })
+                    selectColumnsSql.set(columns[property]!, { sql: columnSql, position, paramsStart, paramsEnd: params.length })
                 }
                 selectQuery += columnSql
                 if (property) {

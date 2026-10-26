@@ -1571,7 +1571,7 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
             }
         }
 
-        createColumnsFrom(this.__sqlBuilder, firstQuery.__columns, this.__columns, new View(''))
+        createColumnsFrom(this.__sqlBuilder, firstQuery.__columns, this.__columns, new View(''), false)
     }
 
     __registerRequiredColumnInSelect(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {

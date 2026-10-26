@@ -17,8 +17,6 @@ class FunctionCallConnection extends DBConnection {
         return this.executeFunction('mod', [this.const(dividend, 'int'), this.const(divisor, 'int')], 'int', 'required')
     }
 }
-// Referenced by the commented-out test below.
-void FunctionCallConnection
 
 
 describe(ctx.label, () => {
@@ -48,7 +46,7 @@ describe(ctx.label, () => {
         // intact for the following tests.
         await ctx.withRollback(async () => {
             await ctx.conn.callArchiveProject(1, 'manual')
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"call archive_project($1, $2)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"call archive_project($1::int4, $2::text)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -63,7 +61,7 @@ describe(ctx.label, () => {
         // open issues of project 1 → 1 (issue 1; issue 2 is in_progress).
         ctx.mockNext(1)
         const count = await ctx.conn.callCountOpenIssues(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count_open_issues($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count_open_issues($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -76,7 +74,7 @@ describe(ctx.label, () => {
         // Function call returning a string. project_name(1) → 'Marketing site'.
         ctx.mockNext('Marketing site')
         const name = await ctx.conn.callProjectName(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_name($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_name($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -90,7 +88,7 @@ describe(ctx.label, () => {
         // project_name(999) finds no project → null.
         ctx.mockNext(null)
         const name = await ctx.conn.callProjectNameOrNull(999)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_name($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_name($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             999,
@@ -139,7 +137,7 @@ describe(ctx.label, () => {
         // view_count (all default 0) → 0n.
         ctx.mockNext(0n)
         const total = await ctx.conn.callTotalViewCount(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select total_view_count($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select total_view_count($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -156,7 +154,7 @@ describe(ctx.label, () => {
         // the mock, and structurally on the real DB.
         ctx.mockNext(new Date('2024-01-01T00:00:00Z'))
         const at = await ctx.conn.callLatestIssueAt(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select latest_issue_at($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select latest_issue_at($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -175,7 +173,7 @@ describe(ctx.label, () => {
         // null for project 1's issues).
         ctx.mockNext(0)
         const total = await ctx.conn.callEstimatedTotal(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select estimated_total($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select estimated_total($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -190,7 +188,7 @@ describe(ctx.label, () => {
         // Project 1 has 1 open issue.
         ctx.mockNext(1)
         const count = await ctx.conn.callCountOpenIssuesOptional(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count_open_issues($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count_open_issues($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -205,7 +203,7 @@ describe(ctx.label, () => {
         // Project 1's view_count sums to 0n.
         ctx.mockNext(0n)
         const total = await ctx.conn.callTotalViewCountOptional(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select total_view_count($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select total_view_count($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -221,7 +219,7 @@ describe(ctx.label, () => {
         // asserted structurally in both modes.
         ctx.mockNext(new Date('2024-01-01T00:00:00Z'))
         const at = await ctx.conn.callLatestIssueAtRequired(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select latest_issue_at($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select latest_issue_at($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -236,7 +234,7 @@ describe(ctx.label, () => {
         // estimated_total(1) is COALESCE(SUM(...),0) = 0.
         ctx.mockNext(0 as Money)
         const total = await ctx.conn.callEstimatedTotalOptional(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select estimated_total($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select estimated_total($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -253,7 +251,7 @@ describe(ctx.label, () => {
         // [...], so project_name(1) ('Marketing site') comes back bracketed.
         ctx.mockNext('Marketing site')
         const name = await ctx.conn.callProjectNameBracketed(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_name($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_name($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -270,7 +268,7 @@ describe(ctx.label, () => {
         // (= 0) comes back as 1000.
         ctx.mockNext(0)
         const total = await ctx.conn.callEstimatedTotalOffset(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select estimated_total($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select estimated_total($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -284,7 +282,7 @@ describe(ctx.label, () => {
         // ret_flag(1) returns a boolean → true.
         ctx.mockNext(true)
         const flag = await ctx.conn.callRetBoolean(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_flag($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_flag($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -298,7 +296,7 @@ describe(ctx.label, () => {
         // ret_flag with the 'optional' flag → `boolean | null`.
         ctx.mockNext(true)
         const flag = await ctx.conn.callRetBooleanOptional(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_flag($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_flag($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -312,7 +310,7 @@ describe(ctx.label, () => {
         // estimated_total(1) read as the plain 'double' kind → 0.
         ctx.mockNext(0)
         const value = await ctx.conn.callRetDouble(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select estimated_total($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select estimated_total($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -326,7 +324,7 @@ describe(ctx.label, () => {
         // estimated_total read as 'double' with the 'optional' flag → `number | null`.
         ctx.mockNext(0)
         const value = await ctx.conn.callRetDoubleOptional(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select estimated_total($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select estimated_total($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -341,7 +339,7 @@ describe(ctx.label, () => {
         // VARCHAR(36) (string strategy), so the value passes through unchanged.
         ctx.mockNext('0a8f9c1e-1111-4222-8333-444455556666')
         const value = await ctx.conn.callRetUuid(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_uuid($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_uuid($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -355,7 +353,7 @@ describe(ctx.label, () => {
         // ret_uuid with the 'optional' flag → `string | null`.
         ctx.mockNext('0a8f9c1e-1111-4222-8333-444455556666')
         const value = await ctx.conn.callRetUuidOptional(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_uuid($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_uuid($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -371,7 +369,7 @@ describe(ctx.label, () => {
         // column read path applies), so the value is asserted structurally.
         ctx.mockNext(new Date(Date.UTC(2024, 1, 3)))
         const value = await ctx.conn.callRetLocalDate(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_day($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_day($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -385,7 +383,7 @@ describe(ctx.label, () => {
         // ret_day with the 'optional' flag → `Date | null`.
         ctx.mockNext(new Date(Date.UTC(2024, 1, 3)))
         const value = await ctx.conn.callRetLocalDateOptional(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_day($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_day($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -400,7 +398,7 @@ describe(ctx.label, () => {
         // so the value is asserted structurally (the type pins the marshaller).
         ctx.mockNext(new Date(Date.UTC(1970, 0, 1, 14, 25, 36)))
         const value = await ctx.conn.callRetLocalTime(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_clock($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_clock($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -414,7 +412,7 @@ describe(ctx.label, () => {
         // ret_clock with the 'optional' flag → `Date | null`.
         ctx.mockNext(new Date(Date.UTC(1970, 0, 1, 14, 25, 36)))
         const value = await ctx.conn.callRetLocalTimeOptional(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_clock($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_clock($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -428,7 +426,7 @@ describe(ctx.label, () => {
         // ret_activity(1) returns an enum value (WorklogActivity) → 'coding'.
         ctx.mockNext('coding')
         const value = await ctx.conn.callRetEnum(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_activity($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_activity($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -442,7 +440,7 @@ describe(ctx.label, () => {
         // ret_activity with the 'optional' flag → `WorklogActivity | null`.
         ctx.mockNext('coding')
         const value = await ctx.conn.callRetEnumOptional(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_activity($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_activity($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -457,7 +455,7 @@ describe(ctx.label, () => {
         // → 'stable'.
         ctx.mockNext('stable')
         const value = await ctx.conn.callRetCustom(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_channel($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_channel($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -471,7 +469,7 @@ describe(ctx.label, () => {
         // ret_channel with the 'optional' flag → `ReleaseChannel | null`.
         ctx.mockNext('stable')
         const value = await ctx.conn.callRetCustomOptional(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_channel($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_channel($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -486,7 +484,7 @@ describe(ctx.label, () => {
         // string) → '1.0.0'.
         ctx.mockNext('1.0.0')
         const value = await ctx.conn.callRetCustomComparable(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_semver($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_semver($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -500,7 +498,7 @@ describe(ctx.label, () => {
         // ret_semver with the 'optional' flag → `string | null`.
         ctx.mockNext('1.0.0')
         const value = await ctx.conn.callRetCustomComparableOptional(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_semver($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_semver($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -514,7 +512,7 @@ describe(ctx.label, () => {
         // count_open_issues(1) read as the branded customInt kind (Cents) → 1.
         ctx.mockNext(1)
         const value = await ctx.conn.callRetCustomInt(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count_open_issues($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count_open_issues($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -528,7 +526,7 @@ describe(ctx.label, () => {
         // count_open_issues read as customInt with the 'optional' flag → `number | null`.
         ctx.mockNext(1)
         const value = await ctx.conn.callRetCustomIntOptional(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count_open_issues($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count_open_issues($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -543,7 +541,7 @@ describe(ctx.label, () => {
         // uuid string.
         ctx.mockNext('0a8f9c1e-1111-4222-8333-444455556666')
         const value = await ctx.conn.callRetCustomUuid(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_uuid($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_uuid($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -557,7 +555,7 @@ describe(ctx.label, () => {
         // ret_uuid read as customUuid with the 'optional' flag → `string | null`.
         ctx.mockNext('0a8f9c1e-1111-4222-8333-444455556666')
         const value = await ctx.conn.callRetCustomUuidOptional(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_uuid($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_uuid($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -572,7 +570,7 @@ describe(ctx.label, () => {
         // marshalled Date is driver-dependent, so it is asserted structurally.
         ctx.mockNext(new Date(Date.UTC(2024, 1, 3)))
         const value = await ctx.conn.callRetCustomLocalDate(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_day($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_day($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -586,7 +584,7 @@ describe(ctx.label, () => {
         // ret_day read as customLocalDate with the 'optional' flag → `Date | null`.
         ctx.mockNext(new Date(Date.UTC(2024, 1, 3)))
         const value = await ctx.conn.callRetCustomLocalDateOptional(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_day($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_day($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -601,7 +599,7 @@ describe(ctx.label, () => {
         // the marshalled Date is driver-dependent, so it is asserted structurally.
         ctx.mockNext(new Date(Date.UTC(1970, 0, 1, 14, 25, 36)))
         const value = await ctx.conn.callRetCustomLocalTime(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_clock($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_clock($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -615,7 +613,7 @@ describe(ctx.label, () => {
         // ret_clock read as customLocalTime with the 'optional' flag → `Date | null`.
         ctx.mockNext(new Date(Date.UTC(1970, 0, 1, 14, 25, 36)))
         const value = await ctx.conn.callRetCustomLocalTimeOptional(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_clock($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_clock($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -631,7 +629,7 @@ describe(ctx.label, () => {
         // (non-deterministic); asserted structurally in both modes.
         ctx.mockNext(new Date('2024-01-01T00:00:00Z'))
         const value = await ctx.conn.callRetCustomLocalDateTime(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select latest_issue_at($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select latest_issue_at($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -646,7 +644,7 @@ describe(ctx.label, () => {
         // `Date | null`. MAX(created_at) is a real present timestamp.
         ctx.mockNext(new Date('2024-01-01T00:00:00Z'))
         const value = await ctx.conn.callRetCustomLocalDateTimeOptional(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select latest_issue_at($1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select latest_issue_at($1::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -656,15 +654,13 @@ describe(ctx.label, () => {
         expect(value).toBeInstanceOf(Date)
     })
 
-    // NOT-SUPPORTED: PGlite sends the parameters untyped, so PostgreSQL cannot choose between the `mod` overloads (`could not choose a best candidate function`).
-    /*
     test('execute-function-with-two-params', async () => {
         // Function call with two bound parameters, separated in the call's
         // argument list: mod(17, 5) → 2.
         const conn = ctx.withConnection(FunctionCallConnection)
         ctx.mockNext(2)
         const remainder = await conn.callMod(17, 5)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select mod($1, $2)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select mod($1::int4, $2::int4)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             17,
@@ -674,5 +670,4 @@ describe(ctx.label, () => {
         assertType<Exact<typeof remainder, number>>()
         expect(remainder).toBe(2)
     })
-    */
 })

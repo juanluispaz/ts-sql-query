@@ -5018,7 +5018,7 @@ async function main() {
 
     result = undefined
     expectedResult.push(result)
-    expectedQuery.push(`call myOwnprocedure($1)`)
+    expectedQuery.push(`call myOwnprocedure($1::int4)`)
     expectedParams.push(`[10]`)
     expectedType.push(`executeProcedure`)
 
@@ -5032,7 +5032,7 @@ async function main() {
 
     result = 20
     expectedResult.push(result)
-    expectedQuery.push(`select myOwnFunction($1)`)
+    expectedQuery.push(`select myOwnFunction($1::int4)`)
     expectedParams.push(`[10]`)
     expectedType.push(`executeFunction`)
 

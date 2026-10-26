@@ -3,6 +3,10 @@ import type { RequiredKeys } from '../utils/objectUtils.js'
 import type { NAnyLeftJoin, NNoTableOrViewRequiredFrom } from '../utils/sourceName.js'
 
 /*
+ * RUNTIME TWIN: the rules below are applied again at runtime (getInnerObjetRuleToApply and the rule switch in
+ * src/internal/DBColumnImpl.ts, and the result transformation of the query builders); a rule changed here must be
+ * changed there too, and the other way round, or the result stops matching its declared type.
+ *
  * NOTE:
  * - First level object cannot be marked as optional, then, any rule that mark the container as optional
  *   will remain as optional. Except for aggregateAsArray (in DBConnection) where all rules apply even

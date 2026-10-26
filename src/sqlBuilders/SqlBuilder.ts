@@ -52,7 +52,7 @@ export function flattenQueryColumns(columns: QueryColumns, target: FlatQueryColu
         if (isValueSource(column)) {
             const name = prefix + prop
             if (target[name]) {
-                throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'repeated column', columnPath: name }, "You are trying to use the same column name '" + name + "' several times in the same query")
+                throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'repeated column', columnPath: name }, "The column '" + name + "' appears twice in the result of the query: a property whose name contains a dot is the same result column as the property it names inside a nested object (`{ 'a.b': ... }` and `{ a: { b: ... } }` are both 'a.b'); rename one of them")
             }
             target[name] = column
         } else {

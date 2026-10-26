@@ -3850,25 +3850,31 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return "replace(" + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ", '\\', '\\\\')"
     }
+    _forceTypeCastInCallArguments(): boolean {
+        // The argument types decide which overload of a function or procedure the database calls
+        return false
+    }
     _buildCallProcedure(params: any[], procedureName: string, procedureParams: AnyValueSource[]): string {
+        const forceTypeCast = this._forceTypeCastInCallArguments()
         let result = 'call ' + this._escape(procedureName, false) + '('
         if (procedureParams.length > 0) {
-            result += this._appendSql(procedureParams[0]!, params, false)
+            result += this._appendSql(procedureParams[0]!, params, forceTypeCast)
 
             for (let i = 1, length = procedureParams.length; i < length; i++) {
-                result += ', ' + this._appendSql(procedureParams[i]!, params, false)
+                result += ', ' + this._appendSql(procedureParams[i]!, params, forceTypeCast)
             }
         }
 
         return result + ')'
     }
     _buildCallFunction(params: any[], functionName: string, functionParams: AnyValueSource[]): string {
+        const forceTypeCast = this._forceTypeCastInCallArguments()
         let result = 'select ' + this._escape(functionName, false) + '('
         if (functionParams.length > 0) {
-            result += this._appendSql(functionParams[0]!, params, false)
+            result += this._appendSql(functionParams[0]!, params, forceTypeCast)
 
             for (let i = 1, length = functionParams.length; i < length; i++) {
-                result += ', ' + this._appendSql(functionParams[i]!, params, false)
+                result += ', ' + this._appendSql(functionParams[i]!, params, forceTypeCast)
             }
         }
 

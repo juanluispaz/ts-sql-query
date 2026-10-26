@@ -59,6 +59,11 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         }
         return super._appendColumnValue(value, params, isOutermostQuery)
     }
+    override _forceTypeCastInCallArguments(): boolean {
+        // The drivers send the parameters untyped, and PostgreSQL can't choose an overload by an unknown type
+        // (`function mod(unknown, unknown) is not unique`)
+        return true
+    }
     override _buildWithValues(withValues: WithValuesData, params: any[]) {
         let result = withValues.__name
         let columns = ''

@@ -3817,4 +3817,51 @@ describe(ctx.label, () => {
         }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('cte-left-join-column-in-a-left-joined-cte-keeps-the-object-of-a-matched-row', async () => {
+        // A CTE column taken from a left join is optional outside the CTE. Left
+        // joining the CTE and projecting that column beside a CTE column that is
+        // required in it gives an object that is absent only when the CTE row is:
+        // issue 3 has no assignee, but its CTE row exists, so its card stays with
+        // only `issueId`.
+        const expected = [
+            { id: 1, card: { assigneeName: 'Ada Lovelace', issueId: 1 } },
+            { id: 2, card: { assigneeName: 'Grace Hopper', issueId: 2 } },
+            { id: 3, card: { issueId: 3 } },
+            { id: 4, card: { assigneeName: 'Alan Turing', issueId: 4 } },
+        ]
+        ctx.mockNext([
+            { id: 1, 'card.assigneeName': 'Ada Lovelace', 'card.issueId': 1 },
+            { id: 2, 'card.assigneeName': 'Grace Hopper', 'card.issueId': 2 },
+            { id: 3, 'card.assigneeName': null, 'card.issueId': 3 },
+            { id: 4, 'card.assigneeName': 'Alan Turing', 'card.issueId': 4 },
+        ])
+        const connection = ctx.conn
+        const assignee = tAppUser.forUseInLeftJoin()
+        const issueAssignee = connection.selectFrom(tIssue)
+            .leftJoin(assignee).on(assignee.id.equals(tIssue.assigneeId))
+            .select({
+                issueId:      tIssue.id,
+                assigneeName: assignee.fullName,
+            })
+            .forUseInQueryAs('issue_assignee')
+        const card = issueAssignee.forUseInLeftJoin()
+
+        const rows = await connection.selectFrom(tIssue)
+            .leftJoin(card).on(card.issueId.equals(tIssue.id))
+            .select({
+                id:   tIssue.id,
+                card: { assigneeName: card.assigneeName, issueId: card.issueId },
+            })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issue_assignee as (select issue.id as issueId, app_user.full_name as assigneeName from issue left join app_user on app_user.id = issue.assignee_id) select issue.id as id, issue_assignee.assigneeName as "card.assigneeName", issue_assignee.issueId as "card.issueId" from issue left join issue_assignee on issue_assignee.issueId = issue.id order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{
+            id:    number
+            card?: { assigneeName?: string; issueId: number }
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

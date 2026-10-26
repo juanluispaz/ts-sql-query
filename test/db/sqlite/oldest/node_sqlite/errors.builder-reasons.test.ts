@@ -165,4 +165,24 @@ describe(ctx.label, () => {
         expect(reasonOf(caught)).toBe('NO_PRIMARY_KEY_FOUND')
     })
 
+    test('a dotted property naming the same result column as a nested one throws INTERNAL repeated column', async () => {
+        // `'owner.name'` and `owner: { name }` are both the result column
+        // `owner.name`; the query can't tell them apart, so it is refused before
+        // anything is sent.
+        let caught: unknown
+        try {
+            await ctx.conn.selectFrom(tProject)
+                .select({
+                    id:           tProject.id,
+                    'owner.name': tProject.name,
+                    owner:        { name: tProject.slug },
+                })
+                .executeSelectMany()
+        } catch (e) {
+            caught = e
+        }
+        expect(caught).toBeInstanceOf(TsSqlError)
+        expect((caught as TsSqlError).errorReason).toEqual({ reason: 'INTERNAL', internalErrorType: 'repeated column', columnPath: 'owner.name' })
+        expect(ctx.history).toEqual([])
+    })
 })

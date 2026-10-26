@@ -226,7 +226,7 @@ The executed query is:
     ```
 ===+ "PostgreSQL"
     ```postgresql
-    call myOwnprocedure($1)
+    call myOwnprocedure($1::int4)
     ```
 === "SQLite"
     ```sqlite
@@ -277,7 +277,7 @@ The executed query is:
     ```
 ===+ "PostgreSQL"
     ```postgresql
-    select myOwnFunction($1)
+    select myOwnFunction($1::int4)
     ```
 === "SQLite"
     ```sqlite

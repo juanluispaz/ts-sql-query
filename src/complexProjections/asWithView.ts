@@ -55,6 +55,7 @@ type ColumnsForWithView5<SOURCE extends NSource, COLUMNS> = Expand<
     }
 >
 
+// Runtime twin: withColumnOptionalType in src/internal/DBColumnImpl.ts; change both together.
 type OptionalTypeForWith<TYPE> = 
     TYPE extends IValueSource<any, any, any, infer OPTIONAL_TYPE> ? (
         'required' extends OPTIONAL_TYPE

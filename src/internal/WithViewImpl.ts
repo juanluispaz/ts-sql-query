@@ -41,7 +41,7 @@ export class WithViewImpl implements IWithView<any>, WithSelectData, __ITableOrV
         }
 
         const columns = selectData.__columns
-        createColumnsFrom(sqlBuilder, columns, this as any, this)
+        createColumnsFrom(sqlBuilder, columns, this as any, this, true)
     }
     // Already defined in IWithView
     // [type]!: "with"

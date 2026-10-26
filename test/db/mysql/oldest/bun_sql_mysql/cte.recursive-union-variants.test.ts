@@ -16,6 +16,7 @@ import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { getQueryExecutionMetadata, getQueryExecutionName } from '../../../../../src/queryRunners/QueryRunner.js'
 import { tIssue, tProject, tProjectReview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { TsSqlError } from '../../../../../src/TsSqlError.js'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -1930,9 +1931,80 @@ describe(ctx.label, () => {
     //     expect(result).toEqual(expected)
     // })
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
+    /*
+    test('recursive-union-all-on-if-value-without-value-throws-missing-recursive-condition', async () => {
+        // The join condition of the recursive member is built dynamically (`true()` and an
+        // optional part) and the optional part has no value, so it renders nothing. Without it
+        // every issue joins every row of the previous level and the recursion never ends; no
+        // condition keeps its meaning, so it is refused before anything is sent.
+        const parentId: number | null = null
+        let caught: unknown
+        try {
+            await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({ id: tIssue.id, parentId: tIssue.parentId })
+                .recursiveUnionAllOn((parent) => ctx.conn.true().and(parent.parentId.equalsIfValue(parentId)))
+                .executeSelectMany()
+        } catch (e) {
+            caught = e
+        }
+        expect(caught).toBeInstanceOf(TsSqlError)
+        expect((caught as TsSqlError).errorReason).toEqual({ reason: 'MISSING_RECURSIVE_CONDITION' })
+        expect(ctx.history).toEqual([])
+    })
+    */
+
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
+    /*
+    test('recursive-union-all-fn-join-if-value-without-value-throws-missing-recursive-condition', async () => {
+        // Same as above with the recursive member written in full: its join with the recursive
+        // view is the condition that links each level with the previous one, and it renders
+        // nothing.
+        const parentId: number | null = null
+        let caught: unknown
+        try {
+            await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({ id: tIssue.id, parentId: tIssue.parentId })
+                .recursiveUnionAll((child) => ctx.conn.selectFrom(tIssue)
+                    .join(child).on(ctx.conn.true().and(child.parentId.equalsIfValue(parentId)))
+                    .select({ id: tIssue.id, parentId: tIssue.parentId }))
+                .executeSelectMany()
+        } catch (e) {
+            caught = e
+        }
+        expect(caught).toBeInstanceOf(TsSqlError)
+        expect((caught as TsSqlError).errorReason).toEqual({ reason: 'MISSING_RECURSIVE_CONDITION' })
+        expect(ctx.history).toEqual([])
+    })
+    */
+
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
+    /*
+    test('recursive-union-all-fn-join-condition-with-value-is-kept', async () => {
+        // The same dynamic join with a value renders its condition, so the guard only applies
+        // when nothing is left.
+        const parentId: number | null = 1
+        const expected = [{ id: 1, parentId: undefined }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, parentId: tIssue.parentId })
+            .recursiveUnionAll((child) => ctx.conn.selectFrom(tIssue)
+                .join(child).on(ctx.conn.true().and(child.parentId.equalsIfValue(parentId)).and(tIssue.parentId.equals(child.id)))
+                .select({ id: tIssue.id, parentId: tIssue.parentId }))
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof result, Array<{ id: number, parentId?: number }>>>()
+        expect(result).toEqual(expected)
+    })
+    */
 })
 
 // Tests referencing these are commented out above with NOT-SUPPORTED
 // markers; keep the bindings referenced so noUnusedLocals stays green.
-void assertType; void expect; void tIssue; void tProject; void tProjectReview; void test; void getQueryExecutionMetadata; void getQueryExecutionName
+void assertType; void expect; void tIssue; void tProject; void tProjectReview; void test; void getQueryExecutionMetadata; void getQueryExecutionName; void TsSqlError
 export type { Exact }

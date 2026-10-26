@@ -126,6 +126,8 @@ export interface WithSelectData {
     __as?: string | undefined
     __selectData: SelectData
     __recursive?: boolean | undefined
+    // The view of the recursive query used inside its own recursive member
+    __ignoreWith?: boolean | undefined
 }
 
 export interface WithValuesData {

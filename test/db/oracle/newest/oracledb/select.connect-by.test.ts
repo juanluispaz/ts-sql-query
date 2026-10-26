@@ -550,7 +550,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('connect-by-if-value-without-value-throws-missing-connect-by', async () => {
+    test('connect-by-if-value-without-value-throws-missing-recursive-condition', async () => {
         // The connect by condition is built dynamically (`true()` and an optional
         // part) and the optional part has no value, so it renders nothing; `start with` without `connect by` is no
         // query Oracle runs, and no condition keeps its meaning, so it is refused
@@ -567,7 +567,7 @@ describe(ctx.label, () => {
             caught = e
         }
         expect(caught).toBeInstanceOf(TsSqlError)
-        expect((caught as TsSqlError).errorReason).toEqual({ reason: 'MISSING_CONNECT_BY' })
+        expect((caught as TsSqlError).errorReason).toEqual({ reason: 'MISSING_RECURSIVE_CONDITION' })
         expect(ctx.history).toEqual([])
     })
 })

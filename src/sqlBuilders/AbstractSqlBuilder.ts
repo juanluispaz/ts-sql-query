@@ -16,7 +16,7 @@ import { hasToSql, operationOf } from './SqlBuilder.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
-import { getWithData } from './SqlBuilder.js'
+import { getWithData, hasWithData } from './SqlBuilder.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { RawFragment } from '../utils/RawFragment.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
@@ -815,6 +815,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
             // A dynamic condition can end up empty (`dynamicOn()` without conditions, or only IfValue conditions
             // without value): it means no restriction, but most databases require the ON clause
             const onCondition = join.__on ? this._appendCondition(join.__on, params) : ''
+            const joinedTableOrView = join.__tableOrView
+            if (!onCondition && hasWithData(joinedTableOrView) && joinedTableOrView.__type === 'with' && joinedTableOrView.__ignoreWith) {
+                // The join with the recursive query (the view built by recursiveUnion*) is what links each level
+                // with the previous one. Without it every row of the table joins every row of the previous level:
+                // union returns every row of the table, and union all never ends (or the database aborts it)
+                throw new TsSqlProcessingError({ reason: 'MISSING_RECURSIVE_CONDITION' }, 'No join condition with the recursive query generated')
+            }
             fromJoins += ' on ' + (onCondition || this._trueValueForCondition)
         }
 
@@ -1071,7 +1078,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 // Every part of the condition was an IfValue without value. There is no condition with the same
                 // meaning: always true walks without end, always false returns only the start rows, and dropping
                 // the hierarchical clauses returns every row
-                throw new TsSqlProcessingError({ reason: 'MISSING_CONNECT_BY' }, 'No connect by condition generated for the hierarchical query')
+                throw new TsSqlProcessingError({ reason: 'MISSING_RECURSIVE_CONDITION' }, 'No connect by condition generated for the hierarchical query')
             } else {
                 if (query.__connectByNoCycle) {
                     selectQuery += ' connect by nocycle ' + connectByCondition

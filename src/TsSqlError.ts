@@ -51,8 +51,9 @@ export type TsSqlErrorReason =
       { reason: 'INVALID_ORDER_BY_ORDERING', column: string, ordering: string }
     | /** The query required a where clause but ended without one */
       { reason: 'MISSING_WHERE' }
-    | /** The hierarchical (Oracle) query required a connect by condition but ended without one */
-      { reason: 'MISSING_CONNECT_BY' }
+    | /** The recursive query required the condition that links each level with the previous one (the join
+          with the recursive query, or Oracle's connect by) but ended without one */
+      { reason: 'MISSING_RECURSIVE_CONDITION' }
 
     /* ********************************************************************************************
      * Query result validations specified when the query's execution is requested

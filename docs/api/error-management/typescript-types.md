@@ -53,7 +53,7 @@ type TsSqlErrorReason =
     | /** The query required a where clause but ended without one */
       { reason: 'MISSING_WHERE' }
     | /** The hierarchical (Oracle) query required a connect by condition but ended without one */
-      { reason: 'MISSING_CONNECT_BY' }
+      { reason: 'MISSING_RECURSIVE_CONDITION' }
 
     /* ********************************************************************************************
      * Query result validations specified when the query's execution is requested

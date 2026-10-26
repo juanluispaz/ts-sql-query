@@ -16,6 +16,7 @@ import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { getQueryExecutionMetadata, getQueryExecutionName } from '../../../../../src/queryRunners/QueryRunner.js'
 import { tIssue, tProject, tProjectReview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { TsSqlError } from '../../../../../src/TsSqlError.js'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -1833,6 +1834,74 @@ describe(ctx.label, () => {
         expect(getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams)).toEqual({ tag: 'recursion' })
         expect(getQueryExecutionName(ctx.lastSql, ctx.lastParams)).toBeUndefined()
         assertType<Exact<typeof result, Array<{ id: number, title: string, depth: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('recursive-union-all-on-if-value-without-value-throws-missing-recursive-condition', async () => {
+        // The join condition of the recursive member is built dynamically (`true()` and an
+        // optional part) and the optional part has no value, so it renders nothing. Without it
+        // every issue joins every row of the previous level and the recursion never ends; no
+        // condition keeps its meaning, so it is refused before anything is sent.
+        const parentId: number | null = null
+        let caught: unknown
+        try {
+            await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({ id: tIssue.id, parentId: tIssue.parentId })
+                .recursiveUnionAllOn((parent) => ctx.conn.true().and(parent.parentId.equalsIfValue(parentId)))
+                .executeSelectMany()
+        } catch (e) {
+            caught = e
+        }
+        expect(caught).toBeInstanceOf(TsSqlError)
+        expect((caught as TsSqlError).errorReason).toEqual({ reason: 'MISSING_RECURSIVE_CONDITION' })
+        expect(ctx.history).toEqual([])
+    })
+
+    test('recursive-union-all-fn-join-if-value-without-value-throws-missing-recursive-condition', async () => {
+        // Same as above with the recursive member written in full: its join with the recursive
+        // view is the condition that links each level with the previous one, and it renders
+        // nothing.
+        const parentId: number | null = null
+        let caught: unknown
+        try {
+            await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({ id: tIssue.id, parentId: tIssue.parentId })
+                .recursiveUnionAll((child) => ctx.conn.selectFrom(tIssue)
+                    .join(child).on(ctx.conn.true().and(child.parentId.equalsIfValue(parentId)))
+                    .select({ id: tIssue.id, parentId: tIssue.parentId }))
+                .executeSelectMany()
+        } catch (e) {
+            caught = e
+        }
+        expect(caught).toBeInstanceOf(TsSqlError)
+        expect((caught as TsSqlError).errorReason).toEqual({ reason: 'MISSING_RECURSIVE_CONDITION' })
+        expect(ctx.history).toEqual([])
+    })
+
+    test('recursive-union-all-fn-join-condition-with-value-is-kept', async () => {
+        // The same dynamic join with a value renders its condition, so the guard only applies
+        // when nothing is left.
+        const parentId: number | null = 1
+        const expected = [{ id: 1, parentId: undefined }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, parentId: tIssue.parentId })
+            .recursiveUnionAll((child) => ctx.conn.selectFrom(tIssue)
+                .join(child).on(ctx.conn.true().and(child.parentId.equalsIfValue(parentId)).and(tIssue.parentId.equals(child.id)))
+                .select({ id: tIssue.id, parentId: tIssue.parentId }))
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_3 as (select id as id, parent_id as parentId from issue where id = $1 union all select issue.id as id, issue.parent_id as parentId from issue join recursive_select_3 on recursive_select_3.parentId = $2 and issue.parent_id = recursive_select_3.id) select id as id, parentId as parentId from recursive_select_3"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number, parentId?: number }>>>()
         expect(result).toEqual(expected)
     })
 })

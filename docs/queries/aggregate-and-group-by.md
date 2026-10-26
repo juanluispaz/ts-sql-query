@@ -124,13 +124,16 @@ const customerCountPerCompany: Promise<{
 }[]>
 ```
 
+## Before or after the select
+
+`groupBy` can be written before the `select` (in the logical order of the query, like the example above) or after it, and what it offers depends on that:
+
+- **Before the select**, `groupBy` receives the expressions to group by (`groupBy(tCompany.id, tCompany.name)`).
+- **After the select**, it also accepts the names of the columns of the select (see [Grouping by the columns of the select](#grouping-by-the-columns-of-the-select)), and two more ways become available because they read the columns of the select: [`groupByNonAggregatedColumns()`](#grouping-by-every-non-aggregated-column) and [`having(columns => …)`](#filtering-the-groups-by-the-columns-of-the-select).
+
 ## Grouping by the columns of the select
 
-Every column of the select that is not an aggregate must be grouped. Once the select is written, `groupBy` also accepts the names of its columns (`groupBy('companyId', 'companyName')`): the group by refers to that column of the select instead of writing its expression with new parameters, which the database wouldn't take as the same expression. It repeats the SQL of the select with the same parameters, except on MySQL and MariaDB, whose parameters can't be repeated: there a column that carries a parameter is referred to by its position in the select (`group by 2`). The alias is never used, because a name in a group by refers to a column of the `from` before the alias.
-
-## Grouping by every non-aggregated column
-
-Instead of listing them, once the select is written you can call `groupByNonAggregatedColumns()`: it groups by every column of the select that is not an aggregate and refers to a table or view (a constant is left out, it doesn't need to be grouped). Each one is referred to as a column of the select, like `groupBy('<column name>')` does.
+Once the select is written, `groupBy` accepts the names of its columns. The group by refers to that column of the select:
 
 ```ts
 const customerCountPerCompany = connection.selectFrom(tCompany)
@@ -140,7 +143,7 @@ const customerCountPerCompany = connection.selectFrom(tCompany)
         companyName: tCompany.name,
         customerCount: connection.count(tCustomer.id)
     })
-    .groupByNonAggregatedColumns()
+    .groupBy('companyId', 'companyName')
     .executeSelectMany();
 ```
 
@@ -226,6 +229,191 @@ The result type is:
 const customerCountPerCompany: Promise<{
     companyId: number;
     companyName: string;
+    customerCount: number;
+}[]>
+```
+
+### A column of the select that carries a parameter
+
+When the column of the select is an expression with a parameter, writing the expression again in the group by would give it new parameters, and the database wouldn't take it as the same expression. Instead, the group by repeats the SQL of the select with the same parameters; MySQL and MariaDB can't repeat a parameter (each `?` is a new one), so there the column is referred to by its position in the select. The alias of the column is never used, because a name in a group by refers to a column of the `from` before the alias.
+
+```ts
+const customerCountPerInitial = connection.selectFrom(tCustomer)
+    .select({
+        initial: tCustomer.lastName.substr(0, 1),
+        customerCount: connection.count(tCustomer.id)
+    })
+    .groupBy('initial')
+    .executeSelectMany();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        substr(last_name, ?, ?) as initial, 
+        count(id) as customerCount 
+    from customer 
+    group by 1
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        substr(last_name, ?, ?) as initial, 
+        count(id) as customerCount 
+    from customer 
+    group by 1
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        substr(last_name, :0, :1) as "initial", 
+        count(id) as "customerCount" 
+    from customer 
+    group by substr(last_name, :0, :1)
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        substr(last_name, $1, $2) as initial, 
+        count(id) as "customerCount" 
+    from customer 
+    group by substr(last_name, $1, $2)
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        substr(last_name, ?1, ?2) as initial, 
+        count(id) as customerCount 
+    from customer 
+    group by substr(last_name, ?1, ?2)
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        substring(last_name, @0, @1) as initial, 
+        count(id) as customerCount 
+    from customer 
+    group by substring(last_name, @0, @1)
+    ```
+
+The parameters are: `[ 1, 1 ]`
+
+The result type is:
+```tsx
+const customerCountPerInitial: Promise<{
+    initial: string;
+    customerCount: number;
+}[]>
+```
+
+## Grouping by every non-aggregated column
+
+Instead of listing the columns to group by, once the select is written you can call `groupByNonAggregatedColumns()`: it groups by every column of the select that is not an aggregate and refers to a table or view. A constant is left out, because it doesn't need to be grouped (in the example, `kind`). Each grouped column is referred to as a column of the select, like [`groupBy('<column name>')`](#grouping-by-the-columns-of-the-select) does.
+
+```ts
+const customerCountPerCompany = connection.selectFrom(tCompany)
+    .innerJoin(tCustomer).on(tCustomer.companyId.equals(tCompany.id))
+    .select({
+        companyId: tCompany.id,
+        companyName: tCompany.name,
+        kind: connection.const('company', 'string'),
+        customerCount: connection.count(tCustomer.id)
+    })
+    .groupByNonAggregatedColumns()
+    .executeSelectMany();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company.id as companyId, 
+        company.name as companyName, 
+        ? as kind, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.name
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company.id as companyId, 
+        company.`name` as companyName, 
+        ? as kind, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.`name`
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company.id as "companyId", 
+        company.name as "companyName", 
+        :0 as "kind", 
+        count(customer.id) as "customerCount" 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.name
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company.id as "companyId", 
+        company.name as "companyName", 
+        $1::text as kind, 
+        count(customer.id) as "customerCount" 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.name
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company.id as companyId, 
+        company.name as companyName, 
+        ?1 as kind, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.name
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company.id as companyId, 
+        company.name as companyName, 
+        @0 as kind, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.name
+    ```
+
+The parameters are: `[ 'company' ]`
+
+The result type is:
+```tsx
+const customerCountPerCompany: Promise<{
+    companyId: number;
+    companyName: string;
+    kind: string;
     customerCount: number;
 }[]>
 ```

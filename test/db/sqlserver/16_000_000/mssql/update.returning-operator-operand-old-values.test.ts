@@ -32,8 +32,16 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tProject } from '../../domain/connection.js'
+import { tIssue, tProject, DBConnection, tOrganization, vProjectOverview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { Values } from '../../../../../src/Values.js'
+
+// A rename list joined in through a VALUES source.
+class VProjectRename extends Values<DBConnection, 'projectRename'> {
+    id   = this.column('int')
+    name = this.column('string')
+}
+
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -406,6 +414,280 @@ describe(ctx.label, () => {
               ]
             `)
             assertType<Exact<typeof row, { id: number, label: string }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+
+    test('returning-lower-of-collated-old-value', async () => {
+        // Two single-operand wrappers stacked over the old column: the
+        // case-folded pre-update name, compared under the Latin1_General_BIN2 collation. Project
+        // 1 was 'Marketing site'.
+        const expected = { id: 1, oldKey: 'marketing site' }
+        ctx.mockNext(expected)
+
+        await ctx.withRollback(async () => {
+            const oldProject = tProject.oldValues()
+            const row = await ctx.conn.update(tProject)
+                .set({ name: 'Marketing site v7' })
+                .where(tProject.id.equals(1))
+                .returning({
+                    id:     tProject.id,
+                    oldKey: oldProject.name.collate('Latin1_General_BIN2').toLowerCase(),
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = @0 output inserted.id as id, lower(deleted.name collate Latin1_General_BIN2) as oldKey where id = @1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Marketing site v7",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number, oldKey: string }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+
+    test('returning-is-null-over-old-value', async () => {
+        // Renaming a project and reporting whether it was active before the
+        // write. Project 1 had no `archived_at`: true.
+        const expected = { id: 1, wasActive: true }
+        ctx.mockNext(expected)
+
+        await ctx.withRollback(async () => {
+            const oldProject = tProject.oldValues()
+            const row = await ctx.conn.update(tProject)
+                .set({ name: 'Marketing website' })
+                .where(tProject.id.equals(1))
+                .returning({
+                    id:        tProject.id,
+                    wasActive: oldProject.archivedAt.isNull(),
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = @0 output inserted.id as id, cast(case when deleted.archived_at is null then 1 else 0 end as bit) as wasActive where id = @1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Marketing website",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number, wasActive: boolean }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+
+    test('returning-in-if-value-on-old-value-receiver', async () => {
+        // A dynamic id filter over the pre-update row, resolved with
+        // `trueWhenNoValue()`. The filter is supplied, so it renders as
+        // `old.id in (...)`; project 1 is in it: true.
+        const watchedIds: number[] | null = [1, 2]
+        const expected = { id: 1, watched: true }
+        ctx.mockNext(expected)
+
+        await ctx.withRollback(async () => {
+            const oldProject = tProject.oldValues()
+            const row = await ctx.conn.update(tProject)
+                .set({ name: 'Marketing site v8' })
+                .where(tProject.id.equals(1))
+                .returning({
+                    id:      tProject.id,
+                    watched: oldProject.id.inIfValue(watchedIds).trueWhenNoValue(),
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = @0 output inserted.id as id, cast(case when deleted.id in (@1, @2) then 1 else 0 end as bit) as watched where id = @3"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Marketing site v8",
+                1,
+                2,
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number, watched: boolean }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+
+    // NOT-SUPPORTED: SQL Server rejects a subquery in the OUTPUT clause (error 10705: 'Subqueries are not allowed in the OUTPUT clause'), so a RETURNING projection that carries a subquery is not executable.
+    /*
+    test('returning-correlated-subqueries-before-old-value', async () => {
+        // Correlated subqueries over the updated row projected AHEAD of the old
+        // column, so each is searched for an old-values reference (none) before
+        // `old.name` is reached. Project 1 has issues 1 and 2 and belongs to Acme
+        // Corp; the disabled aggregated array reads back as the empty array.
+        const expected = {
+            id:        1,
+            hasIssues: true,
+            orgName:   'Acme Corp',
+            issues:    [{ id: 1, title: 'Update hero copy' }, { id: 2, title: 'Redesign navbar' }],
+            noIssues:  [],
+            oldName:   'Marketing site',
+        }
+        ctx.mockNext({ ...expected, issues: JSON.stringify(expected.issues), noIssues: null })
+
+        await ctx.withRollback(async () => {
+            const oldProject = tProject.oldValues()
+            const row = await ctx.conn.update(tProject)
+                .set({ name: 'Marketing site v9' })
+                .where(tProject.id.equals(1))
+                .returning({
+                    id:        tProject.id,
+                    hasIssues: ctx.conn.exists(
+                        ctx.conn.subSelectUsing(tProject).from(tIssue)
+                            .where(tIssue.projectId.equals(tProject.id))
+                            .selectOneColumn(tIssue.id),
+                    ),
+                    orgName:   ctx.conn.subSelectUsing(tProject).from(tOrganization)
+                        .where(tOrganization.id.equals(tProject.organizationId))
+                        .selectOneColumn(tOrganization.name)
+                        .forUseAsInlineQueryValue(),
+                    issues:    ctx.conn.subSelectUsing(tProject).from(tIssue)
+                        .where(tIssue.projectId.equals(tProject.id))
+                        .select({ id: tIssue.id, title: tIssue.title })
+                        .orderBy('id')
+                        .forUseAsInlineAggregatedArrayValue(),
+                    noIssues:  ctx.conn.subSelectUsing(tProject).from(tIssue)
+                        .where(tIssue.projectId.equals(tProject.id))
+                        .select({ id: tIssue.id, title: tIssue.title })
+                        .forUseAsInlineAggregatedArrayValue()
+                        .onlyWhenOrNull(false)
+                        .useEmptyArrayForNoValue(),
+                    oldName:   oldProject.name,
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = @0 output inserted.id as id, cast(case when exists(select id as [result] from issue where project_id = inserted.id) then 1 else 0 end as bit) as hasIssues, (select name as [result] from organization where id = inserted.organization_id) as orgName, (select id as id, title as title from issue where project_id = inserted.id order by id offset 0 rows for json path) as issues, null as noIssues, deleted.name as oldName where id = @1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Marketing site v9",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, {
+                id:        number
+                hasIssues: boolean
+                orgName?:  string
+                issues:    Array<{ id: number; title: string }>
+                noIssues:  Array<{ id: number; title: string }>
+                oldName:   string
+            }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+    */
+
+    test('returning-scalar-wrappers-without-old-value-before-old-value', async () => {
+        // Expressions over the NEW row only, projected ahead of the old column:
+        // a typed fragment, a constant, `is(null)`, `in` over plain values and
+        // `inIfValue` both supplied and absent. None references the pre-update
+        // row, so the search continues to `old.name`.
+        const orgIds: number[] | null = [1]
+        const noIds: number[] | null = null
+        const expected = {
+            id:          1,
+            shout:       'MARKETING SITE V10',
+            audited:     true,
+            nameMissing: false,
+            knownSlug:   true,
+            inOrg:       true,
+            anyId:       true,
+            oldName:     'Marketing site',
+        }
+        ctx.mockNext(expected)
+
+        await ctx.withRollback(async () => {
+            const oldProject = tProject.oldValues()
+            const row = await ctx.conn.update(tProject)
+                .set({ name: 'Marketing site v10' })
+                .where(tProject.id.equals(1))
+                .returning({
+                    id:          tProject.id,
+                    shout:       ctx.conn.fragmentWithType('string', 'required').sql`upper(${tProject.name})`,
+                    audited:     ctx.conn.true(),
+                    nameMissing: tProject.name.is(null),
+                    knownSlug:   tProject.slug.in(['mktg-site', 'tools']),
+                    inOrg:       tProject.organizationId.inIfValue(orgIds).trueWhenNoValue(),
+                    anyId:       tProject.id.inIfValue(noIds).trueWhenNoValue(),
+                    oldName:     oldProject.name,
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = @0 output inserted.id as id, upper(inserted.name) as shout, convert(bit, 1) as audited, cast(case when inserted.name is null then 1 else 0 end as bit) as nameMissing, cast(case when inserted.slug in (@1, @2) then 1 else 0 end as bit) as knownSlug, cast(case when inserted.organization_id in (@3) then 1 else 0 end as bit) as inOrg, cast(case when (1=1) then 1 else 0 end as bit) as anyId, deleted.name as oldName where id = @4"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Marketing site v10",
+                "mktg-site",
+                "tools",
+                1,
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, {
+                id:          number
+                shout:       string
+                audited:     boolean
+                nameMissing: boolean
+                knownSlug:   boolean
+                inOrg:       boolean
+                anyId:       boolean
+                oldName:     string
+            }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+
+    test('returning-from-view-values-and-cte-columns-before-old-value', async () => {
+        // UPDATE … FROM a view, a VALUES rename list and a CTE, with a column of
+        // each projected ahead of the old column. Project 1 (org 1, Acme Corp,
+        // plan 'pro') is renamed to 'Marketing hub'.
+        const expected = {
+            orgName:   'Acme Corp',
+            renamedTo: 'Marketing hub',
+            plan:      'pro',
+            id:        1,
+            oldName:   'Marketing site',
+        }
+        ctx.mockNext(expected)
+
+        await ctx.withRollback(async () => {
+            const oldProject = tProject.oldValues()
+            const renames = Values.create(VProjectRename, 'projectRename', [{ id: 1, name: 'Marketing hub' }])
+            const orgPlans = ctx.conn.selectFrom(tOrganization)
+                .select({ id: tOrganization.id, plan: tOrganization.plan })
+                .forUseInQueryAs('orgPlan')
+            const row = await ctx.conn.update(tProject)
+                .from(vProjectOverview)
+                .from(renames)
+                .from(orgPlans)
+                .set({ name: renames.name })
+                .where(tProject.id.equals(renames.id))
+                .and(vProjectOverview.id.equals(tProject.id))
+                .and(orgPlans.id.equals(tProject.organizationId))
+                .returning({
+                    orgName:   vProjectOverview.organizationName,
+                    renamedTo: renames.name,
+                    plan:      orgPlans.plan,
+                    id:        tProject.id,
+                    oldName:   oldProject.name,
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectRename as (select * from (values (@0, @1)) as projectRename(id, name)), orgPlan as (select id as id, [plan] as [plan] from organization) update project set name = projectRename.name output project_overview.organization_name as orgName, projectRename.name as renamedTo, orgPlan.[plan] as [plan], inserted.id as id, deleted.name as oldName from project_overview, projectRename, orgPlan where project.id = projectRename.id and project_overview.id = project.id and orgPlan.id = project.organization_id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Marketing hub",
+              ]
+            `)
+            assertType<Exact<typeof row, {
+                orgName:   string
+                renamedTo: string
+                plan:      string
+                id:        number
+                oldName:   string
+            }>>()
             expect(row).toEqual(expected)
         })
     })

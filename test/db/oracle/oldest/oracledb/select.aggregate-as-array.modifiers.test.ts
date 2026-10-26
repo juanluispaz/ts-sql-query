@@ -961,4 +961,178 @@ describe(ctx.label, () => {
         expect(sorted).toEqual([{ id: 1, body: null }, { id: 2, body: 'Use new tokens' }])
     })
 
+    test('null-aggregate-as-array-then-as-optional-non-empty-array', async () => {
+        // The NULL variant from `onlyWhenOrNull(false)` emits a literal NULL, so
+        // the optional non-empty array is always absent.
+        ctx.mockNext([{ pid: 1, titles: null }])
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.id.equals(1))
+            .select({
+                pid:    tProject.id,
+                titles: ctx.conn.aggregateAsArrayOfOneColumn(tIssueLeft.title)
+                    .onlyWhenOrNull(false)
+                    .asOptionalNonEmptyArray(),
+            })
+            .groupBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as "pid", null as "titles" from project left join issue on issue.project_id = project.id where project.id = :0 group by project.id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ pid: number; titles?: string[] }>>>()
+        expect(rows).toEqual([{ pid: 1 }])
+    })
+
+    test('aggregate-as-array-of-one-column-as-optional-non-empty-array-drops-null-elements', async () => {
+        // NULL elements are skipped, and an array left empty is absent. Project 1
+        // has bodies [NULL, 'Use new tokens']; project 2's only issue has no body.
+        ctx.mockNext([
+            { projectId: 1, bodies: [null, 'Use new tokens'] },
+            { projectId: 2, bodies: [null] },
+        ])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.projectId.in([1, 2]))
+            .select({
+                projectId: tIssue.projectId,
+                bodies:    ctx.conn.aggregateAsArrayOfOneColumn(tIssue.body).asOptionalNonEmptyArray(),
+            })
+            .groupBy('projectId')
+            .orderBy('projectId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", json_arrayagg("body") as "bodies" from issue where project_id in (:0, :1) group by project_id order by "projectId""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ projectId: number; bodies?: string[] }>>>()
+        expect(rows).toEqual([
+            { projectId: 1, bodies: ['Use new tokens'] },
+            { projectId: 2 },
+        ])
+        expect('bodies' in rows[1]!).toBe(false)
+    })
+
+    test('aggregate-as-array-of-one-column-skips-a-null-inner-aggregated-array', async () => {
+        // An array (over the organization's projects) of each project's issue
+        // titles. Organization 2 has project 3 (one issue) and project 4 (none):
+        // project 4's inner array is NULL and is skipped.
+        ctx.mockNext({ organizationId: 2, titlesByProject: [['Document /v2/users'], null] })
+        const issueTitles = ctx.conn.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .selectOneColumn(tIssue.title)
+            .forUseAsInlineAggregatedArrayValue()
+            .asOptionalNonEmptyArray()
+        const row = await ctx.conn.selectFrom(tProject)
+            .where(tProject.organizationId.equals(2))
+            .select({
+                organizationId:  tProject.organizationId,
+                titlesByProject: ctx.conn.aggregateAsArrayOfOneColumn(issueTitles),
+            })
+            .groupBy('organizationId')
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as "organizationId", json_arrayagg((select json_arrayagg(title) from issue where project_id = project.id)) as "titlesByProject" from project where organization_id = :0 group by organization_id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, { organizationId: number; titlesByProject: string[][] }>>()
+        expect(row).toEqual({ organizationId: 2, titlesByProject: [['Document /v2/users']] })
+    })
+
+    test('inline-query-value-of-an-aggregate-as-array-then-use-empty-array-for-no-value', async () => {
+        ctx.mockNext([
+            { pid: 3, issues: [{ id: 4, title: 'Document /v2/users' }] },
+            { pid: 4, issues: null },
+        ])
+        const issues = ctx.conn.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .selectOneColumn(ctx.conn.aggregateAsArray({ id: tIssue.id, title: tIssue.title }))
+            .forUseAsInlineQueryValue()
+            .useEmptyArrayForNoValue()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.organizationId.equals(2))
+            .select({ pid: tProject.id, issues })
+            .orderBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "pid", (select json_arrayagg(json_object('id' value id, 'title' value title)) as "result" from issue where project_id = project.id) as "issues" from project where organization_id = :0 order by "pid""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ pid: number; issues: Array<{ id: number; title: string }> }>>>()
+        expect(rows).toEqual([
+            { pid: 3, issues: [{ id: 4, title: 'Document /v2/users' }] },
+            { pid: 4, issues: [] },
+        ])
+    })
+
+    test('inline-query-value-of-an-aggregate-as-array-then-as-optional-non-empty-array', async () => {
+        ctx.mockNext([
+            { pid: 3, issues: [{ id: 4, title: 'Document /v2/users' }] },
+            { pid: 4, issues: null },
+        ])
+        const issues = ctx.conn.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .selectOneColumn(ctx.conn.aggregateAsArray({ id: tIssue.id, title: tIssue.title }))
+            .forUseAsInlineQueryValue()
+            .asOptionalNonEmptyArray()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.organizationId.equals(2))
+            .select({ pid: tProject.id, issues })
+            .orderBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "pid", (select json_arrayagg(json_object('id' value id, 'title' value title)) as "result" from issue where project_id = project.id) as "issues" from project where organization_id = :0 order by "pid""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ pid: number; issues?: Array<{ id: number; title: string }> }>>>()
+        expect(rows).toEqual([
+            { pid: 3, issues: [{ id: 4, title: 'Document /v2/users' }] },
+            { pid: 4 },
+        ])
+    })
+
+    test('inline-query-value-of-an-aggregate-as-array-then-as-required-in-optional-object', async () => {
+        ctx.mockNext([
+            { pid: 3, 'meta.issues': [{ id: 4, title: 'Document /v2/users' }] },
+            { pid: 4, 'meta.issues': null },
+        ])
+        const issues = ctx.conn.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .selectOneColumn(ctx.conn.aggregateAsArray({ id: tIssue.id, title: tIssue.title }))
+            .forUseAsInlineQueryValue()
+            .asRequiredInOptionalObject()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.organizationId.equals(2))
+            .select({ pid: tProject.id, meta: { issues } })
+            .orderBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "pid", (select json_arrayagg(json_object('id' value id, 'title' value title)) as "result" from issue where project_id = project.id) as "meta.issues" from project where organization_id = :0 order by "pid""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ pid: number; meta?: { issues: Array<{ id: number; title: string }> } }>>>()
+        expect(rows).toEqual([
+            { pid: 3, meta: { issues: [{ id: 4, title: 'Document /v2/users' }] } },
+            { pid: 4 },
+        ])
+    })
 })

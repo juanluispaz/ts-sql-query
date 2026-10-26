@@ -28,7 +28,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tProject, tOrganization, tIssueWorklog} from '../../domain/connection.js'
+import { tIssue, tProject, tOrganization, tIssueWorklog, tAppUser } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -410,5 +410,85 @@ describe(ctx.label, () => {
         // The empty-subquery NULL is present-null under the nullable projector.
         expect('m' in rows[1]!).toBe(true)
         expect(rows[1]!.m).toBe(null)
+    })
+
+    test('compound-inline-array-keeps-an-optional-join-named-only-by-its-first-arm', async () => {
+        // The assignee's own issue titles plus every closed issue title.
+        const expected = [
+            { id: 1, related: ['Document /v2/users', 'Update hero copy'] },
+            { id: 2, related: ['Document /v2/users', 'Redesign navbar'] },
+            { id: 3, related: ['Document /v2/users'] },
+            { id: 4, related: ['Document /v2/users'] },
+        ]
+        ctx.mockNext(expected)
+        const assignee = tAppUser.forUseInLeftJoin()
+        const other = tIssue.as('other')
+        const related = ctx.conn.subSelectUsing(assignee).from(other)
+            .where(other.assigneeId.equals(assignee.id))
+            .selectOneColumn(other.title)
+            .union(ctx.conn.selectFrom(other).where(other.status.equals('closed')).selectOneColumn(other.title))
+            .forUseAsInlineAggregatedArrayValue()
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .optionalLeftJoin(assignee).on(assignee.id.equals(tIssue.assigneeId))
+            .select({ id: tIssue.id, related })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, (select json_group_array(a_1_.result) from (select other.title as result from issue as other where other.assignee_id = app_user.id union select other.title as result from issue as other where other.status = ?) as a_1_) as related from issue left join app_user on app_user.id = issue.assignee_id order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "closed",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; related: string[] }>>>()
+        expect(rows.map(r => ({ ...r, related: [...r.related].sort() }))).toEqual(expected)
+    })
+
+    test('uncorrelated-inline-subquery-does-not-keep-an-optional-join', async () => {
+        // The subquery names no outer table, so the unused project join is
+        // dropped. There are 3 users.
+        const expected = [
+            { id: 1, userCount: 3 },
+            { id: 2, userCount: 3 },
+            { id: 3, userCount: 3 },
+            { id: 4, userCount: 3 },
+        ]
+        ctx.mockNext(expected)
+        const userCount = ctx.conn.selectFrom(tAppUser).selectCountAll().forUseAsInlineQueryValue()
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .optionalJoin(tProject).on(tProject.id.equals(tIssue.projectId))
+            .select({ id: tIssue.id, userCount })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select count(*) as result from app_user) as userCount from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; userCount: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('inline-subquery-inside-a-nested-object', async () => {
+        // A required inline count inside a nested object keeps the object
+        // required. Project 1 has 2 issues, project 2 has 1.
+        const expected = [
+            { id: 1, stats: { issueCount: 2 } },
+            { id: 2, stats: { issueCount: 1 } },
+        ]
+        ctx.mockNext(expected)
+        const issueCount = ctx.conn.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .selectCountAll()
+            .forUseAsInlineQueryValue()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.organizationId.equals(1))
+            .select({ id: tProject.id, stats: { issueCount } })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select count(*) as result from issue where project_id = project.id) as "stats.issueCount" from project where organization_id = ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; stats: { issueCount: number } }>>>()
+        expect(rows).toEqual(expected)
     })
 })

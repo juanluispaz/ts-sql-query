@@ -113,7 +113,7 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                     result = new Date(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()))
                 } else if (typeof value === 'string') {
                     if (containsTimezone(value)) {
-                        result = new Date(value)
+                        result = utcDateOnly(new Date(value))
                     } else switch (dateTimeFormat) {
                         case 'localdate as text':
                         case 'localdate as text using T separator':
@@ -135,14 +135,14 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                                 }
                                 result = new Date(Date.UTC(result.getFullYear(), result.getMonth(), result.getDate()))
                             } else {
-                                result = new Date(value + 'Z')
+                                result = utcDateOnly(new Date(value + 'Z'))
                             }
                             break
                         case 'UTC as text':
                         case 'UTC as text using T separator':
                         case 'UTC as text using Z timezone':
                         case 'UTC as text using T separator and Z timezone':
-                            result = new Date(value + 'Z')
+                            result = utcDateOnly(new Date(value + 'Z'))
                             break
                         default:
                             throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
@@ -291,6 +291,7 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                             break
                         case 'Julian day as real number':
                         case 'Unix time seconds as integer':
+                        case 'Unix time milliseconds as integer':
                             if (this.treatUnexpectedStringDateTimeAsUTC) {
                                 result = new Date(value + 'Z')
                             } else {
@@ -458,6 +459,10 @@ function millisecondsToJulian(value: number): number {
 
 function julianToMilliseconds(value: number): number {
     return  (value - 2440587.5) * 86400000.0
+}
+
+function utcDateOnly(value: Date): Date {
+    return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()))
 }
 
 function containsTimezone(value: string): boolean {

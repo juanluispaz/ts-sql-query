@@ -2,7 +2,7 @@ import type { SqlBuilder, InsertData, SelectData, ToSql, QueryColumns } from '..
 import { hasAggregationQueryColumns, isAllowedQueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { AnyTableOrView, IQueryDataDiscovery, HasIsValue, ITable, IWithView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate, __hasAggregation, __isAllowed } from '../utils/ITableOrView.js'
-import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, CustomizableExecutableMultipleInsert, CustomizableExecutableInsertFromSelect,/*MissingKeysInsertExpression, ShapedMissingKeysInsertExpression, MissingKeysMultipleInsertExpression, ShapedMissingKeysMultipleInsertExpression*/ InsertCustomization, CustomizableExecutableInsertReturningLastInsertedId, CustomizableExecutableSimpleInsert, ComposableCustomizableExecutableInsert, ExecutableInsertReturningLastInsertedId, InsertReturningColumns, CustomizableExecutableInsert, OnConflictDoMultipleInsert, InsertOnConflictSetsExpression, DynamicOnConflictWhereExpression, OnConflictOnColumnWhere, CustomizableExecutableInsertFromSelectOnConflict, CustomizableExecutableSimpleInsertOnConflict, OnConflictDoSimpleInsert, CustomizableExecutableMultipleInsertOnConflict, CustomizableExecutableInsertFromSelectOnConflictOptional, CustomizableExecutableSimpleInsertOnConflictOptional, CustomizableExecutableMultipleInsertOnConflictOptional, ExecutableMultipleInsertExpression, ShapedExecutableInsertExpression, ShapedExecutableMultipleInsertExpression, ShapedInsertExpression, ShapedInsertOnConflictSetsExpression, ComposableCustomizableExecutableInsertProjectableAsNullable, ComposableCustomizableExecutableInsertOptionalProjectableAsNullable, OnConflictDoInsertFromSelect } from '../expressions/insert.js'
+import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, CustomizableExecutableMultipleInsert, CustomizableExecutableInsertFromSelect,/*MissingKeysInsertExpression, ShapedMissingKeysInsertExpression, MissingKeysMultipleInsertExpression, ShapedMissingKeysMultipleInsertExpression*/ InsertCustomization, CustomizableExecutableInsertReturningLastInsertedId, CustomizableExecutableSimpleInsert, ComposableCustomizableExecutableInsert, ExecutableInsertReturningLastInsertedId, InsertReturningColumns, CustomizableExecutableInsert, OnConflictDoMultipleInsert, InsertOnConflictSetsExpression, DynamicOnConflictWhereExpression, DynamicOnConflictDoUpdateWhereExpression, OnConflictOnColumnWhere, CustomizableExecutableInsertFromSelectOnConflict, CustomizableExecutableSimpleInsertOnConflict, OnConflictDoSimpleInsert, CustomizableExecutableMultipleInsertOnConflict, CustomizableExecutableInsertFromSelectOnConflictOptional, CustomizableExecutableSimpleInsertOnConflictOptional, CustomizableExecutableMultipleInsertOnConflictOptional, ExecutableMultipleInsertExpression, ShapedExecutableInsertExpression, ShapedExecutableMultipleInsertExpression, ShapedInsertExpression, ShapedInsertOnConflictSetsExpression, ComposableCustomizableExecutableInsertProjectableAsNullable, ComposableCustomizableExecutableInsertOptionalProjectableAsNullable, OnConflictDoInsertFromSelect } from '../expressions/insert.js'
 import type { DBColumn } from '../utils/Column.js'
 import { isColumn } from '../utils/Column.js'
 import { __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
@@ -16,7 +16,7 @@ import type { RawFragment } from '../utils/RawFragment.js'
 
 // one implement ommited intentionally to don't confuse TypeScript
 
-export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDataDiscovery, ToSql, InsertExpression<any, any>, ShapedInsertExpression<any, any, any, any>, ExecutableInsertReturningLastInsertedId<any, any, any>, ExecutableInsert<any, any>, ExecutableInsertExpression<any, any>, ShapedExecutableInsertExpression<any, any, any>, ExecutableMultipleInsertExpression<any, any>, ShapedExecutableMultipleInsertExpression<any, any, any>, CustomizableExecutableMultipleInsert<any, any, any>, CustomizableExecutableInsertFromSelect<any, any, any>, CustomizableExecutableInsertReturningLastInsertedId<any, any, any>, CustomizableExecutableSimpleInsert<any, any, any>, /*MissingKeysInsertExpression<any, any>, ShapedMissingKeysInsertExpression<any, any, any>, MissingKeysMultipleInsertExpression<any, any>, ShapedMissingKeysMultipleInsertExpression<any, any, any>,*/ InsertData, ComposableCustomizableExecutableInsert<any, any, any, any>, ExecutableInsertReturning<any, any, any, any>, ExecutableInsert<any, any>, CustomizableExecutableInsert<any, any>, OnConflictDoMultipleInsert<any, any, any>, InsertOnConflictSetsExpression<any, any, any, any>, ShapedInsertOnConflictSetsExpression<any, any, any, any, any>, DynamicOnConflictWhereExpression<any, any, any>, OnConflictOnColumnWhere<any, any, any>, CustomizableExecutableInsertFromSelectOnConflict<any, any>, CustomizableExecutableSimpleInsertOnConflict<any, any>, OnConflictDoSimpleInsert<any, any, any>, CustomizableExecutableMultipleInsertOnConflict<any, any>, CustomizableExecutableInsertFromSelectOnConflictOptional<any, any>, CustomizableExecutableSimpleInsertOnConflictOptional<any, any>, CustomizableExecutableMultipleInsertOnConflictOptional<any, any>, ComposableCustomizableExecutableInsertProjectableAsNullable<any, any, any>, ComposableCustomizableExecutableInsertOptionalProjectableAsNullable<any, any, any>, OnConflictDoInsertFromSelect<any, any, any> {
+export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDataDiscovery, ToSql, InsertExpression<any, any>, ShapedInsertExpression<any, any, any, any>, ExecutableInsertReturningLastInsertedId<any, any, any>, ExecutableInsert<any, any>, ExecutableInsertExpression<any, any>, ShapedExecutableInsertExpression<any, any, any>, ExecutableMultipleInsertExpression<any, any>, ShapedExecutableMultipleInsertExpression<any, any, any>, CustomizableExecutableMultipleInsert<any, any, any>, CustomizableExecutableInsertFromSelect<any, any, any>, CustomizableExecutableInsertReturningLastInsertedId<any, any, any>, CustomizableExecutableSimpleInsert<any, any, any>, /*MissingKeysInsertExpression<any, any>, ShapedMissingKeysInsertExpression<any, any, any>, MissingKeysMultipleInsertExpression<any, any>, ShapedMissingKeysMultipleInsertExpression<any, any, any>,*/ InsertData, ComposableCustomizableExecutableInsert<any, any, any, any>, ExecutableInsertReturning<any, any, any, any>, ExecutableInsert<any, any>, CustomizableExecutableInsert<any, any>, OnConflictDoMultipleInsert<any, any, any>, InsertOnConflictSetsExpression<any, any, any, any>, ShapedInsertOnConflictSetsExpression<any, any, any, any, any>, DynamicOnConflictWhereExpression<any, any, any>, DynamicOnConflictDoUpdateWhereExpression<any, any, any>, OnConflictOnColumnWhere<any, any, any>, CustomizableExecutableInsertFromSelectOnConflict<any, any>, CustomizableExecutableSimpleInsertOnConflict<any, any>, OnConflictDoSimpleInsert<any, any, any>, CustomizableExecutableMultipleInsertOnConflict<any, any>, CustomizableExecutableInsertFromSelectOnConflictOptional<any, any>, CustomizableExecutableSimpleInsertOnConflictOptional<any, any>, CustomizableExecutableMultipleInsertOnConflictOptional<any, any>, ComposableCustomizableExecutableInsertProjectableAsNullable<any, any, any>, ComposableCustomizableExecutableInsertOptionalProjectableAsNullable<any, any, any>, OnConflictDoInsertFromSelect<any, any, any> {
     [source]: any
     [from]: any
     [using]: any
@@ -129,12 +129,12 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                                 result = typeAdapter.transformValueFromDB(row, columnTypeName, defaultTypeAdapter)
                             } catch(e) {
                                 if (e instanceof TsSqlError) {
-                                    if (e.errorReason.reason === 'INVALID_VALUE_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE') {
+                                    if (e.errorReason.reason === 'INVALID_VALUE_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE') {
                                         e.errorReason.rowIndex = index
                                     }
                                     throw e
                                 } else {
-                                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value: result, typeName: columnTypeName, rowIndex: index }, e)
+                                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value: row, typeName: columnTypeName, rowIndex: index }, e)
                                 }
                             }
                             if (result === null || result === undefined) {
@@ -153,12 +153,12 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                                 result = defaultTypeAdapter.transformValueFromDB(row, columnTypeName)
                             } catch(e) {
                                 if (e instanceof TsSqlError) {
-                                    if (e.errorReason.reason === 'INVALID_VALUE_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE') {
+                                    if (e.errorReason.reason === 'INVALID_VALUE_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE') {
                                         e.errorReason.rowIndex = index
                                     }
                                     throw e
                                 } else {
-                                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value: result, typeName: columnTypeName, rowIndex: index }, e)
+                                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value: row, typeName: columnTypeName, rowIndex: index }, e)
                                 }
                             }
                             if (result === null || result === undefined) {
@@ -314,7 +314,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                         if (value === undefined) {
                             value = null
                         }
-                        output[i] = this.__transformValueFromDB(valueSource, value)
+                        output[i] = this.__transformValueFromDB(valueSource, value, undefined, i)
                     }
                     return output
                 }).catch((e) => {

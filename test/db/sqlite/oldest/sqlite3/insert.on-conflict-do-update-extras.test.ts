@@ -204,4 +204,33 @@ describe(ctx.label, () => {
         })
     })
 
+    test('on-conflict-do-update-set-non-literal-payload-skips-keys-that-are-not-columns', async () => {
+        // The DO UPDATE payload is a named `const` (no excess-property check)
+        // carrying `csrfToken`, which is not a column of `project`: only `name`
+        // reaches the SET list. (organization 1, 'mktg-site') already exists, so
+        // the insert turns into the update of project 1.
+        const body = { name: 'Marketing website', csrfToken: 'token-from-the-request-body' }
+        const expected = { id: 1, name: 'Marketing website' }
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSet(body)
+                .returning({ id: tProject.id, name: tProject.name })
+                .executeInsertOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ? returning id as id, name as name"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+                "Marketing website",
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; name: string }>>()
+            expect(row).toEqual(expected)
+        })
+    })
 })

@@ -721,4 +721,43 @@ describe(ctx.label, () => {
         // Not supported by SQL Server.
     })
     */
+
+    // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE)
+    /*
+    test('on-conflict-do-nothing-returning-last-inserted-id-on-a-real-collision-resolves-null', async () => {
+        // 'ada@acme.test' is a seeded email (unique), so DO NOTHING suppresses the
+        // insert and no id comes back: the chain resolves `null`. With a minimum
+        // of one row the same suppressed insert is rejected, counting 0 rows.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(undefined)
+            const id = await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'ada@acme.test', fullName: 'Ada Lovelace' })
+                .onConflictDoNothing()
+                .returningLastInsertedId()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into app_user (email, full_name) values ($1, $2) on conflict do nothing returning id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "ada@acme.test",
+                "Ada Lovelace",
+              ]
+            `)
+            assertType<Exact<typeof id, number | null>>()
+            expect(id).toBeNull()
+
+            ctx.mockNext(undefined)
+            let caught: unknown
+            try {
+                await ctx.conn.insertInto(tAppUser)
+                    .values({ email: 'ada@acme.test', fullName: 'Ada Lovelace' })
+                    .onConflictDoNothing()
+                    .returningLastInsertedId()
+                    .executeInsert(1)
+            } catch (e) { caught = e }
+            const reason = caught instanceof TsSqlError ? caught.errorReason : undefined
+            expect(reason).toEqual({ reason: 'MINIMUM_ROWS_NOT_REACHED', count: 0, min: 1 })
+        })
+    })
+    */
 })

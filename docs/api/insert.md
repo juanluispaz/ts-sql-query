@@ -343,6 +343,7 @@ interface InsertExpression {
     doUpdateSetIfValue(columns: UpdateSets): this
 
     // Methods available to specify a where clause inmediatelly after call onConflictOn or any do update method
+    // (after a do update method the condition can use the values to insert, see valuesForInsert)
     /** Allows to create the where dynamically */
     dynamicWhere(): this
     /** Allows to specify the where */

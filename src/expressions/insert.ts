@@ -889,6 +889,12 @@ export interface DynamicOnConflictWhereExpression</*in|out*/ TABLE extends HasSo
     or(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicOnConflictWhereExpression<TABLE, USING,  NEXT> & NEXT
 }
 
+// The condition of the update (unlike the one of the conflict target) can read the values to insert
+export interface DynamicOnConflictDoUpdateWhereExpression</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>, NEXT> {
+    and(condition: IAnyBooleanValueSource<USING[typeof source] | NValuesForInsertFrom<TABLE[typeof source]>, any>): DynamicOnConflictDoUpdateWhereExpression<TABLE, USING,  NEXT> & NEXT
+    or(condition: IAnyBooleanValueSource<USING[typeof source] | NValuesForInsertFrom<TABLE[typeof source]>, any>): DynamicOnConflictDoUpdateWhereExpression<TABLE, USING,  NEXT> & NEXT
+}
+
 export interface OnConflictOnColumnWhere</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>, NEXT> {
     dynamicWhere() : DynamicOnConflictWhereExpression<TABLE, USING,  NEXT> & NEXT
     where(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicOnConflictWhereExpression<TABLE, USING,  NEXT> & NEXT
@@ -958,7 +964,7 @@ type OnConflictDoUpdateSetWithoutTargetFnType<TABLE extends HasSource<any>, USIN
 
 type OnConflictDoUpdateDynamicWhereFnType<TABLE extends HasSource<any>, USING extends HasSource<any>, NEXT> =
     TABLE extends OfDB<'noopDB' | 'postgreSql' | 'sqlite'>
-    ? () => DynamicOnConflictWhereExpression<TABLE, USING,  NEXT> & NEXT
+    ? () => DynamicOnConflictDoUpdateWhereExpression<TABLE, USING,  NEXT> & NEXT
     : never
 
 type OnConflictDoUpdateWhereFnType<TABLE extends HasSource<any>, USING extends HasSource<any>, NEXT> =
@@ -967,7 +973,7 @@ type OnConflictDoUpdateWhereFnType<TABLE extends HasSource<any>, USING extends H
     : never
 
 interface OnConflictDoUpdateWhereFnTypeInterface</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>, /*in|out*/ NEXT> {
-    (condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicOnConflictWhereExpression<TABLE, USING,  NEXT> & NEXT
+    (condition: IAnyBooleanValueSource<USING[typeof source] | NValuesForInsertFrom<TABLE[typeof source]>, any>): DynamicOnConflictDoUpdateWhereExpression<TABLE, USING,  NEXT> & NEXT
 }
 
 type OnConflictOnColumnFnType<TABLE extends HasSource<any>, USING extends HasSource<any>, NEXT> =

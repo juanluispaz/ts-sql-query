@@ -781,4 +781,71 @@ describe(ctx.label, () => {
         }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('pick/depth-3-dynamic-pick-drops-an-inner-group-that-picks-nothing', async () => {
+        // The innermost `sub` group picks none of its leaves, so it is dropped,
+        // while its sibling leaf `meta.status` is kept and keeps `meta` alive.
+        // Issue 1 is 'open'.
+        const expected = [{ id: 1, meta: { status: 'open' } }]
+        ctx.mockNext(expected)
+        const availableFields = {
+            id: tIssue.id,
+            meta: {
+                sub: {
+                    priority: tIssue.priority,
+                },
+                status: tIssue.status,
+            },
+        }
+        const picked = dynamicPick(availableFields, { meta: { sub: { priority: false }, status: true } }, ['id'])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select(picked)
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, status as "meta.status" from issue where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            id:    number
+            meta?: { sub?: { priority?: number }; status?: string }
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('pick/depth-3-dynamic-pick-paths-drops-an-inner-group-without-a-picked-path', async () => {
+        // The path-list twin: only `meta.status` is listed, so the `meta.sub`
+        // group has nothing picked and is dropped. Issue 1 is 'open'.
+        const expected = [{ id: 1, meta: { status: 'open' } }]
+        ctx.mockNext(expected)
+        const availableFields = {
+            id: tIssue.id,
+            meta: {
+                sub: {
+                    priority: tIssue.priority,
+                },
+                status: tIssue.status,
+            },
+        }
+        const picked = dynamicPickPaths(availableFields, ['meta.status'], ['id'])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select(picked)
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, status as "meta.status" from issue where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            id:    number
+            meta?: { sub?: { priority?: number }; status?: string }
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

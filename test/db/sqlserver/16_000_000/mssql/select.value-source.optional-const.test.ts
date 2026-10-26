@@ -17,7 +17,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import type { TypeAdapter } from '../../../../../src/TypeAdapter.js'
-import type { ReleaseChannel, WorklogActivity } from '../../domain/connection.js'
+import { type ReleaseChannel, type WorklogActivity, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 const UUID_V = '0a8f9c1e-1111-4222-8333-444455556666'
@@ -329,6 +329,72 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof v, Date | null>>()
+        expect(v).toBeNull()
+    })
+
+    test('optional-const/null-check-on-a-null-const-is-settled-while-the-query-is-built', async () => {
+        // A NULL optional const is known while building, so `isNull()` renders the
+        // true constant and `isNotNull()` the false one. Only project 2 survives.
+        const expected = [{ id: 2, name: 'Internal tools' }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(ctx.conn.optionalConst(null, 'int').isNotNull())
+            .or(tProject.id.equals(2))
+            .and(ctx.conn.optionalConst(null, 'int').isNull())
+            .select({ id: tProject.id, name: tProject.name })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where id = @0 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('optional-const/concat-ignoring-null-on-a-null-receiver', async () => {
+        // `concatIgnoringNull` counts a NULL operand as the empty string. A NULL
+        // const receiver is dropped while building, leaving the other operand;
+        // with both operands NULL the result is the empty string, which the
+        // connection reads back as no value (empty strings are not allowed by
+        // default), so `empty` is absent. Project 1 is 'Marketing site'.
+        ctx.mockNext({ id: 1, label: 'Marketing site', empty: '' })
+        const expected = { id: 1, label: 'Marketing site' }
+        const row = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({
+                id:    tProject.id,
+                label: ctx.conn.optionalConst(null, 'string').concatIgnoringNull(tProject.name),
+                empty: ctx.conn.optionalConst(null, 'string').concatIgnoringNull(ctx.conn.optionalConst(null, 'string')),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as [label], '' as empty from project where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; label: string; empty?: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('optional-const/min-value-with-a-null-const-poisons-to-null', async () => {
+        // `minValue` propagates NULL: a NULL const operand is known while building,
+        // so the whole expression is emitted as a typed NULL and comes back null.
+        ctx.mockNext(null)
+        const v = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .selectOneColumn(tProject.id.minValue(ctx.conn.optionalConst(null, 'int')))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select null as [result] from project where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof v, number | null>>()
         expect(v).toBeNull()
     })
 })

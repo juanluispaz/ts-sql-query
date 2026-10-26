@@ -31,9 +31,11 @@ write_scoped_bunfig() {
         all) patterns='"src/examples/**", "test/**"' ;;
         runners)
             patterns='"test/**", "src/queryRunners/connectorErrorMappers/**", "src/queryRunners/databaseErrorMappers/**"'
-            for entry in src/*; do
+            # src/utils/transactionIsolationLevel.ts belongs to the runners
+            # (only they use it): every other file of src/utils is ignored.
+            for entry in src/* src/utils/*; do
                 name="${entry#src/}"
-                [ "$name" = "queryRunners" ] && continue
+                case "$name" in queryRunners|utils|utils/transactionIsolationLevel.ts) continue ;; esac
                 if [ -d "$entry" ]; then patterns="$patterns, \"src/$name/**\""; else patterns="$patterns, \"src/$name\""; fi
             done ;;
         mappers)

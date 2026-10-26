@@ -8,8 +8,9 @@
 #   * test/**          — test infrastructure and the test files
 #                        themselves.
 #   * src/queryRunners/* and the two error-mapper folders — driver code,
-#     measured on their own by `--coverage-scope runners` / `mappers`.
+#     measured on their own by `--coverage-scope runners` / `mappers`
+#     (src/utils/transactionIsolationLevel.ts too: only the runners use it).
 [test]
 # Force UTC before any test module loads (see test/lib/setupTimezone.ts).
 preload = ["./test/lib/setupTimezone.ts"]
-coveragePathIgnorePatterns = ["src/examples/**", "test/**", "src/queryRunners/*", "src/queryRunners/connectorErrorMappers/*", "src/queryRunners/databaseErrorMappers/*"]
+coveragePathIgnorePatterns = ["src/examples/**", "test/**", "src/queryRunners/*", "src/queryRunners/connectorErrorMappers/*", "src/queryRunners/databaseErrorMappers/*", "src/utils/transactionIsolationLevel.ts"]

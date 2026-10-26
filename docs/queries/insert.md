@@ -1091,7 +1091,7 @@ const insertReturningCustomerData: Promise<{
 }>
 ```
 
-If you want to use in the update the values to insert you can call them method `valuesForInsert()` over the table to get access to the table representation of the values to insert.
+If you want to use in the update the values to insert you can call them method `valuesForInsert()` over the table to get access to the table representation of the values to insert. On PostgreSQL and SQLite you can also use them in the `.where(...)` that follows `.doUpdateSet(...)`, to decide whether the conflicting row is updated.
 
 === "MariaDB"
     ```ts

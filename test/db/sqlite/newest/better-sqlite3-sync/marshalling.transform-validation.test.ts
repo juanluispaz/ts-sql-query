@@ -31,7 +31,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { TsSqlError } from '../../../../../src/TsSqlError.js'
-import { tIssue } from '../../domain/connection.js'
+import { tIssue, tAppUser } from '../../domain/connection.js'
 import type { TypeAdapter } from '../../../../../src/TypeAdapter.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
@@ -723,5 +723,30 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id, x: ctx.conn.const('1.5e3', 'string', stringDoubleAdapter) })
             .executeSelectMany())
         expect(ctx.lastParams).toEqual(['1.5e3'])
+    })
+
+    test('marshalling/from-db-validation/mandatory-error-in-a-nested-object-carries-its-dotted-column-path', async () => {
+        // A required column inside a nested object (`owner.contact.email`) that comes
+        // back null: the reason's `columnPath` is the dotted path from the root of the
+        // projection, each segment once.
+        // MOCK-ONLY: email is NOT NULL in the schema, so the null can only be forced
+        // through the mock.
+        ctx.mockOnlyConnection()
+        ctx.mockNext([{ id: 1, 'owner.contact.email': null }])
+        let caught: unknown
+        try {
+            await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.id.equals(1))
+                .select({ id: tAppUser.id, owner: { contact: { email: tAppUser.email } } })
+                .executeSelectMany()
+        } catch (e) {
+            caught = e
+        }
+        const reason = caught instanceof TsSqlError ? caught.errorReason : undefined
+        expect(reason?.reason).toBe('MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE')
+        if (reason?.reason === 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE') {
+            expect(reason.rowIndex).toBe(0)
+            expect(reason.columnPath).toBe('owner.contact.email')
+        }
     })
 })

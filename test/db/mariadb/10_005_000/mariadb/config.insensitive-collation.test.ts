@@ -324,4 +324,25 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(name order by name asc) from project where organization_id = organization.id) as char) as names from organization where id = ?"`)
     })
+
+    test('collation: inline aggregated array ordered by a value source insensitive', async () => {
+        // The insensitive ordering is a value source (not a projected alias), so
+        // the collate suffix lands on that expression inside the aggregate. Org 1's
+        // projects by slug: 'mktg-site' (Marketing site), 'tools' (Internal tools).
+        const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
+        ctx.mockNext([{ id: 1, names: JSON.stringify(['Marketing site', 'Internal tools']) }])
+        const rows = await collated.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({
+                id:    tOrganization.id,
+                names: collated.subSelectUsing(tOrganization).from(tProject)
+                    .where(tProject.organizationId.equals(tOrganization.id))
+                    .selectOneColumn(tProject.name)
+                    .orderBy(tProject.slug, 'insensitive')
+                    .forUseAsInlineAggregatedArrayValue(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(name order by slug collate utf8mb4_general_ci) from project where organization_id = organization.id) as char) as names from organization where id = ?"`)
+        expect(rows).toEqual([{ id: 1, names: ['Marketing site', 'Internal tools'] }])
+    })
 })

@@ -4,8 +4,11 @@
 //
 //   - `.limit(...)` and `.offset(...)` (they accept an INumberValueSource),
 //   - a `customizeQuery({...})` raw-fragment hook, and
-//   - a COMPOUND query (`union`/`unionAll`/...) — both a gated column in
-//     the second member and a gated `.limit(...)` on the compound itself.
+//   - a COMPOUND query (`union`/`unionAll`/...) — a gated column in either
+//     member, members built with `subSelectUsing(...)` over an open or a
+//     gated CTE, a gated value source in the compound's `.orderBy(...)`, a
+//     gated `.limit(...)` on the compound itself, and open gates in the
+//     compound's `customizeQuery(...)` fragments.
 //
 // These pin the introspection walker (the planned `query.isAllowed()`
 // API, exercised here through the `isQueryAllowed` test seam — see
@@ -106,5 +109,94 @@ describe(ctx.label, () => {
             )
             .limit(connection.const(10, 'int').allowWhen(false, 'compound limit gate blocks') as any)
         expect(isQueryAllowed(query)).toBe(false)
+    })
+
+    test('allow-when/compound-first-member-gated-closed-reports-disallowed', () => {
+        // The gate sits in the FIRST member, so the walk must not skip it on
+        // its way to the second.
+        const connection = ctx.conn
+        const query = connection.selectFrom(tProject)
+            .select({ id: tProject.id.allowWhen(false, 'compound first member gate blocks') })
+            .union(
+                connection.selectFrom(tIssue)
+                    .select({ id: tIssue.id }),
+            )
+        expect(isQueryAllowed(query)).toBe(false)
+    })
+
+    test('allow-when/compound-of-subselect-using-members-reports-allowed', () => {
+        // Each member is a correlated subquery over the project (the titles of
+        // its open or of its in-progress issues); the compound itself carries
+        // the `subSelectUsing` table, which the walk visits first.
+        const connection = ctx.conn
+        const openTitles = connection.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .and(tIssue.status.equals('open'))
+            .selectOneColumn(tIssue.title)
+        const inProgressTitles = connection.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .and(tIssue.status.equals('in_progress'))
+            .selectOneColumn(tIssue.title)
+        expect(isQueryAllowed(openTitles.union(inProgressTitles))).toBe(true)
+    })
+
+    test('allow-when/compound-of-subselect-using-members-over-a-gated-cte-reports-disallowed', () => {
+        // The members correlate with a CTE whose projection is gated closed.
+        const connection = ctx.conn
+        const projects = connection.selectFrom(tProject)
+            .select({ id: tProject.id.allowWhen(false, 'cte gate blocks') })
+            .forUseInQueryAs('visible_projects')
+        const openTitles = connection.subSelectUsing(projects).from(tIssue)
+            .where(tIssue.projectId.equals(projects.id))
+            .and(tIssue.status.equals('open'))
+            .selectOneColumn(tIssue.title)
+        const inProgressTitles = connection.subSelectUsing(projects).from(tIssue)
+            .where(tIssue.projectId.equals(projects.id))
+            .and(tIssue.status.equals('in_progress'))
+            .selectOneColumn(tIssue.title)
+        expect(isQueryAllowed(openTitles.union(inProgressTitles))).toBe(false)
+    })
+
+    test('allow-when/compound-order-by-gated-closed-reports-disallowed', () => {
+        // The compound's `orderBy(...)` takes a value source that needs no
+        // table; a gated one is walked like any other.
+        const connection = ctx.conn
+        const query = connection.selectFrom(tProject)
+            .select({ id: tProject.id })
+            .union(
+                connection.selectFrom(tIssue)
+                    .select({ id: tIssue.id }),
+            )
+            .orderBy(connection.const(1, 'int').allowWhen(false, 'compound order-by gate blocks'))
+        expect(isQueryAllowed(query)).toBe(false)
+    })
+
+    test('allow-when/compound-order-by-gated-open-reports-allowed', () => {
+        const connection = ctx.conn
+        const query = connection.selectFrom(tProject)
+            .select({ id: tProject.id })
+            .union(
+                connection.selectFrom(tIssue)
+                    .select({ id: tIssue.id }),
+            )
+            .orderBy(connection.const(1, 'int').allowWhen(true, 'compound order-by gate'))
+        expect(isQueryAllowed(query)).toBe(true)
+    })
+
+    test('allow-when/compound-customize-query-gated-open-reports-allowed', () => {
+        // Open gates in the compound's `beforeQuery` / `afterQuery` fragments:
+        // the walk visits every fragment slot and reaches the end.
+        const connection = ctx.conn
+        const query = connection.selectFrom(tProject)
+            .select({ id: tProject.id })
+            .union(
+                connection.selectFrom(tIssue)
+                    .select({ id: tIssue.id }),
+            )
+            .customizeQuery({
+                beforeQuery: connection.rawFragment`/* ${tProject.id.allowWhen(true, 'before-query gate')} */`,
+                afterQuery:  connection.rawFragment`/* ${tProject.slug.allowWhen(true, 'after-query gate')} */`,
+            })
+        expect(isQueryAllowed(query)).toBe(true)
     })
 })

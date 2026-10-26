@@ -1441,4 +1441,118 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; projectNames: string[] }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Marketing site', 'Internal tools'] })
     })
+
+    test('inline-aggregate-with-limit-and-no-order-by', async () => {
+        // `limit` with no `order by` caps the element count without fixing which
+        // elements come back; org 1 owns two projects, so a cap of 5 keeps both.
+        // The order of the elements is unspecified, so sort before comparing.
+        ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Marketing site', 'Internal tools']) })
+        const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .selectOneColumn(tProject.name)
+            .limit(5)
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({ id: tOrganization.id, projectNames: orgNames })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(name limit ?) from project where organization_id = organization.id) as char) as projectNames from organization where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            5,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; projectNames: string[] }>>()
+        expect({ ...row, projectNames: [...row.projectNames].sort() }).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
+    })
+
+    test('inline-aggregate-order-by-value-source-then-raw-fragment', async () => {
+        // Two order-by entries — a value source with an explicit mode, then a raw
+        // fragment — inside the aggregated array. Project 1's issues: 1 'Update
+        // hero copy' (priority 2) and 2 'Redesign navbar' (priority 1); priority
+        // descending puts issue 1 first, the id is the tiebreaker.
+        ctx.mockNext({ id: 1, titles: JSON.stringify(['Update hero copy', 'Redesign navbar']) })
+        const titles = ctx.conn.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .selectOneColumn(tIssue.title)
+            .orderBy(tIssue.priority, 'desc')
+            .orderBy(ctx.conn.rawFragment`${tIssue.id}`)
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, titles })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(title order by priority desc, id) from issue where project_id = project.id) as char) as titles from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; titles: string[] }>>()
+        expect(row).toEqual({ id: 1, titles: ['Update hero copy', 'Redesign navbar'] })
+    })
+
+    test('inline-aggregate-order-by-items-hooks-without-order-by', async () => {
+        // `beforeOrderByItems` / `afterOrderByItems` with no `orderBy`: the two
+        // hooks alone make the order by list of the aggregated array. Project 1's
+        // issues by priority descending, then id.
+        ctx.mockNext({ id: 1, titles: JSON.stringify(['Update hero copy', 'Redesign navbar']) })
+        const titles = ctx.conn.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .selectOneColumn(tIssue.title)
+            .customizeQuery({
+                beforeOrderByItems: ctx.conn.rawFragment`${tIssue.priority} desc`,
+                afterOrderByItems:  ctx.conn.rawFragment`${tIssue.id}`,
+            })
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, titles })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(title order by priority desc, id) from issue where project_id = project.id) as char) as titles from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; titles: string[] }>>()
+        expect(row).toEqual({ id: 1, titles: ['Update hero copy', 'Redesign navbar'] })
+    })
+
+    test('inline-aggregate-order-by-items-hooks-around-order-by', async () => {
+        // The hooks wrap the `orderBy('result')` entry: priority descending
+        // first, then the title, then the id. Project 1's issues have distinct
+        // priorities, so the priority decides.
+        ctx.mockNext({ id: 1, titles: JSON.stringify(['Update hero copy', 'Redesign navbar']) })
+        const titles = ctx.conn.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .selectOneColumn(tIssue.title)
+            .orderBy('result')
+            .customizeQuery({
+                beforeOrderByItems: ctx.conn.rawFragment`${tIssue.priority} desc`,
+                afterOrderByItems:  ctx.conn.rawFragment`${tIssue.id}`,
+            })
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, titles })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(title order by priority desc, title, id) from issue where project_id = project.id) as char) as titles from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; titles: string[] }>>()
+        expect(row).toEqual({ id: 1, titles: ['Update hero copy', 'Redesign navbar'] })
+    })
 })

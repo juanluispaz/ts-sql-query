@@ -414,4 +414,111 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number; v: string }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('default: a concat whose operand is a concat over an optional column shares one flat poison CASE', async () => {
+        // `title.concat(body.concat('!'))`: the inner concat is flattened into the
+        // outer one, so the single CASE checks `body`, the only operand that can be
+        // NULL. Issue 2: title 'Redesign navbar', body 'Use new tokens'.
+        const expected = [{ id: 2, v: 'Redesign navbarUse new tokens!' }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({ id: tIssue.id, v: tIssue.title.concat(tIssue.body.concat('!')) })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", case when "body" is null then null else title || "body" || :0 end as "v" from issue where id = :1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "!",
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; v?: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('default: a concat over a NULL const receiver is settled as NULL while the query is built', async () => {
+        // A NULL const poisons any concatenation it takes part in — as the receiver,
+        // as the receiver of a chain, or nested as an operand — and that is known
+        // while building, so each is emitted as a bare NULL and comes back absent.
+        ctx.mockNext([{ id: 2, a: null, b: null, c: null }])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({
+                id: tIssue.id,
+                a:  ctx.conn.optionalConst(null, 'string').concat('!'),
+                b:  ctx.conn.optionalConst(null, 'string').concat('!').concat(tIssue.title),
+                c:  tIssue.title.concat(ctx.conn.optionalConst(null, 'string').concat('!')),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", null as "a", null as "b", null as "c" from issue where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; a?: string; b?: string; c?: string }>>>()
+        expect(rows).toEqual([{ id: 2 }])
+    })
+
+    test('default: an insensitive affix predicate on an optional term matches no NULL-term row', async () => {
+        // `title.startsWithInsensitive(body)` on issue 1, whose `body` is NULL: the
+        // poisoned pattern is NULL inside `lower(...)`, so the row is excluded.
+        const expected: Array<{ id: number }> = []
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1).and(tIssue.title.startsWithInsensitive(tIssue.body)))
+            .select({ id: tIssue.id })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where id = :0 and lower(title) like lower(case when replace(replace(replace("body", '\\', '\\\\'), '%', '\\%'), '_', '\\_') is null then null else replace(replace(replace("body", '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%' end) escape '\\'"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('concatFunction: endsWith glues the wildcard on the left through the function', async () => {
+        const conn = ctx.withConcatFunction('string_util.concat_strict')
+        const expected = [{ id: 2 }]
+        ctx.mockNext(expected)
+        const rows = await conn.selectFrom(tIssue)
+            .where(tIssue.title.endsWith('navbar'))
+            .select({ id: tIssue.id })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where title like string_util.concat_strict('%', :0) escape '\\'"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "navbar",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('concatFunction: the insensitive affix predicates build the pattern through the function', async () => {
+        // startsWith / endsWith / contains insensitive: each pattern is glued
+        // through the function and lowered. Only issue 2 ('Redesign navbar')
+        // matches all three.
+        const conn = ctx.withConcatFunction('string_util.concat_strict')
+        const expected = [{ id: 2 }]
+        ctx.mockNext(expected)
+        const rows = await conn.selectFrom(tIssue)
+            .where(tIssue.title.startsWithInsensitive('REDESIGN'))
+            .and(tIssue.title.endsWithInsensitive('NavBar'))
+            .and(tIssue.title.containsInsensitive('SIGN'))
+            .select({ id: tIssue.id })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where lower(title) like lower(string_util.concat_strict(:0, '%')) escape '\\' and lower(title) like lower(string_util.concat_strict('%', :1)) escape '\\' and lower(title) like lower(string_util.concat_strict(string_util.concat_strict('%', :2), '%')) escape '\\'"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "REDESIGN",
+            "NavBar",
+            "SIGN",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

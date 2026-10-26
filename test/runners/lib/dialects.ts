@@ -137,6 +137,7 @@ export const mysqlDialect: RunnerDialect = {
     ...sqliteLike,
     procedureCall: 'call rt_touch()',
     functionCall: 'select rt_answer()',
+    insertNothing: (r, p, id) => `insert ignore into rt_auto (id, name) values (${r.addParam(p, id)}, ${r.addParam(p, 'again')})`,
     isolationLevels: ['read uncommitted', 'read committed', 'snapshot', 'serializable'],
     levelWithAccessMode: true,
     accessModeAlone: true,

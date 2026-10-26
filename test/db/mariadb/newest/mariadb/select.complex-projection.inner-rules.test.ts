@@ -11,7 +11,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tIssueWorklog, tOrganization, tProject } from '../../domain/connection.js'
+import { tIssue, tIssueWorklog, tOrganization, tProject, tAppUser } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -3735,6 +3735,87 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ wid: number; status?: { approved?: boolean } }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('cte-left-join-inner-object-column-re-projected-beside-a-required-column-keeps-the-object', async () => {
+        // A CTE column taken from a left-joined inner object is optional outside
+        // the CTE, so re-projecting it next to a required column builds a required
+        // object: on the unassigned issue 3 the object stays, with only `issueId`.
+        const expected = [
+            { id: 1, card: { assigneeName: 'Ada Lovelace', issueId: 1 } },
+            { id: 2, card: { assigneeName: 'Grace Hopper', issueId: 2 } },
+            { id: 3, card: { issueId: 3 } },
+            { id: 4, card: { assigneeName: 'Alan Turing', issueId: 4 } },
+        ]
+        ctx.mockNext([
+            { id: 1, 'card.assigneeName': 'Ada Lovelace', 'card.issueId': 1 },
+            { id: 2, 'card.assigneeName': 'Grace Hopper', 'card.issueId': 2 },
+            { id: 3, 'card.assigneeName': null, 'card.issueId': 3 },
+            { id: 4, 'card.assigneeName': 'Alan Turing', 'card.issueId': 4 },
+        ])
+        const connection = ctx.conn
+        const assignee = tAppUser.forUseInLeftJoin()
+        const issueAssignee = connection.selectFrom(tIssue)
+            .leftJoin(assignee).on(assignee.id.equals(tIssue.assigneeId))
+            .select({
+                id:       tIssue.id,
+                assignee: { name: assignee.fullName, email: assignee.email },
+            })
+            .forUseInQueryAs('issue_assignee')
+
+        const rows = await connection.selectFrom(issueAssignee)
+            .select({
+                id:   issueAssignee.id,
+                card: { assigneeName: issueAssignee.assignee.name, issueId: issueAssignee.id },
+            })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issue_assignee as (select issue.id as id, app_user.full_name as \`assignee.name\`, app_user.email as \`assignee.email\` from issue left join app_user on app_user.id = issue.assignee_id) select id as id, \`assignee.name\` as \`card.assigneeName\`, id as \`card.issueId\` from issue_assignee order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{
+            id:   number
+            card: { assigneeName?: string; issueId: number }
+        }>>>()
+        expect(rows).toEqual(expected)
+        expect('card' in rows[2]!).toBe(true)
+    })
+
+    test('cte-inner-object-of-a-uuid-read-as-string', async () => {
+        // The CTE keeps the string reading of the uuid inside its inner object.
+        // Issues 1 and 2 have an external reference, issues 3 and 4 have none.
+        const expected = [
+            { id: 1, ref: { external: '0a8f9c1e-1111-4222-8333-444455556666' } },
+            { id: 2, ref: { external: '7b3e9d20-2222-4c55-9b66-dddd00009999' } },
+            { id: 3 },
+            { id: 4 },
+        ]
+        ctx.mockNext([
+            { id: 1, 'ref.external': '0a8f9c1e-1111-4222-8333-444455556666' },
+            { id: 2, 'ref.external': '7b3e9d20-2222-4c55-9b66-dddd00009999' },
+            { id: 3, 'ref.external': null },
+            { id: 4, 'ref.external': null },
+        ])
+        const connection = ctx.conn
+        const issueRef = connection.selectFrom(tIssue)
+            .select({
+                id:  tIssue.id,
+                ref: { external: tIssue.externalRef.asString() },
+            })
+            .forUseInQueryAs('issue_ref')
+
+        const rows = await connection.selectFrom(issueRef)
+            .select({ id: issueRef.id, ref: issueRef.ref })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issue_ref as (select id as id, external_ref as \`ref.external\` from issue) select id as id, \`ref.external\` as \`ref.external\` from issue_ref order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{
+            id:   number
+            ref?: { external?: string }
+        }>>>()
         expect(rows).toEqual(expected)
     })
 })

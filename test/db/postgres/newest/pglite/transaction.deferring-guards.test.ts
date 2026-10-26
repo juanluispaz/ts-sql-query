@@ -418,4 +418,20 @@ describe(ctx.label, () => {
             expect(events).toEqual([])
         }
     })
+
+    test('nested-transaction-keeps-an-outer-before-commit-hook-registered-without-after-commit-hooks', async () => {
+        // The outer transaction registers only a before-commit hook; the inner one
+        // only an after-commit hook. The outer hook is saved across the nested
+        // transaction and still runs when the outer transaction commits, after the
+        // inner after-commit hook.
+        const connection = ctx.nestedTransactionConn()
+        const events: string[] = []
+        await connection.transaction(async () => {
+            connection.executeBeforeNextCommit(() => { events.push('outer-before-commit') })
+            await connection.transaction(async () => {
+                connection.executeAfterNextCommit(() => { events.push('inner-after-commit') })
+            })
+        })
+        expect(events).toEqual(['inner-after-commit', 'outer-before-commit'])
+    })
 })

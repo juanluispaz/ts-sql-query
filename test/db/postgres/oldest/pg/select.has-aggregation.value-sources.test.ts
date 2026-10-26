@@ -85,7 +85,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { queryHasAggregation } from '../../../../lib/queryIntrospection.js'
-import { tIssue, tProject } from '../../domain/connection.js'
+import { tIssue, tProject, tIssueWorklog } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -1322,6 +1322,272 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", abs(project_id) as size from issue group by project_id order by "projectId""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ projectId: number; size: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('has-aggregation/true-when-no-value-over-an-aggregating-condition-reports-aggregation', async () => {
+        // `trueWhenNoValue()` turns the `*IfValue` condition into a boolean; the
+        // condition itself aggregates. Per-project issue counts are 2, 1 and 1.
+        const expected = [
+            { projectId: 1, busy: true },
+            { projectId: 2, busy: false },
+            { projectId: 3, busy: false },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const query = connection.selectFrom(tIssue)
+            .select({
+                projectId: tIssue.projectId,
+                busy:      connection.count(tIssue.id).greaterThanIfValue(1).trueWhenNoValue(),
+            })
+            .groupBy('projectId')
+            .orderBy('projectId')
+
+        expect(queryHasAggregation(query)).toBe(true)
+
+        const rows = await query.executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", count(id) > $1 as busy from issue group by project_id order by "projectId""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ projectId: number; busy: boolean }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('has-aggregation/exists-over-a-subquery-with-an-aggregating-having-reports-aggregation', async () => {
+        // Which projects have more than one issue: the aggregate sits in the
+        // `having` of the correlated subquery under `exists(...)`. Only project
+        // 1 (issues 1 and 2) does.
+        const expected = [
+            { id: 1, hasSeveralIssues: true },
+            { id: 2, hasSeveralIssues: false },
+            { id: 3, hasSeveralIssues: false },
+            { id: 4, hasSeveralIssues: false },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const query = connection.selectFrom(tProject)
+            .select({
+                id:               tProject.id,
+                hasSeveralIssues: connection.exists(
+                    connection.subSelectUsing(tProject).from(tIssue)
+                        .groupBy(tIssue.projectId)
+                        .having(connection.count(tIssue.id).greaterThan(1))
+                        .where(tIssue.projectId.equals(tProject.id))
+                        .selectOneColumn(tIssue.projectId),
+                ),
+            })
+            .orderBy('id')
+
+        expect(queryHasAggregation(query)).toBe(true)
+
+        const rows = await query.executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, exists(select project_id as result from issue where project_id = project.id group by project_id having count(id) > $1) as "hasSeveralIssues" from project order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; hasSeveralIssues: boolean }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('has-aggregation/exists-over-a-plain-subquery-reports-false', async () => {
+        // The negative twin: the same correlated `exists(...)` with no grouping.
+        // Projects 1, 2 and 3 have issues; project 4 has none.
+        const expected = [
+            { id: 1, hasIssues: true },
+            { id: 2, hasIssues: true },
+            { id: 3, hasIssues: true },
+            { id: 4, hasIssues: false },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const query = connection.selectFrom(tProject)
+            .select({
+                id:        tProject.id,
+                hasIssues: connection.exists(
+                    connection.subSelectUsing(tProject).from(tIssue)
+                        .where(tIssue.projectId.equals(tProject.id))
+                        .selectOneColumn(tIssue.id),
+                ),
+            })
+            .orderBy('id')
+
+        expect(queryHasAggregation(query)).toBe(false)
+
+        const rows = await query.executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, exists(select id as result from issue where project_id = project.id) as "hasIssues" from project order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; hasIssues: boolean }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('has-aggregation/collate-over-to-lower-case-over-an-aggregate-reports-aggregation', async () => {
+        // Two wrappers stacked over `min(title)`: a walker that stopped at
+        // either one would miss the aggregate. The alphabetically first titles
+        // are 'Redesign navbar' (project 1), 'Migrate to ESM' (2) and
+        // 'Document /v2/users' (3).
+        const expected = [
+            { projectId: 1, firstTitle: 'redesign navbar' },
+            { projectId: 2, firstTitle: 'migrate to esm' },
+            { projectId: 3, firstTitle: 'document /v2/users' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const query = connection.selectFrom(tIssue)
+            .select({
+                projectId:  tIssue.projectId,
+                firstTitle: connection.min(tIssue.title).toLowerCase().collate('C'),
+            })
+            .groupBy('projectId')
+            .orderBy('projectId')
+
+        expect(queryHasAggregation(query)).toBe(true)
+
+        const rows = await query.executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", lower(min(title)) collate "C" as "firstTitle" from issue group by project_id order by "projectId""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ projectId: number; firstTitle?: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('has-aggregation/value-when-null-over-as-optional-over-an-allowed-aggregate-reports-aggregation', async () => {
+        // Three wrappers over `count(id)`: an open gate, `asOptional()` and a
+        // `valueWhenNull(0)` fallback. Per-project issue counts are 2, 1 and 1.
+        const expected = [
+            { projectId: 1, issues: 2 },
+            { projectId: 2, issues: 1 },
+            { projectId: 3, issues: 1 },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const query = connection.selectFrom(tIssue)
+            .select({
+                projectId: tIssue.projectId,
+                issues:    connection.count(tIssue.id).allowWhen(true, 'issue counts visible').asOptional().valueWhenNull(0),
+            })
+            .groupBy('projectId')
+            .orderBy('projectId')
+
+        expect(queryHasAggregation(query)).toBe(true)
+
+        const rows = await query.executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", coalesce(count(id), $1) as issues from issue group by project_id order by "projectId""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ projectId: number; issues: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('has-aggregation/virtual-column-from-fragment-reports-false', async () => {
+        // `activityUpper` is computed as `upper(activity)`; only worklog 1 is
+        // 'coding'.
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const query = connection.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.activityUpper.equals('CODING'))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+
+        expect(queryHasAggregation(query)).toBe(false)
+
+        const rows = await query.executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where upper(activity) = $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "CODING",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('has-aggregation/inline-aggregated-array-subquery-reports-aggregation', async () => {
+        // A correlated subquery turned into an aggregated array renders as
+        // `json_agg(...)` inside the inline subquery. The outer query aggregates
+        // nowhere, so the `true` can only come from descending into that
+        // subquery's `json_agg`. Projects 2 and 3 have one issue each.
+        const expected = [
+            { id: 2, issues: [{ id: 3, title: 'Migrate to ESM' }] },
+            { id: 3, issues: [{ id: 4, title: 'Document /v2/users' }] },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const projectIssues = connection.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .select({ id: tIssue.id, title: tIssue.title })
+            .forUseAsInlineAggregatedArrayValue()
+
+        const query = connection.selectFrom(tProject)
+            .where(tProject.id.in([2, 3]))
+            .select({ id: tProject.id, issues: projectIssues })
+            .orderBy('id')
+
+        expect(queryHasAggregation(query)).toBe(true)
+
+        const rows = await query.executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ((select json_agg(json_build_object('id', id, 'title', title)) from issue where project_id = project.id))::text as issues from project where id in ($1, $2) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; issues: Array<{ id: number; title: string }> }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('has-aggregation/aggregate-as-array-reports-aggregation', async () => {
+        // Projects 2 and 3 have one issue each.
+        const expected = [
+            { projectId: 2, issues: [{ id: 3, title: 'Migrate to ESM' }] },
+            { projectId: 3, issues: [{ id: 4, title: 'Document /v2/users' }] },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const query = connection.selectFrom(tIssue)
+            .where(tIssue.projectId.in([2, 3]))
+            .select({
+                projectId: tIssue.projectId,
+                issues:    connection.aggregateAsArray({ id: tIssue.id, title: tIssue.title }),
+            })
+            .groupBy('projectId')
+            .orderBy('projectId')
+
+        expect(queryHasAggregation(query)).toBe(true)
+
+        const rows = await query.executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", (json_agg(json_build_object('id', id, 'title', title)))::text as issues from issue where project_id in ($1, $2) group by project_id order by "projectId""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ projectId: number; issues: Array<{ id: number; title: string }> }>>>()
         expect(rows).toEqual(expected)
     })
 })

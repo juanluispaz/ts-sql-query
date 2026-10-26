@@ -392,12 +392,11 @@ describe(ctx.label, () => {
         // ON-less join is paired with an optional left join whose column IS projected
         // (that join must still be kept).
         //
-        // The query is BUILT, never executed: a bare `join <table>` with no ON is a
-        // cross join that PostgreSQL / Oracle / SQL Server reject at parse time, and
-        // the subject is the discovery loop's emission decision, not the execution.
-        // Reading `query()` / `params()` captures the emission without dispatching
-        // anything. A regression that dropped the empty-`on` guard would throw here
-        // instead of returning the snapshot.
+        // The ON-less join is emitted with an always-true condition (a cross join).
+        // The query is BUILT, never executed: the subject is the discovery loop's
+        // emission decision. Reading `query()` / `params()` captures the emission
+        // without dispatching anything. A regression that dropped the empty-`on`
+        // guard would throw here instead of returning the snapshot.
         const connection = ctx.conn
         const assignee = tAppUser.forUseInLeftJoin()
 
@@ -411,7 +410,7 @@ describe(ctx.label, () => {
             })
 
         const sql = built.query()
-        expect(sql).toMatchInlineSnapshot(`"select issue.id as id, app_user.full_name as assigneeName from issue join project left join app_user on app_user.id = issue.assignee_id where issue.id = @0"`)
+        expect(sql).toMatchInlineSnapshot(`"select issue.id as id, app_user.full_name as assigneeName from issue join project on (1=1) left join app_user on app_user.id = issue.assignee_id where issue.id = @0"`)
         expect(built.params()).toMatchInlineSnapshot(`
           [
             1,
@@ -453,5 +452,61 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof result, Array<{ id: number }>>>()
         expect(result).toEqual(expected)
+    })
+
+    test('join-on-an-if-value-condition-without-value-emits-on-true', async () => {
+        // Candidate members for project 1, optionally narrowed to one user. With no
+        // user given, the `equalsIfValue` condition renders nothing and the ON is the
+        // constant true: every user pairs with the project (three seeded users).
+        const userFilter: number | undefined = undefined
+        const expected = [
+            { project: 'Marketing site', email: 'ada@acme.test' },
+            { project: 'Marketing site', email: 'alan@globex.test' },
+            { project: 'Marketing site', email: 'grace@acme.test' },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProject)
+            .join(tAppUser).on(tAppUser.id.equalsIfValue(userFilter))
+            .where(tProject.id.equals(1))
+            .select({ project: tProject.name, email: tAppUser.email })
+            .orderBy('email')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.name as project, app_user.email as email from project join app_user on (1=1) where project.id = @0 order by email"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ project: string; email: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('join-with-a-dynamic-on-whose-only-condition-has-no-value-emits-on-true', async () => {
+        // The same candidate list built with `dynamicOn()`: the only condition added
+        // has no value, so the accumulated ON is empty and renders as true.
+        const userFilter: number | undefined = undefined
+        const expected = [
+            { project: 'Marketing site', email: 'ada@acme.test' },
+            { project: 'Marketing site', email: 'alan@globex.test' },
+            { project: 'Marketing site', email: 'grace@acme.test' },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProject)
+            .join(tAppUser).dynamicOn()
+                .and(tAppUser.id.equalsIfValue(userFilter))
+            .where(tProject.id.equals(1))
+            .select({ project: tProject.name, email: tAppUser.email })
+            .orderBy('email')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.name as project, app_user.email as email from project join app_user on (1=1) where project.id = @0 order by email"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ project: string; email: string }>>>()
+        expect(rows).toEqual(expected)
     })
 })

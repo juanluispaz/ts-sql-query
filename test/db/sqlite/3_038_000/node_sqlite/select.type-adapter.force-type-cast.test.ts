@@ -18,8 +18,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ForceTypeCast } from '../../../../../src/TypeAdapter.js'
 import { Table } from '../../../../../src/Table.js'
-import { DBConnection } from '../../domain/connection.js'
+import { DBConnection, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
 
 // A single ForceTypeCast instance is stateless (it only flips the
 // force-cast flag), so the same adapter can back every column.
@@ -104,5 +105,31 @@ describe(ctx.label, () => {
             1,
           ]
         `)
+    })
+
+    test('force-type-cast-adapter-on-a-null-const-that-poisons-the-result', async () => {
+        // A NULL const carrying the ForceTypeCast adapter is known while building:
+        // `minValue` over it collapses to the cast NULL `null::int4`, and `concat`
+        // binds it as a null cast to text (`$1::text`); both casts come from the
+        // adapter. Both results come back null, so the optional keys are absent.
+        ctx.mockNext([{ id: 1, lowest: null, label: null }])
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({
+                id:     tProject.id,
+                lowest: ctx.conn.optionalConst(null, 'int', forceCast).minValue(tProject.id),
+                label:  ctx.conn.optionalConst(null, 'string', forceCast).concat(tProject.name),
+            })
+            .executeSelectMany()
+        assertType<Exact<typeof rows, Array<{ id: number; lowest?: number; label?: string }>>>()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, max(?, id) as lowest, ? || name as label from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            null,
+            null,
+            1,
+          ]
+        `)
+        expect(rows).toEqual([{ id: 1 }])
     })
 })

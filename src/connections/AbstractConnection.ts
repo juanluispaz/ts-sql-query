@@ -697,7 +697,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                     if (e instanceof TsSqlError) {
                         throw e
                     } else {
-                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value: result, typeName: returnType }, e)
+                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: returnType }, e)
                     }
                 }
                 if (value === undefined) {

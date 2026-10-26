@@ -17,7 +17,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssueWorklog } from '../../domain/connection.js'
+import { tIssueWorklog, tAppUser, tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -273,6 +273,75 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number; same: boolean; noOperand: boolean }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('concat-ignoring-null-with-a-required-in-optional-object-operand-gates-its-object', async () => {
+        // A left-join operand merged with a required-in-optional-object one stays
+        // required-in-optional-object: `note` is optional and drops only when the
+        // concatenation is empty (issue 3: no assignee, no body).
+        const expected = [
+            { id: 1, note: { text: 'Ada Lovelace: ' } },
+            { id: 2, note: { text: 'Grace Hopper: Use new tokens' } },
+            { id: 3 },
+            { id: 4, note: { text: 'Alan Turing: See ADR-014' } },
+        ]
+        ctx.mockNext([
+            { id: 1, 'note.text': 'Ada Lovelace: ' },
+            { id: 2, 'note.text': 'Grace Hopper: Use new tokens' },
+            { id: 3, 'note.text': '' },
+            { id: 4, 'note.text': 'Alan Turing: See ADR-014' },
+        ])
+        const assignee = tAppUser.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(assignee).on(assignee.id.equals(tIssue.assigneeId))
+            .select({
+                id:   tIssue.id,
+                note: { text: assignee.fullName.concat(': ').concatIgnoringNull(tIssue.body.asRequiredInOptionalObject()) },
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as "id", (case when app_user.full_name is null then null else app_user.full_name || :0 end) || issue."body" as "note.text" from issue left join app_user on app_user.id = issue.assignee_id order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            ": ",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; note?: { text: string } }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('concat-ignoring-null-of-two-left-join-operands-stays-originally-required', async () => {
+        // Both operands come from the same left join, so the object follows the
+        // same-left-join rule: present while the join hits, dropped on issue 3.
+        const expected = [
+            { id: 1, contact: { line: 'Ada Lovelace ada@acme.test' } },
+            { id: 2, contact: { line: 'Grace Hopper grace@acme.test' } },
+            { id: 3 },
+            { id: 4, contact: { line: 'Alan Turing alan@globex.test' } },
+        ]
+        ctx.mockNext([
+            { id: 1, 'contact.line': 'Ada Lovelace ada@acme.test' },
+            { id: 2, 'contact.line': 'Grace Hopper grace@acme.test' },
+            { id: 3, 'contact.line': '' },
+            { id: 4, 'contact.line': 'Alan Turing alan@globex.test' },
+        ])
+        const assignee = tAppUser.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(assignee).on(assignee.id.equals(tIssue.assigneeId))
+            .select({
+                id:      tIssue.id,
+                contact: { line: assignee.fullName.concat(' ').concatIgnoringNull(assignee.email) },
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as "id", (case when app_user.full_name is null then null else app_user.full_name || :0 end) || app_user.email as "contact.line" from issue left join app_user on app_user.id = issue.assignee_id order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            " ",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; contact?: { line: string } }>>>()
         expect(rows).toEqual(expected)
     })
 })

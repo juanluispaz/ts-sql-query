@@ -422,7 +422,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
             return this.falseWhenNoValue()
         }
         
-        const result = new ValueWhenNoValueValueSource(value, this, 'boolean', 'boolean', this.__optionalType, this.__typeAdapter)
+        const result = new ValueWhenNoValueValueSource(value, this, 'boolean', 'boolean', mergeOptional(this.__optionalType, __getValueSourcePrivate(value).__optionalType), this.__typeAdapter)
         result.__isBooleanForCondition = this.__isBooleanForCondition
         return result
     }

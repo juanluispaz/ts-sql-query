@@ -8,8 +8,12 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tProject, tProjectReview } from '../../domain/connection.js'
+import { tProject, tProjectReview, tAppUser, tOrganization } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { oldValuesTableDiscoveredBy } from '../../../../lib/queryIntrospection.js'
+
+// tAppUser, tOrganization and oldValuesTableDiscoveredBy are referenced only by the commented-out tests below.
+void tAppUser; void tOrganization; void oldValuesTableDiscoveredBy
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -342,4 +346,166 @@ describe(ctx.label, () => {
         })
     })
 
+    // NOT-SUPPORTED: SQL Server rejects a subquery in the OUTPUT clause (error 10705: 'Subqueries are not allowed in the OUTPUT clause'), so a RETURNING projection that carries a subquery is not executable.
+    /*
+    test('old-values-discovery-steps-past-a-correlated-inline-subquery', async () => {
+        // The organization name (a subquery over the UPDATED row) comes before
+        // the old name, so the walk asks the subquery first and continues.
+        // Project 1 belongs to 'Acme Corp' and was 'Marketing site'.
+        const expected = { id: 1, organization: 'Acme Corp', previousName: 'Marketing site' }
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+            const oldProject = tProject.oldValues()
+            const organizationName = connection.subSelectUsing(tProject).from(tOrganization)
+                .where(tOrganization.id.equals(tProject.organizationId))
+                .selectOneColumn(tOrganization.name)
+                .forUseAsInlineQueryValue()
+            const query = connection.update(tProject)
+                .set({ name: 'Marketing site v2' })
+                .where(tProject.id.equals(1))
+                .returning({
+                    id:           tProject.id,
+                    organization: organizationName,
+                    previousName: oldProject.name,
+                })
+
+            expect(oldValuesTableDiscoveredBy(query)).toBe(oldProject)
+
+            const row = await query.executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = @0 output inserted.id as id, (select name as [result] from organization where id = inserted.organization_id) as organization, deleted.name as previousName where id = @1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Marketing site v2",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; organization?: string; previousName: string }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+    */
+
+    // NOT-SUPPORTED: SQL Server rejects a subquery in the OUTPUT clause (error 10705: 'Subqueries are not allowed in the OUTPUT clause'), so a RETURNING projection that carries a subquery is not executable.
+    /*
+    test('old-values-discovery-through-a-correlated-inline-subquery-alone-finds-nothing', async () => {
+        // The same subquery without any old-values column: nothing in the
+        // projection reads the pre-update row.
+        const expected = { id: 1, organization: 'Acme Corp' }
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+            const organizationName = connection.subSelectUsing(tProject).from(tOrganization)
+                .where(tOrganization.id.equals(tProject.organizationId))
+                .selectOneColumn(tOrganization.name)
+                .forUseAsInlineQueryValue()
+            const query = connection.update(tProject)
+                .set({ name: 'Marketing site v2' })
+                .where(tProject.id.equals(1))
+                .returning({
+                    id:           tProject.id,
+                    organization: organizationName,
+                })
+
+            expect(oldValuesTableDiscoveredBy(query)).toBeUndefined()
+
+            const row = await query.executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = @0 output inserted.id as id, (select name as [result] from organization where id = inserted.organization_id) as organization where id = @1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Marketing site v2",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; organization?: string }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+    */
+
+    // NOT-SUPPORTED: SQL Server rejects a subquery in the OUTPUT clause (error 10705: 'Subqueries are not allowed in the OUTPUT clause'), so a RETURNING projection that carries a subquery is not executable.
+    /*
+    test('old-values-discovery-through-an-uncorrelated-inline-subquery-alone-finds-nothing', async () => {
+        // A self-contained subquery (the user count, 3 in the seed) with no
+        // `subSelectUsing` at all.
+        const expected = { id: 1, userCount: 3 }
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+            const userCount = connection.selectFrom(tAppUser)
+                .selectOneColumn(connection.count(tAppUser.id))
+                .forUseAsInlineQueryValue()
+            const query = connection.update(tProject)
+                .set({ name: 'Marketing site v2' })
+                .where(tProject.id.equals(1))
+                .returning({
+                    id:        tProject.id,
+                    userCount: userCount,
+                })
+
+            expect(oldValuesTableDiscoveredBy(query)).toBeUndefined()
+
+            const row = await query.executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = @0 output inserted.id as id, (select count(id) as [result] from app_user) as userCount where id = @1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Marketing site v2",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; userCount?: number }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+    */
+
+    // NOT-SUPPORTED: SQL Server rejects a subquery in the OUTPUT clause (error 10705: 'Subqueries are not allowed in the OUTPUT clause'), so a RETURNING projection that carries a subquery is not executable.
+    /*
+    test('old-values-discovery-steps-past-a-compound-inline-subquery', async () => {
+        // The verified organizations on the 'pro' plan (an INTERSECT, only
+        // 'Acme Corp') come before the old name.
+        const expected = { id: 1, verifiedProOrganization: 'Acme Corp', previousName: 'Marketing site' }
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+            const oldProject = tProject.oldValues()
+            const verifiedProOrganization = connection.selectFrom(tOrganization)
+                .where(tOrganization.plan.equals('pro'))
+                .selectOneColumn(tOrganization.name)
+                .intersect(
+                    connection.selectFrom(tOrganization)
+                        .where(tOrganization.verified.equals(true))
+                        .selectOneColumn(tOrganization.name),
+                )
+                .forUseAsInlineQueryValue()
+            const query = connection.update(tProject)
+                .set({ name: 'Marketing site v2' })
+                .where(tProject.id.equals(1))
+                .returning({
+                    id:                      tProject.id,
+                    verifiedProOrganization: verifiedProOrganization,
+                    previousName:            oldProject.name,
+                })
+
+            expect(oldValuesTableDiscoveredBy(query)).toBe(oldProject)
+
+            const row = await query.executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = @0 output inserted.id as id, (select name as [result] from organization where [plan] = @1 intersect select name as [result] from organization where cast(case when verified = 'Y' then 1 else 0 end as bit) = @2) as verifiedProOrganization, deleted.name as previousName where id = @3"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Marketing site v2",
+                "pro",
+                true,
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; verifiedProOrganization?: string; previousName: string }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+    */
 })

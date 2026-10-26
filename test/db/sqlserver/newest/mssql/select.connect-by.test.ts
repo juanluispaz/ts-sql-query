@@ -556,4 +556,25 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-APPLICABLE: `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` on SQL Server (`START WITH … CONNECT BY` is Oracle's hierarchical-query syntax); the equivalent shape here is a recursive CTE.
+    /*
+    test('start-with-if-value-without-value-drops-the-start-with-clause', async () => {
+        // `startWith(tIssue.id.equalsIfValue(rootId))` with no root given: the
+        // condition renders nothing, so `start with` is left out and every row is a
+        // root. The seed sets no parent, so each issue is its own one-node walk.
+        const rootId: number | null = null
+        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .startWith(tIssue.id.equalsIfValue(rootId))
+            .connectBy(prior => prior(tIssue.id).equals(tIssue.parentId))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue connect by prior id = parent_id order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+    */
 })

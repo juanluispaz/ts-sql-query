@@ -18,7 +18,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { isQueryAllowed } from '../../../../lib/queryIntrospection.js'
-import { tIssue } from '../../domain/connection.js'
+import { tIssue, vProjectOverview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -950,6 +950,72 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number, label: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('collate-on-gated-string-fires-and-introspects-disallowed', async () => {
+        // `.collate(...)` wraps the gated column; the walker recurses through
+        // it and the render throws.
+        const connection = ctx.conn
+        const query = connection.selectFrom(tIssue)
+            .select({ id: tIssue.id, title: tIssue.title.allowWhen(false, 'collate gate blocks').collate('utf8mb4_bin') })
+
+        expect(isQueryAllowed(query)).toBe(false)
+
+        let thrown: unknown
+        try {
+            await query.executeSelectMany()
+        } catch (e) {
+            thrown = e
+        }
+        expect(thrown).toBeInstanceOf(Error)
+        expect((thrown as Error).message).toContain('collate gate blocks')
+    })
+
+    test('as-optional-on-gated-column-fires-and-introspects-disallowed', async () => {
+        const connection = ctx.conn
+        const query = connection.selectFrom(tIssue)
+            .select({ id: tIssue.id, title: tIssue.title.allowWhen(false, 'as-optional gate blocks').asOptional() })
+
+        expect(isQueryAllowed(query)).toBe(false)
+
+        let thrown: unknown
+        try {
+            await query.executeSelectMany()
+        } catch (e) {
+            thrown = e
+        }
+        expect(thrown).toBeInstanceOf(Error)
+        expect((thrown as Error).message).toContain('as-optional gate blocks')
+    })
+
+    test('view-with-virtual-column-introspects-allowed', async () => {
+        // A view as the FROM source and its `nameUpper` virtual column
+        // (`upper(name)`) in the projection: neither carries a gate.
+        // Organization 2 owns projects 3 ('Public API') and 4 ('Legacy app').
+        const expected = [
+            { id: 3, name: 'PUBLIC API' },
+            { id: 4, name: 'LEGACY APP' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const query = connection.selectFrom(vProjectOverview)
+            .where(vProjectOverview.organizationId.equals(2))
+            .select({ id: vProjectOverview.id, name: vProjectOverview.nameUpper })
+            .orderBy('id')
+
+        expect(isQueryAllowed(query)).toBe(true)
+
+        const rows = await query.executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, upper(\`name\`) as \`name\` from project_overview where organization_id = ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
         expect(rows).toEqual(expected)
     })
 })

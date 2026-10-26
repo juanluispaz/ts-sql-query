@@ -71,17 +71,19 @@ export default defineConfig({
             //     report on the same set of files. The runners are excluded
             //     because their driver code would dilute the library's signal.
             //   * runners: the query runners alone (the error-mapper folders
-            //     are not part of it), as a separate report.
+            //     are not part of it), plus the src/utils/ file only the
+            //     runners use (the isolation-level translation), as a
+            //     separate report.
             //   * mappers: the two error-mapper folders alone, as a separate
             //     report.
             //   * all: every file under src/ but the legacy examples.
             ...(process.env['TS_SQL_QUERY_COVERAGE_SCOPE'] === 'runners'
-                ? { include: ['src/queryRunners/*.ts'] }
+                ? { include: ['src/queryRunners/*.ts', 'src/utils/transactionIsolationLevel.ts'] }
                 : process.env['TS_SQL_QUERY_COVERAGE_SCOPE'] === 'mappers'
                     ? { include: ['src/queryRunners/connectorErrorMappers/*.ts', 'src/queryRunners/databaseErrorMappers/*.ts'] }
                 : process.env['TS_SQL_QUERY_COVERAGE_SCOPE'] === 'all'
                     ? { include: ['src/**/*.ts'], exclude: ['src/examples/**'] }
-                    : { exclude: ['src/examples/**', 'test/**', 'src/queryRunners/*', 'src/queryRunners/connectorErrorMappers/*', 'src/queryRunners/databaseErrorMappers/*'] }),
+                    : { exclude: ['src/examples/**', 'test/**', 'src/queryRunners/*', 'src/queryRunners/connectorErrorMappers/*', 'src/queryRunners/databaseErrorMappers/*', 'src/utils/transactionIsolationLevel.ts'] }),
             reportsDirectory: '.test-report/coverage',
         },
     },

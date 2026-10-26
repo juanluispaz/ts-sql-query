@@ -160,7 +160,6 @@ export function createColumnsFrom(sqlBuilder: HasIsValue, columns: QueryColumns,
 }
 
 export function createColumnsFromInnerObject(sqlBuilder: HasIsValue, columns: QueryColumns, target: QueryColumns, table: AnyTableOrView, prefix: string) {
-    const rule = getInnerObjetRuleToApply(sqlBuilder, columns)
 
     for (const property in columns) {
         const column = columns[property]!
@@ -175,27 +174,11 @@ export function createColumnsFromInnerObject(sqlBuilder: HasIsValue, columns: Qu
             }
             const withColumn = new DBColumnImpl(table, prefix + property, valueType, valueTypeName, typeAdapter)
             let optionalType = columnPrivate.__optionalType
-            switch(rule) {
-                case 1: // Rule 1, there is requiredInOptionalObject
-                    if (optionalType === 'originallyRequired') {
-                        optionalType = 'optional'
-                    }
-                    break
-                case 2: // Rule 2: all from the same left join ignoring inner objects
-                    if (optionalType === 'originallyRequired') {
-                        optionalType = 'requiredInOptionalObject'
-                    }
-                    break
-                case 3: // Rule 3: there is a required property
-                    if (optionalType !== 'required') {
-                        optionalType = 'optional'
-                    }
-                    break
-                case 4: // Rule 4: the general rule
-                    if (optionalType !== 'required') {
-                        optionalType = 'optional'
-                    }
-                    break
+            // As the type of the column in the with view (see OptionalTypeForWith): outside the query that builds
+            // it, a value of an inner object is required or optional; keeping 'requiredInOptionalObject' made an
+            // object that mixes it with other columns disappear when that value is null
+            if (optionalType !== 'required') {
+                optionalType = 'optional'
             }
             withColumn.__optionalType = optionalType
             if (columnPrivate.__aggregatedArrayColumns) {

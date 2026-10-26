@@ -7,8 +7,17 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import type { Money, WorklogActivity, ReleaseChannel } from '../../domain/connection.js'
+import { type Money, type WorklogActivity, type ReleaseChannel, DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+
+// `executeFunction` is protected; a subclass exposes a call with TWO parameters
+// through the engine's built-in `mod(n, m)`, so no schema function is needed.
+class FunctionCallConnection extends DBConnection {
+    callMod(dividend: number, divisor: number) {
+        return this.executeFunction('mod', [this.const(dividend, 'int'), this.const(divisor, 'int')], 'int', 'required')
+    }
+}
+
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -645,4 +654,20 @@ describe(ctx.label, () => {
         expect(value).toBeInstanceOf(Date)
     })
 
+    test('execute-function-with-two-params', async () => {
+        // Function call with two bound parameters, separated in the call's
+        // argument list: mod(17, 5) → 2.
+        const conn = ctx.withConnection(FunctionCallConnection)
+        ctx.mockNext(2)
+        const remainder = await conn.callMod(17, 5)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select mod(:0, :1) from dual"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            17,
+            5,
+          ]
+        `)
+        assertType<Exact<typeof remainder, number>>()
+        expect(remainder).toBe(2)
+    })
 })

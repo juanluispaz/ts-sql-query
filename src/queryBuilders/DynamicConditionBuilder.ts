@@ -238,6 +238,8 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                 result = result.and(condition)
                 continue
             }
+
+            throw new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_UNKNOWN_OPERATION', path, name: key }, 'Unknown operation with name "' + key + '" for "' + path + '" provided as dynamic filter condition')
         }
         return result
     }

@@ -389,4 +389,29 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
+
+    test('column-level-object-extension-unknown-rule-in-a-group-throws-unknown-operation', () => {
+        // The rules a client asked for arrive as an object built elsewhere (for
+        // example decoded from a request), so it can carry a rule name the
+        // `titleRules` group does not define. That unknown rule is rejected, as an
+        // unknown operation on a column is, naming the group's path and the rule.
+        const connection = ctx.conn
+        const selectFields = { id: tIssue.id, title: tIssue.title }
+        const extension = {
+            titleRules: {
+                prefix: (v: string) => tIssue.title.startsWith(v),
+            },
+        }
+        type Filter = DynamicCondition<{ id: 'int', title: 'string' }, { titleRules: { prefix: BoolRule<string> } }>
+        const requestedRules = { prefix: 'Migrate', suffix: 'ESM' }
+        const filter: Filter = { title: { titleRules: requestedRules } }
+
+        let thrown: unknown
+        try {
+            connection.dynamicConditionFor(selectFields, extension).withValues(filter)
+        } catch (e) { thrown = e }
+
+        const errorReason = thrown instanceof TsSqlError ? thrown.errorReason : undefined
+        expect(errorReason).toEqual({ reason: 'DYNAMIC_CONDITION_UNKNOWN_OPERATION', path: 'title.titleRules', name: 'suffix' })
+    })
 })

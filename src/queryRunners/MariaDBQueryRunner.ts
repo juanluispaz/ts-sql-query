@@ -51,7 +51,9 @@ export class MariaDBQueryRunner extends DelegatedSetTransactionQueryRunner {
             return super.executeInsertReturningLastInsertedId(query, params)
         }
 
-        return this.connection.query({ sql: query, bigNumberStrings: true }, params).then((result: UpsertResult) => result.insertId)
+        // A suppressed `insert ignore` inserts no row and reports insert id 0: fall back to null (the same absence
+        // the RETURNING path reports) when nothing was inserted.
+        return this.connection.query({ sql: query, bigNumberStrings: true }, params).then((result: UpsertResult) => result.affectedRows === 0 ? null : result.insertId)
     }
     doBeginTransaction(_opts: BeginTransactionOpts): Promise<void> {
         return this.connection.beginTransaction()

@@ -9,9 +9,9 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { CustomBooleanTypeAdapter, type DefaultTypeAdapter, type TypeAdapter } from '../../../../../src/TypeAdapter.js'
+import { CustomBooleanTypeAdapter, ForceTypeCast, type DefaultTypeAdapter, type TypeAdapter } from '../../../../../src/TypeAdapter.js'
 import { Table } from '../../../../../src/Table.js'
-import { DBConnection } from '../../domain/connection.js'
+import { DBConnection, tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 // A CustomBooleanTypeAdapter subclass that ALSO defines `transformPlaceholder`.
@@ -62,6 +62,19 @@ const tProjectCustomPlaceholder = new class TProjectCustomPlaceholder extends Ta
     id   = this.column('id', 'int')
     name = this.column('name', 'string', castVarchar64)
     constructor() { super('project') }
+}()
+
+// `issue` re-mapped with the numeric columns declared under the `stringInt` /
+// `stringDouble` type names (numbers carried as strings) and a ForceTypeCast
+// adapter, so every bound value for them carries the cast those type names map
+// to (`::int8` / `::float8`).
+const forceCast = new ForceTypeCast()
+const tIssueNumericText = new class TIssueNumericText extends Table<DBConnection, 'TIssueNumericText'> {
+    id             = this.column('id', 'int')
+    title          = this.column('title', 'string')
+    viewCount      = this.column<string, 'stringInt'>('view_count', 'customInt', 'stringInt', forceCast)
+    estimatedHours = this.optionalColumn<string, 'stringDouble'>('estimated_hours', 'customDouble', 'stringDouble', forceCast)
+    constructor() { super('issue') }
 }()
 
 describe(ctx.label, () => {
@@ -142,5 +155,52 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, null::varchar(64) as "n" from project"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(rows).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }])
+    })
+
+    test('string-int-type-name-forces-an-int8-placeholder-cast', async () => {
+        // `view_count` declared as `stringInt`: the value is a string on the
+        // TypeScript side, the bound placeholder is cast to `int8`. Every seeded
+        // issue has view_count 0; issue 1 is 'Update hero copy'.
+        const expected = [{ id: 1, title: 'Update hero copy' }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueNumericText)
+            .where(tIssueNumericText.viewCount.equals('0'))
+            .and(tIssueNumericText.id.equals(1))
+            .select({ id: tIssueNumericText.id, title: tIssueNumericText.title })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where view_count = $1::int8 and id = $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; title: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('string-double-type-name-forces-a-float8-placeholder-cast', async () => {
+        // `estimated_hours` declared as `stringDouble`: the bound placeholder is
+        // cast to `float8`. The seed leaves every estimate NULL, so issue 2 gets
+        // one inside the rollback before it is searched by that estimate.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ estimatedHours: 2.5 }).where(tIssue.id.equals(2)).executeUpdate()
+
+            const expected = [{ id: 2, title: 'Redesign navbar' }]
+            ctx.mockNext(expected)
+            const rows = await ctx.conn.selectFrom(tIssueNumericText)
+                .where(tIssueNumericText.estimatedHours.equals('2.5'))
+                .select({ id: tIssueNumericText.id, title: tIssueNumericText.title })
+                .executeSelectMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where estimated_hours = $1::float8"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "2.5",
+              ]
+            `)
+            assertType<Exact<typeof rows, Array<{ id: number; title: string }>>>()
+            expect(rows).toEqual(expected)
+        })
     })
 })

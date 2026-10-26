@@ -828,8 +828,8 @@ both write `index.html`).
 
 | Scope | Measures |
 |---|---|
-| `library` (default) | `src/` without the legacy examples (`src/examples/**`), the query runners (`src/queryRunners/*`) and the two error-mapper folders — the library's own code |
-| `runners` | the query runners alone (`src/queryRunners/*.ts`, without the error-mapper folders) — see [Coverage of the query runners](#coverage-of-the-query-runners) |
+| `library` (default) | `src/` without the legacy examples (`src/examples/**`), the query runners (`src/queryRunners/*`), the two error-mapper folders and `src/utils/transactionIsolationLevel.ts` (only the runners use it) — the library's own code |
+| `runners` | the query runners alone (`src/queryRunners/*.ts`, without the error-mapper folders), plus `src/utils/transactionIsolationLevel.ts` — see [Coverage of the query runners](#coverage-of-the-query-runners) |
 | `mappers` | the two error-mapper folders alone — see [Coverage of the error mappers](#coverage-of-the-error-mappers) |
 | `all` | every file under `src/` but the legacy examples |
 
@@ -919,7 +919,8 @@ tiers); `<per-db newest>` swaps the `*` for `newest`.
 <a id="coverage-for-discover-tests-alias"></a>**The discovery alias**
 (`coverage:for-discover-tests`) runs **one connector per database across
 all version tiers** — coverage-identical to the full matrix (query-runners
-are out of scope) at a fraction of the files. The all-tiers scope matters:
+are out of scope) at a fraction of the files, except for code that depends
+on a configuration only another connector's cell sets. The all-tiers scope matters:
 the version-gated emulation branches in the `SqlBuilder`s only light up
 under the older tiers, so a newest-only pass leaves them dark. The
 `:newest` variant narrows to the `<db>/newest/*` cells — cheaper, but blind

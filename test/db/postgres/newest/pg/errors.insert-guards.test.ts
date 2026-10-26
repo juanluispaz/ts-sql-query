@@ -345,4 +345,51 @@ describe(ctx.label, () => {
         expect(reason?.reason).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
         expect(reason && reason.reason === 'INVALID_VALUE_RECEIVED_FROM_DATABASE' ? reason.rowIndex : undefined).toBe(1)
     })
+
+    test('insert-guards/multi-row-returning-last-id-precision-lost-carries-row-index', async () => {
+        // An id beyond Number.MAX_SAFE_INTEGER cannot be read as an int without
+        // losing precision: the per-row guard throws
+        // PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE decorated with the offending
+        // `rowIndex` (here 1, the second row).
+        // MOCK-ONLY: the organization ids the engine generates stay far below 2^53, so the
+        // unsafe id can only be forced through the mock.
+        ctx.mockOnlyConnection()
+        ctx.mockNext([1, 2 ** 53 + 2])
+        let caught: unknown
+        try {
+            await ctx.conn.insertInto(tOrganization)
+                .values([
+                    { name: 'Ghost A', plan: 'free' },
+                    { name: 'Ghost B', plan: 'pro' },
+                ])
+                .returningLastInsertedId()
+                .executeInsert()
+        } catch (e) { caught = e }
+        const reason = caught instanceof TsSqlError ? caught.errorReason : undefined
+        expect(reason?.reason).toBe('PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE')
+        expect(reason && reason.reason === 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE' ? reason.rowIndex : undefined).toBe(1)
+    })
+
+    test('insert-guards/multi-row-returning-last-id-precision-lost-carries-row-index-with-adapter', async () => {
+        // The adapter twin: `tLedgerEntry.entryNo` carries an offset adapter that
+        // delegates to the default int transform, which raises the precision loss
+        // for the second id; the per-row guard tags it with `rowIndex` 1.
+        // MOCK-ONLY: the ledger entry numbers the engine generates stay far below 2^53, so the
+        // unsafe id can only be forced through the mock.
+        ctx.mockOnlyConnection()
+        ctx.mockNext([1, 2 ** 53 + 2])
+        let caught: unknown
+        try {
+            await ctx.conn.insertInto(tLedgerEntry)
+                .values([
+                    { amount: 10 },
+                    { amount: 20 },
+                ])
+                .returningLastInsertedId()
+                .executeInsert()
+        } catch (e) { caught = e }
+        const reason = caught instanceof TsSqlError ? caught.errorReason : undefined
+        expect(reason?.reason).toBe('PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE')
+        expect(reason && reason.reason === 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE' ? reason.rowIndex : undefined).toBe(1)
+    })
 })

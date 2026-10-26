@@ -39,7 +39,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { isQueryAllowed } from '../../../../lib/queryIntrospection.js'
 import { dynamicPick } from '../../../../../src/dynamic/pick.js'
-import { tIssue, tProject } from '../../domain/connection.js'
+import { tIssue, tProject, tAppUser, tOrganization } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -388,5 +388,56 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(rows).toEqual(expected)
+    })
+
+    test('subselect-using-a-gated-cte-introspects-disallowed', () => {
+        // A correlated subquery over a CTE whose projection is gated closed.
+        // The subquery cannot run on its own, so only the walker is asserted:
+        // it visits the `subSelectUsing` CTE.
+        const connection = ctx.conn
+        const visibleProjects = connection.selectFrom(tProject)
+            .select({ id: tProject.id.allowWhen(false, 'visible-projects gate blocks') })
+            .forUseInQueryAs('visible_projects')
+
+        const query = connection.subSelectUsing(visibleProjects).from(tIssue)
+            .where(tIssue.projectId.equals(visibleProjects.id))
+            .selectOneColumn(tIssue.title)
+
+        expect(isQueryAllowed(query)).toBe(false)
+    })
+
+    test('join-on-a-gated-cte-introspects-disallowed-and-throws', async () => {
+        // The CTE is JOINED rather than selected from: the walker visits the
+        // join's table, and rendering the CTE body throws.
+        const connection = ctx.conn
+        const visibleProjects = connection.selectFrom(tProject)
+            .select({ organizationId: tProject.organizationId.allowWhen(false, 'joined cte gate blocks') })
+            .forUseInQueryAs('visible_projects')
+
+        const query = connection.selectFrom(tOrganization)
+            .join(visibleProjects).on(visibleProjects.organizationId.equals(tOrganization.id))
+            .select({ id: tOrganization.id })
+
+        expect(isQueryAllowed(query)).toBe(false)
+
+        let thrown: unknown
+        try {
+            await query.executeSelectMany()
+        } catch (e) {
+            thrown = e
+        }
+        expect(thrown).toBeInstanceOf(Error)
+        expect((thrown as Error).message).toContain('joined cte gate blocks')
+    })
+
+    test('dynamic-on-without-conditions-introspects-allowed', () => {
+        // `dynamicOn()` opens the join's condition and no `.and(...)` follows,
+        // so the join carries no condition for the walker to visit.
+        const connection = ctx.conn
+        const query = connection.selectFrom(tOrganization)
+            .join(tAppUser).dynamicOn()
+            .select({ organizationId: tOrganization.id, userId: tAppUser.id })
+
+        expect(isQueryAllowed(query)).toBe(true)
     })
 })

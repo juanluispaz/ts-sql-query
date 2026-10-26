@@ -10,8 +10,7 @@
 
 import { test, expect } from '../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../lib/assertType.js'
-import type { DBConnection } from '../domain/connection.js'
-import { tAppUser, tCountry, tIssue, tIssueWorklog, tOrganization, tProject, tProjectRelease, tProjectReview } from '../domain/connection.js'
+import { type DBConnection, tAppUser, tCountry, tIssue, tIssueWorklog, tOrganization, tProject, tProjectRelease, tProjectReview } from '../domain/connection.js'
 
 // `connection` is type-only — the function below is checked by tsc but
 // never invoked at runtime, so we don't need a real instance and don't
@@ -111,6 +110,20 @@ function _typeNegatives() {
             .select({ id: tIssue.id, title: tIssue.title }))
         .orderBy('id')
         // @ts-expect-error orderingSiblingsOnly is only available after startWith/connectBy, not on a recursive-union result
+        .orderingSiblingsOnly()
+
+    // Rule: a compound whose arm is a hierarchical query doesn't offer
+    // `orderingSiblingsOnly()` either: Oracle allows `order siblings by` only in the
+    // hierarchical query itself (ORA-30929 on the compound).
+    void connection.selectFrom(tIssue)
+        .startWith(tIssue.parentId.isNull())
+        .connectBy(prior => prior(tIssue.id).equals(tIssue.parentId))
+        .select({ id: tIssue.id, title: tIssue.title })
+        .union(connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, title: tIssue.title }))
+        .orderBy('id')
+        // @ts-expect-error orderingSiblingsOnly is not available on a compound query
         .orderingSiblingsOnly()
 
     void connection.selectFrom(tIssue)

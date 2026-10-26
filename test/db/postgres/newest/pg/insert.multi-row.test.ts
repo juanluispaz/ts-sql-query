@@ -20,7 +20,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tOrganization, tProject } from '../../domain/connection.js'
+import { tLedgerEntry, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -362,6 +362,46 @@ describe(ctx.label, () => {
             `)
             assertType<Exact<typeof inserted, number>>()
             expect(inserted).toBe(1)
+        })
+    })
+
+    test('multi-row-returning-last-inserted-id-through-a-pk-adapter', async () => {
+        // tLedgerEntry.entryNo carries an offset adapter (read +1000, write -1000)
+        // and amount a scaled one (stored x10). Every returned id goes through the
+        // pk adapter. The generated ids differ between runs, so they are checked by
+        // reading the two rows back with them: the WHERE shifts the ids back to
+        // the stored values, and the projection shifts them forward again.
+        await ctx.withRollback(async () => {
+            ctx.mockNext([2, 3])
+            const ids = await ctx.conn.insertInto(tLedgerEntry)
+                .values([{ amount: 10 }, { amount: 20 }])
+                .returningLastInsertedId()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into ledger_entry (amount) values ($1), ($2) returning entry_no"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                100,
+                200,
+              ]
+            `)
+            assertType<Exact<typeof ids, number[]>>()
+            expect(ids.length).toBe(2)
+
+            ctx.mockNext(ids.map((entryNo, index) => ({ entryNo: entryNo - 1000, amount: (index + 1) * 100 })))
+            const rows = await ctx.conn.selectFrom(tLedgerEntry)
+                .where(tLedgerEntry.entryNo.in(ids))
+                .select({ entryNo: tLedgerEntry.entryNo, amount: tLedgerEntry.amount })
+                .orderBy('entryNo')
+                .executeSelectMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select entry_no as "entryNo", amount as amount from ledger_entry where entry_no in ($1, $2) order by "entryNo""`)
+            expect(ctx.lastParams).toEqual(ids.map((entryNo) => entryNo - 1000))
+            assertType<Exact<typeof rows, Array<{ entryNo: number, amount: number }>>>()
+            expect(rows).toEqual([
+                { entryNo: ids[0], amount: 10 },
+                { entryNo: ids[1], amount: 20 },
+            ])
         })
     })
 })

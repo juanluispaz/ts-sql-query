@@ -236,4 +236,33 @@ describe(ctx.label, () => {
             expect(caught).toBeUndefined()
         }
     })
+
+    test('low-level-async-before-commit-hook-completes-before-the-commit-and-after-commit-hooks', async () => {
+        // An async `executeBeforeNextCommit` hook makes `commit()` wait for it before
+        // sending COMMIT; the after-commit hook then runs once the commit succeeds,
+        // and the transaction is closed when `commit()` resolves.
+        const connection = ctx.conn
+        const order: string[] = []
+
+        await ctx.withReseed(async () => {
+            await connection.beginTransaction()
+            try {
+                connection.executeBeforeNextCommit(async () => {
+                    await Promise.resolve()
+                    order.push('beforeCommit')
+                })
+                connection.executeAfterNextCommit(() => {
+                    order.push('afterCommit')
+                })
+                await connection.commit()
+                order.push('commitReturned')
+            } catch (e) {
+                await connection.rollback()
+                throw e
+            }
+            expect(connection.isTransactionActive()).toBe(false)
+        })
+
+        expect(order).toEqual(['beforeCommit', 'afterCommit', 'commitReturned'])
+    })
 })

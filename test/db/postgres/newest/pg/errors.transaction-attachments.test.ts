@@ -43,7 +43,8 @@
 // rolled back, or threw.
 
 import { afterAll, ApplicationError, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
-import { QueryExecutionSource, TsSqlQueryExecutionError } from '../../../../../src/TsSqlError.js'
+import { QueryExecutionSource, TsSqlError, TsSqlQueryExecutionError } from '../../../../../src/TsSqlError.js'
+import { tIssue } from '../../domain/connection.js'
 
 // Body errors are thrown as `TsSqlQueryExecutionError` directly so
 // every dialect's `isSqlError(...)` recognises them and the wrapping
@@ -588,5 +589,31 @@ describe(ctx.label, () => {
                 expect((e.transactionError as Error).message).toContain('boom-from-body')
             }
         }
+    })
+
+    test('transaction-body-failing-to-build-its-query-synchronously-surfaces-the-library-reason', async () => {
+        // A non-async body whose query is refused while it is being built: the
+        // `title` column is gated off, so building the SELECT throws before
+        // anything is sent and before the body returns a promise. The caller still
+        // gets a rejected `transaction(...)` carrying the library's reason, and the
+        // transaction is closed.
+        const connection = ctx.conn
+        let caught: unknown
+
+        await ctx.withReseed(async () => {
+            try {
+                await connection.transaction(() => connection.selectFrom(tIssue)
+                    .where(tIssue.id.equals(1))
+                    .select({ id: tIssue.id, title: tIssue.title.allowWhen(false, 'titles are restricted') })
+                    .executeSelectMany())
+            } catch (e) {
+                caught = e
+            }
+            expect(connection.isTransactionActive()).toBe(false)
+        })
+
+        const reason = caught instanceof TsSqlError ? caught.errorReason : undefined
+        expect(reason?.reason).toBe('DISALLOWED')
+        expect(caught instanceof Error ? caught.message : '').toContain('titles are restricted')
     })
 })

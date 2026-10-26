@@ -102,4 +102,29 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ projectId: number }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('replace-all-takes-the-adapter-of-its-find-operand', async () => {
+        // The receiver has no adapter, so `replaceAll` takes the one of its
+        // find operand (the bracketing reviewer_code adapter) and reads the result
+        // through it. 'mktg-site' does not contain 'R-7A2', so only the brackets
+        // change it.
+        const expected = [{ projectId: 1, label: '[mktg-site]' }]
+        ctx.mockNext([{ projectId: 1, label: 'mktg-site' }])
+        const rows = await ctx.conn.selectFrom(tProject)
+            .innerJoin(tProjectReview).on(tProjectReview.projectId.equals(tProject.id))
+            .select({
+                projectId: tProject.id,
+                label:     tProject.slug.replaceAll(tProjectReview.reviewerCode, '-'),
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as projectId, replace(project.slug, project_review.reviewer_code, ?) as label from project inner join project_review on project_review.project_id = project.id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "-",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ projectId: number; label: string }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

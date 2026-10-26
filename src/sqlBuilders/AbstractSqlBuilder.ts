@@ -809,12 +809,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid join type', joinType: join.__joinType }, 'Invalid join type: ' + join.__joinType)
             }
             fromJoins += this._appendTableOrViewName(join.__tableOrView, params)
-            if (join.__on) {
-                const onCondition = this._appendCondition(join.__on, params)
-                if (onCondition) {
-                    fromJoins += ' on ' + onCondition
-                }
-            }
+            // A dynamic condition can end up empty (`dynamicOn()` without conditions, or only IfValue conditions
+            // without value): it means no restriction, but most databases require the ON clause
+            const onCondition = join.__on ? this._appendCondition(join.__on, params) : ''
+            fromJoins += ' on ' + (onCondition || this._trueValueForCondition)
         }
 
         return fromJoins
@@ -909,12 +907,15 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return selectQuery
         }
 
-        const requiredTablesOrViews = query.__requiredTablesOrViews
+        // Inside a subquery the fake names (the columns pre-projected into the `_old_` subquery of an update) apply
+        // only to the outer tables the subquery references, the ones it declares in subSelectUsing; its own tables
+        // keep their names.
+        const subSelectUsing = query.__subSelectUsing
         const oldFakeNameOf = this._getFakeNamesOf(params)
         if (oldFakeNameOf) {
-            if (requiredTablesOrViews) {
+            if (subSelectUsing) {
                 const newFakeNameOf = new Set<AnyTableOrView>()
-                for (const v of requiredTablesOrViews) {
+                for (const v of subSelectUsing) {
                     if (oldFakeNameOf.has(v)) {
                         newFakeNameOf.add(v)
                     }
@@ -933,6 +934,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const tablesLength = tables.length
         const joins = query.__joins
 
+        const requiredTablesOrViews = query.__requiredTablesOrViews
         let hasJoins = false
         for (let i = 0, length = joins.length; i < length; i++) {
             const join = joins[i]!
@@ -1562,6 +1564,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
         let columns = ''
         const nextSequenceValues: Array<{ name: string, valueType: ValueType }> = []
         for (var columnName in table) {
+            if (columnName in usedColumns) {
+                // Set in at least one row: emitted with the used columns, a row that doesn't set it gets the next
+                // value of the sequence there
+                continue
+            }
             const column = __getColumnOfObject(table, columnName)
             if (!column) {
                 continue

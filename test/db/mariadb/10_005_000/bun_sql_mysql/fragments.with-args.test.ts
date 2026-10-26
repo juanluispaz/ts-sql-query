@@ -27,7 +27,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tIssueWorklog, tProjectRelease } from '../../domain/connection.js'
+import { tIssue, tIssueWorklog, tProjectRelease, tAppUser } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -1124,6 +1124,77 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('maybe-optional-args-required-in-optional-object-arg-gates-its-object', async () => {
+        // A required-in-optional-object arg merged with a required one keeps the
+        // result required-in-optional-object, so it gates `billing`: worklog 2
+        // has no minutes and drops the object. Minutes plus a 15-minute setup:
+        // worklog 1 90 → 105, worklog 3 30 → 45.
+        const expected = [
+            { id: 1, billing: { minutes: 105 } },
+            { id: 2 },
+            { id: 3, billing: { minutes: 45 } },
+        ]
+        ctx.mockNext([
+            { id: 1, 'billing.minutes': 105 },
+            { id: 2, 'billing.minutes': null },
+            { id: 3, 'billing.minutes': 45 },
+        ])
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .select({
+                id:      tIssueWorklog.id,
+                billing: { minutes: ctx.conn.intPlus(tIssueWorklog.minutes.asRequiredInOptionalObject(), 15) },
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, minutes + ? as \`billing.minutes\` from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            15,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; billing?: { minutes: number } }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('maybe-optional-args-left-join-arg-merges-with-required-optional-and-required-in-optional-object-args', async () => {
+        // A left-join arg stays originally-required beside a required or a
+        // required-in-optional-object arg, and becomes optional beside an
+        // optional one. Assignee ids 1, 2, -, 3; priorities 2, 1, 3, 2; no issue
+        // has a parent, so `withParent` is always NULL.
+        const expected = [
+            { id: 1, withPriority: 3, withAssignee: 2 },
+            { id: 2, withPriority: 3, withAssignee: 4 },
+            { id: 3 },
+            { id: 4, withPriority: 5, withAssignee: 6 },
+        ]
+        ctx.mockNext([
+            { id: 1, withPriority: 3, withAssignee: 2, withParent: null },
+            { id: 2, withPriority: 3, withAssignee: 4, withParent: null },
+            { id: 3, withPriority: null, withAssignee: null, withParent: null },
+            { id: 4, withPriority: 5, withAssignee: 6, withParent: null },
+        ])
+        const assignee = tAppUser.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(assignee).on(assignee.id.equals(tIssue.assigneeId))
+            .select({
+                id:           tIssue.id,
+                withPriority: ctx.conn.intPlus(assignee.id, tIssue.priority),
+                withAssignee: ctx.conn.intPlus(assignee.id, tIssue.assigneeId.asRequiredInOptionalObject()),
+                withParent:   ctx.conn.intPlus(assignee.id, tIssue.parentId),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, app_user.id + issue.priority as withPriority, app_user.id + issue.assignee_id as withAssignee, app_user.id + issue.parent_id as withParent from issue left join app_user on app_user.id = issue.assignee_id order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{
+            id:            number
+            withPriority?: number
+            withAssignee?: number
+            withParent?:   number
+        }>>>()
         expect(rows).toEqual(expected)
     })
 })

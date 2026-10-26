@@ -11,7 +11,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tIssueWorklog, tProject, tProjectRelease, tProjectReview, vReleaseOverview, type ReleaseTag } from '../../domain/connection.js'
+import { tIssue, tIssueWorklog, tProject, tProjectRelease, tProjectReview, vReleaseOverview, type ReleaseTag, tWebhookEvent, type WebhookEventType } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -985,5 +985,55 @@ describe(ctx.label, () => {
                 { ref: 'c995d12f-ced4-4e94-a341-c2da118fe64b', cnt: 1 },
             ] })
         })
+    })
+
+    test('aggregate-of-enum-column-as-array', async () => {
+        // Single-column aggregate of an `enum` column (`webhook_event.event_type`).
+        // Issue 1 has one webhook event, 'created'.
+        const expected = [{ id: 1, events: ['created' as WebhookEventType] }]
+        ctx.mockNext([{ id: 1, events: '["created"]' }])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .innerJoin(tWebhookEvent).on(tWebhookEvent.issueId.equals(tIssue.id))
+            .where(tIssue.id.equals(1))
+            .select({
+                id:     tIssue.id,
+                events: ctx.conn.aggregateAsArrayOfOneColumn(tWebhookEvent.eventType),
+            })
+            .groupBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as "id", json_arrayagg(webhook_event.event_type) as "events" from issue inner join webhook_event on webhook_event.issue_id = issue.id where issue.id = :0 group by issue.id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; events: WebhookEventType[] }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('aggregate-of-enum-column-as-wrapped-array', async () => {
+        // WRAPPED single-column aggregate of an `enum` column: the ordered inner
+        // select forces the wrapper. Issue 2 has one webhook event, 'updated'.
+        const events = ctx.conn.subSelectUsing(tIssue).from(tWebhookEvent)
+            .where(tWebhookEvent.issueId.equals(tIssue.id))
+            .selectOneColumn(tWebhookEvent.eventType)
+            .orderBy('result')
+            .forUseAsInlineAggregatedArrayValue()
+
+        ctx.mockNext({ id: 2, events: '["updated"]' })
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({ id: tIssue.id, events })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", (select json_arrayagg(a_1_.result) from (select event_type as result from webhook_event where issue_id = issue.id order by result offset 0 rows) a_1_) as "events" from issue where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; events: WebhookEventType[] }>>()
+        expect(row).toEqual({ id: 2, events: ['updated'] })
     })
 })

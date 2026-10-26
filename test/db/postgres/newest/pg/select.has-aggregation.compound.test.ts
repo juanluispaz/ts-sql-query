@@ -52,7 +52,9 @@
 // projection of a grouped member query, or inside a scalar subquery embedded
 // in a SQL comment — never bare in a position no engine accepts. Because a
 // compound's rows come from two member queries, every test gives the compound
-// its own `orderBy(...)` so the result array is stable on every engine.
+// its own `orderBy(...)` so the result array is stable on every engine — except
+// `compound-without-order-by-and-no-aggregate-reports-false`, which pins the
+// walk over a compound with no `order by` at all and sorts the rows itself.
 //
 // `queryHasAggregation` is the sanctioned introspection seam for the walker,
 // which has no public API yet; see test/LIMITATIONS.md.
@@ -451,5 +453,40 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{ projectId: number }>>>()
         expect(rows).toEqual(expected)
+    })
+
+    test('has-aggregation/compound-without-order-by-and-no-aggregate-reports-false', async () => {
+        // The control's two plain member queries with no compound-level
+        // `order by`, so the walk goes from the second arm straight to the
+        // compound's remaining clauses. Without an `order by` the row order is
+        // the engine's, so the rows are sorted before comparing.
+        const expected = [
+            { projectId: 1 },
+            { projectId: 2 },
+            { projectId: 3 },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const query = connection.selectFrom(tProject)
+            .where(tProject.organizationId.equals(1))
+            .select({ projectId: tProject.id })
+            .union(
+                connection.selectFrom(tIssue)
+                    .select({ projectId: tIssue.projectId }),
+            )
+
+        expect(queryHasAggregation(query)).toBe(false)
+
+        const rows = await query.executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "projectId" from project where organization_id = $1 union select project_id as "projectId" from issue"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ projectId: number }>>>()
+        expect([...rows].sort((a, b) => a.projectId - b.projectId)).toEqual(expected)
     })
 })

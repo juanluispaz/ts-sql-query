@@ -262,6 +262,40 @@ describe(ctx.label, () => {
 
         if (!ctx.realDbEnabled) expect(row).toEqual(expected)
     })
+
+    test('null-inline-aggregated-array-via-only-when-or-null-false-then-allow-when-true-emits-transparently', async () => {
+        // The inline-subquery form: `forUseAsInlineAggregatedArrayValue()`
+        // then `.onlyWhenOrNull(false).allowWhen(true, ...)`. The column
+        // renders as a typed NULL, so it is absent from every row.
+        const expected = [{ id: 2 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const projectIssues = connection.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .select({ id: tIssue.id, title: tIssue.title })
+            .forUseAsInlineAggregatedArrayValue()
+            .onlyWhenOrNull(false)
+            .allowWhen(true, 'null-inline-aggregate-gate-open')
+
+        const query = connection.selectFrom(tProject)
+            .where(tProject.id.in([2, 3]))
+            .select({ id: tProject.id, issues: projectIssues })
+            .orderBy('id')
+
+        expect(isQueryAllowed(query)).toBe(true)
+
+        const rows = await query.executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(null as char) as issues from project where id in (?, ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            3,
+          ]
+        `)
+        expect(rows).toEqual(expected)
+    })
 })
 
 // Tests referencing these are commented out above with NOT-SUPPORTED

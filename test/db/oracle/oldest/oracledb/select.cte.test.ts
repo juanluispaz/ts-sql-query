@@ -8,7 +8,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tOrganization, tProject, tProjectReview } from '../../domain/connection.js'
+import { tIssue, tOrganization, tProject, tProjectReview, tIssueWorklog } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -176,6 +176,60 @@ describe(ctx.label, () => {
             score:        number
             reviewerCode: string
         }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('with-clause/inline-subquery-over-the-outer-cte-emits-it-once', async () => {
+        // The CTE the outer query reads from is also the FROM of an inline
+        // subquery; the WITH clause lists it once. Issues 1 and 3 are open.
+        const expected = [{ id: 1, openCount: 2 }, { id: 3, openCount: 2 }]
+        ctx.mockNext(expected)
+        const openIssues = ctx.conn.selectFrom(tIssue)
+            .where(tIssue.status.equals('open'))
+            .select({ id: tIssue.id, title: tIssue.title })
+            .forUseInQueryAs('open_issues')
+        const rows = await ctx.conn.selectFrom(openIssues)
+            .select({
+                id:        openIssues.id,
+                openCount: ctx.conn.selectFrom(openIssues).selectCountAll().forUseAsInlineQueryValue(),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, title as title from issue where status = :0) select id as "id", (select count(*) as "result" from open_issues) as "openCount" from open_issues order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "open",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; openCount: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('with-clause/inline-subquery-using-the-outer-cte-emits-it-once', async () => {
+        // The inline subquery correlates with the outer CTE through
+        // `subSelectUsing`; the WITH clause lists it once. Open issue 1 has two
+        // worklogs, open issue 3 none.
+        const expected = [{ id: 1, worklogs: 2 }, { id: 3, worklogs: 0 }]
+        ctx.mockNext(expected)
+        const openIssues = ctx.conn.selectFrom(tIssue)
+            .where(tIssue.status.equals('open'))
+            .select({ id: tIssue.id, title: tIssue.title })
+            .forUseInQueryAs('open_issues')
+        const worklogs = ctx.conn.subSelectUsing(openIssues).from(tIssueWorklog)
+            .where(tIssueWorklog.issueId.equals(openIssues.id))
+            .selectCountAll()
+            .forUseAsInlineQueryValue()
+        const rows = await ctx.conn.selectFrom(openIssues)
+            .select({ id: openIssues.id, worklogs })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, title as title from issue where status = :0) select id as "id", (select count(*) as "result" from issue_worklog where issue_id = open_issues.id) as "worklogs" from open_issues order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "open",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; worklogs: number }>>>()
         expect(rows).toEqual(expected)
     })
 })

@@ -17,7 +17,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import type { TypeAdapter } from '../../../../../src/TypeAdapter.js'
-import type { ReleaseChannel, WorklogActivity } from '../../domain/connection.js'
+import { type ReleaseChannel, type WorklogActivity, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
 
@@ -171,4 +171,27 @@ describe(ctx.label, () => {
         expect(v).toBe('[hello]')
     })
 
+    test('required-const/null-check-is-settled-while-the-query-is-built', async () => {
+        // A required const is never NULL and its value is held while building, so
+        // `isNull()` renders the false constant and `isNotNull()` the true one —
+        // no `is null` test reaches the database. Only project 1 survives the filter.
+        const currentUserId = 2
+        const expected = [{ id: 1, name: 'Marketing site' }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(ctx.conn.const(currentUserId, 'int').isNull())
+            .or(tProject.id.equals(1))
+            .and(ctx.conn.const(currentUserId, 'int').isNotNull())
+            .select({ id: tProject.id, name: tProject.name })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where id = ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

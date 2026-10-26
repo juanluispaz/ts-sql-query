@@ -154,7 +154,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                         if (value === undefined) {
                             value = null
                         }
-                        output[i] = this.__transformValueFromDB(valueSource, value)
+                        output[i] = this.__transformValueFromDB(valueSource, value, undefined, i)
                     }
                     return output
                 }).catch((e) => {

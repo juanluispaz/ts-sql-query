@@ -24,7 +24,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tProject } from '../../domain/connection.js'
+import { tIssue, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -431,4 +431,72 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    test('insert-from-select-copies-a-custom-boolean-column', async () => {
+        // `published` is a custom boolean stored as 't'/'f' on both sides of the
+        // copy, so the source column is inserted as is. Project 1 (published) is
+        // duplicated under a new slug.
+        const expected = [{ name: 'Marketing site', slug: 'mktg-site-copy', published: true }]
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const source = ctx.conn.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .select({
+                    organizationId: tProject.organizationId,
+                    name:           tProject.name,
+                    slug:           ctx.conn.const('mktg-site-copy', 'string'),
+                    published:      tProject.published,
+                })
+
+            const inserted = await ctx.conn.insertInto(tProject)
+                .from(source)
+                .returning({ name: tProject.name, slug: tProject.slug, published: tProject.published })
+                .executeInsertMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, published) select organization_id as "organizationId", name as name, $1::text as slug, published as published from project where id = $2 returning name as name, slug as slug, (published = 't') as published"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "mktg-site-copy",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof inserted, Array<{ name: string; slug: string; published: boolean }>>>()
+            expect(inserted).toEqual(expected)
+        })
+    })
+
+    test('insert-from-select-remaps-a-custom-boolean-between-adapters', async () => {
+        // `organization.verified` is stored as 'Y'/'N' and `project.published` as
+        // 't'/'f': the insert re-encodes the selected flag into the target
+        // column's values. Organization 1 is verified, so the new project is
+        // published.
+        const expected = [{ name: 'Onboarding', published: true }]
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const source = ctx.conn.selectFrom(tOrganization)
+                .where(tOrganization.id.equals(1))
+                .select({
+                    organizationId: tOrganization.id,
+                    name:           ctx.conn.const('Onboarding', 'string'),
+                    slug:           ctx.conn.const('onboarding', 'string'),
+                    published:      tOrganization.verified,
+                })
+
+            const inserted = await ctx.conn.insertInto(tProject)
+                .from(source)
+                .returning({ name: tProject.name, published: tProject.published })
+                .executeInsertMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, published) select id as "organizationId", $1::text as name, $2::text as slug, case when verified = 'Y' then 't' else 'f' end as published from organization where id = $3 returning name as name, (published = 't') as published"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Onboarding",
+                "onboarding",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof inserted, Array<{ name: string; published: boolean }>>>()
+            expect(inserted).toEqual(expected)
+        })
+    })
 })

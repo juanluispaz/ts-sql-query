@@ -20,6 +20,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { TsSqlError, type TsSqlErrorReason } from '../../../../../src/TsSqlError.js'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -272,5 +273,71 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue order by lower(title) desc nulls last"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    test('order-by-from-string-array-ifvalue-null-is-noop', async () => {
+        // An absent sort list (`null`, as an optional request parameter arrives)
+        // emits no ORDER BY. Issue 1 is the only row selected.
+        const sortList: string[] | null = null
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id })
+            .orderByFromStringArrayIfValue(sortList)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('order-by-from-string-reaches-a-leaf-inside-a-nested-object', async () => {
+        // A dotted name orders by a column projected inside a nested object.
+        // Priorities: issue 3 → 3, issues 1 and 4 → 2, issue 2 → 1.
+        const expected = [
+            { id: 3, meta: { priority: 3 } },
+            { id: 1, meta: { priority: 2 } },
+            { id: 4, meta: { priority: 2 } },
+            { id: 2, meta: { priority: 1 } },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, meta: { priority: tIssue.priority } })
+            .orderByFromString('meta.priority desc, id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority as "meta.priority" from issue order by "meta.priority" desc, id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number, meta: { priority: number } }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    // A depth-3 projection for the rejected names below: `meta` and `meta.sub` are
+    // objects, `id` is a leaf.
+    function orderByRejection(orderBy: string): TsSqlErrorReason | string {
+        try {
+            ctx.conn.selectFrom(tIssue)
+                .select({ id: tIssue.id, meta: { priority: tIssue.priority, sub: { status: tIssue.status } } })
+                .orderByFromString(orderBy)
+        } catch (e) {
+            return e instanceof TsSqlError ? e.errorReason : `non-TsSqlError: ${String(e)}`
+        }
+        return '<no throw>'
+    }
+
+    test('order-by-from-string-naming-a-nested-object-throws-column-not-in-select', () => {
+        expect(orderByRejection('meta desc')).toEqual({ reason: 'ORDER_BY_COLUMN_NOT_IN_SELECT', column: 'meta' })
+    })
+
+    test('order-by-from-string-path-continuing-past-a-leaf-throws-column-not-in-select', () => {
+        expect(orderByRejection('id.value')).toEqual({ reason: 'ORDER_BY_COLUMN_NOT_IN_SELECT', column: 'id.value' })
+    })
+
+    test('order-by-from-string-path-ending-on-a-nested-object-throws-column-not-in-select', () => {
+        expect(orderByRejection('meta.sub asc')).toEqual({ reason: 'ORDER_BY_COLUMN_NOT_IN_SELECT', column: 'meta.sub' })
     })
 })

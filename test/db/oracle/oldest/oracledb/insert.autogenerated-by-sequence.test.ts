@@ -237,4 +237,33 @@ describe(ctx.label, () => {
             expect(affected).toBe(1)
         })
     })
+
+    test('insert-multiple-rows-supplying-the-sequence-key-in-some-rows-lists-the-column-once', async () => {
+        // One row supplies its id, the other leaves it to the sequence. The id
+        // column is listed once; the supplied value takes its place in the first
+        // tuple and the sequence's next value fills it in the second. The offset
+        // adapter writes the logical id 1900 as the raw 900; audit_entry has no
+        // seeded rows, so neither id collides. A committing transaction + reseed
+        // is used because the sequence bump is non-transactional.
+        await ctx.withCommit(async () => {
+            ctx.mockNext(2)
+            const count = await ctx.conn.insertInto(tAuditEntry)
+                .values([
+                    { id: 1900, action: 'imported' },
+                    { action: 'archived' },
+                ])
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"begin insert into audit_entry (id, action) values (:0, :1); insert into audit_entry (id, action) values (audit_tag_seq.nextval, :2); end;"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                900,
+                "imported",
+                "archived",
+              ]
+            `)
+            assertType<Exact<typeof count, number>>()
+            expect(count).toBe(2)
+        })
+    })
 })

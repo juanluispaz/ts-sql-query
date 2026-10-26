@@ -7,8 +7,19 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import type { Money, WorklogActivity, ReleaseChannel } from '../../domain/connection.js'
+import { type Money, type WorklogActivity, type ReleaseChannel, DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+
+// `executeFunction` is protected; a subclass exposes a call with TWO parameters
+// through the engine's built-in `least(a, b)`, so no schema function is needed.
+// (`mod` is a reserved word here: the call quotes it, and a quoted name is
+// resolved as a stored function, not the built-in.)
+class FunctionCallConnection extends DBConnection {
+    callLeast(first: number, second: number) {
+        return this.executeFunction('least', [this.const(first, 'int'), this.const(second, 'int')], 'int', 'required')
+    }
+}
+
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -645,4 +656,20 @@ describe(ctx.label, () => {
         expect(value).toBeInstanceOf(Date)
     })
 
+    test('execute-function-with-two-params', async () => {
+        // Function call with two bound parameters, separated in the call's
+        // argument list: least(17, 5) → 5.
+        const conn = ctx.withConnection(FunctionCallConnection)
+        ctx.mockNext(5)
+        const smallest = await conn.callLeast(17, 5)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select least(?, ?)"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            17,
+            5,
+          ]
+        `)
+        assertType<Exact<typeof smallest, number>>()
+        expect(smallest).toBe(5)
+    })
 })

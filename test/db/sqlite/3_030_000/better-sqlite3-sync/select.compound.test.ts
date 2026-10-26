@@ -1633,4 +1633,46 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ pid: number, iid: number }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('compound-order-by-asc', async () => {
+        // `orderBy('label', 'asc')` on a compound — the explicit `asc` mode,
+        // rendered inline through the compound. All 8 union labels are distinct.
+        const expected = [
+            { label: 'Document /v2/users' },
+            { label: 'Internal tools' },
+            { label: 'Legacy app' },
+            { label: 'Marketing site' },
+            { label: 'Migrate to ESM' },
+            { label: 'Public API' },
+            { label: 'Redesign navbar' },
+            { label: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderBy('label', 'asc')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label asc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('compound-asc-insensitive-order-by-on-non-string-column-drops-modifier', async () => {
+        // `asc insensitive` on an int alias: the insensitive part is dropped and
+        // the plain `asc` ordering stays inline. Project and issue ids overlap,
+        // so UNION dedups them.
+        const expected = [{ ref: 1 }, { ref: 2 }, { ref: 3 }, { ref: 4 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .select({ ref: tProject.id })
+            .union(ctx.conn.selectFrom(tIssue).select({ ref: tIssue.id }))
+            .orderBy('ref', 'asc insensitive')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as ref from project union select id as ref from issue order by ref asc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ ref: number }>>>()
+        expect(result).toEqual(expected)
+    })
 })

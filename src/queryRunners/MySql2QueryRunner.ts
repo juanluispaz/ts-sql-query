@@ -67,7 +67,9 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
                 if (error) {
                     reject(error)
                 } else {
-                    resolve(results.insertId)
+                    // A suppressed `insert ignore` inserts no row and reports insert id 0: fall back to null (the
+                    // same absence the RETURNING path reports) when nothing was inserted.
+                    resolve(results.affectedRows === 0 ? null : results.insertId)
                 }
             })
         })

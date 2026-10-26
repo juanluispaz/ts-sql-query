@@ -596,6 +596,7 @@ describe(ctx.label, () => {
     //         expect(ctx.lastParams).toMatchInlineSnapshot()
     //         assertType<Exact<typeof affected, number>>()
     //         expect(affected).toBe(0)
+    //         })
     //     })
     // })
 
@@ -1299,6 +1300,7 @@ describe(ctx.label, () => {
     //         expect(ctx.lastParams).toMatchInlineSnapshot()
     //         assertType<Exact<typeof affected, number>>()
     //         expect(affected).toBe(1)
+    //         })
     //     })
     // })
 
@@ -1591,6 +1593,115 @@ describe(ctx.label, () => {
             `)
             assertType<Exact<typeof affected, number>>()
             expect(affected).toBe(1)
+        })
+    })
+
+    test('has-aggregation/insert-returning-with-an-aggregating-subquery-reports-aggregation', async () => {
+        // The positive twin of `insert-returning-plain-columns`: the RETURNING
+        // list carries the scalar user count (3 seeded users) beside a column
+        // the insert supplied, and no other clause aggregates. Project 1 holds
+        // numbers 1 and 2, so number 922 does not collide.
+        const expected = { title: 'Returning a user count', userCount: 3 }
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+            const userCount = connection.selectFrom(tAppUser)
+                .selectOneColumn(connection.count(tAppUser.id))
+                .forUseAsInlineQueryValue()
+
+            const query = connection.insertInto(tIssue)
+                .values({ projectId: 1, number: 922, title: 'Returning a user count', status: 'open', priority: 3 })
+                .returning({
+                    title:     tIssue.title,
+                    userCount: userCount,
+                })
+
+            expect(queryHasAggregation(query)).toBe(true)
+
+            const row = await query.executeInsertOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?) returning title as title, (select count(id) as result from app_user) as userCount"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                922,
+                "Returning a user count",
+                "open",
+                3,
+              ]
+            `)
+            assertType<Exact<typeof row, { title: string; userCount?: number }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+
+    test('has-aggregation/update-returning-with-an-aggregating-subquery-reports-aggregation', async () => {
+        // The positive twin of `update-returning-plain-columns`: issue 4 is
+        // retitled and RETURNING carries the scalar user count (3 seeded users)
+        // beside its id; the set value and the `where` are plain.
+        const expected = { id: 4, userCount: 3 }
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+            const userCount = connection.selectFrom(tAppUser)
+                .selectOneColumn(connection.count(tAppUser.id))
+                .forUseAsInlineQueryValue()
+
+            const query = connection.update(tIssue)
+                .set({ title: 'Document /v3/users' })
+                .where(tIssue.id.equals(4))
+                .returning({
+                    id:        tIssue.id,
+                    userCount: userCount,
+                })
+
+            expect(queryHasAggregation(query)).toBe(true)
+
+            const row = await query.executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ? where id = ? returning id as id, (select count(id) as result from app_user) as userCount"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Document /v3/users",
+                4,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; userCount?: number }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+
+    test('has-aggregation/delete-returning-with-an-aggregating-subquery-reports-aggregation', async () => {
+        // The positive twin of `delete-returning-plain-columns`: issue 4 is
+        // removed and RETURNING carries the scalar user count (3 seeded users)
+        // beside its id; the `where` is plain.
+        const expected = { id: 4, userCount: 3 }
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+            const userCount = connection.selectFrom(tAppUser)
+                .selectOneColumn(connection.count(tAppUser.id))
+                .forUseAsInlineQueryValue()
+
+            const query = connection.deleteFrom(tIssue)
+                .where(tIssue.id.equals(4))
+                .returning({
+                    id:        tIssue.id,
+                    userCount: userCount,
+                })
+
+            expect(queryHasAggregation(query)).toBe(true)
+
+            const row = await query.executeDeleteOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ? returning id as id, (select count(id) as result from app_user) as userCount"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                4,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; userCount?: number }>>()
+            expect(row).toEqual(expected)
         })
     })
 })

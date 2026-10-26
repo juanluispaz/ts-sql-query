@@ -176,11 +176,16 @@ cost of shipping is hours of cleanup the next session.
 The user runs `bun run coverage:for-discover-tests` **before** the
 session. The alias produces
 `.test-report/coverage/coverage-summary.json` and `coverage-final.json` in
-istanbul JSON format, scoped to `--run-versions newest` (older `<db>/<version>/`
-cells skipped — they re-emit the same SQL as `newest` for symmetric
-changes) and excluding `src/queryRunners/**` (docker-backed driver
-implementations; their `.catch(...)` arms are the dominant uncov, and
-they require docker to exercise). Full alias definition in
+istanbul JSON format. It runs one connector per database over **every
+version tier** (mocked) — every connector of a database shares its
+`SqlBuilder` and the tier folder sets the `compatibilityVersion`, so one
+connector per tier sees the same library code; `:newest` is the quicker
+variant restricted to the `newest` tiers. A compatibility-version branch
+still uncovered here is one no tier's tests build, not one no tier can
+reach. The scope excludes `src/queryRunners/**` (driver code, measured by
+`coverage:runners` / `coverage:mappers`). Code that depends on a
+per-connector configuration (an `uuidStrategy`, a SQLite date-time
+format) is only covered when the measured connector's cell sets it. Full alias definition in
 [`CLI.md` § Aliases — coverage:for-discover-tests](./CLI.md#coverage-for-discover-tests-alias).
 
 The agent reads both files and surfaces the in-scope `src/` files sorted

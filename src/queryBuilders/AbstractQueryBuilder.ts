@@ -67,7 +67,7 @@ export class AbstractQueryBuilder {
                 }
                 throw e
             } else {
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value: result, typeName: valueSourcePrivate.__valueTypeName, rowIndex: index, columnPath: column }, e)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: valueSourcePrivate.__valueTypeName, rowIndex: index, columnPath: column }, e)
             }
         }
         if (result !== null && result !== undefined) {
@@ -112,7 +112,7 @@ export class AbstractQueryBuilder {
                     transformed = this.__transformValueFromDB(valueSource, value, errorPrefix + prop, index)
                 }
             } else {
-                transformed = this.__transformProjectedObject(projectOptionalValuesAsNullable, errorPrefix + prop + '.', prop + '.', valueSource, row, index)
+                transformed = this.__transformProjectedObject(projectOptionalValuesAsNullable, errorPrefix, prop + '.', valueSource, row, index)
             }
             if (transformed !== undefined && transformed !== null) {
                 result[prop] = transformed

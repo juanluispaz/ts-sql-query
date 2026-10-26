@@ -4,8 +4,9 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tOrganization, tProject, tReleaseDraft } from '../../domain/connection.js'
+import { tOrganization, tProject, tReleaseDraft, tAppUser } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { TsSqlError } from '../../../../../src/TsSqlError.js'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -918,4 +919,44 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    test('on-conflict-do-nothing-returning-last-inserted-id-on-a-real-collision-resolves-null', async () => {
+        // 'ada@acme.test' is a seeded email (unique), so DO NOTHING suppresses the
+        // insert and no id comes back: the chain resolves `null`. With a minimum
+        // of one row the same suppressed insert is rejected, counting 0 rows.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(undefined)
+            const id = await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'ada@acme.test', fullName: 'Ada Lovelace' })
+                .onConflictDoNothing()
+                .returningLastInsertedId()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert ignore into app_user (email, full_name) values (?, ?)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "ada@acme.test",
+                "Ada Lovelace",
+              ]
+            `)
+            assertType<Exact<typeof id, number | null>>()
+            expect(id).toBeNull()
+
+            ctx.mockNext(undefined)
+            let caught: unknown
+            try {
+                await ctx.conn.insertInto(tAppUser)
+                    .values({ email: 'ada@acme.test', fullName: 'Ada Lovelace' })
+                    .onConflictDoNothing()
+                    .returningLastInsertedId()
+                    .executeInsert(1)
+            } catch (e) { caught = e }
+            const reason = caught instanceof TsSqlError ? caught.errorReason : undefined
+            expect(reason).toEqual({ reason: 'MINIMUM_ROWS_NOT_REACHED', count: 0, min: 1 })
+        })
+    })
 })
+
+// Tests referencing these are commented out above with their markers;
+// keep the bindings referenced so noUnusedLocals stays green.
+void tAppUser; void TsSqlError

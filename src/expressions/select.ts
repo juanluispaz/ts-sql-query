@@ -114,8 +114,9 @@ export interface CompoundedOrderByExecutableSelectExpression</*in|out*/ FROM ext
     orderByFromStringArrayIfValue(orderBy: ReadonlyArray<string | null | undefined> | null | undefined): CompoundedOrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
+// No orderingSiblingsOnly here: Oracle allows ORDER SIBLINGS BY only in the hierarchical query itself, not in a
+// compound query that contains it (ORA-30929)
 export interface CompoundedOrderedExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundedOrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
-    orderingSiblingsOnly: OrderingSiblingsOnlyFnType<FEATURES, CompoundedLimitExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>>
 }
 
 export interface CompoundableExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends WithableExecutableSelect<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {

@@ -751,4 +751,100 @@ describe(ctx.label, () => {
         const conn = ctx.withDateTimeFormat('Unix time seconds as integer')
         expect(await decodeUnexpected(conn, 'localDateTime', 1705314645n)).toEqual(new Date(Date.UTC(2024, 0, 15, 10, 30, 45, 0)))
     })
+
+    // ---- Decode of a TEXT value whose shape does not match the configured
+    // format. A typed fragment over a bound string makes the engine return the
+    // string verbatim, so mock and real mode decode the same value. The texts
+    // carry a time part (or slashes): a bare `YYYY-MM-DD` is read as a date with
+    // a timezone and decoded to that UTC midnight, which yields the same date
+    // without going through the per-format handling. ----
+
+    async function decodeText(conn: typeof ctx.conn, type: 'localDate' | 'localTime' | 'localDateTime', text: string): Promise<Date> {
+        ctx.mockNext({ v: text })
+        const raw = conn.const(text, 'string')
+        const col = type === 'localDate' ? conn.fragmentWithType('localDate', 'required').sql`${raw}`
+            : type === 'localTime' ? conn.fragmentWithType('localTime', 'required').sql`${raw}`
+            : conn.fragmentWithType('localDateTime', 'required').sql`${raw}`
+        const row = await conn.selectFromNoTable().select({ v: col }).executeSelectOne()
+        expect(ctx.lastSql).toBe('select ? as "v"')
+        expect(ctx.lastParams).toEqual([text])
+        return row.v
+    }
+
+    // localDate: 2024-01-15, normalised to 10:00 UTC.
+    const DATE_15 = new Date(Date.UTC(2024, 0, 15, 10, 0, 0, 0))
+
+    test('localDate decode: datetime text under localdate-as-text keeps only the date', async () => {
+        const conn = ctx.withDateTimeFormat('localdate as text')
+        expect(await decodeText(conn, 'localDate', '2024-01-15 23:30:45')).toEqual(DATE_15)
+    })
+
+    test('localDate decode: slash-separated date text under julian format', async () => {
+        const conn = ctx.withDateTimeFlags('Julian day as real number', { treatUnexpectedStringDateTimeAsUTC: false })
+        expect(await decodeText(conn, 'localDate', '2024/01/15')).toEqual(DATE_15)
+    })
+
+    test('localDate decode: datetime text under julian format keeps only the date', async () => {
+        const conn = ctx.withDateTimeFlags('Julian day as real number', { treatUnexpectedStringDateTimeAsUTC: false })
+        expect(await decodeText(conn, 'localDate', '2024-01-15 23:30:45')).toEqual(DATE_15)
+    })
+
+    test('localDate decode: datetime text under unix-seconds format read as UTC keeps only the date', async () => {
+        // 23:30:45 must not roll the date over once the 10:00 offset is applied.
+        const conn = ctx.withDateTimeFlags('Unix time seconds as integer', { treatUnexpectedStringDateTimeAsUTC: true })
+        expect(await decodeText(conn, 'localDate', '2024-01-15 23:30:45')).toEqual(DATE_15)
+    })
+
+    test('localDate decode: datetime text under the UTC text formats keeps only the date', async () => {
+        const plain = ctx.withDateTimeFormat('UTC as text')
+        expect(await decodeText(plain, 'localDate', '2024-01-15 23:30:45')).toEqual(DATE_15)
+        const tSeparated = ctx.withDateTimeFormat('UTC as text using T separator')
+        expect(await decodeText(tSeparated, 'localDate', '2024-01-15T23:30:45')).toEqual(DATE_15)
+    })
+
+    // localTime: 10:30:45 on 1970-01-01.
+    const TIME_1030 = new Date(Date.UTC(1970, 0, 1, 10, 30, 45, 0))
+
+    test('localTime decode: datetime text under localdate-as-text keeps only the time', async () => {
+        const conn = ctx.withDateTimeFormat('localdate as text')
+        expect(await decodeText(conn, 'localTime', '2024-01-15 10:30:45')).toEqual(TIME_1030)
+    })
+
+    test('localTime decode: datetime text with an offset is shifted to UTC', async () => {
+        const conn = ctx.withDateTimeFormat('localdate as text')
+        expect(await decodeText(conn, 'localTime', '2024-01-15 10:30:45+02:00')).toEqual(new Date(Date.UTC(1970, 0, 1, 8, 30, 45, 0)))
+    })
+
+    test('localTime decode: datetime text under julian format keeps only the time', async () => {
+        const conn = ctx.withDateTimeFlags('Julian day as real number', { treatUnexpectedStringDateTimeAsUTC: false })
+        expect(await decodeText(conn, 'localTime', '2024-01-15 10:30:45')).toEqual(TIME_1030)
+    })
+
+    test('localTime decode: datetime text under julian format read as UTC keeps only the time', async () => {
+        const conn = ctx.withDateTimeFlags('Julian day as real number', { treatUnexpectedStringDateTimeAsUTC: true })
+        expect(await decodeText(conn, 'localTime', '2024-01-15 10:30:45')).toEqual(TIME_1030)
+    })
+
+    test('localTime decode: datetime text under UTC-as-text keeps only the time', async () => {
+        const conn = ctx.withDateTimeFormat('UTC as text')
+        expect(await decodeText(conn, 'localTime', '2024-01-15 10:30:45')).toEqual(TIME_1030)
+    })
+
+    // localDateTime: 2024-01-15T10:30:45Z.
+    const DATETIME_1030 = new Date(Date.UTC(2024, 0, 15, 10, 30, 45, 0))
+
+    test('localDateTime decode: datetime text under julian format', async () => {
+        const conn = ctx.withDateTimeFlags('Julian day as real number', { treatUnexpectedStringDateTimeAsUTC: false })
+        expect(await decodeText(conn, 'localDateTime', '2024-01-15 10:30:45')).toEqual(DATETIME_1030)
+    })
+
+    test('localDateTime decode: datetime text under unix-milliseconds format', async () => {
+        const conn = ctx.withDateTimeFlags('Unix time milliseconds as integer', { treatUnexpectedStringDateTimeAsUTC: false })
+        expect(await decodeText(conn, 'localDateTime', '2024-01-15 10:30:45')).toEqual(DATETIME_1030)
+    })
+
+    test('localDateTime decode: datetime text under unix-milliseconds format read as UTC', async () => {
+        const conn = ctx.withDateTimeFlags('Unix time milliseconds as integer', { treatUnexpectedStringDateTimeAsUTC: true })
+        expect(await decodeText(conn, 'localDateTime', '2024-01-15 10:30:45')).toEqual(DATETIME_1030)
+    })
 })

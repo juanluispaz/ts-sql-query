@@ -38,7 +38,9 @@ export class BunSqlMySqlQueryRunner extends AbstractBunSqlQueryRunner {
         }
 
         const sql = this.transaction || this.lowLevelTransaction || this.connection
-        return sql.unsafe(query, params).then((result) => result.lastInsertRowid)
+        // A suppressed `insert ignore` inserts no row and reports insert id 0: fall back to null (the same absence
+        // the RETURNING path reports) when nothing was inserted.
+        return sql.unsafe(query, params).then((result) => result.affectedRows === 0 ? null : result.lastInsertRowid)
     }
     override addParam(params: any[], value: any): string {
         params.push(value)

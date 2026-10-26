@@ -102,7 +102,7 @@ when the index isn't built.
 
 ---
 
-## GROUP BY column requirements vary by dialect and the library doesn't enforce
+## A GROUP BY that leaves a column out is not detected
 
 **Engines split into two camps:**
 
@@ -117,10 +117,14 @@ when the index isn't built.
   [SQLite](../docs/configuration/supported-databases/sqlite.md) accept
   forms where some non-aggregated columns are omitted from GROUP BY.
 
-`ts-sql-query` **does not detect the difference**. A query that
-compiles and runs fine on PostgreSQL may crash at execution time
-against SQL Server or Oracle with a "column not in group by"
-diagnostic. The type system has no way of telling.
+A select with an aggregate and no group by at all is detected at compile
+time (a column that refers to a table and is not aggregated makes the
+`execute*` / `forUse*` calls not compile). A group by that is present but
+leaves a column out is **not** detected: a query that compiles and runs
+fine on PostgreSQL (grouping by a primary key) may crash at execution time
+against SQL Server or Oracle with a "column not in group by" diagnostic.
+`groupByNonAggregatedColumns()` groups by every non-aggregated column of
+the select and avoids it.
 
 **What this means for tests** — when you write a `docs:` /
 `docs-extra:` test that uses `groupBy`, always include EVERY

@@ -649,6 +649,20 @@ function _typeNegatives() {
     void connection.selectFrom(tIssue).select({ projectId: tIssue.projectId, issues: connection.countAll() }).groupBy('projectId').having(columns => columns.issues.greaterThan(1))
     // @ts-expect-error having(columns => …) needs the select clause first
     void connection.selectFrom(tIssue).groupBy(tIssue.projectId).having(columns => columns.issues.greaterThan(1))
+
+    // Rule: a select with an aggregate among its columns needs every other column
+    // that refers to a table to be grouped; without a group by it can't be
+    // executed nor used as a subquery. A constant needs no grouping.
+    void connection.selectFrom(tIssue).select({ projectId: tIssue.projectId, issues: connection.countAll() }).groupByNonAggregatedColumns().executeSelectMany()
+    void connection.selectFrom(tIssue).groupBy(tIssue.projectId).select({ projectId: tIssue.projectId, issues: connection.countAll() }).executeSelectMany()
+    void connection.selectFrom(tIssue).select({ label: connection.const('issues', 'string'), issues: connection.countAll() }).executeSelectOne()
+    void connection.selectFrom(tIssue).select({ projectId: tIssue.projectId, priority: tIssue.priority }).executeSelectMany()
+    // @ts-expect-error projectId is neither aggregated nor grouped
+    void connection.selectFrom(tIssue).select({ projectId: tIssue.projectId, issues: connection.countAll() }).executeSelectMany()
+    // @ts-expect-error projectId is neither aggregated nor grouped (nested object)
+    void connection.selectFrom(tIssue).select({ project: { id: tIssue.projectId }, issues: connection.countAll() }).executeSelectMany()
+    // @ts-expect-error projectId is neither aggregated nor grouped (used as a with view)
+    void connection.selectFrom(tIssue).select({ projectId: tIssue.projectId, issues: connection.countAll() }).forUseInQueryAs('issuesPerProject')
 }
 
 test('select-negative-types', () => {

@@ -28,7 +28,9 @@ See the [Connection API](../api/connection.md) for their signatures.
 
 ## Grouping by every non-aggregated column
 
-Every column of the select that is not an aggregate must be grouped. The recommended way is to write the select first and call `groupByNonAggregatedColumns()`: it groups by every column of the select that is not an aggregate and refers to a table or view, so the group by always matches the select. A constant is left out, because it doesn't need to be grouped (in the example, `kind`). Each grouped column is referred to as a column of the select, written with the same SQL and parameters the select list uses (see [Grouping by the columns of the select](#grouping-by-the-columns-of-the-select)).
+Every column of the select that is not an aggregate must be grouped. If the select has an aggregate and a column that refers to a table or view is neither aggregated nor grouped, because there is no group by at all, the query doesn't compile: executing it or using it as a subquery reports *The select has an aggregate and other columns that are not aggregated: group them with groupByNonAggregatedColumns() or groupBy(...)*. (A group by that leaves some column out is not detected; the database reports it, or, when it allows it, like PostgreSQL grouping by a primary key, accepts it.)
+
+The recommended way is to write the select first and call `groupByNonAggregatedColumns()`: it groups by every column of the select that is not an aggregate and refers to a table or view, so the group by always matches the select. A constant is left out, because it doesn't need to be grouped (in the example, `kind`). Each grouped column is referred to as a column of the select, written with the same SQL and parameters the select list uses (see [Grouping by the columns of the select](#grouping-by-the-columns-of-the-select)).
 
 ```ts
 const customerCountPerCompany = connection.selectFrom(tCompany)

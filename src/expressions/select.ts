@@ -57,7 +57,31 @@ type ExecutableSelectColumns<COLUMNS> =
         [P in keyof COLUMNS]: RemapIValueSourceType<any, COLUMNS[P]>
     }
 
-export interface ExecutableSelect</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT> extends SelectExpressionBase<FROM, REQUIRED> {
+/*
+ * A select that has an aggregate among its columns and no group by must have every other column aggregated too (a
+ * constant aside): a column of the select that refers to a table or view and is not an aggregate would need the
+ * group by. The aggregate functions carry the aggregate source (NAggregate) and a constant carries only the
+ * no-table-or-view-required one.
+ */
+type SelectColumnKind<SOURCE> =
+    [Extract<SOURCE, `${string}/aggregate/`>] extends [never]
+    ? ([Exclude<SOURCE, `${string}/noTableOrViewRequired/`>] extends [never] ? never : 'notAggregated')
+    : 'aggregate'
+type SelectColumnsKinds<COLUMNS> =
+    0 extends (1 & COLUMNS) ? never // a column typed any can't be told apart
+    : COLUMNS extends HasSource<infer SOURCE> ? SelectColumnKind<SOURCE>
+    : COLUMNS extends object ? { [K in keyof COLUMNS]-?: SelectColumnsKinds<Exclude<COLUMNS[K], undefined>> }[keyof COLUMNS]
+    : never
+type MissingGroupBy<COLUMNS, FEATURES> =
+    'groupBy' extends FEATURES ? false
+    : 'aggregate' extends SelectColumnsKinds<COLUMNS> ? ('notAggregated' extends SelectColumnsKinds<COLUMNS> ? true : false)
+    : false
+export interface SelectWithAnAggregateNeedsTheGroupBy {
+    'The select has an aggregate and other columns that are not aggregated: group them with groupByNonAggregatedColumns() or groupBy(...)': never
+}
+type GroupByCheck<COLUMNS, FEATURES> = MissingGroupBy<COLUMNS, FEATURES> extends true ? SelectWithAnAggregateNeedsTheGroupBy : unknown
+
+export interface ExecutableSelect</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES = any> extends SelectExpressionBase<FROM, REQUIRED> {
     [selectColumnsType]: COLUMNS
     [resultType]: RESULT
     /*
@@ -67,25 +91,25 @@ export interface ExecutableSelect</*in|out*/ FROM extends HasSource<any>, /*in|o
      *
      * Please, don't remove it or put in a type declaration
      */
-    executeSelectNoneOrOne(this: NotSubselectUsing): Promise<( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] }) | null>
-    executeSelectOne(this: NotSubselectUsing): Promise<( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })>
-    executeSelectMany(this: NotSubselectUsing): Promise<( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[]>
+    executeSelectNoneOrOne(this: NotSubselectUsing & GroupByCheck<COLUMNS, FEATURES>): Promise<( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] }) | null>
+    executeSelectOne(this: NotSubselectUsing & GroupByCheck<COLUMNS, FEATURES>): Promise<( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })>
+    executeSelectMany(this: NotSubselectUsing & GroupByCheck<COLUMNS, FEATURES>): Promise<( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[]>
 
-    executeSelectPage(this: NotSubselectUsing): Promise<{ data: ( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[], count: number }>
-    executeSelectPage<EXTRAS extends {}>(this: NotSubselectUsing, extras: EXTRAS & { data?: ( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[], count?: number }): Promise<{ [Q in keyof SelectPageWithExtras<COLUMNS, RESULT, EXTRAS>]: SelectPageWithExtras<COLUMNS, RESULT, EXTRAS>[Q] }>
+    executeSelectPage(this: NotSubselectUsing & GroupByCheck<COLUMNS, FEATURES>): Promise<{ data: ( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[], count: number }>
+    executeSelectPage<EXTRAS extends {}>(this: NotSubselectUsing & GroupByCheck<COLUMNS, FEATURES>, extras: EXTRAS & { data?: ( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[], count?: number }): Promise<{ [Q in keyof SelectPageWithExtras<COLUMNS, RESULT, EXTRAS>]: SelectPageWithExtras<COLUMNS, RESULT, EXTRAS>[Q] }>
 
     query(): string
     params(): any[]
 }
 
-export interface WithableExecutableSelect</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends ExecutableSelect<FROM, REQUIRED, COLUMNS, RESULT>, ICompoundableSelect<REQUIRED, COLUMNS, RESULT> {
-    forUseInQueryAs: ForUseInQueryAs<FROM, REQUIRED, COLUMNS>
+export interface WithableExecutableSelect</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends ExecutableSelect<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>, ICompoundableSelect<REQUIRED, COLUMNS, RESULT> {
+    forUseInQueryAs: ForUseInQueryAs<FROM, REQUIRED, COLUMNS, FEATURES>
     forUseAsInlineQueryValue: ForUseAsInlineQueryValue<FROM, REQUIRED, COLUMNS, FEATURES>
     forUseAsInlineAggregatedArrayValue: ForUseAsInlineAggregatedArrayValue<FROM, REQUIRED, COLUMNS, FEATURES>
 }
 
-export interface WithableExecutableSelectWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends ExecutableSelect<FROM, REQUIRED, COLUMNS, RESULT>, ICompoundableSelect<REQUIRED, COLUMNS, RESULT> {
-    forUseInQueryAs: ForUseInQueryAs<FROM, REQUIRED, COLUMNS>
+export interface WithableExecutableSelectWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends ExecutableSelect<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>, ICompoundableSelect<REQUIRED, COLUMNS, RESULT> {
+    forUseInQueryAs: ForUseInQueryAs<FROM, REQUIRED, COLUMNS, FEATURES>
     forUseAsInlineQueryValue: ForUseAsInlineQueryValue<FROM, REQUIRED, COLUMNS, FEATURES>
     forUseAsInlineAggregatedArrayValue: ForUseAsInlineAggregatedArrayValue<FROM, REQUIRED, COLUMNS, FEATURES>
 }
@@ -463,8 +487,8 @@ export type SelectColumns<SOURCE extends NSource> = DataToProject<SOURCE>
 
 type SelectPageWithExtras<COLUMNS, RESULT, EXTRAS> = { data: ( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[], count: number } & Omit<EXTRAS, 'data' | 'count'>
 
-type ForUseInQueryAs<_FROM extends HasSource<any>, REQUIRED extends HasSource<any>, COLUMNS> =
-    unknown extends REQUIRED ? <ALIAS extends string>(as: ALIAS) => WithView<NWithFrom<REQUIRED[typeof source], ALIAS>, ColumnsForWithView<NWithFrom<REQUIRED[typeof source], ALIAS>, COLUMNS>> // this is the case when the arguments are of type any
+type ForUseInQueryAs<_FROM extends HasSource<any>, REQUIRED extends HasSource<any>, COLUMNS, FEATURES> =
+    unknown extends REQUIRED ? <ALIAS extends string>(this: GroupByCheck<COLUMNS, FEATURES>, as: ALIAS) => WithView<NWithFrom<REQUIRED[typeof source], ALIAS>, ColumnsForWithView<NWithFrom<REQUIRED[typeof source], ALIAS>, COLUMNS>> // this is the case when the arguments are of type any
     : [COLUMNS] extends [undefined]
     ? never
     : [COLUMNS] extends [AnyValueSource]
@@ -472,9 +496,9 @@ type ForUseInQueryAs<_FROM extends HasSource<any>, REQUIRED extends HasSource<an
     : [REQUIRED] extends [OfDB<'sqlServer' | 'oracle' | 'mariaDB'>]
     ? (
         [REQUIRED] extends [NoTableOrViewRequiredOfSameDB<REQUIRED>]
-        ? <ALIAS extends string>(as: ALIAS) => WithView<NWithFrom<REQUIRED[typeof source], ALIAS>, ColumnsForWithView<NWithFrom<REQUIRED[typeof source], ALIAS>, COLUMNS>>
+        ? <ALIAS extends string>(this: GroupByCheck<COLUMNS, FEATURES>, as: ALIAS) => WithView<NWithFrom<REQUIRED[typeof source], ALIAS>, ColumnsForWithView<NWithFrom<REQUIRED[typeof source], ALIAS>, COLUMNS>>
         : never // Not supported by SqlServer (No inner with), Oracle (No outer references in inner with) and MariaDB (No outer references in inner with)
-    ) : <ALIAS extends string>(as: ALIAS) => WithView<NWithFrom<REQUIRED[typeof source], ALIAS>, ColumnsForWithView<NWithFrom<REQUIRED[typeof source], ALIAS>, COLUMNS>>
+    ) : <ALIAS extends string>(this: GroupByCheck<COLUMNS, FEATURES>, as: ALIAS) => WithView<NWithFrom<REQUIRED[typeof source], ALIAS>, ColumnsForWithView<NWithFrom<REQUIRED[typeof source], ALIAS>, COLUMNS>>
 
 type ForUseAsInlineQueryValue<_FROM extends HasSource<any>, REQUIRED extends HasSource<any>, COLUMNS, FEATURES> =
     COLUMNS extends AnyValueSource
@@ -505,7 +529,7 @@ type ForUseAsInlineAggregatedArrayValue<FROM extends HasSource<any>, REQUIRED ex
 
 type ForUseAsInlineAggregatedArrayValueFn<_FROM extends HasSource<any>, REQUIRED extends HasSource<any>, COLUMNS, FEATURES> =
     COLUMNS extends IValueSource<any, any, any, any>
-    ? () => AggregatedArrayValueSource<REQUIRED[typeof source], Array<COLUMNS[typeof valueType]>, 'required'>
+    ? (this: GroupByCheck<COLUMNS, FEATURES>) => AggregatedArrayValueSource<REQUIRED[typeof source], Array<COLUMNS[typeof valueType]>, 'required'>
     // When `projectingOptionalValuesAsNullable()` was called on the select, the runtime honours the flag
     // for the inline aggregated array too (SelectQueryBuilder.forUseAsInlineAggregatedArrayValue) and emits
     // each optional leaf present-as-null. Unlike `connection.aggregateAsArray(...)` — whose runtime DROPS a
@@ -515,8 +539,8 @@ type ForUseAsInlineAggregatedArrayValueFn<_FROM extends HasSource<any>, REQUIRED
     // mirroring the default branch's plain `ResultObjectValues`, NOT the `...ForAggregatedArray` variant (which
     // types those leaves non-null and is correct only for the dropping `aggregateAsArray` runtime).
     : 'projectingOptionalValuesAsNullable' extends FEATURES
-    ? () => AggregatedArrayValueSource<REQUIRED[typeof source], Array<{ [P in keyof ResultObjectValuesProjectedAsNullable<COLUMNS>]: ResultObjectValuesProjectedAsNullable<COLUMNS>[P] }>, 'required'>
-    : () => AggregatedArrayValueSource<REQUIRED[typeof source], Array<{ [P in keyof ResultObjectValues<COLUMNS>]: ResultObjectValues<COLUMNS>[P] }>, 'required'>
+    ? (this: GroupByCheck<COLUMNS, FEATURES>) => AggregatedArrayValueSource<REQUIRED[typeof source], Array<{ [P in keyof ResultObjectValuesProjectedAsNullable<COLUMNS>]: ResultObjectValuesProjectedAsNullable<COLUMNS>[P] }>, 'required'>
+    : (this: GroupByCheck<COLUMNS, FEATURES>) => AggregatedArrayValueSource<REQUIRED[typeof source], Array<{ [P in keyof ResultObjectValues<COLUMNS>]: ResultObjectValues<COLUMNS>[P] }>, 'required'>
 
 type CompoundFunction<SUPPORTED_DB extends NDbType, FROM extends HasSource<any>, REQUIRED extends HasSource<any>, COLUMNS, RESULT, FEATURES> =
     [REQUIRED] extends [OfDB<SUPPORTED_DB>]

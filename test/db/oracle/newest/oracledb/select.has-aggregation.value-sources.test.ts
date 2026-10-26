@@ -1628,7 +1628,8 @@ describe(ctx.label, () => {
 
     test('has-aggregation/aggregate-as-array-replaced-by-null-reports-false', async () => {
         // `ignoreWhenAsNull(true)` projects null in place of the aggregate, so the
-        // query aggregates nothing and needs no `group by`: one row per issue.
+        // query aggregates nothing. The flag is a runtime value, so the type still
+        // asks for the group by, which keeps the query valid either way.
         const expected = [{ projectId: 2 }, { projectId: 3 }]
         ctx.mockNext([{ projectId: 2, issues: null }, { projectId: 3, issues: null }])
         const connection = ctx.conn
@@ -1640,13 +1641,14 @@ describe(ctx.label, () => {
                 projectId: tIssue.projectId,
                 issues:    connection.aggregateAsArray({ id: tIssue.id, title: tIssue.title }).ignoreWhenAsNull(hideIssues),
             })
+            .groupByNonAggregatedColumns()
             .orderBy('projectId')
 
         expect(queryHasAggregation(query)).toBe(false)
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", null as "issues" from issue where project_id in (:0, :1) order by "projectId""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", null as "issues" from issue where project_id in (:0, :1) group by project_id order by "projectId""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

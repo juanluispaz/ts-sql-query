@@ -1137,6 +1137,148 @@ const companiesWithNumberOfCustomers: Promise<{
 
     In the previous example, it is more convenient to use `.selectCountAll()` instead of `.selectOneColumn(connection.countAll())` because the returned value will not be optional; if not, you will not need to use `.selectOneColumn(connection.countAll()).valueWhenNull(0)` to achive same optionality result.
 
+## Inline subquery with distinct values referencing outer query
+
+`subSelectDistinctUsing` works like `subSelectUsing`, but the subquery returns distinct rows (`select distinct`). For example, the distinct last names of the customers of each company, as an [aggregated array](aggregate-as-object-array.md):
+
+```ts
+const lastNamesOfTheCustomers = connection
+    .subSelectDistinctUsing(tCompany)
+    .from(tCustomer)
+    .where(tCustomer.companyId.equals(tCompany.id))
+    .selectOneColumn(tCustomer.lastName)
+    .forUseAsInlineAggregatedArrayValue();
+
+const companiesWithTheLastNamesOfTheirCustomers = await connection.selectFrom(tCompany)
+    .select({
+        id: tCompany.id,
+        name: tCompany.name,
+        lastNames: lastNamesOfTheCustomers
+    })
+    .executeSelectMany();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    -- MariaDB doesn't support a distinct subquery that references an outer table as an aggregated array
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id,
+        `name` as `name`,
+        cast((select json_arrayagg(a_1_.result) from (select distinct last_name as result from customer where company_id = company.id) as a_1_) as char) as lastNames
+    from company
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id",
+        name as "name",
+        (select json_arrayagg(a_1_.result) from (select distinct last_name as result from customer where company_id = company.id) a_1_) as "lastNames"
+    from company
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id,
+        name as name,
+        ((select json_agg(a_1_.result) from (select distinct last_name as result from customer where company_id = company.id) as a_1_))::text as "lastNames"
+    from company
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id,
+        name as name,
+        (select json_group_array(a_1_.result) from (select distinct last_name as result from customer where company_id = company.id) as a_1_) as lastNames
+    from company
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id,
+        name as name,
+        (select json_arrayagg(a_1_.[result] null on null) from (select distinct last_name as [result] from customer where company_id = company.id) as a_1_) as lastNames
+    from company
+    ```
+
+The parameters are: `[]`
+
+The result type is:
+```tsx
+const companiesWithTheLastNamesOfTheirCustomers: Promise<{
+    id: number;
+    name: string;
+    lastNames: string[];
+}[]>
+```
+
+## Select without a table
+
+`selectFromNoTable()` starts a select that has no `from`: its columns are values that don't come from a table, like the result of subqueries, functions or constants. For example, two counts in a single query:
+
+```ts
+const counts = await connection.selectFromNoTable()
+    .select({
+        customers: connection.selectFrom(tCustomer).selectCountAll().forUseAsInlineQueryValue(),
+        companies: connection.selectFrom(tCompany).selectCountAll().forUseAsInlineQueryValue()
+    })
+    .executeSelectOne();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        (select count(*) as result from customer) as customers, 
+        (select count(*) as result from company) as companies
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        (select count(*) as result from customer) as customers, 
+        (select count(*) as result from company) as companies
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        (select count(*) as "result" from customer) as "customers", 
+        (select count(*) as "result" from company) as "companies"
+    from dual
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        (select count(*) as result from customer) as customers, 
+        (select count(*) as result from company) as companies
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        (select count(*) as result from customer) as customers, 
+        (select count(*) as result from company) as companies
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        (select count(*) as [result] from customer) as customers, 
+        (select count(*) as [result] from company) as companies
+    ```
+
+The parameters are: `[]`
+
+The result type is:
+```tsx
+const counts: Promise<{
+    customers: number;
+    companies: number;
+}>
+```
+
 ## Select clauses order
 
 The order of clauses in a select query must follow one of the supported logical patterns:

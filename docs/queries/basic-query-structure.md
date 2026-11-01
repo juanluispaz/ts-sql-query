@@ -208,3 +208,17 @@ You can execute the query using:
 - `executeSelectPage<EXTRAS extends {}>(extras: EXTRAS): Promise<{ data: RESULT[], count: number } & EXTRAS>`: execute the select query as a select page, but allows the resulting object to include additional custom properties. If the object provided by argument includes the property count, the query that count the data will be omitted and this value will be used. If the object provided by argument includes the property data, the query that extract the data will be omitted and this value will be used.
 
 Additionally, if you want to return the value of a single column, you can use `selectOneColumn(column)` instead of `select({...})`; or if you want to return `count(*)` as a single column, you can use `selectCountAll()`.
+
+To see the SQL a query will run and its parameters, without executing it, call `query()` and `params()` on it (every query has them: select, insert, update and delete):
+
+```ts
+const customerQuery = connection.selectFrom(tCustomer)
+    .where(tCustomer.id.equals(10))
+    .select({
+        id: tCustomer.id,
+        firstName: tCustomer.firstName
+    });
+
+const sql = customerQuery.query();   // on PostgreSQL: select id as id, first_name as "firstName" from customer where id = $1
+const params = customerQuery.params(); // [ 10 ]
+```

@@ -490,6 +490,115 @@ The executed query is:
 
 The parameters are: `[ 10 ]`
 
+## Dynamic join conditions and having
+
+Like `dynamicWhere()`, `dynamicOn()` starts the condition of a join and `dynamicHaving()` the having, with no condition; then `and(...)` and `or(...)` add the conditions while the query is built:
+
+```ts
+const onlyCustomersWithBirthday = true;
+const minimumCustomers: number | undefined = 2;
+
+const query = connection.selectFrom(tCompany)
+    .innerJoin(tCustomer).dynamicOn()
+    .and(tCustomer.companyId.equals(tCompany.id));
+if (onlyCustomersWithBirthday) {
+    query.and(tCustomer.birthday.isNotNull());
+}
+
+const grouped = query.groupBy(tCompany.id, tCompany.name).dynamicHaving();
+if (minimumCustomers !== undefined) {
+    grouped.and(connection.count(tCustomer.id).greaterOrEqual(minimumCustomers));
+}
+
+const companies = await grouped
+    .select({
+        id: tCompany.id,
+        name: tCompany.name,
+        customerCount: connection.count(tCustomer.id)
+    })
+    .executeSelectMany();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company.id as id,
+        company.name as name,
+        count(customer.id) as customerCount
+    from company
+    inner join customer on customer.company_id = company.id and customer.birthday is not null
+    group by company.id, company.name
+    having count(customer.id) >= ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company.id as id,
+        company.`name` as `name`,
+        count(customer.id) as customerCount
+    from company
+    inner join customer on customer.company_id = company.id and customer.birthday is not null
+    group by company.id, company.`name`
+    having count(customer.id) >= ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company.id as "id",
+        company.name as "name",
+        count(customer.id) as "customerCount"
+    from company
+    inner join customer on customer.company_id = company.id and customer.birthday is not null
+    group by company.id, company.name
+    having count(customer.id) >= :0
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company.id as id,
+        company.name as name,
+        count(customer.id) as "customerCount"
+    from company
+    inner join customer on customer.company_id = company.id and customer.birthday is not null
+    group by company.id, company.name
+    having count(customer.id) >= $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company.id as id,
+        company.name as name,
+        count(customer.id) as customerCount
+    from company
+    inner join customer on customer.company_id = company.id and customer.birthday is not null
+    group by company.id, company.name
+    having count(customer.id) >= ?1
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company.id as id,
+        company.name as name,
+        count(customer.id) as customerCount
+    from company
+    inner join customer on customer.company_id = company.id and customer.birthday is not null
+    group by company.id, company.name
+    having count(customer.id) >= @0
+    ```
+
+The parameters are: `[ 2 ]`
+
+The result type is:
+```tsx
+const companies: Promise<{
+    id: number;
+    name: string;
+    customerCount: number;
+}[]>
+```
+
 ## Optional joins
 
 You can write selects where the columns are picked dynamically, but maybe a join is required depending on the picked columns. `ts-sql-query` allows you to specify that a join should only be included in the final query if the table involved in the join is used in the final query (by example, a column from that table was selected or used in a dynamic `WHERE` clause). 

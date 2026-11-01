@@ -197,6 +197,91 @@ const customerWithId: Promise<{
 
     Projecting always-required properties that allow null values works in the same way with insert, update or deletes if you call `projectingOptionalValuesAsNullable()` immediately after `returning(...)`. This also applies to `connection.aggregateAsArray(...).projectingOptionalValuesAsNullable()`.
 
+## Constant values
+
+A value that doesn't come from a table is written as a constant with `connection.const(value, type)`; the type is the [column type](../configuration/column-types.md) of the value. When the value can be `null` or `undefined`, use `connection.optionalConst(value, type)`: the constant is optional, like an optional column.
+
+```ts
+const noteForTheCustomer: string | null = null;
+
+const customerWithNote = await connection.selectFrom(tCustomer)
+    .where(tCustomer.id.equals(10))
+    .select({
+        id: tCustomer.id,
+        source: connection.const('import', 'string'),
+        note: connection.optionalConst(noteForTheCustomer, 'string')
+    })
+    .executeSelectOne();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id,
+        ? as source,
+        ? as note
+    from customer
+    where id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id,
+        ? as `source`,
+        ? as note
+    from customer
+    where id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id",
+        :0 as "source",
+        :1 as "note"
+    from customer
+    where id = :2
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id,
+        $1::text as source,
+        $2::text as note
+    from customer
+    where id = $3
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id,
+        ?1 as source,
+        ?2 as note
+    from customer
+    where id = ?3
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id,
+        @0 as source,
+        @1 as note
+    from customer
+    where id = @2
+    ```
+
+The parameters are: `[ 'import', null, 10 ]`
+
+The result type is:
+```tsx
+const customerWithNote: Promise<{
+    id: number;
+    source: string;
+    note?: string;
+}>
+```
+
 ## Other options
 
 You can execute the query using:

@@ -315,6 +315,78 @@ The executed query is:
 
 The parameters are: `[ ]`
 
+### The neutral boolean
+
+`connection.noValueBoolean()` returns that neutral boolean directly: a condition that is ignored in `and`s, `or`s, `on`s and `where`s. It is useful to choose between a condition and no condition at all:
+
+```ts
+const canSeeEveryCompany: boolean = true;
+const userCompanyId = 1;
+
+const customers = await connection.selectFrom(tCustomer)
+    .where(canSeeEveryCompany ? connection.noValueBoolean() : tCustomer.companyId.equals(userCompanyId))
+    .select({
+        id: tCustomer.id,
+        firstName: tCustomer.firstName
+    })
+    .executeSelectMany();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id,
+        first_name as firstName
+    from customer
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id,
+        first_name as firstName
+    from customer
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id",
+        first_name as "firstName"
+    from customer
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id,
+        first_name as "firstName"
+    from customer
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id,
+        first_name as firstName
+    from customer
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id,
+        first_name as firstName
+    from customer
+    ```
+
+The parameters are: `[]`
+
+The result type is:
+```tsx
+const customers: Promise<{
+    id: number;
+    firstName: string;
+}[]>
+```
+
 ## Ignorable expression as null
 
 You can create an expression that only applies if a certain condition is met, calling the `onlyWhenOrNull` method at the end of the expression; in case the condition is false it returns a null constant (ignoring the expression). You can also use the `ignoreWhenAsNull` method at the end of the expression to do the opposite; in case the condition is true it returns a null constant. The `onlyWhenOrNull` and `ignoreWhenAsNull` methods can be useful to apply restrictions in the query, by example, when the user have some roles.

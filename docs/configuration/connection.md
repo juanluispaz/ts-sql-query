@@ -46,6 +46,28 @@ Set it to the **empty string** (`''`) to emit the bare operation with no `lower(
 
     The dedicated [Collations & case sensitivity](collations.md) page is the complete story: what a collation is and how to set one on a column or database, the [per-database collation names](collations.md#per-database) to use here (and the PostgreSQL non-deterministic collation you must create first), the per-value [`.collate('<name>')`](collations.md#collate-force-a-collation-per-value) lever, the [`replaceAllInsensitive`](collations.md#replaceallinsensitive-the-insensitive-twin) method, and — for the `replaceAll` value corruption on SQL Server / Oracle — [`replaceCollation`](collations.md#replacecollation-sql-server-and-oracle).
 
+## Quoting identifiers
+
+The names of the tables, views and columns are written as they are, and quoted only when they need it: when the name is a reserved keyword of the database, or it has a space or another character an unquoted identifier can't have. The connection decides it with three protected methods you can override:
+
+- `isReservedKeyword(word)`: whether the word is a reserved keyword (quoted when used as an identifier); override it to add the words of your database version, or of an extension.
+- `forceAsIdentifier(identifier)`: the identifier quoted the way the database does it (`"name"`, `` `name` ``, `[name]`).
+- `escape(identifier, strict)`: the identifier as it is written in the query; by default it calls `forceAsIdentifier` only when the identifier needs it.
+
+To quote every identifier, override `escape`:
+
+```typescriptreact
+import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
+
+class DBConnection extends PostgreSqlConnection<'DBConnection'> { 
+    protected override escape(identifier: string, _strict: boolean): string {
+        return this.forceAsIdentifier(identifier)
+    }
+}
+```
+
+A select of the id and the first name of a customer is then written `select "id" as "id", "first_name" as "firstName" from "customer" where "id" = $1` instead of `select id as id, first_name as "firstName" from customer where id = $1`.
+
 ## Instantiating the connection with the database connection
 
 ```ts

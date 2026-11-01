@@ -81,6 +81,14 @@ export interface CustomizableExecutableSimpleInsertOnConflict</*in|out*/ TABLE e
     returningOneColumn: ReturningOneColumnFnType<TABLE, USING>
 }
 
+// The insert of a row with every column defaulted: no on conflict clause can follow it, and its returning methods are
+// the ones of a plain insert
+export interface CustomizableExecutableInsertDefaultValues</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends CustomizableExecutableInsert<TABLE, USING> {
+    returningLastInsertedId: ReturningLastInsertedIdType<TABLE, USING>
+    returning: ReturningFnType<TABLE, USING>
+    returningOneColumn: ReturningOneColumnFnType<TABLE, USING>
+}
+
 export interface CustomizableExecutableSimpleInsertOnConflictOptional</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends CustomizableExecutableInsert<TABLE, USING> {
     returningLastInsertedId: OnConflictReturningLastInsertedIdOptionalType<TABLE, USING>
     returning: ReturningOptionalFnType<TABLE, USING>
@@ -1005,8 +1013,8 @@ export type InsertReturningColumns</*in|out*/ SOURCE extends NSource> = DataToPr
 
 
 type DefaultValueType<TABLE extends HasSource<any>, USING extends HasSource<any>> =
-    unknown extends TABLE ? () => CustomizableExecutableSimpleInsertOnConflict<TABLE, USING> : // this is the case when TABLE is any
-    [RequiredColumnsForSetOf<TABLE>] extends [never] ? () => CustomizableExecutableSimpleInsertOnConflict<TABLE, USING> : never
+    unknown extends TABLE ? () => CustomizableExecutableInsertDefaultValues<TABLE, USING> : // this is the case when TABLE is any
+    [RequiredColumnsForSetOf<TABLE>] extends [never] ? () => CustomizableExecutableInsertDefaultValues<TABLE, USING> : never
 
 type MaybeExecutableInsertExpression<TABLE extends HasSource<any>, USING extends HasSource<any>, MISSING_KEYS> =
     [MISSING_KEYS] extends [never] ? ExecutableInsertExpression<TABLE, USING> :  MissingKeysInsertExpression<TABLE, USING, MISSING_KEYS>

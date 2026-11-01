@@ -71,8 +71,6 @@ describe(ctx.label, () => {
         })
     })
 
-    // NOT-APPLICABLE: on MySQL the id of a `.defaultValues()` insert can't be returned through the typed surface — `.returningLastInsertedId()` is `never` (`.defaultValues()` reuses the post-on-conflict returning surface, whose `returningLastInsertedId` excludes MySQL because `LAST_INSERT_ID()` after `ON DUPLICATE KEY UPDATE` is ambiguous; see insert.default-values.test.ts).
-    /*
     test('autogen-pk-adapter-applies-on-the-returning-last-inserted-id-path', async () => {
         // `returningLastInsertedId()` reads the DB-generated entry_no back
         // through plusOffsetAdapter, so the returned id surfaces +1000. The
@@ -95,7 +93,6 @@ describe(ctx.label, () => {
             if (!ctx.realDbEnabled) expect(newId).toBe(1002)
         })
     })
-    */
 
     test('default-value-columns-apply-db-default-read-through-the-adapter', async () => {
         // Inserting with all columns defaulted (`defaultValues()`) lets the DB

@@ -953,8 +953,9 @@ const tAuditEvent = new class TAuditEvent extends Table<DBConnection, 'TAuditEve
     }
 }();
 
-const insertedCount = await connection.insertInto(tAuditEvent)
+const eventId = await connection.insertInto(tAuditEvent)
     .defaultValues()
+    .returningLastInsertedId()
     .executeInsert();
 ```
 
@@ -964,6 +965,7 @@ The executed query is:
     ```mariadb
     insert into audit_event ()
     values ()
+    returning audit_event.id
     ```
 === "MySQL"
     ```mysql
@@ -974,20 +976,24 @@ The executed query is:
     ```oracle
     insert into audit_event (id, created_at)
     values (default, default)
+    returning id into :0
     ```
 ===+ "PostgreSQL"
     ```postgresql
     insert into audit_event
     default values
+    returning id
     ```
 === "SQLite"
     ```sqlite
     insert into audit_event
     default values
+    returning id
     ```
 === "SQL Server"
     ```sqlserver
     insert into audit_event
+    output inserted.id
     default values
     ```
 
@@ -995,7 +1001,7 @@ The parameters are: `[]`
 
 The result type is:
 ```tsx
-const insertedCount: number
+const eventId: number
 ```
 
 ## Insert on conflict

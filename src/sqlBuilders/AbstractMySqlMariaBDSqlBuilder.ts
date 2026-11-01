@@ -1,7 +1,7 @@
 import type { ToSql, SqlOperation, SelectData, InsertData, UpdateData, DeleteData, FlatQueryColumns, OrderByEntry, PlainSelectData } from './SqlBuilder.js'
 import { getQueryColumn, flattenQueryColumns } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
-import type { AnyValueSource, __AggregatedArrayColumns, ValueType } from '../expressions/values.js'
+import type { AnyValueSource, IAnyBooleanValueSource, __AggregatedArrayColumns, ValueType } from '../expressions/values.js'
 import { isValueSource } from '../expressions/values.js'
 import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
@@ -59,6 +59,15 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             }
         }
         return super._buildSelectGroupBy(query, params, isOutermostQuery, selectColumnsSql)
+    }
+    override _appendHavingCondition(having: IAnyBooleanValueSource<any, any>, params: any[]): string {
+        // In a having, MySQL and MariaDB resolve a bare name to an alias of the select before a column of the table
+        // that isn't grouped: the columns of the tables are written with the table name, so they never take an alias
+        const oldSafeTableOrView = this._getSafeTableOrView(params)
+        this._setSafeTableOrView(params, undefined)
+        const result = super._appendHavingCondition(having, params)
+        this._setSafeTableOrView(params, oldSafeTableOrView)
+        return result
     }
     override _appendSelectColumnReference(column: AnyValueSource, params: any[]): string {
         const selectColumn = this._getSelectColumnsSql(params)?.get(column)

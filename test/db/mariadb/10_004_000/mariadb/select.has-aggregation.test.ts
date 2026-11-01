@@ -303,7 +303,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId from issue group by project_id having project_id > ? order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId from issue group by project_id having issue.project_id > ? order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -336,7 +336,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId from issue group by project_id having count(id) > ? order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId from issue group by project_id having count(issue.id) > ? order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

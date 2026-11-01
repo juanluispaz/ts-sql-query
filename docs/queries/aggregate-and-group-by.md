@@ -510,11 +510,15 @@ const customerCountPerCompany: Promise<{
 
 `groupBy` and `having` can also be written before the `select`, in the logical order of the query. There they receive the expressions to group by and the condition, written again, and the ways that read the columns of the select are not available: [`groupByNonAggregatedColumns()`](#grouping-by-every-non-aggregated-column), the names of its columns in [`groupBy`](#grouping-by-the-columns-of-the-select) and [`having(columns => …)`](#filtering-the-groups-by-the-columns-of-the-select) are only offered after the select.
 
-!!! warning "An expression that carries a parameter, written again"
+!!! danger "The database can reject these queries"
 
-    Each time an expression that carries a parameter is written, it gets new parameters. With the select `{ initial: tCustomer.lastName.substr(0, 1) }`, `groupBy(tCustomer.lastName.substr(0, 1))` is emitted as `select substr(last_name, $1, $2) as initial … group by substr(last_name, $3, $4)`, and the database doesn't take it as the same expression. PostgreSQL (*column must appear in the GROUP BY clause or be used in an aggregate function*), SQL Server (*is invalid in the select list because it is not contained in either an aggregate function or the GROUP BY clause*) and Oracle (*ORA-00979*) reject the query, and so does MySQL when the query runs as a prepared statement, like with Bun SQL (*isn't in GROUP BY*). The same happens with such an expression in `having(...)`, where MySQL and MariaDB also reject it (*unknown column in HAVING*). Write the select first and refer to its columns instead, as the previous sections show: `groupByNonAggregatedColumns()`, `groupBy('<column name>')` and `having(columns => …)` repeat the SQL of the select with the same parameters. Plain columns and aggregates, which carry no parameter, are not affected.
+    Written before the select, the group by and the having can make the database reject the query: when [an expression that carries a parameter is written again](#an-expression-that-carries-a-parameter-written-again), or when the having uses [a column that isn't in the group by](#a-column-that-isnt-in-the-group-by-in-the-having). Write the select first and refer to its columns instead: [`groupByNonAggregatedColumns()`](#grouping-by-every-non-aggregated-column), [`groupBy('<column name>')`](#grouping-by-the-columns-of-the-select) and [`having(columns => …)`](#filtering-the-groups-by-the-columns-of-the-select).
 
 ### Group by with the expressions
+
+!!! danger "An expression that carries a parameter"
+
+    The database rejects the query when an expression that carries a parameter is written again in the group by: see [An expression that carries a parameter, written again](#an-expression-that-carries-a-parameter-written-again). Write the select first and use [`groupBy('<column name>')`](#grouping-by-the-columns-of-the-select) or [`groupByNonAggregatedColumns()`](#grouping-by-every-non-aggregated-column).
 
 ```ts
 const customerCountPerCompany = connection.selectFrom(tCompany)
@@ -615,6 +619,10 @@ const customerCountPerCompany: Promise<{
 ```
 
 ### Filtering the groups with having
+
+!!! danger "Conditions the database can reject"
+
+    The database rejects the query when the condition uses [a column that isn't in the group by](#a-column-that-isnt-in-the-group-by-in-the-having) or [an expression that carries a parameter written again](#an-expression-that-carries-a-parameter-written-again). Write the select first and use [`having(columns => …)`](#filtering-the-groups-by-the-columns-of-the-select) with [`groupByNonAggregatedColumns()`](#grouping-by-every-non-aggregated-column).
 
 The `having` clause filters the groups; written before the select, it receives the condition. The condition can use the aggregate functions, which are not allowed in a `where`.
 
@@ -722,3 +730,447 @@ const companiesWithSeveralCustomers: Promise<{
     customerCount: number;
 }[]>
 ```
+
+### A column that isn't in the group by, in the having
+
+!!! danger "MySQL, MariaDB, SQL Server and Oracle reject the query"
+
+    A column used in the having outside an aggregate function must be in the group by on these databases, even when it has a single value in each group. Write the select first and use [`groupByNonAggregatedColumns()`](#writing-the-select-first), or move the condition to [the `where`](#moving-the-condition-to-the-where).
+
+The having of the previous example only uses an aggregate function. A condition of the `having` can also use a column of a table without an aggregate function. For example, the companies with several customers, keeping only the companies that belong to another company:
+
+```ts
+const subsidiariesWithSeveralCustomers = connection.selectFrom(tCompany)
+    .innerJoin(tCustomer).on(tCustomer.companyId.equals(tCompany.id))
+    .groupBy(tCompany.id)
+    .having(connection.count(tCustomer.id).greaterThan(1).and(tCompany.parentId.isNotNull()))
+    .select({
+        companyId: tCompany.id,
+        customerCount: connection.count(tCustomer.id)
+    })
+    .executeSelectMany();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company.id as companyId, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by company.id 
+    having count(customer.id) > ? and company.parent_id is not null
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company.id as companyId, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by company.id 
+    having count(customer.id) > ? and company.parent_id is not null
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company.id as "companyId", 
+        count(customer.id) as "customerCount" 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by company.id 
+    having count(customer.id) > :0 and company.parent_id is not null
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company.id as "companyId", 
+        count(customer.id) as "customerCount" 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by company.id 
+    having count(customer.id) > $1 and company.parent_id is not null
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company.id as companyId, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by company.id 
+    having count(customer.id) > ?1 and company.parent_id is not null
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company.id as companyId, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by company.id 
+    having count(customer.id) > @0 and company.parent_id is not null
+    ```
+
+The parameters are: `[ 1 ]`
+
+!!! failure "Rejected by MySQL, MariaDB, SQL Server and Oracle"
+
+    Each group is one company, so the parent of the company has a single value in each group. PostgreSQL accepts the query, because the group by has the primary key of the company, and so does SQLite, which takes the value of one of the rows of the group. The other databases reject it:
+
+    - MySQL and MariaDB: *Unknown column 'company.parent_id' in HAVING*.
+    - SQL Server: *Column 'company.parent_id' is invalid in the HAVING clause because it is not contained in either an aggregate function or the GROUP BY clause*.
+    - Oracle: *ORA-00979: must appear in the GROUP BY clause or be used in an aggregate function*.
+
+#### Writing the select first
+
+The recommended way is to write the select first, with the column in it, and to build the group by with [`groupByNonAggregatedColumns()`](#grouping-by-every-non-aggregated-column): every column of the select that isn't an aggregate goes into the group by, so [`having(columns => …)`](#filtering-the-groups-by-the-columns-of-the-select) can use it on every database:
+
+```ts
+const subsidiariesWithSeveralCustomers = connection.selectFrom(tCompany)
+    .innerJoin(tCustomer).on(tCustomer.companyId.equals(tCompany.id))
+    .select({
+        companyId: tCompany.id,
+        parentId: tCompany.parentId,
+        customerCount: connection.count(tCustomer.id)
+    })
+    .groupByNonAggregatedColumns()
+    .having(columns => columns.customerCount.greaterThan(1).and(columns.parentId.isNotNull()))
+    .executeSelectMany();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company.id as companyId, 
+        company.parent_id as parentId, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.parent_id 
+    having customerCount > ? and parentId is not null
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company.id as companyId, 
+        company.parent_id as parentId, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.parent_id 
+    having customerCount > ? and parentId is not null
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company.id as "companyId", 
+        company.parent_id as "parentId", 
+        count(customer.id) as "customerCount" 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.parent_id 
+    having count(customer.id) > :0 and company.parent_id is not null
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company.id as "companyId", 
+        company.parent_id as "parentId", 
+        count(customer.id) as "customerCount" 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.parent_id 
+    having count(customer.id) > $1 and company.parent_id is not null
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company.id as companyId, 
+        company.parent_id as parentId, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.parent_id 
+    having count(customer.id) > ?1 and company.parent_id is not null
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company.id as companyId, 
+        company.parent_id as parentId, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.parent_id 
+    having count(customer.id) > @0 and company.parent_id is not null
+    ```
+
+The parameters are: `[ 1 ]`
+
+#### Moving the condition to the where
+
+A condition that uses no aggregate function is about each row, not about the group, so it can be written in the `where`: the rows are filtered before they are grouped, and the result is the same. Every database accepts it:
+
+```ts
+const subsidiariesWithSeveralCustomers = connection.selectFrom(tCompany)
+    .innerJoin(tCustomer).on(tCustomer.companyId.equals(tCompany.id))
+    .where(tCompany.parentId.isNotNull())
+    .groupBy(tCompany.id)
+    .having(connection.count(tCustomer.id).greaterThan(1))
+    .select({
+        companyId: tCompany.id,
+        customerCount: connection.count(tCustomer.id)
+    })
+    .executeSelectMany();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company.id as companyId, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    where company.parent_id is not null 
+    group by company.id 
+    having count(customer.id) > ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company.id as companyId, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    where company.parent_id is not null 
+    group by company.id 
+    having count(customer.id) > ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company.id as "companyId", 
+        count(customer.id) as "customerCount" 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    where company.parent_id is not null 
+    group by company.id 
+    having count(customer.id) > :0
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company.id as "companyId", 
+        count(customer.id) as "customerCount" 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    where company.parent_id is not null 
+    group by company.id 
+    having count(customer.id) > $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company.id as companyId, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    where company.parent_id is not null 
+    group by company.id 
+    having count(customer.id) > ?1
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company.id as companyId, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    where company.parent_id is not null 
+    group by company.id 
+    having count(customer.id) > @0
+    ```
+
+The parameters are: `[ 1 ]`
+
+#### Adding the column to the group by
+
+When the condition can't be moved to the `where`, because it combines the column with an aggregate function using `or`, add the column to the group by. The column has a single value in each group, so the groups don't change. For example, the companies with several customers, and every company that doesn't belong to another one, whatever its number of customers:
+
+```ts
+const companiesToReview = connection.selectFrom(tCompany)
+    .innerJoin(tCustomer).on(tCustomer.companyId.equals(tCompany.id))
+    .groupBy(tCompany.id, tCompany.parentId)
+    .having(connection.count(tCustomer.id).greaterThan(1).or(tCompany.parentId.isNull()))
+    .select({
+        companyId: tCompany.id,
+        customerCount: connection.count(tCustomer.id)
+    })
+    .executeSelectMany();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company.id as companyId, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by company.id, company.parent_id 
+    having count(customer.id) > ? or company.parent_id is null
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company.id as companyId, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by company.id, company.parent_id 
+    having count(customer.id) > ? or company.parent_id is null
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company.id as "companyId", 
+        count(customer.id) as "customerCount" 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by company.id, company.parent_id 
+    having count(customer.id) > :0 or company.parent_id is null
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company.id as "companyId", 
+        count(customer.id) as "customerCount" 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by company.id, company.parent_id 
+    having count(customer.id) > $1 or company.parent_id is null
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company.id as companyId, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by company.id, company.parent_id 
+    having count(customer.id) > ?1 or company.parent_id is null
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company.id as companyId, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by company.id, company.parent_id 
+    having count(customer.id) > @0 or company.parent_id is null
+    ```
+
+The parameters are: `[ 1 ]`
+
+### An expression that carries a parameter, written again
+
+!!! danger "The database rejects the query"
+
+    Write the select first and use [`groupBy('<column name>')`](#grouping-by-the-columns-of-the-select), [`groupByNonAggregatedColumns()`](#grouping-by-every-non-aggregated-column) or [`having(columns => …)`](#filtering-the-groups-by-the-columns-of-the-select), which repeat the SQL of the select with the same parameters.
+
+Each time an expression that carries a parameter is written, it gets new parameters. For example, the number of customers per initial of the last name, grouped by the expression written again:
+
+```ts
+const customerCountPerInitial = connection.selectFrom(tCustomer)
+    .groupBy(tCustomer.lastName.substr(0, 1))
+    .select({
+        initial: tCustomer.lastName.substr(0, 1),
+        customerCount: connection.count(tCustomer.id)
+    })
+    .executeSelectMany();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        substr(last_name, ?, ?) as initial, 
+        count(id) as customerCount 
+    from customer 
+    group by substr(last_name, ?, ?)
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        substr(last_name, ?, ?) as initial, 
+        count(id) as customerCount 
+    from customer 
+    group by substr(last_name, ?, ?)
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        substr(last_name, :0, :1) as "initial", 
+        count(id) as "customerCount" 
+    from customer 
+    group by substr(last_name, :2, :3)
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        substr(last_name, $1, $2) as initial, 
+        count(id) as "customerCount" 
+    from customer 
+    group by substr(last_name, $3, $4)
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        substr(last_name, ?1, ?2) as initial, 
+        count(id) as customerCount 
+    from customer 
+    group by substr(last_name, ?3, ?4)
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        substring(last_name, @0, @1) as initial, 
+        count(id) as customerCount 
+    from customer 
+    group by substring(last_name, @2, @3)
+    ```
+
+The parameters are: `[ 1, 1, 1, 1 ]`
+
+!!! failure "Rejected by PostgreSQL, SQL Server and Oracle, and by MySQL in a prepared statement"
+
+    The group by gets new parameters (`$3` and `$4` on PostgreSQL) while the select has `$1` and `$2`, so the database doesn't take them as the same expression:
+
+    - PostgreSQL: *column must appear in the GROUP BY clause or be used in an aggregate function*.
+    - SQL Server: *is invalid in the select list because it is not contained in either an aggregate function or the GROUP BY clause*.
+    - Oracle: *ORA-00979*.
+    - MySQL, when the query runs as a prepared statement, like with Bun SQL: *isn't in GROUP BY*.
+
+    The same happens with such an expression in a `having`, where MySQL and MariaDB also reject it (*unknown column in HAVING*). Plain columns and aggregates, which carry no parameter, are not affected.

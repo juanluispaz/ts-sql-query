@@ -135,7 +135,7 @@ describe(ctx.label, () => {
             .orderBy('status')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\`, count(id) as total from issue group by \`status\` having count(id) > (select count(id) as result from project where archived_at is not null) order by \`status\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\`, count(id) as total from issue group by \`status\` having count(issue.id) > (select count(id) as result from project where archived_at is not null) order by \`status\`"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ status: string; total: number }>>>()
         if (!ctx.realDbEnabled) expect(rows).toEqual(expected)

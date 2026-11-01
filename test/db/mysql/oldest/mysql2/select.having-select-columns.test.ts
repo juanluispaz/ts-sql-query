@@ -127,7 +127,7 @@ describe(ctx.label, () => {
             .groupBy(tIssue.priority)
             .having(columns => columns.priority.equals(0))
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority % ? as priority, count(*) as issues from issue group by priority having (priority % ?) = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority % ? as priority, count(*) as issues from issue group by priority having (issue.priority % ?) = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

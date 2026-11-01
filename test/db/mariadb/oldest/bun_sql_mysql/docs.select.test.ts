@@ -446,7 +446,7 @@ describe(ctx.label, () => {
             .orderBy('organizationId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, count(id) as projectCount from project where archived_at is null group by organization_id having count(id) > ? order by organizationId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, count(id) as projectCount from project where archived_at is null group by organization_id having count(project.id) > ? order by organizationId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -480,7 +480,7 @@ describe(ctx.label, () => {
             .orderBy('organizationId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, count(id) as projectCount from project where archived_at is null group by organization_id having count(id) > ? order by organizationId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, count(id) as projectCount from project where archived_at is null group by organization_id having count(project.id) > ? order by organizationId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -514,7 +514,7 @@ describe(ctx.label, () => {
             .where(tProject.archivedAt.isNull())
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, count(id) as projectCount from project where archived_at is null group by organization_id having count(id) > ? order by organizationId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, count(id) as projectCount from project where archived_at is null group by organization_id having count(project.id) > ? order by organizationId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -548,7 +548,7 @@ describe(ctx.label, () => {
             .orderBy('organizationId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, count(id) as projectCount from project where archived_at is null group by organization_id having count(id) > ? order by organizationId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, count(id) as projectCount from project where archived_at is null group by organization_id having count(project.id) > ? order by organizationId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,

@@ -263,7 +263,7 @@ describe(ctx.label, () => {
             .having(ctx.conn.derivedAggValueArgCentsIfValue(tDerivedColumn.plainCents, 5))
             .select({ id: tDerivedColumn.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from col_matrix group by id having sum(? + m_int + ?) > sum(m_int) * 20"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from col_matrix group by id having sum(? + col_matrix.m_int + ?) > sum(col_matrix.m_int) * 20"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             500,

@@ -92,7 +92,7 @@ describe(ctx.label, () => {
             .orderBy('projectId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId from issue group by project_id having count(id) > ? order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId from issue group by project_id having count(issue.id) > ? order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,

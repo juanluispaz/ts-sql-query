@@ -40,7 +40,7 @@ describe(ctx.label, () => {
             .orderBy('status')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by status having (count(id) > ? and count(id) < ?) or max(priority) = ? order by status"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by status having (count(issue.id) > ? and count(issue.id) < ?) or max(issue.priority) = ? order by status"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -70,7 +70,7 @@ describe(ctx.label, () => {
             .orderBy('status')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by status having count(id) > ? order by status"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by status having count(issue.id) > ? order by status"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -124,7 +124,7 @@ describe(ctx.label, () => {
                 .or(ctx.conn.count(tIssue.id).greaterThan(1))
             .orderBy('status')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by status having count(id) > ? order by status"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by status having count(issue.id) > ? order by status"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -147,7 +147,7 @@ describe(ctx.label, () => {
             .selectOneColumn(ctx.conn.count(tIssue.id))
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(id) as result from issue group by status having count(id) > ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(id) as result from issue group by status having count(issue.id) > ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -169,7 +169,7 @@ describe(ctx.label, () => {
             .selectCountAll()
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as result from issue group by status having count(id) > ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as result from issue group by status having count(issue.id) > ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -199,7 +199,7 @@ describe(ctx.label, () => {
             .having(ctx.conn.count(tIssue.id).multiply(2).greaterThan(6))
             .orderBy('projectId')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) as total from issue group by project_id having (count(id) * ?) > ? order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) as total from issue group by project_id having (count(issue.id) * ?) > ? order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -231,7 +231,7 @@ describe(ctx.label, () => {
                 .and(ctx.conn.min(tIssue.priority).greaterOrEqual(2))
             .orderBy('projectId')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) as total from issue group by project_id having sum(priority) >= ? and avg(cast(priority as double)) > ? and min(priority) >= ? order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) as total from issue group by project_id having sum(issue.priority) >= ? and avg(cast(issue.priority as double)) > ? and min(issue.priority) >= ? order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -265,7 +265,7 @@ describe(ctx.label, () => {
             .having(ctx.conn.stringConcat(tIssue.status).contains('open'))
             .orderBy('projectId')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) as total from issue group by project_id having group_concat(status) like concat('%', ?, '%') order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) as total from issue group by project_id having group_concat(issue.status) like concat('%', ?, '%') order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -274,4 +274,31 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ projectId: number; total: number }>>>()
         expect(result).toEqual(expected)
     })
+
+    // NOT-SUPPORTED: MariaDB rejects a column of the table outside an aggregate in a having when it isn't in the group by (error 1054: 'Unknown column'), even when it depends on the primary key the query is grouped by.
+    /*
+    test('having-on-a-table-column-named-like-a-column-of-the-select', async () => {
+        // The having filters by the body of the issue, while the column of the select named
+        // `body` is the title. Grouped by the id, only issues 2 and 4 have a body.
+        const expected = [
+            { id: 2, body: 'Redesign navbar' },
+            { id: 4, body: 'Document /v2/users' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({
+                id:   tIssue.id,
+                body: tIssue.title,
+            })
+            .groupBy(tIssue.id)
+            .having(tIssue.body.isNotNull())
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as \`body\` from issue group by id having issue.\`body\` is not null order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number; body: string }>>>()
+        expect(result).toEqual(expected)
+    })
+    */
+
 })

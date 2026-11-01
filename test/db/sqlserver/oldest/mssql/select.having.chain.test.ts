@@ -274,4 +274,31 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ projectId: number; total: number }>>>()
         expect(result).toEqual(expected)
     })
+
+    // NOT-SUPPORTED: SQL Server rejects a column outside an aggregate in a having when it isn't in the group by (error 8121), even when it depends on the primary key the query is grouped by.
+    /*
+    test('having-on-a-table-column-named-like-a-column-of-the-select', async () => {
+        // The having filters by the body of the issue, while the column of the select named
+        // `body` is the title. Grouped by the id, only issues 2 and 4 have a body.
+        const expected = [
+            { id: 2, body: 'Redesign navbar' },
+            { id: 4, body: 'Document /v2/users' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({
+                id:   tIssue.id,
+                body: tIssue.title,
+            })
+            .groupBy(tIssue.id)
+            .having(tIssue.body.isNotNull())
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as body from issue group by id having body is not null order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number; body: string }>>>()
+        expect(result).toEqual(expected)
+    })
+    */
+
 })

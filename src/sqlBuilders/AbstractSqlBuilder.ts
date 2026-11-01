@@ -1128,7 +1128,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (having) {
             const oldSelectColumnsSql = this._getSelectColumnsSql(params)
             this._setSelectColumnsSql(params, selectColumnsSql)
-            const havingCondition = this._appendCondition(having, params)
+            const havingCondition = this._appendHavingCondition(having, params)
             this._setSelectColumnsSql(params, oldSelectColumnsSql)
             if (havingCondition) {
                 selectQuery += ' having ' + havingCondition
@@ -1322,6 +1322,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
      */
     _appendInsensitiveOrderByCollateReceiver(wrapped: string, _entry: OrderByEntry, _query: SelectData): string {
         return wrapped
+    }
+    _appendHavingCondition(having: IAnyBooleanValueSource<any, any>, params: any[]): string {
+        return this._appendCondition(having, params)
     }
     /**
      * Render the order-by entry's underlying source expression as it appears in

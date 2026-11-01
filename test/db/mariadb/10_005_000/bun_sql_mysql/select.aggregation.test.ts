@@ -94,7 +94,7 @@ describe(ctx.label, () => {
             .having(ctx.conn.count(tIssue.id).greaterThan(1))
             .orderBy('status')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by status having count(id) > ? order by status"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by status having count(issue.id) > ? order by status"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

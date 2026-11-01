@@ -37,7 +37,7 @@ describe(ctx.label, () => {
             .orderBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as pid, sum(priority) as total, max(priority) as mx from issue group by project_id having sum(priority) > ? order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as pid, sum(priority) as total, max(priority) as mx from issue group by project_id having sum(issue.priority) > ? order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

@@ -33,8 +33,8 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     override _buildSelectGroupBy(query: PlainSelectData, params: any[], isOutermostQuery: boolean, selectColumnsSql?: Map<AnyValueSource, SelectColumnSql> | undefined): string {
         if (selectColumnsSql) {
             // In a having, MySQL and MariaDB resolve a name to a column of the group by written as a bare column
-            // before the alias of the select: when they are different values, the having would silently filter by
-            // that column. The column of the select is marked; the error is raised only if the having uses it
+            // before the alias of the select: when they are different values, the alias would silently filter by
+            // that column. The column of the select is marked to be written as its expression instead
             const groupBy = query.__groupBy
             for (let i = 0, length = groupBy.length; i < length; i++) {
                 const entry = groupBy[i]!
@@ -67,7 +67,9 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             return this._appendSqlParenthesis(column, params, false)
         }
         if (selectColumn.shadowedByGroupByColumn) {
-            throw new TsSqlProcessingError({ reason: 'HAVING_COLUMN_SHADOWED_BY_GROUP_BY_COLUMN', column: selectColumn.name }, 'The column "' + selectColumn.name + '" of the select used in the having has the same name as a column of the group by; the database would use that column instead')
+            // Its alias names a different column of the group by: written as the expression, which these databases
+            // resolve against the columns of the group by
+            return this._appendSqlParenthesis(column, params, false)
         }
         return this._appendSelectColumnReferenceSql(selectColumn, params)
     }

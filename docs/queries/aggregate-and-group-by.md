@@ -424,10 +424,6 @@ const companiesWithSeveralCustomers: Promise<{
 }[]>
 ```
 
-!!! warning "MySQL and MariaDB: an alias named like a grouped column"
-
-    On MySQL and MariaDB a name in a `having` refers to a column of the `group by` before the alias of a column of the select. If a column of the select whose alias is the name of a different column grouped as it is (`{ priority: tIssue.priority.modulo(2) }` grouped by `tIssue.priority`) is used in `having(columns => …)`, the database would filter by the grouped column instead (or, on MariaDB, report the name as ambiguous when that column is in the select too). ts-sql-query refuses that query with the error reason `HAVING_COLUMN_SHADOWED_BY_GROUP_BY_COLUMN` before sending it; give that column of the select another alias. A column of the select that is the grouped column itself (`{ priority: tIssue.priority }`) is fine.
-
 ## Any value of the group
 
 `anyValue(value)` is the SQL:2023 `any_value` aggregate function: any value of the group, for a column that is not grouped. It's useful when every row of the group has the same value but the column isn't part of the group by, like the name of the company the customers of a group belong to.

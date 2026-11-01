@@ -771,3 +771,64 @@ interface UpdateExpression {
 ```
 
 All these methods have a `When` variant that allows you to specify as the first argument a boolean that, when it is true, the action will be executed. Like: `setWhen(when: boolean, columns: UpdateSets): this`
+
+For example, only a user that can change the company of a customer updates it; for any other user the company given is ignored:
+
+```ts
+const canChangeTheCompany = false;
+
+const updatedCount = await connection.update(tCustomer).set({
+        firstName: 'John',
+        lastName: 'Smith',
+        companyId: 2
+    })
+    .ignoreIfSetWhen(!canChangeTheCompany, 'companyId')
+    .where(tCustomer.id.equals(10))
+    .executeUpdate();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    update customer
+    set first_name = ?, last_name = ?
+    where id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    update customer
+    set first_name = ?, last_name = ?
+    where id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    update customer
+    set first_name = :0, last_name = :1
+    where id = :2
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    update customer
+    set first_name = $1, last_name = $2
+    where id = $3
+    ```
+=== "SQLite"
+    ```sqlite
+    update customer
+    set first_name = ?1, last_name = ?2
+    where id = ?3
+    ```
+=== "SQL Server"
+    ```sqlserver
+    update customer
+    set first_name = @0, last_name = @1
+    where id = @2
+    ```
+
+The parameters are: `[ 'John', 'Smith', 10 ]`
+
+The result type is:
+```tsx
+const updatedCount: number
+```

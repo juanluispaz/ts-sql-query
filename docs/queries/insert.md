@@ -671,6 +671,64 @@ interface InsertExpression {
 
 All these methods have a `When` variant that allows you to specify as the first argument a boolean that, when it is true, the action will be executed. Like: `setWhen(when: boolean, columns: InsertSets): this`
 
+For example, a customer without a company of their own is assigned the default one:
+
+```ts
+const assignTheDefaultCompany = true;
+
+const insertedCount = await connection.insertInto(tCustomer).set({
+        firstName: 'John',
+        lastName: 'Smith',
+        companyId: 2
+    })
+    .setWhen(assignTheDefaultCompany, { companyId: 1 })
+    .executeInsert();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    insert into customer (first_name, last_name, company_id)
+    values (?, ?, ?)
+    ```
+=== "MySQL"
+    ```mysql
+    insert into customer (first_name, last_name, company_id)
+    values (?, ?, ?)
+    ```
+=== "Oracle"
+    ```oracle
+    insert into customer (first_name, last_name, company_id)
+    values (:0, :1, :2)
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    insert into customer (first_name, last_name, company_id)
+    values ($1, $2, $3)
+    ```
+=== "SQLite"
+    ```sqlite
+    insert into customer (first_name, last_name, company_id)
+    values (?1, ?2, ?3)
+    ```
+=== "SQL Server"
+    ```sqlserver
+    insert into customer (first_name, last_name, company_id)
+    values (@0, @1, @2)
+    ```
+
+The parameters are: `[ 'John', 'Smith', 1 ]`
+
+The result type is:
+```tsx
+const insertedCount: number
+```
+
+!!! warning "A `When` variant doesn't set a required column"
+
+    The condition is only known when the query runs, so for the types a `When` variant may not happen: setting a required column only through `setWhen(...)` (or any other `When` variant) leaves it missing, and the insert can't be executed. Set the required columns with `set(...)` (or `dynamicSet(...)` followed by `set(...)`), and use the `When` variants to change them.
+
 ## Manipulating values to insert (multiple)
 
 ts-sql-query offers many commodity methods to manipulate the data to insert, allowing adding missing values, deleting undesired values, or throwing an error if a value is present.
@@ -823,7 +881,64 @@ interface InsertExpression {
 }
 ```
 
-All these methods have a `When` variant that allows you to specify as the first argument a boolean that, when it is true, the action will be executed. Like: `setForAll(columns: InsertSets): this`
+All these methods have a `When` variant that allows you to specify as the first argument a boolean that, when it is true, the action will be executed. Like: `setForAllWhen(when: boolean, columns: InsertSets): this`
+
+For example, every customer inserted is assigned the default company when the import says so:
+
+```ts
+const assignTheDefaultCompany = true;
+
+const insertedCount = await connection.insertInto(tCustomer).values([
+        { firstName: 'John', lastName: 'Smith', companyId: 2 },
+        { firstName: 'Jane', lastName: 'Doe', companyId: 3 }
+    ])
+    .setForAllWhen(assignTheDefaultCompany, { companyId: 1 })
+    .executeInsert();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    insert into customer (first_name, last_name, company_id)
+    values (?, ?, ?), (?, ?, ?)
+    ```
+=== "MySQL"
+    ```mysql
+    insert into customer (first_name, last_name, company_id)
+    values (?, ?, ?), (?, ?, ?)
+    ```
+=== "Oracle"
+    ```oracle
+    begin
+        insert into customer (first_name, last_name, company_id)
+        values (:0, :1, :2);
+        insert into customer (first_name, last_name, company_id)
+        values (:3, :4, :5);
+    end;
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    insert into customer (first_name, last_name, company_id)
+    values ($1, $2, $3), ($4, $5, $6)
+    ```
+=== "SQLite"
+    ```sqlite
+    insert into customer (first_name, last_name, company_id)
+    values (?1, ?2, ?3), (?4, ?5, ?6)
+    ```
+=== "SQL Server"
+    ```sqlserver
+    insert into customer (first_name, last_name, company_id)
+    values (@0, @1, @2), (@3, @4, @5)
+    ```
+
+The parameters are: `[ 'John', 'Smith', 1, 'Jane', 'Doe', 1 ]`
+
+The result type is:
+```tsx
+const insertedCount: number
+```
 
 ## Insert on conflict
 

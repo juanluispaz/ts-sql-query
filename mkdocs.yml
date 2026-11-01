@@ -11,6 +11,9 @@ repo_name: juanluispaz/ts-sql-query
 exclude_docs: |
   overrides/
   /README.md
+# A link to an anchor that doesn't exist is a warning, so the strict build (docs:check) fails on it.
+validation:
+  anchors: warn
 copyright: >
     Copyright &copy; Juan Luis Paz Rojas
     <span style="color: var(--md-footer-fg-color--lighter);"> · Released under the </span><a href="https://opensource.org/licenses/MIT" target="_blank">MIT License</a>.
@@ -131,6 +134,7 @@ nav:
     - Complex projections: queries/complex-projections.md
     - Aggregate as an object array: queries/aggregate-as-object-array.md
     - Insert: queries/insert.md
+    - Insert on conflict (upsert): queries/insert-on-conflict.md
     - Update: queries/update.md
     - Delete: queries/delete.md
     - Transaction: queries/transaction.md

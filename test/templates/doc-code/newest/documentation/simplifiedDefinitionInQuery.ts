@@ -43,6 +43,7 @@ type DinamicConditionExtension = any
 type RawFragment = any
 type CustomizedTableOrView = any
 type AnyValueSource = ValueSource<any, any>
+type BooleanValueSource = ValueSource<boolean, 'boolean'>
 type TransactionIsolationLevel = any
 
 void function (
@@ -59,6 +60,7 @@ void function (
     _rf: RawFragment,
     _ctv: CustomizedTableOrView,
     _avs: AnyValueSource,
+    _bvs: BooleanValueSource,
     _tis: TransactionIsolationLevel,
 ) {}
 interface ValueSource<T, TYPE_NAME> {

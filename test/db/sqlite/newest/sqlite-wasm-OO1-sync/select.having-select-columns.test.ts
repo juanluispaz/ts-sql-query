@@ -89,4 +89,53 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ group: { level: number }; issues: number }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('having-on-a-grouped-column-referred-to-by-its-own-name', async () => {
+        // Priorities 2, 1, 3, 2: the groups above 1.
+        const expected = [{ priority: 2, issues: 2 }, { priority: 3, issues: 1 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const rows = await connection.selectFrom(tIssue)
+            .select({
+                priority: tIssue.priority,
+                issues:   connection.countAll(),
+            })
+            .groupBy('priority')
+            .having(columns => columns.priority.greaterThan(1))
+            .orderBy('priority')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority as priority, count(*) as issues from issue group by priority having priority > ?1 order by priority"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ priority: number; issues: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('having-on-a-column-named-like-a-different-column-of-the-group-by', async () => {
+        // Grouped by the priority (2, 1, 3, 2); the column of the select named `priority` is the
+        // priority modulo 2, and only the group of priority 2 has it equal to 0.
+        const expected = [{ priority: 0, issues: 2 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const rows = await connection.selectFrom(tIssue)
+            .select({
+                priority: tIssue.priority.modulo(2),
+                issues:   connection.countAll(),
+            })
+            .groupBy(tIssue.priority)
+            .having(columns => columns.priority.equals(0))
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority % ?1 as priority, count(*) as issues from issue group by priority having (priority % ?1) = ?2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            0,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ priority: number; issues: number }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

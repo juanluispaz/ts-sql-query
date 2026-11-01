@@ -5,6 +5,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { TsSqlError } from '../../../../../src/TsSqlError.js'
 import { tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -87,5 +88,53 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{ group: { level: number }; issues: number }>>>()
         expect(rows).toEqual(expected)
+    })
+
+    test('having-on-a-grouped-column-referred-to-by-its-own-name', async () => {
+        // Priorities 2, 1, 3, 2: the groups above 1.
+        const expected = [{ priority: 2, issues: 2 }, { priority: 3, issues: 1 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const rows = await connection.selectFrom(tIssue)
+            .select({
+                priority: tIssue.priority,
+                issues:   connection.countAll(),
+            })
+            .groupBy('priority')
+            .having(columns => columns.priority.greaterThan(1))
+            .orderBy('priority')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority as priority, count(*) as issues from issue group by priority having priority > ? order by priority"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ priority: number; issues: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('having-on-a-column-named-like-a-different-column-of-the-group-by', async () => {
+        // Grouped by the priority; the column of the select named `priority` is the priority
+        // modulo 2. In the having, MySQL takes the name `priority` as the column of the group by,
+        // not as the column of the select, and would silently filter by the priority, so it is
+        // refused before anything is sent.
+        const connection = ctx.conn
+        let caught: unknown
+        try {
+            await connection.selectFrom(tIssue)
+                .select({
+                    priority: tIssue.priority.modulo(2),
+                    issues:   connection.countAll(),
+                })
+                .groupBy(tIssue.priority)
+                .having(columns => columns.priority.equals(0))
+                .executeSelectMany()
+        } catch (e) {
+            caught = e
+        }
+        expect(caught).toBeInstanceOf(TsSqlError)
+        expect((caught as TsSqlError).errorReason).toEqual({ reason: 'HAVING_COLUMN_SHADOWED_BY_GROUP_BY_COLUMN', column: 'priority' })
+        expect(ctx.history).toEqual([])
     })
 })

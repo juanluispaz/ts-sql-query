@@ -121,6 +121,17 @@ export class AbstractSqlBuilder implements SqlBuilder {
             configurable: true
         })
     }
+    _getHavingGroupBy(params: any[]): AnyValueSource[] | undefined {
+        return (params as any)._havingGroupBy
+    }
+    _setHavingGroupBy(params: any[], value: AnyValueSource[] | undefined): void {
+        Object.defineProperty(params, '_havingGroupBy', {
+            value: value,
+            writable: true,
+            enumerable: false,
+            configurable: true
+        })
+    }
     _getForceAliasAs(params: any[]): string | undefined {
         return (params as any)._forceAliasAs
     }
@@ -1122,9 +1133,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const having = query.__having
         if (having) {
             const oldSelectColumnsSql = this._getSelectColumnsSql(params)
+            const oldHavingGroupBy = this._getHavingGroupBy(params)
             this._setSelectColumnsSql(params, selectColumnsSql)
+            this._setHavingGroupBy(params, query.__groupBy)
             const havingCondition = this._appendCondition(having, params)
             this._setSelectColumnsSql(params, oldSelectColumnsSql)
+            this._setHavingGroupBy(params, oldHavingGroupBy)
             if (havingCondition) {
                 selectQuery += ' having ' + havingCondition
             }

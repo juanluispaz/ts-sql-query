@@ -52,8 +52,12 @@ type TsSqlErrorReason =
       { reason: 'INVALID_ORDER_BY_ORDERING', column: string, ordering: string }
     | /** The query required a where clause but ended without one */
       { reason: 'MISSING_WHERE' }
-    | /** The hierarchical (Oracle) query required a connect by condition but ended without one */
+    | /** The recursive query required the condition that links each level with the previous one (the join
+          with the recursive query, or Oracle's connect by) but ended without one */
       { reason: 'MISSING_RECURSIVE_CONDITION' }
+    | /** A column of the select used in the having (having(columns => ...)) has the same name as a column of
+          the group by, and MySQL / MariaDB resolve that name to the column of the group by instead of the select's */
+      { reason: 'HAVING_COLUMN_SHADOWED_BY_GROUP_BY_COLUMN', column: string }
 
     /* ********************************************************************************************
      * Query result validations specified when the query's execution is requested

@@ -30,6 +30,33 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
      * multiplication by an approximate literal.
      */
     _castAsDoubleMinCompatibilityVersion: number = Number.POSITIVE_INFINITY
+    override _appendSelectColumnReference(column: AnyValueSource, params: any[]): string {
+        const selectColumn = this._getSelectColumnsSql(params)?.get(column)
+        const groupBy = this._getHavingGroupBy(params)
+        if (selectColumn && groupBy) {
+            // In a having, MySQL and MariaDB resolve a name to a column of the group by written as a bare column
+            // before the alias of the select: when they are different values, the having would silently filter by
+            // that column
+            const alias = selectColumn.name.toLowerCase()
+            const columnPrivate = isColumn(column) ? __getColumnPrivate(column) : undefined
+            for (let i = 0, length = groupBy.length; i < length; i++) {
+                const entry = groupBy[i]!
+                if (!isColumn(entry)) {
+                    continue
+                }
+                const entryPrivate = __getColumnPrivate(entry)
+                if (entryPrivate.__name.toLowerCase() !== alias) {
+                    continue
+                }
+                if (columnPrivate && columnPrivate.__name === entryPrivate.__name && columnPrivate.__tableOrView === entryPrivate.__tableOrView) {
+                    // The select column is that same column
+                    continue
+                }
+                throw new TsSqlProcessingError({ reason: 'HAVING_COLUMN_SHADOWED_BY_GROUP_BY_COLUMN', column: selectColumn.name }, 'The column "' + selectColumn.name + '" of the select used in the having has the same name as a column of the group by; the database would use that column instead')
+            }
+        }
+        return super._appendSelectColumnReference(column, params)
+    }
     override _appendSelectColumnReferenceSql(selectColumn: SelectColumnSql, params: any[]): string {
         // In a having, a column outside an aggregate can only be referred to by its alias (written again, the
         // expression refers to columns that aren't grouped as they are: unknown column)

@@ -6,7 +6,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { TsSqlError } from '../../../../../src/TsSqlError.js'
-import { tIssue } from '../../domain/connection.js'
+import { tIssue, tIssueWorklog } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -136,5 +136,115 @@ describe(ctx.label, () => {
         expect(caught).toBeInstanceOf(TsSqlError)
         expect((caught as TsSqlError).errorReason).toEqual({ reason: 'HAVING_COLUMN_SHADOWED_BY_GROUP_BY_COLUMN', column: 'priority' })
         expect(ctx.history).toEqual([])
+    })
+
+    test('having-not-using-a-column-named-like-a-different-column-of-the-group-by', async () => {
+        // The same select, but the having only uses the count: the group of priority 2 is the
+        // only one with two issues, and its priority modulo 2 is 0.
+        const expected = [{ priority: 0, issues: 2 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const rows = await connection.selectFrom(tIssue)
+            .select({
+                priority: tIssue.priority.modulo(2),
+                issues:   connection.countAll(),
+            })
+            .groupBy(tIssue.priority)
+            .having(columns => columns.issues.greaterThan(1))
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority % ? as priority, count(*) as issues from issue group by priority having issues > ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ priority: number; issues: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('having-on-a-boolean-expression-of-the-select', async () => {
+        // Priorities 2, 1, 3, 2: three issues above 1.
+        const expected = [{ highPriority: true, issues: 3 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const rows = await connection.selectFrom(tIssue)
+            .select({
+                highPriority: tIssue.priority.greaterThan(1),
+                issues:       connection.countAll(),
+            })
+            .groupBy('highPriority')
+            .having(columns => columns.highPriority.and(columns.issues.greaterThan(1)))
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority > ? as highPriority, count(*) as issues from issue group by 1 having highPriority and issues > ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ highPriority: boolean; issues: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('having-on-the-negation-of-a-boolean-expression-of-the-select', async () => {
+        // Only the issue of priority 1 is not above 1.
+        const expected = [{ highPriority: false, issues: 1 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const rows = await connection.selectFrom(tIssue)
+            .select({
+                highPriority: tIssue.priority.greaterThan(1),
+                issues:       connection.countAll(),
+            })
+            .groupBy('highPriority')
+            .having(columns => columns.highPriority.negate())
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority > ? as highPriority, count(*) as issues from issue group by 1 having not highPriority"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ highPriority: boolean; issues: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('having-on-a-boolean-column-of-the-select', async () => {
+        // One worklog is billable.
+        const expected = [{ billable: true, worklogs: 1 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const rows = await connection.selectFrom(tIssueWorklog)
+            .select({
+                billable: tIssueWorklog.billable,
+                worklogs: connection.countAll(),
+            })
+            .groupBy('billable')
+            .having(columns => columns.billable)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select billable as billable, count(*) as worklogs from issue_worklog group by billable having billable"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ billable?: boolean; worklogs: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('having-on-a-boolean-column-with-a-type-adapter-of-the-select', async () => {
+        // The approval is stored as 'A' / 'R'; one worklog is rejected.
+        const expected = [{ approved: false, worklogs: 1 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const rows = await connection.selectFrom(tIssueWorklog)
+            .select({
+                approved: tIssueWorklog.approved,
+                worklogs: connection.countAll(),
+            })
+            .groupBy('approved')
+            .having(columns => columns.approved.negate())
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (approved = 'A') as approved, count(*) as worklogs from issue_worklog group by (approved = 'A') having not approved"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ approved?: boolean; worklogs: number }>>>()
+        expect(rows).toEqual(expected)
     })
 })

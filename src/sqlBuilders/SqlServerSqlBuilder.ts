@@ -100,6 +100,12 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
         return super._appendSql(value, params, forceTypeCast)
     }
+    override _appendSelectColumnReferenceForCondition(column: AnyValueSource, params: any[]): string {
+        // The select list writes a boolean as a value (1 / 0), and the having must refer to that same expression
+        // (the grouped one): it is compared with 1 to make it a condition, like _appendConditionSql does with a
+        // boolean value. Only a reference to a column gets here: _appendConditionSql handles the other ones
+        return '(' + this._appendSelectColumnReference(column, params) + ' = 1)'
+    }
     override _appendConditionSql(value: ToSql | AnyValueSource, params: any[], forceTypeCast: boolean): string {
         if (isValueSource(value) && !isColumn(value) && hasToSql(value)) {
             const valueSourcePrivate = __getValueSourcePrivate(value)

@@ -24,7 +24,7 @@ import { getContainsInsertReturningClause, setContainsInsertReturningClause, set
 
 /** A column of the select list as it was written, for the group by that refers to it */
 // `name`: the alias of the column; `paramsStart` / `paramsEnd`: the range of the params the column's SQL consumed
-export type SelectColumnSql = { sql: string, name: string, position: number, paramsStart: number, paramsEnd: number }
+export type SelectColumnSql = { sql: string, name: string, position: number, paramsStart: number, paramsEnd: number, shadowedByGroupByColumn?: boolean | undefined }
 
 export class AbstractSqlBuilder implements SqlBuilder {
     // @ts-ignore
@@ -115,17 +115,6 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _setSelectColumnsSql(params: any[], value: Map<AnyValueSource, SelectColumnSql> | undefined): void {
         Object.defineProperty(params, '_selectColumnsSql', {
-            value: value,
-            writable: true,
-            enumerable: false,
-            configurable: true
-        })
-    }
-    _getHavingGroupBy(params: any[]): AnyValueSource[] | undefined {
-        return (params as any)._havingGroupBy
-    }
-    _setHavingGroupBy(params: any[], value: AnyValueSource[] | undefined): void {
-        Object.defineProperty(params, '_havingGroupBy', {
             value: value,
             writable: true,
             enumerable: false,
@@ -870,6 +859,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return this._appendSelectColumnReferenceSql(selectColumn, params)
     }
+    _appendSelectColumnReferenceForCondition(column: AnyValueSource, params: any[]): string {
+        // A boolean column of the select used as a condition of the having: the value the select list writes is
+        // a condition too
+        return this._appendSelectColumnReference(column, params)
+    }
     _appendSelectColumnReferenceSql(selectColumn: SelectColumnSql, _params: any[]): string {
         // The same SQL as the select list, with the same parameters: the same expression for the database
         return selectColumn.sql
@@ -1133,12 +1127,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const having = query.__having
         if (having) {
             const oldSelectColumnsSql = this._getSelectColumnsSql(params)
-            const oldHavingGroupBy = this._getHavingGroupBy(params)
             this._setSelectColumnsSql(params, selectColumnsSql)
-            this._setHavingGroupBy(params, query.__groupBy)
             const havingCondition = this._appendCondition(having, params)
             this._setSelectColumnsSql(params, oldSelectColumnsSql)
-            this._setHavingGroupBy(params, oldHavingGroupBy)
             if (havingCondition) {
                 selectQuery += ' having ' + havingCondition
             }

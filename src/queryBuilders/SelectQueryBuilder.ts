@@ -1159,7 +1159,9 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             if (isValueSource(column)) {
                 const reference = Object.create(column)
                 reference.__toSql = (sqlBuilder: SqlBuilder, params: any[]) => sqlBuilder._appendSelectColumnReference(column, params)
-                reference.__toSqlForCondition = reference.__toSql
+                reference.__toSqlForCondition = (sqlBuilder: SqlBuilder, params: any[]) => sqlBuilder._appendSelectColumnReferenceForCondition(column, params)
+                // Written as the select list writes it: a value, also when the column is a condition
+                reference.__isBooleanForCondition = false
                 reference.__selectColumnReference = column
                 result[property] = reference
                 if (!this.__havingColumnNames) {

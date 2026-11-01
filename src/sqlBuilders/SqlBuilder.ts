@@ -298,6 +298,7 @@ export interface SqlBuilder extends SqlOperation {
     _buildDelete(query: DeleteData, params: any[]): string
     _typedOperand<T>(operand: T, otherOperands: any[], operation?: string): T
     _appendSelectColumnReference(column: AnyValueSource, params: any[]): string
+    _appendSelectColumnReferenceForCondition(column: AnyValueSource, params: any[]): string
     _typedConst(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
     _typedConstForCondition(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
     _buildCallProcedure(params: any[], procedureName: string, procedureParams: AnyValueSource[]): string

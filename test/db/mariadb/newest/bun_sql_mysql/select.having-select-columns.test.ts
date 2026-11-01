@@ -29,7 +29,7 @@ describe(ctx.label, () => {
             .having(columns => columns.level.greaterThan(2))
             .orderBy('level')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority + ? as level, count(*) as issues from issue group by 1 having (level) > ? order by level"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority + ? as level, count(*) as issues from issue group by 1 having level > ? order by level"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -78,7 +78,7 @@ describe(ctx.label, () => {
             .having(columns => columns.group.level.greaterThan(2).and(columns.issues.equals(1)))
             .orderBy('group.level')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority + ? as \`group.level\`, count(*) as issues from issue group by 1 having (\`group.level\`) > ? and issues = ? order by \`group.level\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority + ? as \`group.level\`, count(*) as issues from issue group by 1 having \`group.level\` > ? and issues = ? order by \`group.level\`"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

@@ -1,4 +1,4 @@
-import type { ToSql, SelectData, InsertData, UpdateData, DeleteData, FlatQueryColumns, OrderByEntry } from './SqlBuilder.js'
+import type { ToSql, SqlOperation, SelectData, InsertData, UpdateData, DeleteData, FlatQueryColumns, OrderByEntry } from './SqlBuilder.js'
 import { getQueryColumn, flattenQueryColumns } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import type { AnyValueSource, __AggregatedArrayColumns, ValueType } from '../expressions/values.js'
@@ -55,7 +55,25 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
                 throw new TsSqlProcessingError({ reason: 'HAVING_COLUMN_SHADOWED_BY_GROUP_BY_COLUMN', column: selectColumn.name }, 'The column "' + selectColumn.name + '" of the select used in the having has the same name as a column of the group by; the database would use that column instead')
             }
         }
-        return super._appendSelectColumnReference(column, params)
+        if (!selectColumn) {
+            // Written as the expression: the parenthesis _needParenthesis leaves out for the alias
+            return this._appendSqlParenthesis(column, params, false)
+        }
+        return this._appendSelectColumnReferenceSql(selectColumn, params)
+    }
+    override _needParenthesis(value: any): boolean {
+        if (value && value.__selectColumnReference) {
+            // A column of the select referred to in a having is written as its alias
+            return false
+        }
+        return super._needParenthesis(value)
+    }
+    override _needParenthesisExcluding(value: any, excluding: keyof SqlOperation): boolean {
+        if (value && value.__selectColumnReference) {
+            // A column of the select referred to in a having is written as its alias
+            return false
+        }
+        return super._needParenthesisExcluding(value, excluding)
     }
     override _appendSelectColumnReferenceSql(selectColumn: SelectColumnSql, params: any[]): string {
         // In a having, a column outside an aggregate can only be referred to by its alias (written again, the

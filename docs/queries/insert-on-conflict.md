@@ -174,7 +174,7 @@ const insertReturningCustomerData: Promise<{
 
 ## What is returned when nothing is inserted
 
-When the conflict makes the insert do nothing, no row is inserted: `executeInsert()` returns `0`, `returningLastInsertedId()` returns `null` instead of the id, and a `returning(...)` gives no row (use `executeInsertNoneOrOne()`, as in the example of [Insert on conflict do nothing](#do-nothing)). On MySQL and MariaDB the conflict makes the insert an `insert ignore`.
+When the conflict makes the insert do nothing, no row is inserted: `executeInsert()` returns `0`, `returningLastInsertedId()` returns `null` instead of the id, and a `returning(...)` gives no row (use `executeInsertNoneOrOne()`, as in the example of [Insert on conflict do nothing](#do-nothing)). On MySQL and MariaDB the conflict makes the insert an `insert ignore`; MySQL doesn't offer `returningLastInsertedId()` after an on conflict clause, so there `executeInsert()` (the number of inserted rows) tells whether the row was inserted.
 
 ```ts
 const insertedId = await connection.insertInto(tCustomer).set({
@@ -197,8 +197,8 @@ The executed query is:
     ```
 === "MySQL"
     ```mysql
-    insert ignore into customer (first_name, last_name, company_id)
-    values (?, ?, ?)
+    -- MySQL doesn't offer returningLastInsertedId() after an on conflict clause:
+    -- use executeInsert(), which returns 0 when the row is skipped
     ```
 === "Oracle"
     ```oracle

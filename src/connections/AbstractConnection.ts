@@ -71,29 +71,31 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     private onCommit?: Array<() => void | Promise<void>> | null | undefined
     private onRollback?: Array<() => void | Promise<void>> | null | undefined
     private transactionMetadata?: Map<unknown, unknown> | undefined
-    private beforeCommitStack?: Array<Array<() => void | Promise<void>> | undefined> | undefined
-    private onCommitStack?: Array<Array<() => void | Promise<void>> | undefined> | undefined
-    private onRollbackStack?: Array<Array<() => void | Promise<void>> | undefined> | undefined
+    private beforeCommitStack?: Array<Array<() => void | Promise<void>> | null | undefined> | undefined
+    private onCommitStack?: Array<Array<() => void | Promise<void>> | null | undefined> | undefined
+    private onRollbackStack?: Array<Array<() => void | Promise<void>> | null | undefined> | undefined
     private transactionMetadataStack?: Array<Map<unknown, unknown> | undefined> | undefined
 
     private pushTransactionStack() {
-        if (this.onCommit || this.onCommitStack || this.onRollback || this.onRollbackStack || this.beforeCommit || this.beforeCommitStack || this.transactionMetadata || this.transactionMetadataStack) {
+        // A null list is the one being executed (its functions are running): a transaction begun from one of them
+        // saves it too, so it gets its own lists and the null is restored when it ends
+        if (this.onCommit !== undefined || this.onCommitStack || this.onRollback !== undefined || this.onRollbackStack || this.beforeCommit !== undefined || this.beforeCommitStack || this.transactionMetadata || this.transactionMetadataStack) {
             if (!this.beforeCommitStack) {
                 this.beforeCommitStack = []
             }
-            this.beforeCommitStack.push(this.beforeCommit || undefined)
+            this.beforeCommitStack.push(this.beforeCommit)
             this.beforeCommit = undefined
 
             if (!this.onCommitStack) {
                 this.onCommitStack = []
             }
-            this.onCommitStack.push(this.onCommit || undefined)
+            this.onCommitStack.push(this.onCommit)
             this.onCommit = undefined
 
             if (!this.onRollbackStack) {
                 this.onRollbackStack = []
             }
-            this.onRollbackStack.push(this.onRollback || undefined)
+            this.onRollbackStack.push(this.onRollback)
             this.onRollback = undefined
 
             if (!this.transactionMetadataStack) {

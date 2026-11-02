@@ -59,6 +59,10 @@ function internalCallDeferredFunctions<T>(stopOnFistError: boolean, name: 'befor
                 } else {
                     errorContainer.error = err
                 }
+                if (stopOnFistError) {
+                    // The functions after the one that failed are not executed, as when it fails asynchronously
+                    break
+                }
             }
         } else {
             const fn = fns[i]!

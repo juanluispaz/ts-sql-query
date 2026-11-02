@@ -23,6 +23,10 @@
 //     draining, popped only after) and throws
 //     NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED — distinct from the
 //     NOT_IN_TRANSACTION a single transaction hits once it has closed.
+//   - a transaction begun from an after-commit / after-rollback hook (the
+//     transaction has closed) gets its own hooks, which run when it ends.
+//   - the first before-commit hook that fails, synchronously or not, stops
+//     the following ones.
 //
 // The errors thrown from inside a draining hook surface wrapped as
 // ERROR_EXECUTING_DEFERRED_IN_TRANSACTION with the original reason in the
@@ -415,4 +419,101 @@ describe(ctx.label, () => {
         expect(events).toEqual(['inner-after-commit', 'outer-before-commit'])
     })
     */
+
+    test('transaction-begun-from-an-after-commit-hook-has-its-own-hooks', async () => {
+        // The after-commit hook runs once the transaction has closed; a transaction
+        // begun there registers its own after-commit hook, which runs when it commits.
+        // A later transaction registers and runs its hooks as usual.
+        const connection = ctx.conn
+        const events: string[] = []
+        await ctx.withReseed(async () => {
+            await connection.transaction(async () => {
+                connection.executeAfterNextCommit(async () => {
+                    events.push('after-commit')
+                    await connection.transaction(async () => {
+                        connection.executeAfterNextCommit(() => { events.push('after-commit of the transaction begun there') })
+                    })
+                    events.push('transaction begun there finished')
+                })
+            })
+            await connection.transaction(async () => {
+                connection.executeAfterNextCommit(() => { events.push('after-commit of the next transaction') })
+            })
+        })
+        expect(events).toEqual([
+            'after-commit',
+            'after-commit of the transaction begun there',
+            'transaction begun there finished',
+            'after-commit of the next transaction',
+        ])
+    })
+
+    test('transaction-begun-from-an-after-rollback-hook-has-its-own-hooks', async () => {
+        // Same on the after-rollback side: the transaction begun from the hook
+        // registers a before-commit and an after-commit hook, which run when it
+        // commits; the error of the rolled-back transaction still propagates.
+        const connection = ctx.conn
+        const events: string[] = []
+        let caught: unknown
+        await ctx.withReseed(async () => {
+            try {
+                await connection.transaction(async () => {
+                    connection.executeAfterNextRollback(async () => {
+                        events.push('after-rollback')
+                        await connection.transaction(async () => {
+                            connection.executeBeforeNextCommit(() => { events.push('before-commit of the transaction begun there') })
+                            connection.executeAfterNextCommit(() => { events.push('after-commit of the transaction begun there') })
+                        })
+                    })
+                    throw bodyError('roll it back')
+                })
+            } catch (e) { caught = e }
+        })
+        expect(events).toEqual([
+            'after-rollback',
+            'before-commit of the transaction begun there',
+            'after-commit of the transaction begun there',
+        ])
+        expect(reasonsInChain(caught)).not.toContain('ERROR_EXECUTING_DEFERRED_IN_TRANSACTION')
+        expect(reasonsInChain(caught)).not.toContain('NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED')
+    })
+
+    test('before-commit-sync-throw-skips-the-following-before-commit-hooks', async () => {
+        // The first before-commit hook throws synchronously: the following one is not
+        // executed, the transaction rolls back and only the after-rollback hook runs.
+        const connection = ctx.conn
+        const events: string[] = []
+        let caught: unknown
+        await ctx.withReseed(async () => {
+            try {
+                await connection.transaction(async () => {
+                    connection.executeBeforeNextCommit(() => { throw bodyError('invalid state') })
+                    connection.executeBeforeNextCommit(() => { events.push('second before-commit') })
+                    connection.executeAfterNextCommit(() => { events.push('after-commit') })
+                    connection.executeAfterNextRollback(() => { events.push('after-rollback') })
+                })
+            } catch (e) { caught = e }
+        })
+        expect(events).toEqual(['after-rollback'])
+        expect(reasonsInChain(caught)).toContain('ERROR_EXECUTING_DEFERRED_IN_TRANSACTION')
+    })
+
+    test('before-commit-async-reject-skips-the-following-before-commit-hooks', async () => {
+        // Same with a before-commit hook that rejects asynchronously.
+        const connection = ctx.conn
+        const events: string[] = []
+        let caught: unknown
+        await ctx.withReseed(async () => {
+            try {
+                await connection.transaction(async () => {
+                    connection.executeBeforeNextCommit(async () => { throw bodyError('invalid state') })
+                    connection.executeBeforeNextCommit(() => { events.push('second before-commit') })
+                    connection.executeAfterNextCommit(() => { events.push('after-commit') })
+                    connection.executeAfterNextRollback(() => { events.push('after-rollback') })
+                })
+            } catch (e) { caught = e }
+        })
+        expect(events).toEqual(['after-rollback'])
+        expect(reasonsInChain(caught)).toContain('ERROR_EXECUTING_DEFERRED_IN_TRANSACTION')
+    })
 })

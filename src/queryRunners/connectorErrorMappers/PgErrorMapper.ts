@@ -1,6 +1,6 @@
 import { DatabaseError } from 'pg'
 import type { TsSqlDatabaseErrorNumber, TsSqlErrorReason } from '../../TsSqlError.js'
-import { getPostgresEngineErrorReason, isPostgresSqlState } from '../databaseErrorMappers/PostgresErrorMapper.js'
+import { getPostgresEngineErrorReason, isPostgresParameterCountWrappedMessage, isPostgresSqlState, POSTGRES_MAX_PARAMETERS } from '../databaseErrorMappers/PostgresErrorMapper.js'
 
 type PgDriverError = Error & {
     code?: string | undefined
@@ -80,6 +80,9 @@ function getPgDriverErrorReasonWithoutNumber(error: PgDriverError): TsSqlErrorRe
         return { reason: 'SQL_AUTHENTICATION_ERROR', databaseErrorCode, databaseErrorMessage }
     }
 
+    if (isPostgresParameterCountWrappedMessage(message)) {
+        return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorMessage, resourceType: 'parameters', limit: POSTGRES_MAX_PARAMETERS }
+    }
     if (isPgInvalidParameterError(message)) {
         return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage, ...getPgInvalidParameterDetails(message) }
     }

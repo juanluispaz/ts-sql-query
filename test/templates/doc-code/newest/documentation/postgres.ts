@@ -225,7 +225,9 @@ const tOutboxMessage = new class TOutboxMessage extends Table<DBConnection, 'TOu
         super('outbox_message')
     }
 }()
-void [emailService, fileStorage, customerCache, outboxRelay, logger, registerCustomer, tOutboxMessage]
+// The rows the error-types example inserts (docs/api/error-management/error-types.md)
+const customers: Array<{ firstName: string, lastName: string, companyId: number }> = []
+void [emailService, fileStorage, customerCache, outboxRelay, logger, registerCustomer, tOutboxMessage, customers]
 
 /******************** 
  * Generated code

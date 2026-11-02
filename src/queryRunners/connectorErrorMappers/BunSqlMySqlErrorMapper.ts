@@ -154,7 +154,7 @@ function getKnownBunSqlMySqlDriverErrorReason(error: Error): TsSqlErrorReason | 
         case 'simple query cannot have parameters':
             return withErrorMetadata({ reason: 'SQL_INVALID_PARAMETER', parameterErrorType: 'not bindable', databaseErrorMessage }, error)
         case 'query is too long':
-            return withErrorMetadata({ reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorMessage }, error)
+            return withErrorMetadata({ reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'statement length', databaseErrorMessage }, error)
         case 'Cannot bind NumberObject to query parameter. Use a primitive number instead.':
         case 'Cannot bind BooleanObject to query parameter. Use a primitive boolean instead.':
         case 'Cannot bind this type to query parameter':

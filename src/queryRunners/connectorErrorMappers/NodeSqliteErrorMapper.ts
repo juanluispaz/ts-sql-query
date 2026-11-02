@@ -141,7 +141,7 @@ function getNodeSqliteDriverErrorReason(error: NodeSqliteError): TsSqlErrorReaso
     }
     if (code === 'ERR_SQLITE_ERROR') {
         if (upper === 'EXPANDED SQL TEXT WOULD EXCEED CONFIGURED LIMITS') {
-            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorMessage }
+            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'statement length', databaseErrorCode, databaseErrorMessage }
         }
         if (upper === 'FAILED TO CREATE SQLTAGSTORE' || upper === 'FAILED TO CREATE STATEMENTSYNC') {
             return { reason: 'SQL_INTERNAL_ERROR', errorType: 'engine internal', databaseErrorCode, databaseErrorMessage }

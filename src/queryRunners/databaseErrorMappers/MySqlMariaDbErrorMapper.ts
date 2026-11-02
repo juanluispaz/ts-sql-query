@@ -231,6 +231,18 @@ function getMySqlMariaDbErrorReasonFromNumber(
     if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_RESOURCE_LIMIT_ERROR_NUMBERS, database, code, 'resource_limit')) {
         return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorMessage }
     }
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_RESOURCE_PARAMETERS_ERROR_NUMBERS, database, code, 'resource_parameters')) {
+        return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorMessage, resourceType: 'parameters' }
+    }
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_RESOURCE_STATEMENT_ELEMENTS_ERROR_NUMBERS, database, code, 'resource_statement_elements')) {
+        return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorMessage, resourceType: 'statement elements', limit: extractMySqlLimit(message) }
+    }
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_RESOURCE_STATEMENT_LENGTH_ERROR_NUMBERS, database, code, 'resource_statement_length')) {
+        return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorMessage, resourceType: 'statement length' }
+    }
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_RESOURCE_STATEMENT_COMPLEXITY_ERROR_NUMBERS, database, code, 'resource_statement_complexity')) {
+        return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorMessage, resourceType: 'statement complexity' }
+    }
     if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_IO_READ_ERROR_NUMBERS, database, code, 'io_read')) {
         return { reason: 'SQL_IO_ERROR', databaseErrorCode, databaseErrorMessage, ioErrorType: 'read' }
     }
@@ -381,6 +393,10 @@ type SemanticErrorCategory =
     | 'resource_connections'
     | 'resource_disk'
     | 'resource_limit'
+    | 'resource_parameters'
+    | 'resource_statement_elements'
+    | 'resource_statement_length'
+    | 'resource_statement_complexity'
     | 'resource_memory'
     | 'routine'
     | 'sequence_corrupted'
@@ -555,6 +571,14 @@ function isCodeCompatibleWithSemanticCategory(code: string, category: SemanticEr
             return upperCode.includes('DISK') || upperCode.includes('FILE_FULL') || upperCode.includes('INDEX_FILE_FULL')
         case 'resource_limit':
             return upperCode.includes('TOO_MANY') || upperCode.includes('LIMIT') || upperCode.includes('EXCEEDS') || upperCode.includes('TOO_BIG') || upperCode.includes('TOO_LARGE')
+        case 'resource_parameters':
+            return upperCode.includes('MANY_PARAM')
+        case 'resource_statement_elements':
+            return upperCode.includes('TOO_MANY')
+        case 'resource_statement_length':
+            return upperCode.includes('TOO_LONG') || upperCode.includes('TOO_LARGE') || upperCode.includes('TOO_BIG')
+        case 'resource_statement_complexity':
+            return upperCode.includes('NESTING') || upperCode.includes('STACK_OVERRUN')
         case 'resource_memory':
             return upperCode.includes('MEMORY') || upperCode.includes('OUT_OF_MEMORY')
         case 'routine':
@@ -1036,6 +1060,12 @@ function withDatabaseErrorNumber(reason: TsSqlErrorReason, databaseErrorNumber: 
         return reason
     }
     return { ...reason, databaseErrorNumber } as TsSqlErrorReason
+}
+
+// "Too many tables; MySQL can only use 61 tables in a join"
+function extractMySqlLimit(message: string): number | undefined {
+    const limit = /can only use (\d+)/i.exec(message)
+    return limit ? Number(limit[1]) : undefined
 }
 
 function isInRange(value: number | undefined, min: number, max: number): boolean {

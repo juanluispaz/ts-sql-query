@@ -225,8 +225,11 @@ function getKnownMariaDbDriverErrorReason(error: SqlError, message = error.sqlMe
 
         case 'ER_PARSING_PRECISION':
             return { reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorMessage, errorType: 'out of range' }
-        case 'ER_MAX_ALLOWED_PACKET':
-            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorMessage }
+        case 'ER_MAX_ALLOWED_PACKET': {
+            // "query size (16777217) is >= to max_allowed_packet (16777216)": the limit is in bytes
+            const maximum = /max_allowed_packet \((\d+)\)/i.exec(databaseErrorMessage || '')
+            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorMessage, resourceType: 'statement length', limit: maximum ? Number(maximum[1]) : undefined }
+        }
 
         case 'ER_UNEXPECTED_PACKET':
         case 'ER_CHANGE_USER_BAD_PACKET':

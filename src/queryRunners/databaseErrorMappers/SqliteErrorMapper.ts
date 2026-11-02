@@ -83,6 +83,9 @@ function getSqliteEngineErrorReasonInternal(error: SqliteEngineError): TsSqlErro
         case 'SQLITE_ERROR_SNAPSHOT':
             return { reason: 'TRANSACTION_ERROR', transactionErrorType: 'invalid state', databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_TOOBIG':
+            if (upper.includes('STATEMENT TOO LONG')) {
+                return { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'statement length', databaseErrorCode, databaseErrorMessage }
+            }
             return { reason: 'SQL_INVALID_VALUE', errorType: 'too long', columnName: extractColumnPathLastSegment(message), databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_MISMATCH':
             return { reason: 'SQL_INVALID_VALUE', errorType: 'invalid value', columnName: extractColumnPathLastSegment(message), databaseErrorCode, databaseErrorMessage }
@@ -124,6 +127,13 @@ function getSqliteEngineErrorReasonInternal(error: SqliteEngineError): TsSqlErro
     }
 
     return { reason: 'SQL_UNKNOWN', databaseErrorCode, databaseErrorMessage }
+}
+
+// "variable number must be between ?1 and ?32766", "at most 64 tables in a join", "too many FROM clause terms, max: 200",
+// "too many references to "x": max 65535", "Expression tree is too large (maximum depth 1000)"
+function extractSqliteLimit(message: string): number | undefined {
+    const limit = /\?1 and \?(\d+)|at most (\d+)|max:? (\d+)|maximum depth (\d+)/i.exec(message)
+    return limit ? Number(limit[1] ?? limit[2] ?? limit[3] ?? limit[4]) : undefined
 }
 
 export function getSqliteErrorCodeName(errorCode: number): string | undefined {
@@ -335,12 +345,21 @@ function getSqliteEngineMessageReason(upper: string, message: string, databaseEr
         || upper.includes('CANNOT CHANGE INTO WAL MODE FROM WITHIN A TRANSACTION')) {
         return { reason: 'TRANSACTION_ERROR', transactionErrorType: 'active transaction', databaseErrorCode, databaseErrorMessage }
     }
-    if (upper.includes('TOO MANY SQL VARIABLES')
-        || upper.includes('TOO MANY COLUMNS')
+    if (upper.includes('TOO MANY SQL VARIABLES') || upper.includes('VARIABLE NUMBER MUST BE BETWEEN ?1 AND ?')) {
+        return { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'parameters', limit: extractSqliteLimit(message), databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('TOO MANY COLUMNS')
         || upper.includes('TOO MANY TERMS IN COMPOUND SELECT')
         || upper.includes('TOO MANY TERMS IN ORDER BY CLAUSE')
-        || upper.includes('TOO MANY TERMS IN GROUP BY CLAUSE')) {
-        return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorMessage }
+        || upper.includes('TOO MANY TERMS IN GROUP BY CLAUSE')
+        || upper.includes('TOO MANY ARGUMENTS ON FUNCTION')
+        || /AT MOST \d+ TABLES IN A JOIN/.test(upper)
+        || upper.includes('TOO MANY FROM CLAUSE TERMS')
+        || upper.includes('TOO MANY REFERENCES TO')) {
+        return { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'statement elements', limit: extractSqliteLimit(message), databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('EXPRESSION TREE IS TOO LARGE') || upper.includes('PARSER STACK OVERFLOW')) {
+        return { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'statement complexity', limit: extractSqliteLimit(message), databaseErrorCode, databaseErrorMessage }
     }
     if (upper.includes('NO SUCH SAVEPOINT:')) {
         return { reason: 'TRANSACTION_ERROR', transactionErrorType: 'invalid savepoint', databaseErrorCode, databaseErrorMessage }

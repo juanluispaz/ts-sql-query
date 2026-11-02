@@ -96,6 +96,9 @@ function getPostgresSpecificErrorReason(
         case '08007':
             return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'outcome unknown' }
         case '08P01':
+            if (isPostgresParameterCountWrappedMessage(error.message || '')) {
+                return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorMessage, resourceType: 'parameters', limit: POSTGRES_MAX_PARAMETERS }
+            }
             if (isPostgresInvalidParameterMessage(error.message || '')) {
                 return getInvalidParameter(error, getPostgresInvalidParameterDetails(error.message || '', 'invalid binding'))
             }
@@ -284,10 +287,12 @@ function getPostgresSpecificErrorReason(
         case '53000':
         case '53400':
         case '54000':
+            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorMessage }
         case '54001':
+            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorMessage, resourceType: 'statement complexity' }
         case '54011':
         case '54023':
-            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorMessage }
+            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorMessage, resourceType: 'statement elements', limit: extractPostgresLimit(error.message || '') }
         case '53100':
             return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorMessage, resourceType: 'disk' }
         case '53200':
@@ -723,6 +728,25 @@ function get57014TimeoutType(message: string): 'statement' | 'cancelled' {
         return 'statement'
     }
     return 'cancelled'
+}
+
+/** The most parameters a statement can have: the protocol sends their number in 16 bits */
+export const POSTGRES_MAX_PARAMETERS = 65535
+
+/**
+ * A statement with more parameters than the protocol can count reaches the server with that number wrapped around
+ * (65536 parameters are sent as 0), and the server reports it as a mismatch: "bind message supplies 0 parameters, but
+ * prepared statement "" requires 65536"
+ */
+export function isPostgresParameterCountWrappedMessage(message: string): boolean {
+    const wrongCount = /bind message supplies (\d+) parameters?, but prepared statement .+ requires (\d+)/i.exec(message)
+    return !!wrongCount && Number(wrongCount[2]) > POSTGRES_MAX_PARAMETERS
+}
+
+// "target lists can have at most 1664 entries", "cannot pass more than 100 arguments to a function"
+function extractPostgresLimit(message: string): number | undefined {
+    const limit = /(?:at most|more than) (\d+)/i.exec(message)
+    return limit ? Number(limit[1]) : undefined
 }
 
 function isPostgresInvalidParameterMessage(message: string): boolean {

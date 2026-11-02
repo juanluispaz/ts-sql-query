@@ -95,8 +95,10 @@ function getPrismaKnownRequestErrorReason(error: PrismaClientKnownRequestError):
         case 'P2012':
         case 'P2013':
         case 'P2019':
-        case 'P2029':
             return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage }
+        case 'P2029':
+            // Query parameter limit exceeded
+            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorMessage, resourceType: 'parameters' }
         case 'P2014':
             return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage }
         case 'P2020':

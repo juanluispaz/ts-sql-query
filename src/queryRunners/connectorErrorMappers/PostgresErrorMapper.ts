@@ -108,7 +108,8 @@ function getKnownPostgresJsDriverErrorReasonWithoutNumber(error: PostgresJsError
         case 'UNDEFINED_VALUE':
             return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage, parameterErrorType: 'invalid value' }
         case 'MAX_PARAMETERS_EXCEEDED':
-            return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage, ...getPostgresJsMaxParametersExceededDetails(message) }
+            // postgres.js refuses 65534 parameters or more, although its message says that 65534 is the maximum
+            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode: code, databaseErrorMessage, resourceType: 'parameters', limit: 65533 }
         case 'NOT_TAGGED_CALL':
             return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage, parameterErrorType: 'invalid binding' }
         case 'UNSAFE_TRANSACTION':
@@ -172,17 +173,6 @@ function withDatabaseErrorNumber(reason: TsSqlErrorReason, databaseErrorNumber: 
     return { ...reason, databaseErrorNumber } as TsSqlErrorReason
 }
 
-function getPostgresJsMaxParametersExceededDetails(message: string): {
-    parameterErrorType: 'too many'
-    expectedParameterCount?: number | undefined
-} {
-    const maximum = /Max number of parameters \((\d+)\) exceeded/i.exec(message)
-    return {
-        parameterErrorType: 'too many',
-        expectedParameterCount: numberValue(maximum?.[1]),
-    }
-}
-
 function isPostgresJsQueryCancelledMessage(message: string): boolean {
     return message === '57014: canceling statement due to user request'
         || message === 'canceling statement due to user request'
@@ -206,10 +196,3 @@ function stringOrNumberValue(value: unknown): string | number | undefined {
     return typeof value === 'string' || typeof value === 'number' ? value : undefined
 }
 
-function numberValue(value: string | undefined): number | undefined {
-    if (value === undefined) {
-        return undefined
-    }
-    const number = Number(value)
-    return Number.isFinite(number) ? number : undefined
-}

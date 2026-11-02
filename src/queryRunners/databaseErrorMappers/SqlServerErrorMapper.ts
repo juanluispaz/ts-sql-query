@@ -398,6 +398,15 @@ function getSqlServerErrorReasonFromKnownGroup(context: SqlServerErrorContext): 
     if (ErrorCodes.SQL_SERVER_GENERIC_RESOURCE_ERROR_NUMBERS.has(number)) {
         return getResourceLimit(context)
     }
+    if (ErrorCodes.SQL_SERVER_PARAMETERS_RESOURCE_ERROR_NUMBERS.has(number)) {
+        return getResourceLimit(context, 'parameters', extractLimit(context.message))
+    }
+    if (ErrorCodes.SQL_SERVER_STATEMENT_ELEMENTS_RESOURCE_ERROR_NUMBERS.has(number)) {
+        return getResourceLimit(context, 'statement elements', extractLimit(context.message))
+    }
+    if (ErrorCodes.SQL_SERVER_STATEMENT_COMPLEXITY_RESOURCE_ERROR_NUMBERS.has(number)) {
+        return getResourceLimit(context, 'statement complexity', extractLimit(context.message))
+    }
     if (ErrorCodes.SQL_SERVER_READ_ONLY_ERROR_NUMBERS.has(number)) {
         return { reason: 'SQL_READ_ONLY_VIOLATION', ...getMetadata(context) }
     }
@@ -468,8 +477,21 @@ function getObjectStateError(context: SqlServerErrorContext, objectStateErrorTyp
     return { reason: 'SQL_OBJECT_STATE_ERROR', ...getMetadata(context), objectStateErrorType, objectType, objectName: extractQuotedName(context.message) }
 }
 
-function getResourceLimit(context: SqlServerErrorContext, resourceType?: ResourceLimitReason['resourceType']): TsSqlErrorReason {
-    return { reason: 'SQL_RESOURCE_LIMIT_REACHED', ...getMetadata(context), resourceType }
+function getResourceLimit(context: SqlServerErrorContext, resourceType?: ResourceLimitReason['resourceType'], limit?: number): TsSqlErrorReason {
+    return { reason: 'SQL_RESOURCE_LIMIT_REACHED', ...getMetadata(context), resourceType, limit }
+}
+
+// "The server supports a maximum of 2100 parameters", "The maximum number is 2100", "exceeds the maximum allowed number
+// of 1000 row values", "The maximum allowable is 256", "the limit of 260 tables", "(260) was exceeded", "nested to level 10"
+function extractLimit(message: string | undefined): number | undefined {
+    if (!message) {
+        return undefined
+    }
+    const limit = /maximum(?: allowed| allowable)?(?: number)?(?: is| of)? \(?(\d+)/i.exec(message)
+        || /limit of (\d+)/i.exec(message)
+        || /\((\d+)\) was exceeded/i.exec(message)
+        || /nested to level (\d+)/i.exec(message)
+    return limit ? Number(limit[1]) : undefined
 }
 
 function getConnectionError(context: SqlServerErrorContext, errorType?: ConnectionReason['errorType']): TsSqlErrorReason {

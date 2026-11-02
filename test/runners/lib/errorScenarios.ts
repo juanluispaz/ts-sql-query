@@ -58,6 +58,13 @@ function mutation(sql: string) {
     return ({ runner }: ErrorScenarioContext) => runner.executeUpdate(sql)
 }
 
+/** A select with `count` parameters in an `in` list, written with `placeholder(index)` (index from 0) */
+function queryWithParameters(count: number, placeholder: (index: number) => string) {
+    const placeholders = Array.from({ length: count }, (_, index) => placeholder(index)).join(', ')
+    const params = Array.from({ length: count }, (_, index) => index)
+    return ({ runner }: ErrorScenarioContext) => runner.executeSelectManyRows(`select 1 as one where 1 in (${placeholders})`, params)
+}
+
 /**
  * The failure of a statement another session will interrupt, with its handler
  * attached at once: the rejection may arrive before the test awaits it.
@@ -114,6 +121,11 @@ async function deadlock(ctx: ErrorScenarioContext, lockRow: (id: number) => stri
 // ---- PostgreSQL ------------------------------------------------------------
 
 const postgresScenarios: readonly ErrorScenario[] = [
+    {
+        name: 'more-parameters-than-allowed',
+        run: queryWithParameters(65536, index => '$' + (index + 1)),
+        expected: { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'parameters' },
+    },
     {
         name: 'duplicate-primary-key',
         run: mutation(`insert into rt_probe (id, name) values (1, 'dup')`),
@@ -859,6 +871,13 @@ const mysqlLikeScenarios: readonly ErrorScenario[] = [
 const mysqlScenarios: readonly ErrorScenario[] = [
     ...mysqlLikeScenarios,
     {
+        // mysql2 and mariadb write the values into the SQL text before sending it
+        name: 'more-parameters-than-allowed',
+        onlyRunners: ['BunSqlMySqlQueryRunner'],
+        run: queryWithParameters(65536, () => '?'),
+        expected: { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'parameters' },
+    },
+    {
         name: 'invalid-json',
         setup: ['create table rt_err_json (j json)'],
         cleanup: ['drop table if exists rt_err_json'],
@@ -889,6 +908,13 @@ const mysqlScenarios: readonly ErrorScenario[] = [
 
 const mariadbScenarios: readonly ErrorScenario[] = [
     ...mysqlLikeScenarios,
+    {
+        // mysql2 and mariadb write the values into the SQL text before sending it
+        name: 'more-parameters-than-allowed',
+        onlyRunners: ['BunSqlMySqlQueryRunner'],
+        run: queryWithParameters(65536, () => '?'),
+        expected: { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'parameters' },
+    },
     {
         name: 'invalid-regular-expression',
         run: query(`select 'a' regexp '('`),
@@ -1165,7 +1191,12 @@ const sqlServerScenarios: readonly ErrorScenario[] = [
         setup: ['create table rt_err_rows (id int)'],
         cleanup: ['drop table if exists rt_err_rows'],
         run: mutation('insert into rt_err_rows (id) values ' + Array.from({ length: 1001 }, (_, i) => '(' + i + ')').join(', ')),
-        expected: { reason: 'SQL_RESOURCE_LIMIT_REACHED' },
+        expected: { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'statement elements', limit: 1000 },
+    },
+    {
+        name: 'more-parameters-than-allowed',
+        run: queryWithParameters(2101, index => '@' + index),
+        expected: { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'parameters', limit: 2100 },
     },
     {
         name: 'window-function-in-a-where',
@@ -1563,6 +1594,13 @@ const oracleScenarios: readonly ErrorScenario[] = [
 // ---- SQLite ----------------------------------------------------------------
 
 const sqliteScenarios: readonly ErrorScenario[] = [
+    {
+        // A parameter numbered past the limit: the limit itself depends on how SQLite was built (32766 by default, more
+        // in Bun), so its number is beyond any of them
+        name: 'more-parameters-than-allowed',
+        run: ({ runner }) => runner.executeSelectManyRows('select ?999999999 as one', [1]),
+        expected: { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'parameters' },
+    },
     {
         name: 'duplicate-primary-key',
         run: mutation(`insert into rt_probe (id, name) values (1, 'dup')`),

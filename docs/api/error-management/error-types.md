@@ -29,9 +29,34 @@ Native SQL reasons can include `databaseErrorCode`, `databaseErrorNumber`, and `
 | `SQL_IO_ERROR` | `ioErrorType` | `read`, `write`, `fsync`, `truncate`, `file stat`, `lock`, `unlock`, `delete`, `file not found`, `access`, `shared memory`, `seek`, `mmap`, `path`, `atomic write`, `close`, `reserved extension`, `unknown` | database metadata |
 | `SQL_OBJECT_STATE_ERROR` | `objectStateErrorType` | `dependent objects still exist`, `object in use`, `invalid state`, `wrong object type` | `objectType`, `schemaName`, `tableName`, `columnName`, `objectName` |
 | `SQL_CONFIGURATION_ERROR` | `configurationErrorType` | `configuration file`, `lock file`, `runtime parameter` | database metadata |
-| `SQL_RESOURCE_LIMIT_REACHED` | `resourceType` | `disk`, `memory`, `temp space`, `connections`, `pool`, `cpu`, `file size` | database metadata |
+| `SQL_RESOURCE_LIMIT_REACHED` | `resourceType` | `disk`, `memory`, `temp space`, `connections`, `pool`, `cpu`, `file size`, `parameters`, `statement elements`, `statement length`, `statement complexity` | `limit` |
 | `SQL_DATABASE_CORRUPTED` | `corruptionType` | `database file`, `index`, `sequence`, `virtual table`, `filesystem`, `checksum` | database metadata |
 | `SQL_INTERNAL_ERROR` | `errorType` | `engine internal`, `api misuse` | database metadata |
+
+### A statement too big for the database
+
+Four values of `resourceType` say that the statement itself goes past a limit of the database or the driver, so running it again as it is fails again:
+
+| `resourceType` | What went past the limit | For example |
+| --- | --- | --- |
+| `parameters` | The number of parameters of the statement | More than 65535 parameters on PostgreSQL, 32766 on SQLite, 2100 on SQL Server |
+| `statement elements` | The number of elements of one part of the statement, with or without parameters | More than 1000 rows in the `values` of an `insert` on SQL Server, more than 1000 elements in an `in` list on Oracle before 23ai, too many tables in a join or columns in a select |
+| `statement length` | The length of the SQL text sent to the database | A statement bigger than `max_allowed_packet` on MySQL / MariaDB |
+| `statement complexity` | How deeply the statement is nested, or how complex it is | `statement_too_complex` on PostgreSQL, a statement nested too deeply on SQL Server |
+
+`limit` is the maximum the database or the driver allows, when its error says it; the original error is still in `databaseErrorMessage`.
+
+```ts
+try {
+    await connection.insertInto(tCustomer).values(customers).executeInsert()
+} catch (e) {
+    if (e instanceof TsSqlError && e.errorReason.reason === 'SQL_RESOURCE_LIMIT_REACHED' && e.errorReason.resourceType === 'parameters') {
+        // e.errorReason.limit is the maximum number of parameters, when the error says it:
+        // insert the customers in smaller groups
+    }
+    throw e
+}
+```
 
 ## SQL Reasons Without Subtypes
 

@@ -281,10 +281,15 @@ type TsSqlErrorReason =
     | /** Authorization failed while accessing the database, schema, or other SQL resources */
       { reason: 'SQL_AUTHORIZATION_ERROR', 
         databaseErrorCode?: TsSqlDatabaseErrorCode | undefined, databaseErrorNumber?: TsSqlDatabaseErrorNumber | undefined, databaseErrorMessage?: string | undefined }
-    | /** A database or connection/pool capacity limit was reached while executing the SQL statement */
+    | /**
+       * A database or connection/pool capacity limit was reached while executing the SQL statement, or the statement
+       * is too big for the database or the driver (see `resourceType`); `limit` is that maximum, when the error says it
+       */
       { reason: 'SQL_RESOURCE_LIMIT_REACHED', 
         databaseErrorCode?: TsSqlDatabaseErrorCode | undefined, databaseErrorNumber?: TsSqlDatabaseErrorNumber | undefined, databaseErrorMessage?: string | undefined, 
-        resourceType?: 'disk' | 'memory' | 'temp space' | 'connections' | 'pool' | 'cpu' | 'file size' | undefined }
+        resourceType?: 'disk' | 'memory' | 'temp space' | 'connections' | 'pool' | 'cpu' | 'file size' |
+            'parameters' | 'statement elements' | 'statement length' | 'statement complexity' | undefined,
+        limit?: number | undefined }
     | /** The database reported that the requested SQL feature is not supported */
       { reason: 'SQL_FEATURE_NOT_SUPPORTED', 
         databaseErrorCode?: TsSqlDatabaseErrorCode | undefined, databaseErrorNumber?: TsSqlDatabaseErrorNumber | undefined, databaseErrorMessage?: string | undefined }

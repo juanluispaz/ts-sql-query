@@ -28,6 +28,7 @@ function socketError(message: string, properties: Record<string, unknown>): Erro
 }
 
 describeSyntheticErrors('mariadb', () => ({ getErrorReason: (error) => getMariaDbErrorReason(error, 'mariaDB'), isError: isMariaDbError }), [
+    { name: 'statement-bigger-than-max-allowed-packet', source: 'mariadb/lib/io/packet-output-stream.js', error: () => createError('query size (16777217) is >= to max_allowed_packet (16777216)', 45046), expected: { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'statement length', limit: 16777216, databaseErrorNumber: 45046 } },
     { name: 'pool-fails-to-create-connection', source: pool, error: () => createError('Pool fails to create connection', 45061, null, false, driverError('connect ECONNREFUSED 127.0.0.1:3306', { code: 'ECONNREFUSED' })), expected: { reason: 'SQL_CONNECTION_ERROR', errorType: 'temporarily unavailable', databaseErrorCode: 'ER_POOL_NO_CONNECTION', databaseErrorNumber: 45061 } },
     { name: 'pool-acquire-timeout', source: pool, error: () => createError('pool timeout: failed to retrieve a connection from pool after 10001ms', 45028), expected: { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'pool' } },
     { name: 'connect-timeout', source: connection, error: () => createFatalError('Connection timeout: failed to create socket after 1001ms', 45012), expected: { reason: 'SQL_TIMEOUT', timeoutType: 'connection', databaseErrorCode: 'ER_CONNECTION_TIMEOUT' } },

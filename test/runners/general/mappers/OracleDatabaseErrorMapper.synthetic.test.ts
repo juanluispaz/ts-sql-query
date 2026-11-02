@@ -42,6 +42,11 @@ describeSyntheticErrors('oracle engine', mapper, [
     { name: 'ora-03135', source: docs, error: () => ora(3135, 'connection lost contact'), expected: { reason: 'SQL_CONNECTION_ERROR', errorType: 'connection lost' } },
     { name: 'ora-04030', source: docs, error: () => ora(4030, 'out of process memory when trying to allocate 16328 bytes (koh-kghu sessi,pmucalm coll)'), expected: { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'memory' } },
     { name: 'ora-12537', source: docs, error: () => ora(12537, 'TNS:connection closed'), expected: { reason: 'SQL_CONNECTION_ERROR', errorType: 'connection lost' } },
+    // Limits of the statement, with the message the engine writes for them.
+    { name: 'too-many-bind-variables', source: docs, error: () => ora(6550, 'line 1, column 27102:', 'PLS-00183: too many bind variables'), expected: { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'parameters', databaseErrorNumber: 6550 } },
+    { name: 'too-many-expressions-in-a-list', source: docs, error: () => ora(1795, 'maximum number of expressions in a list is 1000'), expected: { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'statement elements', limit: 1000 } },
+    { name: 'too-many-columns-in-a-table', source: docs, error: () => ora(1792, 'maximum number of columns in a table or view is 1000'), expected: { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'statement elements', limit: 1000 } },
+    { name: 'too-many-function-arguments', source: docs, error: () => ora(939, 'too many arguments for function'), expected: { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'statement elements' } },
 
     { name: 'pl-sql-compilation-error', source: docs, error: () => ora(6550, 'line 1, column 7:', 'PLS-00201: identifier \'RT_NOPE\' must be declared', 'ORA-06550: line 1, column 7:', 'PL/SQL: Statement ignored'), expected: { reason: 'SQL_ROUTINE_ERROR', databaseErrorNumber: 6550 } },
     { name: 'invalid-identifier-without-name', source: docs, error: () => ora(904, ': invalid identifier'), expected: { reason: 'SQL_INVALID_SQL_STATEMENT', statementErrorType: 'invalid identifier' } },

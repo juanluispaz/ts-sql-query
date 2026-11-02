@@ -43,7 +43,7 @@ describeSyntheticErrors('Bun SQL mysql', loadMapper, [
     { name: 'distributed-name-with-quote', source: pool, error: () => driverError('Distributed transaction name cannot contain single quotes.'), expected: { reason: 'SQL_INVALID_PARAMETER', parameterErrorType: 'invalid value' } },
     { name: 'tls-option', source: native, error: () => driverError('tls must be a boolean or an object', {}, TypeError), expected: { reason: 'SQL_CONNECTION_ERROR', errorType: 'invalid connection configuration' } },
     { name: 'simple-query-with-parameters', source: native, error: () => driverError('simple query cannot have parameters'), expected: { reason: 'SQL_INVALID_PARAMETER', parameterErrorType: 'not bindable' } },
-    { name: 'query-too-long', source: native, error: () => driverError('query is too long'), expected: { reason: 'SQL_RESOURCE_LIMIT_REACHED' } },
+    { name: 'query-too-long', source: native, error: () => driverError('query is too long'), expected: { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'statement length' } },
     { name: 'boxed-number-value', source: native, error: () => driverError('Cannot bind NumberObject to query parameter. Use a primitive number instead.', {}, TypeError), expected: { reason: 'SQL_INVALID_PARAMETER', parameterErrorType: 'invalid type' } },
     { name: 'failed-to-connect', source: native + ' (earlier Bun releases)', error: () => driverError('failed to connect to mysql'), expected: { reason: 'SQL_CONNECTION_ERROR', errorType: 'connection lost' } },
     { name: 'error-without-a-known-shape', source: 'any Error', error: () => driverError('x', { code: 'SOMETHING' }), expected: { reason: 'UNKNOWN' }, notSqlError: true },

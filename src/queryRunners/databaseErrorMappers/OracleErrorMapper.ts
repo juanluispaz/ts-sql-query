@@ -172,6 +172,10 @@ function getOracleErrorReasonFromNumber(context: OracleErrorContext): TsSqlError
         case 1756:
             return getSyntaxError(context)
         case 6550:
+            if (context.lowerMessage.includes('pls-00183')) {
+                // PLS-00183: too many bind variables, in the block the library writes for a multi-row insert
+                return getResourceLimit(context, 'parameters')
+            }
             return context.lowerMessage.includes('pls-')
                 ? getRoutineError(context)
                 : getSyntaxError(context)
@@ -266,8 +270,12 @@ function getOracleErrorReasonFromNumber(context: OracleErrorContext): TsSqlError
         case 12520:
             return getResourceLimit(context, 'connections')
         case 1000:
-        case 1795:
             return getResourceLimit(context)
+        case 939:
+        case 1792:
+        case 1795:
+        case 24335:
+            return getResourceLimit(context, 'statement elements', extractLimit(context.message))
         case 1652:
         case 30036:
             return getResourceLimit(context, 'temp space')
@@ -499,8 +507,15 @@ function getConnectionError(context: OracleErrorContext, errorType?: ConnectionR
     return { reason: 'SQL_CONNECTION_ERROR', ...getMetadata(context), errorType }
 }
 
-function getResourceLimit(context: OracleErrorContext, resourceType?: ResourceLimitReason['resourceType']): TsSqlErrorReason {
-    return { reason: 'SQL_RESOURCE_LIMIT_REACHED', ...getMetadata(context), resourceType }
+function getResourceLimit(context: OracleErrorContext, resourceType?: ResourceLimitReason['resourceType'], limit?: number): TsSqlErrorReason {
+    return { reason: 'SQL_RESOURCE_LIMIT_REACHED', ...getMetadata(context), resourceType, limit }
+}
+
+// "maximum number of expressions in a list is 1000", "maximum number of columns in a table or view is 1000",
+// "cannot support more than 1000 columns"
+function extractLimit(message: string): number | undefined {
+    const limit = /(?:maximum number of [a-z ]+ is|more than) (\d+)/i.exec(message)
+    return limit ? Number(limit[1]) : undefined
 }
 
 function getDatabaseCorrupted(context: OracleErrorContext, corruptionType?: DatabaseCorruptedReason['corruptionType']): TsSqlErrorReason {

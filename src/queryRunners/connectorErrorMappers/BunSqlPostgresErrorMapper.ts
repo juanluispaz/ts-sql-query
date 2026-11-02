@@ -70,7 +70,7 @@ function getBunPostgresErrorReason(error: BunSqlPostgresError): TsSqlErrorReason
         case 'ERR_POSTGRES_NOT_TAGGED_CALL':
             return withNumber({ reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage: error.message, parameterErrorType: 'invalid binding' })
         case 'ERR_POSTGRES_TOO_MANY_PARAMETERS':
-            return withNumber({ reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage: error.message, ...getBunPostgresTooManyParametersDetails(error.message) })
+            return withNumber({ reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorMessage: error.message, resourceType: 'parameters', limit: getBunPostgresMaxParameters(error.message) })
         case 'ERR_POSTGRES_UNSAFE_TRANSACTION':
             return withNumber({ reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage: error.message, transactionErrorType: 'unsupported operation' })
         case 'ERR_POSTGRES_COMMIT_ROLLED_BACK':
@@ -178,15 +178,10 @@ function withDatabaseErrorNumber(reason: TsSqlErrorReason, databaseErrorNumber: 
     return { ...reason, databaseErrorNumber } as TsSqlErrorReason
 }
 
-function getBunPostgresTooManyParametersDetails(message: string): {
-    parameterErrorType: 'too many'
-    expectedParameterCount?: number | undefined
-} {
+// "query has too many parameters - the PostgreSQL wire protocol supports a maximum of 65535 parameters"
+function getBunPostgresMaxParameters(message: string): number | undefined {
     const maximum = /maximum of (\d+) parameters?/i.exec(message)
-    return {
-        parameterErrorType: 'too many',
-        expectedParameterCount: numberValue(maximum?.[1]),
-    }
+    return numberValue(maximum?.[1])
 }
 
 function getStringProperty(error: BunSqlError, property: string): string | undefined {

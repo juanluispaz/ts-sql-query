@@ -266,6 +266,7 @@ function getOracleErrorReasonFromNumber(context: OracleErrorContext): TsSqlError
         case 12520:
             return getResourceLimit(context, 'connections')
         case 1000:
+        case 1795:
             return getResourceLimit(context)
         case 1652:
         case 30036:
@@ -277,6 +278,7 @@ function getOracleErrorReasonFromNumber(context: OracleErrorContext): TsSqlError
             return getResourceLimit(context, 'disk')
         case 4030:
         case 4031:
+        case 4036:
             return getResourceLimit(context, 'memory')
 
         case 1578:

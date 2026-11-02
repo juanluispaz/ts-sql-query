@@ -330,7 +330,7 @@ const conn = ctx.withReplaceAllInsensitiveFunction('ci_replace')
                     .forUseAsInlineAggregatedArrayValue(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(a_1_.result) from (select name as result from project where organization_id = organization.id order by result collate NOCASE asc) as a_1_) as names from organization where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(a_1_.result) from (select name as result from project where organization_id = organization.id order by name collate NOCASE asc) as a_1_) as names from organization where id = ?1"`)
 
         const empty = ctx.withInsensitiveCollation('')
         await empty.selectFrom(tOrganization)

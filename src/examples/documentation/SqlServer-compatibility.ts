@@ -267,8 +267,8 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, first_name + @0 + last_name as name, birthday as birthday from customer where first_name like ('%' + @1 + '%') order by lower(first_name + @2 + last_name), iif(customer.birthday is null, 1, 0), birthday asc`)
-    expectedParams.push(`[" ","ohn"," "]`)
+    expectedQuery.push(`select id as id, first_name + @0 + last_name as name, birthday as birthday from customer where first_name like ('%' + @1 + '%') order by lower(first_name + @0 + last_name), iif(customer.birthday is null, 1, 0), birthday asc`)
+    expectedParams.push(`[" ","ohn"]`)
     expectedType.push(`selectManyRows`)
 
     /* *** Example ****************************************************************/
@@ -299,8 +299,8 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, first_name + @0 + last_name as name, birthday as birthday from customer where first_name like ('%' + @1 + '%') order by lower(first_name + @2 + last_name), iif(customer.birthday is null, 1, 0), birthday asc`)
-    expectedParams.push(`[" ","ohn"," "]`)
+    expectedQuery.push(`select id as id, first_name + @0 + last_name as name, birthday as birthday from customer where first_name like ('%' + @1 + '%') order by lower(first_name + @0 + last_name), iif(customer.birthday is null, 1, 0), birthday asc`)
+    expectedParams.push(`[" ","ohn"]`)
     expectedType.push(`selectManyRows`)
 
     /* *** Example ****************************************************************/
@@ -332,8 +332,8 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, first_name + @0 + last_name as name, birthday as birthday from customer where first_name like ('%' + @1 + '%') order by lower(first_name + @2 + last_name), iif(customer.birthday is null, 1, 0), birthday asc`)
-    expectedParams.push(`[" ","ohn"," "]`)
+    expectedQuery.push(`select id as id, first_name + @0 + last_name as name, birthday as birthday from customer where first_name like ('%' + @1 + '%') order by lower(first_name + @0 + last_name), iif(customer.birthday is null, 1, 0), birthday asc`)
+    expectedParams.push(`[" ","ohn"]`)
     expectedType.push(`selectManyRows`)
 
     /* *** Example ****************************************************************/

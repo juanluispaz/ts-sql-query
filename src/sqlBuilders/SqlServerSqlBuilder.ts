@@ -675,6 +675,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         if (query.__type === 'compound') {
             return this._appendOrderByColumnAlias(entry, query, params)
         }
+        const selectColumn = this._getOrderBySelectColumnWithParams(entry, query, params)
+        if (selectColumn) {
+            return this._appendOrderBySelectColumnWithParams(selectColumn, entry, query, params)
+        }
         return this._appendOrderByColumnExpression(entry, query, params)
     }
     override _needsCompoundNullsEmulationOrderByWrap(query: SelectData): boolean {

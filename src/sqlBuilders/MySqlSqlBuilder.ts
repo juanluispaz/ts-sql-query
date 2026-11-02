@@ -5,7 +5,7 @@ import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { AbstractMySqlMariaDBSqlBuilder } from './AbstractMySqlMariaBDSqlBuilder.js'
 import type { FlatQueryColumns, InsertData, SelectData, ToSql, WithQueryData } from './SqlBuilder.js'
-import { flattenQueryColumns, hasWithData } from './SqlBuilder.js'
+import { flattenQueryColumns, getQueryColumn, hasWithData } from './SqlBuilder.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __getColumnPrivate } from '../utils/Column.js'
@@ -221,6 +221,46 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         }
 
         return super._appendTableOrViewNoAliasForFrom(table, params)
+    }
+    override _needsSelectOrderByWrap(query: SelectData, params: any[]): boolean {
+        // A column of the select the query is grouped by, whose SQL carries parameters, is in the group by as its
+        // position in the select. Written again inside an expression of the order by, it gets new parameters, and
+        // MySQL doesn't take it as the grouped column (not in GROUP BY); written as its alias, MySQL takes a column of
+        // the from with the same name before it. Over a query that wraps the select, the alias is the only column with
+        // that name
+        if (query.__type !== 'plain') {
+            return false
+        }
+        const orderBy = query.__orderBy
+        if (!orderBy) {
+            return false
+        }
+        const customization = query.__customization
+        if (customization && (customization.beforeOrderByItems || customization.afterOrderByItems)) {
+            // A raw fragment can refer to the columns of the tables, which aren't visible over the wrapping query
+            return false
+        }
+        const groupByColumnNames = query.__groupByColumnNames
+        if (!groupByColumnNames) {
+            return false
+        }
+        let result = false
+        for (let i = 0, length = orderBy.length; i < length; i++) {
+            const entry = orderBy[i]!
+            const expression = entry.expression
+            if (typeof expression !== 'string') {
+                // An expression can refer to the columns of the tables, which aren't visible over the wrapping query
+                return false
+            }
+            if (!this._isOrderByColumnInExpression(entry, query)) {
+                continue
+            }
+            const selectColumn = this._getOrderBySelectColumnWithParams(entry, query, params)
+            if (selectColumn && groupByColumnNames.has(getQueryColumn(query.__columns, expression)!)) {
+                result = true
+            }
+        }
+        return result
     }
     override _setSafeTableOrView(params: any[], tableOrView: AnyTableOrView | undefined): void {
         if (this._connectionConfiguration.compatibilityVersion < 8_000_000) {

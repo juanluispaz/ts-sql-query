@@ -43,8 +43,8 @@ The executed query is:
     inner join company as comp on customer.company_id = comp.id 
     where lower(customer.first_name) like concat(lower(?), '%') 
     order by 
-        lower(firstName), 
-        lower(lastName) asc
+        lower(customer.first_name), 
+        lower(customer.last_name) asc
     ```
 === "MySQL"
     ```mysql
@@ -58,8 +58,8 @@ The executed query is:
     inner join company as comp on customer.company_id = comp.id 
     where lower(customer.first_name) like concat(lower(?), '%') 
     order by 
-        lower(firstName), 
-        lower(lastName) asc
+        lower(customer.first_name), 
+        lower(customer.last_name) asc
     ```
 === "Oracle"
     ```oracle
@@ -103,8 +103,8 @@ The executed query is:
     inner join company as comp on customer.company_id = comp.id 
     where lower(customer.first_name) like lower(?1 || '%') escape '\' 
     order by 
-        lower(firstName), 
-        lower(lastName) asc
+        lower(customer.first_name), 
+        lower(customer.last_name) asc
     ```
 === "SQL Server"
     ```sqlserver

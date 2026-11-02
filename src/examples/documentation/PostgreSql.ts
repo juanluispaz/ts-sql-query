@@ -266,8 +266,8 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, first_name || $1 || last_name as name, birthday as birthday from customer where first_name like ('%' || $2 || '%') order by lower(first_name || $3 || last_name), birthday asc nulls last`)
-    expectedParams.push(`[" ","ohn"," "]`)
+    expectedQuery.push(`select id as id, first_name || $1 || last_name as name, birthday as birthday from customer where first_name like ('%' || $2 || '%') order by lower(first_name || $1 || last_name), birthday asc nulls last`)
+    expectedParams.push(`[" ","ohn"]`)
     expectedType.push(`selectManyRows`)
 
     /* *** Example ****************************************************************/
@@ -298,8 +298,8 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, first_name || $1 || last_name as name, birthday as birthday from customer where first_name like ('%' || $2 || '%') order by lower(first_name || $3 || last_name), birthday asc nulls last`)
-    expectedParams.push(`[" ","ohn"," "]`)
+    expectedQuery.push(`select id as id, first_name || $1 || last_name as name, birthday as birthday from customer where first_name like ('%' || $2 || '%') order by lower(first_name || $1 || last_name), birthday asc nulls last`)
+    expectedParams.push(`[" ","ohn"]`)
     expectedType.push(`selectManyRows`)
 
     /* *** Example ****************************************************************/
@@ -331,8 +331,8 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, first_name || $1 || last_name as name, birthday as birthday from customer where first_name like ('%' || $2 || '%') order by lower(first_name || $3 || last_name), birthday asc nulls last`)
-    expectedParams.push(`[" ","ohn"," "]`)
+    expectedQuery.push(`select id as id, first_name || $1 || last_name as name, birthday as birthday from customer where first_name like ('%' || $2 || '%') order by lower(first_name || $1 || last_name), birthday asc nulls last`)
+    expectedParams.push(`[" ","ohn"]`)
     expectedType.push(`selectManyRows`)
 
     /* *** Example ****************************************************************/

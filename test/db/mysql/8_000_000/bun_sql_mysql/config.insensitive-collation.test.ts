@@ -308,7 +308,7 @@ describe(ctx.label, () => {
                     .forUseAsInlineAggregatedArrayValue(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(a_1_.result) from (select \`name\` as result from project where organization_id = \`organization\`.id order by result collate utf8mb4_general_ci asc limit 2147483647) as a_1_) as char) as \`names\` from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(a_1_.result) from (select \`name\` as result from project where organization_id = \`organization\`.id order by \`name\` collate utf8mb4_general_ci asc limit 2147483647) as a_1_) as char) as \`names\` from \`organization\` where id = ?"`)
 
         const empty = ctx.withInsensitiveCollation('')
         await empty.selectFrom(tOrganization)

@@ -69,7 +69,7 @@ The executed query is:
     from customer 
     where first_name like concat('%', ?, '%') 
     order by 
-        lower(name), 
+        lower(concat(first_name, ?, last_name)), 
         birthday is null, 
         birthday asc
     ```
@@ -82,7 +82,7 @@ The executed query is:
     from customer 
     where first_name like concat('%', ?, '%') 
     order by 
-        lower(`name`), 
+        lower(concat(first_name, ?, last_name)), 
         birthday is null, 
         birthday asc
     ```
@@ -107,7 +107,7 @@ The executed query is:
     from customer 
     where first_name like ('%' || $2 || '%') 
     order by 
-        lower(first_name || $3 || last_name), 
+        lower(first_name || $1 || last_name), 
         birthday asc nulls last
     ```
 === "SQLite"
@@ -119,7 +119,7 @@ The executed query is:
     from customer 
     where first_name like ('%' || ?2 || '%') escape '\' 
     order by 
-        lower(name), 
+        lower(first_name || ?1 || last_name), 
         birthday asc nulls last
     ```
 === "SQL Server"
@@ -131,12 +131,12 @@ The executed query is:
     from customer 
     where first_name like ('%' + @1 + '%') 
     order by 
-        lower(first_name + @2 + last_name), 
+        lower(first_name + @0 + last_name), 
         iif(customer.birthday is null, 1, 0), 
         birthday asc
     ```
 
-The parameters are: `[ ' ', 'ohn' ]` (on [PostgreSQL](../configuration/supported-databases/postgresql.md) and [SQL Server](../configuration/supported-databases/sqlserver.md) the case-insensitive `order by` re-emits the concatenated expression — these dialects can't reference a select alias inside an `order by` expression — so its separator is bound again, giving `[ ' ', 'ohn', ' ' ]`)
+The parameters are: `[ ' ', 'ohn' ]` (on [MariaDB](../configuration/supported-databases/mariadb.md) and [MySQL](../configuration/supported-databases/mysql.md) the case-insensitive `order by` writes the concatenated expression again, with its separator bound again, giving `[ ' ', 'ohn', ' ' ]`: inside an `order by` expression these databases would take a column of the table with the same name as the alias before the alias, and they can't repeat a parameter)
 
 The result type is:
 ```tsx
@@ -214,8 +214,8 @@ The executed query is:
             )
         ) and company.name = ? 
     order by 
-        lower(firstName), 
-        lower(lastName) asc
+        lower(customer.first_name), 
+        lower(customer.last_name) asc
     ```
 === "MySQL"
     ```mysql
@@ -236,8 +236,8 @@ The executed query is:
             )
         ) and company.`name` = ? 
     order by 
-        lower(firstName), 
-        lower(lastName) asc
+        lower(customer.first_name), 
+        lower(customer.last_name) asc
     ```
 === "Oracle"
     ```oracle
@@ -302,8 +302,8 @@ The executed query is:
             )
         ) and company.name = ?4 
     order by 
-        lower(firstName), 
-        lower(lastName) asc
+        lower(customer.first_name), 
+        lower(customer.last_name) asc
     ```
 === "SQL Server"
     ```sqlserver
@@ -868,7 +868,7 @@ The executed query is:
             or lower(customer.last_name) like concat('%', lower(?), '%')
         ) 
     order by 
-        lower(`company.name`) asc, 
+        lower(company.name) asc, 
         birthday desc
     ```
 === "MySQL"
@@ -889,7 +889,7 @@ The executed query is:
             or lower(customer.last_name) like concat('%', lower(?), '%')
         ) 
     order by 
-        lower(`company.name`) asc, 
+        lower(company.`name`) asc, 
         birthday desc
     ```
 === "Oracle"
@@ -952,7 +952,7 @@ The executed query is:
             or lower(customer.last_name) like lower('%' || ?3 || '%') escape '\'
         ) 
     order by 
-        lower("company.name") asc, 
+        lower(company.name) asc, 
         birthday desc
     ```
 === "SQL Server"

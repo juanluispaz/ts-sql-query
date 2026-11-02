@@ -479,7 +479,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(a_1_.result) from (select \`name\` as result from project where organization_id = \`organization\`.id order by result is null, result asc limit 2147483647) as a_1_) as char) as projectNames from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(a_1_.result) from (select \`name\` as result from project where organization_id = \`organization\`.id order by \`name\` is null, result asc limit 2147483647) as a_1_) as char) as projectNames from \`organization\` where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -511,7 +511,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(a_1_.result) from (select \`name\` as result from project where organization_id = \`organization\`.id order by result is not null, result desc limit 2147483647) as a_1_) as char) as projectNames from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(a_1_.result) from (select \`name\` as result from project where organization_id = \`organization\`.id order by \`name\` is not null, result desc limit 2147483647) as a_1_) as char) as projectNames from \`organization\` where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -543,7 +543,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(a_1_.result) from (select \`name\` as result from project where organization_id = \`organization\`.id order by lower(result) asc limit 2147483647) as a_1_) as char) as projectNames from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(a_1_.result) from (select \`name\` as result from project where organization_id = \`organization\`.id order by lower(\`name\`) asc limit 2147483647) as a_1_) as char) as projectNames from \`organization\` where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -575,7 +575,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(a_1_.result) from (select \`name\` as result from project where organization_id = \`organization\`.id order by result is null, lower(result) asc limit 2147483647) as a_1_) as char) as projectNames from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(a_1_.result) from (select \`name\` as result from project where organization_id = \`organization\`.id order by \`name\` is null, lower(\`name\`) asc limit 2147483647) as a_1_) as char) as projectNames from \`organization\` where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1326,7 +1326,7 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id, projectNames: orgNames })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(a_1_.result) from (select \`name\` as result from project where organization_id = \`organization\`.id order by lower(result) limit 2147483647) as a_1_) as char) as projectNames from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(a_1_.result) from (select \`name\` as result from project where organization_id = \`organization\`.id order by lower(\`name\`) limit 2147483647) as a_1_) as char) as projectNames from \`organization\` where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1349,7 +1349,7 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id, projectNames: orgNames })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(a_1_.result) from (select \`name\` as result from project where organization_id = \`organization\`.id order by lower(result) desc limit 2147483647) as a_1_) as char) as projectNames from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(a_1_.result) from (select \`name\` as result from project where organization_id = \`organization\`.id order by lower(\`name\`) desc limit 2147483647) as a_1_) as char) as projectNames from \`organization\` where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1372,7 +1372,7 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id, projectNames: orgNames })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(a_1_.result) from (select \`name\` as result from project where organization_id = \`organization\`.id order by lower(result) desc limit 2147483647) as a_1_) as char) as projectNames from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(a_1_.result) from (select \`name\` as result from project where organization_id = \`organization\`.id order by lower(\`name\`) desc limit 2147483647) as a_1_) as char) as projectNames from \`organization\` where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1395,7 +1395,7 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id, projectNames: orgNames })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(a_1_.result) from (select \`name\` as result from project where organization_id = \`organization\`.id order by result is not null, lower(result) desc limit 2147483647) as a_1_) as char) as projectNames from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(a_1_.result) from (select \`name\` as result from project where organization_id = \`organization\`.id order by \`name\` is not null, lower(\`name\`) desc limit 2147483647) as a_1_) as char) as projectNames from \`organization\` where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

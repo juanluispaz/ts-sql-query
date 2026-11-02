@@ -266,8 +266,8 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, concat(first_name, ?, last_name) as name, birthday as birthday from customer where first_name like concat('%', ?, '%') order by lower(name), birthday is null, birthday asc`)
-    expectedParams.push(`[" ","ohn"]`)
+    expectedQuery.push(`select id as id, concat(first_name, ?, last_name) as name, birthday as birthday from customer where first_name like concat('%', ?, '%') order by lower(concat(first_name, ?, last_name)), birthday is null, birthday asc`)
+    expectedParams.push(`[" ","ohn"," "]`)
     expectedType.push(`selectManyRows`)
 
     /* *** Example ****************************************************************/
@@ -298,8 +298,8 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, concat(first_name, ?, last_name) as name, birthday as birthday from customer where first_name like concat('%', ?, '%') order by lower(name), birthday is null, birthday asc`)
-    expectedParams.push(`[" ","ohn"]`)
+    expectedQuery.push(`select id as id, concat(first_name, ?, last_name) as name, birthday as birthday from customer where first_name like concat('%', ?, '%') order by lower(concat(first_name, ?, last_name)), birthday is null, birthday asc`)
+    expectedParams.push(`[" ","ohn"," "]`)
     expectedType.push(`selectManyRows`)
 
     /* *** Example ****************************************************************/
@@ -331,8 +331,8 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, concat(first_name, ?, last_name) as name, birthday as birthday from customer where first_name like concat('%', ?, '%') order by lower(name), birthday is null, birthday asc`)
-    expectedParams.push(`[" ","ohn"]`)
+    expectedQuery.push(`select id as id, concat(first_name, ?, last_name) as name, birthday as birthday from customer where first_name like concat('%', ?, '%') order by lower(concat(first_name, ?, last_name)), birthday is null, birthday asc`)
+    expectedParams.push(`[" ","ohn"," "]`)
     expectedType.push(`selectManyRows`)
 
     /* *** Example ****************************************************************/
@@ -367,7 +367,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday, comp.name as companyName from customer inner join company as comp on customer.company_id = comp.id where lower(customer.first_name) like concat(lower(?), '%') order by lower(firstName), lower(lastName) asc`)
+    expectedQuery.push(`select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday, comp.name as companyName from customer inner join company as comp on customer.company_id = comp.id where lower(customer.first_name) like concat(lower(?), '%') order by lower(customer.first_name), lower(customer.last_name) asc`)
     expectedParams.push(`["John"]`)
     expectedType.push(`selectManyRows`)
 
@@ -980,7 +980,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday, company.name as companyName from customer inner join company on customer.company_id = company.id where (lower(customer.first_name) like concat(lower(?), '%') or (lower(customer.last_name) like concat(lower(?), '%') and customer.last_name like concat('%', ?))) and company.name = ? order by lower(firstName), lower(lastName) asc`)
+    expectedQuery.push(`select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday, company.name as companyName from customer inner join company on customer.company_id = company.id where (lower(customer.first_name) like concat(lower(?), '%') or (lower(customer.last_name) like concat(lower(?), '%') and customer.last_name like concat('%', ?))) and company.name = ? order by lower(customer.first_name), lower(customer.last_name) asc`)
     expectedParams.push(`["John","Smi","th","ACME"]`)
     expectedType.push(`selectManyRows`)
     
@@ -1026,7 +1026,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select customer.id as id, customer.first_name as `name.firstName`, customer.last_name as `name.lastName`, customer.birthday as birthday, company.id as `company.id`, company.name as `company.name` from customer inner join company on customer.company_id = company.id where (lower(customer.first_name) like concat(lower(?), '%') or (lower(customer.last_name) like concat(lower(?), '%') and customer.last_name like concat('%', ?))) and company.name = ? order by lower(`name.firstName`), lower(`name.lastName`) asc")
+    expectedQuery.push("select customer.id as id, customer.first_name as `name.firstName`, customer.last_name as `name.lastName`, customer.birthday as birthday, company.id as `company.id`, company.name as `company.name` from customer inner join company on customer.company_id = company.id where (lower(customer.first_name) like concat(lower(?), '%') or (lower(customer.last_name) like concat(lower(?), '%') and customer.last_name like concat('%', ?))) and company.name = ? order by lower(customer.first_name), lower(customer.last_name) asc")
     expectedParams.push(`["John","Smi","th","ACME"]`)
     expectedType.push(`selectManyRows`)
     
@@ -1171,7 +1171,7 @@ async function main() {
         'company.id': 10,
         'company.name': 'ACME Inc.'
     })
-    expectedQuery.push("select customer.id as id, customer.first_name as `name.firstName`, customer.last_name as `name.lastName`, customer.birthday as birthday, company.id as `company.id`, company.name as `company.name` from customer inner join company on company.id = customer.company_id where company.name = ? and (lower(customer.first_name) like concat('%', lower(?), '%') or lower(customer.last_name) like concat('%', lower(?), '%')) order by lower(`company.name`) asc, birthday desc")
+    expectedQuery.push("select customer.id as id, customer.first_name as `name.firstName`, customer.last_name as `name.lastName`, customer.birthday as birthday, company.id as `company.id`, company.name as `company.name` from customer inner join company on company.id = customer.company_id where company.name = ? and (lower(customer.first_name) like concat('%', lower(?), '%') or lower(customer.last_name) like concat('%', lower(?), '%')) order by lower(company.name) asc, birthday desc")
     expectedParams.push(`["ACME","John","Smi"]`)
     expectedType.push(`selectOneRow`)
     

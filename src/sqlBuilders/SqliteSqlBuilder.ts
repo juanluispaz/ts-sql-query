@@ -143,6 +143,10 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         }
         return false
     }
+    override _supportOrderByColumnAliasInExpression(): boolean {
+        // Inside an expression of the order by, SQLite takes a column of the from with the same name before the alias
+        return false
+    }
     override _buildSelectOrderBy(query: SelectData, params: any[]): string {
         if (this._connectionConfiguration.compatibilityVersion >= 3_030_000) {
             return super._buildSelectOrderBy(query, params)
@@ -194,10 +198,10 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
                     orderByColumns += this._appendOrderByColumnAlias(entry, query, params) + ' desc'
                     break
                 case 'asc nulls last':
-                    orderByColumns += this._appendOrderByColumnAlias(entry, query, params) + ' is null, ' + this._appendOrderByColumnAlias(entry, query, params) + ' asc'
+                    orderByColumns += this._appendOrderByColumnForExpression(entry, query, params) + ' is null, ' + this._appendOrderByColumnAlias(entry, query, params) + ' asc'
                     break
                 case 'desc nulls first':
-                    orderByColumns += this._appendOrderByColumnAlias(entry, query, params) + ' is not null, ' + this._appendOrderByColumnAlias(entry, query, params) + ' desc'
+                    orderByColumns += this._appendOrderByColumnForExpression(entry, query, params) + ' is not null, ' + this._appendOrderByColumnAlias(entry, query, params) + ' desc'
                     break
                 case 'insensitive':
                     orderByColumns += this._appendOrderByColumnAliasInsensitive(entry, query, params)
@@ -211,10 +215,10 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
                     orderByColumns += this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' desc'
                     break
                 case 'asc nulls last insensitive':
-                    orderByColumns += this._appendOrderByColumnAlias(entry, query, params) + ' is null, ' + this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' asc'
+                    orderByColumns += this._appendOrderByColumnForExpression(entry, query, params) + ' is null, ' + this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' asc'
                     break
                 case 'desc nulls first insensitive':
-                    orderByColumns += this._appendOrderByColumnAlias(entry, query, params) + ' is not null, ' + this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' desc'
+                    orderByColumns += this._appendOrderByColumnForExpression(entry, query, params) + ' is not null, ' + this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' desc'
                     break
                 default:
                     throw new TsSqlProcessingError({ reason: 'INVALID_ORDER_BY_ORDERING', column: this._appendOrderByColumnAlias(entry, query, params), ordering: order }, 'Invalid order by: ' + order)

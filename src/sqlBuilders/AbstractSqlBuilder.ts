@@ -121,6 +121,17 @@ export class AbstractSqlBuilder implements SqlBuilder {
             configurable: true
         })
     }
+    _isOrderByOnWrapper(params: any[]): boolean {
+        return !!(params as any)._orderByOnWrapper
+    }
+    _setOrderByOnWrapper(params: any[], value: boolean): void {
+        Object.defineProperty(params, '_orderByOnWrapper', {
+            value: value,
+            writable: true,
+            enumerable: false,
+            configurable: true
+        })
+    }
     _getForceAliasAs(params: any[]): string | undefined {
         return (params as any)._forceAliasAs
     }
@@ -1027,6 +1038,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         selectQuery += this._buildWith(query, params)
+        const selectStart = selectQuery.length
         selectQuery += 'select '
 
         if (customization && customization.afterSelectKeyword) {
@@ -1044,9 +1056,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const columns: FlatQueryColumns = {}
         flattenQueryColumns(query.__columns, columns, '')
 
-        const groupByColumnNames = query.__groupByColumnNames
-        const havingColumnNames = query.__havingColumnNames
-        const selectColumnsSql = groupByColumnNames || havingColumnNames ? new Map<AnyValueSource, SelectColumnSql>() : undefined
+        // The SQL of each column of the select, for the group by, the having and the order by that refer to it
+        const selectColumnsSql = new Map<AnyValueSource, SelectColumnSql>()
         if (needAgggregateArrayWrapper || !this._needAgggregateArrayColumnsTransformation(query, params)) {
             let requireComma = false
             let position = 0
@@ -1058,7 +1069,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 const columnForInsert = columnsForInsert[property]
                 const paramsStart = params.length
                 const columnSql = this._appendSelectColumn(columns[property]!, params, columnForInsert, isOutermostQuery)
-                if (selectColumnsSql && !columnForInsert && (groupByColumnNames?.has(columns[property]!) || havingColumnNames?.has(columns[property]!))) {
+                if (!columnForInsert) {
                     selectColumnsSql.set(columns[property]!, { sql: columnSql, name: property, position, paramsStart, paramsEnd: params.length })
                 }
                 selectQuery += columnSql
@@ -1143,9 +1154,23 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (!query.__asInlineAggregatedArrayValue || !this._supportOrderByWhenAggregateArray || this._isAggregateArrayWrapped(params)) {
             const oldSafeTableOrViewInOrderBy = this._getSafeTableOrView(params)
             const oldOrderBySafeTableOrView = this._getOrderBySafeTableOrView(params)
+            const oldSelectColumnsSql = this._getSelectColumnsSql(params)
             this._setSafeTableOrView(params, undefined)
             this._setOrderBySafeTableOrView(params, oldSafeTableOrViewInOrderBy)
-            selectQuery += this._buildSelectOrderBy(query, params)
+            this._setSelectColumnsSql(params, selectColumnsSql)
+            if (!needAgggregateArrayWrapper && this._needsSelectOrderByWrap(query, params)) {
+                // The order by can't be written over the select: it is written over a query that wraps it, where the
+                // columns of the select are the columns of the from
+                selectQuery = selectQuery.substring(0, selectStart) + 'select * from (' + selectQuery.substring(selectStart) + ')'
+                selectQuery += this._supportTableAliasWithAs ? ' as o_' + this._generateUnique() + '_' : ' o_' + this._generateUnique() + '_'
+                const oldOrderByOnWrapper = this._isOrderByOnWrapper(params)
+                this._setOrderByOnWrapper(params, true)
+                selectQuery += this._buildSelectOrderByForWrapper(query, params)
+                this._setOrderByOnWrapper(params, oldOrderByOnWrapper)
+            } else {
+                selectQuery += this._buildSelectOrderBy(query, params)
+            }
+            this._setSelectColumnsSql(params, oldSelectColumnsSql)
             this._setOrderBySafeTableOrView(params, oldOrderBySafeTableOrView)
             this._setSafeTableOrView(params, oldSafeTableOrViewInOrderBy)
         }
@@ -1296,19 +1321,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
             // extra, so a bare alias reference is enough.
             return this._appendOrderByColumnAlias(entry, query, params)
         }
-        // The insensitive term wraps the column in an expression (`lower(...)`
-        // or `<col> collate <name>`). A *string* entry is an output alias;
-        // PostgreSQL / SQL Server don't resolve an alias inside an ORDER BY
-        // expression, so emit its underlying source column (as in the SELECT
-        // clause). A value-source / raw entry already renders the expression
-        // itself (never an alias), and the lenient dialects + compound queries
-        // accept the alias, so those keep the original rendering.
-        const resolveSource = typeof entry.expression === 'string'
-            && query.__type !== 'compound'
-            && !this._supportOrderByColumnAliasInExpression()
-        const wrapped = resolveSource
-            ? this._appendOrderByColumnSourceAsInSelect(entry, query, params)
-            : this._appendOrderByColumnAlias(entry, query, params)
+        // The insensitive term wraps the column in an expression (`lower(...)` or `<col> collate <name>`)
+        const wrapped = this._appendOrderByColumnForExpression(entry, query, params)
         if (collation) {
             return this._appendInsensitiveOrderByCollateReceiver(wrapped, entry, query) + ' collate ' + collation
         }
@@ -1323,6 +1337,58 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _appendInsensitiveOrderByCollateReceiver(wrapped: string, _entry: OrderByEntry, _query: SelectData): string {
         return wrapped
     }
+    /**
+     * The column an order-by entry names, written where the ordering wraps it in an expression: `lower(...)`, a
+     * `collate`, or the null check that emulates `nulls first` / `nulls last`. A bare alias is resolved to the column
+     * of the select everywhere, but inside an expression it isn't on every database: PostgreSQL and SQL Server don't
+     * see the aliases there, and MySQL, MariaDB and SQLite take a column of the from with the same name before the
+     * alias. On those databases the column of the select is written as the select list writes it: the names in it are
+     * columns of the from, which these databases resolve first. The library doesn't know every column of the tables
+     * (only the declared ones), so it is written that way even when no declared column has the name of the alias.
+     */
+    _appendOrderByColumnForExpression(entry: OrderByEntry, query: SelectData, params: any[]): string {
+        const expression = entry.expression
+        if (typeof expression !== 'string' || query.__type === 'compound' || this._isOrderByOnWrapper(params) || this._supportOrderByColumnAliasInExpression()) {
+            // An expression is written as it is; in the order by of a compound query, or of the query that wraps the
+            // select, the aliases are the columns of the from
+            return this._appendOrderByColumnAlias(entry, query, params)
+        }
+        const selectColumn = this._getOrderBySelectColumnWithParams(entry, query, params)
+        if (selectColumn) {
+            return this._appendOrderBySelectColumnWithParams(selectColumn, entry, query, params)
+        }
+        return this._appendOrderByColumnSourceAsInSelect(entry, query, params)
+    }
+    /**
+     * The column of the select an order-by entry names, when its SQL carries parameters: written again, the expression
+     * would get new parameters, and the database wouldn't take it as the one the query is grouped by.
+     */
+    _getOrderBySelectColumnWithParams(entry: OrderByEntry, query: SelectData, params: any[]): SelectColumnSql | undefined {
+        const expression = entry.expression
+        if (typeof expression !== 'string') {
+            return undefined
+        }
+        const column = getQueryColumn(query.__columns, expression)
+        if (!column) {
+            return undefined
+        }
+        const selectColumn = this._getSelectColumnsSql(params)?.get(column)
+        if (!selectColumn || selectColumn.paramsStart === selectColumn.paramsEnd) {
+            return undefined
+        }
+        return selectColumn
+    }
+    _appendOrderBySelectColumnWithParams(selectColumn: SelectColumnSql, _entry: OrderByEntry, _query: SelectData, _params: any[]): string {
+        // The same SQL as the select list, with the same parameters: the same expression for the database
+        return selectColumn.sql
+    }
+    /**
+     * Whether the order by must be written over a query that wraps the select (`select * from (<select>) order by
+     * ...`), because no way of writing it over the select itself is right
+     */
+    _needsSelectOrderByWrap(_query: SelectData, _params: any[]): boolean {
+        return false
+    }
     _appendHavingCondition(having: IAnyBooleanValueSource<any, any>, params: any[]): string {
         return this._appendCondition(having, params)
     }
@@ -1330,10 +1396,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * Render the order-by entry's underlying source expression as it appears in
      * the SELECT clause (a bare column name on a single-table select, qualified
      * across a join), independent of the qualified-everything mode the ORDER BY
-     * build uses for value-source terms. Used only by the insensitive wrapper so
-     * `lower(<src>)` / `<src> collate <name>` reads like the projected column;
-     * the plain `_appendOrderByColumnExpression` (used e.g. by `is null` checks)
-     * keeps the surrounding qualification. See `_getOrderBySafeTableOrView`.
+     * build uses for value-source terms. Used where the ordering wraps a column
+     * of the select in an expression (see `_appendOrderByColumnForExpression`),
+     * so `lower(<src>)` / `<src> collate <name>` / `<src> is null` reads like the
+     * projected column. See `_getOrderBySafeTableOrView`.
      */
     _appendOrderByColumnSourceAsInSelect(entry: OrderByEntry, query: SelectData, params: any[]): string {
         const oldSafeTableOrView = this._getSafeTableOrView(params)
@@ -1383,12 +1449,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * *inside an expression* in the ORDER BY clause (e.g. `order by
      * lower(<alias>)` / `order by <alias> collate <name>`). A bare `order by
      * <alias>` reference works everywhere; the question is only about an alias
-     * wrapped in an expression. Verified against the real engines: MySQL,
-     * MariaDB, Oracle and SQLite resolve it; PostgreSQL and SQL Server do not
-     * (they resolve any name inside an expression against the input columns and
-     * fail with "column does not exist" / error 207). When `false`, an
-     * insensitive ordering must reference the alias' underlying source
-     * expression instead — see `_appendOrderByColumnAliasInsensitive`.
+     * wrapped in an expression. Verified against the real engines: Oracle
+     * resolves it, also when a column of the from has the same name (the alias
+     * is quoted); PostgreSQL and SQL Server do not (they resolve any name inside
+     * an expression against the input columns and fail with "column does not
+     * exist" / error 207); MySQL, MariaDB and SQLite resolve it only when no
+     * column of the from has the same name. When `false`, the ordering
+     * references the alias' underlying expression instead — see
+     * `_appendOrderByColumnForExpression`.
      */
     _supportOrderByColumnAliasInExpression(): boolean {
         return true

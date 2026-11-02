@@ -480,7 +480,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(a_1_.result) from (select name as result from project where organization_id = organization.id order by result is null, result asc) as a_1_) as projectNames from organization where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(a_1_.result) from (select name as result from project where organization_id = organization.id order by name is null, result asc) as a_1_) as projectNames from organization where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -512,7 +512,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(a_1_.result) from (select name as result from project where organization_id = organization.id order by result is not null, result desc) as a_1_) as projectNames from organization where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(a_1_.result) from (select name as result from project where organization_id = organization.id order by name is not null, result desc) as a_1_) as projectNames from organization where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -544,7 +544,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(a_1_.result) from (select name as result from project where organization_id = organization.id order by lower(result) asc) as a_1_) as projectNames from organization where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(a_1_.result) from (select name as result from project where organization_id = organization.id order by lower(name) asc) as a_1_) as projectNames from organization where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -576,7 +576,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(a_1_.result) from (select name as result from project where organization_id = organization.id order by result is null, lower(result) asc) as a_1_) as projectNames from organization where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(a_1_.result) from (select name as result from project where organization_id = organization.id order by name is null, lower(name) asc) as a_1_) as projectNames from organization where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1327,7 +1327,7 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id, projectNames: orgNames })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(a_1_.result) from (select name as result from project where organization_id = organization.id order by lower(result)) as a_1_) as projectNames from organization where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(a_1_.result) from (select name as result from project where organization_id = organization.id order by lower(name)) as a_1_) as projectNames from organization where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1350,7 +1350,7 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id, projectNames: orgNames })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(a_1_.result) from (select name as result from project where organization_id = organization.id order by lower(result) desc) as a_1_) as projectNames from organization where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(a_1_.result) from (select name as result from project where organization_id = organization.id order by lower(name) desc) as a_1_) as projectNames from organization where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1373,7 +1373,7 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id, projectNames: orgNames })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(a_1_.result) from (select name as result from project where organization_id = organization.id order by lower(result) desc) as a_1_) as projectNames from organization where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(a_1_.result) from (select name as result from project where organization_id = organization.id order by lower(name) desc) as a_1_) as projectNames from organization where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1396,7 +1396,7 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id, projectNames: orgNames })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(a_1_.result) from (select name as result from project where organization_id = organization.id order by result is not null, lower(result) desc) as a_1_) as projectNames from organization where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(a_1_.result) from (select name as result from project where organization_id = organization.id order by name is not null, lower(name) desc) as a_1_) as projectNames from organization where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

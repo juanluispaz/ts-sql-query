@@ -250,16 +250,8 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
             return this._appendOrderByColumnAlias(entry, query, params)
         }
         // PostgreSQL doesn't resolve a SELECT alias inside an ORDER BY
-        // expression (see `_supportOrderByColumnAliasInExpression`), so for a
-        // plain select emit the alias' underlying source expression; a compound
-        // query references a real result column where the alias is fine (see
-        // the base method for the full rationale).
-        const resolveSource = typeof entry.expression === 'string'
-            && query.__type !== 'compound'
-            && !this._supportOrderByColumnAliasInExpression()
-        const wrapped = resolveSource
-            ? this._appendOrderByColumnSourceAsInSelect(entry, query, params)
-            : this._appendOrderByColumnAlias(entry, query, params)
+        // expression (see `_appendOrderByColumnForExpression`)
+        const wrapped = this._appendOrderByColumnForExpression(entry, query, params)
         if (collation) {
             return wrapped + ' collate "' + collation + '"'
         }

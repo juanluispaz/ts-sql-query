@@ -113,6 +113,36 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     override _supportCollateInCompoundOrderBy(): boolean {
         return true
     }
+    override _supportOrderByColumnAliasInExpression(): boolean {
+        // Inside an expression of the order by, MySQL and MariaDB take a column of the from with the same name before
+        // the alias
+        return false
+    }
+    override _appendOrderBySelectColumnWithParams(_selectColumn: SelectColumnSql, entry: OrderByEntry, query: SelectData, params: any[]): string {
+        // A parameter can't be repeated (each `?` is a new one): the expression is written again, with new parameters
+        return this._appendOrderByColumnSourceAsInSelect(entry, query, params)
+    }
+    /**
+     * Whether the ordering of the entry wraps the column in an expression: the null check that emulates `nulls first`
+     * / `nulls last`, or the insensitive `lower(...)` / `collate`
+     */
+    _isOrderByColumnInExpression(entry: OrderByEntry, query: SelectData): boolean {
+        switch (entry.order) {
+            case 'asc nulls last':
+            case 'desc nulls first':
+            case 'asc nulls last insensitive':
+            case 'desc nulls first insensitive':
+                return true
+            case 'insensitive':
+            case 'asc insensitive':
+            case 'desc insensitive':
+            case 'asc nulls first insensitive':
+            case 'desc nulls last insensitive':
+                return this._connectionConfiguration.insensitiveCollation !== '' && this._isStringOrderByColumn(entry, query)
+            default:
+                return false
+        }
+    }
     override _buildSelectOrderBy(query: SelectData, params: any[]): string {
         const orderBy = query.__orderBy
         if (!orderBy) {
@@ -161,10 +191,10 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
                     orderByColumns += this._appendOrderByColumnAlias(entry, query, params) + ' desc'
                     break
                 case 'asc nulls last':
-                    orderByColumns += this._appendOrderByColumnAlias(entry, query, params) + ' is null, ' + this._appendOrderByColumnAlias(entry, query, params) + ' asc'
+                    orderByColumns += this._appendOrderByColumnForExpression(entry, query, params) + ' is null, ' + this._appendOrderByColumnAlias(entry, query, params) + ' asc'
                     break
                 case 'desc nulls first':
-                    orderByColumns += this._appendOrderByColumnAlias(entry, query, params) + ' is not null, ' + this._appendOrderByColumnAlias(entry, query, params) + ' desc'
+                    orderByColumns += this._appendOrderByColumnForExpression(entry, query, params) + ' is not null, ' + this._appendOrderByColumnAlias(entry, query, params) + ' desc'
                     break
                 case 'insensitive':
                     orderByColumns += this._appendOrderByColumnAliasInsensitive(entry, query, params)
@@ -180,10 +210,10 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
                 case 'asc nulls last insensitive':
                     // Only the sort term is folded: the `is null` operand is a boolean
                     // nulls-ordering emulation, so lowercasing it would be pointless work.
-                    orderByColumns += this._appendOrderByColumnAlias(entry, query, params) + ' is null, ' + this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' asc'
+                    orderByColumns += this._appendOrderByColumnForExpression(entry, query, params) + ' is null, ' + this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' asc'
                     break
                 case 'desc nulls first insensitive':
-                    orderByColumns += this._appendOrderByColumnAlias(entry, query, params) + ' is not null, ' + this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' desc'
+                    orderByColumns += this._appendOrderByColumnForExpression(entry, query, params) + ' is not null, ' + this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' desc'
                     break
                 default:
                     throw new TsSqlProcessingError({ reason: 'INVALID_ORDER_BY_ORDERING', column: this._appendOrderByColumnAlias(entry, query, params), ordering: order }, 'Invalid order by: ' + order)

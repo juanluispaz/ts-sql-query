@@ -46,7 +46,7 @@ describe(ctx.label, () => {
             .orderBy('assigneeId', 'asc nulls last')
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, assignee_id as assigneeId from issue order by assigneeId is null, assigneeId asc, id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, assignee_id as assigneeId from issue order by assignee_id is null, assigneeId asc, id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(result).toEqual(expected)
     })

@@ -664,7 +664,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id, ref: tIssue.externalRef.asString() })
             .orderBy('ref', 'insensitive')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, bin_to_uuid(external_ref) as ref from issue where external_ref is not null order by ref collate utf8mb4_general_ci"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, bin_to_uuid(external_ref) as ref from issue where external_ref is not null order by bin_to_uuid(external_ref) collate utf8mb4_general_ci"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ id: number; ref?: string }>>>()
         expect(result).toEqual(expected)

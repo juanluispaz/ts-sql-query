@@ -1161,6 +1161,13 @@ const sqlServerScenarios: readonly ErrorScenario[] = [
         expected: { reason: 'SQL_ROUTINE_ERROR' },
     },
     {
+        name: 'insert-past-the-row-limit',
+        setup: ['create table rt_err_rows (id int)'],
+        cleanup: ['drop table if exists rt_err_rows'],
+        run: mutation('insert into rt_err_rows (id) values ' + Array.from({ length: 1001 }, (_, i) => '(' + i + ')').join(', ')),
+        expected: { reason: 'SQL_RESOURCE_LIMIT_REACHED' },
+    },
+    {
         name: 'window-function-in-a-where',
         run: query('select id from rt_probe where row_number() over (order by id) = 1'),
         expected: { reason: 'SQL_INVALID_SQL_STATEMENT', statementErrorType: 'invalid windowing' },

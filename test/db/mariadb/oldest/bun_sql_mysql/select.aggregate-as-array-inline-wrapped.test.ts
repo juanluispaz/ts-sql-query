@@ -1511,6 +1511,8 @@ describe(ctx.label, () => {
     // markers; keep the bindings referenced so noUnusedLocals stays green.
     void tAppUser; void tProjectRelease
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('inline-aggregate-with-limit-and-no-order-by', async () => {
         // `limit` with no `order by` caps the element count without fixing which
         // elements come back; org 1 owns two projects, so a cap of 5 keeps both.
@@ -1537,7 +1539,10 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; projectNames: string[] }>>()
         expect({ ...row, projectNames: [...row.projectNames].sort() }).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('inline-aggregate-order-by-value-source-then-raw-fragment', async () => {
         // Two order-by entries — a value source with an explicit mode, then a raw
         // fragment — inside the aggregated array. Project 1's issues: 1 'Update
@@ -1565,7 +1570,10 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; titles: string[] }>>()
         expect(row).toEqual({ id: 1, titles: ['Update hero copy', 'Redesign navbar'] })
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('inline-aggregate-order-by-items-hooks-without-order-by', async () => {
         // `beforeOrderByItems` / `afterOrderByItems` with no `orderBy`: the two
         // hooks alone make the order by list of the aggregated array. Project 1's
@@ -1594,7 +1602,10 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; titles: string[] }>>()
         expect(row).toEqual({ id: 1, titles: ['Update hero copy', 'Redesign navbar'] })
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('inline-aggregate-order-by-items-hooks-around-order-by', async () => {
         // The hooks wrap the `orderBy('result')` entry: priority descending
         // first, then the title, then the id. Project 1's issues have distinct
@@ -1624,6 +1635,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; titles: string[] }>>()
         expect(row).toEqual({ id: 1, titles: ['Update hero copy', 'Redesign navbar'] })
     })
+    */
 })
 
 export type { ReleaseChannel }

@@ -1053,6 +1053,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    /*
     test('aggregate-of-enum-column-as-wrapped-array', async () => {
         // WRAPPED single-column aggregate of an `enum` column: the ordered inner
         // select forces the wrapper. Issue 2 has one webhook event, 'updated'.
@@ -1077,4 +1079,5 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; events: WebhookEventType[] }>>()
         expect(row).toEqual({ id: 2, events: ['updated'] })
     })
+    */
 })

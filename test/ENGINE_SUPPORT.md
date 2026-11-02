@@ -312,6 +312,7 @@ running these tests live and only the cells below stay commented.
 | Engine | Gate | Feature |
 |---|---|---|
 | MariaDB | 10.5 | `json_arrayagg` (aggregate-as-array), `INSERT … RETURNING`, `EXCEPT ALL` / `INTERSECT ALL` |
+| MariaDB | 13 (10.5 rejects; releases in between not verified) | a quoted built-in function name (``executeFunction('mod', …)`` → `` `mod`(…) ``) calls the built-in function |
 | MariaDB | 12.3 | a `WITH` clause prefixing `UPDATE` / `DELETE` (CTE-on-DML) |
 | MariaDB | 13.0.1 | `UPDATE … RETURNING` + `OLD_VALUE(col)` (GA in 13.0.2); `OLD_VALUE` inside an expression is broken, see § 4 |
 | MariaDB | — | `RETURNING` on multi-table DML — no release accepts it yet (13.0.2), see § 4 |
@@ -405,6 +406,25 @@ ENGINE_SUPPORT.md` on the MariaDB cells below 10.5 (`10_004_000` / `10_003_003` 
 `oldest`) and run live on MariaDB 10.5+ (`10_005_000` and `newest`) — keyed to
 the engine version, not the `newest` label. Callable + accepted by 10.5+ →
 `NOT-SUPPORTED`, not `NOT-APPLICABLE`.
+
+
+
+### MariaDB resolves a quoted built-in function name only in newer releases
+
+`executeFunction` writes the name of the function as an identifier, quoted when
+it is a reserved word: `executeFunction('mod', …)` is written `` select `mod`(?, ?) ``.
+The quotes are required for a stored function whose name is a reserved word, so
+the library can't drop them. MariaDB 10.5 and older resolve a quoted name
+followed by `(` only to a stored function and reject the call to the built-in
+`mod` with `1630 FUNCTION <schema>.mod does not exist`; MariaDB 13 calls the
+built-in function. The release in between that changed it has not been
+verified (no tier between 10.5 and 13).
+
+**What this means for tests** — `execute-function-with-two-params` (which calls
+the built-in `mod`) is commented out with `// NOT-SUPPORTED: see
+ENGINE_SUPPORT.md` on the MariaDB cells up to 10.5 (`10_005_000` / `10_004_000`
+/ `10_003_003` / `oldest`) and runs live on `newest`. MySQL calls the built-in
+function on every tier.
 
 
 

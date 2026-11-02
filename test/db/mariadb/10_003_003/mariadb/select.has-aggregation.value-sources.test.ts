@@ -1521,6 +1521,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('has-aggregation/inline-aggregated-array-subquery-reports-aggregation', async () => {
         // A correlated subquery turned into an aggregated array renders as
         // `json_agg(...)` inside the inline subquery. The outer query aggregates
@@ -1557,7 +1559,10 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number; issues: Array<{ id: number; title: string }> }>>>()
         expect(rows).toEqual(expected)
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('has-aggregation/aggregate-as-array-reports-aggregation', async () => {
         // Projects 2 and 3 have one issue each.
         const expected = [
@@ -1590,6 +1595,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ projectId: number; issues: Array<{ id: number; title: string }> }>>>()
         expect(rows).toEqual(expected)
     })
+    */
 
     test('has-aggregation/inline-aggregated-array-replaced-by-null-reports-false', async () => {
         // `onlyWhenOrNull(false)` projects null in place of the aggregated

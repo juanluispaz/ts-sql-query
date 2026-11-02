@@ -368,6 +368,8 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('collation: inline aggregated array ordered by a value source insensitive', async () => {
         // The insensitive ordering is a value source (not a projected alias), so
         // the collate suffix lands on that expression inside the aggregate. Org 1's
@@ -388,4 +390,5 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(name order by slug collate utf8mb4_general_ci) from project where organization_id = organization.id) as char) as names from organization where id = ?"`)
         expect(rows).toEqual([{ id: 1, names: ['Marketing site', 'Internal tools'] }])
     })
+    */
 })

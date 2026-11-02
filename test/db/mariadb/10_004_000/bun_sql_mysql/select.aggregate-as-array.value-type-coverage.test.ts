@@ -11,11 +11,12 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tIssueWorklog, tProject, tProjectRelease, tProjectReview, vReleaseOverview, type ReleaseTag, tWebhookEvent, type WebhookEventType } from '../../domain/connection.js'
+import { tIssue, tIssueWorklog, tProject, tProjectRelease, tProjectReview, vReleaseOverview, type ReleaseTag, tWebhookEvent } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 void tProjectRelease
 
+void tWebhookEvent
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -1069,6 +1070,8 @@ describe(ctx.label, () => {
     // markers; keep the bindings referenced so noUnusedLocals stays green.
     void assertType; void expect; void tIssue; void tIssueWorklog; void tProject; void tProjectReview; void test; void vReleaseOverview
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('aggregate-of-enum-column-as-array', async () => {
         // Single-column aggregate of an `enum` column (`webhook_event.event_type`).
         // Issue 1 has one webhook event, 'created'.
@@ -1093,7 +1096,10 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number; events: WebhookEventType[] }>>>()
         expect(rows).toEqual(expected)
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('aggregate-of-enum-column-as-wrapped-array', async () => {
         // WRAPPED single-column aggregate of an `enum` column: the ordered inner
         // select forces the wrapper. Issue 2 has one webhook event, 'updated'.
@@ -1118,6 +1124,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; events: WebhookEventType[] }>>()
         expect(row).toEqual({ id: 2, events: ['updated'] })
     })
+    */
 })
 
 export type { Exact, ReleaseTag }

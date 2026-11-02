@@ -1068,6 +1068,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ pid: 1 }])
     })
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('aggregate-as-array-of-one-column-as-optional-non-empty-array-drops-null-elements', async () => {
         // NULL elements are skipped, and an array left empty is absent. Project 1
         // has bodies [NULL, 'Use new tokens']; project 2's only issue has no body.
@@ -1099,7 +1101,10 @@ describe(ctx.label, () => {
         ])
         expect('bodies' in rows[1]!).toBe(false)
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('aggregate-as-array-of-one-column-skips-a-null-inner-aggregated-array', async () => {
         // An array (over the organization's projects) of each project's issue
         // titles. Organization 2 has project 3 (one issue) and project 4 (none):
@@ -1128,7 +1133,10 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { organizationId: number; titlesByProject: string[][] }>>()
         expect(row).toEqual({ organizationId: 2, titlesByProject: [['Document /v2/users']] })
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('inline-query-value-of-an-aggregate-as-array-then-use-empty-array-for-no-value', async () => {
         ctx.mockNext([
             { pid: 3, issues: [{ id: 4, title: 'Document /v2/users' }] },
@@ -1157,7 +1165,10 @@ describe(ctx.label, () => {
             { pid: 4, issues: [] },
         ])
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('inline-query-value-of-an-aggregate-as-array-then-as-optional-non-empty-array', async () => {
         ctx.mockNext([
             { pid: 3, issues: [{ id: 4, title: 'Document /v2/users' }] },
@@ -1186,7 +1197,10 @@ describe(ctx.label, () => {
             { pid: 4 },
         ])
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('inline-query-value-of-an-aggregate-as-array-then-as-required-in-optional-object', async () => {
         ctx.mockNext([
             { pid: 3, 'meta.issues': [{ id: 4, title: 'Document /v2/users' }] },
@@ -1215,4 +1229,5 @@ describe(ctx.label, () => {
             { pid: 4 },
         ])
     })
+    */
 })

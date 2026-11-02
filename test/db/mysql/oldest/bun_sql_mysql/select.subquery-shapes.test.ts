@@ -415,6 +415,8 @@ describe(ctx.label, () => {
         expect(rows[1]!.m).toBe(null)
     })
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    /*
     test('compound-inline-array-keeps-an-optional-join-named-only-by-its-first-arm', async () => {
         // The assignee's own issue titles plus every closed issue title.
         const expected = [
@@ -445,6 +447,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number; related: string[] }>>>()
         expect(rows.map(r => ({ ...r, related: [...r.related].sort() }))).toEqual(expected)
     })
+    */
 
     test('uncorrelated-inline-subquery-does-not-keep-an-optional-join', async () => {
         // The subquery names no outer table, so the unused project join is

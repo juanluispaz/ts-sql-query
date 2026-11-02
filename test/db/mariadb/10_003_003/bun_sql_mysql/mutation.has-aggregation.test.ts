@@ -1571,6 +1571,8 @@ describe(ctx.label, () => {
         })
     })
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
+    /*
     test('has-aggregation/insert-returning-with-an-aggregating-subquery-reports-aggregation', async () => {
         // The positive twin of `insert-returning-plain-columns`: the RETURNING
         // list carries the scalar user count (3 seeded users) beside a column
@@ -1609,7 +1611,10 @@ describe(ctx.label, () => {
             expect(row).toEqual(expected)
         })
     })
+    */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092), newer than this tier's engine.
+    /*
     test('has-aggregation/update-returning-with-an-aggregating-subquery-reports-aggregation', async () => {
         // The positive twin of `update-returning-plain-columns`: issue 4 is
         // retitled and RETURNING carries the scalar user count (3 seeded users)
@@ -1645,6 +1650,7 @@ describe(ctx.label, () => {
             expect(row).toEqual(expected)
         })
     })
+    */
 
     test('has-aggregation/delete-returning-with-an-aggregating-subquery-reports-aggregation', async () => {
         // The positive twin of `delete-returning-plain-columns`: issue 4 is

@@ -170,48 +170,245 @@ await connection.beginTransaction(connection.isolationLevel('snapshot', 'read on
 
 ## Deferring logic during a transaction
 
-`ts-sql-query` allows you to register functions that will be executed **at specific points during the current transaction**. These hooks let you defer logic until:
+Some work belongs to a transaction but can't be done at the point of the code that causes it. A function can register, at any point of a transaction, work to run when the transaction ends:
 
-- **just before** the transaction is committed (`executeBeforeNextCommit`)
-- **immediately after** a successful commit (`executeAfterNextCommit`)
-- **immediately after** a rollback (`executeAfterNextRollback`)
+- `executeBeforeNextCommit(fn)`: **just before the commit**, still inside the transaction. For work that must be part of the transaction, done once every change is made.
+- `executeAfterNextCommit(fn)`: **after a successful commit**. For what must only happen when the changes are saved, outside the database: sending an e-mail, moving a file, refreshing a cache.
+- `executeAfterNextRollback(fn)`: **after a rollback**. For undoing what SQL can't undo: deleting a file uploaded during the transaction.
 
-This feature is useful for tasks such as cleaning up temporary resources, logging, updating caches, notifying external systems, or triggering other side effects — while ensuring they only run if the transaction reaches a specific outcome (commit or rollback). This guarantees consistency between your database state and any external systems that rely on the success or failure of the transaction.
+The code that registers the work doesn't need to know where the transaction begins or ends: a function deep in your services registers it, and it runs when the transaction that called it ends. Each one accepts a synchronous function (`() => void`) or an asynchronous one (`() => Promise<void>`).
 
-Each of these methods accepts either a synchronous function (`() => void`) or an asynchronous one (`() => Promise<void>`).
+### When each one runs
+
+With `connection.transaction(fn)`:
+
+1. `fn` runs. The functions you register while it runs are kept for the end of the transaction.
+2. When `fn` finishes without an error, the `executeBeforeNextCommit` functions run, in the order they were registered, **inside the transaction**: they can execute queries, and their changes are committed with the rest.
+3. The transaction is committed.
+4. The `executeAfterNextCommit` functions run, in the order they were registered. **The transaction has ended**: a query there runs on its own, outside any transaction.
+5. The promise returned by `transaction(fn)` resolves with the value `fn` returned, once every `executeAfterNextCommit` function has finished.
+
+When `fn` throws an error, or an `executeBeforeNextCommit` function fails, the transaction is rolled back instead, the `executeAfterNextRollback` functions run, in the order they were registered, and the promise rejects with the error. With `commit()` and `rollback()` the same happens when you call them (see [Errors](#errors)).
+
+The functions are registered for the transaction that is running when you register them, and they are discarded when it ends: the next transaction starts with none. Registering one when there is no transaction throws a `TsSqlProcessingError` with reason `NOT_IN_TRANSACTION`.
+
+### Before the commit: work that belongs to the transaction
+
+`executeBeforeNextCommit` is for work that must be committed with the changes, but needs every change of the transaction to be made first: checking a rule over the final state, recomputing a summary once instead of after every change, writing an audit record of the whole operation.
+
+For example, a company must keep at least one customer. Moving customers from one company to another, one by one, goes through states where the company may have none for a moment; the rule only has to hold when the transaction commits:
 
 ```ts
-connection.executeBeforeNextCommit(async () => {
-    // Logic to run just before the commit
-    console.log('Before next commit');
-});
+async function moveCustomer(customerId: number, fromCompanyId: number, toCompanyId: number) {
+    await connection.update(tCustomer)
+        .set({ companyId: toCompanyId })
+        .where(tCustomer.id.equals(customerId))
+        .executeUpdate();
 
-connection.executeAfterNextCommit(() => {
-    // Logic to run after the transaction is successfully committed
-    console.log('After next commit');
-});
+    connection.executeBeforeNextCommit(async () => {
+        const remaining = await connection.selectFrom(tCustomer)
+            .where(tCustomer.companyId.equals(fromCompanyId))
+            .selectCountAll()
+            .executeSelectOne();
+        if (remaining === 0) {
+            throw new Error('The company ' + fromCompanyId + ' must keep at least one customer');
+        }
+    });
+}
 
-connection.executeAfterNextRollback(() => {
-    // Logic to run if the transaction is rolled back
-    console.log('After next rollback');
+await connection.transaction(async () => {
+    await moveCustomer(1, 10, 20);
+    await moveCustomer(2, 20, 10);
 });
 ```
 
-!!! note
+The check runs once all the moves are done, inside the transaction. If it throws, the transaction is rolled back, as if `fn` had thrown: none of the moves is saved. (Each call registers its own check; [Transaction metadata](#doing-something-once-per-transaction) shows how to register it once.)
 
-    - These functions are registered only for the **next** transaction event, and are cleared after use.  
-    - Calling them when there is no active transaction throws a `TsSqlProcessingError` with reason `'NOT_IN_TRANSACTION'`. The mock query runner skips that check and silently accepts the registration (the hook is never fired).
+### After the commit: telling the world outside the database
+
+`executeAfterNextCommit` is for what must only happen when the changes are saved, and can't be part of the transaction because it isn't in the database: an e-mail, a file in a storage service, a cache in memory, a message to another system. Done inside the transaction, it would happen even when the transaction is rolled back afterwards; registered for after the commit, it happens only when the changes are really saved.
+
+```ts
+async function registerCustomer(firstName: string, lastName: string, companyId: number) {
+    const customerId = await connection.insertInto(tCustomer)
+        .set({ firstName, lastName, companyId })
+        .returningLastInsertedId()
+        .executeInsert();
+
+    connection.executeAfterNextCommit(async () => {
+        try {
+            await emailService.sendWelcomeEmail(customerId);
+        } catch (error) {
+            logger.error('The welcome e-mail could not be sent to the customer ' + customerId, error);
+        }
+    });
+
+    return customerId;
+}
+```
+
+!!! warning "The changes are already committed when these functions run"
+
+    - **An error doesn't undo anything.** When an `executeAfterNextCommit` function fails, the others still run, and the promise of `transaction(fn)` (or of `commit()`) rejects with a `TsSqlQueryExecutionError` with reason `ERROR_EXECUTING_DEFERRED_IN_TRANSACTION`, although the changes are saved. Catch the errors inside the function, as the example does, when the caller must not see the operation as failed.
+    - **The caller waits for them.** The promise of `transaction(fn)` resolves when they have finished. Work that can take long (sending many e-mails, moving big files) can be started without waiting for it, catching its errors.
+    - **They run outside any transaction.** A query there commits on its own. To make several changes together, begin a new transaction there with `connection.transaction(...)`; it can register its own functions to run when it ends.
+    - **They can be lost.** If the process stops right after the commit, they never run, and nothing will run them later. That is fine for what can be lost or redone (a cache, a notification that can be repeated); a message that must not be lost needs a [transactional outbox](#example-a-transactional-outbox).
+
+### After a rollback: undoing what SQL can't undo
+
+A rollback undoes the changes in the database, but not what the transaction did outside it. `executeAfterNextRollback` is for undoing that. For example, a photo of the customer uploaded to a storage service during the transaction must be deleted when the transaction doesn't save the customer:
+
+```ts
+async function registerCustomerWithPhoto(firstName: string, lastName: string, companyId: number, photo: Uint8Array) {
+    const customerId = await connection.insertInto(tCustomer)
+        .set({ firstName, lastName, companyId })
+        .returningLastInsertedId()
+        .executeInsert();
+
+    const photoPath = 'customers/' + customerId + '.jpg';
+    await fileStorage.upload(photoPath, photo);
+    connection.executeAfterNextRollback(async () => {
+        await fileStorage.delete(photoPath);
+    });
+
+    return customerId;
+}
+```
+
+If a later step of the transaction fails, the customer isn't saved and the photo is deleted. The function runs after the rollback, outside any transaction, and its error doesn't replace the error that caused the rollback: it is attached to it (see [Errors](#errors)).
+
+### Errors
+
+| | Runs | When it fails |
+|---|---|---|
+| `executeBeforeNextCommit` | Inside the transaction | The following `executeBeforeNextCommit` functions don't run, and the transaction isn't committed: `transaction(fn)` rolls it back (the `executeAfterNextRollback` functions run) and rejects with the error. `commit()` rejects with the error and leaves the transaction open: call `rollback()`. |
+| `executeAfterNextCommit` | After the commit, outside any transaction | The changes stay committed. The following functions still run, and `transaction(fn)` / `commit()` rejects with the error. |
+| `executeAfterNextRollback` | After the rollback, outside any transaction | The following functions still run. `transaction(fn)` rejects with the error that caused the rollback, with this one attached (`additionalErrors`); `rollback()` rejects with this one. |
+
+The error of a function is wrapped in a `TsSqlQueryExecutionError` with reason `ERROR_EXECUTING_DEFERRED_IN_TRANSACTION`, whose cause is the error the function threw (see [Library raised errors](../api/error-management/library-raised-errors.md)).
+
+### Registering from inside one of these functions
+
+While the functions of one kind are running, no more of that kind can be registered for the same transaction:
+
+- An `executeBeforeNextCommit` function can register `executeAfterNextCommit` and `executeAfterNextRollback` functions, but not another `executeBeforeNextCommit` one.
+- An `executeAfterNextCommit` or `executeAfterNextRollback` function runs when its transaction has ended, so registering there throws `NOT_IN_TRANSACTION` (or, when that transaction was nested in another one that is still running, `NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED`). A transaction it begins with `connection.transaction(...)` is a new one, with its own functions.
+
+Registering one of the kind that is running throws a `TsSqlProcessingError` with reason `NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED`.
+
+### Code that may run with or without a transaction
+
+These functions need a transaction. A function that registers them, and may be called with or without one, can join the transaction of its caller when there is one and begin its own otherwise, with `isTransactionActive()`:
+
+```ts
+function inTransaction<T>(fn: () => Promise<T>): Promise<T> {
+    if (connection.isTransactionActive()) {
+        return fn();
+    }
+    return connection.transaction(fn);
+}
+
+const customerId = await inTransaction(() => registerCustomer('John', 'Smith', 10));
+```
+
+!!! tip "In the tests"
+
+    The registered functions run in the tests too, when the transaction ends. To keep one from sending an e-mail or moving a file there, replace the service it calls with a fake one; [Code that registers functions for the end of the transaction](../configuration/query-runners/general-purpose/MockQueryRunner.md#code-that-registers-functions-for-the-end-of-the-transaction) shows it, together with how to give the code its transaction.
 
 ## Transaction metadata
 
-You can attach and retrieve metadata specific to the current transaction using `getTransactionMetadata`, which returns a `Map<unknown, unknown>` available throughout the transaction's duration.
+`getTransactionMetadata()` returns a `Map<unknown, unknown>` that belongs to the transaction that is running: it starts empty when the transaction begins and is discarded when it ends. It lets code that runs at different points of the same transaction share information without passing it around: a function deep in your services leaves a value there, and another one, called later in the same transaction (or one of its deferred functions), reads it.
 
 ```ts
 // Setting a value
-connection.getTransactionMetadata().set('my key', 'my value')
+connection.getTransactionMetadata().set('my key', 'my value');
 ```
 
 ```ts
 // Getting a value
-const myKeyValue: unknown = connection.getTransactionMetadata().get('my key')
+const myKeyValue: unknown = connection.getTransactionMetadata().get('my key');
 ```
+
+Calling it when there is no transaction throws a `TsSqlProcessingError` with reason `NOT_IN_TRANSACTION`. A transaction begun inside another one (when the query runner allows nested transactions, like [`PgPoolQueryRunner`](../configuration/query-runners/recommended/pg.md) created with `allowNestedTransactions: true`) has its own metadata, and the outer one gets its own back when the inner one ends.
+
+!!! tip "Use keys nobody else can write"
+
+    Any code that runs in the transaction can read and write the map, including libraries. A key that is a `Symbol` or an object of your module (`const pendingChecks = Symbol('pendingChecks')`) can't collide with anybody else's; a string can.
+
+### Doing something once per transaction
+
+The functions of [the previous section](#deferring-logic-during-a-transaction) are registered every time they are called: a function called ten times in a transaction registers ten. The metadata can remember that the function is already registered, and collect what it has to do.
+
+For example, the customers a transaction changes must be refreshed in a cache once the changes are saved. `refreshCustomerInCacheAfterCommit` is called for every customer the transaction changes, and the cache is refreshed once, with all of them:
+
+```ts
+const changedCustomers = Symbol('changedCustomers');
+
+function refreshCustomerInCacheAfterCommit(customerId: number) {
+    const metadata = connection.getTransactionMetadata();
+    // 1. Look for what this transaction has collected so far
+    let customerIds = metadata.get(changedCustomers) as Set<number> | undefined;
+    if (!customerIds) {
+        // 2. The first time in this transaction: keep the collection in the metadata
+        //    and register the function, which will use it
+        const newCustomerIds = new Set<number>();
+        metadata.set(changedCustomers, newCustomerIds);
+        connection.executeAfterNextCommit(() => {
+            customerCache.invalidate(newCustomerIds);
+        });
+        customerIds = newCustomerIds;
+    }
+    // 3. Every time: add this customer to the collection
+    customerIds.add(customerId);
+}
+```
+
+The function registered the first time reads the collection when the transaction ends, so it gets every customer added after it was registered. The next transaction starts with empty metadata, so it registers its own function.
+
+The same three steps register the check of [Before the commit](#before-the-commit-work-that-belongs-to-the-transaction) once: collect the companies customers leave, and check them all with one query in a single `executeBeforeNextCommit` function. When nothing has to be collected, a flag is enough: `if (!metadata.get(key)) { metadata.set(key, true); connection.executeAfterNextCommit(...) }`, as the [outbox example](#example-a-transactional-outbox) below does.
+
+### Example: a transactional outbox
+
+An operation often has to tell another system what it did: a new customer has to reach the billing system, an order has to reach the warehouse. Writing to the database and sending a message to another system are two writes to two systems, and no transaction covers both: whichever is done first, if the process stops right after it, the other is never done. Send the message before the commit, and a rollback leaves the other system told about a customer that doesn't exist; send it after the commit (in an `executeAfterNextCommit` function), and a process that stops between the two leaves the customer saved and the message never sent. This is known as the *dual-write problem*, and no order of the two writes solves it.
+
+A **transactional outbox** solves it by not writing to two systems at once: the message is a row of a table of the same database, the *outbox*, inserted **in the same transaction** as the change it announces. The database already guarantees that both are saved or neither is: if the transaction is committed, the message exists and will be sent; if it is rolled back, for whatever reason, the message was never written, and there is nothing to undo. A separate process, the *relay*, reads the messages not sent yet, sends them, and marks them as sent; if it stops, it resumes where it was.
+
+```ts
+const tOutboxMessage = new class TOutboxMessage extends Table<DBConnection, 'TOutboxMessage'> {
+    id = this.autogeneratedPrimaryKey('id', 'int');
+    topic = this.column('topic', 'string');
+    payload = this.column('payload', 'string');
+    sent = this.column('sent', 'boolean');
+    constructor() {
+        super('outbox_message'); // table name in the database
+    }
+}();
+```
+
+The message must be inserted with the connection of the transaction that makes the change: written on another connection, or in an `executeAfterNextCommit` function, it is the dual write again. What the outbox gives up is the moment of sending: the relay finds the message when it looks for new ones, so it usually looks every few seconds. Here the transaction metadata and `executeAfterNextCommit` help: after the commit, the relay is woken up to send the new messages straight away, once per transaction however many messages it wrote:
+
+```ts
+const relayWakeUpRegistered = Symbol('relayWakeUpRegistered');
+
+async function addToOutbox(topic: string, payload: object) {
+    await connection.insertInto(tOutboxMessage)
+        .set({ topic, payload: JSON.stringify(payload), sent: false })
+        .executeInsert();
+
+    const metadata = connection.getTransactionMetadata();
+    if (!metadata.get(relayWakeUpRegistered)) {
+        metadata.set(relayWakeUpRegistered, true);
+        connection.executeAfterNextCommit(() => {
+            // Not awaited: the caller doesn't wait for the messages to be sent
+            outboxRelay.wakeUp();
+        });
+    }
+}
+
+await connection.transaction(async () => {
+    const customerId = await registerCustomer('John', 'Smith', 10);
+    await addToOutbox('customer.registered', { customerId });
+});
+```
+
+The wake-up is only a shortcut, and it can be lost (the process stops after the commit, or the relay is busy): the relay keeps looking for unsent messages from time to time, and finds them anyway. What the outbox guarantees is that a message is never lost, not that it is sent only once: a relay that stops after sending a message and before marking it as sent sends it again when it resumes. This is *at-least-once* delivery, and it is why every message carries an identifier and the system that receives it must handle a repeated one as a single one (it must be *idempotent*), for example by recording the identifiers it has already handled in a table with a unique constraint.

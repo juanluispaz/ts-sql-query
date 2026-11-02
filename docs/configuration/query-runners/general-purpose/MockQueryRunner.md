@@ -184,6 +184,44 @@ await connection.commit()
 await expect(connection.commit()).rejects.toThrow(/NOT_IN_TRANSACTION/)
 ```
 
+## Code that registers functions for the end of the transaction
+
+Code that registers [functions for the end of the transaction](../../../queries/transaction.md#deferring-logic-during-a-transaction) (`executeBeforeNextCommit`, `executeAfterNextCommit`, `executeAfterNextRollback`) or uses the [transaction metadata](../../../queries/transaction.md#transaction-metadata) raises two separate questions in a test: whether it runs inside a transaction, and what the registered functions do when the transaction ends.
+
+### Running it inside a transaction
+
+With `MockQueryRunner`, as with a database, registering those functions or reading the metadata needs a transaction, and throws `NOT_IN_TRANSACTION` without one. (Before v2.0.0-alpha.4 the mock accepted the registration without a transaction, and the function never ran; a test that called such code directly now fails.) The code under test can get its transaction in two ways:
+
+- **The test begins it**, the way the application does around that code (a request handler, a job). This is the closest to what runs in production:
+
+    ```ts
+    const customerId = await connection.transaction(() => {
+        return registerCustomer('John', 'Smith', 10);
+    });
+    ```
+
+- **The code begins one when its caller didn't**, joining the caller's transaction otherwise ([Code that may run with or without a transaction](../../../queries/transaction.md#code-that-may-run-with-or-without-a-transaction)). This changes what the code does in production, not only in the test: do it when the code may really be called without a transaction there too, not to make the test pass.
+
+### Keeping the registered functions from having an effect
+
+Inside a transaction, the registered functions run when it ends, with the mock as with a database: an `executeAfterNextCommit` function that sends an e-mail sends it from the test too. The mock only answers the queries; what a function does outside the database is the application's.
+
+- **Replace the service the function calls** with a fake one in the test, as you do with any other external service. This is the recommended way: the code under test is the same as in production, the test can check what would have been done, and it works the same way whether the test uses `MockQueryRunner` or a real database:
+
+    ```ts
+    const sentWelcomeEmails: number[] = [];
+    emailService.sendWelcomeEmail = async (customerId: number) => {
+        sentWelcomeEmails.push(customerId);
+    };
+
+    const customerId = await connection.transaction(() => {
+        return registerCustomer('John', 'Smith', 10);
+    });
+    // sentWelcomeEmails is [customerId]: the e-mail would have been sent after the commit
+    ```
+
+- **Ask the query runner whether it is a mock**: `connection.queryRunner.isMocked()` returns `true` with `MockQueryRunner`, so the function can skip its work. This puts knowledge of the tests in the production code, and it doesn't help a test against a real database; prefer a fake service.
+
 ## Resetting between test cases
 
 `MockQueryRunner` keeps an internal counter that increments on every executor call and is what gets passed as the `index` argument (`0` for the first query of the runner's lifetime, then `1`, `2`, …). When you reuse a single `MockQueryRunner` instance across many test cases — each priming its own sequence of responses keyed by `index` — call `runner.reset()` between cases to bring the counter back to `0`:

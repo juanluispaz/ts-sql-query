@@ -315,6 +315,173 @@ const customerCountPerInitial: Promise<{
 }[]>
 ```
 
+### A column of the select that isn't in the group by
+
+!!! danger "SQLite and MariaDB return the value of any row of the group"
+
+    A column of the select that isn't in the group by, and isn't an aggregate function, has no single value in each group. Put it in the group by with [`groupByNonAggregatedColumns()`](#grouping-by-every-non-aggregated-column), or choose the value with an [aggregate function](#choosing-the-value-with-an-aggregate-function).
+
+The names given to `groupBy` don't need to include every column of the select. For example, the customers grouped by company, with the first name of the customer left out of the group by:
+
+```ts
+const customerCountPerCompany = connection.selectFrom(tCustomer)
+    .select({
+        companyId: tCustomer.companyId,
+        firstName: tCustomer.firstName,
+        customerCount: connection.count(tCustomer.id)
+    })
+    .groupBy('companyId')
+    .executeSelectMany();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company_id as companyId, 
+        first_name as firstName, 
+        count(id) as customerCount 
+    from customer 
+    group by company_id
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company_id as companyId, 
+        first_name as firstName, 
+        count(id) as customerCount 
+    from customer 
+    group by company_id
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company_id as "companyId", 
+        first_name as "firstName", 
+        count(id) as "customerCount" 
+    from customer 
+    group by company_id
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company_id as "companyId", 
+        first_name as "firstName", 
+        count(id) as "customerCount" 
+    from customer 
+    group by company_id
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company_id as companyId, 
+        first_name as firstName, 
+        count(id) as customerCount 
+    from customer 
+    group by company_id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company_id as companyId, 
+        first_name as firstName, 
+        count(id) as customerCount 
+    from customer 
+    group by company_id
+    ```
+
+The parameters are: `[]`
+
+!!! failure "Rejected by PostgreSQL, SQL Server, Oracle and MySQL; any value on SQLite and MariaDB"
+
+    A company has several customers, so the first name has several values in each group. Most databases reject the query:
+
+    - PostgreSQL: *column "customer.first_name" must appear in the GROUP BY clause or be used in an aggregate function*.
+    - SQL Server: *Column 'customer.first_name' is invalid in the select list because it is not contained in either an aggregate function or the GROUP BY clause*.
+    - Oracle: *ORA-00979: must appear in the GROUP BY clause or be used in an aggregate function*.
+    - MySQL: *Expression #2 of SELECT list is not in GROUP BY clause and contains nonaggregated column '…customer.first_name' which is not functionally dependent on columns in GROUP BY clause; this is incompatible with sql_mode=only_full_group_by*.
+
+    SQLite and MariaDB accept it without any error, and each row gets the first name of one of the customers of the company, which one isn't defined. The same happens when that column is used in the `order by`, or in [`having(columns => …)`](#filtering-the-groups-by-the-columns-of-the-select).
+
+    A column that has a single value in each group is fine: PostgreSQL and MySQL accept it when the group by has the primary key of its table (like the name of the company when the query is grouped by the id of the company), and [`groupByNonAggregatedColumns()`](#grouping-by-every-non-aggregated-column) puts it in the group by for every database.
+
+#### Choosing the value with an aggregate function
+
+When the column must stay out of the group by, an aggregate function chooses its value in each group. For example, the first name that comes first alphabetically:
+
+```ts
+const customerCountPerCompany = connection.selectFrom(tCustomer)
+    .select({
+        companyId: tCustomer.companyId,
+        firstName: connection.min(tCustomer.firstName),
+        customerCount: connection.count(tCustomer.id)
+    })
+    .groupBy('companyId')
+    .executeSelectMany();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company_id as companyId, 
+        min(first_name) as firstName, 
+        count(id) as customerCount 
+    from customer 
+    group by company_id
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company_id as companyId, 
+        min(first_name) as firstName, 
+        count(id) as customerCount 
+    from customer 
+    group by company_id
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company_id as "companyId", 
+        min(first_name) as "firstName", 
+        count(id) as "customerCount" 
+    from customer 
+    group by company_id
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company_id as "companyId", 
+        min(first_name) as "firstName", 
+        count(id) as "customerCount" 
+    from customer 
+    group by company_id
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company_id as companyId, 
+        min(first_name) as firstName, 
+        count(id) as customerCount 
+    from customer 
+    group by company_id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company_id as companyId, 
+        min(first_name) as firstName, 
+        count(id) as customerCount 
+    from customer 
+    group by company_id
+    ```
+
+The parameters are: `[]`
+
+When any value of the group will do, [`anyValue(...)`](#any-value-of-the-group) says so explicitly.
+
 ## Filtering the groups by the columns of the select
 
 Once the select is written, `having` also accepts a function that receives the columns of the select (with the same shape, nested objects included). Each column is written as the same expression the select list computes, with the same parameters, so a grouped expression that carries a parameter can be filtered too; MySQL and MariaDB only accept a column of the select in a `having` through its alias, so it is written that way there.

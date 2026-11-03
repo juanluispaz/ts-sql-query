@@ -113,7 +113,7 @@ export abstract class SqlServerConnection<NAME extends string> extends AbstractA
         queryRunner.useDatabase('sqlServer')
     }
 
-    isolationLevel(level: 'read uncommitted' | 'read committed' | 'repeatable read' | 'snapshot' | 'serializable'): TransactionIsolationLevel {
+    isolationLevel(level: 'read uncommitted' | 'read committed' | 'repeatable read' | 'snapshot' | 'serializable'): TransactionIsolationLevel<NConnection<'sqlServer', NAME>> {
         return [level] as any
     }
 

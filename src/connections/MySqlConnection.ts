@@ -80,9 +80,9 @@ export abstract class MySqlConnection</*in|out*/ NAME extends string> extends Ab
         return new DefaultImpl()
     }
 
-    isolationLevel(level: 'read uncommitted' | 'read committed' | 'snapshot' | 'serializable', accessMode?: 'read write' | 'read only'): TransactionIsolationLevel
-    isolationLevel(accessMode: 'read write' | 'read only'): TransactionIsolationLevel
-    isolationLevel(level: 'read uncommitted' | 'read committed' | 'snapshot' | 'serializable' | 'read write' | 'read only', accessMode?: 'read write' | 'read only'): TransactionIsolationLevel {
+    isolationLevel(level: 'read uncommitted' | 'read committed' | 'snapshot' | 'serializable', accessMode?: 'read write' | 'read only'): TransactionIsolationLevel<NConnection<'mySql', NAME>>
+    isolationLevel(accessMode: 'read write' | 'read only'): TransactionIsolationLevel<NConnection<'mySql', NAME>>
+    isolationLevel(level: 'read uncommitted' | 'read committed' | 'snapshot' | 'serializable' | 'read write' | 'read only', accessMode?: 'read write' | 'read only'): TransactionIsolationLevel<NConnection<'mySql', NAME>> {
         if (level === 'read write' || level === 'read only') {
             return [undefined, level] as any
         }

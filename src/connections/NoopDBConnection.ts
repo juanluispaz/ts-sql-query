@@ -45,9 +45,9 @@ export abstract class NoopDBConnection</*in|out*/ NAME extends string> extends A
         return new DefaultImpl()
     }
 
-    isolationLevel(level: 'read uncommitted' | 'read committed' | 'repeatable read' | 'snapshot' | 'serializable', accessMode?: 'read write' | 'read only'): TransactionIsolationLevel
-    isolationLevel(accessMode: 'read write' | 'read only'): TransactionIsolationLevel
-    isolationLevel(level: 'read uncommitted' | 'read committed' | 'repeatable read' | 'snapshot' | 'serializable' | 'read write' | 'read only', accessMode?: 'read write' | 'read only'): TransactionIsolationLevel {
+    isolationLevel(level: 'read uncommitted' | 'read committed' | 'repeatable read' | 'snapshot' | 'serializable', accessMode?: 'read write' | 'read only'): TransactionIsolationLevel<NConnection<'noopDB', NAME>>
+    isolationLevel(accessMode: 'read write' | 'read only'): TransactionIsolationLevel<NConnection<'noopDB', NAME>>
+    isolationLevel(level: 'read uncommitted' | 'read committed' | 'repeatable read' | 'snapshot' | 'serializable' | 'read write' | 'read only', accessMode?: 'read write' | 'read only'): TransactionIsolationLevel<NConnection<'noopDB', NAME>> {
         if (level === 'read write' || level === 'read only') {
             return [undefined, level] as any
         }

@@ -134,9 +134,9 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
         return new DefaultImpl()
     }
 
-    isolationLevel(level: 'read committed' | 'snapshot'): TransactionIsolationLevel
-    isolationLevel(accessMode: 'read write' | 'read only'): TransactionIsolationLevel
-    isolationLevel(level: 'read committed' | 'snapshot' | 'read write' | 'read only'): TransactionIsolationLevel {
+    isolationLevel(level: 'read committed' | 'snapshot'): TransactionIsolationLevel<NConnection<'oracle', NAME>>
+    isolationLevel(accessMode: 'read write' | 'read only'): TransactionIsolationLevel<NConnection<'oracle', NAME>>
+    isolationLevel(level: 'read committed' | 'snapshot' | 'read write' | 'read only'): TransactionIsolationLevel<NConnection<'oracle', NAME>> {
         if (level === 'read write' || level === 'read only') {
             return [undefined, level] as any
         }

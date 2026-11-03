@@ -18,10 +18,12 @@
 // Docs: docs/queries/transaction.md (section "Transaction isolation").
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
-import type { TransactionIsolationLevel } from '../../../../../src/Connection.js'
 import { ctx } from './setup.js'
 
-async function runReadOnlyTransaction(isolation: TransactionIsolationLevel): Promise<number | null> {
+// The isolation level the connection of this cell builds
+type IsolationLevel = ReturnType<typeof ctx.conn.isolationLevel>
+
+async function runReadOnlyTransaction(isolation: IsolationLevel): Promise<number | null> {
     const connection = ctx.conn
     return await connection.transaction(async () => {
         return await connection.selectFromNoTable()
@@ -31,7 +33,7 @@ async function runReadOnlyTransaction(isolation: TransactionIsolationLevel): Pro
 }
 
 // The isolation level the database reports for the transaction this runs in.
-async function activeIsolationLevel(isolation: TransactionIsolationLevel): Promise<string> {
+async function activeIsolationLevel(isolation: IsolationLevel): Promise<string> {
     const connection = ctx.conn
     return await connection.transaction(async () => {
         return await connection.selectFromNoTable()

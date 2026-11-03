@@ -205,7 +205,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         return this.transactionMetadata
     }
 
-    transaction<T>(fn: () => T | Promise<T>, isolationLevel?: TransactionIsolationLevel): Promise<T> {
+    transaction<T>(fn: () => T | Promise<T>, isolationLevel?: TransactionIsolationLevel<DB>): Promise<T> {
         const source = new QueryExecutionSource('Transaction executed at')
         if (this.isTransactionActive() && !this.queryRunner.nestedTransactionsSupported()) {
             throw new TsSqlQueryExecutionError(source, { reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, 'Nested transactions not supported')
@@ -286,7 +286,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         }
     }
 
-    beginTransaction(isolationLevel?: TransactionIsolationLevel): Promise<void> {
+    beginTransaction(isolationLevel?: TransactionIsolationLevel<DB>): Promise<void> {
         const source = new QueryExecutionSource('Query executed at')
         if (this.isTransactionActive() && !this.queryRunner.nestedTransactionsSupported()) {
             throw new TsSqlQueryExecutionError(source, { reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, 'Nested transactions not supported')
@@ -1581,8 +1581,9 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
 
 export type RawFragmentArg<T extends NSource, DB extends NDB> = HasSource<T> & SameDB<DB> & (AnyValueSource | IExecutableSelectQuery<any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>)
 
-export interface TransactionIsolationLevel {
-    [transactionIsolationLevel]: 'transactionIsolationLevel'
+/** An isolation level built by a connection: only that connection accepts it */
+export interface TransactionIsolationLevel<DB extends NDB = NDB> {
+    [transactionIsolationLevel]: DB
 }
 
 // Exposed for use by the concrete connection subclasses whose dialect

@@ -7,8 +7,8 @@ export abstract class AbstractQueryRunner implements QueryRunner {
     abstract readonly database: DatabaseType
     abstract useDatabase(database: DatabaseType): void
     abstract getNativeRunner(): unknown
-    abstract getCurrentNativeTransaction(): unknown
-    abstract execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT>
+    abstract getCurrentNativeConnection(): unknown
+    abstract execute<RESULT>(fn: (connection: unknown) => Promise<RESULT>): Promise<RESULT>
 
     executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         return this.executeQueryReturning(query, params).then((rows) => {

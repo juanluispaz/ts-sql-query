@@ -97,7 +97,7 @@ describe('NoopQueryRunner', () => {
         expect(runner.database).toBe('postgreSql')
         expect(runner.executeSelectOneRow('q')).toBeInstanceOf(SynchronousPromise)
         expect(runner.getNativeRunner()).toBeNull()
-        expect(runner.getCurrentNativeTransaction()).toBeUndefined()
+        expect(runner.getCurrentNativeConnection()).toBeUndefined()
         expect(await runner.execute(async (connection) => connection)).toBeNull()
         expect(await runner.executeCombined(async () => 1, async () => 2)).toEqual([1, 2])
         expect(await runner.createResolvedPromise(3)).toBe(3)

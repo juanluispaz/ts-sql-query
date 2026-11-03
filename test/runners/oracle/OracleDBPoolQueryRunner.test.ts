@@ -14,6 +14,7 @@ for (const promisePool of [false, true]) {
         label: promisePool ? 'OracleDBPoolPromiseQueryRunner' : 'OracleDBPoolQueryRunner',
         pool: true,
         dialect: oracleDialect,
+        nativeExecute: (connection, sql) => connection.execute(sql),
         runnerClass: promisePool ? OracleDBPoolPromiseQueryRunner : OracleDBPoolQueryRunner,
         realEnabled: isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'),
         timeoutMs: 300_000,

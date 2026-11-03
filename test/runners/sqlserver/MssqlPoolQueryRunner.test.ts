@@ -15,6 +15,7 @@ for (const promisePool of [false, true]) {
         label: promisePool ? 'MssqlPoolPromiseQueryRunner' : 'MssqlPoolQueryRunner',
         pool: promisePool,
         dialect: sqlServerDialect,
+        nativeExecute: (connection, sql) => connection.request().query(sql),
         runnerClass: promisePool ? MssqlPoolPromiseQueryRunner : MssqlPoolQueryRunner,
         realEnabled: isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'),
         timeoutMs: 300_000,
@@ -87,7 +88,7 @@ for (const promisePool of [false, true]) {
             const connectionId = 'select cast(connection_id as nvarchar(36)) as id from sys.dm_exec_connections where session_id = @@spid'
             await r.executeBeginTransaction(['serializable'])
             const id = await r.executeSelectOneColumnOneRow(connectionId)
-            const transaction = r.getCurrentNativeTransaction() as any
+            const transaction = r.getCurrentNativeConnection() as any
             expect(transaction).toBeDefined()
             transaction.request = () => ({ batch: () => Promise.reject(new Error('injected SET failure')) })
             await r.executeCommit()

@@ -181,7 +181,7 @@ describe('MockQueryRunner', () => {
     test('the-rest-of-the-interface', async () => {
         const runner = new MockQueryRunner(() => undefined)
         expect(runner.getNativeRunner()).toBeNull()
-        expect(runner.getCurrentNativeTransaction()).toBeUndefined()
+        expect(runner.getCurrentNativeConnection()).toBeUndefined()
         expect(await runner.execute(async (connection) => connection)).toBeNull()
         expect(await runner.executeCombined(async () => 1, async () => 2)).toEqual([1, 2])
         expect(await runner.createResolvedPromise(3)).toBe(3)

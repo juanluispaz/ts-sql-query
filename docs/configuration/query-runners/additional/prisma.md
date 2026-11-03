@@ -239,7 +239,7 @@ In the following example, `PrismaClient` refers to the generated Prisma client f
 ```ts
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     getPrismaClient(): PrismaClient {
-        const prisma = this.queryRunner.getCurrentNativeTransaction() || this.queryRunner.getNativeRunner()
+        const prisma = this.queryRunner.getCurrentNativeConnection() || this.queryRunner.getNativeRunner()
         /*
          * This code attempts to retrieve the current Prisma client being used in the transaction. 
          * If there is no active transaction, it falls back to the default Prisma client instance.

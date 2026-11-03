@@ -2,6 +2,7 @@
 
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
+import { getGivenSqlConnection, type GivenSqlConnection } from '../utils/givenSqlConnection.js'
 import type { BeginTransactionOpts, DatabaseType, QueryRunner } from './QueryRunner.js'
 import type { SQL, TransactionSQL, ReservedSQL } from 'bun'
 
@@ -10,10 +11,12 @@ export abstract class AbstractBunSqlQueryRunner extends SqlTransactionQueryRunne
     readonly connection: SQL
     transaction?: TransactionSQL | undefined
     lowLevelTransaction?: ReservedSQL | undefined
+    private readonly givenConnection: GivenSqlConnection
 
     constructor(connection: SQL, database: DatabaseType) {
         super()
         this.connection = connection
+        this.givenConnection = getGivenSqlConnection(connection)
         this.database = database
     }
     useDatabase(database: DatabaseType): void {
@@ -24,40 +27,55 @@ export abstract class AbstractBunSqlQueryRunner extends SqlTransactionQueryRunne
     getNativeRunner(): SQL {
         return this.connection
     }
-    getCurrentNativeTransaction(): TransactionSQL | ReservedSQL | undefined {
+    getCurrentNativeConnection(): SQL | TransactionSQL | ReservedSQL | undefined {
         return this.transaction || this.lowLevelTransaction
     }
     private getSql(): SQL | TransactionSQL | ReservedSQL {
         return this.transaction || this.lowLevelTransaction || this.connection
     }
-    execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
-        return fn(this.connection, this.transaction || this.lowLevelTransaction)
+    execute<RESULT>(fn: (connection: unknown) => Promise<RESULT>): Promise<RESULT> {
+        const transaction = this.transaction || this.lowLevelTransaction
+        if (transaction) {
+            return fn(transaction)
+        }
+        if (this.givenConnection !== 'pool') {
+            // A connection the caller reserved, or a transaction the caller began: it already is a dedicated one
+            return fn(this.connection)
+        }
+        // Outside a transaction, a connection reserved for fn alone
+        return this.connection.reserve().then(reserved => fn(reserved).finally(() => reserved.release()))
     }
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
         return this.getSql().unsafe(query, params).then((result) => {
             // then is called to ensure the query is executed
             return result
+        }, (error) => {
+            this.statementFailed(error)
+            throw error
         })
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
         return this.getSql().unsafe(query, params).then((result) => {
             // then is called to ensure the query is executed
             return result.count
+        }, (error) => {
+            this.statementFailed(error)
+            throw error
         })
     }
     override executeBeginTransactionQuery(query: string, params: any[]): Promise<number> {
-        return this.connection.reserve().then((reserved) => {
+        return this.reserveForTransaction().then((reserved) => {
             return reserved.unsafe(query, params).then(
                 (result) => {
                     if (this.transaction || this.lowLevelTransaction) {
                         const error = new TsSqlProcessingError({ reason: 'FORBIDDEN_CONCURRENT_USAGE' }, 'Forbidden concurrent usage of the query runner was detected when it tried to start a transaction')
                         return reserved.unsafe('rollback', []).then(
                             () => {
-                                reserved.release()
+                                this.releaseReserved(reserved)
                                 return this.createRejectedPromise(error)
                             },
                             () => {
-                                reserved.release()
+                                this.releaseReserved(reserved)
                                 return this.createRejectedPromise(error)
                             }
                         )
@@ -66,7 +84,7 @@ export abstract class AbstractBunSqlQueryRunner extends SqlTransactionQueryRunne
                     return result.count
                 },
                 (error) => {
-                    reserved.release()
+                    this.releaseReserved(reserved)
                     return this.createRejectedPromise(error)
                 }
             )
@@ -81,8 +99,10 @@ export abstract class AbstractBunSqlQueryRunner extends SqlTransactionQueryRunne
 
         return transaction.unsafe(query, params).then(
             (result) => {
+                // The connection is kept when the commit fails, for the rollback that follows
+                this.checkCommit(result.command)
                 this.lowLevelTransaction = undefined
-                transaction.release()
+                this.releaseReserved(transaction)
                 return result.count
             },
             (error) => {
@@ -95,19 +115,49 @@ export abstract class AbstractBunSqlQueryRunner extends SqlTransactionQueryRunne
         if (!transaction) {
             return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in a low level transaction, you cannot rollback the transaction'))
         }
+        if (this.rollbackAlreadyDone()) {
+            this.lowLevelTransaction = undefined
+            this.releaseReserved(transaction)
+            return this.createResolvedPromise(0)
+        }
 
         return transaction.unsafe(query, params).then(
             (result) => {
                 this.lowLevelTransaction = undefined
-                transaction.release()
+                this.releaseReserved(transaction)
                 return result.count
             },
             (error) => {
                 this.lowLevelTransaction = undefined
-                transaction.release()
+                this.releaseReserved(transaction)
                 return this.createRejectedPromise(error)
             }
         )
+    }
+    private reserveForTransaction(): Promise<ReservedSQL> {
+        if (this.givenConnection === 'transaction') {
+            return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, this.constructor.name + ' was created with a transaction of Bun SQL, and a transaction can\'t begin inside it'))
+        }
+        if (this.givenConnection === 'reserved') {
+            return this.createResolvedPromise(this.connection as unknown as ReservedSQL)
+        }
+        return this.connection.reserve()
+    }
+    /** A statement of the query runner failed */
+    protected statementFailed(_error: unknown): void {
+    }
+    /** Checks the answer to the commit, the transaction being committed when it doesn't throw */
+    protected checkCommit(_command: unknown): void {
+    }
+    /** Whether the database already rolled the transaction back, so the rollback has nothing to send */
+    protected rollbackAlreadyDone(): boolean {
+        return false
+    }
+    private releaseReserved(reserved: ReservedSQL): void {
+        // A connection the caller reserved is theirs to release
+        if (reserved !== (this.connection as unknown)) {
+            reserved.release()
+        }
     }
     override isTransactionActive(): boolean {
         return !!this.transaction || !!this.lowLevelTransaction || super.isTransactionActive()
@@ -119,6 +169,9 @@ export abstract class AbstractBunSqlQueryRunner extends SqlTransactionQueryRunne
     override executeInTransaction<T>(fn: () => Promise<T>, _outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
         if (this.transaction || this.lowLevelTransaction) {
             return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, 'Nested transactions are not supported by ' + this.constructor.name))
+        }
+        if (this.givenConnection === 'transaction') {
+            return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, this.constructor.name + ' was created with a transaction of Bun SQL, and a transaction can\'t begin inside it'))
         }
         let options
         try {

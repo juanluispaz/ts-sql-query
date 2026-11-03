@@ -66,10 +66,10 @@ export class SwitchableQueryRunner implements QueryRunner {
     getNativeRunner(): unknown {
         return this.target.getNativeRunner()
     }
-    getCurrentNativeTransaction(): unknown {
-        return this.target.getCurrentNativeTransaction()
+    getCurrentNativeConnection(): unknown {
+        return this.target.getCurrentNativeConnection()
     }
-    execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
+    execute<RESULT>(fn: (connection: unknown) => Promise<RESULT>): Promise<RESULT> {
         return this.target.execute(fn)
     }
     executeSelectOneRow(query: string, params: any[] = []): Promise<any> {

@@ -11,6 +11,7 @@ describeRunnerContract({
     label: 'MariaDBPoolQueryRunner',
     pool: true,
     dialect: mariadbDialect,
+    nativeExecute: (connection, sql) => connection.query(sql),
     runnerClass: MariaDBPoolQueryRunner,
     realEnabled: isRealDbEnabled('mariadb', 'docker', 'newest', 'mariadb'),
     errorFields: ['code', 'errno', 'sqlState', 'sqlMessage', 'fatal'],

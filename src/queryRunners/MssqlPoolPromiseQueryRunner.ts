@@ -22,8 +22,8 @@ export class MssqlPoolPromiseQueryRunner extends ManagedTransactionPoolQueryRunn
     getNativeRunner(): Promise<ConnectionPool> {
         return this.promisePool
     }
-    override getCurrentNativeTransaction(): Transaction | undefined {
-        return super.getCurrentNativeTransaction() as any
+    override getCurrentNativeConnection(): Transaction | undefined {
+        return super.getCurrentNativeConnection() as any
     }
     addParam(params: any[], value: any): string {
         const index = params.length

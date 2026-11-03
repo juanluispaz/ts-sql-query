@@ -39,12 +39,13 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         return this.pool
     }
 
-    getCurrentNativeTransaction(): Transaction | undefined {
+    getCurrentNativeConnection(): Transaction | undefined {
         return this.transaction
     }
 
-    execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
-        return fn(this.pool, this.transaction)
+    execute<RESULT>(fn: (connection: unknown) => Promise<RESULT>): Promise<RESULT> {
+        // Outside a transaction, the pool: mssql doesn't reserve one of its connections but for a transaction
+        return fn(this.transaction || this.pool)
     }
 
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {

@@ -19,11 +19,11 @@ export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
         return this.queryRunner.getNativeRunner()
     }
 
-    getCurrentNativeTransaction(): unknown {
-        return this.queryRunner.getCurrentNativeTransaction()
+    getCurrentNativeConnection(): unknown {
+        return this.queryRunner.getCurrentNativeConnection()
     }
 
-    execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
+    execute<RESULT>(fn: (connection: unknown) => Promise<RESULT>): Promise<RESULT> {
         return this.queryRunner.execute(fn)
     }
 

@@ -1,6 +1,7 @@
 import type { DatabaseType } from './QueryRunner.js'
 import type { ClientBase } from 'pg'
 import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
+import { PostgresTransactionOutcome } from '../utils/postgresTransactionOutcome.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getPgErrorReason, isPgError } from './connectorErrorMappers/PgErrorMapper.js'
 
@@ -10,6 +11,7 @@ export interface PgQueryRunnerConfig {
 
 export class PgQueryRunner extends SqlTransactionQueryRunner {
     readonly database: DatabaseType
+    private readonly outcome = new PostgresTransactionOutcome()
     readonly connection: ClientBase
     private config?: PgQueryRunnerConfig | undefined
 
@@ -30,19 +32,37 @@ export class PgQueryRunner extends SqlTransactionQueryRunner {
         return this.connection
     }
 
-    getCurrentNativeTransaction(): undefined {
-        return undefined
+    getCurrentNativeConnection(): ClientBase | undefined {
+        return this.isTransactionActive() ? this.connection : undefined
     }
 
-    execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
+    execute<RESULT>(fn: (connection: unknown) => Promise<RESULT>): Promise<RESULT> {
         return fn(this.connection)
     }
 
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
-        return this.connection.query(query, params).then((result) => result.rows)
+        return this.connection.query(query, params).then((result) => result.rows, (error) => {
+            this.outcome.statementFailed(error, this.isTransactionActive())
+            throw error
+        })
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
-        return this.connection.query(query, params).then((result) => result.rowCount || 0)
+        return this.connection.query(query, params).then((result) => result.rowCount || 0, (error) => {
+            this.outcome.statementFailed(error, this.isTransactionActive())
+            throw error
+        })
+    }
+    override executeCommitQuery(query: string, params: any[]): Promise<number> {
+        return this.connection.query(query, params).then((result) => {
+            this.outcome.checkCommit(result.command)
+            return 0
+        })
+    }
+    override executeRollbackQuery(query: string, params: any[]): Promise<number> {
+        if (this.outcome.rollbackAlreadyDone()) {
+            return this.createResolvedPromise(0)
+        }
+        return this.executeMutation(query, params).finally(() => this.outcome.transactionEnded())
     }
     addParam(params: any[], value: any): string {
         params.push(value)

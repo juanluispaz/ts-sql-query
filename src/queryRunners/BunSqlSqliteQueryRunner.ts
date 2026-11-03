@@ -2,7 +2,7 @@
 
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { AbstractBunSqlQueryRunner } from './AbstractBunSqlQueryRunner.js'
-import { SQL } from 'bun'
+import { SQL, type TransactionSQL } from 'bun'
 import { getBunSqlSqliteErrorReason, isBunSqlSqliteError } from './connectorErrorMappers/BunSqlSqliteErrorMapper.js'
 
 export class BunSqlSqliteQueryRunner extends AbstractBunSqlQueryRunner {
@@ -12,6 +12,14 @@ export class BunSqlSqliteQueryRunner extends AbstractBunSqlQueryRunner {
         if (adapter !== 'sqlite') {
             throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'adapter', value: adapter }, 'BunSqlSqliteQueryRunner only supports Bun.SQL connections using the sqlite adapter')
         }
+    }
+    // SQLite has a single connection, which Bun SQL doesn't reserve: the transaction begun with beginTransaction runs
+    // on it
+    override getCurrentNativeConnection(): SQL | TransactionSQL | undefined {
+        return this.transaction || (this.isTransactionActive() ? this.connection : undefined)
+    }
+    override execute<RESULT>(fn: (connection: unknown) => Promise<RESULT>): Promise<RESULT> {
+        return fn(this.transaction || this.connection)
     }
     override executeBeginTransactionQuery(query: string, params: any[]): Promise<number> {
         return this.connection.unsafe(query, params).then((result) => result.count)

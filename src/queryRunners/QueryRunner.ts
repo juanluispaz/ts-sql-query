@@ -4,9 +4,21 @@ import { getQueryExecutionMetadataOf, getQueryExecutionSourceOf, isSelectPageCou
 export interface QueryRunner {
     readonly database: DatabaseType
     useDatabase(database: DatabaseType): void
+    /** The driver's object the query runner was created with: a connection, or a pool */
     getNativeRunner(): unknown
-    getCurrentNativeTransaction(): unknown
-    execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT>
+    /**
+     * The driver's connection the current transaction runs on, or undefined outside a transaction. A pool query runner
+     * takes it from the pool with the first statement of the transaction, and has none before: execute gives it always
+     */
+    getCurrentNativeConnection(): unknown
+    /**
+     * Calls fn with a connection of the driver on which to run statements: inside a transaction, the one the
+     * transaction runs on (taken from the pool, and the transaction begun on it, when it had none yet); outside a
+     * transaction, the query runner's connection, or one taken from the pool for fn alone and given back when the
+     * promise fn returns ends. mssql only gives a connection of its pool for a transaction: outside one, fn receives the
+     * pool; Prisma gives no connection: fn receives the client, or the client of the interactive transaction
+     */
+    execute<RESULT>(fn: (connection: unknown) => Promise<RESULT>): Promise<RESULT>
     executeSelectOneRow(query: string, params?: any[]): Promise<any>
     executeSelectManyRows(query: string, params?: any[]): Promise<any[]>
     executeSelectOneColumnOneRow(query: string, params?: any[]): Promise<any>

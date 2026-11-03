@@ -23,7 +23,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     }
     customerSeq = this.sequence('customer_seq', 'int')
     getPrismaClient(): PrismaClient {
-        const prisma = this.queryRunner.getCurrentNativeTransaction() || this.queryRunner.getNativeRunner()
+        const prisma = this.queryRunner.getCurrentNativeConnection() || this.queryRunner.getNativeRunner()
         if (prisma instanceof PrismaClient) {
             return prisma
         } else {

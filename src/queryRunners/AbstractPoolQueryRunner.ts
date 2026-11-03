@@ -9,7 +9,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
     private transactionLevel = 0
     private transactionOpts?: BeginTransactionOpts | undefined
 
-    execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
+    execute<RESULT>(fn: (connection: unknown) => Promise<RESULT>): Promise<RESULT> {
         return this.getQueryRunner().then(queryRunner => queryRunner.execute(fn)).finally(() => this.releaseIfNeeded())
     }
     executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
@@ -166,11 +166,11 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
 
     abstract useDatabase(database: DatabaseType): void
     abstract getNativeRunner(): unknown
-    getCurrentNativeTransaction(): unknown {
+    getCurrentNativeConnection(): unknown {
         if (!this.currentQueryRunner) {
             return undefined
         }
-        return this.currentQueryRunner.getCurrentNativeTransaction()
+        return this.currentQueryRunner.getCurrentNativeConnection()
     }
     abstract addParam(params: any[], value: any): string
     addOutParam(_params: any[], _name: string): string {

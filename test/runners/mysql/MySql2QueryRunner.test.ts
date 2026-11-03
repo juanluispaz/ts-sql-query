@@ -10,6 +10,7 @@ import { describeRunnerContract } from '../lib/runnerContract.js'
 describeRunnerContract({
     label: 'MySql2QueryRunner',
     dialect: mysqlDialect,
+    nativeExecute: (connection, sql) => new Promise((resolve, reject) => connection.query(sql, (error: unknown, result: unknown) => error ? reject(error) : resolve(result))),
     runnerClass: MySql2QueryRunner,
     realEnabled: isRealDbEnabled('mysql', 'docker', 'newest', 'mysql2'),
     errorFields: ['code', 'errno', 'sqlState', 'sqlMessage'],

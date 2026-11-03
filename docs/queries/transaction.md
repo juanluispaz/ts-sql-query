@@ -60,6 +60,46 @@ await connection.rollback();
 
 When you use these methods, you must ensure the transaction has begun before calling `commit` or `rollback`.
 
+!!! warning "A failed statement on PostgreSQL"
+
+    On PostgreSQL, a statement that fails leaves the whole transaction failed, even if your code catches its error: see [a statement that fails inside a transaction](../configuration/supported-databases/postgresql.md#a-statement-that-fails-inside-a-transaction).
+
+## Using the driver's connection in the transaction
+
+Some libraries run their own SQL and accept a connection of your database driver: a job queue that keeps its jobs in the same database, for example. For their SQL to be part of your transaction, they must run it on the connection the transaction runs on, which the query runner gives you in two ways.
+
+`connection.queryRunner.getCurrentNativeConnection()` returns the driver's connection the current transaction runs on (the pg `PoolClient` with `PgPoolQueryRunner`):
+
+```ts
+await connection.transaction(async () => {
+    const customerId = await registerCustomer('John', 'Smith', 10);
+    const client = connection.queryRunner.getCurrentNativeConnection();
+    await jobQueue.send('send-welcome-email', { customerId }, { db: client });
+});
+```
+
+A query runner over a pool takes the connection from the pool with the first statement of the transaction: before it, the transaction has no connection yet, and `getCurrentNativeConnection()` returns `undefined`, as it does outside a transaction. `connection.queryRunner.execute(fn)` always gives one: it calls `fn` with the connection of the transaction, taking it from the pool (and beginning the transaction on it) when the transaction had none yet; and outside a transaction, with a connection for `fn` alone, given back when the promise `fn` returns ends:
+
+```ts
+await connection.transaction(async () => {
+    await connection.queryRunner.execute(async (client) => {
+        await jobQueue.send('send-welcome-email', { customerId: 10 }, { db: client });
+    });
+});
+```
+
+What each query runner gives:
+
+| Query runner | `getCurrentNativeConnection()` and `execute(fn)` in a transaction | `execute(fn)` outside a transaction | `getNativeRunner()` |
+| --- | --- | --- | --- |
+| `PgPoolQueryRunner`, `MySql2PoolQueryRunner`, `MariaDBPoolQueryRunner`, `OracleDBPoolQueryRunner`, `OracleDBPoolPromiseQueryRunner` | The connection taken from the pool for the transaction | A connection taken from the pool for `fn` | The pool |
+| `PostgresQueryRunner`, `BunSqlPostgresQueryRunner`, `BunSqlMySqlQueryRunner` | The `sql` of the transaction (`connection.transaction(...)`), or the connection reserved for it (`connection.beginTransaction()`) | A connection reserved for `fn` | The `sql` |
+| `PgQueryRunner`, `PgLiteQueryRunner`, `MySql2QueryRunner`, `MariaDBQueryRunner`, `OracleDBQueryRunner` and the SQLite query runners | The connection you gave the query runner | The connection you gave the query runner | The connection |
+| `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner` | The mssql `Transaction` | The pool: mssql only gives one of its connections for a transaction | The pool |
+| `PrismaQueryRunner` | The client of the interactive transaction | The Prisma client | The Prisma client |
+
+The connection belongs to the query runner: don't release it, and don't commit or roll back with it. A connection `execute(fn)` takes for `fn` alone is given back when `fn` ends, so don't keep it to use later.
+
 ## Transaction isolation
 
 While your transaction runs, other transactions change the same data and commit. The **isolation level** is what you ask to be shown of their work, and what happens when you write on the strength of what you read.

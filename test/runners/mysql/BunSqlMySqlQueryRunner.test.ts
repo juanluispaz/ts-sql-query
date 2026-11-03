@@ -10,6 +10,7 @@ const isBun = typeof globalThis.Bun !== 'undefined'
 describeRunnerContract({
     label: 'BunSqlMySqlQueryRunner (MySQL)',
     dialect: mysqlDialect,
+    nativeExecute: (connection, sql) => connection.unsafe(sql),
     realEnabled: isBun && isRealDbEnabled('mysql', 'docker', 'newest', 'bun_sql_mysql'),
     errorFields: ['code', 'errno', 'sqlState'],
     async create(failure) {

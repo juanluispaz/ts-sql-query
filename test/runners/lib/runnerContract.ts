@@ -60,6 +60,8 @@ export interface RunnerContractOptions {
     readonly clientTimeout?: boolean
     /** A database server: a second create() reaches the same database (not an in-process one); default true but on SQLite. */
     readonly sharedDatabase?: boolean
+    /** Runs a statement with the driver's own API on the connection execute(fn) / getCurrentNativeConnection() give */
+    readonly nativeExecute: (connection: any, sql: string) => Promise<unknown>
 }
 
 const SEED: readonly { id: number, name: string, amount: number | null }[] = [
@@ -629,9 +631,9 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
         test('native-runner-and-transaction', async () => {
             const runner = r()
             expect(runner.getNativeRunner()).toBeDefined()
-            runner.getCurrentNativeTransaction()
+            runner.getCurrentNativeConnection()
             await runner.executeInTransaction(async () => {
-                runner.getCurrentNativeTransaction()
+                runner.getCurrentNativeConnection()
             }, runner)
         })
 
@@ -641,6 +643,87 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
                 return 'ran'
             })
             expect(result).toBe('ran')
+        })
+
+        test('execute-hands-over-the-connection-of-the-transaction', async () => {
+            const runner = r()
+            const insert = `insert into rt_probe (id, name) values (50, 'native')`
+            await runner.executeBeginTransaction()
+            try {
+                await runner.execute(connection => opts.nativeExecute(connection, insert))
+                expect(await count()).toBe(4)
+            } finally {
+                await runner.executeRollback()
+            }
+            expect(await count()).toBe(3)
+        })
+
+        test('execute-hands-over-the-connection-of-the-transaction-begun-with-a-function', async () => {
+            const runner = r()
+            const insert = `insert into rt_probe (id, name) values (50, 'native')`
+            const undo = new Error('undo')
+            const error = await rejectionOf(runner.executeInTransaction(async () => {
+                await runner.execute(connection => opts.nativeExecute(connection, insert))
+                expect(await count()).toBe(4)
+                throw undo
+            }, runner))
+            expect(error).toBe(undo)
+            expect(await count()).toBe(3)
+        })
+
+        test('execute-outside-a-transaction', async () => {
+            const runner = r()
+            let current: unknown = 'not read'
+            await runner.execute(async connection => {
+                current = runner.getCurrentNativeConnection()
+                await opts.nativeExecute(connection, 'select count(*) from rt_probe')
+            })
+            expect(current).toBeUndefined()
+            expect(runner.getCurrentNativeConnection()).toBeUndefined()
+        })
+
+        test('current-native-connection-is-the-one-of-the-transaction', async () => {
+            const runner = r()
+            const insert = `insert into rt_probe (id, name) values (50, 'native')`
+            await runner.executeBeginTransaction()
+            try {
+                let given: unknown
+                await runner.execute(async connection => { given = connection })
+                const current = runner.getCurrentNativeConnection()
+                expect(current).toBeDefined()
+                expect(current).toBe(given)
+                await opts.nativeExecute(current, insert)
+                expect(await count()).toBe(4)
+            } finally {
+                await runner.executeRollback()
+            }
+            expect(await count()).toBe(3)
+            expect(runner.getCurrentNativeConnection()).toBeUndefined()
+        })
+
+        test('current-native-connection-of-a-transaction-begun-with-a-function', async () => {
+            const runner = r()
+            const insert = `insert into rt_probe (id, name) values (50, 'native')`
+            const undo = new Error('undo')
+            const error = await rejectionOf(runner.executeInTransaction(async () => {
+                // A pool query runner takes the connection with the first statement of the transaction
+                expect(await count()).toBe(3)
+                await opts.nativeExecute(runner.getCurrentNativeConnection(), insert)
+                expect(await count()).toBe(4)
+                throw undo
+            }, runner))
+            expect(error).toBe(undo)
+            expect(await count()).toBe(3)
+        })
+
+        test.skipIf(dialect.database !== 'postgreSql')('commit-rolled-back-carries-the-failed-statement', async () => {
+            const runner = r()
+            await runner.executeBeginTransaction()
+            const failure = await rejectionOf(runner.executeInsert(`insert into rt_probe (id, name) values (1, 'dup')`))
+            const error = await rejectionOf(runner.executeCommit())
+            await runner.executeRollback()
+            expect(reasonOf(error)).toBe('TRANSACTION_ERROR')
+            expect((error as { cause?: unknown }).cause).toBe(failure)
         })
 
         test('execute-combined', async () => {

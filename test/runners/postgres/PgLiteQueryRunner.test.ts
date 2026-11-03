@@ -12,6 +12,7 @@ for (const nested of [false, true]) {
         errorScenarios: !nested,
         sharedDatabase: false,
         dialect: postgresDialect,
+        nativeExecute: (connection, sql) => connection.query(sql),
         runnerClass: PgLiteQueryRunner,
         realEnabled: isRealDbEnabled('postgres', 'wasm', 'newest', 'pglite'),
         nestedTransactions: nested,

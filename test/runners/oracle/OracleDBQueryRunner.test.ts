@@ -10,6 +10,7 @@ import { describeRunnerContract } from '../lib/runnerContract.js'
 describeRunnerContract({
     label: 'OracleDBQueryRunner',
     dialect: oracleDialect,
+    nativeExecute: (connection, sql) => connection.execute(sql),
     runnerClass: OracleDBQueryRunner,
     realEnabled: isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'),
     timeoutMs: 300_000,

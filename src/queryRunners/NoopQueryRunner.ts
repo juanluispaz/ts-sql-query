@@ -31,11 +31,11 @@ export class NoopQueryRunner implements QueryRunner {
         return null
     }
 
-    getCurrentNativeTransaction(): unknown {
+    getCurrentNativeConnection(): unknown {
         return undefined
     }
 
-    execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
+    execute<RESULT>(fn: (connection: unknown) => Promise<RESULT>): Promise<RESULT> {
         return fn(null)
     }
 

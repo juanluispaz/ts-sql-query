@@ -23,6 +23,9 @@ export class OracleDBPoolPromiseQueryRunner extends ManagedTransactionPoolQueryR
     getNativeRunner(): Promise<Pool> {
         return this.promisePool
     }
+    override getCurrentNativeConnection(): Connection | undefined {
+        return super.getCurrentNativeConnection() as Connection | undefined
+    }
     addParam(params: any[], value: any): string {
         const index = params.length
         params.push(value)

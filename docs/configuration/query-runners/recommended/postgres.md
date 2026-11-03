@@ -47,3 +47,44 @@ async function main() {
     connection // ...
 }
 ```
+
+## Using a connection you reserved
+
+The query runner can also be created with a connection you reserved from the pool: every statement and every transaction runs on it, and the query runner doesn't release it, you do.
+
+```ts
+import postgres from 'postgres'
+import { PostgresQueryRunner } from 'ts-sql-query/queryRunners/PostgresQueryRunner';
+
+const sql = postgres(/* configuration */);
+
+async function main() {
+    const reserved = await sql.reserve();
+    try {
+        const connection = new DBConnection(new PostgresQueryRunner(reserved));
+        // Do your queries here
+        connection // ...
+    } finally {
+        reserved.release();
+    }
+}
+```
+
+## Inside a transaction you began with postgres.js
+
+Created with the transaction object of `sql.begin(...)`, the query runner runs its statements in that transaction, which postgres.js commits or rolls back when your function ends. A transaction can't begin inside it: `connection.transaction(...)` and `connection.beginTransaction()` are rejected with `NESTED_TRANSACTION_NOT_SUPPORTED`.
+
+```ts
+import postgres from 'postgres'
+import { PostgresQueryRunner } from 'ts-sql-query/queryRunners/PostgresQueryRunner';
+
+const sql = postgres(/* configuration */);
+
+async function main() {
+    await sql.begin(async (transaction) => {
+        const connection = new DBConnection(new PostgresQueryRunner(transaction));
+        // Do your queries here, in the transaction
+        connection // ...
+    });
+}
+```

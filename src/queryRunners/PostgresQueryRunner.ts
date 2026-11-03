@@ -1,7 +1,9 @@
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
+import { getGivenSqlConnection, type GivenSqlConnection } from '../utils/givenSqlConnection.js'
+import { PostgresTransactionOutcome } from '../utils/postgresTransactionOutcome.js'
 import type { BeginTransactionOpts, DatabaseType, QueryRunner } from './QueryRunner.js'
-import type { Sql, TransactionSql, ReservedSql } from 'postgres'
+import type { Sql, ReservedSql, TransactionSql } from 'postgres'
 import { getPostgresJsErrorReason, isPostgresJsError } from './connectorErrorMappers/PostgresErrorMapper.js'
 
 export class PostgresQueryRunner extends SqlTransactionQueryRunner {
@@ -9,10 +11,15 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
     readonly connection: Sql
     transaction?: TransactionSql | undefined
     lowLevelTransaction?: ReservedSql | undefined
+    private readonly givenConnection: GivenSqlConnection
+    private readonly outcome = new PostgresTransactionOutcome()
 
-    constructor(connection: Sql) {
+    /** connection: the client of a pool, a connection reserved from it, or a transaction begun with it */
+    constructor(connection: Sql | TransactionSql) {
         super()
-        this.connection = connection
+        // Only a pool client is asked to reserve or begin (see givenConnection)
+        this.connection = connection as Sql
+        this.givenConnection = getGivenSqlConnection(connection)
         this.database = 'postgreSql'
     }
     useDatabase(database: DatabaseType): void {
@@ -23,40 +30,55 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
     getNativeRunner(): Sql {
         return this.connection
     }
-    getCurrentNativeTransaction(): TransactionSql | ReservedSql | undefined {
+    getCurrentNativeConnection(): TransactionSql | ReservedSql | undefined {
         return this.transaction || this.lowLevelTransaction
     }
     private getSql(): Sql | TransactionSql | ReservedSql {
         return this.transaction || this.lowLevelTransaction || this.connection
     }
-    execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
-        return fn(this.connection, this.transaction || this.lowLevelTransaction)
+    execute<RESULT>(fn: (connection: unknown) => Promise<RESULT>): Promise<RESULT> {
+        const transaction = this.transaction || this.lowLevelTransaction
+        if (transaction) {
+            return fn(transaction)
+        }
+        if (this.givenConnection !== 'pool') {
+            // A connection the caller reserved, or a transaction the caller began: it already is a dedicated one
+            return fn(this.connection)
+        }
+        // Outside a transaction, a connection reserved for fn alone
+        return this.connection.reserve().then(reserved => fn(reserved).finally(() => reserved.release()))
     }
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
         return this.getSql().unsafe(query, params).then((result) => {
             // then is called to ensure the query is executed
             return result
+        }, (error) => {
+            this.outcome.statementFailed(error, this.isTransactionActive())
+            throw error
         })
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
         return this.getSql().unsafe(query, params).then((result) => {
             // then is called to ensure the query is executed
             return result.count
+        }, (error) => {
+            this.outcome.statementFailed(error, this.isTransactionActive())
+            throw error
         })
     }
     override executeBeginTransactionQuery(query: string, params: any[]): Promise<number> {
-        return this.connection.reserve().then((reserved) => {
+        return this.reserveForTransaction().then((reserved) => {
             return reserved.unsafe(query, params).then(
                 (result) => {
-                    if (this.transaction || this.lowLevelTransaction) {
+                    if (this.lowLevelTransaction) {
                         const error = new TsSqlProcessingError({ reason: 'FORBIDDEN_CONCURRENT_USAGE' }, 'Forbidden concurrent usage of the query runner was detected when it tried to start a transaction')
                         return reserved.unsafe('rollback', []).then(
                             () => {
-                                reserved.release()
+                                this.releaseReserved(reserved)
                                 return this.createRejectedPromise(error)
                             },
                             () => {
-                                reserved.release()
+                                this.releaseReserved(reserved)
                                 return this.createRejectedPromise(error)
                             }
                         )
@@ -65,7 +87,7 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
                     return result.count
                 },
                 (error) => {
-                    reserved.release()
+                    this.releaseReserved(reserved)
                     return this.createRejectedPromise(error)
                 }
             )
@@ -80,8 +102,10 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
 
         return transaction.unsafe(query, params).then(
             (result) => {
+                // The connection is kept when the commit fails, for the rollback that follows
+                this.outcome.checkCommit(result.command)
                 this.lowLevelTransaction = undefined
-                transaction.release()
+                this.releaseReserved(transaction)
                 return result.count
             },
             (error) => {
@@ -94,19 +118,39 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
         if (!transaction) {
             return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in a low level transaction, you cannot rollback the transaction'))
         }
+        if (this.outcome.rollbackAlreadyDone()) {
+            this.lowLevelTransaction = undefined
+            this.releaseReserved(transaction)
+            return this.createResolvedPromise(0)
+        }
 
-        return transaction.unsafe(query, params).then(
+        return transaction.unsafe(query, params).finally(() => this.outcome.transactionEnded()).then(
             (result) => {
                 this.lowLevelTransaction = undefined
-                transaction.release()
+                this.releaseReserved(transaction)
                 return result.count
             },
             (error) => {
                 this.lowLevelTransaction = undefined
-                transaction.release()
+                this.releaseReserved(transaction)
                 return this.createRejectedPromise(error)
             }
         )
+    }
+    private reserveForTransaction(): Promise<ReservedSql> {
+        if (this.givenConnection === 'transaction') {
+            return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, this.constructor.name + ' was created with a transaction of postgres.js, and a transaction can\'t begin inside it'))
+        }
+        if (this.givenConnection === 'reserved') {
+            return this.createResolvedPromise(this.connection as unknown as ReservedSql)
+        }
+        return this.connection.reserve()
+    }
+    private releaseReserved(reserved: ReservedSql): void {
+        // A connection the caller reserved is theirs to release
+        if (reserved !== (this.connection as unknown)) {
+            reserved.release()
+        }
     }
     override isTransactionActive(): boolean {
         return !!this.transaction || !!this.lowLevelTransaction || super.isTransactionActive()
@@ -115,9 +159,16 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
         params.push(value)
         return '$' + params.length
     }
-    override executeInTransaction<T>(fn: () => Promise<T>, _outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
+    override executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
+        if (this.givenConnection === 'reserved') {
+            // A reserved connection of postgres.js can't begin(): the transaction is begun and committed on it with SQL
+            return super.executeInTransaction(fn, outermostQueryRunner, opts)
+        }
         if (this.transaction || this.lowLevelTransaction) {
             return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, 'Nested transactions are not supported by PostgresQueryRunner'))
+        }
+        if (this.givenConnection === 'transaction') {
+            return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, 'PostgresQueryRunner was created with a transaction of postgres.js, and a transaction can\'t begin inside it'))
         }
         let options
         try {
@@ -125,6 +176,8 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
         } catch (error) {
             return this.createRejectedPromise(error)
         }
+        // postgres.js begins and commits the transaction; when one of its statements failed, it rolls the transaction
+        // back and rejects with that error, instead of committing it
         const callback = (transaction: TransactionSql) => {
             if (this.transaction || this.lowLevelTransaction) {
                 return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'FORBIDDEN_CONCURRENT_USAGE' }, 'Forbidden concurrent usage of the query runner was detected when it tried to start a transaction'))
@@ -133,6 +186,7 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
             let result = fn()
             return result.finally(() => {
                 this.transaction = undefined
+                this.outcome.transactionEnded()
             })
         }
         if (options) {

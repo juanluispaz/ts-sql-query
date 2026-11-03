@@ -14,6 +14,7 @@ for (const sync of [false, true]) {
         errorScenarios: !sync,
         ...(sync ? {} : { errorFields: ['code', 'errno', 'byteOffset'] }),
         dialect: sqliteDialect,
+        nativeExecute: async (connection, sql) => connection.run(sql),
         realEnabled: isBun && isRealDbEnabled('sqlite', 'native', 'newest', sync ? 'bun_sqlite-sync' : 'bun_sqlite'),
         async create() {
             const { BunSqliteQueryRunner } = await import('../../../src/queryRunners/BunSqliteQueryRunner.js')

@@ -14,6 +14,7 @@ for (const sync of [false, true]) {
         errorScenarios: !sync,
         ...(sync ? {} : { errorFields: ['code'] }),
         dialect: sqliteDialect,
+        nativeExecute: async (connection, sql) => connection.exec(sql),
         runnerClass: BetterSqlite3QueryRunner,
         realEnabled: isRealDbEnabled('sqlite', 'native', 'newest', sync ? 'better-sqlite3-sync' : 'better-sqlite3'),
         async create() {

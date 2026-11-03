@@ -32,11 +32,11 @@ export class BunSqliteQueryRunner extends SqlTransactionQueryRunner {
         return this.connection
     }
 
-    getCurrentNativeTransaction(): undefined {
-        return undefined
+    getCurrentNativeConnection(): Database | undefined {
+        return this.isTransactionActive() ? this.connection : undefined
     }
 
-    execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
+    execute<RESULT>(fn: (connection: unknown) => Promise<RESULT>): Promise<RESULT> {
         return fn(this.connection)
     }
 

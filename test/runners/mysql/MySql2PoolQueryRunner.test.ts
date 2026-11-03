@@ -11,6 +11,7 @@ describeRunnerContract({
     label: 'MySql2PoolQueryRunner',
     pool: true,
     dialect: mysqlDialect,
+    nativeExecute: (connection, sql) => new Promise((resolve, reject) => connection.query(sql, (error: unknown, result: unknown) => error ? reject(error) : resolve(result))),
     runnerClass: MySql2PoolQueryRunner,
     realEnabled: isRealDbEnabled('mysql', 'docker', 'newest', 'mysql2'),
     errorFields: ['code', 'errno', 'sqlState', 'sqlMessage'],

@@ -68,11 +68,11 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
     getNativeRunner(): RawPrismaClient {
         return this.connection
     }
-    getCurrentNativeTransaction(): RawPrismaClient | undefined {
+    getCurrentNativeConnection(): RawPrismaClient | undefined {
         return this.transaction
     }
-    execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
-        return fn(this.connection, this.transaction)
+    execute<RESULT>(fn: (connection: unknown) => Promise<RESULT>): Promise<RESULT> {
+        return fn(this.transaction || this.connection)
     }
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
         const connection = this.transaction || this.connection

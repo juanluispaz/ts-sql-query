@@ -25,6 +25,7 @@ for (const sync of [false, true]) {
         errorScenarios: !sync,
         ...(sync ? {} : { errorFields: ['code', 'errcode', 'errstr'] }),
         dialect: sqliteDialect,
+        nativeExecute: async (connection, sql) => connection.exec(sql),
         runnerClass: NodeSqliteQueryRunner,
         realEnabled: nodeSqliteAvailable() && isRealDbEnabled('sqlite', 'native', 'newest', sync ? 'node_sqlite-sync' : 'node_sqlite'),
         async create() {

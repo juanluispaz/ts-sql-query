@@ -127,6 +127,38 @@ const postgresScenarios: readonly ErrorScenario[] = [
         expected: { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'parameters' },
     },
     {
+        // The failed insert aborts the transaction: PostgreSQL answers the commit with ROLLBACK, not an error
+        name: 'commit-after-a-failed-statement',
+        run: async ({ runner }) => {
+            await runner.executeBeginTransaction()
+            await runner.executeInsert(`insert into rt_probe (id, name) values (1, 'dup')`).catch(() => undefined)
+            try {
+                await runner.executeCommit()
+            } catch (error) {
+                await runner.executeRollback()
+                throw error
+            }
+        },
+        expected: { reason: 'TRANSACTION_ERROR', transactionErrorType: 'transaction rolled back' },
+    },
+    {
+        name: 'transaction-whose-failed-statement-was-caught',
+        onlyRunners: ['PgQueryRunner', 'PgPoolQueryRunner', 'PgLiteQueryRunner', 'BunSqlPostgresQueryRunner'],
+        run: ({ runner }) => runner.executeInTransaction(async () => {
+            await runner.executeInsert(`insert into rt_probe (id, name) values (1, 'dup')`).catch(() => undefined)
+        }, runner),
+        expected: { reason: 'TRANSACTION_ERROR', transactionErrorType: 'transaction rolled back' },
+    },
+    {
+        // postgres.js begins and commits the transaction, and rejects with the error of the statement that failed
+        name: 'transaction-whose-failed-statement-was-caught-rejects-with-its-error',
+        onlyRunners: ['PostgresQueryRunner'],
+        run: ({ runner }) => runner.executeInTransaction(async () => {
+            await runner.executeInsert(`insert into rt_probe (id, name) values (1, 'dup')`).catch(() => undefined)
+        }, runner),
+        expected: { reason: 'SQL_CONSTRAINT_VIOLATED', constraintType: 'unique' },
+    },
+    {
         name: 'duplicate-primary-key',
         run: mutation(`insert into rt_probe (id, name) values (1, 'dup')`),
         expected: { reason: 'SQL_CONSTRAINT_VIOLATED', constraintType: 'unique', constraintName: 'rt_probe_pkey', tableName: 'rt_probe', databaseErrorNumber: '23505' },

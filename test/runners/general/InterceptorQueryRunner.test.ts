@@ -55,7 +55,7 @@ describe('ChainedQueryRunner', () => {
         runner.useDatabase('sqlite')
         expect(inner.database).toBe('sqlite')
         expect(runner.getNativeRunner()).toBeNull()
-        expect(runner.getCurrentNativeTransaction()).toBeUndefined()
+        expect(runner.getCurrentNativeConnection()).toBeUndefined()
         expect(await runner.execute(async () => 'ran')).toBe('ran')
         await runner.executeBeginTransaction()
         expect(runner.isTransactionActive()).toBe(true)

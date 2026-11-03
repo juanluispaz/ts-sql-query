@@ -25,6 +25,9 @@ export class MariaDBPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     getNativeRunner(): unknown {
         return this.pool
     }
+    override getCurrentNativeConnection(): PoolConnection | undefined {
+        return super.getCurrentNativeConnection() as PoolConnection | undefined
+    }
     addParam(params: any[], value: any): string {
         params.push(value)
         return '?'

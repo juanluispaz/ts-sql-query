@@ -13,6 +13,7 @@ for (const sync of [false, true]) {
         errorScenarios: !sync,
         ...(sync ? {} : { errorFields: ['resultCode'] }),
         dialect: sqliteDialect,
+        nativeExecute: async (connection, sql) => connection.exec(sql),
         runnerClass: Sqlite3WasmOO1QueryRunner,
         realEnabled: isRealDbEnabled('sqlite', 'wasm', 'newest', sync ? 'sqlite-wasm-OO1-sync' : 'sqlite-wasm-OO1'),
         async create() {

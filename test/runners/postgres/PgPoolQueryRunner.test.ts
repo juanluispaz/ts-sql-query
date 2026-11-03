@@ -13,6 +13,7 @@ for (const nested of [false, true]) {
         errorScenarios: !nested,
         pool: true,
         dialect: postgresDialect,
+        nativeExecute: (connection, sql) => connection.query(sql),
         runnerClass: PgPoolQueryRunner,
         realEnabled: isRealDbEnabled('postgres', 'docker', 'newest', 'pg'),
         nestedTransactions: nested,

@@ -10,6 +10,7 @@ import { describeRunnerContract } from '../lib/runnerContract.js'
 describeRunnerContract({
     label: 'MariaDBQueryRunner',
     dialect: mariadbDialect,
+    nativeExecute: (connection, sql) => connection.query(sql),
     runnerClass: MariaDBQueryRunner,
     realEnabled: isRealDbEnabled('mariadb', 'docker', 'newest', 'mariadb'),
     errorFields: ['code', 'errno', 'sqlState', 'sqlMessage', 'fatal'],

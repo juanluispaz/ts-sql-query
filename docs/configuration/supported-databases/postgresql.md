@@ -163,6 +163,28 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
     You can also enforce type casting using the `ForceTypeCast` adapter provided in `ts-sql-query/TypeAdapter`. For more advanced usage, see the section on [Global type adapter](../column-types.md#global-type-adapter).
 
+## A statement that fails inside a transaction
+
+On PostgreSQL, a statement that fails inside a transaction leaves the whole transaction failed, even if your code catches the error and goes on: the statements that follow are rejected, and at the commit the database rolls the transaction back. `ts-sql-query` reports the transaction as failed, with the `errorReason` `TRANSACTION_ERROR` (`transactionErrorType: 'transaction rolled back'`) and the error of the statement that failed as its `cause`, and with `connection.transaction(...)` the after-rollback functions run instead of the after-commit ones. With `PostgresQueryRunner`, `connection.transaction(...)` leaves the transaction to postgres.js, which rolls it back and rejects with the error of the statement that failed:
+
+```ts
+await connection.transaction(async () => {
+    await connection.insertInto(tCompany).set({ name: 'Top Company' }).executeInsert();
+    try {
+        // Fails: there is no company with the id -1
+        await connection.insertInto(tCustomer).set({ firstName: 'John', lastName: 'Smith', companyId: -1 }).executeInsert();
+    } catch (e) {
+        // The error is caught, but the transaction can't be committed anymore
+    }
+}); // Rejected: neither the company nor the customer is saved
+```
+
+!!! failure "The transaction is rejected"
+
+    Neither the company nor the customer is saved. On MariaDB, MySQL, Oracle, SQLite and SQL Server, only the failed statement is undone, and the company is saved.
+
+To go on after a statement that may fail, don't run it in the transaction, or find out beforehand whether it would fail (for example, whether the company exists).
+
 ## Collations & case sensitivity
 
 PostgreSQL's default collation is case- and accent-**sensitive** (deterministic) — the JavaScript-sensible default, so no configuration is needed unless you want the insensitive direction. The plain string operations follow the configured collation; the `*Insensitive` operations force case-insensitivity over it. To go insensitive, PostgreSQL uses native `ILIKE` for `LIKE`, and — for equality / `DISTINCT` / `GROUP BY` — a **non-deterministic** ICU collation you create once and name in `insensitiveCollation` or `.collate('<name>')`. PostgreSQL has no session collation, so the column / database collation or a per-expression `COLLATE` (`.collate()`) is how you retarget a comparison. See the dedicated [Collations & case sensitivity](../collations.md) page and the [PostgreSQL tab](../collations.md#per-database) for the `CREATE COLLATION … (deterministic = false)` recipe.

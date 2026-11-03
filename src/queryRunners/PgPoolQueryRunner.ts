@@ -28,6 +28,9 @@ export class PgPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     getNativeRunner(): Pool {
         return this.pool
     }
+    override getCurrentNativeConnection(): PoolClient | undefined {
+        return super.getCurrentNativeConnection() as PoolClient | undefined
+    }
     addParam(params: any[], value: any): string {
         params.push(value)
         return '$' + params.length

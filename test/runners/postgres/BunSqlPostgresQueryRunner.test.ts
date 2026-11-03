@@ -10,6 +10,7 @@ const isBun = typeof globalThis.Bun !== 'undefined'
 describeRunnerContract({
     label: 'BunSqlPostgresQueryRunner',
     dialect: postgresDialect,
+    nativeExecute: (connection, sql) => connection.unsafe(sql),
     realEnabled: isBun && isRealDbEnabled('postgres', 'docker', 'newest', 'bun_sql_postgres'),
     errorFields: ['code', 'errno'],
     async create(failure) {
@@ -21,6 +22,28 @@ describeRunnerContract({
             runnerClass: BunSqlPostgresQueryRunner,
             runner: new BunSqlPostgresQueryRunner(sql),
             close: async () => { await sql.close(); await db.release() },
+        }
+    },
+})
+
+// The query runner over a connection the caller reserved: it runs every statement and transaction on it, and leaves it
+// to the caller to release
+describeRunnerContract({
+    label: 'BunSqlPostgresQueryRunner (reserved connection)',
+    errorScenarios: false,
+    dialect: postgresDialect,
+    nativeExecute: (connection, sql) => connection.unsafe(sql),
+    realEnabled: isBun && isRealDbEnabled('postgres', 'docker', 'newest', 'bun_sql_postgres'),
+    async create(failure) {
+        const { BunSqlPostgresQueryRunner } = await import('../../../src/queryRunners/BunSqlPostgresQueryRunner.js')
+        const db = await acquireRunnerTestDatabase(failure)
+        const { SQL } = await import('bun')
+        const sql = new SQL(db.uri, { max: 2 })
+        const reserved = await sql.reserve()
+        return {
+            runnerClass: BunSqlPostgresQueryRunner,
+            runner: new BunSqlPostgresQueryRunner(reserved),
+            close: async () => { reserved.release(); await sql.close(); await db.release() },
         }
     },
 })

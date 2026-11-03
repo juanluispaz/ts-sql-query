@@ -12,6 +12,7 @@ for (const nested of [false, true]) {
         label: nested ? 'PgQueryRunner (allowNestedTransactions)' : 'PgQueryRunner',
         errorScenarios: !nested,
         dialect: postgresDialect,
+        nativeExecute: (connection, sql) => connection.query(sql),
         runnerClass: PgQueryRunner,
         realEnabled: isRealDbEnabled('postgres', 'docker', 'newest', 'pg'),
         nestedTransactions: nested,

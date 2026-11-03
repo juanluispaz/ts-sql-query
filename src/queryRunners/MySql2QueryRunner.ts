@@ -27,11 +27,11 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
         return this.connection
     }
     
-    getCurrentNativeTransaction(): undefined {
-        return undefined
+    getCurrentNativeConnection(): Connection | undefined {
+        return this.isTransactionActive() ? this.connection : undefined
     }
 
-    execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
+    execute<RESULT>(fn: (connection: unknown) => Promise<RESULT>): Promise<RESULT> {
         return fn(this.connection)
     }
 

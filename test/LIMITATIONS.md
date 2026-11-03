@@ -21,6 +21,15 @@ made it read as a mountain of debt nobody could pay down. Those moved to
 out: an entry that lands here should be one someone on this project could
 sit down and close.
 
+## The golden rule: no closing a gap with a query of its own
+
+The library sends to the database **only the query the user asked for**
+(`executeSelectPage` sends two; begin, commit and rollback go their own way).
+A gap is never closed by adding a query (a probe to read a state, a `select`
+to ask what the driver didn't say), not even only after an error: the network
+round trip between the backend and the database is expensive. When the driver
+gives nothing, the gap stays here. See [`CLAUDE.md`](../CLAUDE.md).
+
 ## The decision rule
 
 *Is there a change in **this repo** that re-enables the test in **this
@@ -628,3 +637,37 @@ Closing it is not a local change: it needs the internal fields moved out of the 
 query builders, or the types to refuse `__`-prefixed keys everywhere a projection is
 accepted. **Deliberately deferred** (user decision, 2026-10-26); don't add tests that
 project a `__` key expecting it in the result.
+
+## Some query runners don't detect a transaction the database rolled back
+
+When a statement makes the database roll the whole transaction back by itself
+(a deadlock on MySQL and MariaDB; on SQL Server an error that dooms the
+transaction; a conflict clause or `RAISE(ROLLBACK)` on SQLite), the query
+runners notice it and reject what follows with `TRANSACTION_ERROR`
+(`transaction rolled back`)
+([docs](../docs/queries/transaction.md#when-the-database-rolls-back-the-transaction)).
+They read it from what the driver already gives, never with a query of their
+own: the library sends only the queries asked for (an extra round trip to the
+database is a cost the user didn't ask for). Where the driver gives nothing,
+it isn't detected, and the statements that follow run outside any
+transaction, each one committed at once:
+
+- **`Sqlite3QueryRunner`** (sqlite3 has no `inTransaction`) and
+  **`BunSqlSqliteQueryRunner`** (Bun SQL neither). The error doesn't tell
+  either: a conflict clause that rolls back fails with the same
+  `SQLITE_CONSTRAINT` as one that rolls back only the statement.
+- **`Sqlite3WasmOO1QueryRunner`**: the C API has `sqlite3_get_autocommit(db)`,
+  but the `Database` the query runner gets doesn't reach it (`db.pointer`
+  does, `sqlite3.capi` lives on the module). It would need the module in the
+  query runner's configuration.
+- **`PrismaQueryRunner`**: Prisma gives neither the server status nor its
+  connection's transaction state. Its error, mapped to `TRANSACTION_ERROR`
+  `deadlock`, would do on MySQL and MariaDB, as the other MySQL query runners
+  do.
+- **MySQL / MariaDB with `innodb_rollback_on_timeout`**: the lock wait timeout
+  then rolls back the transaction; the error is the same as without it, and
+  the server status that would say it is not in an error's answer.
+
+A future driver version that gives the transaction state (a flag of the
+connection, the server status of the answer) closes each of them with the hook
+the other query runners use (`isTransactionOpenInTheDatabase`).

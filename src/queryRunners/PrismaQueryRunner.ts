@@ -19,6 +19,8 @@ export interface PrismaConfig {
 // consistently exposing the native database/driver error. Recent Prisma versions improve
 // driver integration, but this experimental runner intentionally maps only Prisma's public
 // error surface and uses raw-message heuristics as a best-effort fallback.
+// A transaction the database rolled back by itself (a deadlock, an error that dooms it) is not detected: Prisma
+// gives neither the server status nor the transaction state of its connection (see test/LIMITATIONS.md).
 export class PrismaQueryRunner extends AbstractQueryRunner {
     readonly database: DatabaseType;
     readonly connection: RawPrismaClient

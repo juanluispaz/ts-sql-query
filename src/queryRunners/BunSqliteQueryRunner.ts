@@ -83,7 +83,7 @@ export class BunSqliteQueryRunner extends SqlTransactionQueryRunner {
         }
     }
     /** SQLite leaves autocommit mode while a transaction is open */
-    protected override isTransactionOpenInTheDatabase(): boolean {
+    protected override isTransactionOpenInTheDatabase(_error: unknown): boolean {
         return this.connection.inTransaction
     }
     addParam(params: any[], value: any): string {

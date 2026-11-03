@@ -29,12 +29,13 @@ export abstract class ManagedTransactionQueryRunner extends AbstractQueryRunner 
     }
 
     /**
-     * Whether the database still has the transaction open, asked after one of its statements failed; undefined when
-     * the query runner can't tell. Some errors make the database roll the whole transaction back by itself (a
-     * deadlock, a conflict clause that rolls back): the statements that follow would run outside any transaction,
-     * each one committed at once.
+     * Whether the database still has the transaction open, after the statement of the transaction that failed with
+     * the error given; undefined when the query runner can't tell. Some errors make the database roll the whole
+     * transaction back by itself (a deadlock, a conflict clause that rolls back): the statements that follow would run
+     * outside any transaction, each one committed at once. It is answered with what the driver already gives (the
+     * error, a flag of the connection), never with a query of its own: the library sends only the queries asked for.
      */
-    protected isTransactionOpenInTheDatabase(): boolean | undefined | Promise<boolean | undefined> {
+    protected isTransactionOpenInTheDatabase(_error: unknown): boolean | undefined {
         return undefined
     }
     /** Rejects a statement of a transaction the database already rolled back, before it is sent */
@@ -46,23 +47,18 @@ export abstract class ManagedTransactionQueryRunner extends AbstractQueryRunner 
     }
     /** A statement failed: inside a transaction, it checks whether the database rolled the transaction back with it */
     protected statementOfTheTransactionFailed<T>(error: unknown): Promise<T> {
-        if (!this.isTransactionActive()) {
-            return this.createRejectedPromise(error)
-        }
-        this.transactionOutcome.statementFailed(error, true)
-        let open
-        try {
-            open = this.isTransactionOpenInTheDatabase()
-        } catch {
-            return this.createRejectedPromise(error)
-        }
-        return this.createResolvedPromise(open).then((open) => {
-            if (open === false && this.isTransactionActive()) {
+        if (this.isTransactionActive()) {
+            this.transactionOutcome.statementFailed(error, true)
+            let open
+            try {
+                open = this.isTransactionOpenInTheDatabase(error)
+            } catch {
+                open = undefined
+            }
+            if (open === false) {
                 this.transactionOutcome.rolledBackByTheDatabase(error)
             }
-            throw error
-        }, () => {
-            throw error
-        })
+        }
+        return this.createRejectedPromise(error)
     }
 }

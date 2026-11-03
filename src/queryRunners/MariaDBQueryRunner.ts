@@ -3,13 +3,13 @@ import type { Connection } from 'mariadb'
 import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getMariaDbErrorReason, isMariaDbError } from './connectorErrorMappers/MariaDBErrorMapper.js'
+import { isTransactionOpenAfterMySqlError } from '../utils/mySqlTransactionRollback.js'
 
 type UpsertResult = {
     affectedRows: number
     insertId: number | bigint
 }
 
-const SERVER_STATUS_IN_TRANS = 1
 
 export class MariaDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     readonly database: DatabaseType
@@ -57,12 +57,8 @@ export class MariaDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         // the RETURNING path reports) when nothing was inserted.
         return this.rejectWhenRolledBackByTheDatabase() || this.connection.query({ sql: query, bigNumberStrings: true }, params).then((result: UpsertResult) => result.affectedRows === 0 ? null : result.insertId, (error) => this.statementOfTheTransactionFailed(error))
     }
-    /** The server says in the status of every answer but an error whether a transaction is open (SERVER_STATUS_IN_TRANS) */
-    protected override isTransactionOpenInTheDatabase(): Promise<boolean | undefined> {
-        return this.connection.query('do 0').then(() => {
-            const status = this.connection.info?.status
-            return typeof status === 'number' ? (status & SERVER_STATUS_IN_TRANS) !== 0 : undefined
-        }, () => undefined)
+    protected override isTransactionOpenInTheDatabase(error: unknown): boolean | undefined {
+        return isTransactionOpenAfterMySqlError(this.getErrorReason(error))
     }
     doBeginTransaction(_opts: BeginTransactionOpts): Promise<void> {
         return this.connection.beginTransaction()

@@ -39,27 +39,19 @@ export class Sqlite3WasmOO1QueryRunner extends SqlTransactionQueryRunner {
     }
 
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
-        const rejected = this.rejectWhenRolledBackByTheDatabase()
-        if (rejected) {
-            return rejected
-        }
         try {
             const rows = this.connection.selectObjects(query, params)
             return this.promise.resolve(rows)
         } catch (e) {
-            return this.statementOfTheTransactionFailed(e)
+            return this.promise.reject(e)
         }
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
-        const rejected = this.rejectWhenRolledBackByTheDatabase()
-        if (rejected) {
-            return rejected
-        }
         try {
             this.connection.exec({sql: query, bind: params})
             return this.promise.resolve(this.connection.changes())
         } catch (e) {
-            return this.statementOfTheTransactionFailed(e)
+            return this.promise.reject(e)
         }
     }
     override executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
@@ -67,10 +59,6 @@ export class Sqlite3WasmOO1QueryRunner extends SqlTransactionQueryRunner {
             return super.executeInsertReturningLastInsertedId(query, params)
         }
 
-        const rejected = this.rejectWhenRolledBackByTheDatabase()
-        if (rejected) {
-            return rejected
-        }
         try {
             this.connection.exec({sql: query, bind: params})
             // A suppressed `on conflict do nothing` inserts no row; `last_insert_rowid()`
@@ -82,21 +70,8 @@ export class Sqlite3WasmOO1QueryRunner extends SqlTransactionQueryRunner {
             const id = this.connection.selectValue('select last_insert_rowid()')
             return this.promise.resolve(id)
         } catch (e) {
-            return this.statementOfTheTransactionFailed(e)
+            return this.promise.reject(e)
         }
-    }
-    /**
-     * The database object doesn't tell whether SQLite left autocommit mode; SQLite only begins a transaction outside
-     * another one: when the begin succeeds, there was no transaction, and the one begun is rolled back at once
-     */
-    protected override isTransactionOpenInTheDatabase(): boolean | undefined {
-        try {
-            this.connection.exec('begin')
-        } catch {
-            return undefined
-        }
-        this.connection.exec('rollback')
-        return false
     }
     addParam(params: any[], value: any): string {
         if (typeof value === 'boolean') {

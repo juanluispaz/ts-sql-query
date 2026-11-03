@@ -91,11 +91,13 @@ await connection.transaction(async () => {
 
     The company isn't saved, and neither is the customer. To retry after a deadlock, retry the whole transaction.
 
-The mysql2 and mariadb query runners ask the server whether the transaction is still open after a statement of the transaction fails, which adds a round trip to the failed statement. `Sqlite3QueryRunner`, `Sqlite3WasmOO1QueryRunner` and `BunSqlSqliteQueryRunner` send a `begin`, which SQLite only accepts outside a transaction (the transaction it begins is rolled back at once).
+`ts-sql-query` sends no query to find it out: it reads it from what the driver already gives. On MariaDB and MySQL, from the error (a deadlock); on SQL Server, from the mssql transaction; on SQLite, from the connection (`inTransaction` of better-sqlite3 and `bun:sqlite`, `isTransaction` of `node:sqlite`).
 
 !!! warning "Query runners that can't tell"
 
-    `BunSqlMySqlQueryRunner` and `PrismaQueryRunner` can't tell when the database rolled the transaction back (their driver doesn't say it): the statements that follow run outside any transaction, as described above.
+    `Sqlite3QueryRunner`, `Sqlite3WasmOO1QueryRunner`, `BunSqlSqliteQueryRunner` and `PrismaQueryRunner` can't tell when the database rolled the transaction back (their driver doesn't say it): the statements that follow run outside any transaction, as described above.
+
+    On MariaDB and MySQL a lock wait timeout rolls back only the statement that waited, unless the server runs with `innodb_rollback_on_timeout`: then it rolls back the whole transaction, and that isn't detected.
 
 !!! warning "A change of the schema commits the transaction"
 

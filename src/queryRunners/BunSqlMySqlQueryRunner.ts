@@ -5,6 +5,7 @@ import { AbstractBunSqlQueryRunner } from './AbstractBunSqlQueryRunner.js'
 import type { BeginTransactionOpts, DatabaseType } from './QueryRunner.js'
 import { SQL, type TransactionSQL } from 'bun'
 import { getBunSqlMySqlErrorReason, isBunSqlMySqlAnyError } from './connectorErrorMappers/BunSqlMySqlErrorMapper.js'
+import { isTransactionOpenAfterMySqlError } from '../utils/mySqlTransactionRollback.js'
 
 export class BunSqlMySqlQueryRunner extends AbstractBunSqlQueryRunner {
     constructor(connection: SQL, database: 'mySql' | 'mariaDB' = 'mySql') {
@@ -28,9 +29,9 @@ export class BunSqlMySqlQueryRunner extends AbstractBunSqlQueryRunner {
     }
     protected override executeMutation(query: string, params: any[]): Promise<number> {
         const sql = this.transaction || this.lowLevelTransaction || this.connection
-        return sql.unsafe(query, params).then((result) => {
+        return this.rejectWhenRolledBackByTheDatabase() || sql.unsafe(query, params).then((result) => {
             return result.affectedRows
-        })
+        }, (error) => this.statementOfTheTransactionFailed(error))
     }
     override executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         if (this.containsInsertReturningClause(query, params)) {
@@ -40,7 +41,10 @@ export class BunSqlMySqlQueryRunner extends AbstractBunSqlQueryRunner {
         const sql = this.transaction || this.lowLevelTransaction || this.connection
         // A suppressed `insert ignore` inserts no row and reports insert id 0: fall back to null (the same absence
         // the RETURNING path reports) when nothing was inserted.
-        return sql.unsafe(query, params).then((result) => result.affectedRows === 0 ? null : result.lastInsertRowid)
+        return this.rejectWhenRolledBackByTheDatabase() || sql.unsafe(query, params).then((result) => result.affectedRows === 0 ? null : result.lastInsertRowid, (error) => this.statementOfTheTransactionFailed(error))
+    }
+    protected override isTransactionOpenInTheDatabase(error: unknown): boolean | undefined {
+        return isTransactionOpenAfterMySqlError(this.getErrorReason(error))
     }
     override addParam(params: any[], value: any): string {
         params.push(value)

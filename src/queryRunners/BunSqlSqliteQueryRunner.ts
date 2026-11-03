@@ -39,14 +39,7 @@ export class BunSqlSqliteQueryRunner extends AbstractBunSqlQueryRunner {
         // A suppressed `on conflict do nothing` inserts no row; `lastInsertRowid`
         // then still holds the previous statement's id, so fall back to null (the
         // same absence the RETURNING path reports) when nothing was inserted.
-        return this.rejectWhenRolledBackByTheDatabase() || sql.unsafe(query, params).then((result) => result.count === 0 ? null : result.lastInsertRowid, (error) => this.statementOfTheTransactionFailed(error))
-    }
-    /**
-     * Bun SQL doesn't tell whether SQLite left autocommit mode; SQLite only begins a transaction outside another one:
-     * when the begin succeeds, there was no transaction, and the one begun is rolled back at once
-     */
-    protected override isTransactionOpenInTheDatabase(): Promise<boolean | undefined> {
-        return this.connection.unsafe('begin').then(() => this.connection.unsafe('rollback').then(() => false, () => false), () => undefined)
+        return sql.unsafe(query, params).then((result) => result.count === 0 ? null : result.lastInsertRowid)
     }
     override addParam(params: any[], value: any): string {
         params.push(value)

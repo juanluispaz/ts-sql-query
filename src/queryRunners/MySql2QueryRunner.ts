@@ -3,8 +3,8 @@ import type { Connection, QueryError, ResultSetHeader, RowDataPacket } from 'mys
 import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getMySql2ErrorReason, isMySql2Error } from './connectorErrorMappers/MySql2ErrorMapper.js'
+import { isTransactionOpenAfterMySqlError } from '../utils/mySqlTransactionRollback.js'
 
-const SERVER_STATUS_IN_TRANS = 1
 
 export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
     readonly database: DatabaseType
@@ -76,13 +76,8 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
             })
         }).catch((error) => this.statementOfTheTransactionFailed(error))
     }
-    /** The server says in the status of every answer but an error whether a transaction is open (SERVER_STATUS_IN_TRANS) */
-    protected override isTransactionOpenInTheDatabase(): Promise<boolean | undefined> {
-        return new Promise((resolve) => {
-            this.connection.query('do 0', (error: QueryError | null, result: ResultSetHeader) => {
-                resolve(error || typeof result?.serverStatus !== 'number' ? undefined : (result.serverStatus & SERVER_STATUS_IN_TRANS) !== 0)
-            })
-        })
+    protected override isTransactionOpenInTheDatabase(error: unknown): boolean | undefined {
+        return isTransactionOpenAfterMySqlError(this.getErrorReason(error))
     }
     doBeginTransaction(_opts: BeginTransactionOpts): Promise<void> {
         return new Promise((resolve, reject) => {

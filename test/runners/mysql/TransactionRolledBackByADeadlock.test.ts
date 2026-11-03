@@ -21,3 +21,16 @@ for (const pool of [false, true]) {
         }
     })
 }
+
+describeDeadlockRollback('BunSqlMySqlQueryRunner (MySQL)', typeof globalThis.Bun !== 'undefined' && isRealDbEnabled('mysql', 'docker', 'newest', 'bun_sql_mysql'), async () => {
+    const { BunSqlMySqlQueryRunner } = await import('../../../src/queryRunners/BunSqlMySqlQueryRunner.js')
+    const { SQL } = await import('bun')
+    const db = await acquireRunnerTestDatabase()
+    const sql = new SQL({ adapter: 'mysql', hostname: db.host, port: db.port, username: db.user, password: db.password, database: db.database, foundRows: true, allowPublicKeyRetrieval: true, max: 2 })
+    const other = await mysql2Promise.createConnection({ host: db.host, port: db.port, user: db.user, password: db.password, database: db.database })
+    return {
+        runner: new BunSqlMySqlQueryRunner(sql),
+        other: async (statement) => (await other.query(statement))[0],
+        close: async () => { await other.end(); await sql.close(); await db.release() },
+    }
+})

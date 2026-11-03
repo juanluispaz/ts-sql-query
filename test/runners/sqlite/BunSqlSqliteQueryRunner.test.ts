@@ -9,6 +9,7 @@ const isBun = typeof globalThis.Bun !== 'undefined'
 describeRunnerContract({
     label: 'BunSqlSqliteQueryRunner',
     dialect: sqliteDialect,
+    rolledBackTransactionUndetected: true,
     nativeExecute: (connection, sql) => connection.unsafe(sql),
     errorFields: ['code', 'errno'],
     realEnabled: isBun && isRealDbEnabled('sqlite', 'native', 'newest', 'bun_sql_sqlite'),

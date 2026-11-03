@@ -81,6 +81,10 @@ Two suites coexist. The new one is gradually replacing the legacy one — both h
 
 **New: [`test/`](test/) matrix** — the future. Per-cell `.test.ts` files asserting SQL + params + result type + value, running under either `bun:test` (default) or `vitest` (opt-in for the rich coverage / report stack). The same code path runs in both **mock** and **real-DB** modes — mocks aren't avoided here, they're the default fast loop and the docker-backed real DBs are an opt-in (`--docker`). For the design rationale see [`test/DESIGN.md`](test/DESIGN.md); [`test/README.md`](test/README.md) is the navigation map (which doc to read for which task). Bugs the new suite surfaces in `src/` go into [`test/BUGS.md`](test/BUGS.md) (and a `// TODO[BUG]` next to the assertion) — never fix `src/` from within a test PR.
 
+## The library's golden rule — only the query you asked for
+
+**The library sends to the database only the query the user asked for.** The exceptions are `executeSelectPage` (two queries: the rows and the count) and the statements of a transaction (begin, commit, rollback), which go their own way. **Never add a query of its own** — not a probe to read a state (`do 0`, a `begin` to see whether SQLite is in a transaction, `select @@in_transaction`, `select @@trancount`), not a `select changes()` after a statement, not even only after an error: the network round trip between the backend and the database is expensive, and it is a cost the user didn't ask for. Read what you need from what the driver already gives (the result, the error, a flag of the connection, a driver event); when the driver gives nothing, don't do it and document the gap ([`test/LIMITATIONS.md`](test/LIMITATIONS.md)).
+
 ## Architecture
 
 The library is layered. Read top-down when tracing a query through the system:

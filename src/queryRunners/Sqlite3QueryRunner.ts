@@ -42,7 +42,7 @@ export class Sqlite3QueryRunner extends SqlTransactionQueryRunner {
     }
 
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
-        return this.rejectWhenRolledBackByTheDatabase() || new Promise<any>((resolve, reject) => {
+        return new Promise((resolve, reject) => {
             this.connection.all(query, params, function (error, rows) {
                 if (error) {
                     reject(error)
@@ -50,10 +50,10 @@ export class Sqlite3QueryRunner extends SqlTransactionQueryRunner {
                     resolve(rows)
                 }
             })
-        }).catch((error) => this.statementOfTheTransactionFailed(error))
+        })
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
-        return this.rejectWhenRolledBackByTheDatabase() || new Promise<any>((resolve, reject) => {
+        return new Promise((resolve, reject) => {
             this.connection.run(query, params, function (error) {
                 if (error) {
                     reject(error)
@@ -61,14 +61,14 @@ export class Sqlite3QueryRunner extends SqlTransactionQueryRunner {
                     resolve(this.changes)
                 }
             })
-        }).catch((error) => this.statementOfTheTransactionFailed(error))
+        })
     }
     override executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         if (this.containsInsertReturningClause(query, params)) {
             return super.executeInsertReturningLastInsertedId(query, params)
         }
 
-        return this.rejectWhenRolledBackByTheDatabase() || new Promise((resolve, reject) => {
+        return new Promise((resolve, reject) => {
             this.connection.run(query, params, function (error) {
                 if (error) {
                     reject(error)
@@ -80,28 +80,13 @@ export class Sqlite3QueryRunner extends SqlTransactionQueryRunner {
                     resolve(this.changes === 0 ? null : this.lastID)
                 }
             })
-        }).catch((error) => this.statementOfTheTransactionFailed(error))
+        })
     }
     override executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
         if (this.containsInsertReturningClause(query, params)) {
             return super.executeInsertReturningMultipleLastInsertedId(query, params)
         }
         throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, "Unsupported executeInsertReturningMultipleLastInsertedId on queries thar doesn't include the returning clause")
-    }
-    /**
-     * node-sqlite3 doesn't tell whether SQLite left autocommit mode; SQLite only begins a transaction outside another
-     * one: when the begin succeeds, there was no transaction, and the one begun is rolled back at once
-     */
-    protected override isTransactionOpenInTheDatabase(): Promise<boolean | undefined> {
-        return new Promise((resolve) => {
-            this.connection.run('begin', (error) => {
-                if (error) {
-                    resolve(undefined)
-                } else {
-                    this.connection.run('rollback', () => resolve(false))
-                }
-            })
-        })
     }
     addParam(params: any[], value: any): string {
         if (typeof value === 'bigint') {

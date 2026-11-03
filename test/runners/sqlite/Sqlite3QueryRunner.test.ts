@@ -8,6 +8,7 @@ import { describeRunnerContract } from '../lib/runnerContract.js'
 describeRunnerContract({
     label: 'Sqlite3QueryRunner',
     dialect: sqliteDialect,
+    rolledBackTransactionUndetected: true,
     nativeExecute: (connection, sql) => new Promise((resolve, reject) => connection.run(sql, (error: unknown) => error ? reject(error) : resolve(undefined))),
     errorFields: ['code', 'errno'],
     runnerClass: Sqlite3QueryRunner,

@@ -60,6 +60,11 @@ export interface RunnerContractOptions {
     readonly clientTimeout?: boolean
     /** A database server: a second create() reaches the same database (not an in-process one); default true but on SQLite. */
     readonly sharedDatabase?: boolean
+    /**
+     * The driver doesn't tell that the database rolled the transaction back by itself (no flag of the connection, nothing
+     * in the error), and the library sends no query to ask: the tests of such a transaction don't apply.
+     */
+    readonly rolledBackTransactionUndetected?: boolean
     /** Runs a statement with the driver's own API on the connection execute(fn) / getCurrentNativeConnection() give */
     readonly nativeExecute: (connection: any, sql: string) => Promise<unknown>
 }
@@ -726,7 +731,7 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
             expect((error as { cause?: unknown }).cause).toBe(failure)
         })
 
-        const rollsBack = dialect.statementThatRollsBackTheTransaction
+        const rollsBack = opts.rolledBackTransactionUndetected ? undefined : dialect.statementThatRollsBackTheTransaction
         const rolledBackRows = async () => Number(await r().executeSelectOneColumnOneRow('select count(*) from rt_probe where id >= 60'))
 
         test.skipIf(!rollsBack)('transaction-rolled-back-by-the-database', async () => {

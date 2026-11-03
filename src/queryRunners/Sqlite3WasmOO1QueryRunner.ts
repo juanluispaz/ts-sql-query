@@ -67,8 +67,10 @@ export class Sqlite3WasmOO1QueryRunner extends SqlTransactionQueryRunner {
             if (this.connection.changes() === 0) {
                 return this.promise.resolve(null)
             }
-            // Only before SQLite 3.35 (no returning in the insert): the Database gives the id of the inserted row no
-            // other way, and the engine runs in the same process, so this query adds no round trip to a server
+            // An insert without returning: the library builds one only for a compatibilityVersion below SQLite 3.35
+            // (older than any build of sqlite-wasm), or the caller hands one to the query runner. The Database gives
+            // the id of the inserted row no other way (sqlite3_last_insert_rowid lives on the module, which it doesn't
+            // reach), and the engine runs in the same thread, so this query adds no round trip to a server
             const id = this.connection.selectValue('select last_insert_rowid()')
             return this.promise.resolve(id)
         } catch (e) {

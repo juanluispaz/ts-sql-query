@@ -235,9 +235,10 @@ test/db/<database>/types.negative/
 
 ```ts
 function _typeNegatives() {
-    // Rule: GREATEST between a localDate and a string must not compile.
-    // @ts-expect-error type mismatch
-    connection.greatest(tIssue.createdAt, 'foo')
+    // Rule: `.equals()` requires the same data type on both sides.
+    void tAppUser.id.equals(1)
+    // @ts-expect-error string passed where int is required
+    void tAppUser.id.equals('1')
 }
 
 test('postgres-negative-types', () => {
@@ -253,6 +254,14 @@ test('postgres-negative-types', () => {
   from firing.
 - Each `// @ts-expect-error` MUST be paired with a one-line comment naming
   the rule it enforces.
+- A `@ts-expect-error` is also satisfied by an unrelated error (a typo, a
+  wrong import, a wrong arity), so keep the expression minimal and put a
+  **positive control** next to it: the same expression with the valid
+  variant, which compiles. When writing a batch, remove the directives once
+  and read that tsc reports the intended error on each line.
+- Something that should be refused but compiles is a bug: write it as a
+  compiling line under a `// TODO[BUG]` comment, with its entry in
+  [`BUGS.md`](./BUGS.md), and turn it into a `@ts-expect-error` once fixed.
 - `bun run validate:tests` (or `validate:tests:newest` for the fast loop)
   is the real assertion. If a directive becomes "unused", the build fails —
   exactly the regression signal we want.
@@ -272,6 +281,50 @@ rejected snippet + file:line** across every cell — what you model a
 new lock on. The same view rides under `--for emission-bug` when the
 negative test is the second step of fixing a typing bug (see
 [`BUGS.md` § When the fix lands](./BUGS.md)).
+
+### Which file a negative goes in
+
+The six databases hold the same files; a new file goes in all six.
+
+| File | What it refuses |
+|---|---|
+| `dialect-surface.test.ts` | A member the database **doesn't have at all**: a method of the connection, a protected member that configures it, a method of `Table`, a variant of a query builder. |
+| `select.test.ts`, `select-construction.test.ts` | Misuse while building a SELECT: clause order, tables out of scope, group by / having, order by, limit, compound queries, the type of the rows. |
+| `insert.test.ts`, `update.test.ts`, `delete.test.ts` | Misuse while building those statements: required columns, columns that can't be written, on conflict, the mandatory where, returning. |
+| `expressions.test.ts` | Value expressions, by data type: operators, functions, `const`, optionality, aggregates. |
+| `subqueries.test.ts`, `fragments.test.ts`, `with-values.test.ts`, `dynamic-condition*.test.ts` | Subqueries and recursive queries, fragments, `with` and `Values`, dynamic conditions. |
+| `transaction.test.ts` | Transactions and isolation levels. |
+
+Something the database lacks goes in `dialect-surface.test.ts`; misusing
+something it has goes in the file of its area. A few older locks repeat a
+`dialect-surface.test.ts` rule in an area file; both stay, since `tsc`
+reports every copy when the rule changes.
+
+### Adding negatives after a library change
+
+When the library gains an API, a database-specific member or a restriction:
+
+1. **Dialect surface.** Treat the six connections as if every member were on
+   all of them. List what each database offers, from the `*Connection.ts`
+   classes, the `this: OfDB<...>` overloads of `Table`, and the `OfDB<...>`
+   gates in `src/expressions/{select,insert,update,delete}.ts`. Every member a
+   database must not have gets a negative in its `dialect-surface.test.ts`, next
+   to a control that compiles: the same chain up to the call, or the sibling
+   member it does have. This is what catches a refactor that moves a member
+   of one database to a shared base class.
+2. **Construction.** For each state of the builder the change touches, list
+   the transitions it doesn't offer and the constraints on each argument (data
+   type, optionality, tables in scope, connection), then write one negative
+   with its control for each, in the file of its area.
+3. **Only what the library means to refuse.** Probe by compiling, never by
+   reasoning. A refusal the database would do on its own is not, by itself, a
+   reason for a negative; something that compiles and would go wrong is a
+   `TODO[BUG]` (above).
+4. **Check the reason**: remove the directives once, read that each line
+   reports the intended error and no control reports any, then restore them.
+   Several agents type-checking at once exhaust the memory: run one
+   `validate:tests '<db>/types.negative'` at a time (several coords in one
+   call are fine), and the full `validate:tests` at the end.
 
 ## Type-checking the test matrix
 

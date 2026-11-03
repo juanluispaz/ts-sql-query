@@ -75,7 +75,32 @@ entry says under *Current workaround in the suite* why the matrix can't see it.
 A `none` there is not "nothing to do": it means no test would notice a
 regression either.
 
-*(none)*
+## GROUP BY by name accepts the name of an aggregate column
+
+**Where**: `groupBy(...)` by column name (`RequiredColumnNames<COLUMNS>` overload) on the select builder.
+**Reproduction**: `connection.selectFrom(tIssue).select({ projectId: tIssue.projectId, n: connection.countAll() }).groupBy('n')`
+compiles and emits `... group by count(*)`, which every engine rejects. Passing the aggregate value source itself to
+`groupBy` is already refused; naming its column bypasses that rule.
+**Current workaround in the suite**: compiling line with `// TODO[BUG]` in `test/db/*/types.negative/select-construction.test.ts`
+(turn it into a `@ts-expect-error` once fixed).
+
+## An extra column in a compound or recursive arm compiles
+
+**Where**: the arm compatibility check of `union`/`intersect`/`except`… and of `recursiveUnion*`.
+**Reproduction**: `connection.selectFrom(tIssue).select({ a: tIssue.id }).union(connection.selectFrom(tIssue).select({ a: tIssue.id, b: tIssue.title }))`
+compiles and emits arms of one and two columns. The same arm over another table (`tProject`) is refused, and a missing
+column is refused; only an extra column over the same table gets through. Same for the recursive arm:
+`.select({ id, title }).recursiveUnionAll((parent) => … .select({ id, title, extra: tIssue.priority }))` compiles.
+**Current workaround in the suite**: compiling lines with `// TODO[BUG]` in `test/db/*/types.negative/select-construction.test.ts`
+(compound) and `test/db/*/types.negative/subqueries.test.ts` (recursive).
+
+## INSERT from a select accepts a projected column that the table doesn't have
+
+**Where**: `insertInto(table).from(select)`.
+**Reproduction**: `connection.insertInto(tOrganization).from(connection.selectFrom(tProject).select({ name: tProject.name, plan: tProject.slug, extra: tProject.id }))`
+compiles, but building the insert always throws `COLUMN_FOR_INSERT_COMING_FROM_SUBQUERY_NOT_IN_TABLE`: the query can
+never run, so the type could refuse it. It fails loudly, not silently; it may be a limit of what the types express.
+**Current workaround in the suite**: compiling line with `// TODO[BUG]` in `test/db/*/types.negative/insert.test.ts`.
 
 ## Coverage gaps carried over (not bugs — no entry to fix)
 

@@ -3,7 +3,7 @@
 
 import { test, expect } from '../../../lib/testRunner.js'
 import type { DBConnection } from '../domain/connection.js'
-import { tIssue, tProject } from '../domain/connection.js'
+import { tIssue, tProject, tOrganization, vProjectOverview } from '../domain/connection.js'
 
 // `connection` is type-only — the function below is checked by tsc but
 // never invoked at runtime, so we don't need a real instance and don't
@@ -59,6 +59,35 @@ function _typeNegatives() {
     // must keep compiling — proving the guard above is scoped to the row executors.
     void connection.deleteFrom(tIssue).where(tIssue.id.equals(1)).executeDelete()
 
+    // Rule: the target of deleteFrom must be a table; a view is rejected.
+    void connection.deleteFrom(tProject)
+    // @ts-expect-error a view is not a table, so it cannot be the target of deleteFrom
+    void connection.deleteFrom(vProjectOverview)
+
+    // Rule: deleteFrom(...) protects against a missing where: it is not executable until
+    // where(...) is given; deleteAllowingNoWhereFrom(...) lifts that.
+    void connection.deleteAllowingNoWhereFrom(tIssue).executeDelete()
+    // @ts-expect-error deleteFrom(...) without where exposes no executeDelete
+    void connection.deleteFrom(tIssue).executeDelete()
+
+    // Rule: where(...) is given once; more conditions are added with and(...) / or(...).
+    void connection.deleteFrom(tIssue).where(tIssue.id.equals(1)).and(tIssue.priority.equals(2))
+    // @ts-expect-error a second where is not offered; use and(...)
+    void connection.deleteFrom(tIssue).where(tIssue.id.equals(1)).where(tIssue.priority.equals(2))
+
+    // Rule: where(...) reads only the tables of the delete; a table becomes readable once
+    // added with using(...).
+    void connection.deleteFrom(tIssue).using(tProject).where(tProject.id.equals(tIssue.projectId))
+    // @ts-expect-error tProject is not part of the delete, so where cannot read it
+    void connection.deleteFrom(tIssue).where(tProject.id.equals(1))
+    // Rule: valuesForInsert() columns are not readable in a delete.
+    // @ts-expect-error valuesForInsert() columns are not readable in the where of a delete
+    void connection.deleteFrom(tIssue).where(tIssue.valuesForInsert().id.equals(1))
+
+    // Rule: the on(...) condition of a join reads only the tables already in the delete.
+    void connection.deleteFrom(tIssue).join(tProject).on(tProject.id.equals(tIssue.projectId)).where(tProject.archivedAt.isNotNull())
+    // @ts-expect-error tOrganization is not part of the delete, so the on condition cannot read it
+    void connection.deleteFrom(tIssue).join(tProject).on(tOrganization.id.equals(tProject.organizationId))
 }
 
 test('delete-negative-types', () => {

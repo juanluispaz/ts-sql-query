@@ -9,7 +9,18 @@
 
 import { test, expect } from '../../../lib/testRunner.js'
 import { Values } from '../../../../src/Values.js'
+import { PostgreSqlConnection } from '../../../../src/connections/PostgreSqlConnection.js'
 import type { DBConnection } from '../domain/connection.js'
+import { tProject } from '../domain/connection.js'
+
+declare const connection: DBConnection
+
+// A second connection of the same dialect, and a Values view bound to it: a view
+// belongs to the connection it was declared for.
+class OtherConnection extends PostgreSqlConnection<'OtherConnection'> {}
+class VOtherCode extends Values<OtherConnection, 'otherCode'> {
+    id = this.column('int')
+}
 
 // A Values view mixing required columns (`id`, `name`) with an optional one
 // (`newName`).
@@ -92,8 +103,64 @@ function _typeNegatives() {
     // mechanism that forces every Values view through `Values.create`.
     // @ts-expect-error direct construction is blocked — a row array is not an OpaqueValues; use Values.create
     new VProjectPatch('projectPatch', [{ id: 1, name: 'one' }])
+
+    // Rule: a REQUIRED Values column rejects null in a row; the OPTIONAL one
+    // accepts it.
+    Values.create(VProjectPatch, 'projectPatch', [{ id: 1, name: 'one', newName: null }])
+    // @ts-expect-error `id` is a required column; null is rejected
+    Values.create(VProjectPatch, 'projectPatch', [{ id: null, name: 'one' }])
+
+    // Rule: the rows argument of Values.create is an array of rows; a single
+    // row object is rejected.
+    // @ts-expect-error a bare row object is not a row array
+    Values.create(VProjectPatch, 'projectPatch', { id: 1, name: 'one' })
+
+    // Rule: a Values view of another connection cannot be used as a query source.
+    const otherCodes = Values.create(VOtherCode, 'otherCode', [{ id: 1 }])
+    void connection.selectFrom(patch).select({ id: patch.id })
+    // @ts-expect-error the Values view belongs to OtherConnection
+    void connection.selectFrom(otherCodes).select({ id: otherCodes.id })
+
+    // Rule: a Values column is only reachable from a query that has the view in
+    // its FROM / JOIN.
+    void connection.selectFrom(tProject).innerJoin(patch).on(patch.id.equals(tProject.id)).select({ id: patch.id })
+    // @ts-expect-error `patch` is not in the FROM of a query over tProject
+    void connection.selectFrom(tProject).select({ id: patch.id })
+    // Rule: a query over the Values view cannot read a table that is not joined.
+    // @ts-expect-error tProject is not in the FROM of a query over `patch`
+    void connection.selectFrom(patch).select({ id: tProject.id })
+
+    // Rule: a join condition against a Values column keeps the column's data type.
+    // @ts-expect-error patch.id is int; tProject.name is a string
+    void connection.selectFrom(tProject).innerJoin(patch).on(patch.id.equals(tProject.name)).select({ id: patch.id })
+
+    // Rule: a Values view used as a left-join source needs `forUseInLeftJoin()`
+    // and is then only accepted by `leftJoin`.
+    const patchLeft = patch.forUseInLeftJoin()
+    void connection.selectFrom(tProject).leftJoin(patchLeft).on(patchLeft.id.equals(tProject.id)).select({ id: tProject.id })
+    // @ts-expect-error a left-join source cannot be inner-joined
+    void connection.selectFrom(tProject).join(patchLeft).on(patchLeft.id.equals(tProject.id)).select({ id: tProject.id })
+    // @ts-expect-error leftJoin needs patch.forUseInLeftJoin()
+    void connection.selectFrom(tProject).leftJoin(patch).on(patch.id.equals(tProject.id)).select({ id: tProject.id })
+
+    // Rule: a Values column read through a left join is optional in the row.
+    const leftOptional: Promise<{ name?: string }[]> = connection.selectFrom(tProject).leftJoin(patchLeft).on(patchLeft.id.equals(tProject.id)).select({ name: patchLeft.name }).executeSelectMany()
+    // @ts-expect-error `name` comes from a left join, so it is optional in the row
+    const leftRequired: Promise<{ name: string }[]> = connection.selectFrom(tProject).leftJoin(patchLeft).on(patchLeft.id.equals(tProject.id)).select({ name: patchLeft.name }).executeSelectMany()
+    void leftOptional; void leftRequired
+
+    // Rule: an OPTIONAL Values column projects an optional property.
+    const optionalName: Promise<{ n?: string }[]> = connection.selectFrom(patch).select({ n: patch.newName }).executeSelectMany()
+    // @ts-expect-error `newName` is an optional column, so it is optional in the row
+    const requiredName: Promise<{ n: string }[]> = connection.selectFrom(patch).select({ n: patch.newName }).executeSelectMany()
+    void optionalName; void requiredName
+
+    // Rule: `in(subquery)` over a Values view keeps the column's data type.
+    void tProject.id.in(connection.selectFrom(patch).selectOneColumn(patch.id))
+    // @ts-expect-error the subquery column is a string; the receiver is int
+    void tProject.id.in(connection.selectFrom(patch).selectOneColumn(patch.name))
 }
 
-test('postgres-negative-types-with-values', () => {
+test('with-values-negative-types', () => {
     expect(typeof _typeNegatives).toBe('function')
 })

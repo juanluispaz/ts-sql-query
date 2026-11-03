@@ -1,0 +1,241 @@
+// Compile-time negative tests for the dialect surface of SQLite: the
+// members other databases offer that SqliteConnection must not. These never
+// execute any SQL — the value of the test is that `validate:tests` (tsc)
+// rejects each `@ts-expect-error` line. If the library stops rejecting one of
+// these (for instance because a database-specific member was moved to a
+// shared class), the directive becomes "unused" and the build fails with
+// `TS2578` — exactly the regression signal we want.
+//
+// Each rejected line sits next to a positive control that compiles: the same
+// chain up to the rejected member, or a sibling member SQLite offers.
+//
+// Every `@ts-expect-error` MUST be accompanied by a comment naming the rule it
+// enforces. DESIGN §6.
+
+import { test, expect } from '../../../lib/testRunner.js'
+import { Table } from '../../../../src/Table.js'
+import { DBConnection, tIssue, tOrganization, tProject } from '../domain/connection.js'
+
+// `connection` is type-only — the function below is checked by tsc but
+// never invoked at runtime.
+declare const connection: DBConnection
+
+// The body of `_typeNegatives` is checked by tsc but never executed at
+// runtime.
+function _typeNegatives() {
+    // ---- Connection: aggregate functions and value builders
+
+    // Positive control: the string aggregate without DISTINCT.
+    void connection.stringConcat(tProject.name)
+
+    // Positive control: the one-argument DISTINCT string aggregate.
+    void connection.stringConcatDistinct(tProject.name)
+
+    // Rule: SQLite's group_concat(DISTINCT x) takes no separator, so
+    // stringConcatDistinct has only the one-argument form.
+    // @ts-expect-error stringConcatDistinct takes no separator on SQLite
+    void connection.stringConcatDistinct(tProject.name, ', ')
+
+    // Positive control: a sibling no-argument value builder.
+    void connection.currentDate()
+
+    // Rule: SQLite has no DEFAULT keyword usable as a value, so default() is not
+    // offered.
+    // @ts-expect-error default does not exist on SqliteConnection
+    void connection.default()
+
+    // ---- Connection subclass: protected members
+
+    class _ConnectionSurface extends DBConnection {
+        // Positive control: protected members every connection has.
+        protected override compatibilityVersion = 1
+        callProcedure = () => this.executeProcedure('refresh_stats', [])
+
+        // Rule: SQLite has no sequences, so SqliteConnection has no sequence(...).
+        // @ts-expect-error sequence does not exist on SqliteConnection
+        issueIdSeq = this.sequence('issue_id_seq', 'int')
+
+        // Rule: the platform-dependent round opt-out is not part of SqliteConnection.
+        // @ts-expect-error usePlatformDependentRound is not declared on SqliteConnection
+        protected override usePlatformDependentRound = true
+
+        // Rule: the native NULL handling of minValue/maxValue is not configurable on SqliteConnection.
+        // @ts-expect-error ignoreNullInMinAndMaxValue is not declared on SqliteConnection
+        protected override ignoreNullInMinAndMaxValue = true
+
+        // Rule: minValue cannot be routed to a user function on SqliteConnection.
+        // @ts-expect-error minValueFunction is not declared on SqliteConnection
+        protected override minValueFunction = 'min_value'
+
+        // Rule: maxValue cannot be routed to a user function on SqliteConnection.
+        // @ts-expect-error maxValueFunction is not declared on SqliteConnection
+        protected override maxValueFunction = 'max_value'
+
+        // Rule: the concatenation function is not configurable on SqliteConnection.
+        // @ts-expect-error concatFunction is not declared on SqliteConnection
+        protected override concatFunction = 'concat_null'
+
+        // Rule: the NULL-ignoring concatenation opt-out is not part of SqliteConnection.
+        // @ts-expect-error ignoreNullInConcat is not declared on SqliteConnection
+        protected override ignoreNullInConcat = true
+
+        // Rule: the collation of replace is not configurable on SqliteConnection.
+        // @ts-expect-error replaceCollation is not declared on SqliteConnection
+        protected override replaceCollation = 'binary'
+
+        // Rule: the collation of the insensitive replace is not configurable on SqliteConnection.
+        // @ts-expect-error replaceInsensitiveCollation is not declared on SqliteConnection
+        protected override replaceInsensitiveCollation = 'binary_ci'
+
+        // Rule: the trailing-blanks rule of length is not configurable on SqliteConnection.
+        // @ts-expect-error excludeTrailingBlanksInLength is not declared on SqliteConnection
+        protected override excludeTrailingBlanksInLength = true
+    }
+    void _ConnectionSurface
+
+    // ---- Table subclass: protected members
+
+    class _TableSurface extends Table<DBConnection, '_TableSurface'> {
+        // Positive control: the autogenerated primary key without a sequence.
+        code = this.autogeneratedPrimaryKey('code', 'int')
+
+        // Rule: SQLite has no sequences, so a primary key cannot be generated by one.
+        // @ts-expect-error autogeneratedPrimaryKeyBySequence is not available on SQLite
+        id = this.autogeneratedPrimaryKeyBySequence('id', 'issue_id_seq', 'int')
+        constructor() { super('table_surface') }
+    }
+    void _TableSurface
+
+    // ---- Table: database-specific members
+
+    // Positive control: a sibling member that derives a view of the table.
+    void tProject.forUseInLeftJoin()
+
+    // Rule: SqliteConnection does not offer oldValues() (the row before the UPDATE, read in
+    // RETURNING).
+    // @ts-expect-error oldValues is not available on SQLite
+    void tProject.oldValues()
+
+    // ---- Select builder
+
+    const issuesOfProject1 = connection.selectFrom(tIssue).where(tIssue.projectId.equals(1)).select({ id: tIssue.id })
+    const issuesOfProject2 = connection.selectFrom(tIssue).where(tIssue.projectId.equals(2)).select({ id: tIssue.id })
+
+    // Positive control: the compound operators without ALL.
+    void issuesOfProject1.intersect(issuesOfProject2)
+    void issuesOfProject1.except(issuesOfProject2)
+    void issuesOfProject1.minus(issuesOfProject2)
+
+    // Rule: SQLite has no INTERSECT ALL.
+    // @ts-expect-error intersectAll is not available on SQLite
+    void issuesOfProject1.intersectAll(issuesOfProject2)
+
+    // Rule: SQLite has no EXCEPT ALL.
+    // @ts-expect-error exceptAll is not available on SQLite
+    void issuesOfProject1.exceptAll(issuesOfProject2)
+
+    // Rule: SQLite has no EXCEPT ALL (minusAll is its alias).
+    // @ts-expect-error minusAll is not available on SQLite
+    void issuesOfProject1.minusAll(issuesOfProject2)
+
+    const issuesSelect = connection.selectFrom(tIssue)
+
+    // Positive control: the same select, filtered with where.
+    void issuesSelect.where(tIssue.parentId.isNull())
+
+    // Rule: START WITH / CONNECT BY hierarchical queries are not part of SQLite.
+    // @ts-expect-error startWith is not available on SQLite
+    void issuesSelect.startWith(tIssue.parentId.isNull())
+
+    // Rule: START WITH / CONNECT BY hierarchical queries are not part of SQLite.
+    // @ts-expect-error connectBy is not available on SQLite
+    void issuesSelect.connectBy(() => tIssue.id.isNotNull())
+
+    // Rule: START WITH / CONNECT BY hierarchical queries are not part of SQLite.
+    // @ts-expect-error connectByNoCycle is not available on SQLite
+    void issuesSelect.connectByNoCycle(() => tIssue.id.isNotNull())
+
+    // ---- Insert builder
+
+    const insertOrg = connection.insertInto(tOrganization).values({ name: 'Acme', plan: 'free' })
+
+    // Positive control: a single-row insert returns its generated id.
+    void insertOrg.returningLastInsertedId()
+
+    // Rule: SQLite's ON CONFLICT names the conflicting columns, never a constraint,
+    // so onConflictOnConstraint is not offered; use onConflictOn(...).
+    // @ts-expect-error onConflictOnConstraint is not available on SQLite
+    void insertOrg.onConflictOnConstraint(connection.rawFragment`organization_name_key`)
+
+    // ---- Update builder
+
+    // Positive control: the extra table of an UPDATE goes in from(...).
+    void connection.update(tProject).from(tOrganization)
+
+    // Rule: SqliteConnection takes the extra tables of an UPDATE in from(...), not in
+    // a join.
+    // @ts-expect-error join is not available on an UPDATE on SQLite
+    void connection.update(tProject).join(tOrganization)
+
+    // Rule: SqliteConnection takes the extra tables of an UPDATE in from(...), not in
+    // a join.
+    // @ts-expect-error innerJoin is not available on an UPDATE on SQLite
+    void connection.update(tProject).innerJoin(tOrganization)
+
+    // Rule: SqliteConnection takes the extra tables of an UPDATE in from(...), not in
+    // a join.
+    // @ts-expect-error leftJoin is not available on an UPDATE on SQLite
+    void connection.update(tProject).leftJoin(tOrganization.forUseInLeftJoin())
+
+    // Rule: SqliteConnection takes the extra tables of an UPDATE in from(...), not in
+    // a join.
+    // @ts-expect-error leftOuterJoin is not available on an UPDATE on SQLite
+    void connection.update(tProject).leftOuterJoin(tOrganization.forUseInLeftJoin())
+
+    // Positive control: the same rule on an UPDATE allowed to have no WHERE.
+    void connection.updateAllowingNoWhere(tProject).from(tOrganization)
+
+    // Rule: SqliteConnection takes the extra tables of an UPDATE in from(...), not in
+    // a join, also when the UPDATE is allowed to have no WHERE.
+    // @ts-expect-error join is not available on an UPDATE on SQLite
+    void connection.updateAllowingNoWhere(tProject).join(tOrganization)
+
+    // ---- Delete builder
+
+    // Positive control: the other table of a DELETE reached through a subquery.
+    void connection.deleteFrom(tIssue).where(tIssue.projectId.in(connection.selectFrom(tProject).where(tProject.archivedAt.isNotNull()).selectOneColumn(tProject.id)))
+
+    // Rule: SQLite's DELETE takes no extra tables, so using is not offered.
+    // @ts-expect-error using is not available on a DELETE on SQLite
+    void connection.deleteFrom(tIssue).using(tProject)
+
+    // Rule: SQLite's DELETE takes no extra tables, so using is not offered,
+    // also when the DELETE is allowed to have no WHERE.
+    // @ts-expect-error using is not available on a DELETE on SQLite
+    void connection.deleteAllowingNoWhereFrom(tIssue).using(tProject)
+
+    // Rule: SQLite's DELETE takes no extra tables, so join is not offered.
+    // @ts-expect-error join is not available on a DELETE on SQLite
+    void connection.deleteFrom(tIssue).join(tProject)
+
+    // Rule: SqliteConnection does not join the extra tables of a DELETE.
+    // @ts-expect-error innerJoin is not available on a DELETE on SQLite
+    void connection.deleteFrom(tIssue).innerJoin(tProject)
+
+    // Rule: SqliteConnection does not join the extra tables of a DELETE.
+    // @ts-expect-error leftJoin is not available on a DELETE on SQLite
+    void connection.deleteFrom(tIssue).leftJoin(tProject.forUseInLeftJoin())
+
+    // Rule: SqliteConnection does not join the extra tables of a DELETE.
+    // @ts-expect-error leftOuterJoin is not available on a DELETE on SQLite
+    void connection.deleteFrom(tIssue).leftOuterJoin(tProject.forUseInLeftJoin())
+
+    // Rule: SqliteConnection does not join the extra tables of a DELETE, also when the
+    // DELETE is allowed to have no WHERE.
+    // @ts-expect-error join is not available on a DELETE on SQLite
+    void connection.deleteAllowingNoWhereFrom(tIssue).join(tProject)
+}
+
+test('dialect-surface-negative-types', () => {
+    expect(typeof _typeNegatives).toBe('function')
+})

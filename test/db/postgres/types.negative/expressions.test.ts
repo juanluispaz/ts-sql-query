@@ -504,6 +504,25 @@ function _typeNegatives() {
     void connection.selectFrom(t).select({ x: t.mInt.add(connection.const(1, 'int')) })
     // @ts-expect-error the projected value adds a constant of another connection
     void connection.selectFrom(t).select({ x: t.mInt.add(other.const(1, 'int')) })
+
+    // ------------------------------------------------------- nested aggregates
+
+    // Rule: an aggregate function does not take an aggregate as its argument (a
+    // nested aggregate), which PostgreSQL rejects. Aggregating the result of an
+    // aggregate is written over a subquery that aggregates.
+    void connection.max(t.mInt)
+    // @ts-expect-error count(...) is an aggregate: max cannot take it
+    void connection.max(connection.count(t.mInt))
+    // @ts-expect-error countAll() is an aggregate: sum cannot take it
+    void connection.sum(connection.countAll())
+    // @ts-expect-error max(...) is an aggregate: count cannot take it
+    void connection.count(connection.max(t.mInt))
+    // @ts-expect-error count(...) is an aggregate: an aggregated array cannot take it
+    void connection.aggregateAsArrayOfOneColumn(connection.count(t.mInt))
+    // @ts-expect-error countAll() is an aggregate: an aggregated array cannot take it
+    void connection.aggregateAsArray({ n: connection.countAll() })
+    // Positive control: the aggregate of a subquery that aggregates.
+    void connection.sum(connection.selectFrom(t).selectOneColumn(connection.countAll()).forUseAsInlineQueryValue())
 }
 
 test('expressions-negative-types', () => {

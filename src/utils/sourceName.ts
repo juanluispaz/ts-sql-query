@@ -73,6 +73,14 @@ export type NCompoundable<DB extends string /* IDB */> = `${DB}compoundable/`
 export type NCompoundableFrom<SOURCE extends NSource> = NRecursive<NGetDBFrom<SOURCE>>
 export type NAggregate<DB extends string /* IDB */> = `${DB}aggregate/`
 export type NAggregateFrom<SOURCE extends NSource> = NAggregate<NGetDBFrom<SOURCE>>
+/**
+ * The argument of an aggregate function, when it is an aggregate itself (a nested aggregate): only Oracle accepts it
+ * (and NoopDB, which accepts what any database does); everywhere else it doesn't compile
+ */
+export type NNotNestedAggregate<SOURCE extends NSource, DB extends NDB> =
+    string extends SOURCE ? unknown
+    : NGetDBTypeFrom<DB> extends 'oracle' | 'noopDB' ? unknown
+    : NAggregate<DB> extends SOURCE ? never : unknown
 export type NSourceAllowingAggregate<SOURCE extends NSource> = SOURCE | NAggregateFrom<SOURCE>
 export type NSource = string // Combines all source type in table, view, values, etc.
 export type NType = 'table' | 'view' | 'values' | 'with' /* Specia types with name: */ | 'oldValues' | 'valuesForInsert'

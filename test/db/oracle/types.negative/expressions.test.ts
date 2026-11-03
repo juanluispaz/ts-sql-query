@@ -504,6 +504,16 @@ function _typeNegatives() {
     void connection.selectFrom(t).select({ x: t.mInt.add(connection.const(1, 'int')) })
     // @ts-expect-error the projected value adds a constant of another connection
     void connection.selectFrom(t).select({ x: t.mInt.add(other.const(1, 'int')) })
+
+    // ------------------------------------------------------- nested aggregates
+
+    // Positive control: Oracle takes an aggregate as the argument of an aggregate
+    // (a nested aggregate, used with a group by), so these compile.
+    void connection.max(connection.count(t.mInt))
+    void connection.sum(connection.countAll())
+    void connection.count(connection.max(t.mInt))
+    void connection.aggregateAsArrayOfOneColumn(connection.count(t.mInt))
+    void connection.aggregateAsArray({ n: connection.countAll() })
 }
 
 test('expressions-negative-types', () => {

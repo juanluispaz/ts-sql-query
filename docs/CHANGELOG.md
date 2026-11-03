@@ -41,6 +41,7 @@ search:
     - Oracle: `'serializable'` is now `'snapshot'` (Oracle's `SERIALIZABLE` is a snapshot, and Oracle has nothing stronger). `'read uncommitted'` and `'repeatable read'`, which Oracle refused, are no longer offered.
     - SQL Server: unchanged. `NoopDBConnection` gains `'snapshot'`.
     - MySQL's `snapshot` (its `REPEATABLE READ`) doesn't refuse a write to a row another transaction changed after the snapshot, so it doesn't prevent lost updates; MariaDB does since 11.6.2. See [the warning](queries/transaction.md#mysql-and-mariadb-snapshot-writes).
+- An aggregate function no longer compiles with an aggregate as its argument (a nested aggregate, like `connection.max(connection.count(tIssue.id))`), which every database except Oracle rejects; Oracle keeps accepting it. Aggregate the result of an aggregate over a subquery that aggregates.
 - An isolation level is accepted only by the connection that built it with `connection.isolationLevel(...)`: a level built by another connection (of another database, or another connection class of the same one) no longer compiles in `transaction(...)` / `beginTransaction(...)`. A value typed with the bare `TransactionIsolationLevel` is no longer accepted either; type it as `ReturnType<typeof connection.isolationLevel>`.
 - Oracle: `.orderingSiblingsOnly()` is no longer offered after the `.orderBy(...)` of a compound query (`union`, `intersect`, ...) whose arm is a `startWith` / `connectBy` query. Oracle allows `order siblings by` only in the hierarchical query itself and rejected the compound with ORA-30929.
 

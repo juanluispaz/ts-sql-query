@@ -26,6 +26,9 @@ function connectionError(code: string): Error {
 }
 
 describeSyntheticErrors('postgres.js', () => ({ getErrorReason: getPostgresJsErrorReason, isError: isPostgresJsError }), [
+    // The data type field ('d' in the ErrorResponse) as postgres.js 3 names it, and as postgres.js 4 does
+    { name: 'data-type-name-of-postgres-js-3', source: 'postgres/src/connection.js errorFields', error: () => new PostgresError({ message: 'null value not allowed', severity: 'ERROR', code: '22004', 'data type_name': 'positive_int' }), expected: { reason: 'SQL_INVALID_VALUE', errorType: 'null not allowed', typeName: 'positive_int' } },
+    { name: 'data-type-name-of-postgres-js-4', source: 'postgres/src/connection.js errorFields', error: () => new PostgresError({ message: 'null value not allowed', severity: 'ERROR', code: '22004', data_type_name: 'positive_int' }), expected: { reason: 'SQL_INVALID_VALUE', errorType: 'null not allowed', typeName: 'positive_int' } },
     { name: 'server-error-without-code', source: errors, error: () => new PostgresError({ message: 'something the server said', severity: 'ERROR' }), expected: { reason: 'SQL_UNKNOWN', databaseErrorMessage: 'something the server said' } },
     { name: 'server-error-with-a-code-that-is-not-a-sqlstate', source: errors, error: () => new PostgresError({ message: 'something the server said', severity: 'ERROR', code: 'XX' }), expected: { reason: 'SQL_UNKNOWN', databaseErrorCode: 'XX', databaseErrorMessage: 'something the server said' } },
     { name: 'unsupported-target-session-attrs', source: index, error: () => driverError('target_session_attrs any is not supported'), expected: { reason: 'INVALID_CONFIGURATION', name: 'target_session_attrs', value: 'any' } },

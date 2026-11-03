@@ -149,7 +149,10 @@ function getConstraintName(error: PostgresJsError): string | undefined {
 }
 
 function getTypeName(error: PostgresJsError): string | undefined {
-    return stringValue(asDatabaseError(error)?.type_name)
+    // postgres.js 3 names the field 'data type_name' (with a space) although its types say type_name; 4 names it
+    // data_type_name
+    const databaseError = asDatabaseError(error) as Record<string, unknown> | undefined
+    return stringValue(databaseError?.['data_type_name']) || stringValue(databaseError?.['data type_name']) || stringValue(databaseError?.['type_name'])
 }
 
 function asDatabaseError(error: PostgresJsError): PostgresJsDatabaseError | undefined {

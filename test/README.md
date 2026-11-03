@@ -235,9 +235,10 @@ test/
 - `<connector>` = one of `docs/configuration/query-runners/recommended/*.md`
   for that database.
 
-Not every (version × connector) cell is valid — `pglite` bundles
-PostgreSQL 17 so it only appears under `oldest/`. Folders for invalid
-cells simply do not exist.
+Not every (version × connector) cell is valid. Folders for invalid
+cells simply do not exist. A WASM engine bundles one database version
+(`pglite` runs PostgreSQL 18), so its older-version cells run the
+library's compatibility mode against that engine, not an older one.
 
 ## TL;DR commands
 

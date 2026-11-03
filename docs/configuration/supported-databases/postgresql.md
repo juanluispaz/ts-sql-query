@@ -181,7 +181,7 @@ await connection.transaction(async () => {
 
 !!! failure "The transaction is rejected"
 
-    Neither the company nor the customer is saved. On MariaDB, MySQL, Oracle, SQLite and SQL Server, only the failed statement is undone, and the company is saved.
+    Neither the company nor the customer is saved. On MariaDB, MySQL, Oracle, SQLite and SQL Server, only the failed statement is undone, and the company is saved (some errors make those databases roll back the whole transaction too: see [when the database rolls back the transaction](../../queries/transaction.md#when-the-database-rolls-back-the-transaction)).
 
 To go on after a statement that may fail, don't run it in the transaction, or find out beforehand whether it would fail (for example, whether the company exists).
 

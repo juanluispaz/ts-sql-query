@@ -60,9 +60,46 @@ await connection.rollback();
 
 When you use these methods, you must ensure the transaction has begun before calling `commit` or `rollback`.
 
-!!! warning "A failed statement on PostgreSQL"
+## When the database rolls back the transaction
 
-    On PostgreSQL, a statement that fails leaves the whole transaction failed, even if your code catches its error: see [a statement that fails inside a transaction](../configuration/supported-databases/postgresql.md#a-statement-that-fails-inside-a-transaction).
+Some errors make the database roll back the whole transaction by itself, not only the statement that failed:
+
+- MariaDB and MySQL: a deadlock, in the transaction chosen as its victim.
+- SQL Server: a deadlock, and the errors that doom a transaction, like a failed conversion, or any error when `XACT_ABORT` is `ON`.
+- SQLite: a conflict clause that rolls back (`ON CONFLICT ROLLBACK` in the table, `INSERT OR ROLLBACK`, `RAISE(ROLLBACK, ...)` in a trigger), and errors like a full disk.
+- PostgreSQL: any statement that fails, see [a statement that fails inside a transaction](../configuration/supported-databases/postgresql.md#a-statement-that-fails-inside-a-transaction).
+
+Oracle rolls back only the statement that failed, also on a deadlock.
+
+When your code catches such an error and goes on, there is no transaction anymore: the database would run each statement that follows on its own, committed at once, and the commit would have nothing to commit (MariaDB and MySQL accept it without an error). `ts-sql-query` detects that the database rolled the transaction back: the statements that follow and the commit are rejected without being sent, with the `errorReason` `TRANSACTION_ERROR` (`transactionErrorType: 'transaction rolled back'`) and the error that ended the transaction as their `cause`, and the rollback sends nothing. `connection.transaction(...)` is rejected the same way, and the after-rollback functions run.
+
+A statement retried inside the transaction after a deadlock, for example:
+
+```ts
+await connection.transaction(async () => {
+    await connection.insertInto(tCompany).set({ name: 'Top Company' }).executeInsert();
+    try {
+        await connection.update(tCustomer).set({ firstName: 'John' }).where(tCustomer.id.equals(10)).executeUpdate();
+    } catch (e) {
+        // A deadlock: the database rolled back the whole transaction, the company included
+        await connection.update(tCustomer).set({ firstName: 'John' }).where(tCustomer.id.equals(10)).executeUpdate();
+    }
+});
+```
+
+!!! failure "The retried statement and the transaction are rejected"
+
+    The company isn't saved, and neither is the customer. To retry after a deadlock, retry the whole transaction.
+
+The mysql2 and mariadb query runners ask the server whether the transaction is still open after a statement of the transaction fails, which adds a round trip to the failed statement. `Sqlite3QueryRunner`, `Sqlite3WasmOO1QueryRunner` and `BunSqlSqliteQueryRunner` send a `begin`, which SQLite only accepts outside a transaction (the transaction it begins is rolled back at once).
+
+!!! warning "Query runners that can't tell"
+
+    `BunSqlMySqlQueryRunner` and `PrismaQueryRunner` can't tell when the database rolled the transaction back (their driver doesn't say it): the statements that follow run outside any transaction, as described above.
+
+!!! warning "A change of the schema commits the transaction"
+
+    On MariaDB, MySQL and Oracle, a statement that changes the schema (`create table`, `alter table`, ...) commits the transaction before it runs. On MariaDB and MySQL the statements that follow run each one committed at once; Oracle begins a new transaction with them. `ts-sql-query` doesn't detect it: keep the changes of the schema out of your transactions.
 
 ## Using the driver's connection in the transaction
 

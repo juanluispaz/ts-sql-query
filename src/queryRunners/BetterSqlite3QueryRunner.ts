@@ -39,18 +39,26 @@ export class BetterSqlite3QueryRunner extends SqlTransactionQueryRunner {
     }
 
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
+        const rejected = this.rejectWhenRolledBackByTheDatabase()
+        if (rejected) {
+            return rejected
+        }
         try {
             const rows = this.connection.prepare(query).all(this.bindParams(params))
             return this.promise.resolve(rows)
         } catch (e) {
-            return this.promise.reject(e)
+            return this.statementOfTheTransactionFailed(e)
         }
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
+        const rejected = this.rejectWhenRolledBackByTheDatabase()
+        if (rejected) {
+            return rejected
+        }
         try {
             return this.promise.resolve(this.connection.prepare(query).run(this.bindParams(params)).changes)
         } catch (e) {
-            return this.promise.reject(e)
+            return this.statementOfTheTransactionFailed(e)
         }
     }
     override executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
@@ -58,6 +66,10 @@ export class BetterSqlite3QueryRunner extends SqlTransactionQueryRunner {
             return super.executeInsertReturningLastInsertedId(query, params)
         }
 
+        const rejected = this.rejectWhenRolledBackByTheDatabase()
+        if (rejected) {
+            return rejected
+        }
         try {
             const result = this.connection.prepare(query).run(this.bindParams(params))
             // A suppressed `on conflict do nothing` inserts no row; `lastInsertRowid`
@@ -65,8 +77,12 @@ export class BetterSqlite3QueryRunner extends SqlTransactionQueryRunner {
             // same absence the RETURNING path reports) when nothing was inserted.
             return this.promise.resolve(result.changes === 0 ? null : result.lastInsertRowid)
         } catch (e) {
-            return this.promise.reject(e)
+            return this.statementOfTheTransactionFailed(e)
         }
+    }
+    /** SQLite leaves autocommit mode while a transaction is open */
+    protected override isTransactionOpenInTheDatabase(): boolean {
+        return this.connection.inTransaction
     }
     addParam(params: any[], value: any): string {
         if (typeof value === 'boolean') {

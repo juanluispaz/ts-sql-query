@@ -9,6 +9,8 @@ type UpsertResult = {
     insertId: number | bigint
 }
 
+const SERVER_STATUS_IN_TRANS = 1
+
 export class MariaDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     readonly database: DatabaseType
     readonly connection: Connection
@@ -41,10 +43,10 @@ export class MariaDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     }
 
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
-        return this.connection.query({ sql: query, bigNumberStrings: true }, params)
+        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query({ sql: query, bigNumberStrings: true }, params).catch((error) => this.statementOfTheTransactionFailed(error))
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
-        return this.connection.query({ sql: query, bigNumberStrings: true }, params).then((result: UpsertResult) => result.affectedRows)
+        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query({ sql: query, bigNumberStrings: true }, params).then((result: UpsertResult) => result.affectedRows, (error) => this.statementOfTheTransactionFailed(error))
     }
     override executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         if (this.containsInsertReturningClause(query, params)) {
@@ -53,7 +55,14 @@ export class MariaDBQueryRunner extends DelegatedSetTransactionQueryRunner {
 
         // A suppressed `insert ignore` inserts no row and reports insert id 0: fall back to null (the same absence
         // the RETURNING path reports) when nothing was inserted.
-        return this.connection.query({ sql: query, bigNumberStrings: true }, params).then((result: UpsertResult) => result.affectedRows === 0 ? null : result.insertId)
+        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query({ sql: query, bigNumberStrings: true }, params).then((result: UpsertResult) => result.affectedRows === 0 ? null : result.insertId, (error) => this.statementOfTheTransactionFailed(error))
+    }
+    /** The server says in the status of every answer but an error whether a transaction is open (SERVER_STATUS_IN_TRANS) */
+    protected override isTransactionOpenInTheDatabase(): Promise<boolean | undefined> {
+        return this.connection.query('do 0').then(() => {
+            const status = this.connection.info?.status
+            return typeof status === 'number' ? (status & SERVER_STATUS_IN_TRANS) !== 0 : undefined
+        }, () => undefined)
     }
     doBeginTransaction(_opts: BeginTransactionOpts): Promise<void> {
         return this.connection.beginTransaction()

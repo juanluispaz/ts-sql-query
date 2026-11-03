@@ -12,7 +12,7 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
     transaction?: TransactionSql | undefined
     lowLevelTransaction?: ReservedSql | undefined
     private readonly givenConnection: GivenSqlConnection
-    private readonly outcome = new PostgresTransactionOutcome()
+    protected override readonly transactionOutcome = new PostgresTransactionOutcome()
 
     /** connection: the client of a pool, a connection reserved from it, or a transaction begun with it */
     constructor(connection: Sql | TransactionSql) {
@@ -49,22 +49,16 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
         return this.connection.reserve().then(reserved => fn(reserved).finally(() => reserved.release()))
     }
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
-        return this.getSql().unsafe(query, params).then((result) => {
+        return this.rejectWhenRolledBackByTheDatabase() || this.getSql().unsafe(query, params).then((result) => {
             // then is called to ensure the query is executed
             return result
-        }, (error) => {
-            this.outcome.statementFailed(error, this.isTransactionActive())
-            throw error
-        })
+        }, (error) => this.statementOfTheTransactionFailed(error))
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
-        return this.getSql().unsafe(query, params).then((result) => {
+        return this.rejectWhenRolledBackByTheDatabase() || this.getSql().unsafe(query, params).then((result) => {
             // then is called to ensure the query is executed
             return result.count
-        }, (error) => {
-            this.outcome.statementFailed(error, this.isTransactionActive())
-            throw error
-        })
+        }, (error) => this.statementOfTheTransactionFailed(error))
     }
     override executeBeginTransactionQuery(query: string, params: any[]): Promise<number> {
         return this.reserveForTransaction().then((reserved) => {
@@ -103,7 +97,7 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
         return transaction.unsafe(query, params).then(
             (result) => {
                 // The connection is kept when the commit fails, for the rollback that follows
-                this.outcome.checkCommit(result.command)
+                this.transactionOutcome.checkCommit(result.command)
                 this.lowLevelTransaction = undefined
                 this.releaseReserved(transaction)
                 return result.count
@@ -118,13 +112,7 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
         if (!transaction) {
             return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in a low level transaction, you cannot rollback the transaction'))
         }
-        if (this.outcome.rollbackAlreadyDone()) {
-            this.lowLevelTransaction = undefined
-            this.releaseReserved(transaction)
-            return this.createResolvedPromise(0)
-        }
-
-        return transaction.unsafe(query, params).finally(() => this.outcome.transactionEnded()).then(
+        return transaction.unsafe(query, params).then(
             (result) => {
                 this.lowLevelTransaction = undefined
                 this.releaseReserved(transaction)
@@ -136,6 +124,13 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
                 return this.createRejectedPromise(error)
             }
         )
+    }
+    protected override rollbackAlreadyDoneByTheDatabase(): void {
+        const transaction = this.lowLevelTransaction
+        if (transaction) {
+            this.lowLevelTransaction = undefined
+            this.releaseReserved(transaction)
+        }
     }
     private reserveForTransaction(): Promise<ReservedSql> {
         if (this.givenConnection === 'transaction') {
@@ -186,7 +181,7 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
             let result = fn()
             return result.finally(() => {
                 this.transaction = undefined
-                this.outcome.transactionEnded()
+                this.transactionOutcome.transactionEnded()
             })
         }
         if (options) {

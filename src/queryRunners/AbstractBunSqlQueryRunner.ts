@@ -46,22 +46,16 @@ export abstract class AbstractBunSqlQueryRunner extends SqlTransactionQueryRunne
         return this.connection.reserve().then(reserved => fn(reserved).finally(() => reserved.release()))
     }
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
-        return this.getSql().unsafe(query, params).then((result) => {
+        return this.rejectWhenRolledBackByTheDatabase() || this.getSql().unsafe(query, params).then((result) => {
             // then is called to ensure the query is executed
             return result
-        }, (error) => {
-            this.statementFailed(error)
-            throw error
-        })
+        }, (error) => this.statementOfTheTransactionFailed(error))
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
-        return this.getSql().unsafe(query, params).then((result) => {
+        return this.rejectWhenRolledBackByTheDatabase() || this.getSql().unsafe(query, params).then((result) => {
             // then is called to ensure the query is executed
             return result.count
-        }, (error) => {
-            this.statementFailed(error)
-            throw error
-        })
+        }, (error) => this.statementOfTheTransactionFailed(error))
     }
     override executeBeginTransactionQuery(query: string, params: any[]): Promise<number> {
         return this.reserveForTransaction().then((reserved) => {
@@ -115,12 +109,6 @@ export abstract class AbstractBunSqlQueryRunner extends SqlTransactionQueryRunne
         if (!transaction) {
             return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in a low level transaction, you cannot rollback the transaction'))
         }
-        if (this.rollbackAlreadyDone()) {
-            this.lowLevelTransaction = undefined
-            this.releaseReserved(transaction)
-            return this.createResolvedPromise(0)
-        }
-
         return transaction.unsafe(query, params).then(
             (result) => {
                 this.lowLevelTransaction = undefined
@@ -143,15 +131,15 @@ export abstract class AbstractBunSqlQueryRunner extends SqlTransactionQueryRunne
         }
         return this.connection.reserve()
     }
-    /** A statement of the query runner failed */
-    protected statementFailed(_error: unknown): void {
-    }
     /** Checks the answer to the commit, the transaction being committed when it doesn't throw */
     protected checkCommit(_command: unknown): void {
     }
-    /** Whether the database already rolled the transaction back, so the rollback has nothing to send */
-    protected rollbackAlreadyDone(): boolean {
-        return false
+    protected override rollbackAlreadyDoneByTheDatabase(): void {
+        const transaction = this.lowLevelTransaction
+        if (transaction) {
+            this.lowLevelTransaction = undefined
+            this.releaseReserved(transaction)
+        }
     }
     private releaseReserved(reserved: ReservedSQL): void {
         // A connection the caller reserved is theirs to release
@@ -185,8 +173,16 @@ export abstract class AbstractBunSqlQueryRunner extends SqlTransactionQueryRunne
             }
             this.transaction = transaction
             let result = fn()
-            return result.finally(() => {
+            return result.then((value) => {
+                // Bun SQL would commit a transaction the database already rolled back
+                const error = this.transactionOutcome.failureOfTheTransaction()
+                if (error) {
+                    throw error
+                }
+                return value
+            }).finally(() => {
                 this.transaction = undefined
+                this.transactionOutcome.transactionEnded()
             })
         }
         return this.beginNativeTransaction(opts, options, callback)

@@ -49,6 +49,10 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     }
 
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
+        const rejected = this.rejectWhenRolledBackByTheDatabase()
+        if (rejected) {
+            return rejected
+        }
         const req = this.request()
         for (var i = 0, length = params.length; i < length; i++) {
             req.input('' + i, { type: this.getType(params, i) }, params[i])
@@ -58,16 +62,30 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
                 return []
             }
             return result.recordset
-        })
+        }, (error) => this.statementFailed(error))
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
+        const rejected = this.rejectWhenRolledBackByTheDatabase()
+        if (rejected) {
+            return rejected
+        }
         const req = this.request()
         for (var i = 0, length = params.length; i < length; i++) {
             req.input('' + i, { type: this.getType(params, i) }, params[i])
         }
         return req.query(query).then((result) => {
             return result.rowsAffected[0]!
-        })
+        }, (error) => this.statementFailed(error))
+    }
+    private statementFailed(error: unknown): never {
+        if (this.transaction) {
+            this.transactionOutcome.statementFailed(error, true)
+            if (this.transactionOutcome.isRolledBackByTheDatabase()) {
+                // The server rolled the transaction back when this statement failed
+                this.transactionOutcome.rolledBackByTheDatabase(error)
+            }
+        }
+        throw error
     }
     executeBeginTransaction(opts: BeginTransactionOpts = []): Promise<void> {
         if (this.transaction) {
@@ -108,6 +126,14 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         // transaction ends (see restoreConnectionIsolationLevel).
         this.restoreIsolationLevel = isolationLevel !== undefined && isolationLevel !== this.connectionIsolationLevel()
         return (isolationLevel === undefined ? transaction.begin() : transaction.begin(isolationLevel)).then(() => {
+            // A deadlock victim, or an error that dooms the transaction (a failed conversion, any error with
+            // XACT_ABORT ON): the server rolls the transaction back by itself, and mssql tells it with an aborted
+            // rollback
+            transaction.on('rollback', (aborted: boolean) => {
+                if (aborted && this.transaction === transaction) {
+                    this.transactionOutcome.rolledBackByTheDatabase()
+                }
+            })
             if (this.restoreIsolationLevel) {
                 this.watchTransactionConnection(transaction)
             }
@@ -125,9 +151,13 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         if (!transaction) {
             return Promise.reject(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in an transaction, you cannot commit the transaction'))
         }
+        if (this.transactionOutcome.isRolledBackByTheDatabase()) {
+            return Promise.reject(this.transactionOutcome.rolledBackError())
+        }
         return this.restoreConnectionIsolationLevel(transaction).then(() => transaction.commit()).then(() => {
             // Transaction count only modified when commit successful, in case of error there is still an open transaction
             this.transaction = undefined
+            this.transactionOutcome.transactionEnded()
         })
     }
     executeRollback(_opts: RollbackOpts = []): Promise<void> {
@@ -135,8 +165,17 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         if (!transaction) {
             return Promise.reject(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in an transaction, you cannot rollback the transaction'))
         }
+        if (this.transactionOutcome.rollbackAlreadyDone()) {
+            // mssql already gave the connection back to the pool (flagged as broken when its isolation level had to be
+            // put back, see watchTransactionConnection)
+            this.transaction = undefined
+            this.restoreIsolationLevel = false
+            this.transactionConnection = undefined
+            return Promise.resolve()
+        }
         return this.restoreConnectionIsolationLevel(transaction).then(() => transaction.rollback()).finally(() => {
             this.transaction = undefined
+            this.transactionOutcome.transactionEnded()
         })
     }
     private restoreIsolationLevel = false

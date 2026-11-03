@@ -726,6 +726,49 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
             expect((error as { cause?: unknown }).cause).toBe(failure)
         })
 
+        const rollsBack = dialect.statementThatRollsBackTheTransaction
+        const rolledBackRows = async () => Number(await r().executeSelectOneColumnOneRow('select count(*) from rt_probe where id >= 60'))
+
+        test.skipIf(!rollsBack)('transaction-rolled-back-by-the-database', async () => {
+            const runner = r()
+            await runner.executeBeginTransaction()
+            await runner.executeInsert(`insert into rt_probe (id, name) values (60, 'before')`)
+            const failure = await rejectionOf(runner.executeInsert(rollsBack!))
+            const next = await rejectionOf(runner.executeInsert(`insert into rt_probe (id, name) values (61, 'after')`))
+            const commit = await rejectionOf(runner.executeCommit())
+            expect(runner.isTransactionActive()).toBe(true)
+            await runner.executeRollback()
+            expect(runner.isTransactionActive()).toBe(false)
+            expect([reasonOf(next), (next as { cause?: unknown }).cause === failure]).toEqual(['TRANSACTION_ERROR', true])
+            expect([reasonOf(commit), (commit as { cause?: unknown }).cause === failure]).toEqual(['TRANSACTION_ERROR', true])
+            expect(await rolledBackRows()).toBe(0)
+        })
+
+        test.skipIf(!rollsBack)('transaction-rolled-back-by-the-database-after-a-caught-failure', async () => {
+            const runner = r()
+            await runner.executeBeginTransaction()
+            await runner.executeInsert(`insert into rt_probe (id, name) values (60, 'before')`)
+            // A duplicate key only fails its own statement
+            await rejectionOf(runner.executeInsert(`insert into rt_probe (id, name) values (1, 'dup')`))
+            const failure = await rejectionOf(runner.executeInsert(rollsBack!))
+            const commit = await rejectionOf(runner.executeCommit())
+            await runner.executeRollback()
+            expect([reasonOf(commit), (commit as { cause?: unknown }).cause === failure]).toEqual(['TRANSACTION_ERROR', true])
+            expect(await rolledBackRows()).toBe(0)
+        })
+
+        test.skipIf(!rollsBack)('transaction-function-rolled-back-by-the-database', async () => {
+            const runner = r()
+            const error = await rejectionOf(runner.executeInTransaction(async () => {
+                await runner.executeInsert(`insert into rt_probe (id, name) values (60, 'before')`)
+                await rejectionOf(runner.executeInsert(rollsBack!))
+                await rejectionOf(runner.executeInsert(`insert into rt_probe (id, name) values (61, 'after')`))
+            }, runner))
+            expect(reasonOf(error)).toBe('TRANSACTION_ERROR')
+            expect(runner.isTransactionActive()).toBe(false)
+            expect(await rolledBackRows()).toBe(0)
+        })
+
         test('execute-combined', async () => {
             const runner = r()
             const result = await runner.executeCombined(() => count(), () => runner.executeSelectOneColumnManyRows(`select ${col('id')} from rt_probe order by id`))

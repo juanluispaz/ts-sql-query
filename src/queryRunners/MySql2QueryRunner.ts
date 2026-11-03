@@ -4,6 +4,8 @@ import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQue
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getMySql2ErrorReason, isMySql2Error } from './connectorErrorMappers/MySql2ErrorMapper.js'
 
+const SERVER_STATUS_IN_TRANS = 1
+
 export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
     readonly database: DatabaseType
     readonly connection: Connection
@@ -36,7 +38,7 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
     }
 
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
-        return new Promise((resolve, reject) => {
+        return this.rejectWhenRolledBackByTheDatabase() || new Promise<any[]>((resolve, reject) => {
             this.connection.query(query, params, (error: QueryError | null, results: RowDataPacket[]) => {
                 if (error) {
                     reject(error)
@@ -44,10 +46,10 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
                     resolve(results)
                 }
             })
-        })
+        }).catch((error) => this.statementOfTheTransactionFailed(error))
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
-        return new Promise((resolve, reject) => {
+        return this.rejectWhenRolledBackByTheDatabase() || new Promise<number>((resolve, reject) => {
             this.connection.query(query, params, (error: QueryError | null, results: ResultSetHeader) => {
                 if (error) {
                     reject(error)
@@ -55,14 +57,14 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
                     resolve(results.affectedRows)
                 }
             })
-        })
+        }).catch((error) => this.statementOfTheTransactionFailed(error))
     }
     override executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         if (this.containsInsertReturningClause(query, params)) {
             return super.executeInsertReturningLastInsertedId(query, params)
         }
         
-        return new Promise((resolve, reject) => {
+        return this.rejectWhenRolledBackByTheDatabase() || new Promise((resolve, reject) => {
             this.connection.query(query, params, (error: QueryError | null, results: ResultSetHeader) => {
                 if (error) {
                     reject(error)
@@ -71,6 +73,14 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
                     // same absence the RETURNING path reports) when nothing was inserted.
                     resolve(results.affectedRows === 0 ? null : results.insertId)
                 }
+            })
+        }).catch((error) => this.statementOfTheTransactionFailed(error))
+    }
+    /** The server says in the status of every answer but an error whether a transaction is open (SERVER_STATUS_IN_TRANS) */
+    protected override isTransactionOpenInTheDatabase(): Promise<boolean | undefined> {
+        return new Promise((resolve) => {
+            this.connection.query('do 0', (error: QueryError | null, result: ResultSetHeader) => {
+                resolve(error || typeof result?.serverStatus !== 'number' ? undefined : (result.serverStatus & SERVER_STATUS_IN_TRANS) !== 0)
             })
         })
     }

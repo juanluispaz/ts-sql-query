@@ -41,9 +41,13 @@ export abstract class DelegatedSetTransactionQueryRunner extends ManagedTransact
         if (this.transactionLevel <= 0 && this.validateIntransaction()) {
             return Promise.reject(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in an transaction, you cannot commit the transaction'))
         }
+        if (this.transactionOutcome.isRolledBackByTheDatabase()) {
+            return this.createRejectedPromise(this.transactionOutcome.rolledBackError())
+        }
 
         return this.doCommit(opts).then(() => {
             // Transaction count only modified when commit successful, in case of error there is still an open transaction 
+            this.transactionOutcome.transactionEnded()
             this.transactionLevel--
             if (this.transactionLevel < 0) {
                 this.transactionLevel = 0
@@ -55,6 +59,13 @@ export abstract class DelegatedSetTransactionQueryRunner extends ManagedTransact
     executeRollback(opts: RollbackOpts = []): Promise<void> {
         if (this.transactionLevel <= 0 && this.validateIntransaction()) {
             return Promise.reject(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in an transaction, you cannot rollback the transaction'))
+        }
+        if (this.transactionOutcome.rollbackAlreadyDone()) {
+            this.transactionLevel--
+            if (this.transactionLevel < 0) {
+                this.transactionLevel = 0
+            }
+            return this.createResolvedPromise(undefined)
         }
 
         return this.doRollback(opts).then(() => {

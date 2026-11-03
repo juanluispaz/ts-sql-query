@@ -11,7 +11,7 @@ export interface PgQueryRunnerConfig {
 
 export class PgQueryRunner extends SqlTransactionQueryRunner {
     readonly database: DatabaseType
-    private readonly outcome = new PostgresTransactionOutcome()
+    protected override readonly transactionOutcome = new PostgresTransactionOutcome()
     readonly connection: ClientBase
     private config?: PgQueryRunnerConfig | undefined
 
@@ -41,28 +41,16 @@ export class PgQueryRunner extends SqlTransactionQueryRunner {
     }
 
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
-        return this.connection.query(query, params).then((result) => result.rows, (error) => {
-            this.outcome.statementFailed(error, this.isTransactionActive())
-            throw error
-        })
+        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query(query, params).then((result) => result.rows, (error) => this.statementOfTheTransactionFailed(error))
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
-        return this.connection.query(query, params).then((result) => result.rowCount || 0, (error) => {
-            this.outcome.statementFailed(error, this.isTransactionActive())
-            throw error
-        })
+        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query(query, params).then((result) => result.rowCount || 0, (error) => this.statementOfTheTransactionFailed(error))
     }
     override executeCommitQuery(query: string, params: any[]): Promise<number> {
         return this.connection.query(query, params).then((result) => {
-            this.outcome.checkCommit(result.command)
+            this.transactionOutcome.checkCommit(result.command)
             return 0
         })
-    }
-    override executeRollbackQuery(query: string, params: any[]): Promise<number> {
-        if (this.outcome.rollbackAlreadyDone()) {
-            return this.createResolvedPromise(0)
-        }
-        return this.executeMutation(query, params).finally(() => this.outcome.transactionEnded())
     }
     addParam(params: any[], value: any): string {
         params.push(value)

@@ -32,9 +32,13 @@ export abstract class SqlTransactionQueryRunner extends ManagedTransactionQueryR
         if (!this.isTransactionActive()) {
             return Promise.reject(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in an transaction, you cannot commit the transaction'))
         }
+        if (this.transactionOutcome.isRolledBackByTheDatabase()) {
+            return this.createRejectedPromise(this.transactionOutcome.rolledBackError())
+        }
 
         return this.executeCommitQuery('commit', []).then(() => {
             // Transaction count only modified when commit successful, in case of error there is still an open transaction 
+            this.transactionOutcome.transactionEnded()
             this.transactionLevel--
             if (this.transactionLevel < 0) {
                 this.transactionLevel = 0
@@ -48,6 +52,14 @@ export abstract class SqlTransactionQueryRunner extends ManagedTransactionQueryR
     executeRollback(_opts: RollbackOpts = []): Promise<void> {
         if (!this.isTransactionActive()) {
             return Promise.reject(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in an transaction, you cannot rollback the transaction'))
+        }
+        if (this.transactionOutcome.rollbackAlreadyDone()) {
+            this.rollbackAlreadyDoneByTheDatabase()
+            this.transactionLevel--
+            if (this.transactionLevel < 0) {
+                this.transactionLevel = 0
+            }
+            return this.createResolvedPromise(undefined)
         }
 
         return this.executeRollbackQuery('rollback', []).then(() => {
@@ -66,6 +78,9 @@ export abstract class SqlTransactionQueryRunner extends ManagedTransactionQueryR
     }
     executeRollbackQuery(query: string, params: any[]): Promise<number> {
         return this.executeMutation(query, params);
+    }
+    /** The rollback of a transaction the database already rolled back: nothing is sent, the transaction ends */
+    protected rollbackAlreadyDoneByTheDatabase(): void {
     }
     isTransactionActive(): boolean {
         return this.transactionLevel > 0

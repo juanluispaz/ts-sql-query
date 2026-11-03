@@ -52,6 +52,8 @@ export interface RunnerDialect {
     readonly accessModeAlone: boolean
     /** A statement that takes two seconds, for a driver's own timeout. */
     readonly sleep?: string
+    /** A statement whose failure makes the database roll back the whole transaction it runs in, by itself. */
+    readonly statementThatRollsBackTheTransaction?: string
 }
 
 function returningClause(names: readonly string[]) {
@@ -93,6 +95,7 @@ export const postgresDialect: RunnerDialect = {
 
 export const sqliteDialect: RunnerDialect = {
     database: 'sqlite',
+    statementThatRollsBackTheTransaction: `insert or rollback into rt_probe (id, name) values (1, 'dup')`,
     setup: [
         'drop table if exists rt_probe',
         'drop table if exists rt_auto',
@@ -193,6 +196,7 @@ function mssqlOutput(prefix: 'inserted' | 'deleted', names: readonly string[]) {
 
 export const sqlServerDialect: RunnerDialect = {
     database: 'sqlServer',
+    statementThatRollsBackTheTransaction: `insert into rt_probe (id, name) values (cast('a' as int), 'conversion')`,
     setup: [
         'drop table if exists rt_probe',
         'drop table if exists rt_auto',

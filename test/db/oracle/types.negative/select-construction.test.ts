@@ -228,8 +228,10 @@ function _typeNegatives() {
 
     // Rule: an aggregate cannot be grouped by; naming the aggregate column of
     // the select is the same as passing the aggregate.
-    // TODO[BUG]: aggregate column named in GROUP BY — should not compile (emits `group by count(*)`)
+    // @ts-expect-error 'n' is an aggregate column, it cannot be grouped by
     void connection.selectFrom(tIssue).select({ projectId: tIssue.projectId, n: connection.countAll() }).groupBy('n')
+    // Positive control: grouping by the name of a column that is not an aggregate.
+    void connection.selectFrom(tIssue).select({ projectId: tIssue.projectId, n: connection.countAll() }).groupBy('projectId')
 
     // Rule: GROUP BY comes before ORDER BY.
     void connection.selectFrom(tIssue).select({ id: tIssue.id }).groupBy(tIssue.id).orderBy('id')
@@ -356,9 +358,12 @@ function _typeNegatives() {
     // Rule: the arms of a compound have the same number of columns.
     // @ts-expect-error the second arm has an extra column
     void connection.selectFrom(tIssue).select({ a: tIssue.id }).union(connection.selectFrom(tProject).select({ a: tProject.id, b: tProject.name }))
-    // TODO[BUG]: an extra column in an arm over the same table — should not compile
-    // (the emitted arms carry one and two columns, which the database rejects)
+    // @ts-expect-error the second arm, over the same table, has an extra column
     void connection.selectFrom(tIssue).select({ a: tIssue.id }).union(connection.selectFrom(tIssue).select({ a: tIssue.id, b: tIssue.title }))
+    // Rule: the nested objects of the arms have the same columns too.
+    void connection.selectFrom(tIssue).select({ a: tIssue.id, n: { t: tIssue.title } }).union(connection.selectFrom(tIssue).select({ a: tIssue.id, n: { t: tIssue.title } }))
+    // @ts-expect-error the nested object of the second arm has an extra column
+    void connection.selectFrom(tIssue).select({ a: tIssue.id, n: { t: tIssue.title } }).union(connection.selectFrom(tIssue).select({ a: tIssue.id, n: { t: tIssue.title, x: tIssue.id } }))
 
     // Rule: the arms of a compound have the same optionality per column.
     // @ts-expect-error 'a' is optional in one arm and required in the other

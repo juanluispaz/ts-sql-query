@@ -112,6 +112,61 @@ type GetDataToProjectSource5<TYPE> = ({
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/** The names of the columns of a select that a group by can refer to: the required ones that are not an aggregate */
+export type NonAggregatedColumnNames<T> = 
+    T extends AnyValueSource ? (IsAggregate<T> extends true ? never : 'result')
+    : unknown extends T // this is the case when the arguments are of type any
+    ? never : NonAggregatedColumnNames1<T, ''>
+
+type IsAggregate<T> = NonNullable<T> extends ValueSourceOf<infer SOURCE> ? ([Extract<SOURCE, `${string}aggregate/`>] extends [never] ? false : true) : false
+
+type NonAggregatedColumnNames1<T, PREFIX extends string> = { [K in UsableKeyOf<T>]-?: 
+    K extends string 
+    ?
+        T[K] extends AnyValueSource | undefined // Undefined is to deal with picking columns
+        ? ({} extends Pick<T, K> ? never : IsAggregate<T[K]> extends true ? never : `${PREFIX}${K}`) 
+        : NonAggregatedColumnNames2<T[K], `${PREFIX}${K}.`>
+    : never
+}[UsableKeyOf<T>]
+
+type NonAggregatedColumnNames2<T, PREFIX extends string> = { [K in UsableKeyOf<T>]-?: 
+    K extends string 
+    ?
+        T[K] extends AnyValueSource | undefined // Undefined is to deal with picking columns
+        ? ({} extends Pick<T, K> ? never : IsAggregate<T[K]> extends true ? never : `${PREFIX}${K}`) 
+        : NonAggregatedColumnNames3<T[K], `${PREFIX}${K}.`>
+    : never
+}[UsableKeyOf<T>]
+
+type NonAggregatedColumnNames3<T, PREFIX extends string> = { [K in UsableKeyOf<T>]-?: 
+    K extends string 
+    ?
+        T[K] extends AnyValueSource | undefined // Undefined is to deal with picking columns
+        ? ({} extends Pick<T, K> ? never : IsAggregate<T[K]> extends true ? never : `${PREFIX}${K}`) 
+        : NonAggregatedColumnNames4<T[K], `${PREFIX}${K}.`>
+    : never
+}[UsableKeyOf<T>]
+
+type NonAggregatedColumnNames4<T, PREFIX extends string> = { [K in UsableKeyOf<T>]-?: 
+    K extends string 
+    ?
+        T[K] extends AnyValueSource | undefined // Undefined is to deal with picking columns
+        ? ({} extends Pick<T, K> ? never : IsAggregate<T[K]> extends true ? never : `${PREFIX}${K}`) 
+        : NonAggregatedColumnNames5<T[K], `${PREFIX}${K}.`>
+    : never
+}[UsableKeyOf<T>]
+
+type NonAggregatedColumnNames5<T, PREFIX extends string> = { [K in UsableKeyOf<T>]-?: 
+    K extends string 
+    ?
+        T[K] extends AnyValueSource | undefined // Undefined is to deal with picking columns
+        ? ({} extends Pick<T, K> ? never : IsAggregate<T[K]> extends true ? never : `${PREFIX}${K}`) 
+        : never
+    : never
+}[UsableKeyOf<T>]
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 export type RequiredColumnNames<T> = 
     T extends AnyValueSource ? 'result' 
     : unknown extends T // this is the case when the arguments are of type any

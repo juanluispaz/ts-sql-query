@@ -249,8 +249,8 @@ function _typeNegatives() {
     void connection.insertInto(tOrganization).from(connection.selectFrom(tProject).select({ name: tProject.name }))
     // @ts-expect-error the projected `plan` is an int, but the column `plan` is a string
     void connection.insertInto(tOrganization).from(connection.selectFrom(tProject).select({ name: tProject.name, plan: tProject.id }))
-    // TODO[BUG]: a projected column that is not a column of the table — should not compile
-    // (building the insert throws COLUMN_FOR_INSERT_COMING_FROM_SUBQUERY_NOT_IN_TABLE)
+    // Rule: every column of the select is a column of the table.
+    // @ts-expect-error `extra` is not a column of the table
     void connection.insertInto(tOrganization).from(connection.selectFrom(tProject).select({ name: tProject.name, plan: tProject.slug, extra: tProject.id }))
 
     // Rule: defaultValues() is offered only when no column is required.

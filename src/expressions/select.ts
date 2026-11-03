@@ -3,7 +3,7 @@ import type { ForUseInLeftJoin, HasSource, IRawFragment, ITableOrView, NoTableOr
 import type { WithView } from '../utils/tableOrViewUtils.js'
 import type { resultType, compoundableColumns, valueType, from, using, source, selectColumnsType } from '../utils/symbols.js'
 import type { NAnyNoTableOrViewRequired, NDbType, NNoTableOrViewRequiredFrom, NRecursiveFrom, NSource, NSourceAllowingAggregate, NWithFrom } from '../utils/sourceName.js'
-import type { DataToProject, RequiredColumnNames } from '../complexProjections/dataToProject.js'
+import type { DataToProject, NonAggregatedColumnNames, RequiredColumnNames } from '../complexProjections/dataToProject.js'
 import type { ResultObjectValuesProjectedAsNullable } from '../complexProjections/resultWithOptionalsAsNull.js'
 import type { ResultObjectValues } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ColumnsForCompound } from '../complexProjections/compound.js'
@@ -46,7 +46,9 @@ export interface SelectExpressionBase</*in|out*/ FROM extends HasSource<any>, /*
 }
 
 export interface ICompoundableSelect</*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT> extends IExecutableSelectQuery<REQUIRED[typeof source], ExecutableSelectColumns<COLUMNS>, RESULT> {
-    [compoundableColumns]: (input: ColumnsForCompound<any, COLUMNS>) => ColumnsForCompound<any, COLUMNS>
+    // Written as a mapped type, not as the alias itself, so the arms are compared column by column: compared as two
+    // instantiations of the alias, an arm with an extra column was taken as compatible
+    [compoundableColumns]: (input: { [K in keyof ColumnsForCompound<any, COLUMNS>]: ColumnsForCompound<any, COLUMNS>[K] }) => { [K in keyof ColumnsForCompound<any, COLUMNS>]: ColumnsForCompound<any, COLUMNS>[K] }
     [using]: REQUIRED
 }
 
@@ -297,7 +299,7 @@ export interface DynamicWhereCompoundableCustomizableExecutableSelectExpression<
 }
 
 export interface RecursivelyConnectedExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
-    groupBy(...columns: RequiredColumnNames<COLUMNS>[]): GroupByOrderByHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
+    groupBy(...columns: NonAggregatedColumnNames<COLUMNS>[]): GroupByOrderByHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
     groupBy(...columns: ValueSourceOf<FROM[typeof source]>[]): GroupByOrderByHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
     groupByNonAggregatedColumns(): GroupByOrderByHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
 }
@@ -313,7 +315,7 @@ export interface GroupByOrderByExecutableSelectExpressionProjectableAsNullable</
 }
 
 export interface GroupByOrderByHavingExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
-    groupBy(...columns: RequiredColumnNames<COLUMNS>[]): GroupByOrderByHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
+    groupBy(...columns: NonAggregatedColumnNames<COLUMNS>[]): GroupByOrderByHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
     groupBy(...columns: ValueSourceOf<FROM[typeof source]>[]): GroupByOrderByHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
     groupByNonAggregatedColumns(): GroupByOrderByHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
 
@@ -399,7 +401,7 @@ export interface DynamicWhereExecutableSelectExpressionWithGroupBy</*in|out*/ FR
 }
 
 export interface GroupByOrderByHavingExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends WhereableExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
-    groupBy(...columns: RequiredColumnNames<COLUMNS>[]): GroupByOrderByHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
+    groupBy(...columns: NonAggregatedColumnNames<COLUMNS>[]): GroupByOrderByHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
     groupBy(...columns: ValueSourceOf<FROM[typeof source]>[]): GroupByOrderByHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
     groupByNonAggregatedColumns(): GroupByOrderByHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
 
@@ -414,7 +416,7 @@ export interface DynamicHavingExecutableSelectExpressionWithoutWhere</*in|out*/ 
 }
 
 export interface RecursivelyConnectedExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends OrderableExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
-    groupBy(...columns: RequiredColumnNames<COLUMNS>[]): GroupByOrderByHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
+    groupBy(...columns: NonAggregatedColumnNames<COLUMNS>[]): GroupByOrderByHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
     groupBy(...columns: ValueSourceOf<FROM[typeof source]>[]): GroupByOrderByHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
     groupByNonAggregatedColumns(): GroupByOrderByHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
     

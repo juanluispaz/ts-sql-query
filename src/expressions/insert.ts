@@ -1,6 +1,6 @@
 import type { IExecutableSelectQuery, RemapIValueSourceType, ValueSourceValueType, AnyValueSource, ValueSourceOf, ValueSourceValueTypeForResult, RemapIValueSourceTypeWithOptionalType, IExecutableInsertQuery, IAnyBooleanValueSource } from './values.js'
 import type { HasSource, IRawFragment, OfDB, ResolvedShape } from '../utils/ITableOrView.js'
-import type { from, source, using } from '../utils/symbols.js'
+import type { columnsType, from, source, using } from '../utils/symbols.js'
 import type { WritableDBColumnWithDefaultValue } from '../utils/Column.js'
 import type { RawFragment } from '../utils/RawFragment.js'
 import type { Default } from './Default.js'
@@ -624,7 +624,7 @@ export interface InsertExpression</*in|out*/ TABLE extends HasSource<any>, /*in|
     dynamicValues<COLUMNS extends OptionalInsertSets<TABLE, USING, undefined>>(columns: Array<COLUMNS>): MaybeExecutableMultipleInsertExpression<TABLE, USING, Exclude<RequiredColumnsForSetOf<TABLE>, NonOptionalKeys<COLUMNS>>>
     dynamicValues<COLUMNS extends OptionalInsertSets<TABLE, USING, undefined>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, USING, Exclude<RequiredColumnsForSetOf<TABLE>, NonOptionalKeys<COLUMNS>>>
     defaultValues: DefaultValueType<TABLE, USING>
-    from(select: IExecutableSelectQuery<USING[typeof source], SelectForInsertColumns<TABLE, USING>, SelectForInsertResultType<TABLE, USING>>): CustomizableExecutableInsertFromSelect<TABLE, USING, undefined>
+    from<SELECT extends IExecutableSelectQuery<USING[typeof source], SelectForInsertColumns<TABLE, USING>, SelectForInsertResultType<TABLE, USING>>>(select: SELECT & OnlyColumnsOfTheTable<SELECT, TABLE>): CustomizableExecutableInsertFromSelect<TABLE, USING, undefined>
 }
 
 export interface ShapedInsertExpression</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>, /*in|out*/ SHAPE, /*in|out*/ MISSING_KEYS_IN_SHAPE> extends InsertExpressionBase<TABLE, USING> {
@@ -1043,6 +1043,13 @@ type SelectForInsertResultType<TABLE extends HasSource<any>, _USING extends HasS
 } & {
     [P in OptionalColumnsForSetOf<TABLE>]?: ValueSourceValueType<TABLE[P]>
 }
+
+// Each column of the select is inserted in the column of the table with its name: a column the table doesn't have can't
+// be inserted
+type OnlyColumnsOfTheTable<SELECT, TABLE extends HasSource<any>> =
+    SELECT extends { [columnsType]: infer COLUMNS }
+    ? ([Exclude<keyof COLUMNS, RequiredColumnsForSetOf<TABLE> | OptionalColumnsForSetOf<TABLE>>] extends [never] ? unknown : never)
+    : unknown
 
 type SelectForInsertColumns<TABLE extends HasSource<any>, _USING extends HasSource<any>> = {
     [P in RequiredColumnsForSetOf<TABLE>]: RemapIValueSourceType<any, TABLE[P]>

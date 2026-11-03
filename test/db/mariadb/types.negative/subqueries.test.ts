@@ -172,9 +172,9 @@ function _typeNegatives() {
     void connection.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ id: tIssue.id, title: tIssue.title })
         // @ts-expect-error the recursive arm omits the anchor's `title` column
         .recursiveUnionAll((parent) => connection.selectFrom(tIssue).join(parent).on(tIssue.parentId.equals(parent.id)).select({ id: tIssue.id }))
-    // TODO[BUG]: the recursive arm must not project a column the anchor does not have — should not compile
-    // (the emitted `union all` arm carries three columns against the anchor's two, which the database rejects).
+    // Rule: the recursive arm must not project a column the anchor does not have.
     void connection.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ id: tIssue.id, title: tIssue.title })
+        // @ts-expect-error the recursive arm projects a column the anchor does not have
         .recursiveUnionAll((parent) => connection.selectFrom(tIssue).join(parent).on(tIssue.parentId.equals(parent.id)).select({ id: tIssue.id, title: tIssue.title, extra: tIssue.priority }))
 
     // Rule: the recursive arm must keep the anchor's optionality; an optional

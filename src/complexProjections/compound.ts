@@ -17,28 +17,28 @@ type ColumnsForCompound1<SOURCE extends NSource, COLUMNS> =
     { [K in UsableKeyOf<COLUMNS>]: 
         COLUMNS[K] extends AnyValueSource | undefined
         ? RemapIValueSourceTypeWithOptionalType<SOURCE, COLUMNS[K], CompoundColumnOptionalType<COLUMNS[K]>> 
-        : ColumnsForCompound2<SOURCE, COLUMNS[K]> 
+        : { [P in keyof ColumnsForCompound2<SOURCE, COLUMNS[K]>]: ColumnsForCompound2<SOURCE, COLUMNS[K]>[P] } // Mapped, so nested objects are compared column by column too
     }
 
 type ColumnsForCompound2<SOURCE extends NSource, COLUMNS> =
     { [K in UsableKeyOf<COLUMNS>]: 
         COLUMNS[K] extends AnyValueSource | undefined
         ? RemapIValueSourceTypeWithOptionalType<SOURCE, COLUMNS[K], CompoundColumnOptionalType<COLUMNS[K]>> 
-        : ColumnsForCompound3<SOURCE, COLUMNS[K]> 
+        : { [P in keyof ColumnsForCompound3<SOURCE, COLUMNS[K]>]: ColumnsForCompound3<SOURCE, COLUMNS[K]>[P] } // Mapped, so nested objects are compared column by column too
     }
     
 type ColumnsForCompound3<SOURCE extends NSource, COLUMNS> =
     { [K in UsableKeyOf<COLUMNS>]: 
         COLUMNS[K] extends AnyValueSource | undefined
         ? RemapIValueSourceTypeWithOptionalType<SOURCE, COLUMNS[K], CompoundColumnOptionalType<COLUMNS[K]>> 
-        : ColumnsForCompound4<SOURCE, COLUMNS[K]> 
+        : { [P in keyof ColumnsForCompound4<SOURCE, COLUMNS[K]>]: ColumnsForCompound4<SOURCE, COLUMNS[K]>[P] } // Mapped, so nested objects are compared column by column too
     }
     
 type ColumnsForCompound4<SOURCE extends NSource, COLUMNS> =
     { [K in UsableKeyOf<COLUMNS>]: 
         COLUMNS[K] extends AnyValueSource | undefined
         ? RemapIValueSourceTypeWithOptionalType<SOURCE, COLUMNS[K], CompoundColumnOptionalType<COLUMNS[K]>> 
-        : ColumnsForCompound5<SOURCE, COLUMNS[K]> 
+        : { [P in keyof ColumnsForCompound5<SOURCE, COLUMNS[K]>]: ColumnsForCompound5<SOURCE, COLUMNS[K]>[P] } // Mapped, so nested objects are compared column by column too
     }
     
 type ColumnsForCompound5<SOURCE extends NSource, COLUMNS> =

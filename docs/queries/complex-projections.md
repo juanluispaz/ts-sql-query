@@ -168,8 +168,6 @@ When projecting nested objects, it's important to determine when those objects a
 
 !!! warning "Limitation"
 
-    - You cannot use complex projections in queries that will be used as table in other query (created using `forUseInQueryAs` that corresponds to the with clause in SQL)
-
     - Only 5 nesting levels are supported.
 
 ## Optional nested objects with required fields

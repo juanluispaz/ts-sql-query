@@ -508,7 +508,7 @@ The parameters are: `[ 10 ]`
 
 The result type is:
 ```tsx
-const recursiveParentCompany: Promise<{
+const recursiveChildrenCompany: Promise<{
     id: number;
     name: string;
     parentId?: number;

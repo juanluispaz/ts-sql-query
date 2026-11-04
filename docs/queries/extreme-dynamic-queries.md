@@ -26,7 +26,7 @@ In most applications, simple constructs like `.equalsIfValue()` or `.containsIfV
 
 ## Complex dynamic boolean expressions
 
-When the methods ended with `IfValue` are not enough to create dynamic complex boolean expressions, you can call the `dynamicBooleanExpresionUsing` method to create your complex boolean expressions. The `dynamicBooleanExpresionUsing` method is in the connection object. It allows you to create a dynamic expression with the initial value of the special neutral boolean. This method receives by argument the tables you expect to use while constructing the complex boolean expression.
+When the methods ended with `IfValue` are not enough to create dynamic complex boolean expressions, you can call the `dynamicBooleanExpressionUsing` method to create your complex boolean expressions. The `dynamicBooleanExpressionUsing` method is in the connection object. It allows you to create a dynamic expression with the initial value of the special neutral boolean. This method receives by argument the tables you expect to use while constructing the complex boolean expression.
 
 The previous example can be written in the following way:
 
@@ -332,7 +332,7 @@ The parameters are: `[ 'John', 'Smi', 'th', 'ACME' ]`
 
 The result type is:
 ```tsx
-const customersWithCompanyName: Promise<{
+const customersWithDynamicCondition: Promise<{
     id: number;
     firstName: string;
     lastName: string;
@@ -1093,7 +1093,7 @@ The parameters are: `[ 12 ]`
 
 The result type is:
 ```tsx
-const customersOfCompany: Promise<{
+const customerWithOptionalCompany: Promise<{
     id: number;
     name?: {
         firstName?: string;

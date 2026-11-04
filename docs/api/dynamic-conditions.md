@@ -49,6 +49,7 @@ type FilterType = {
     myBigint: ComparableFilter<bigint>
     myDouble: ComparableFilter<number>
     myString: StringFilter
+    myUuid: StringFilter
     myLocalDate: ComparableFilter<Date>
     myLocalTime: ComparableFilter<Date>
     myLocalDateTime: ComparableFilter<Date>

@@ -154,7 +154,7 @@ The parameters are: `[ ' ', 'ohn' ]` (on [MariaDB](../configuration/supported-da
 
 The result type is:
 ```tsx
-const customerWithId: Promise<{
+const searchedCustomers: Promise<{
     id: number;
     name: string;
     birthday?: Date;

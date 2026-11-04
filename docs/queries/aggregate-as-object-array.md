@@ -161,7 +161,7 @@ const acmeCompanyWithCustomers: Promise<{
 
 !!! note "SQL Server: native JSON aggregates require SQL Server 2025+"
 
-    The `json_arrayagg` and `json_object` aggregates shown above are emitted only when the connection's [`compatibilityVersion`](../configuration/supported-databases/sqlserver.md) is at least `17_000_000` (SQL Server 2025), which is the default. On older versions, set `compatibilityVersion` to your actual version (e.g. `16_000_000` for SQL Server 2022); the same query is then emitted using `string_agg`/`string_escape` to build the JSON output. The `aggregateAsArrayDistinct` / `aggregateAsArrayOfOneColumnDistinct` variants always use the `string_agg` form regardless of `compatibilityVersion`, because `json_arrayagg` does not accept `DISTINCT`.
+    The `json_arrayagg` and `json_object` aggregates shown above are emitted only when the connection's [`compatibilityVersion`](../configuration/supported-databases/sqlserver.md) is at least `17_000_000` (SQL Server 2025), which is the default. On older versions, set `compatibilityVersion` to your actual version (e.g. `16_000_000` for SQL Server 2022); the same query is then emitted using `string_agg`/`string_escape` to build the JSON output.
 
 ## Aggregate as an array of values
 
@@ -261,7 +261,7 @@ const acmeCompanyWithCustomers: Promise<{
 
 !!! warning "Limitation"
 
-    [MySQL](../configuration/supported-databases/mysql.md), [Oracle](../configuration/supported-databases/oracle.md), and [SQL Server](../configuration/supported-databases/sqlserver.md) don't accept the `DISTINCT` quantifier inside their JSON-array aggregation function. If you try to use `aggregateAsArrayDistinct` or `aggregateAsArrayOfOneColumnDistinct` on any of these databases, you will get a compilation error. A workaround is to pre-deduplicate the values inside a subquery using `subSelectUsing(...).distinct().select(...).forUseAsInlineAggregatedArrayValue()` (shown below).
+    [MySQL](../configuration/supported-databases/mysql.md), [Oracle](../configuration/supported-databases/oracle.md), and [SQL Server](../configuration/supported-databases/sqlserver.md) don't accept the `DISTINCT` quantifier inside their JSON-array aggregation function. If you try to use `aggregateAsArrayDistinct` or `aggregateAsArrayOfOneColumnDistinct` on any of these databases, you will get a compilation error. A workaround is to remove the duplicates inside a subquery created with `subSelectDistinctUsing`, as shown in [Inline subquery with distinct values referencing outer query](select.md#inline-subquery-with-distinct-values-referencing-outer-query).
 
 ## Query as an inline array of objects
 

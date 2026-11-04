@@ -208,7 +208,7 @@ const vCustomerAndCompany = new class VCustomerAndCompany extends View<DBConnect
 You can use a set of data a a view made of constant values that will be executed in a query. To do it, you need to extend the Values class that receives two generic arguments, the first one is the connection class, and the second one is a unique name for the view in your query.
 
 ```ts
-import { Values } from "ts-sql-query" // or "ts-sql-query/View";
+import { Values } from "ts-sql-query" // or "ts-sql-query/Values";
 
 async function yourBusinessLogic() {
     class VCustomerForUpdate extends Values<DBConnection, 'customerForUpdate'> {

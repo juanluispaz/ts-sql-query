@@ -307,7 +307,7 @@ The parameters are: `[ 2 ]`
 
 The result type is:
 ```tsx
-const companiesUsingCustomFunctionFragment: Promise<{
+const companiesUsingCustomFunctionFragmentIfValue: Promise<{
     id: number;
     name: string;
 }[]>
@@ -417,14 +417,14 @@ The executed query is:
     where (id * @1) = (id << @2)
     ```
 
-The parameters are: `[ null, 2, null ]`
+The parameters are: `[ 1, 2, 1 ]`
 
 The result type is:
 ```tsx
 const companiesUsingCustomFunctionFragment: Promise<{
     id: number;
     name: string;
-    idMultiplyBy2?: number;
+    idMultiplyBy2: number;
 }[]>
 ```
 
@@ -462,8 +462,8 @@ For a one-off aggregate you don't need a reusable function: `connection.aggregat
 `ts-sql-query` allows you to write raw SQL to extend and customize the generated queries in several places.
 
 ```typescriptreact
-const from = this.const(new Date('2019-01-01'), 'localDateTime')
-const to = this.const(new Date('2020-01-01'), 'localDateTime')
+const from = connection.const(new Date('2019-01-01'), 'localDateTime')
+const to = connection.const(new Date('2020-01-01'), 'localDateTime')
 const fragment = connection.rawFragment`between ${from} and ${to}`
 ```
 
@@ -774,7 +774,7 @@ The executed query is:
     log errors reject limit unlimited
     ```
 
-The parameters are: `[ 10 ]`
+The parameters are: `[ 'John', 'Smith', 1 ]`
 
 The result type is:
 ```tsx

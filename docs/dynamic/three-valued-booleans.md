@@ -57,8 +57,10 @@ The place this surprises people most is **comparing two values that may both be 
 |---|---|---|---|
 | `a.equals(b)` | `a = b` | `null` | optional boolean |
 | `a.notEquals(b)` | `a <> b` | `null` | optional boolean |
-| `a.is(b)` | `a is not distinct from b` (`a <=> b` on MySQL/MariaDB) | `true` | boolean (never `null`) |
+| `a.is(b)` | `a is not distinct from b` | `true` | boolean (never `null`) |
 | `a.isNot(b)` | `a is distinct from b` | `false` | boolean (never `null`) |
+
+The table shows the standard SQL for `is` / `isNot`, the one PostgreSQL receives. MySQL and MariaDB get `a <=> b` and `not (a <=> b)`, SQLite gets `a is b` and `a is not b`, Oracle gets a `decode`, and SQL Server gets `a = b` and `a <> b` when neither side can be null, or a `case` expression otherwise.
 
 - `equals` / `notEquals` follow **SQL**'s `=` / `<>`: three-valued, the result is an **optional** boolean (it may be `null`), and they take a present value — you cannot pass `null` / `undefined` to them.
 - `is` / `isNot` follow **JavaScript**'s `===` / `!==`: a **null-safe** comparison that treats `null` as equal to `null`, accepts `null` / `undefined` as the argument, and always returns a **definite** boolean — never `null`.

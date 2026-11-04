@@ -16,7 +16,7 @@ import { IDEncrypter } from "ts-sql-query/extras/IDEncrypter";
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> { 
 
-    // PasswordEncrypter requires two strings of 16 chars of [A-Za-z0-9] working as passwords for the encrypt process
+    // IDEncrypter requires two strings of 16 chars of [A-Za-z0-9] working as passwords for the encrypt process
     private encrypter = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c');
 
     protected override transformValueFromDB(value: unknown, type: string): unknown {
@@ -114,7 +114,7 @@ import { IDEncrypter } from "ts-sql-query/extras/IDEncrypter";
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> { 
 
-    // PasswordEncrypter requires two strings of 16 chars of [A-Za-z0-9] working as passwords for the encrypt process
+    // IDEncrypter requires two strings of 16 chars of [A-Za-z0-9] working as passwords for the encrypt process
     private encrypter = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c');
 
     protected override transformValueFromDB(value: unknown, type: string): unknown {

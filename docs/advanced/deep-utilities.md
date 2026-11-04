@@ -141,7 +141,7 @@ const trimmed = deepOmit(customer, ['lastName', 'company.id']);
 
 ## Terminal object values
 
-`DeepPick` / `DeepPickPaths` (and their omit counterparts) treat the built-in object types that represent a single terminal value as **leaves** — they are **not** descended into: dates, binary buffers (`Uint8Array`, `ArrayBuffer`, …), `Map`/`Set`, arrays, regular expressions and functions. So a `birthday` field typed as a date is the path `'birthday'`, never `'birthday.year'`.
+`DeepPick` / `DeepPickPaths` (and their omit counterparts) treat the built-in object types that represent a single terminal value as **leaves** — they are **not** descended into: dates, binary buffers (`Uint8Array`, `ArrayBuffer`, …), `Map`/`Set` and their weak versions, arrays, regular expressions, promises and functions. So a `birthday` field typed as a date is the path `'birthday'`, never `'birthday.year'`.
 
 The one shape that cannot be detected at the type level is a **plain custom object value** — for example a column whose value is a JSON object typed as `{ … }`. It is indistinguishable from a nested projection, so `DeepPickPaths` descends into it and produces dotted sub-paths for its members (this is a limitation shared by every structural deep-pick type). If you have such a column, type that property in your business model as a terminal value your code treats as opaque (or pick it whole), so it is not mistaken for a nested projection.
 

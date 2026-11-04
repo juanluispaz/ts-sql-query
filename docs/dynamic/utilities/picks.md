@@ -85,7 +85,7 @@ Use this type to define the shape of a `fieldsToPick` object, where the user set
 ```ts
 import { DynamicPick } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
 
-type FieldsToPick = DynamicPick<typeof availableFields, 'firstName' | 'birthday'>
+type FieldsToPick = DynamicPick<typeof availableFields, 'id'>
 ```
 
 ### DynamicPickPaths
@@ -97,7 +97,7 @@ Use this type when your fields are selected by path strings (e.g. `'name.firstNa
 ```ts
 import { DynamicPickPaths } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
 
-type FieldsToPickList = DynamicPickPaths<typeof availableFields, 'firstName' | 'birthday'>
+type FieldsToPickList = DynamicPickPaths<typeof availableFields, 'id'>
 ```
 
 ### PickValuesPath
@@ -219,7 +219,7 @@ The example above returns a flat `Pick<...>`, which works when the picked fields
 
 ```ts
 import { dynamicPickPaths, expandTypeFromDynamicPickPaths } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
-import type { DeepPick, DeepPickPaths } from "ts-sql-query" // or ts-sql-query/extras/deepUtilities"
+import type { DeepPick, DeepPickPaths } from "ts-sql-query" // or "ts-sql-query/extras/deepUtilities"
 
 interface CustomerWithCompany {
     id: number;

@@ -12,9 +12,10 @@ import type {
     SelectedRowProjectedAsNullable, SelectedValuesProjectedAsNullable, TableOrViewLeftJoinOf,
 } from '../../../../../src/extras/types.js'
 import { fromRef } from '../../../../../src/extras/types.js'
+import type { PickValuesPath } from '../../../../../src/dynamic/pick.js'
 import type { DynamicDefinitionForModel } from '../../../../../src/dynamic/condition.js'
 import { extractColumnsFrom } from '../../../../../src/extras/utils.js'
-import { tCountry, tProject } from '../../domain/connection.js'
+import { tCountry, tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 // `extractColumnsFrom(tCountry)` is a plain column-BAG (a record of value
@@ -85,6 +86,26 @@ describe(ctx.label, () => {
         const recovered = fromRef(tProject, leftRef)
         assertType<Extends<typeof recovered, TableOrViewLeftJoinOf<typeof tProject>>>()
         expect(recovered).toBe(projectLeft)
+    })
+
+    test('from-ref-left-join-columns-keep-the-left-join-optionality', () => {
+        // A helper receiving a left-join ref: the columns it recovers are the left join's, so
+        // an object of them is optional in the result, like one of the left-joined table.
+        function availableFields<REF extends TableOrViewLeftJoinOf<typeof tProject, 'proj'>>(ref: REF) {
+            const project = fromRef(tProject, ref)
+            return { id: tIssue.id, project: { id: project.id, name: project.name } }
+        }
+        type AllColumns = PickValuesPath<ReturnType<typeof availableFields>, 'id' | 'project'>
+        assertType<Exact<AllColumns, { id: number; project?: { id: number; name: string } }>>()
+    })
+
+    test('pick-values-path-of-a-nested-path-keeps-only-that-leaf', () => {
+        // Picking a path into an object brings that leaf only; picking the object brings all of it.
+        const project = tProject.forUseInLeftJoinAs('proj')
+        const availableFields = { id: tIssue.id, project: { id: project.id, name: project.name } }
+        assertType<Exact<PickValuesPath<typeof availableFields, 'id' | 'project.name'>, { id: number; project?: { name: string } }>>()
+        assertType<Exact<PickValuesPath<typeof availableFields, 'id' | 'project'>, { id: number; project?: { id: number; name: string } }>>()
+        assertType<Exact<PickValuesPath<typeof availableFields, 'id' | 'project' | 'project.name'>, { id: number; project?: { id: number; name: string } }>>()
     })
 
     test('dynamic-definition-for-model-maps-boolean-to-the-boolean-descriptor', () => {

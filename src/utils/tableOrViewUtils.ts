@@ -23,7 +23,7 @@ export type AsAliasedForUseInLeftJoin<T extends ITableOrView<any>, ALIAS extends
 // indexed access is what made the documented "table/view as a parameter" helper
 // fail to typecheck; see docs/advanced/tables-views-as-parameter.md.
 export type FromRefBySource<T extends ITableOrView<any>, S extends NSource> = { [K in ValueSourcesKeyOf<T>]: RemapValueSourceType<S, T[K]> } & ITableOrView<S>
-export type FromRefBySourceLeftJoin<T extends ITableOrView<any>, S extends NSource> = { [K in ValueSourcesKeyOf<T>]: RemapValueSourceType<S, T[K]> } & ForUseInLeftJoin<S>
+export type FromRefBySourceLeftJoin<T extends ITableOrView<any>, S extends NSource> = ColumnsForLeftJoin<S, Pick<T, ValueSourcesKeyOf<T>>> & ForUseInLeftJoin<S>
 
 type AddAliasMethods<T extends ITableOrView<any>> = T & {
     as<ALIAS extends string>(as: ALIAS): AliasedTableOrView<T, ALIAS>

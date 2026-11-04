@@ -71,6 +71,9 @@ These only affect what was new in v2: they are not breaking when coming from v1.
 
 **Bug fixes**:
 
+- `PickValuesPath` (and its `ProjectedAsNullable` variant): a path into a nested object (`'company.name'`) brought all the properties of that object into the type; now only the picked one. Code reading a property that wasn't picked, which never came at runtime, stops compiling.
+- `fromRef` with a left-join ref (`TableOrViewLeftJoinOf`): the columns it recovered had lost the left join's optionality, so a nested object of them was typed as always present; now it's optional, as with the left-joined table itself.
+- `onConflictDoUpdateSetIfValue` and `doUpdateSetIfValue`: they rejected `null` and `undefined` on a required column at compile time, while skipping them at runtime; now they accept them, like `setIfValue` does.
 Transactions:
 
 - PostgreSQL: fix a transaction taken as committed when a statement failed and your code caught the error; the database had rolled it back and nothing was saved. Now the transaction fails with `TRANSACTION_ERROR` (`transactionErrorType: 'transaction rolled back'`), with the first error as its `cause`, and `connection.transaction(...)` rejects and runs the after-rollback functions ([docs](configuration/supported-databases/postgresql.md#a-statement-that-fails-inside-a-transaction)).

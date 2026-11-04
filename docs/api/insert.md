@@ -320,7 +320,7 @@ interface InsertExpression {
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array 
      */
-    onConflictDoUpdateSetIfValue(columns: UpdateSets): this
+    onConflictDoUpdateSetIfValue(columns: OptionalUpdateSets): this
     /**Allow to specify the "on conflict" clasue indicating the index column expected by this clause */
     onConflictOn(column: AnyValueSource, ...columns: AnyValueSource[]): this
     /**Allow to specify the "on conflict on constraint" clasue indicating the index name expected by this clause */
@@ -340,7 +340,7 @@ interface InsertExpression {
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array 
      */
-    doUpdateSetIfValue(columns: UpdateSets): this
+    doUpdateSetIfValue(columns: OptionalUpdateSets): this
 
     // Methods available to specify a where clause inmediatelly after call onConflictOn or any do update method
     // (after a do update method the condition can use the values to insert, see valuesForInsert)

@@ -335,6 +335,7 @@ describe(ctx.label, () => {
 
             // doc-start
             const newArchivedAt: Date | null = null
+            const newSlug: string | null = null
 
             const affectedCount = await connection.insertInto(tProject).set({
                     organizationId: 1,
@@ -344,6 +345,7 @@ describe(ctx.label, () => {
                 .onConflictDoUpdateSetIfValue({
                     name:       'Marketing web',
                     archivedAt: newArchivedAt, // no value: not updated
+                    slug:       newSlug,       // no value: not updated, even if the column is required
                 })
                 .executeInsert()
             // doc-end

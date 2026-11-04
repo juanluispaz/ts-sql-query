@@ -22,7 +22,7 @@ interface InsertExpression {
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array (SQLite, MariaDB, MySQL)
      */
-    onConflictDoUpdateSetIfValue(columns: UpdateSets): this
+    onConflictDoUpdateSetIfValue(columns: OptionalUpdateSets): this
     /** Start the update with these values, or with none, to add them later (SQLite, MariaDB, MySQL) */
     onConflictDoUpdateDynamicSet(): this
     onConflictDoUpdateDynamicSet(columns: UpdateSets): this
@@ -48,7 +48,7 @@ interface InsertOnConflictExpression {
     /** Update the existing row */
     doUpdateSet(columns: UpdateSets): this
     /** Update the existing row, only with the values that have a value (like onConflictDoUpdateSetIfValue) */
-    doUpdateSetIfValue(columns: UpdateSets): this
+    doUpdateSetIfValue(columns: OptionalUpdateSets): this
     /** Start the update with these values, or with none, to add them later */
     doUpdateDynamicSet(): this
     doUpdateDynamicSet(columns: UpdateSets): this

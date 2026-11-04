@@ -505,11 +505,11 @@ describe(ctx.label, () => {
                 return connection.transaction(fn)
             }
 
-            const userId = await inTransaction(() => registerUser('john@acme.test', 'John Smith'))
+            const userId = await inTransaction(async () => registerUser('john@acme.test', 'John Smith'))
             // doc-end
 
             // Called with a transaction running, it joins it: this connection rejects a nested transaction.
-            const otherUserId = await connection.transaction(() => inTransaction(() => registerUser('jane@acme.test', 'Jane Doe')))
+            const otherUserId = await connection.transaction(() => inTransaction(async () => registerUser('jane@acme.test', 'Jane Doe')))
 
             expect(statementsSql()).toMatchInlineSnapshot(`
               [

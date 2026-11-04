@@ -902,8 +902,6 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[BUG]: PickValuesPath<ReturnType<typeof buildIssueAvailableFields>, 'id' | 'title' | 'assignee.name'> resolves to { id: number, title: string, assignee: { id: number, name: string } }; the page and the real value have assignee?: { name: string } (no assignee.id, and the left join can leave assignee absent)
-    /*
     test('docs:extreme-dynamic-queries/full-dynamic-from-database-2', async () => {
         ctx.mockNext(50)
         ctx.mockNext([{ 'id': 50, 'title': 'Child issue', 'assignee.name': 'Grace Hopper grace@acme.test' }])
@@ -918,8 +916,15 @@ describe(ctx.label, () => {
             })
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.title as title, assignee.full_name + @0 + assignee.email as [assignee.name] from issue left outer join app_user as assignee on issue.assignee_id = assignee.id where exists(select id as [result] from app_user where lower(full_name + @1 + email) like lower('%' + @2 + '%')) and issue.parent_id = @3"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                " ",
+                " ",
+                "lovelace",
+                1,
+              ]
+            `)
             assertType<Exact<typeof result, Array<{
                 id:    number
                 title: string
@@ -934,7 +939,6 @@ describe(ctx.label, () => {
             }])
         })
     })
-    */
 
     test('docs:extreme-dynamic-queries/full-dynamic-from-database-3', async () => {
         // Seeded issue 1 is assigned to user 1, the assignee of the child too.

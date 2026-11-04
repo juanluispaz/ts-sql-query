@@ -902,8 +902,6 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[BUG]: PickValuesPath<ReturnType<typeof buildIssueAvailableFields>, 'id' | 'title' | 'assignee.name'> resolves to { id: number, title: string, assignee: { id: number, name: string } }; the page and the real value have assignee?: { name: string } (no assignee.id, and the left join can leave assignee absent)
-    /*
     test('docs:extreme-dynamic-queries/full-dynamic-from-database-2', async () => {
         ctx.mockNext(50)
         ctx.mockNext([{ 'id': 50, 'title': 'Child issue', 'assignee.name': 'Grace Hopper grace@acme.test' }])
@@ -941,7 +939,6 @@ describe(ctx.label, () => {
             }])
         })
     })
-    */
 
     test('docs:extreme-dynamic-queries/full-dynamic-from-database-3', async () => {
         // Seeded issue 1 is assigned to user 1, the assignee of the child too.

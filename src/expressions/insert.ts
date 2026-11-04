@@ -63,7 +63,7 @@ export interface CustomizableExecutableInsertFromSelect</*in|out*/ TABLE extends
     onConflictDoNothing: OnConflictDoNothingFnType<TABLE, USING, CustomizableExecutableInsertFromSelectOnConflictOptional<TABLE, USING>>
     onConflictDoUpdateDynamicSet: OnConflictDoUpdateDynamicSetWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableInsertFromSelectOnConflict<TABLE, USING>, CustomizableExecutableInsertFromSelectOnConflictOptional<TABLE, USING>>
     onConflictDoUpdateSet: OnConflictDoUpdateSetWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableInsertFromSelectOnConflict<TABLE, USING>, CustomizableExecutableInsertFromSelectOnConflictOptional<TABLE, USING>>
-    onConflictDoUpdateSetIfValue: OnConflictDoUpdateSetWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableInsertFromSelectOnConflict<TABLE, USING>, CustomizableExecutableInsertFromSelectOnConflictOptional<TABLE, USING>>
+    onConflictDoUpdateSetIfValue: OnConflictDoUpdateSetIfValueWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableInsertFromSelectOnConflict<TABLE, USING>, CustomizableExecutableInsertFromSelectOnConflictOptional<TABLE, USING>>
     onConflictOn: OnConflictOnColumnFnType<TABLE, USING, OnConflictDoInsertFromSelect<TABLE, USING, SHAPE>>
     onConflictOnConstraint: OnConflictOnConstraintFnType<TABLE, USING, OnConflictDoInsertFromSelect<TABLE, USING, SHAPE>>
 }
@@ -72,7 +72,7 @@ export interface OnConflictDoInsertFromSelect</*in|out*/ TABLE extends HasSource
     doNothing: OnConflictDoNothingFnType<TABLE, USING, CustomizableExecutableInsertFromSelectOnConflictOptional<TABLE, USING>>
     doUpdateDynamicSet: OnConflictDoUpdateDynamicSetFnType<TABLE, USING, SHAPE, CustomizableExecutableInsertFromSelectOnConflict<TABLE, USING>, CustomizableExecutableInsertFromSelectOnConflictOptional<TABLE, USING>>
     doUpdateSet: OnConflictDoUpdateSetFnType<TABLE, USING, SHAPE, CustomizableExecutableInsertFromSelectOnConflict<TABLE, USING>, CustomizableExecutableInsertFromSelectOnConflictOptional<TABLE, USING>>
-    doUpdateSetIfValue: OnConflictDoUpdateSetFnType<TABLE, USING, SHAPE, CustomizableExecutableInsertFromSelectOnConflict<TABLE, USING>, CustomizableExecutableInsertFromSelectOnConflictOptional<TABLE, USING>>
+    doUpdateSetIfValue: OnConflictDoUpdateSetIfValueFnType<TABLE, USING, SHAPE, CustomizableExecutableInsertFromSelectOnConflict<TABLE, USING>, CustomizableExecutableInsertFromSelectOnConflictOptional<TABLE, USING>>
 }
 
 export interface CustomizableExecutableSimpleInsertOnConflict</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends CustomizableExecutableInsert<TABLE, USING> {
@@ -102,7 +102,7 @@ export interface CustomizableExecutableSimpleInsert</*in|out*/ TABLE extends Has
     onConflictDoNothing: OnConflictDoNothingFnType<TABLE, USING, CustomizableExecutableSimpleInsertOnConflictOptional<TABLE, USING>>
     onConflictDoUpdateDynamicSet: OnConflictDoUpdateDynamicSetWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableSimpleInsertOnConflict<TABLE, USING>, CustomizableExecutableSimpleInsertOnConflictOptional<TABLE, USING>>
     onConflictDoUpdateSet: OnConflictDoUpdateSetWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableSimpleInsertOnConflict<TABLE, USING>, CustomizableExecutableSimpleInsertOnConflictOptional<TABLE, USING>>
-    onConflictDoUpdateSetIfValue: OnConflictDoUpdateSetWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableSimpleInsertOnConflict<TABLE, USING>, CustomizableExecutableSimpleInsertOnConflictOptional<TABLE, USING>>
+    onConflictDoUpdateSetIfValue: OnConflictDoUpdateSetIfValueWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableSimpleInsertOnConflict<TABLE, USING>, CustomizableExecutableSimpleInsertOnConflictOptional<TABLE, USING>>
     onConflictOn: OnConflictOnColumnFnType<TABLE, USING, OnConflictDoSimpleInsert<TABLE, USING, SHAPE>>
     onConflictOnConstraint: OnConflictOnConstraintFnType<TABLE, USING, OnConflictDoSimpleInsert<TABLE, USING, SHAPE>>
 }
@@ -111,7 +111,7 @@ export interface OnConflictDoSimpleInsert</*in|out*/ TABLE extends HasSource<any
     doNothing: OnConflictDoNothingFnType<TABLE, USING, CustomizableExecutableSimpleInsertOnConflictOptional<TABLE, USING>>
     doUpdateDynamicSet: OnConflictDoUpdateDynamicSetFnType<TABLE, USING, SHAPE, CustomizableExecutableSimpleInsertOnConflict<TABLE, USING>, CustomizableExecutableSimpleInsertOnConflictOptional<TABLE, USING>>
     doUpdateSet: OnConflictDoUpdateSetFnType<TABLE, USING, SHAPE, CustomizableExecutableSimpleInsertOnConflict<TABLE, USING>, CustomizableExecutableSimpleInsertOnConflictOptional<TABLE, USING>>
-    doUpdateSetIfValue: OnConflictDoUpdateSetFnType<TABLE, USING, SHAPE, CustomizableExecutableSimpleInsertOnConflict<TABLE, USING>, CustomizableExecutableSimpleInsertOnConflictOptional<TABLE, USING>>
+    doUpdateSetIfValue: OnConflictDoUpdateSetIfValueFnType<TABLE, USING, SHAPE, CustomizableExecutableSimpleInsertOnConflict<TABLE, USING>, CustomizableExecutableSimpleInsertOnConflictOptional<TABLE, USING>>
 }
 
 export interface CustomizableExecutableMultipleInsertOnConflict</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends CustomizableExecutableInsert<TABLE, USING> {
@@ -133,7 +133,7 @@ export interface CustomizableExecutableMultipleInsert</*in|out*/ TABLE extends H
     onConflictDoNothing: OnConflictDoNothingFnType<TABLE, USING, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>>
     onConflictDoUpdateDynamicSet: OnConflictDoUpdateDynamicSetWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableMultipleInsertOnConflict<TABLE, USING>, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>>
     onConflictDoUpdateSet: OnConflictDoUpdateSetWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableMultipleInsertOnConflict<TABLE, USING>, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>>
-    onConflictDoUpdateSetIfValue: OnConflictDoUpdateSetWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableMultipleInsertOnConflict<TABLE, USING>, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>>
+    onConflictDoUpdateSetIfValue: OnConflictDoUpdateSetIfValueWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableMultipleInsertOnConflict<TABLE, USING>, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>>
     onConflictOn: OnConflictOnColumnFnType<TABLE, USING, OnConflictDoMultipleInsert<TABLE, USING, SHAPE>>
     onConflictOnConstraint: OnConflictOnConstraintFnType<TABLE, USING, OnConflictDoMultipleInsert<TABLE, USING, SHAPE>>
 }
@@ -142,7 +142,7 @@ export interface OnConflictDoMultipleInsert</*in|out*/ TABLE extends HasSource<a
     doNothing: OnConflictDoNothingFnType<TABLE, USING, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>>
     doUpdateDynamicSet: OnConflictDoUpdateDynamicSetFnType<TABLE, USING, SHAPE, CustomizableExecutableMultipleInsertOnConflict<TABLE, USING>, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>>
     doUpdateSet: OnConflictDoUpdateSetFnType<TABLE, USING, SHAPE, CustomizableExecutableMultipleInsertOnConflict<TABLE, USING>, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>>
-    doUpdateSetIfValue: OnConflictDoUpdateSetFnType<TABLE, USING, SHAPE, CustomizableExecutableMultipleInsertOnConflict<TABLE, USING>, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>>
+    doUpdateSetIfValue: OnConflictDoUpdateSetIfValueFnType<TABLE, USING, SHAPE, CustomizableExecutableMultipleInsertOnConflict<TABLE, USING>, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>>
 }
 
 export interface ExecutableInsertExpression</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends CustomizableExecutableSimpleInsert<TABLE, USING, undefined> {
@@ -957,6 +957,15 @@ type OnConflictDoUpdateSetFnType<TABLE extends HasSource<any>, USING extends Has
     )
     : never
 
+type OnConflictDoUpdateSetIfValueFnType<TABLE extends HasSource<any>, USING extends HasSource<any>, SHAPE, NEXT, NEXT_WHERE> =
+    TABLE extends OfDB<'noopDB' | 'postgreSql' | 'sqlite' | 'mariaDB' | 'mySql'>
+    ? (
+        SHAPE extends ResolvedShape<any>
+        ? (columns: OnConflictOptionalUpdateSets<TABLE, USING, SHAPE>) => ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT, NEXT_WHERE> & NEXT
+        : (columns: OnConflictOptionalUpdateSets<TABLE, USING, undefined>) => InsertOnConflictSetsExpression<TABLE, USING, NEXT, NEXT_WHERE> & NEXT
+    )
+    : never
+
 // Variant of the set type used by the top-level (bare)
 // `.onConflictDoUpdateSet({...})` / `.onConflictDoUpdateSetIfValue({...})`
 // entries — PostgreSQL is excluded; see the comment on
@@ -967,6 +976,15 @@ type OnConflictDoUpdateSetWithoutTargetFnType<TABLE extends HasSource<any>, USIN
         SHAPE extends ResolvedShape<any>
         ? (columns: OnConflictUpdateSets<TABLE, USING, SHAPE>) => ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT, NEXT_WHERE> & NEXT
         : (columns: OnConflictUpdateSets<TABLE, USING, undefined>) => InsertOnConflictSetsExpression<TABLE, USING, NEXT, NEXT_WHERE> & NEXT
+    )
+    : never
+
+type OnConflictDoUpdateSetIfValueWithoutTargetFnType<TABLE extends HasSource<any>, USING extends HasSource<any>, SHAPE, NEXT, NEXT_WHERE> =
+    TABLE extends OfDB<'noopDB' | 'sqlite' | 'mariaDB' | 'mySql'>
+    ? (
+        SHAPE extends ResolvedShape<any>
+        ? (columns: OnConflictOptionalUpdateSets<TABLE, USING, SHAPE>) => ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT, NEXT_WHERE> & NEXT
+        : (columns: OnConflictOptionalUpdateSets<TABLE, USING, undefined>) => InsertOnConflictSetsExpression<TABLE, USING, NEXT, NEXT_WHERE> & NEXT
     )
     : never
 

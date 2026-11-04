@@ -24,7 +24,7 @@ describe(ctx.label, () => {
         // doc-start
         const projectName = 'M'
 
-        const projectPageWithName = await connection.selectFrom(tProject)
+        const projectPageWithName = sync(connection.selectFrom(tProject)
             .where(
                 tProject.name.startsWithInsensitive(projectName),
             ).or(
@@ -38,7 +38,7 @@ describe(ctx.label, () => {
             .orderBy('slug')
             .limit(10)
             .offset(20)
-            .executeSelectPage()
+            .executeSelectPage())
         // doc-end
 
         expect(ctx.history.length).toBe(2)

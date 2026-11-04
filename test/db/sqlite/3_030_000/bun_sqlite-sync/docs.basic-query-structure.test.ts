@@ -51,7 +51,7 @@ describe(ctx.label, () => {
         // doc-start
         const projectId = 1
 
-        const projectWithId = await connection.selectFrom(tProject)
+        const projectWithId = sync(connection.selectFrom(tProject)
             .where(tProject.id.equals(projectId))
             .select({
                 id:         tProject.id,
@@ -59,7 +59,7 @@ describe(ctx.label, () => {
                 slug:       tProject.slug,
                 archivedAt: tProject.archivedAt,
             })
-            .executeSelectOne()
+            .executeSelectOne())
         // doc-end
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, slug as slug, archived_at as archivedAt from project where id = ?1"`)
@@ -152,14 +152,14 @@ describe(ctx.label, () => {
         // doc-start
         const noteForTheProject: string | null = null
 
-        const projectWithNote = await connection.selectFrom(tProject)
+        const projectWithNote = sync(connection.selectFrom(tProject)
             .where(tProject.id.equals(1))
             .select({
                 id:     tProject.id,
                 source: connection.const('import', 'string'),
                 note:   connection.optionalConst(noteForTheProject, 'string'),
             })
-            .executeSelectOne()
+            .executeSelectOne())
         // doc-end
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ?1 as source, ?2 as note from project where id = ?3"`)

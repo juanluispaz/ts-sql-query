@@ -12,7 +12,7 @@ In `ts-sql-query`, the result of a query doesn't need to be a flat object. You c
 
 !!! warning "Limitation"
 
-    - Only 5 nesting levels are supported.
+    - Only 5 nesting levels are supported; the object passed to `select` is the first level.
 
 ```ts
 const companyId = 24;
@@ -168,7 +168,7 @@ When projecting nested objects, it's important to determine when those objects a
 
 !!! warning "Limitation"
 
-    - Only 5 nesting levels are supported.
+    - Only 5 nesting levels are supported; the object passed to `select` is the first level.
 
 ## Optional nested objects with required fields
 

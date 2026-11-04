@@ -6,6 +6,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tAppUser, tIssue, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { sync } from '../../../../../src/extras/sync.js'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -26,7 +27,7 @@ describe(ctx.label, () => {
         // doc-start
         const projectId = 1
 
-        const issuesOfProject = await connection.selectFrom(tIssue)
+        const issuesOfProject = sync(connection.selectFrom(tIssue)
             .where(tIssue.projectId.equals(projectId))
             .select({
                 id: tIssue.id,
@@ -38,7 +39,7 @@ describe(ctx.label, () => {
             })
             .orderBy('header.title')
             .orderBy('header.status')
-            .executeSelectMany()
+            .executeSelectMany())
         // doc-end
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as "header.title", status as "header.status", body as body from issue where project_id = ?1 order by "header.title", "header.status""`)
@@ -65,7 +66,7 @@ describe(ctx.label, () => {
         ctx.mockNext({ id: 1, 'level2.level3.level4.level5.title': 'Update hero copy' })
         const connection = ctx.conn
 
-        const issue = await connection.selectFrom(tIssue)
+        const issue = sync(connection.selectFrom(tIssue)
             .where(tIssue.id.equals(1))
             .select({
                 id: tIssue.id,
@@ -73,7 +74,7 @@ describe(ctx.label, () => {
                     title: tIssue.title,
                 } } } },
             })
-            .executeSelectOne()
+            .executeSelectOne())
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as "level2.level3.level4.level5.title" from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -101,7 +102,7 @@ describe(ctx.label, () => {
         const connection = ctx.conn
 
         // doc-start
-        const projectWithOrganizationInOneQuery = await connection.selectFrom(tProject)
+        const projectWithOrganizationInOneQuery = sync(connection.selectFrom(tProject)
             .innerJoin(tOrganization).on(tOrganization.id.equals(tProject.organizationId))
             .select({
                 id:         tProject.id,
@@ -114,7 +115,7 @@ describe(ctx.label, () => {
                 },
             }).where(
                 tProject.id.equals(1),
-            ).executeSelectOne()
+            ).executeSelectOne())
         // doc-end
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, project.slug as slug, project.archived_at as archivedAt, organization.id as "organization.id", organization.name as "organization.name" from project inner join organization on organization.id = project.organization_id where project.id = ?1"`)
@@ -168,15 +169,15 @@ describe(ctx.label, () => {
         const connection = ctx.conn
 
         await ctx.withRollback(async () => {
-            await connection.update(tIssue).set({ parentId: 1 }).where(tIssue.id.equals(2)).executeUpdate()
-            await connection.update(tIssue).set({ parentId: 2 }).where(tIssue.id.equals(3)).executeUpdate()
-            await connection.update(tIssue).set({ parentId: 3 }).where(tIssue.id.equals(4)).executeUpdate()
+            sync(connection.update(tIssue).set({ parentId: 1 }).where(tIssue.id.equals(2)).executeUpdate())
+            sync(connection.update(tIssue).set({ parentId: 2 }).where(tIssue.id.equals(3)).executeUpdate())
+            sync(connection.update(tIssue).set({ parentId: 3 }).where(tIssue.id.equals(4)).executeUpdate())
 
             // doc-start
             const parent = tIssue.forUseInLeftJoinAs('parent')
             const parentParent = tIssue.forUseInLeftJoinAs('parentParent')
 
-            const issueMultiParent = await connection.selectFrom(tIssue)
+            const issueMultiParent = sync(connection.selectFrom(tIssue)
                 .leftJoin(parent).on(tIssue.parentId.equals(parent.id))
                 .leftJoin(parentParent).on(parent.parentId.equals(parentParent.id))
                 .select({
@@ -192,7 +193,7 @@ describe(ctx.label, () => {
                         },
                     },
                 })
-                .executeSelectMany()
+                .executeSelectMany())
             // doc-end
 
             expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.title as title, parent.id as "parent.id", parent.title as "parent.title", parentParent.id as "parent.parent.id", parentParent.title as "parent.parent.title", parentParent.parent_id as "parent.parent.parentId" from issue left join issue as parent on issue.parent_id = parent.id left join issue as parentParent on parent.parent_id = parentParent.id"`)
@@ -239,7 +240,7 @@ describe(ctx.label, () => {
         const connection = ctx.conn
 
         // doc-start
-        const issues = await connection.selectFrom(tIssue)
+        const issues = sync(connection.selectFrom(tIssue)
             .select({
                 id:       tIssue.id,
                 title:    tIssue.title,
@@ -250,7 +251,7 @@ describe(ctx.label, () => {
                     body:        tIssue.body,
                 },
             })
-            .executeSelectMany()
+            .executeSelectMany())
         // doc-end
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title, parent_id as parentId, external_ref as "meta.externalRef", assignee_id as "meta.assigneeId", body as "meta.body" from issue"`)
@@ -286,7 +287,7 @@ describe(ctx.label, () => {
 
         // doc-start
         const assignee = tAppUser.forUseInLeftJoin()
-        const rows = await connection.selectFrom(tIssue)
+        const rows = sync(connection.selectFrom(tIssue)
             .leftJoin(assignee).on(assignee.id.equals(tIssue.assigneeId))
             .where(tIssue.status.equals('open'))
             .select({
@@ -298,7 +299,7 @@ describe(ctx.label, () => {
                 },
             })
             .orderBy('id')
-            .executeSelectMany()
+            .executeSelectMany())
         // doc-end
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.title as title, app_user.id as "assignee.id", app_user.full_name as "assignee.fullName" from issue left join app_user on app_user.id = issue.assignee_id where issue.status = ?1 order by id"`)

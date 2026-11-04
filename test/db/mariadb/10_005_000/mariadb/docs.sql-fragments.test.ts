@@ -15,7 +15,7 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('docs:sql-fragments/fragment-with-type', async () => {
-        const expected = { idAsString: '1', name: 'Ada Lovelace ada@acme.test' }
+        const expected = { lowerFullName: 'ada lovelace', name: 'Ada Lovelace ada@acme.test' }
         ctx.mockNext(expected)
         const connection = ctx.conn
 
@@ -23,15 +23,15 @@ describe(ctx.label, () => {
         const id = 1
 
         const usersUsingCustomFragment = await connection.selectFrom(tAppUser)
-            .where(connection.fragmentWithType('boolean', 'required').sql`${tAppUser.id} = ${connection.const(id, 'int')}`)
+            .where(connection.fragmentWithType('boolean', 'required').sql`abs(${tAppUser.id}) = abs(${connection.const(id, 'int')})`)
             .select({
-                idAsString: connection.fragmentWithType('string', 'required').sql`cast(${tAppUser.id} as char)`,
-                name:       tAppUser.fullName.concat(' ').concat(tAppUser.email),
+                lowerFullName: connection.fragmentWithType('string', 'required').sql`lower(${tAppUser.fullName})`,
+                name:          tAppUser.fullName.concat(' ').concat(tAppUser.email),
             })
             .executeSelectNoneOrOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(id as char) as idAsString, concat(full_name, ?, email) as name from app_user where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select lower(full_name) as lowerFullName, concat(full_name, ?, email) as name from app_user where abs(id) = abs(?)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             " ",
@@ -39,8 +39,8 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof usersUsingCustomFragment, {
-            idAsString: string
-            name:       string
+            lowerFullName: string
+            name:          string
         } | null>>()
         expect(usersUsingCustomFragment).toEqual(expected)
     })
@@ -178,8 +178,8 @@ describe(ctx.label, () => {
     })
 
     test('docs:sql-fragments/raw-fragment', async () => {
-        // A bare `between` has no place of its own in a query, so the raw
-        // fragment holds its column too and goes into an order by: the
+        // The domain has no temporal table for a `for system_time` clause, so the
+        // raw fragment holds its own column and goes into an order by: the
         // organization created inside the range (2) comes first.
         const expected = [
             { id: 2, name: 'Globex Ltd' },

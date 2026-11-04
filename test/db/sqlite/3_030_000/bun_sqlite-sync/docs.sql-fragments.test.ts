@@ -16,23 +16,23 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('docs:sql-fragments/fragment-with-type', async () => {
-        const expected = { idAsString: '1', name: 'Ada Lovelace ada@acme.test' }
+        const expected = { lowerFullName: 'ada lovelace', name: 'Ada Lovelace ada@acme.test' }
         ctx.mockNext(expected)
         const connection = ctx.conn
 
         // doc-start
         const id = 1
 
-        const usersUsingCustomFragment = await connection.selectFrom(tAppUser)
-            .where(connection.fragmentWithType('boolean', 'required').sql`${tAppUser.id} = ${connection.const(id, 'int')}`)
+        const usersUsingCustomFragment = sync(connection.selectFrom(tAppUser)
+            .where(connection.fragmentWithType('boolean', 'required').sql`abs(${tAppUser.id}) = abs(${connection.const(id, 'int')})`)
             .select({
-                idAsString: connection.fragmentWithType('string', 'required').sql`cast(${tAppUser.id} as text)`,
-                name:       tAppUser.fullName.concat(' ').concat(tAppUser.email),
+                lowerFullName: connection.fragmentWithType('string', 'required').sql`lower(${tAppUser.fullName})`,
+                name:          tAppUser.fullName.concat(' ').concat(tAppUser.email),
             })
-            .executeSelectNoneOrOne()
+            .executeSelectNoneOrOne())
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(id as text) as idAsString, full_name || ?1 || email as name from app_user where id = ?2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select lower(full_name) as lowerFullName, full_name || ?1 || email as name from app_user where abs(id) = abs(?2)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             " ",
@@ -40,8 +40,8 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof usersUsingCustomFragment, {
-            idAsString: string
-            name:       string
+            lowerFullName: string
+            name:          string
         } | null>>()
         expect(usersUsingCustomFragment).toEqual(expected)
     })
@@ -58,14 +58,14 @@ describe(ctx.label, () => {
         const bitwiseMovements = 1
         const multiplier = 2
 
-        const organizationsUsingCustomFunctionFragment = await connection.selectFrom(tOrganization)
+        const organizationsUsingCustomFunctionFragment = sync(connection.selectFrom(tOrganization)
             .where(tOrganization.id.multiply(multiplier).equals(connection.intLeftShift(tOrganization.id, bitwiseMovements)))
             .select({
                 id:            tOrganization.id,
                 name:          tOrganization.name,
                 idMultiplyBy2: connection.intLeftShift(tOrganization.id, bitwiseMovements),
             })
-            .executeSelectMany()
+            .executeSelectMany())
         // doc-end
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, id << ?1 as idMultiplyBy2 from organization where (id * ?2) = (id << ?3)"`)
@@ -93,14 +93,14 @@ describe(ctx.label, () => {
         const noValue = null
         const withValue = 2
 
-        const organizationsUsingCustomFunctionFragmentIfValue = await connection.selectFrom(tOrganization)
+        const organizationsUsingCustomFunctionFragmentIfValue = sync(connection.selectFrom(tOrganization)
             .where(connection.intEqualsIfValue(tOrganization.id, noValue))
                 .or(connection.intEqualsIfValue(tOrganization.id, withValue))
             .select({
                 id:   tOrganization.id,
                 name: tOrganization.name,
             })
-            .executeSelectMany()
+            .executeSelectMany())
         // doc-end
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from organization where id = ?1"`)
@@ -123,14 +123,14 @@ describe(ctx.label, () => {
         ctx.mockNext(expected)
         const connection = ctx.conn
 
-        const users = await connection.selectFrom(tAppUser)
+        const users = sync(connection.selectFrom(tAppUser)
             .where(connection.equalsStringIfValue(tAppUser.fullName, ''))
                 .or(connection.equalsStringIfValue(tAppUser.email, 'ada@acme.test'))
             .select({
                 id:    tAppUser.id,
                 email: tAppUser.email,
             })
-            .executeSelectMany()
+            .executeSelectMany())
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, email as email from app_user where email = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -152,14 +152,14 @@ describe(ctx.label, () => {
         const increment = 1
         const multiplier = 2
 
-        const organizationsUsingCustomFunctionFragment = await connection.selectFrom(tOrganization)
+        const organizationsUsingCustomFunctionFragment = sync(connection.selectFrom(tOrganization)
             .where(tOrganization.id.multiply(multiplier).equals(connection.intPlus(tOrganization.id, increment)))
             .select({
                 id:        tOrganization.id,
                 name:      tOrganization.name,
                 idPlusOne: connection.intPlus(tOrganization.id, increment),
             })
-            .executeSelectMany()
+            .executeSelectMany())
         // doc-end
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, id + ?1 as idPlusOne from organization where (id * ?2) = (id + ?3)"`)
@@ -179,8 +179,8 @@ describe(ctx.label, () => {
     })
 
     test('docs:sql-fragments/raw-fragment', async () => {
-        // A bare `between` has no place of its own in a query, so the raw
-        // fragment holds its column too and goes into an order by: the
+        // The domain has no temporal table for a `for system_time` clause, so the
+        // raw fragment holds its own column and goes into an order by: the
         // organization created inside the range (2) comes first.
         const expected = [
             { id: 2, name: 'Globex Ltd' },
@@ -195,13 +195,13 @@ describe(ctx.label, () => {
         const fragment = connection.rawFragment`case when ${tOrganization.createdAt} between ${from} and ${to} then 0 else 1 end`
         // doc-end
 
-        const organizations = await connection.selectFrom(tOrganization)
+        const organizations = sync(connection.selectFrom(tOrganization)
             .select({
                 id:   tOrganization.id,
                 name: tOrganization.name,
             })
             .orderBy(fragment)
-            .executeSelectMany()
+            .executeSelectMany())
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from organization order by case when organization.created_at between ?1 and ?2 then 0 else 1 end"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -224,7 +224,7 @@ describe(ctx.label, () => {
         // doc-start
         const customizedProject = connection.withTwoParams(tProject.as('proj'), 'customizedProject', 0, 0)
 
-        const projectsInCustomization = await connection.selectFrom(customizedProject)
+        const projectsInCustomization = sync(connection.selectFrom(customizedProject)
             .where(customizedProject.id.equals(1))
             .select({
                 id:         customizedProject.id,
@@ -232,7 +232,7 @@ describe(ctx.label, () => {
                 slug:       customizedProject.slug,
                 archivedAt: customizedProject.archivedAt,
             })
-            .executeSelectMany()
+            .executeSelectMany())
         // doc-end
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select proj.id as id, proj.name as name, proj.slug as slug, proj.archived_at as archivedAt from (select * from project where ?1 >= 0 and ?2 >= 0) as proj where proj.id = ?3"`)
@@ -296,13 +296,13 @@ describe(ctx.label, () => {
 
         await ctx.withRollback(async () => {
             // doc-start
-            const inserted = await connection.insertInto(tAppUser).set({
+            const inserted = sync(connection.insertInto(tAppUser).set({
                     email:    'new@acme.test',
                     fullName: 'New User',
                 }).customizeQuery({
                     afterInsertKeyword: connection.rawFragment`/*+ some hints */`,
                     afterQuery:         connection.rawFragment`/* trailing comment */`,
-                }).executeInsert()
+                }).executeInsert())
             // doc-end
 
             expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ some hints */ into app_user (email, full_name) values (?1, ?2) /* trailing comment */"`)

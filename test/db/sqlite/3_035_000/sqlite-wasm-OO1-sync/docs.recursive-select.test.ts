@@ -23,7 +23,7 @@ describe(ctx.label, () => {
         const connection = ctx.conn
 
         // doc-start
-        const ancestors = await connection.selectFrom(tIssue)
+        const ancestors = sync(connection.selectFrom(tIssue)
             .where(tIssue.id.equals(2))
             .select({
                 id:       tIssue.id,
@@ -33,7 +33,7 @@ describe(ctx.label, () => {
             .recursiveUnionAllOn((child) => {
                 return child.parentId.equals(tIssue.id)
             })
-            .executeSelectMany()
+            .executeSelectMany())
         // doc-end
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, parent_id as parentId from issue where id = ?1 union all select issue.id as id, issue.title as title, issue.parent_id as parentId from issue join recursive_select_1 on recursive_select_1.parentId = issue.id) select id as id, title as title, parentId as parentId from recursive_select_1"`)
@@ -102,7 +102,7 @@ describe(ctx.label, () => {
         const connection = ctx.conn
 
         // doc-start
-        const descendants = await connection.selectFrom(tIssue)
+        const descendants = sync(connection.selectFrom(tIssue)
             .where(tIssue.id.equals(1))
             .select({
                 id:       tIssue.id,
@@ -112,7 +112,7 @@ describe(ctx.label, () => {
             .recursiveUnionAllOn((parent) => {
                 return parent.id.equals(tIssue.parentId)
             })
-            .executeSelectMany()
+            .executeSelectMany())
         // doc-end
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, parent_id as parentId from issue where id = ?1 union all select issue.id as id, issue.title as title, issue.parent_id as parentId from issue join recursive_select_1 on recursive_select_1.id = issue.parent_id) select id as id, title as title, parentId as parentId from recursive_select_1"`)
@@ -141,10 +141,10 @@ describe(ctx.label, () => {
         const connection = ctx.conn
 
         await ctx.withRollback(async () => {
-            await connection.update(tIssue).set({ parentId: 1 }).where(tIssue.id.in([2, 3])).executeUpdate()
+            sync(connection.update(tIssue).set({ parentId: 1 }).where(tIssue.id.in([2, 3])).executeUpdate())
 
             // doc-start
-            const descendants = await connection.selectFrom(tIssue)
+            const descendants = sync(connection.selectFrom(tIssue)
                 .where(tIssue.id.equals(1))
                 .select({
                     id:       tIssue.id,
@@ -160,7 +160,7 @@ describe(ctx.label, () => {
                             parentId: tIssue.parentId,
                         })
                 })
-                .executeSelectMany()
+                .executeSelectMany())
             // doc-end
 
             expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, parent_id as parentId from issue where id = ?1 union all select issue.id as id, issue.title as title, issue.parent_id as parentId from issue join recursive_select_1 on recursive_select_1.id = issue.parent_id) select id as id, title as title, parentId as parentId from recursive_select_1"`)
@@ -238,9 +238,9 @@ describe(ctx.label, () => {
         const connection = ctx.conn
 
         await ctx.withRollback(async () => {
-            await connection.update(tIssue).set({ parentId: 1 }).where(tIssue.id.in([2, 3])).executeUpdate()
+            sync(connection.update(tIssue).set({ parentId: 1 }).where(tIssue.id.in([2, 3])).executeUpdate())
 
-            const descendants = await connection.selectFrom(tIssue)
+            const descendants = sync(connection.selectFrom(tIssue)
                 .where(tIssue.id.equals(1))
                 .select({
                     id:       tIssue.id,
@@ -250,7 +250,7 @@ describe(ctx.label, () => {
                 .recursiveUnionOn((parent) => {
                     return parent.id.equals(tIssue.parentId)
                 })
-                .executeSelectMany()
+                .executeSelectMany())
 
             expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, parent_id as parentId from issue where id = ?1 union select issue.id as id, issue.title as title, issue.parent_id as parentId from issue join recursive_select_1 on recursive_select_1.id = issue.parent_id) select id as id, title as title, parentId as parentId from recursive_select_1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`

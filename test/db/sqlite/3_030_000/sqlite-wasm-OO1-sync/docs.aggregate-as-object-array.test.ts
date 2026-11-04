@@ -33,7 +33,7 @@ describe(ctx.label, () => {
 
         // doc-start
         const tProjectLeftJoin = tProject.forUseInLeftJoin()
-        const row = await connection.selectFrom(tOrganization)
+        const row = sync(connection.selectFrom(tOrganization)
             .leftJoin(tProjectLeftJoin).on(tProjectLeftJoin.organizationId.equals(tOrganization.id))
             .where(tOrganization.id.equals(1))
             .select({
@@ -45,7 +45,7 @@ describe(ctx.label, () => {
                 }).asOptionalNonEmptyArray(),
             })
             .groupBy('id', 'name')
-            .executeSelectOne()
+            .executeSelectOne())
         // doc-end
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as id, organization.name as name, json_group_array(json_object('id', project.id, 'name', project.name)) as projects from organization left join project on project.organization_id = organization.id where organization.id = ?1 group by organization.id, organization.name"`)
@@ -75,7 +75,7 @@ describe(ctx.label, () => {
 
         // doc-start
         const tProjectLeftJoin = tProject.forUseInLeftJoin()
-        const row = await connection.selectFrom(tOrganization)
+        const row = sync(connection.selectFrom(tOrganization)
             .leftJoin(tProjectLeftJoin).on(tProjectLeftJoin.organizationId.equals(tOrganization.id))
             .where(tOrganization.id.equals(1))
             .select({
@@ -84,7 +84,7 @@ describe(ctx.label, () => {
                 projectNames: connection.aggregateAsArrayOfOneColumn(tProjectLeftJoin.name.concat(' ').concat(tProjectLeftJoin.slug)),
             })
             .groupBy('id', 'name')
-            .executeSelectOne()
+            .executeSelectOne())
         // doc-end
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as id, organization.name as name, json_group_array(project.name || ?1 || project.slug) as projectNames from organization left join project on project.organization_id = organization.id where organization.id = ?2 group by organization.id, organization.name"`)
@@ -129,14 +129,14 @@ describe(ctx.label, () => {
             .orderBy('id')
             .forUseAsInlineAggregatedArrayValue()
 
-        const row = await connection.selectFrom(tOrganization)
+        const row = sync(connection.selectFrom(tOrganization)
             .where(tOrganization.id.equals(1))
             .select({
                 id:       tOrganization.id,
                 name:     tOrganization.name,
                 projects: orgProjects,
             })
-            .executeSelectOne()
+            .executeSelectOne())
         // doc-end
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select json_group_array(json_object('id', a_1_.id, 'name', a_1_.name)) from (select id as id, name as name from project where organization_id = organization.id order by id) as a_1_) as projects from organization where id = ?1"`)
@@ -172,14 +172,14 @@ describe(ctx.label, () => {
             .orderBy('result')
             .forUseAsInlineAggregatedArrayValue()
 
-        const row = await connection.selectFrom(tOrganization)
+        const row = sync(connection.selectFrom(tOrganization)
             .where(tOrganization.id.equals(1))
             .select({
                 id:           tOrganization.id,
                 name:         tOrganization.name,
                 projectNames: orgProjectNames,
             })
-            .executeSelectOne()
+            .executeSelectOne())
         // doc-end
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select json_group_array(a_1_.result) from (select name || ?1 || slug as result from project where organization_id = organization.id order by result) as a_1_) as projectNames from organization where id = ?2"`)

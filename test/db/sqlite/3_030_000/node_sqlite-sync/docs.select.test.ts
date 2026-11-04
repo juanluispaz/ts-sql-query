@@ -23,7 +23,7 @@ describe(ctx.label, () => {
         const slug = null
 
         const organization = tOrganization.as('org')
-        const projectsWithOrganizationName = await connection.selectFrom(tProject)
+        const projectsWithOrganizationName = sync(connection.selectFrom(tProject)
             .innerJoin(organization).on(tProject.organizationId.equals(organization.id))
             .where(tProject.name.startsWithInsensitive(name))
                 .and(tProject.slug.startsWithInsensitiveIfValue(slug))
@@ -36,7 +36,7 @@ describe(ctx.label, () => {
             })
             .orderBy('name', 'insensitive')
             .orderBy('slug', 'asc insensitive')
-            .executeSelectMany()
+            .executeSelectMany())
         // doc-end
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, project.slug as slug, project.archived_at as archivedAt, org.name as organizationName from project inner join organization as org on project.organization_id = org.id where lower(project.name) like lower(?1 || '%') escape '\\' order by lower(project.name), lower(project.slug) asc"`)
@@ -406,13 +406,13 @@ describe(ctx.label, () => {
             .selectOneColumn(tProject.name)
             .forUseAsInlineAggregatedArrayValue()
 
-        const organizationsWithTheNamesOfTheirProjects = await connection.selectFrom(tOrganization)
+        const organizationsWithTheNamesOfTheirProjects = sync(connection.selectFrom(tOrganization)
             .select({
                 id:           tOrganization.id,
                 name:         tOrganization.name,
                 projectNames: namesOfTheProjects,
             })
-            .executeSelectMany()
+            .executeSelectMany())
         // doc-end
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select json_group_array(a_1_.result) from (select distinct name as result from project where organization_id = organization.id) as a_1_) as projectNames from organization"`)
@@ -438,12 +438,12 @@ describe(ctx.label, () => {
         const connection = ctx.conn
 
         // doc-start
-        const counts = await connection.selectFromNoTable()
+        const counts = sync(connection.selectFromNoTable()
             .select({
                 users:         connection.selectFrom(tAppUser).selectCountAll().forUseAsInlineQueryValue(),
                 organizations: connection.selectFrom(tOrganization).selectCountAll().forUseAsInlineQueryValue(),
             })
-            .executeSelectOne()
+            .executeSelectOne())
         // doc-end
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(*) as result from app_user) as users, (select count(*) as result from organization) as organizations"`)
@@ -605,7 +605,7 @@ describe(ctx.label, () => {
         ctx.mockNext(expected)
         const connection = ctx.conn
 
-        const result = await connection.selectFrom(tProject)
+        const result = sync(connection.selectFrom(tProject)
             .groupBy(tProject.organizationId)
             .having(connection.count(tProject.id).greaterThan(0))
             .select({
@@ -619,7 +619,7 @@ describe(ctx.label, () => {
                 afterQuery: connection.rawFragment`/* trailing comment */`,
             })
             .where(tProject.archivedAt.isNull())
-            .executeSelectMany()
+            .executeSelectMany())
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, count(id) as projectCount from project where archived_at is null group by organization_id having count(id) > ?1 order by organizationId limit ?2 offset ?3 /* trailing comment */"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -645,7 +645,7 @@ describe(ctx.label, () => {
         ctx.mockNext(expected)
         const connection = ctx.conn
 
-        const result = await connection.selectFrom(tProject)
+        const result = sync(connection.selectFrom(tProject)
             .select({
                 organizationId: tProject.organizationId,
                 projectCount:   connection.count(tProject.id),
@@ -654,7 +654,7 @@ describe(ctx.label, () => {
             .having(connection.count(tProject.id).greaterThan(0))
             .where(tProject.archivedAt.isNull())
             .orderBy('organizationId')
-            .executeSelectMany()
+            .executeSelectMany())
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, count(id) as projectCount from project where archived_at is null group by organization_id having count(id) > ?1 order by organizationId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -678,7 +678,7 @@ describe(ctx.label, () => {
         ctx.mockNext(expected)
         const connection = ctx.conn
 
-        const result = await connection.selectFrom(tProject)
+        const result = sync(connection.selectFrom(tProject)
             .select({
                 organizationId: tProject.organizationId,
                 projectCount:   connection.count(tProject.id),
@@ -687,7 +687,7 @@ describe(ctx.label, () => {
             .having(connection.count(tProject.id).greaterThan(0))
             .orderBy('organizationId')
             .where(tProject.archivedAt.isNull())
-            .executeSelectMany()
+            .executeSelectMany())
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, count(id) as projectCount from project where archived_at is null group by organization_id having count(id) > ?1 order by organizationId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -711,7 +711,7 @@ describe(ctx.label, () => {
         ctx.mockNext(expected)
         const connection = ctx.conn
 
-        const result = await connection.selectFrom(tProject)
+        const result = sync(connection.selectFrom(tProject)
             .select({
                 organizationId: tProject.organizationId,
                 projectCount:   connection.count(tProject.id),
@@ -722,7 +722,7 @@ describe(ctx.label, () => {
             .limit(10)
             .offset(0)
             .where(tProject.archivedAt.isNull())
-            .executeSelectMany()
+            .executeSelectMany())
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, count(id) as projectCount from project where archived_at is null group by organization_id having count(id) > ?1 order by organizationId limit ?2 offset ?3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -748,7 +748,7 @@ describe(ctx.label, () => {
         ctx.mockNext(expected)
         const connection = ctx.conn
 
-        const result = await connection.selectFrom(tProject)
+        const result = sync(connection.selectFrom(tProject)
             .select({
                 organizationId: tProject.organizationId,
                 projectCount:   connection.count(tProject.id),
@@ -762,7 +762,7 @@ describe(ctx.label, () => {
                 afterQuery: connection.rawFragment`/* trailing comment */`,
             })
             .where(tProject.archivedAt.isNull())
-            .executeSelectMany()
+            .executeSelectMany())
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, count(id) as projectCount from project where archived_at is null group by organization_id having count(id) > ?1 order by organizationId limit ?2 offset ?3 /* trailing comment */"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`

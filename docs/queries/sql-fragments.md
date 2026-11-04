@@ -31,13 +31,15 @@ Fragments can be defined with fixed arguments, conditional logic based on option
 
 SQL fragments allow you to inject raw SQL into your queries, enabling operations not natively supported by `ts-sql-query`.
 
+The example uses functions every database has, so it runs anywhere; in your queries you can write whatever your database offers.
+
 ```ts
 const id = 10;
 
 const customersUsingCustomFragment = connection.selectFrom(tCustomer)
-    .where(connection.fragmentWithType('boolean', 'required').sql`!!${tCustomer.id} = !!${connection.const(id, 'int')}`)
+    .where(connection.fragmentWithType('boolean', 'required').sql`abs(${tCustomer.id}) = abs(${connection.const(id, 'int')})`)
     .select({
-        idAsString: connection.fragmentWithType('string', 'required').sql`${tCustomer.id}::varchar`,
+        lowerFirstName: connection.fragmentWithType('string', 'required').sql`lower(${tCustomer.firstName})`,
         name: tCustomer.firstName.concat(' ').concat(tCustomer.lastName)
     })
     .executeSelectNoneOrOne();
@@ -48,50 +50,50 @@ The executed query is:
 === "MariaDB"
     ```mariadb
     select 
-        id::varchar as idAsString, 
+        lower(first_name) as lowerFirstName, 
         concat(first_name, ?, last_name) as name 
     from customer 
-    where !!id = !!?
+    where abs(id) = abs(?)
     ```
 === "MySQL"
     ```mysql
     select 
-        id::varchar as idAsString, 
+        lower(first_name) as lowerFirstName, 
         concat(first_name, ?, last_name) as `name` 
     from customer 
-    where !!id = !!?
+    where abs(id) = abs(?)
     ```
 === "Oracle"
     ```oracle
     select 
-        id::varchar as "idAsString", 
+        lower(first_name) as "lowerFirstName", 
         first_name || :0 || last_name as "name" 
     from customer 
-    where !!id = !!:1
+    where abs(id) = abs(:1)
     ```
 ===+ "PostgreSQL"
     ```postgresql
     select 
-        id::varchar as "idAsString", 
+        lower(first_name) as "lowerFirstName", 
         first_name || $1 || last_name as name 
     from customer 
-    where !!id = !!$2
+    where abs(id) = abs($2)
     ```
 === "SQLite"
     ```sqlite
     select 
-        id::varchar as idAsString, 
+        lower(first_name) as lowerFirstName, 
         first_name || ?1 || last_name as name 
     from customer 
-    where !!id = !!?2
+    where abs(id) = abs(?2)
     ```
 === "SQL Server"
     ```sqlserver
     select 
-        id::varchar as idAsString, 
+        lower(first_name) as lowerFirstName, 
         first_name + @0 + last_name as name 
     from customer 
-    where !!id = !!@1
+    where abs(id) = abs(@1)
     ```
 
 The parameters are: `[ ' ', 10 ]`
@@ -99,7 +101,7 @@ The parameters are: `[ ' ', 10 ]`
 The result type is:
 ```tsx
 const customersUsingCustomFragment: Promise<{
-    idAsString: string;
+    lowerFirstName: string;
     name: string;
 } | null>
 ```
@@ -459,13 +461,15 @@ For a one-off aggregate you don't need a reusable function: `connection.aggregat
 
 ### Raw fragments
 
-`ts-sql-query` allows you to write raw SQL to extend and customize the generated queries in several places.
+`ts-sql-query` allows you to write raw SQL to extend and customize the generated queries in several places, like the [extension points of a query](#customizing-a-select) or a [table customization](#table-or-view-customization). This is how you use features the library doesn't support, for example the temporal tables of [SQL Server](../configuration/supported-databases/sqlserver.md):
 
 ```typescriptreact
 const from = connection.const(new Date('2019-01-01'), 'localDateTime')
 const to = connection.const(new Date('2020-01-01'), 'localDateTime')
-const fragment = connection.rawFragment`between ${from} and ${to}`
+const fragment = connection.rawFragment`for system_time between ${from} and ${to}`
 ```
+
+The [table customization](#table-or-view-customization) below shows a complete query using this clause.
 
 ## Table or view customization
 

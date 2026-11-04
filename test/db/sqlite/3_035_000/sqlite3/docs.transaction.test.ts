@@ -52,7 +52,7 @@ describe(ctx.label, () => {
         })
     })
 
-    test('docs:transaction/rollback-on-throw', async () => {
+    test('docs-extra:transaction/rollback-on-throw', async () => {
         class SentinelError extends Error {}
         const connection = ctx.conn
 
@@ -209,7 +209,7 @@ describe(ctx.label, () => {
         })
     })
 
-    test('docs-extra:transaction/hooks-no-effect-without-transaction', async () => {
+    test('docs-extra:transaction/hooks-throw-without-transaction', async () => {
         // "Note" on the page: deferred-hook registration outside a
         // transaction throws `NOT_IN_TRANSACTION`. The guard now fires
         // uniformly in mock and real-DB mode: the lenient mock

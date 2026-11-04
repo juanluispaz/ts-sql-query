@@ -35,7 +35,7 @@ describe(ctx.label, () => {
         })
     })
 
-    test('docs:update/update-with-set-if-value', async () => {
+    test('docs-extra:update/update-with-set-if-value', async () => {
         ctx.mockNext(1)
 
         await ctx.withRollback(async () => {
@@ -65,7 +65,7 @@ describe(ctx.label, () => {
         })
     })
 
-    test('docs:update/update-returning', async () => {
+    test('docs-extra:update/update-returning', async () => {
         ctx.mockNext({ id: 1, name: 'Marketing site (v2)', slug: 'mktg-site' })
 
         await ctx.withRollback(async () => {
@@ -99,7 +99,7 @@ describe(ctx.label, () => {
         })
     })
 
-    test('docs:update/update-returning-old-values', async () => {
+    test('docs-extra:update/update-returning-old-values', async () => {
         // Section "Update returning old values" — `tTable.oldValues()`
         // yields a reference whose columns resolve to the PRE-update row.
         ctx.mockNext({ oldName: 'Marketing site', newName: 'Marketing site (v2)' })
@@ -205,7 +205,7 @@ describe(ctx.label, () => {
         })
     })
 
-    test('docs-extra:update/returning-one-column', async () => {
+    test('docs:update/returning-one-column', async () => {
         // "Update returning" prose: `returningOneColumn(col)` is the
         // single-column counterpart of `returning({...})`.
         ctx.mockNext('Marketing site (v2)')

@@ -198,7 +198,7 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('docs:aggregate-as-object-array/aggregate-as-array-distinct', async () => {
+    test('docs-extra:aggregate-as-object-array/aggregate-as-array-of-one-column-distinct', async () => {
         // Per-issue counts of priorities, distinct list.
         ctx.mockNext({
             id: 1, name: 'Marketing site',

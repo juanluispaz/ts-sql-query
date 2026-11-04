@@ -14,7 +14,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    test('docs:recursive/parents-chain', async () => {
+    test('docs:recursive-select/parents-chain', async () => {
         // Seed has no parent_id set, so the recursive CTE returns only the
         // starting issue (id=2); its parent_id is NULL → parentId undefined.
         // Note: `parentId` MUST be projected so the recursive view exposes
@@ -53,7 +53,7 @@ describe(ctx.label, () => {
         expect(ancestors).toEqual(expected)
     })
 
-    test('docs:recursive/parents-chain-full-inner', async () => {
+    test('docs:recursive-select/parents-chain-full-inner', async () => {
         // Section "Recursive select looking for parents" — first snippet,
         // where the recursive arm is spelled out as a full select+join
         // instead of the shortcut `recursiveUnionAllOn`. No parent_id is
@@ -98,7 +98,7 @@ describe(ctx.label, () => {
         expect(ancestors).toEqual(expected)
     })
 
-    test('docs:recursive/children-tree', async () => {
+    test('docs:recursive-select/children-tree', async () => {
         // Section "Recursive select looking for children" — same shape
         // as "parents" but the JOIN direction is flipped so we walk down
         // the tree from a root.
@@ -133,7 +133,7 @@ describe(ctx.label, () => {
         }>>>()
     })
 
-    test('docs-extra:recursive/union-vs-union-all', async () => {
+    test('docs-extra:recursive-select/union-vs-union-all', async () => {
         // Section "UNION vs UNION ALL inside a recursive CTE" — both
         // `recursiveUnion` and `recursiveUnionAll` exist where the
         // dialect supports the operator. The deduplicating variant

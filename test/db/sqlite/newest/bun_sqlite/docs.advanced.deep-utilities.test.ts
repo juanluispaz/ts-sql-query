@@ -21,13 +21,13 @@ describe(ctx.label, () => {
         company?:  { id: number; name: string }
     }
 
-    test('docs-extra:deep-utilities/deep-pick-paths-type', () => {
+    test('docs:deep-utilities/deep-pick-paths-type', () => {
         // DeepPickPaths<Model> is the deep analogue of keyof: every legal dotted path.
         type Paths = DeepPickPaths<CustomerWithCompany>
         assertType<Exact<Paths, 'id' | 'firstName' | 'lastName' | 'company' | 'company.id' | 'company.name'>>()
     })
 
-    test('docs-extra:deep-utilities/deep-pick-type', () => {
+    test('docs:deep-utilities/deep-pick-type', () => {
         // DeepPick<Model, Paths> keeps only the selected paths, narrowing nested
         // objects; top-level optionality of the model is preserved.
         type Picked = DeepPick<CustomerWithCompany, 'firstName' | 'company.name'>
@@ -86,7 +86,7 @@ describe(ctx.label, () => {
         expect(picked).toEqual({ id: 1 })
     })
 
-    test('docs-extra:deep-utilities/deep-omit-type', () => {
+    test('docs:deep-utilities/deep-omit-type', () => {
         // DeepOmit<Model, Paths>: omit a top-level leaf, a nested leaf, or a
         // whole nested object; top-level optionality is preserved.
         assertType<Exact<DeepOmit<CustomerWithCompany, 'lastName'>,

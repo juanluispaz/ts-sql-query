@@ -16,7 +16,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    test('docs:basic/select-many', async () => {
+    test('docs-extra:basic-query-structure/select-many', async () => {
         const expected = [
             { id: 1, email: 'ada@acme.test', fullName: 'Ada Lovelace' },
             { id: 2, email: 'grace@acme.test', fullName: 'Grace Hopper' },
@@ -46,7 +46,7 @@ describe(ctx.label, () => {
         expect(users).toEqual(expected)
     })
 
-    test('docs:basic/select-one', async () => {
+    test('docs:basic-query-structure/select-one', async () => {
         const expected = { id: 1, name: 'Marketing site', slug: 'mktg-site' }
         ctx.mockNext(expected)
         const connection = ctx.conn
@@ -76,7 +76,7 @@ describe(ctx.label, () => {
         expect(project).toEqual(expected)
     })
 
-    test('docs:basic/select-none-or-one', async () => {
+    test('docs-extra:basic-query-structure/select-none-or-one', async () => {
         ctx.mockNext(null)
         const connection = ctx.conn
 
@@ -105,7 +105,7 @@ describe(ctx.label, () => {
         expect(maybe).toBeNull()
     })
 
-    test('docs:basic/projecting-optional-values-as-nullable', async () => {
+    test('docs:basic-query-structure/projecting-optional-values-as-nullable', async () => {
         // The page promises that `projectingOptionalValuesAsNullable()`
         // switches an optional projected field from `T?` to `T | null`.
         // tProject.archivedAt is optional in the seed; use it as the
@@ -142,7 +142,7 @@ describe(ctx.label, () => {
         expect(project).toEqual(expected)
     })
 
-    test('docs-extra:basic/select-one-column', async () => {
+    test('docs-extra:basic-query-structure/select-one-column', async () => {
         // The page lists `selectOneColumn(column)` as the single-column
         // counterpart of `select({...})`. Same fluent shape; result is
         // the bare column value.
@@ -165,7 +165,7 @@ describe(ctx.label, () => {
         expect(name).toBe(expected)
     })
 
-    test('docs-extra:basic/select-count-all', async () => {
+    test('docs-extra:basic-query-structure/select-count-all', async () => {
         // The page lists `selectCountAll()` as a shortcut for
         // `count(*)`. Result is a plain int.
         ctx.mockNext(4)

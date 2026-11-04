@@ -243,7 +243,7 @@ Naming convention:
 | Fragment / composition | `fragments.with-args.test.ts`, `raw-fragment.*.test.ts`, `with-values.*.test.ts` |
 | Dynamic queries | `dynamic-condition.*.test.ts` |
 | Customize hooks | `customize-query.*.test.ts`, `customize-query.insert.test.ts` |
-| Docs snippets | `docs.<page>.test.ts`, `docs.advanced.<page>.test.ts` (mirrored to every cell — see [`WRITING_TESTS.md` § Docs snippets](./WRITING_TESTS.md#docs-snippets)) |
+| Docs snippets | `docs.<page>.test.ts`, `docs.advanced.<page>.test.ts`, `docs.dynamic.<page>.test.ts`, `docs.dynamic.utilities.<page>.test.ts`, `docs.configuration.<page>.test.ts` (mirrored to every cell — see [`WRITING_TESTS.md` § Docs snippets](./WRITING_TESTS.md#docs-snippets)) |
 | Postgres-specific (etc.) | `select.postgres-const-force-type-cast.test.ts` lives only under postgres |
 
 ## `types.negative/` — compile-time negatives

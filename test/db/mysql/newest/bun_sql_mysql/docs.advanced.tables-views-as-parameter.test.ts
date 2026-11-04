@@ -18,7 +18,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    test('docs:tables-views-as-parameter/table-or-view-of-accepts-aliased-table', () => {
+    test('docs-extra:tables-views-as-parameter/table-or-view-of-accepts-aliased-table', () => {
         // doc-start
         const project = tProject.as('project')
         const ref: TableOrViewOf<typeof tProject, 'project'> = project
@@ -32,7 +32,7 @@ describe(ctx.label, () => {
         assertType<Extends<typeof project, TableOrViewOf<typeof tProject, 'project'>>>()
     })
 
-    test('docs:tables-views-as-parameter/table-or-view-left-join-of-typing', () => {
+    test('docs-extra:tables-views-as-parameter/table-or-view-left-join-of-typing', () => {
         // doc-start
         const issueLJ = tIssue.forUseInLeftJoinAs('issue')
         const ref: TableOrViewLeftJoinOf<typeof tIssue, 'issue'> = issueLJ
@@ -44,7 +44,7 @@ describe(ctx.label, () => {
         assertType<Extends<typeof issueLJ, TableOrViewLeftJoinOf<typeof tIssue, 'issue'>>>()
     })
 
-    test('docs:tables-views-as-parameter/from-ref-recovers-columns-from-a-ref', () => {
+    test('docs-extra:tables-views-as-parameter/from-ref-recovers-columns-from-a-ref', () => {
         // doc-start
         const project = tProject.as('project')
         const ref: TableOrViewOf<typeof tProject, 'project'> = project
@@ -72,7 +72,7 @@ describe(ctx.label, () => {
     // Smoke test of the full doc-style pattern executed end-to-end: the
     // documented generic helper builds the correlated subquery, fully typed,
     // and the outer query embeds it as an inline value.
-    test('docs-extra:tables-views-as-parameter/helper-pattern-runtime-sql-emission', async () => {
+    test('docs:tables-views-as-parameter/helper-pattern-runtime-sql-emission', async () => {
         ctx.mockNext({ id: 1, name: 'Marketing site', issueCount: 2 })
 
         const connection = ctx.conn

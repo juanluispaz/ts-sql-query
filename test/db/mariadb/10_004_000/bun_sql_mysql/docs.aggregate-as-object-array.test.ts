@@ -211,7 +211,7 @@ describe(ctx.label, () => {
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
-    test('docs:aggregate-as-object-array/aggregate-as-array-distinct', async () => {
+    test('docs-extra:aggregate-as-object-array/aggregate-as-array-of-one-column-distinct', async () => {
         // Per-issue counts of priorities, distinct list.
         ctx.mockNext({
             id: 1, name: 'Marketing site',

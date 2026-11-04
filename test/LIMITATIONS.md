@@ -159,7 +159,7 @@ shorter form. The conservative shape ports cleanly to every cell.
 })
 ```
 
-The existing `docs:select/aggregate-and-group-by` and
+The existing `docs:aggregate-and-group-by/group-by-expressions` and
 `docs:select/with-clause` tests follow the conservative shape; do the
 same in any new aggregate test.
 

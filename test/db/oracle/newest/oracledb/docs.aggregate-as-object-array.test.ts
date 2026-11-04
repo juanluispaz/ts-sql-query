@@ -210,7 +210,7 @@ describe(ctx.label, () => {
     // `subSelectUsing(...).distinct().select(...).forUseAsInlineAggregatedArrayValue()`.
     // NOT-APPLICABLE: `aggregateAsArrayOfOneColumnDistinct` is not exposed on OracleConnection — Oracle rejects `JSON_ARRAYAGG(DISTINCT …)` (ORA-30482) so the method is a TypeScript compile error here
     /*
-    test('docs:aggregate-as-object-array/aggregate-as-array-distinct', async () => {
+    test('docs-extra:aggregate-as-object-array/aggregate-as-array-of-one-column-distinct', async () => {
         // Per-issue counts of priorities, distinct list.
         ctx.mockNext({
             id: 1, name: 'Marketing site',

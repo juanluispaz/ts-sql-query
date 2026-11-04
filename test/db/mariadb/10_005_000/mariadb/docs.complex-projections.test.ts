@@ -178,7 +178,7 @@ describe(ctx.label, () => {
         ])
     })
 
-    test('docs:complex-projections/optional-object-left-join', async () => {
+    test('docs-extra:complex-projections/optional-object-left-join', async () => {
         // Issue 3 has assignee_id = NULL → assignee object absent.
         // Issue 1 has assignee_id = 1 (Ada) → assignee object present.
         const expected = [

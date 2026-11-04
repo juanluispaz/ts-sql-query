@@ -38,7 +38,7 @@ describe(ctx.label, () => {
         })
     })
 
-    test('docs:delete/delete-many', async () => {
+    test('docs-extra:delete/delete-many', async () => {
         ctx.mockNext(2)
 
         await ctx.withRollback(async () => {

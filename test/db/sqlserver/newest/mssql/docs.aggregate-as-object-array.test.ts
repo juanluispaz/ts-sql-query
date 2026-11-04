@@ -204,7 +204,7 @@ describe(ctx.label, () => {
     // `subSelectUsing(...).distinct().select(...).forUseAsInlineAggregatedArrayValue()`.
     // NOT-APPLICABLE: SQL Server's STRING_AGG/JSON_ARRAYAGG have no DISTINCT quantifier, so aggregateAsArrayOfOneColumnDistinct is not declared on SqlServerConnection
     /*
-    test('docs:aggregate-as-object-array/aggregate-as-array-distinct', async () => {
+    test('docs-extra:aggregate-as-object-array/aggregate-as-array-of-one-column-distinct', async () => {
         // Per-issue counts of priorities, distinct list.
         ctx.mockNext({
             id: 1, name: 'Marketing site',

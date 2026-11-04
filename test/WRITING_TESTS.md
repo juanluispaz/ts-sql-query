@@ -508,7 +508,7 @@ Recipe:
    // NOT-APPLICABLE: tTable.oldValues() is only typed on PostgreSqlConnection,
    //                 MariaDBConnection and SqlServerConnection.
    /*
-   test('docs:update/update-returning-old-values', async () => {
+   test('docs-extra:update/update-returning-old-values', async () => {
        // … FULL canonical body the SUPPORTING dialect would run, verbatim …
    })
    */
@@ -605,6 +605,9 @@ real signal.
 |---|---|
 | `docs/queries/<slug>.md` | `test/db/<db>/<version>/<connector>/docs.<slug>.test.ts` |
 | `docs/advanced/<slug>.md` | `test/db/<db>/<version>/<connector>/docs.advanced.<slug>.test.ts` |
+| `docs/dynamic/<slug>.md` | `test/db/<db>/<version>/<connector>/docs.dynamic.<slug>.test.ts` |
+| `docs/dynamic/utilities/<slug>.md` | `test/db/<db>/<version>/<connector>/docs.dynamic.utilities.<slug>.test.ts` |
+| `docs/configuration/<slug>.md` | `test/db/<db>/<version>/<connector>/docs.configuration.<slug>.test.ts` |
 
 **One file per page** — the snippet-backed `docs:` tests and the
 prose-backed `docs-extra:` tests for a given docs page live together in a
@@ -621,13 +624,17 @@ enforces the mirror.
 
 Rule of thumb when covering a docs page:
 
-- Every fenced ```ts/```tsx block that **calls** the API → one `docs:` test.
-- A fenced block that **declares** the surface (a TypeScript `interface { … }`
-  / `type X = ...` block listing methods or members for reference) → treat
-  as **prose** and split into `docs-extra:` tests, one per individually
-  testable member.
-- Every sentence, admonition or bullet that promises behaviour that is not
-  backed by a fenced block → one `docs-extra:` test.
+- Every fenced block that **uses** the API with a concrete example, whether it
+  calls a method or applies a type (`type Paths = DeepPickPaths<Customer>`) → one
+  `docs:` test, even when another file of the suite covers the behaviour: the
+  point is to resemble the page.
+- A fenced block that only **declares** the surface (a TypeScript
+  `interface { … }` / `type X = ...` block listing methods or members for
+  reference) → treat as **prose** and split into `docs-extra:` tests, one per
+  individually testable member.
+- A sentence, admonition or bullet that promises behaviour that is not backed
+  by a fenced block → one `docs-extra:` test, only when no other test of the
+  suite covers it. These files are not exhaustive.
 
 Both prefixes are equally first-class — the `docs:` ones follow an example of
 the page; the `docs-extra:` ones are the regression net for

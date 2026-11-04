@@ -120,14 +120,14 @@ commented out in `test/db/mysql/newest/mysql2/`:
   - `docs:insert/insert-many-values`
   - `docs:insert/insert-returning`
   - `docs:insert/insert-multiple-with-shape`
-  - `docs:insert/insert-on-conflict-do-nothing`
-  - `docs:insert/insert-on-conflict-do-update`
-  - `docs-extra:insert/insert-on-conflict-do-update-bare`
-  - `docs-extra:insert/values-for-insert-in-update`
+  - `docs:insert-on-conflict/on-conflict-do-nothing`
+  - `docs:insert-on-conflict/on-conflict-do-update`
+  - `docs-extra:insert-on-conflict/on-conflict-do-update-bare`
+  - `docs-extra:insert-on-conflict/values-for-insert-in-update`
   - `docs-extra:insert/insert-returning-one-column`
 - `docs.update.test.ts`:
-  - `docs:update/update-returning`
-  - `docs-extra:update/returning-one-column`
+  - `docs-extra:update/update-returning`
+  - `docs:update/returning-one-column`
 - `docs.delete.test.ts`:
   - `docs:delete/delete-returning`
   - `docs-extra:delete/returning-one-column`
@@ -144,10 +144,10 @@ Oracle has no equivalent of `INSERT ... ON CONFLICT DO NOTHING/UPDATE`.
 The following tests are commented out in `test/db/oracle/newest/oracledb/`:
 
 - `docs.insert.test.ts`:
-  - `docs:insert/insert-on-conflict-do-nothing`
-  - `docs:insert/insert-on-conflict-do-update`
-  - `docs-extra:insert/insert-on-conflict-do-update-bare`
-  - `docs-extra:insert/values-for-insert-in-update`
+  - `docs:insert-on-conflict/on-conflict-do-nothing`
+  - `docs:insert-on-conflict/on-conflict-do-update`
+  - `docs-extra:insert-on-conflict/on-conflict-do-update-bare`
+  - `docs-extra:insert-on-conflict/values-for-insert-in-update`
 
 If Oracle 23ai+ gains MERGE-based emulation that ts-sql-query maps to
 the same fluent shape, uncomment these tests in the Oracle cells of
@@ -168,10 +168,10 @@ a single-arg Oracle-friendly variant.
 
 Same list of commented tests as Oracle in `test/db/sqlserver/newest/mssql/docs.insert.test.ts`:
 
-- `docs:insert/insert-on-conflict-do-nothing`
-- `docs:insert/insert-on-conflict-do-update`
-- `docs-extra:insert/insert-on-conflict-do-update-bare`
-- `docs-extra:insert/values-for-insert-in-update`
+- `docs:insert-on-conflict/on-conflict-do-nothing`
+- `docs:insert-on-conflict/on-conflict-do-update`
+- `docs-extra:insert-on-conflict/on-conflict-do-update-bare`
+- `docs-extra:insert-on-conflict/values-for-insert-in-update`
 
 ### SQL Server — `isolationLevel(level)` only, no access mode
 
@@ -187,8 +187,8 @@ target. The library exposes the bare form on MariaDBConnection but
 *not* the targeted `onConflictOn(col).doUpdateSet({...})` form. The
 following tests are commented out in `test/db/mariadb/newest/mariadb/docs.insert.test.ts`:
 
-- `docs:insert/insert-on-conflict-do-update`
-- `docs-extra:insert/values-for-insert-in-update`
+- `docs:insert-on-conflict/on-conflict-do-update`
+- `docs-extra:insert-on-conflict/values-for-insert-in-update`
 
 ### PostgreSQL — targeted upsert required (no bare form)
 
@@ -198,12 +198,12 @@ PostgreSQL requires a target: `.onConflictOn(col).doUpdateSet({...})` or
 the call doesn't compile, a `// NOT-APPLICABLE:` boundary with its negative in
 the dialect's `types.negative/`. The following is commented out in every `test/db/postgres/*/<connector>/docs.insert.test.ts`:
 
-- `docs-extra:insert/insert-on-conflict-do-update-bare`
+- `docs-extra:insert-on-conflict/on-conflict-do-update-bare`
 
 ### SQLite — no `update returning old values`, no `delete using`
 
 - `tTable.oldValues()` is only typed on PostgreSqlConnection,
-  MariaDBConnection and SqlServerConnection. `docs:update/update-returning-old-values`
+  MariaDBConnection and SqlServerConnection. `docs-extra:update/update-returning-old-values`
   is commented out in every sqlite cell (`test/db/sqlite/*/<connector>/docs.update.test.ts`).
 - `deleteFrom(...).using(...)` is not available on SQLite. The test
   `docs:delete/delete-using` is commented out in every sqlite cell

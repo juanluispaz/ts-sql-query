@@ -273,155 +273,6 @@ describe(ctx.label, () => {
         })
     })
 
-    test('docs:insert/insert-on-conflict-do-nothing', async () => {
-        // Section "Insert on conflict do nothing" — `.onConflictDoNothing()`
-        // with RETURNING + executeInsertNoneOrOne
-        // the result is `T | null` (the row is null when the conflict
-        // suppressed the insert).
-        ctx.mockNext({ id: 1, name: 'Acme Corp', plan: 'pro' })
-
-        await ctx.withRollback(async () => {
-            const connection = ctx.conn
-
-            // doc-start
-            const maybeInserted = sync(connection.insertInto(tOrganization)
-                .set({
-                    name: 'Acme Corp',
-                    plan: 'pro',
-                })
-                .onConflictDoNothing()
-                .returning({
-                    id:   tOrganization.id,
-                    name: tOrganization.name,
-                    plan: tOrganization.plan,
-                })
-                .executeInsertNoneOrOne())
-            // doc-end
-
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2) on conflict do nothing returning id as id, name as name, "plan" as "plan""`)
-            expect(ctx.lastParams).toMatchInlineSnapshot(`
-              [
-                "Acme Corp",
-                "pro",
-              ]
-            `)
-            assertType<Exact<typeof maybeInserted, { id: number; name: string; plan: string } | null>>()
-        })
-    })
-
-    test('docs:insert/insert-on-conflict-do-update', async () => {
-        // Section "Insert on conflict do update" — the targeted
-        // `.onConflictOn(col).doUpdateSet({...})` form. The bare
-        // `.onConflictDoUpdateSet({...})` form lives below as docs-extra.
-        ctx.mockNext({ id: 1, name: 'Acme Corp', plan: 'enterprise' })
-
-        await ctx.withRollback(async () => {
-            const connection = ctx.conn
-
-            // doc-start
-            const upserted = sync(connection.insertInto(tOrganization)
-                .set({
-                    name: 'Acme Corp',
-                    plan: 'pro',
-                })
-                .onConflictOn(tOrganization.id)
-                .doUpdateSet({
-                    plan: 'enterprise',
-                })
-                .returning({
-                    id:   tOrganization.id,
-                    name: tOrganization.name,
-                    plan: tOrganization.plan,
-                })
-                .executeInsertOne())
-            // doc-end
-
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2) on conflict (id) do update set "plan" = ?3 returning id as id, name as name, "plan" as "plan""`)
-            expect(ctx.lastParams).toMatchInlineSnapshot(`
-              [
-                "Acme Corp",
-                "pro",
-                "enterprise",
-              ]
-            `)
-            assertType<Exact<typeof upserted, { id: number; name: string; plan: string }>>()
-        })
-    })
-
-    test('docs-extra:insert/insert-on-conflict-do-update-bare', async () => {
-        // The bare upsert variant — `.onConflictDoUpdateSet({...})`
-        // without a target column. Any unique-key violation triggers the
-        // UPDATE.
-        ctx.mockNext({ id: 1, name: 'Acme Corp', plan: 'pro' })
-
-        await ctx.withRollback(async () => {
-            const connection = ctx.conn
-
-            const upserted = sync(connection.insertInto(tOrganization)
-                .set({
-                    name: 'Acme Corp',
-                    plan: 'pro',
-                })
-                .onConflictDoUpdateSet({
-                    plan: 'enterprise',
-                })
-                .returning({
-                    id:   tOrganization.id,
-                    name: tOrganization.name,
-                    plan: tOrganization.plan,
-                })
-                .executeInsertOne())
-
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2) on conflict do update set "plan" = ?3 returning id as id, name as name, "plan" as "plan""`)
-            expect(ctx.lastParams).toMatchInlineSnapshot(`
-              [
-                "Acme Corp",
-                "pro",
-                "enterprise",
-              ]
-            `)
-            assertType<Exact<typeof upserted, { id: number; name: string; plan: string }>>()
-        })
-    })
-
-    test('docs-extra:insert/values-for-insert-in-update', async () => {
-        // Section trailing block: `valuesForInsert()` gives access to the
-        // incoming-row representation so the update body can reference
-        // both the existing row's columns and the new values.
-        ctx.mockNext({ id: 1, name: 'Acme Corp / Acme Corp', plan: 'pro' })
-
-        await ctx.withRollback(async () => {
-            const connection = ctx.conn
-
-            const tOrgForInsert = tOrganization.valuesForInsert()
-            const upserted = sync(connection.insertInto(tOrganization)
-                .set({
-                    name: 'Acme Corp',
-                    plan: 'pro',
-                })
-                .onConflictOn(tOrganization.id)
-                .doUpdateSet({
-                    name: tOrganization.name.concat(' / ').concat(tOrgForInsert.name),
-                })
-                .returning({
-                    id:   tOrganization.id,
-                    name: tOrganization.name,
-                    plan: tOrganization.plan,
-                })
-                .executeInsertOne())
-
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2) on conflict (id) do update set name = organization.name || ?3 || excluded.name returning id as id, name as name, "plan" as "plan""`)
-            expect(ctx.lastParams).toMatchInlineSnapshot(`
-              [
-                "Acme Corp",
-                "pro",
-                " / ",
-              ]
-            `)
-            assertType<Exact<typeof upserted, { id: number; name: string; plan: string }>>()
-        })
-    })
-
     test('docs-extra:insert/dynamic-set', async () => {
         // "Manipulating values to insert" prose: `dynamicSet()` lets you
         // start an insert with no values and progressively add them; you
@@ -449,7 +300,7 @@ describe(ctx.label, () => {
         })
     })
 
-    test('docs-extra:insert/set-when', async () => {
+    test('docs:insert/set-when', async () => {
         // "Manipulating values to insert" prose: the `When` variants take
         // a boolean and only apply the chained set when it is true.
         ctx.mockNext(100)
@@ -730,7 +581,7 @@ describe(ctx.label, () => {
         }).toThrow(/only name may be set by this path/)
     })
 
-    test('docs-extra:insert/set-when-false-skips', async () => {
+    test('docs:insert/set-when-false-skips', async () => {
         // "Manipulating values to insert" prose: every method has a
         // `When` variant — `setWhen(false, ...)` is a no-op, so the chain
         // emits only what `set(...)` already had.

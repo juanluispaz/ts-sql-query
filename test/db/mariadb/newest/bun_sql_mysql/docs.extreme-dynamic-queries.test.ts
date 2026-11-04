@@ -117,7 +117,7 @@ describe(ctx.label, () => {
         ])
     })
 
-    test('docs:extreme-dynamic-queries/dynamic-pick-paths', async () => {
+    test('docs-extra:extreme-dynamic-queries/dynamic-pick-paths', async () => {
         const connection = ctx.conn
 
         // doc-start
@@ -463,5 +463,45 @@ describe(ctx.label, () => {
         void tAppUser
         void tOrganization
         void dynamicPickPaths
+    })
+
+    test('docs:extreme-dynamic-queries/complex-dynamic-boolean-expressions', async () => {
+        const expected = [
+            { id: 1, title: 'Update hero copy' },
+            { id: 3, title: 'Migrate to ESM' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const titleContains: string | null = null
+        const statusIs: string | null = 'open'
+
+        let where = connection.dynamicBooleanExpressionUsing(tIssue)
+        if (titleContains) {
+            where = where.and(tIssue.title.contains(titleContains))
+        }
+        if (statusIs) {
+            where = where.and(tIssue.status.equals(statusIs))
+        }
+
+        const issues = await connection.selectFrom(tIssue)
+            .where(where)
+            .select({ id: tIssue.id, title: tIssue.title })
+            .orderBy('id')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where status = ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "open",
+          ]
+        `)
+        assertType<Exact<typeof issues, Array<{
+            id:    number
+            title: string
+        }>>>()
+        expect(issues).toEqual(expected)
     })
 })

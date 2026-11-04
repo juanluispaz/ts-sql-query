@@ -119,39 +119,6 @@ describe(ctx.label, () => {
         expect(projectsInAcme.length).toBeGreaterThan(0)
     })
 
-    test('docs:select/aggregate-and-group-by', async () => {
-        // Section "Select with aggregate functions and group by" — count
-        // children of a parent grouped by parent columns.
-        const expected = [
-            { organizationId: 1, organizationName: 'Acme Corp', projectCount: 2 },
-            { organizationId: 2, organizationName: 'Globex Ltd',    projectCount: 2 },
-        ]
-        ctx.mockNext(expected)
-        const connection = ctx.conn
-
-        // doc-start
-        const projectCountPerOrganization = await connection.selectFrom(tOrganization)
-            .innerJoin(tProject).on(tProject.organizationId.equals(tOrganization.id))
-            .groupBy(tOrganization.id, tOrganization.name)
-            .select({
-                organizationId:   tOrganization.id,
-                organizationName: tOrganization.name,
-                projectCount:     connection.count(tProject.id),
-            })
-            .orderBy('organizationId')
-            .executeSelectMany()
-        // doc-end
-
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as "organizationId", organization.name as "organizationName", count(project.id) as "projectCount" from organization inner join project on project.organization_id = organization.id group by organization.id, organization.name order by "organizationId""`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        assertType<Exact<typeof projectCountPerOrganization, Array<{
-            organizationId:   number
-            organizationName: string
-            projectCount:     number
-        }>>>()
-        expect(projectCountPerOrganization).toEqual(expected)
-    })
-
     test('docs:select/left-join', async () => {
         // Section "Select with left join" — create a left-join view with
         // `forUseInLeftJoinAs` so columns become optional in the result.
@@ -559,40 +526,6 @@ describe(ctx.label, () => {
             projectCount:   number
         }>>>()
         expect(result).toEqual(expected)
-    })
-
-    test('docs-extra:select/find-by-email', async () => {
-        // Page-derived: a baseline `selectFrom(...).where(...).select({...}).executeSelectOne()`
-        // demonstrating an indexed single-row fetch.
-        const expected = {
-            id: 1,
-            email: 'ada@acme.test',
-            fullName: 'Ada Lovelace',
-        }
-        ctx.mockNext(expected)
-        const connection = ctx.conn
-
-        const user = await connection.selectFrom(tAppUser)
-            .where(tAppUser.email.equals('ada@acme.test'))
-            .select({
-                id:       tAppUser.id,
-                email:    tAppUser.email,
-                fullName: tAppUser.fullName,
-            })
-            .executeSelectOne()
-
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, email as email, full_name as "fullName" from app_user where email = $1"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            "ada@acme.test",
-          ]
-        `)
-        assertType<Exact<typeof user, {
-            id:       number
-            email:    string
-            fullName: string
-        }>>()
-        expect(user).toEqual(expected)
     })
 
     test('docs-extra:select/aliased-table', async () => {

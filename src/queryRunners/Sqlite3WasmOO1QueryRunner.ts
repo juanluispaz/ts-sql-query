@@ -1,4 +1,4 @@
-import type { DatabaseType, PromiseProvider } from './QueryRunner.js'
+import type { BeginTransactionOpts, DatabaseType, PromiseProvider } from './QueryRunner.js'
 import type { Database } from '@sqlite.org/sqlite-wasm'
 import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
@@ -6,18 +6,22 @@ import { getSqlite3WasmOO1ErrorReason, isSqlite3WasmOO1Error } from './connector
 
 export interface Sqlite3WasmOO1QueryRunnerConfig {
     promise?: PromiseProvider | undefined
+    /** The connection is in a transaction that something else began, and that something else ends: none begins on it */
+    forUseInTransaction?: boolean | undefined
 }
 
 export class Sqlite3WasmOO1QueryRunner extends SqlTransactionQueryRunner {
     readonly database: DatabaseType
     readonly connection: Database
     readonly promise: PromiseProvider
+    private config?: Sqlite3WasmOO1QueryRunnerConfig | undefined
 
     constructor(connection: Database, config?: Sqlite3WasmOO1QueryRunnerConfig) {
         super()
         this.connection = connection
         this.database = 'sqlite'
         this.promise = config?.promise || Promise
+        this.config = config
     }
 
     useDatabase(database: DatabaseType): void {
@@ -76,6 +80,12 @@ export class Sqlite3WasmOO1QueryRunner extends SqlTransactionQueryRunner {
         } catch (e) {
             return this.promise.reject(e)
         }
+    }
+    override executeBeginTransaction(opts?: BeginTransactionOpts): Promise<void> {
+        if (this.config?.forUseInTransaction) {
+            return this.rejectBeginInsideAManagedTransaction()
+        }
+        return super.executeBeginTransaction(opts)
     }
     addParam(params: any[], value: any): string {
         if (typeof value === 'boolean') {

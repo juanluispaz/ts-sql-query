@@ -22,6 +22,9 @@ export class BunSqlSqliteQueryRunner extends AbstractBunSqlQueryRunner {
         return fn(this.transaction || this.connection)
     }
     override executeBeginTransactionQuery(query: string, params: any[]): Promise<number> {
+        if (this.givenConnection === 'transaction') {
+            return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, 'BunSqlSqliteQueryRunner was created with a transaction of Bun SQL, and a transaction can\'t begin inside it'))
+        }
         return this.connection.unsafe(query, params).then((result) => result.count)
     }
     override executeCommitQuery(query: string, params: any[]): Promise<number> {

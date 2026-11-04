@@ -8,7 +8,7 @@ import { View } from '../../../../../src/View.js'
 import { Values } from '../../../../../src/Values.js'
 
 
-import { createPool } from 'mariadb'
+import { createPool, type Connection } from 'mariadb'
 import { MariaDBQueryRunner } from '../../../../../src/queryRunners/MariaDBQueryRunner.js'
 import { MariaDBPoolQueryRunner } from '../../../../../src/queryRunners/MariaDBPoolQueryRunner.js'
 
@@ -152,6 +152,7 @@ void tCustomCompany
 void tRecord
 void connection
 void createPool
+void (null as unknown as Connection)
 void MariaDBQueryRunner
 void MariaDBPoolQueryRunner
 void MockQueryRunner

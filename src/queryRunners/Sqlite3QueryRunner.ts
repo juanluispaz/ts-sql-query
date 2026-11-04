@@ -1,8 +1,13 @@
-import type { DatabaseType } from './QueryRunner.js'
+import type { BeginTransactionOpts, DatabaseType } from './QueryRunner.js'
 import type { Database } from 'sqlite3'
 import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getSqlite3ErrorReason, isSqlite3Error } from './connectorErrorMappers/Sqlite3ErrorMapper.js'
+
+export interface Sqlite3QueryRunnerConfig {
+    /** The connection is in a transaction that something else began, and that something else ends: none begins on it */
+    forUseInTransaction?: boolean | undefined
+}
 
 /**
  * @deprecated The [sqlite3](https://www.npmjs.com/package/sqlite3) driver was deprecated by its
@@ -16,11 +21,13 @@ import { getSqlite3ErrorReason, isSqlite3Error } from './connectorErrorMappers/S
 export class Sqlite3QueryRunner extends SqlTransactionQueryRunner {
     readonly database: DatabaseType
     readonly connection: Database
+    private config?: Sqlite3QueryRunnerConfig | undefined
 
-    constructor(connection: Database) {
+    constructor(connection: Database, config?: Sqlite3QueryRunnerConfig) {
         super()
         this.connection = connection
         this.database = 'sqlite'
+        this.config = config
     }
 
     useDatabase(database: DatabaseType): void {
@@ -87,6 +94,12 @@ export class Sqlite3QueryRunner extends SqlTransactionQueryRunner {
             return super.executeInsertReturningMultipleLastInsertedId(query, params)
         }
         throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, "Unsupported executeInsertReturningMultipleLastInsertedId on queries thar doesn't include the returning clause")
+    }
+    override executeBeginTransaction(opts?: BeginTransactionOpts): Promise<void> {
+        if (this.config?.forUseInTransaction) {
+            return this.rejectBeginInsideAManagedTransaction()
+        }
+        return super.executeBeginTransaction(opts)
     }
     addParam(params: any[], value: any): string {
         if (typeof value === 'bigint') {

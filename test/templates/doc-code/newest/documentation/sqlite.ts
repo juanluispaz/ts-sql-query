@@ -31,6 +31,7 @@ const BetterSqlite3QueryRunner = null as any
 const Sqlite3QueryRunner = null as any
 const BunSqliteQueryRunner = null as any
 const BunSqlSqliteQueryRunner = null as any
+export type TransactionSQL = any
 const NodeSqliteQueryRunner = null as any
 const SQL = null as any
 

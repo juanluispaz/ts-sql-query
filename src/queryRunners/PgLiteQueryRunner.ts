@@ -1,5 +1,5 @@
-import type { DatabaseType } from './QueryRunner.js'
-import type { PGlite } from '@electric-sql/pglite'
+import type { BeginTransactionOpts, DatabaseType } from './QueryRunner.js'
+import type { PGlite, Transaction } from '@electric-sql/pglite'
 import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
 import { PostgresTransactionOutcome } from '../utils/postgresTransactionOutcome.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
@@ -7,6 +7,8 @@ import { getPgLiteErrorReason, isPgLiteError } from './connectorErrorMappers/PgL
 
 export interface PgQueryRunnerConfig {
     allowNestedTransactions?: boolean | undefined
+    /** The connection is in a transaction that something else began, and that something else ends: none begins on it */
+    forUseInTransaction?: boolean | undefined
 }
 
 export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
@@ -15,9 +17,11 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
     readonly connection: PGlite
     private config?: PgQueryRunnerConfig | undefined
 
-    constructor(connection: PGlite, config?: PgQueryRunnerConfig) {
+    /** connection: the database, or the transaction of db.transaction(...), the only one that can run a statement inside it */
+    constructor(connection: PGlite | Transaction, config?: PgQueryRunnerConfig) {
         super()
-        this.connection = connection
+        // Only a database is asked to begin (see executeBeginTransaction)
+        this.connection = connection as PGlite
         this.database = 'postgreSql'
         this.config = config
     }
@@ -51,6 +55,12 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
             this.transactionOutcome.checkCommit(result.command)
             return 0
         })
+    }
+    override executeBeginTransaction(opts?: BeginTransactionOpts): Promise<void> {
+        if (this.config?.forUseInTransaction || typeof this.connection.transaction !== 'function') {
+            return this.rejectBeginInsideAManagedTransaction()
+        }
+        return super.executeBeginTransaction(opts)
     }
     addParam(params: any[], value: any): string {
         params.push(value)

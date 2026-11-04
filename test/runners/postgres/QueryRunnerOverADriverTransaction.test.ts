@@ -1,119 +1,109 @@
-// PostgresQueryRunner and BunSqlPostgresQueryRunner created inside a transaction the caller began with the driver
-// (sql.begin(tx => ...)), and PgQueryRunner with forUseInTransaction over a connection in a transaction: the statements
-// run in that transaction, execute gives it, and the query runner doesn't begin another one inside it.
+// The query runners of PostgreSQL created inside a transaction the caller began with the driver.
 
 import pg from 'pg'
 import postgres from 'postgres'
 import { afterAll, beforeAll, describe, expect, test } from '../../lib/testRunner.js'
-import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
+import { PgLiteQueryRunner } from '../../../src/queryRunners/PgLiteQueryRunner.js'
 import { PgQueryRunner } from '../../../src/queryRunners/PgQueryRunner.js'
 import { PostgresQueryRunner } from '../../../src/queryRunners/PostgresQueryRunner.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/postgres/runners.js'
+import { describeOverADriverTransaction, inManualTransaction } from '../lib/overADriverTransaction.js'
 import { reasonOf, rejectionOf } from '../lib/runnerContract.js'
 
 const isBun = typeof globalThis.Bun !== 'undefined'
 
-interface Driver {
-    begin<T>(fn: (transaction: any) => Promise<T>): Promise<T>
-    run(sql: string): Promise<unknown>
-    count(): Promise<number>
-    close(): Promise<void>
-}
-
-function describeOverADriverTransaction(label: string, realEnabled: boolean, open: (uri: string) => Promise<Driver>, createRunner: (transaction: any) => Promise<QueryRunner>) {
-    describe.skipIf(!realEnabled)(label, () => {
-        let driver: Driver | undefined
-        let release: (() => Promise<void>) | undefined
-        const d = (): Driver => {
-            if (!driver) throw new Error(label + ': driver read before beforeAll')
-            return driver
+describeOverADriverTransaction({
+    label: 'PostgresQueryRunner (transaction of postgres.js)',
+    realEnabled: isRealDbEnabled('postgres', 'docker', 'newest', 'postgres'),
+    async open() {
+        const db = await acquireRunnerTestDatabase()
+        const sql = postgres(db.uri, { max: 2, onnotice: () => {} })
+        return {
+            begin: fn => sql.begin(fn) as Promise<any>,
+            run: sql_ => sql.unsafe(sql_),
+            count: async () => Number((await sql.unsafe('select count(*) as n from rt_given'))[0]!['n']),
+            close: async () => { await sql.end(); await db.release() },
         }
-
-        beforeAll(async () => {
-            const db = await acquireRunnerTestDatabase()
-            driver = await open(db.uri)
-            release = () => db.release()
-            await d().run('drop table if exists rt_given')
-            await d().run('create table rt_given (id integer primary key)')
-        }, 180_000)
-
-        afterAll(async () => {
-            await driver?.close()
-            await release?.()
-        }, 180_000)
-
-        test('statements-run-in-the-transaction-of-the-driver', async () => {
-            const undo = new Error('undo')
-            const error = await rejectionOf(d().begin(async transaction => {
-                const runner = await createRunner(transaction)
-                await runner.executeInsert('insert into rt_given (id) values (1)')
-                expect(Number(await runner.executeSelectOneColumnOneRow('select count(*) from rt_given'))).toBe(1)
-                expect(runner.isTransactionActive()).toBe(false)
-                let given: unknown
-                await runner.execute(async connection => { given = connection })
-                expect(given).toBe(transaction)
-                throw undo
-            }))
-            expect(error).toBe(undo)
-            expect(await d().count()).toBe(0)
-        })
-
-        test('no-transaction-begins-inside-the-transaction-of-the-driver', async () => {
-            await d().begin(async transaction => {
-                const runner = await createRunner(transaction)
-                expect(reasonOf(await rejectionOf(runner.executeBeginTransaction()))).toBe('NESTED_TRANSACTION_NOT_SUPPORTED')
-                expect(reasonOf(await rejectionOf(runner.executeInTransaction(async () => undefined, runner)))).toBe('NESTED_TRANSACTION_NOT_SUPPORTED')
-                expect(runner.isTransactionActive()).toBe(false)
-            })
-        })
-    })
-}
-
-describeOverADriverTransaction('PostgresQueryRunner (transaction of postgres.js)', isRealDbEnabled('postgres', 'docker', 'newest', 'postgres'), async uri => {
-    const sql = postgres(uri, { max: 2, onnotice: () => {} })
-    return {
-        begin: fn => sql.begin(fn) as Promise<any>,
-        run: sql_ => sql.unsafe(sql_),
-        count: async () => Number((await sql.unsafe('select count(*) as n from rt_given'))[0]!['n']),
-        close: () => sql.end(),
-    }
-}, async transaction => new PostgresQueryRunner(transaction))
-
-describeOverADriverTransaction('BunSqlPostgresQueryRunner (transaction of Bun SQL)', isBun && isRealDbEnabled('postgres', 'docker', 'newest', 'bun_sql_postgres'), async uri => {
-    const { SQL } = await import('bun')
-    const sql = new SQL(uri, { max: 2 })
-    return {
-        begin: fn => sql.begin(fn) as Promise<any>,
-        run: sql_ => sql.unsafe(sql_),
-        count: async () => Number((await sql.unsafe('select count(*) as n from rt_given'))[0]['n']),
-        close: () => sql.close(),
-    }
-}, async transaction => {
-    const { BunSqlPostgresQueryRunner } = await import('../../../src/queryRunners/BunSqlPostgresQueryRunner.js')
-    return new BunSqlPostgresQueryRunner(transaction)
+    },
+    createRunner: transaction => new PostgresQueryRunner(transaction),
 })
 
-describeOverADriverTransaction('PgQueryRunner (forUseInTransaction)', isRealDbEnabled('postgres', 'docker', 'newest', 'pg'), async uri => {
-    const client = new pg.Client(uri)
-    await client.connect()
-    return {
-        begin: async fn => {
-            await client.query('begin')
-            try {
-                const result = await fn(client)
-                await client.query('commit')
-                return result
-            } catch (error) {
-                await client.query('rollback')
-                throw error
-            }
-        },
-        run: sql => client.query(sql),
-        count: async () => Number((await client.query('select count(*) as n from rt_given')).rows[0].n),
-        close: () => client.end(),
-    }
-}, async transaction => new PgQueryRunner(transaction, { forUseInTransaction: true }))
+describeOverADriverTransaction({
+    label: 'BunSqlPostgresQueryRunner (transaction of Bun SQL)',
+    realEnabled: isBun && isRealDbEnabled('postgres', 'docker', 'newest', 'bun_sql_postgres'),
+    async open() {
+        const db = await acquireRunnerTestDatabase()
+        const { SQL } = await import('bun')
+        const sql = new SQL(db.uri, { max: 2 })
+        return {
+            begin: fn => sql.begin(fn) as Promise<any>,
+            run: sql_ => sql.unsafe(sql_),
+            count: async () => Number((await sql.unsafe('select count(*) as n from rt_given'))[0]['n']),
+            close: async () => { await sql.close(); await db.release() },
+        }
+    },
+    async createRunner(transaction) {
+        const { BunSqlPostgresQueryRunner } = await import('../../../src/queryRunners/BunSqlPostgresQueryRunner.js')
+        return new BunSqlPostgresQueryRunner(transaction)
+    },
+})
+
+describeOverADriverTransaction({
+    label: 'PgQueryRunner (forUseInTransaction)',
+    realEnabled: isRealDbEnabled('postgres', 'docker', 'newest', 'pg'),
+    async open() {
+        const db = await acquireRunnerTestDatabase()
+        const client = new pg.Client(db.uri)
+        await client.connect()
+        const run = (sql: string) => client.query(sql)
+        return {
+            begin: fn => inManualTransaction(client, run, fn),
+            run,
+            count: async () => Number((await client.query('select count(*) as n from rt_given')).rows[0].n),
+            close: async () => { await client.end(); await db.release() },
+        }
+    },
+    createRunner: transaction => new PgQueryRunner(transaction, { forUseInTransaction: true }),
+})
+
+const pgliteEnabled = isRealDbEnabled('postgres', 'wasm', 'newest', 'pglite')
+async function openPgLite() {
+    const { PGlite } = await import('@electric-sql/pglite')
+    return PGlite.create('memory://')
+}
+const countInPgLite = async (db: import('@electric-sql/pglite').PGlite) => Number((await db.query<{ n: unknown }>('select count(*) as n from rt_given')).rows[0]!.n)
+
+describeOverADriverTransaction({
+    label: 'PgLiteQueryRunner (transaction of PGlite)',
+    realEnabled: pgliteEnabled,
+    async open() {
+        const db = await openPgLite()
+        return {
+            begin: fn => db.transaction(fn) as Promise<any>,
+            run: sql => db.query(sql),
+            count: () => countInPgLite(db),
+            close: () => db.close(),
+        }
+    },
+    createRunner: transaction => new PgLiteQueryRunner(transaction),
+})
+
+describeOverADriverTransaction({
+    label: 'PgLiteQueryRunner (forUseInTransaction)',
+    realEnabled: pgliteEnabled,
+    async open() {
+        const db = await openPgLite()
+        const run = (sql: string) => db.query(sql)
+        return {
+            begin: fn => inManualTransaction(db, run, fn),
+            run,
+            count: () => countInPgLite(db),
+            close: () => db.close(),
+        }
+    },
+    createRunner: transaction => new PgLiteQueryRunner(transaction, { forUseInTransaction: true }),
+})
 
 // The commit of a transaction a failed statement aborted is answered ROLLBACK: the rollback that follows it sends
 // nothing, as there is no transaction left, so PostgreSQL has nothing to warn about (postgres.js writes its notices to

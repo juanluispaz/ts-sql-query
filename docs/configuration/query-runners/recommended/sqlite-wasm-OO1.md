@@ -87,3 +87,20 @@ async function main() {
 !!! warning
 
     The binary representation used in this implementation is not intended to be compatible with SQLite’s optional UUID extension.
+
+## Inside a transaction something else manages
+
+When the connection is already in a transaction that something else began and ends, like your own code or [another library](../combining-with-another-library.md), create the query runner with `forUseInTransaction`. Its statements run in that transaction, and a transaction can't begin on it: `connection.transaction(...)` and `connection.beginTransaction()` reject with `NESTED_TRANSACTION_NOT_SUPPORTED`.
+
+For `ts-sql-query` there is no transaction open, so `executeAfterNextCommit`, the other end-of-transaction functions and `getTransactionMetadata()` throw `NOT_IN_TRANSACTION`.
+
+```ts
+import type { Database } from "@sqlite.org/sqlite-wasm";
+import { Sqlite3WasmOO1QueryRunner } from "ts-sql-query/queryRunners/Sqlite3WasmOO1QueryRunner";
+
+async function main(db: Database) {
+    const connection = new DBConnection(new Sqlite3WasmOO1QueryRunner(db, { forUseInTransaction: true }));
+    // Do your queries here, in the transaction
+    connection // ...
+}
+```

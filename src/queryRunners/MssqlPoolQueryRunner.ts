@@ -23,9 +23,11 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     readonly pool: ConnectionPool
     transaction?: Transaction | undefined
 
-    constructor(pool: ConnectionPool) {
+    /** pool: the pool, or a transaction begun with it, which something else commits or rolls back */
+    constructor(pool: ConnectionPool | Transaction) {
         super()
-        this.pool = pool
+        // A transaction gives its requests like the pool, and only a pool is asked to begin (see executeBeginTransaction)
+        this.pool = pool as ConnectionPool
         this.database = 'sqlServer'
     }
 
@@ -90,6 +92,9 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     executeBeginTransaction(opts: BeginTransactionOpts = []): Promise<void> {
         if (this.transaction) {
             return Promise.reject(new TsSqlProcessingError({ reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, this.database + " doesn't support nested transactions (using " + this.constructor.name + ")"))
+        }
+        if (typeof this.pool.transaction !== 'function') {
+            return this.rejectBeginInsideAManagedTransaction()
         }
         const accessMode = opts[1]
         if (accessMode) {

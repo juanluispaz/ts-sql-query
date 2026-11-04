@@ -1,12 +1,16 @@
 import { AbstractQueryRunner } from './AbstractQueryRunner.js'
 import type { BeginTransactionOpts, QueryRunner } from './QueryRunner.js'
-import { TsSqlQueryExecutionError } from '../TsSqlError.js'
+import { TsSqlProcessingError, TsSqlQueryExecutionError } from '../TsSqlError.js'
 import { TransactionOutcome } from '../utils/transactionOutcome.js'
 
 export abstract class ManagedTransactionQueryRunner extends AbstractQueryRunner {
     /** Whether the database rolled the current transaction back by itself */
     protected readonly transactionOutcome: TransactionOutcome = new TransactionOutcome()
 
+    /** Rejects a transaction that begins on a query runner created for a transaction something else manages */
+    protected rejectBeginInsideAManagedTransaction(): Promise<never> {
+        return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, this.constructor.name + ' runs in a transaction that something else manages: a transaction cannot begin on it'))
+    }
     executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
         return outermostQueryRunner.executeBeginTransaction(opts).then(() => {
             let result = fn()

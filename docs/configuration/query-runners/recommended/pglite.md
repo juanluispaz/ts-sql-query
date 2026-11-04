@@ -45,3 +45,24 @@ async function main() {
     connection // ...
 }
 ```
+
+## Inside a transaction something else manages
+
+When your code or [another library](../combining-with-another-library.md) manages the transaction: inside `db.transaction(...)`, PGlite answers only the transaction object: a query on the database waits until the transaction ends. Create the query runner with that object. Its statements run in that transaction, which PGlite commits or rolls back when your function ends. A transaction can't begin on it: `connection.transaction(...)` and `connection.beginTransaction()` reject with `NESTED_TRANSACTION_NOT_SUPPORTED`.
+
+```ts
+import { PGlite } from '@electric-sql/pglite'
+import { PgLiteQueryRunner } from 'ts-sql-query/queryRunners/PgLiteQueryRunner'
+
+const db = await PGlite.create('memory://')
+
+async function main() {
+    await db.transaction(async (transaction) => {
+        const connection = new DBConnection(new PgLiteQueryRunner(transaction));
+        // Do your queries here, in the transaction
+        connection // ...
+    });
+}
+```
+
+When the transaction began with a query on the database (`db.query('begin')`), create the query runner with the database and `new PgLiteQueryRunner(db, { forUseInTransaction: true })`, with the same effect. Without the option, the commit of an inner transaction would end the outer one.

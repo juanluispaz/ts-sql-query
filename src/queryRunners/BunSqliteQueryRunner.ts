@@ -1,6 +1,6 @@
 /// <reference types="bun-types" />
 
-import type { DatabaseType, PromiseProvider } from './QueryRunner.js'
+import type { BeginTransactionOpts, DatabaseType, PromiseProvider } from './QueryRunner.js'
 import type { Database } from 'bun:sqlite'
 import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from "../TsSqlError.js"
@@ -8,18 +8,22 @@ import { getBunSqliteErrorReason, isBunSqliteError } from './connectorErrorMappe
 
 export interface BunSqliteQueryRunnerConfig {
     promise?: PromiseProvider | undefined
+    /** The connection is in a transaction that something else began, and that something else ends: none begins on it */
+    forUseInTransaction?: boolean | undefined
 }
 
 export class BunSqliteQueryRunner extends SqlTransactionQueryRunner {
     readonly database: DatabaseType
     readonly connection: Database
     readonly promise: PromiseProvider
+    private config?: BunSqliteQueryRunnerConfig | undefined
 
     constructor(connection: Database, config?: BunSqliteQueryRunnerConfig) {
         super()
         this.connection = connection
         this.database = 'sqlite'
         this.promise = config?.promise || Promise
+        this.config = config
     }
 
     useDatabase(database: DatabaseType): void {
@@ -85,6 +89,12 @@ export class BunSqliteQueryRunner extends SqlTransactionQueryRunner {
     /** SQLite leaves autocommit mode while a transaction is open */
     protected override isTransactionOpenInTheDatabase(_error: unknown): boolean {
         return this.connection.inTransaction
+    }
+    override executeBeginTransaction(opts?: BeginTransactionOpts): Promise<void> {
+        if (this.config?.forUseInTransaction) {
+            return this.rejectBeginInsideAManagedTransaction()
+        }
+        return super.executeBeginTransaction(opts)
     }
     addParam(params: any[], value: any): string {
         if (typeof value === 'boolean') {

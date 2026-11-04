@@ -179,8 +179,8 @@ nav:
         - ConsoleLogNoopQueryRunner: configuration/query-runners/general-purpose/ConsoleLogNoopQueryRunner.md
         - NoopQueryRunner: configuration/query-runners/general-purpose/NoopQueryRunner.md
     - Additional query runners:
-      - prisma: configuration/query-runners/additional/prisma.md
       - sqlite3: configuration/query-runners/additional/sqlite3.md
+    - Combining with another library: configuration/query-runners/combining-with-another-library.md
   - API: 
     - API Introduction: api/introduction.md
     - Connection API: api/connection.md

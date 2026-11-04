@@ -106,3 +106,20 @@ async function doYourLogic(connection: DBConnection) {
     Without it the driver reads every integer as a JavaScript `number`, so an out-of-range value comes back rounded; ts-sql-query rejects that rounded number with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` rather than hand back a silently-wrong value. With it, the driver hands those values over as strings and ts-sql-query converts them to the type the column declares (`bigint` stays exact, `int` raises `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` if the exact value doesn't fit — read it as `bigint`). Values within the safe range keep coming back as `number`, so nothing else changes.
 
     Add `bigNumberStrings: true` as well only if you want *every* integer as a string, not just the out-of-range ones.
+
+## Inside a transaction something else manages
+
+When the connection is already in a transaction that something else began and ends, like your own code or [another library](../combining-with-another-library.md), create the query runner with `forUseInTransaction`. Its statements run in that transaction, and a transaction can't begin on it: `connection.transaction(...)` and `connection.beginTransaction()` reject with `NESTED_TRANSACTION_NOT_SUPPORTED`. Without the option, the `START TRANSACTION` of that inner transaction would commit the outer one.
+
+For `ts-sql-query` there is no transaction open, so `executeAfterNextCommit`, the other end-of-transaction functions and `getTransactionMetadata()` throw `NOT_IN_TRANSACTION`.
+
+```ts
+import type { Connection } from 'mysql2';
+import { MySql2QueryRunner } from "ts-sql-query/queryRunners/MySql2QueryRunner";
+
+async function main(mysql2Connection: Connection) {
+    const connection = new DBConnection(new MySql2QueryRunner(mysql2Connection, { forUseInTransaction: true }));
+    // Do your queries here, in the transaction
+    connection // ...
+}
+```

@@ -200,6 +200,7 @@ const availableFields = {
 };
 
 const prismaPostgres = null as any
+const PgBoss = null as any
 const contract = null as any
 type PoolClient = any
 
@@ -333,6 +334,7 @@ void _expect
 function _beforeEach(_1: any) {}
 void _beforeEach
 void prismaPostgres
+void PgBoss
 void contract
 void (null as unknown as PoolClient)
 void otherQueryRunner

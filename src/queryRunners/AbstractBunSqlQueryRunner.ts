@@ -11,7 +11,7 @@ export abstract class AbstractBunSqlQueryRunner extends SqlTransactionQueryRunne
     readonly connection: SQL
     transaction?: TransactionSQL | undefined
     lowLevelTransaction?: ReservedSQL | undefined
-    private readonly givenConnection: GivenSqlConnection
+    protected readonly givenConnection: GivenSqlConnection
 
     constructor(connection: SQL, database: DatabaseType) {
         super()

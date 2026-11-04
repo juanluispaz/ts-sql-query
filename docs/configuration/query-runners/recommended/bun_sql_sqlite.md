@@ -52,3 +52,22 @@ async function main() {
 !!! note "Safe Integers"
 
     If your queries may return integers larger than JavaScript's safe integer range, consider enabling `safeIntegers` in the Bun SQL SQLite configuration.
+
+## Inside a transaction you began with Bun SQL
+
+Created with the transaction object of `sql.begin(...)`, the query runner runs its statements in that transaction, which Bun SQL commits or rolls back when your function ends. A transaction can't begin inside it: `connection.transaction(...)` and `connection.beginTransaction()` are rejected with `NESTED_TRANSACTION_NOT_SUPPORTED`.
+
+```ts
+import { SQL, type TransactionSQL } from "bun";
+import { BunSqlSqliteQueryRunner } from "ts-sql-query/queryRunners/BunSqlSqliteQueryRunner";
+
+const sql = new SQL({ adapter: 'sqlite', filename: './foobar.db' });
+
+async function main() {
+    await sql.begin(async (transaction: TransactionSQL) => {
+        const connection = new DBConnection(new BunSqlSqliteQueryRunner(transaction));
+        // Do your queries here, in the transaction
+        connection // ...
+    });
+}
+```

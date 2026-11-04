@@ -76,3 +76,20 @@ async function main() {
     }
 }
 ```
+
+## Inside a transaction something else manages
+
+When the connection is already in a transaction that something else began and ends, like your own code or [another library](../combining-with-another-library.md), create the query runner with `forUseInTransaction`. Its statements run in that transaction, and a transaction can't begin on it: `connection.transaction(...)` and `connection.beginTransaction()` reject with `NESTED_TRANSACTION_NOT_SUPPORTED`. Without the option, the `START TRANSACTION` of that inner transaction would commit the outer one.
+
+For `ts-sql-query` there is no transaction open, so `executeAfterNextCommit`, the other end-of-transaction functions and `getTransactionMetadata()` throw `NOT_IN_TRANSACTION`.
+
+```ts
+import type { Connection } from 'mariadb';
+import { MariaDBQueryRunner } from "ts-sql-query/queryRunners/MariaDBQueryRunner";
+
+async function main(mariaDBConnection: Connection) {
+    const connection = new DBConnection(new MariaDBQueryRunner(mariaDBConnection, { forUseInTransaction: true }));
+    // Do your queries here, in the transaction
+    connection // ...
+}
+```

@@ -73,3 +73,23 @@ async function main() {
     connection // ...
 }
 ```
+
+## Inside a transaction something else manages
+
+When your code or [another library](../combining-with-another-library.md) manages the transaction, create the query runner with the mssql `Transaction`, once it has begun. The query runner runs its statements in that transaction, and whoever began it commits it or rolls it back. A transaction can't begin inside it: `connection.transaction(...)` and `connection.beginTransaction()` reject with `NESTED_TRANSACTION_NOT_SUPPORTED`.
+
+For `ts-sql-query` there is no transaction open, so `executeAfterNextCommit`, the other end-of-transaction functions and `getTransactionMetadata()` throw `NOT_IN_TRANSACTION`.
+
+```ts
+import mssql from 'mssql'
+import { MssqlPoolQueryRunner } from "ts-sql-query/queryRunners/MssqlPoolQueryRunner";
+
+async function main(mssqlPool: mssql.ConnectionPool) {
+    const transaction = mssqlPool.transaction();
+    await transaction.begin();
+    const connection = new DBConnection(new MssqlPoolQueryRunner(transaction));
+    // Do your queries here, in the transaction
+    connection // ...
+    await transaction.commit();
+}
+```

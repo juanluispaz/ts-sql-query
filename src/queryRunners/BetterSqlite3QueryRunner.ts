@@ -1,4 +1,4 @@
-import type { DatabaseType, PromiseProvider } from './QueryRunner.js'
+import type { BeginTransactionOpts, DatabaseType, PromiseProvider } from './QueryRunner.js'
 import type { Database } from 'better-sqlite3'
 import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from "../TsSqlError.js"
@@ -6,18 +6,22 @@ import { getBetterSqlite3ErrorReason, isBetterSqlite3Error } from './connectorEr
 
 export interface BetterSqlite3QueryRunnerConfig {
     promise?: PromiseProvider
+    /** The connection is in a transaction that something else began, and that something else ends: none begins on it */
+    forUseInTransaction?: boolean | undefined
 }
 
 export class BetterSqlite3QueryRunner extends SqlTransactionQueryRunner {
     readonly database: DatabaseType
     readonly connection: Database
     readonly promise: PromiseProvider
+    private config?: BetterSqlite3QueryRunnerConfig | undefined
 
     constructor(connection: Database, config?: BetterSqlite3QueryRunnerConfig) {
         super()
         this.connection = connection
         this.database = 'sqlite'
         this.promise = config?.promise || Promise
+        this.config = config
     }
 
     useDatabase(database: DatabaseType): void {
@@ -83,6 +87,12 @@ export class BetterSqlite3QueryRunner extends SqlTransactionQueryRunner {
     /** SQLite leaves autocommit mode while a transaction is open */
     protected override isTransactionOpenInTheDatabase(_error: unknown): boolean {
         return this.connection.inTransaction
+    }
+    override executeBeginTransaction(opts?: BeginTransactionOpts): Promise<void> {
+        if (this.config?.forUseInTransaction) {
+            return this.rejectBeginInsideAManagedTransaction()
+        }
+        return super.executeBeginTransaction(opts)
     }
     addParam(params: any[], value: any): string {
         if (typeof value === 'boolean') {

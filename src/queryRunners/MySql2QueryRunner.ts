@@ -6,14 +6,23 @@ import { getMySql2ErrorReason, isMySql2Error } from './connectorErrorMappers/MyS
 import { isTransactionOpenAfterMySqlError } from '../utils/mySqlTransactionRollback.js'
 
 
+export interface MySql2QueryRunnerConfig {
+    database?: 'mariaDB' | 'mySql' | undefined
+    /** The connection is in a transaction that something else began, and that something else ends: none begins on it */
+    forUseInTransaction?: boolean | undefined
+}
+
 export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
     readonly database: DatabaseType
     readonly connection: Connection
 
-    constructor(connection: Connection, database: 'mariaDB' | 'mySql' = 'mySql') {
+    private config: MySql2QueryRunnerConfig
+
+    constructor(connection: Connection, databaseOrConfig: 'mariaDB' | 'mySql' | MySql2QueryRunnerConfig = 'mySql') {
         super()
         this.connection = connection
-        this.database = database
+        this.config = typeof databaseOrConfig === 'string' ? { database: databaseOrConfig } : databaseOrConfig
+        this.database = this.config.database || 'mySql'
     }
 
     useDatabase(database: DatabaseType): void {
@@ -78,6 +87,12 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
     }
     protected override isTransactionOpenInTheDatabase(error: unknown): boolean | undefined {
         return isTransactionOpenAfterMySqlError(this.getErrorReason(error))
+    }
+    override executeBeginTransaction(opts?: BeginTransactionOpts): Promise<void> {
+        if (this.config.forUseInTransaction) {
+            return this.rejectBeginInsideAManagedTransaction()
+        }
+        return super.executeBeginTransaction(opts)
     }
     doBeginTransaction(_opts: BeginTransactionOpts): Promise<void> {
         return new Promise((resolve, reject) => {

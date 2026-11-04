@@ -56,7 +56,7 @@ export class PgQueryRunner extends SqlTransactionQueryRunner {
     }
     override executeBeginTransaction(opts?: BeginTransactionOpts): Promise<void> {
         if (this.config?.forUseInTransaction) {
-            return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, 'PgQueryRunner created with forUseInTransaction runs in a transaction that something else manages: a transaction cannot begin on it'))
+            return this.rejectBeginInsideAManagedTransaction()
         }
         return super.executeBeginTransaction(opts)
     }

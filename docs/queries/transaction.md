@@ -113,7 +113,7 @@ Some libraries run their own SQL and accept a connection of your database driver
 await connection.transaction(async () => {
     const customerId = await registerCustomer('John', 'Smith', 10);
     const client = connection.queryRunner.getCurrentNativeConnection();
-    await jobQueue.send('send-welcome-email', { customerId }, { db: client });
+    await jobQueue.send('send-welcome-email', { customerId }, client);
 });
 ```
 
@@ -122,7 +122,7 @@ A query runner over a pool takes the connection from the pool with the first sta
 ```ts
 await connection.transaction(async () => {
     await connection.queryRunner.execute(async (client) => {
-        await jobQueue.send('send-welcome-email', { customerId: 10 }, { db: client });
+        await jobQueue.send('send-welcome-email', { customerId: 10 }, client);
     });
 });
 ```
@@ -137,6 +137,8 @@ What each query runner gives:
 | `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner` | The mssql `Transaction` | The pool: mssql only gives one of its connections for a transaction | The pool |
 
 The connection belongs to the query runner: don't release it, and don't commit or roll back with it. A connection `execute(fn)` takes for `fn` alone is given back when `fn` ends, so don't keep it to use later.
+
+To work in one transaction with another library, whichever of the two manages it, see [Combining with another library](../configuration/query-runners/combining-with-another-library.md).
 
 ## Transaction isolation
 

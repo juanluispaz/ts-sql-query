@@ -27,7 +27,7 @@ This page explains how to use `ts-sql-query` with the [oracledb](https://www.npm
 
 !!! info "Commit outside a transaction"
 
-    Oracle runs every statement inside a transaction, and oracledb doesn't commit it unless asked (its `autoCommit` defaults to `false`). `ts-sql-query` commits each statement executed outside a transaction, as every other database does; inside a transaction begun through `ts-sql-query` (`connection.transaction(...)` or `connection.beginTransaction()`), the work is committed by `commit()` only.
+    Oracle runs every statement inside a transaction, and oracledb doesn't commit it unless asked (its `autoCommit` defaults to `false`). `ts-sql-query` commits each statement executed outside a transaction, as every other database does; inside a transaction begun through `ts-sql-query` (`connection.transaction(...)` or `connection.beginTransaction()`), the work is committed by `commit()` only. So a query runner created over a connection with work of yours not committed yet commits it with its first statement, even a select, unless you create it [with `forUseInTransaction`](#inside-a-transaction-something-else-manages).
 
 ## Using a connection pool promise
 
@@ -171,6 +171,24 @@ async function main() {
     Without it the driver reads every `NUMBER` as a JavaScript `number`, so an out-of-range value comes back rounded; ts-sql-query rejects that rounded number with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` rather than hand back a silently-wrong value. With it, the driver hands those columns over as strings and ts-sql-query converts them to the type the column declares (`bigint` stays exact, `int` raises `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` if the exact value doesn't fit — read it as `bigint`). Narrow columns keep coming back as `number`, so nothing else changes.
 
     The handler can also be passed per query, or scoped by `metaData.name` if you prefer to name the columns explicitly.
+
+## Inside a transaction something else manages
+
+When the connection has a transaction that something else manages, because you execute statements on it with the driver or [another library](../combining-with-another-library.md) does, create the query runner with `forUseInTransaction`. Its statements run in that transaction and don't commit it; whoever manages the transaction commits it or rolls it back. `connection.transaction(...)` and `connection.beginTransaction()` reject with `NESTED_TRANSACTION_NOT_SUPPORTED`, and `connection.commit()` and `connection.rollback()` throw `NOT_IN_TRANSACTION`.
+
+For `ts-sql-query` there is no transaction open, so `executeAfterNextCommit`, the other end-of-transaction functions and `getTransactionMetadata()` throw `NOT_IN_TRANSACTION`.
+
+```ts
+import oracledb from 'oracledb';
+import { OracleDBQueryRunner } from "ts-sql-query/queryRunners/OracleDBQueryRunner";
+
+async function main(oracleConnection: oracledb.Connection) {
+    const connection = new DBConnection(new OracleDBQueryRunner(oracleConnection, { forUseInTransaction: true }));
+    // Do your queries here, in the transaction
+    connection // ...
+    await oracleConnection.commit();
+}
+```
 
 ## Running a statement on each new connection
 

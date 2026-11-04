@@ -86,9 +86,9 @@ async function main() {
 
 ## Inside a transaction something else manages
 
-When the connection is already in a transaction that something else began and ends, like [a Prisma transaction](../additional/prisma.md#prisma-manages-the-transaction), create the query runner with `forUseInTransaction`. Its statements run in that transaction, and a transaction can't begin on it: `connection.transaction(...)` and `connection.beginTransaction()` reject with `NESTED_TRANSACTION_NOT_SUPPORTED`. Without the option, the commit of that inner transaction would end the outer one.
+When the connection is already in a transaction that something else began and ends, like your own code or [another library](../combining-with-another-library.md), create the query runner with `forUseInTransaction`. Its statements run in that transaction, and a transaction can't begin on it: `connection.transaction(...)` and `connection.beginTransaction()` reject with `NESTED_TRANSACTION_NOT_SUPPORTED`. Without the option, the commit of that inner transaction would end the outer one.
 
-For `ts-sql-query` there is no transaction open, so `executeAfterNextCommit`, the other end-of-transaction functions and `getTransactionMetadata()` reject with `NOT_IN_TRANSACTION`.
+For `ts-sql-query` there is no transaction open, so `executeAfterNextCommit`, the other end-of-transaction functions and `getTransactionMetadata()` throw `NOT_IN_TRANSACTION`.
 
 ```ts
 import type { PoolClient } from 'pg';

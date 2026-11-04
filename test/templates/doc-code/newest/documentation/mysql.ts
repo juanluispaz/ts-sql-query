@@ -8,7 +8,7 @@ import { View } from '../../../../../src/View.js'
 import { Values } from '../../../../../src/Values.js'
 
 
-import { createPool } from 'mysql2'
+import { createPool, type Connection } from 'mysql2'
 import { MySql2PoolQueryRunner } from '../../../../../src/queryRunners/MySql2PoolQueryRunner.js'
 import { MySql2QueryRunner } from '../../../../../src/queryRunners/MySql2QueryRunner.js'
 
@@ -26,6 +26,7 @@ import { fromRef, type TableOrViewLeftJoinOf, type TableOrViewOf } from '../../.
 
 const SQL = null as any
 const BunSqlMySqlQueryRunner = null as any
+export type TransactionSQL = any
 
 class DBConnection extends MySqlConnection<'DBConnection'> { 
     // insensitiveCollation = 'acs'
@@ -157,6 +158,7 @@ void connection
 void SQL
 void BunSqlMySqlQueryRunner
 void createPool
+void (null as unknown as Connection)
 void MySql2PoolQueryRunner
 void MySql2QueryRunner
 void MockQueryRunner

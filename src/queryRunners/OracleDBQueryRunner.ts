@@ -6,14 +6,21 @@ import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSq
 import { getOracleDBErrorReason, isOracleDBError } from './connectorErrorMappers/OracleDBErrorMapper.js'
 import { getParamType } from '../utils/queryParamsMetadata.js'
 
+export interface OracleDBQueryRunnerConfig {
+    /** The connection is in a transaction that something else manages, and that something else ends: the statements don't commit, and none begins, commits or rolls back through this query runner */
+    forUseInTransaction?: boolean | undefined
+}
+
 export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     readonly database: DatabaseType
     readonly connection: Connection
+    private config?: OracleDBQueryRunnerConfig | undefined
 
-    constructor(connection: Connection) {
+    constructor(connection: Connection, config?: OracleDBQueryRunnerConfig) {
         super()
         this.connection = connection
         this.database = 'oracle'
+        this.config = config
     }
 
     useDatabase(database: DatabaseType): void {
@@ -113,10 +120,17 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     /**
      * Oracle always runs statements inside a transaction, and oracledb doesn't commit it unless asked (its autoCommit
      * defaults to false): outside a transaction begun through ts-sql-query, each statement is committed, as on every
-     * other database; inside one, only commit() does.
+     * other database; inside one, only commit() does. With forUseInTransaction the commit belongs to what manages the
+     * transaction.
      */
     private autoCommit(): boolean {
-        return !this.isTransactionActive()
+        return !this.isTransactionActive() && !this.config?.forUseInTransaction
+    }
+    override executeBeginTransaction(opts?: BeginTransactionOpts): Promise<void> {
+        if (this.config?.forUseInTransaction) {
+            return this.rejectBeginInsideAManagedTransaction()
+        }
+        return super.executeBeginTransaction(opts)
     }
     override doSetTransaction(sql: string, _opts: BeginTransactionOpts): Promise<void> {
         // SET TRANSACTION opens the transaction it configures, so it must not be committed
@@ -133,8 +147,9 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         return this.connection.rollback()
     }
     override validateIntransaction(): boolean {
-        // Do not validate if in transaction due automatic in transaction oracle's hehaviour
-        return false
+        // Do not validate if in transaction due automatic in transaction oracle's hehaviour, but with forUseInTransaction
+        // the transaction of the connection is not this query runner's to commit or roll back
+        return !!this.config?.forUseInTransaction
     }
     addParam(params: any[], value: any): string {
         const index = params.length

@@ -11,14 +11,23 @@ type UpsertResult = {
 }
 
 
+export interface MariaDBQueryRunnerConfig {
+    database?: 'mariaDB' | 'mySql' | undefined
+    /** The connection is in a transaction that something else began, and that something else ends: none begins on it */
+    forUseInTransaction?: boolean | undefined
+}
+
 export class MariaDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     readonly database: DatabaseType
     readonly connection: Connection
 
-    constructor(connection: Connection, database: 'mariaDB' | 'mySql' = 'mariaDB') {
+    private config: MariaDBQueryRunnerConfig
+
+    constructor(connection: Connection, databaseOrConfig: 'mariaDB' | 'mySql' | MariaDBQueryRunnerConfig = 'mariaDB') {
         super()
         this.connection = connection
-        this.database = database
+        this.config = typeof databaseOrConfig === 'string' ? { database: databaseOrConfig } : databaseOrConfig
+        this.database = this.config.database || 'mariaDB'
     }
 
     useDatabase(database: DatabaseType): void {
@@ -59,6 +68,12 @@ export class MariaDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     }
     protected override isTransactionOpenInTheDatabase(error: unknown): boolean | undefined {
         return isTransactionOpenAfterMySqlError(this.getErrorReason(error))
+    }
+    override executeBeginTransaction(opts?: BeginTransactionOpts): Promise<void> {
+        if (this.config.forUseInTransaction) {
+            return this.rejectBeginInsideAManagedTransaction()
+        }
+        return super.executeBeginTransaction(opts)
     }
     doBeginTransaction(_opts: BeginTransactionOpts): Promise<void> {
         return this.connection.beginTransaction()

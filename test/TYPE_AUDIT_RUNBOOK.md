@@ -122,9 +122,9 @@ surface list in **this** file is a snapshot.
 
 **Pre-flight at session start:**
 
-1. `bun run tests:audit` — the authoritative per-database cell/test counts for
-   today's matrix. Reference cell is still `postgres/newest/pg/` unless this
-   prints otherwise.
+1. `bun run tests:audit` — its `Symmetry:` line is the authoritative cell, test-file
+   and tests-per-cell count of today's matrix. The reference cell is
+   `postgres/newest/pg/`.
 2. `npm run tests:index` — the semantic index, for coverage-checking
    and reachability later. Use the **full** index, not `tests:index:newest`:
    coverage-checking spans every version cell, so a newest-only index would
@@ -647,7 +647,8 @@ fires). The coordinator is the adjudicator.
      `beforeEach(() => ctx.reset())`); build the candidate chain on `ctx.conn`,
      `ctx.mockNext([...])`, `await …execute*()`, then `console.log(ctx.lastSql)`
      (emission diff) **or** wrap in `try/catch` and log `e.message` /
-     `e.errorReason?.reason` (throw).
+     `e.errorReason?.reason` (throw). If the log does not reach the output,
+     use the sentinel assertion described under the `--docker` probe below.
    - `bun run tests 'postgres/newest/pg/<probe>.test.ts' --no-color` and read the
      logged SQL / throw. **Always include the WORKING sibling as a control in the
      same probe** (the non-recursive / non-shaped / plain form): the bug is proven by
@@ -682,8 +683,8 @@ fires). The coordinator is the adjudicator.
      - `bun run tests --docker <db>/<version>/<connector> --test-name-pattern <name>` —
        **`--docker` does NOT accept a 4th-level `<file>` coord**; give it the CELL coord plus a
        `--test-name-pattern` that selects your probe test.
-     - Vitest **swallows `console.log`/`console.error`** under the runner, so a logged value never
-       prints. Make the test **ASSERT a sentinel** — `expect({ sql: ctx.lastSql, matched:
+     - Don't rely on `console.log`/`console.error` here: under vitest a logged value may never
+       print. Make the test **ASSERT a sentinel** — `expect({ sql: ctx.lastSql, matched:
        rows.map(r => r.x) }).toEqual('SENTINEL')` — so the ACTUAL SQL / params / result land in the
        failure diff. Under `--docker` the real DB runs (`mockNext` is ignored), so the diff is
        genuine engine behavior.
@@ -1217,7 +1218,7 @@ or does the composition remove/replace it?**
   compiler/searcher helpers the launcher is a no-op (same tsc, same index), and for
   the matrix bun (`--parallel --no-isolate`) is the fastest (see
   [`BENCHMARKS.md`](./BENCHMARKS.md)). Two exceptions run under npm/node:
-  `npm run tests:index*` (node builds the index ~2.4× faster) and
+  `npm run tests:index*` (node builds the index faster) and
   `npm run tests -- --run-connectors native` for Node's `node:sqlite` (the `node_sqlite` cells).
 - **Agents are READ-ONLY.** The working tree must end the session clean — only
   the new `MISSING_TESTS_AUDIT_<N>.md` (plus any pre-existing untracked files)

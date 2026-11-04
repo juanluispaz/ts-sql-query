@@ -1,6 +1,6 @@
 # Using `tests:audit`
 
-`bun run tests:audit` (or `bun run tests:audit`) is the **mechanical anti-cheat
+`bun run tests:audit` is the **mechanical anti-cheat
 check** for the `test/` matrix. It walks `test/db/` statically — no docker, no
 WASM, no database — and reports tests that have been weakened to pass
 dishonestly, or whose structure diverges from the symmetry rule.
@@ -15,8 +15,7 @@ tool.
 **Scope.** The audit's rules are **universal anti-cheat patterns** —
 semantic shapes a cheat would adopt regardless of which database the cell
 tests. Defences that depend on **which DB/connector the cell uses**
-(`sqlite3` BigInt skips, sqlite
-`uuid_str` registration, MySQL no-RETURNING, …) are **out of scope** for
+(`sqlite3` BigInt coercion, MySQL no-RETURNING, …) are **out of scope** for
 `tests:audit`. Those live in [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md)
 (the catalogue), the validation sub-agent's `EXTERNAL_CAVEATS` sweep on
 the canonical ([`QUALITY_GATE.md`](./QUALITY_GATE.md)), and the mechanical
@@ -28,7 +27,7 @@ a per-connector caveat — it will not move here.
 ## Run it
 
 ```bash
-bun run tests:audit                       -- # whole matrix
+bun run tests:audit                       # whole matrix
 bun run tests:audit postgres/newest/pg    # one cell (same coord grammar as `tests`)
 bun run tests:audit 'postgres/*/pg'       # globs / {a,b} braces work
 bun run tests:audit --only weak-matcher   # a single rule
@@ -53,23 +52,22 @@ severity message rule`, and an `✖ N problems` summary with a per-rule tally:
 
 ```
 test/db/postgres/newest/pg/select.distinct.test.ts
-  30  warning  real-DB branch only asserts rows.length; value never validated against an engine  mirror-image
+  30  error  real-DB branch only asserts rows.length; value never validated against an engine  mirror-image
 
 rules: mirror-image 1
-✖ 1 problem (0 errors, 1 warning)
+✖ 1 problem (1 error, 0 warnings)
 ```
 
 Add `--explain` for a fix hint under each finding:
 
 ```
 test/db/postgres/newest/pg/select.distinct.test.ts
-  30  warning  real-DB branch only asserts rows.length; value never validated against an engine  mirror-image
+  30  error  real-DB branch only asserts rows.length; value never validated against an engine  mirror-image
       └─ Give both branches the same value assertion: sort the unstable dimension in JS,
          then `toEqual` — see ANTIPATTERNS.md #1 (mirror-image).
 ```
 
-Most rules are `warning` today (a backlog you should work down); a few are
-`error` (they fail the build).
+Every rule is `error` today, so any finding fails the build (see § Severities).
 
 ## What each rule catches — and how to fix it
 
@@ -79,7 +77,7 @@ SQL + params + result type + result value, against both the mock and (under
 finding. Fix a finding by making the test validate honestly — never by hiding it.
 
 **Real-DB validation (the test must run and check the value in both modes)**
-- `mock-only` — two shapes. **(a) The skip**: `if (ctx.realDbEnabled) return`, or a `catch` that only rethrows on the mock — the test never executes against the real engine, so a real failure passes as green AND the SQL/param/type assertions are validated only in the mocked run. Never right, no carve-outs. **(b) The unjustified request**: a `ctx.mockOnlyConnection()` with no reason marker. That call is the sanctioned escape hatch (the body still runs and asserts in every mode; only its INPUT comes from the mock), but it must say why — `// MOCK-ONLY: <reason>` naming what the real engine cannot supply. Either way, first try to drive the case for real: use `fragmentWithType` / `rawFragment` to synthesise an off-shape input the engine can't produce naturally; `toBeCloseTo` for float precision. **If this dialect deliberately cannot validate it on a real engine** (a permanent boundary, not a fixable gap), mark the live test `// NOT-APPLICABLE: <reason>` — it then runs mock-only here and validates in the dialects that support it (see "the four reason markers" below).
+- `mock-only` — two shapes. **(a) The skip**: `if (ctx.realDbEnabled) return`, or a `catch` that only rethrows on the mock — the test never executes against the real engine, so a real failure passes as green AND the SQL/param/type assertions are validated only in the mocked run. The skip is never right and has no carve-outs. **(b) The unjustified request**: a `ctx.mockOnlyConnection()` with no reason marker. That call is the sanctioned escape hatch (the body still runs and asserts in every mode; only its INPUT comes from the mock), but it must say why — `// MOCK-ONLY: <reason>` naming what the real engine cannot supply. Either way, first try to drive the case for real: use `fragmentWithType` / `rawFragment` to synthesise an off-shape input the engine can't produce naturally; `toBeCloseTo` for float precision. **If this dialect deliberately cannot validate it on a real engine** (a permanent boundary, not a fixable gap), mark the live test `// NOT-APPLICABLE: <reason>` instead of `MOCK-ONLY` or of swallowing the error on the real engine — it then runs mock-only here and validates in the dialects that support it (see "the four reason markers" below; `// TODO[BUG]:` licenses the same two shapes, the skip stays flagged).
 - `mirror-image` — a two-sided `ctx.realDbEnabled` guard where one branch checks the value and the other only checks shape (`.length`, `Array.isArray`, `typeof`). Give both branches the same value assertion (sort the unstable dimension in JS, then `toEqual`).
 - `one-sided-guard` — only one mode validates the value. Assert it unconditionally — add `ORDER BY` / JS-sort so one `toEqual` passes in both modes.
 - `skip-real-db` — `test.skipIf(ctx.realDbEnabled)` / `runIf(!ctx.realDbEnabled)`: a registration-level mock-only evasion. Let the test run in both modes (if its scenario needs the mock as an input device, `ctx.mockOnlyConnection()` + `// MOCK-ONLY: <reason>` keeps it running) — or, if it is a permanent dialect boundary, mark it `// NOT-APPLICABLE: <reason>`.
@@ -103,6 +101,7 @@ finding. Fix a finding by making the test validate honestly — never by hiding 
 - `meaningless-type` — those same four as a **type annotation**. `unknown`/`null` are allowed in the same contexts as `as any` (exception test / throw-helper / `fromDbValue` / `TODO[BUG]`), as a caught-error variable or `unknown` error param (`reasonOf(e: unknown)`), in a type-test arg (`assertType<…>`), inside an `Error & { … }` error-inspection alias (`type DisallowError = Error & { x?: unknown }`), where a public API requires it (a `TypeAdapter` override, a `getQueryExecutionMetadata` result), `null` in a union with a real type (`string | null`), and `void` as a function return. What's flagged: a standalone meaningless annotation, or `unknown` plumbing that just makes the test less realistic (a generic `capture(() => Promise<unknown>)`, `Set<unknown>`). Use the precise type.
 - `type-cast` — any **other** type assertion (`x as T` / `<T>x`) not caught by the rules above (`{…} as SomeRow`, `rows as Project[]`, `undefined as string | undefined`). A cast forces a type the checker didn't infer — review whether it's necessary; prefer building the value so it genuinely has type `T`, or `satisfies T` (checks instead of overrides). **Exempt**: `as const`; a **branded-type construction** — a literal cast to a nominal type (`19.99 as Money`, `42 as IssueId`, `new Date(…) as SettlementDate`), which can only be produced with a cast; and an **error-narrowing cast** — a cast to an error type (`(thrownError as Error).message`, `thrown as Error & { … }`) to read a caught error's properties.
 - (All six type-bypass / cast rules above are **exempt inside a `// TODO[BUG]:`-marked test** — a bug repro may need a bypass to compile.)
+- `manual-connection` — a `new *Connection(runner)` hand-constructed in a test body: it drops the 2nd `compatibilityVersion` argument, so the connection silently runs at the newest SQL even in an older version-tier cell. Build it with `ctx.withConnection(...)` / a per-dialect `ctx.withXxx(...)`. Passing the version explicitly as the 2nd argument is exempt, for a test that needs a different version than its cell's.
 - `ts-ignore` — `@ts-ignore` / `@ts-nocheck`: forbidden everywhere. A negative-type assertion uses `@ts-expect-error` inside a `types.negative/` cell.
 - `ts-expect-error` — outside a `types.negative/` cell. Build through the public API; a real negative-type assertion belongs in `types.negative/`.
 - `eslint-disable-type` / `eslint-disable-other` — an `eslint-disable` of a type-soundness lint (`no-explicit-any` …) / any other lint. Fix the code instead.
@@ -126,7 +125,7 @@ These do **not** have to exist in every cell; everything else must be mirrored a
 | What | Why | Example |
 |---|---|---|
 | `config.*.test.ts` | connection-configuration tests, specific to a connector / database | `config.uuid-strategy.test.ts` |
-| `*.generated.test.ts` | emitted doc-snippet tests, not authored — exempt from **every** audit check | `docs.select.generated.test.ts` |
+| `*.generated.test.ts` | emitted doc-snippet tests, not authored — exempt from **every** audit check | `doc-code.generated.test.ts` |
 | a name that embeds a **database name** as a `.`/`-`-delimited token | inherently dialect-specific | `select.postgres-const-force-type-cast.test.ts` (`postgres`) |
 
 The recognised database names are the real database directories under `test/db/` (`mariadb`, `mysql`, `oracle`, `postgres`, `sqlite`, `sqlserver`) — matched as whole `.`/`-` tokens, so `postgresql` or a substring never triggers the exclusion. Beyond files, the `domain/` and `types.negative/` directories, the `documentation` connector, and the synthetic `general` database are also outside the comparison.
@@ -189,8 +188,8 @@ smell](./DESIGN.md#mock-only-smell).
 **`TODO[BUG]` additionally licenses the type-bypass rules.** A reproducible-bug
 test often needs `as any` / `as unknown as T` / an `any` annotation just to
 *compile* the broken call. Inside a `// TODO[BUG]:`-marked test, `as-any`,
-`any-type`, `as-unknown-as`, `meaningless-cast` and `meaningless-type` are all
-exempt — so the repro stays in the suite (and tracked) until the bug is fixed.
+`any-type`, `as-unknown-as`, `meaningless-cast`, `meaningless-type` and
+`type-cast` are all exempt — so the repro stays in the suite (and tracked) until the bug is fixed.
 `NOT-APPLICABLE` does not grant this.
 
 Every marker is scoped to its own test, so it never exempts a neighbour.

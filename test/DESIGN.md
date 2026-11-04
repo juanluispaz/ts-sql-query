@@ -50,8 +50,9 @@ touched** — see [Public surface only](#public-surface-only).
 ## Real-DB validation
 
 **The suite's purpose is validation against a real database.** The mock
-exists to close the feedback loop cheaply (~74 s for ~258k tests mocked under
-vitest vs ~7 min with docker) and to act as a regression gate, not as a
+exists to close the feedback loop cheaply (the whole matrix runs mocked in
+seconds, against over 10 minutes with docker; see
+[`BENCHMARKS.md`](./BENCHMARKS.md)) and to act as a regression gate, not as a
 substitute for the engine.
 An `expected` value queued onto the mock that no real engine has ever
 returned is the test author's hypothesis, not a verified contract — until at
@@ -61,9 +62,9 @@ Three categories of real-DB connector with very different cost:
 
 | Category | Connectors | Real-DB by default? | Cost per cell |
 |---|---|---|---|
-| **Embedded SQLite** | better-sqlite3, bun_sqlite, bun_sql_sqlite, node_sqlite, sqlite3 | yes, no flag needed | as cheap as the mock |
+| **Embedded SQLite** | better-sqlite3, bun_sqlite, bun_sql_sqlite, node_sqlite, sqlite3 (and their `-sync` twins) | yes, no flag needed | as cheap as the mock |
 | **Docker-backed** | postgres (pg, postgres, bun_sql_postgres), mysql and mariadb (mysql2 / mariadb, bun_sql_mysql), oracle, sqlserver | no — opt in with `--docker` | seconds to minutes (depends on warm reuse) |
-| **WASM** | pglite, sqlite-wasm-OO1 | no — opt in with `--wasm` | seconds to minutes (CPU-bound bootstrap) |
+| **WASM** | pglite, sqlite-wasm-OO1 (and its `-sync` twin) | no — opt in with `--wasm` | seconds to minutes (CPU-bound bootstrap) |
 
 See [`ENGINE_LIFECYCLE.md`](./ENGINE_LIFECYCLE.md) for the lifecycle of each
 category and [`BENCHMARKS.md`](./BENCHMARKS.md) for wall-time numbers.
@@ -153,15 +154,19 @@ for how the report should look.
      constructor signature, the driver it wraps, configuration knobs.
    - [`docs/configuration/query-runners/general-purpose/MockQueryRunner.md`](../docs/configuration/query-runners/general-purpose/MockQueryRunner.md) —
      mock primitives.
-   - Query-side pages under [`docs/queries/`](../docs/queries/) and
-     [`docs/composition/`](../docs/composition/) describe the SQL features
+   - Query-side pages under [`docs/queries/`](../docs/queries/),
+     [`docs/dynamic/`](../docs/dynamic/) and
+     [`docs/advanced/`](../docs/advanced/) describe the SQL features
      the test exercises. The test should encode that contract, not invent it.
 
-5. **One test runner execution covers the whole suite.** The agent and CI
-   run `bun run tests --docker --wasm` (Bun) or `bun run tests --docker --wasm`
-   (Node + vitest) and get genuine coverage of every
-   `(database × version × connector)` cell. Focused runs work via
-   `bun run tests <coord>…` or direct invocation.
+5. **One test runner execution covers the whole suite.**
+   `bun run tests --docker --wasm` (Bun) or `npm run tests -- --docker --wasm`
+   (Node + vitest) gives genuine coverage of every
+   `(database × version × connector)` cell the runtime can run for real: only
+   Bun runs the Bun SQL cells, and Node's own `node:sqlite` needs
+   `npm run tests -- --run-connectors native`. CI runs the no-docker split
+   (`--shard`). Focused runs work via `bun run tests <coord>…` or direct
+   invocation.
 
 6. **Three dimensions, all encoded in the folder layout.**
    `test/db/<database>/<compatibilityVersion>/<connector>/`. The flat layout
@@ -178,20 +183,25 @@ for how the report should look.
    them: the default is `Number.POSITIVE_INFINITY` (no clean filename), and
    the lowest zone is described as `< X`.
 
-8. **One container per database, modern image only.** Each `<database>/`
-   gets one testcontainers container at the highest supported image, shared
-   across every `<compatibilityVersion>/<connector>/` cell underneath. Older
+8. **One container per database by default, at the `newest` image.** Each
+   `<database>/` gets one testcontainers container, shared across every
+   `<compatibilityVersion>/<connector>/` cell underneath. Older
    `compatibilityVersion` cells emit legacy SQL the modern server still
-   accepts. Inside the shared container, every test runner worker process
-   gets its own database — see
+   accepts. `--docker-version closest` is the narrow opt-in that runs a cell
+   against its own version folder's image instead (`ENGINE_IMAGES` in
+   [`dockerImages.ts`](./lib/dockerImages.ts)), to confirm version-specific SQL
+   on a real engine of that version — see
+   [`ENGINE_LIFECYCLE.md` § Version-specific docker](./ENGINE_LIFECYCLE.md#version-specific-docker---docker-version-closest).
+   Inside a container, every test runner worker process gets its own database — see
    [`ENGINE_LIFECYCLE.md` § Per-worker test databases](./ENGINE_LIFECYCLE.md#per-worker-test-databases).
 
-9. **Connector ↔ version compatibility is per-cell.** Not every
-   `<compatibilityVersion>/<connector>/` combination is valid. For example,
-   `postgres/oldest/pglite/` exists but `postgres/newest/pglite/` does
-   **not** — PgLite bundles PostgreSQL 17 and would fail to execute SQL
-   emitted at the latest compatibility settings. When a cell makes no sense,
-   the folder simply is not created.
+9. **Connector ↔ version compatibility is per-cell.** When a
+   `<compatibilityVersion>/<connector>/` combination makes no sense, the
+   folder simply is not created. A connector tied to one engine version can
+   still have a cell at every version folder: PGlite bundles PostgreSQL 18, so
+   `postgres/newest/pglite/` runs the modern SQL natively and
+   `postgres/oldest/pglite/` runs the library's compatibility mode against
+   that same engine.
 
 10. **Realistic, shared domain.** No `select a, b from T`. A single
     business domain — project management (`organization`, `app_user`,
@@ -205,14 +215,16 @@ for how the report should look.
     `select.test.ts`, `insert.test.ts`, …) so it can grow without becoming
     a single sprawling file.
 
-12. **Documentation snippets live alongside regular tests.** The file
-    `docs.<page>.test.ts` inside the connector folder hosts tests prefixed
-    `docs:<page>/<anchor>`. The block between `// doc-start` and
-    `// doc-end` is what the scraper publishes. Docs files are mirrored to
-    every (version × connector) cell so the snippet is verified everywhere;
-    the single setup flagged `canonicalForDocs: true` is the one the
-    scraper actually publishes. Full convention in
-    [`WRITING_TESTS.md` § Docs snippets](./WRITING_TESTS.md#docs-snippets).
+12. **Tests similar to the documentation's examples live alongside regular
+    tests.** The file `docs.<page>.test.ts` inside the connector folder hosts
+    tests prefixed `docs:<page>/<anchor>`, which try to be similar to the page's
+    examples with this suite's testing model, mirrored to every
+    (version × connector) cell. They are not exhaustive, and the documentation
+    doesn't take its code from them: its examples live in `docs/`, and
+    [`DOC_CODE_EXTRACTOR.md`](./DOC_CODE_EXTRACTOR.md) generates tests from them.
+    The block between `// doc-start` and `// doc-end` is a reading aid marking
+    the part that corresponds to the page's example; nothing reads it. Full
+    convention in [`WRITING_TESTS.md` § Docs snippets](./WRITING_TESTS.md#docs-snippets).
 
 13. **`--docker`, `--wasm` and `--native` are orthogonal per-kind real/mock
     gates.** Each test must be runnable real or mock for its kind, without
@@ -227,16 +239,20 @@ for how the report should look.
     or `vitest run` accordingly. Both runners produce compatible inline
     snapshot format.
 
-15. **Synchronous query runners are a separate, light track.** Sync
-    runners and the `extras/sync` helper produce different runtime
-    semantics; squeezing them into the main matrix would force every
-    async-shaped test to grow conditional paths. They live in a dedicated
-    tree (sketched as `test/db/sync/...`).
+15. **Synchronous query runners are ordinary cells.** A `<connector>-sync`
+    folder is a cell of the matrix under the [symmetry rule](#symmetry-rule):
+    same files, same test names and same order as its async twin, with the same
+    SQL, params and values. Only the execution style differs: the runner and the
+    mock resolve through `SynchronousPromise`, so a query is unwrapped with
+    `sync(...)` instead of `await`. See
+    [`NEW_DATABASE.md` § Sync runners](./NEW_DATABASE.md#sync-runners).
 
-17. **`src/examples/` is not modified.** The new suite must reach equivalent
-    coverage before `src/examples/` is retired; until then, both coexist.
+16. **`src/examples/` coexists with this suite.** The new suite must reach
+    equivalent coverage before `src/examples/` is retired; until then, both stay
+    green. New coverage goes here; `src/examples/` changes only as far as a
+    library change requires.
 
-18. **Mock-only is a smell** — see [Mock-only is a smell](#mock-only-smell)
+17. **Mock-only is a smell** — see [Mock-only is a smell](#mock-only-smell)
     for the full rule: the skip form (always wrong), the sanctioned
     `ctx.mockOnlyConnection()` form, and the mirror-image form.
 
@@ -265,7 +281,10 @@ for the full distinction):
 - `// NOT-APPLICABLE: <reason>` — a deliberate **dialect boundary**: the
   **type surface** doesn't expose the call here, so it can't even be
   written. The same test runs live in the cells whose dialect supports it
-  (and often pairs with a `types.negative/` assertion on this dialect).
+  (and often pairs with a `types.negative/` assertion on this dialect). When
+  the feature can still be exercised through the API here, the same marker lets
+  the test stay **live and mock-only** instead of commented out — see
+  [Mock-only connection form](#mock-only-connection-form--the-sanctioned-escape-hatch).
 - `// NOT-SUPPORTED: <reason>` — the call compiles and the library emits
   SQL, but the **runtime** can't run it: the engine has no such feature at
   any version, or this cell's engine version predates it, or its build
@@ -307,16 +326,15 @@ distinguish "intentional disabled-on-this-dialect placeholder" from "TODO,
 finish me later". Commented-out blocks with a reason on top do. Also,
 skipped tests still parse and compile their body — which means the body
 must be valid for the target cell's connection, defeating the point of using
-the canonical body as documentation. `test.skip(…)` is fine when a test is
-temporarily broken or under investigation — that is an exceptional
-situation, not the non-applicability case.
+the canonical body as documentation. `test.skip(…)` is only for a test that is
+temporarily broken or under investigation — an exceptional situation, not the
+non-applicability case — and `tests:audit` (`skipped-test-reason`) requires the
+same reason marker as a commented-out test.
 
 The symmetry audit (`bun run tests:audit`) enforces this mechanically over the
 **whole matrix** (every database × version × connector, not just the cells of one
 database). See [`test/lib/audit/AUDIT.md`](./lib/audit/AUDIT.md). It is reported
-at `error` severity: the cross-database backlog (files/tests not yet mirrored to
-every cell) has been worked down and the matrix is clean, so a divergence now
-blocks.
+at `error` severity: a divergence blocks.
 
 **Exempt: `config.*` connection-configuration tests.** Files named `config.*.test.ts`
 hold tests specific to a connector's / database's connection configuration (e.g.
@@ -535,7 +553,7 @@ When a test does not apply to a cell, the `/* … */` block must contain the
 
 ```ts
 // Bad — stub:
-// Not supported on this dialect: Values is not typed.
+// NOT-APPLICABLE: Values is not typed on this dialect.
 /*
 test('select-from-values-untyped', async () => {
     // stub
@@ -543,7 +561,7 @@ test('select-from-values-untyped', async () => {
 */
 
 // Good — full canonical body kept verbatim:
-// Not supported on this dialect: Values is not typed on MariaDBConnection.
+// NOT-APPLICABLE: Values is not typed on MariaDBConnection.
 /*
 test('select-from-values-untyped', async () => {
     const expected = [{ id: 1, name: 'a' }, { id: 2, name: 'b' }]
@@ -567,7 +585,7 @@ test('select-from-values-untyped', async () => {
 */
 ```
 
-The rationale: the symmetry audit ([`tests:audit`](./TEST_LIB.md#audittestsymmetryts--the-symmetry-audit))
+The rationale: the symmetry audit ([`tests:audit`](./TESTS_AUDIT.md))
 walks `/* */` blocks too, so the test name still counts. But the **body** is
 what makes the cell visually parallel to the others and makes a future
 uncomment + re-bake mechanical. A stub strips both properties:
@@ -616,7 +634,7 @@ contortions to arrive at the `never` that fails the call site. The runtime
 implementation is still there; the test of the runtime guard needs to reach
 it.
 
-**The only sanctioned use of `as any`** in the test suite is to bypass a
+**The sanctioned use of `as any`** in the test suite is to bypass a
 compile-time guard at the precise fluent step the typer blocks, to reach
 the matching runtime guard:
 
@@ -645,7 +663,13 @@ Two anti-patterns:
   (a method being renamed, a builder returning a different shape) go
   undetected. Cast at the smallest possible spot.
 
-Outside this exact use, `as any` IS NOT permitted in test bodies. If TS
+Outside this use, `as any` IS NOT permitted in test bodies, with one exception:
+a `// TODO[BUG]:`-marked test may use the bypass its repro needs to compile, so
+the repro stays in the suite until the bug is fixed (see
+[`TESTS_AUDIT.md` § Disabling a test](./TESTS_AUDIT.md#disabling-a-test--the-four-reason-markers)).
+`tests:audit` also tolerates two narrow shapes, named in
+[`asAny.ts`](./lib/audit/checks/asAny.ts): a test asserting `isQueryAllowed`, and
+the marshalling `fromDbValue` helper. If TS
 rejects an API your test wants to call, pick the right reason marker
 (see [Symmetry rule](#symmetry-rule) for the four categories):
 
@@ -698,6 +722,8 @@ This file states **rules**. Operational details live next to them:
 
 - [`README.md`](./README.md) — navigation map: which doc to read for which task.
 - [`CLI.md`](./CLI.md) — commands, flags, scope, aliases, coverage formats.
+- [`CODE_SEARCH.md`](./CODE_SEARCH.md) — `tests:where-is`, the searcher to use
+  before any textual search over the code.
 - [`WRITING_TESTS.md`](./WRITING_TESTS.md) — anatomy, runtime guard recipe,
   domain extension, canonical-cant-compile, void-import, docs.* snippets,
   bug-handoff.
@@ -705,12 +731,23 @@ This file states **rules**. Operational details live next to them:
   end-to-end.
 - [`COVERAGE_RUNBOOK.md`](./COVERAGE_RUNBOOK.md) — coverage-driven test
   generation runbook for agents.
+- [`TYPE_AUDIT_RUNBOOK.md`](./TYPE_AUDIT_RUNBOOK.md) — type-driven runbook:
+  which capability the types advertise is never asserted.
+- [`SEMANTIC_AUDIT_RUNBOOK.md`](./SEMANTIC_AUDIT_RUNBOOK.md) — where the library
+  and the engine quietly disagree.
 - [`QUALITY_GATE.md`](./QUALITY_GATE.md) — validation sub-agent that
   reviews the canonical cell before propagation.
+- [`TESTS_AUDIT.md`](./TESTS_AUDIT.md) — `tests:audit`: running it, what a
+  finding means, how to fix or suppress it. Its design is in
+  [`lib/audit/AUDIT.md`](./lib/audit/AUDIT.md).
 - [`TEST_LIB.md`](./TEST_LIB.md) — reference for every file under `test/lib/`,
   including the mutation safety contract on `ctx`.
 - [`PER_DATABASE_LAYOUT.md`](./PER_DATABASE_LAYOUT.md) — `test/db/<db>/`
   tree convention, `runners.ts` pattern, `domain/*` files.
+- [`RUNNER_TESTS.md`](./RUNNER_TESTS.md) — `test/runners/`, the query-runner
+  tests outside the matrix.
+- [`DOC_CODE_EXTRACTOR.md`](./DOC_CODE_EXTRACTOR.md) — the tests generated from
+  the documentation's examples.
 - [`ENGINE_LIFECYCLE.md`](./ENGINE_LIFECYCLE.md) — container reuse,
   schema/seed revalidation, per-worker DBs, WASM lifecycle.
 - [`BENCHMARKS.md`](./BENCHMARKS.md) — wall-time numbers under each
@@ -721,7 +758,7 @@ This file states **rules**. Operational details live next to them:
 - [`ENGINE_SUPPORT.md`](./ENGINE_SUPPORT.md) — what the engine, this engine
   version, its build or the driver cannot run; permanent, not our backlog.
 - [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md) — caveats per driver /
-  engine / runtime (Bun, pglite-PG18, MariaDB 13, etc.).
+  engine / runtime (Bun, MariaDB 13, etc.).
 - [`ANTIPATTERNS.md`](./ANTIPATTERNS.md) — catalogue of past
   test-generation failures with the rule each violated and the gate
   adopted.

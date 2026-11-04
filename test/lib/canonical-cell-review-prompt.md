@@ -39,8 +39,10 @@ Read these in full before reviewing:
     existing bug, or may have surfaced a new one)
   - test/LIMITATIONS.md (every entry — the test may be assuming
     behaviour the lib has explicitly chosen not to support, e.g.
-    pre-emptive enforcement of GROUP BY column requirements or
-    engine-version feature gating)
+    pre-emptive enforcement of GROUP BY column requirements)
+  - test/ENGINE_SUPPORT.md (every entry — what the engine, this engine
+    version, its build or the driver cannot run, e.g. engine-version
+    feature gating)
   - test/EXTERNAL_CAVEATS.md (every "Dialect-specific notes" subsection
     — the canonical's snapshot or test body may need to be re-wrapped
     on certain cells when propagated)
@@ -54,8 +56,8 @@ Read these in full before reviewing:
 Division of work with tests:audit. The mechanical anti-cheat audit
 (tests:audit) will block round close on `mirror-image`,
 `one-sided-guard`, `mock-only`, `skip-real-db`, `as-any`, `any-type`,
-`ts-ignore`, `ts-expect-error`, `commented-test-reason` (and ~15
-others), across the whole matrix. Your highest-value work is what the
+`ts-ignore`, `ts-expect-error`, `commented-test-reason` (and the rest
+of its rules), across the whole matrix. Your highest-value work is what the
 audit cannot do: cross-doc context (BUGS, LIMITATIONS,
 EXTERNAL_CAVEATS), judgement calls (stub body even when the reason
 header is present, realistic vs synthetic queries, achievable values
@@ -82,7 +84,7 @@ Then read the file. For every test() block in it, check:
        marker naming what the real engine cannot supply (mock-only).
      The audit will enumerate every instance across the matrix at
      round close; you only need to surface that the canonical has a
-     problem so it gets fixed before the 17-cell re-bake.
+     problem so it gets fixed before the re-bake across the matrix.
 
   2. [also caught by tests:audit: as-any, any-type, ts-ignore,
      ts-expect-error] DESIGN § The "as any" runtime-guard exception
@@ -164,10 +166,6 @@ Then read the file. For every test() block in it, check:
 
   8. EXTERNAL_CAVEATS.md sweep — list which propagation targets
      will need post-copy re-wrapping. Concretely:
-     - bigint values in UPDATE / mockNext / set({...:Nn}) →
-       sqlite3 cell (NOT NULL violation).
-     - customUuid columns projected / aggregated → sqlite3 and
-       sqlite-wasm-OO1 (no uuid_str function).
      - .returning(...) / .returningOneColumn(...) → mysql cell.
      - onConflict family → oracle / sqlserver cells.
      - isolationLevel(level, accessMode) → oracle / sqlserver
@@ -232,16 +230,15 @@ Specifically:
   reviewer should follow, add them under the "Read these in full" list.
 - If [`../ANTIPATTERNS.md`](../ANTIPATTERNS.md) adds a new numbered entry, add it to check #10's
   enumeration.
-- If [`../EXTERNAL_CAVEATS.md`](`../EXTERNAL_CAVEATS.md`) gains a new dialect note (Bun bug, driver
+- If [`../EXTERNAL_CAVEATS.md`](../EXTERNAL_CAVEATS.md) gains a new dialect note (Bun bug, driver
   limitation), add it to the bullet list in check #8 so the sweep is
   mechanical.
 - **If [`../TESTS_AUDIT.md`](../TESTS_AUDIT.md) absorbs a check that the sub-agent was doing
-  by hand** (a new rule lands, an existing one gets promoted to `error`),
-  add the rule name to the "Division of work with tests:audit" paragraph
-  and tag the matching check above with `[also caught by tests:audit:
-  <rule>]`. The sub-agent's time is the scarce resource — every check
-  the audit absorbs should free a paragraph of focus here, not pile up
-  as redundant reading.
+  by hand** (a new rule lands), tag the matching check above with
+  `[also caught by tests:audit: <rule>]` and cut it down to a quick scan plus
+  the calls the audit can't make. The sub-agent's time is the scarce resource —
+  every check the audit absorbs should free a paragraph of focus here, not pile
+  up as redundant reading.
 
 Other content changes (rules getting stricter, new failure modes documented)
 get reflected naturally because the sub-agent reads the source docs

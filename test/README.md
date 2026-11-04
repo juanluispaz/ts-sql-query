@@ -37,7 +37,7 @@ uses.
 |---|---|
 | The rules every test must follow | [`DESIGN.md`](./DESIGN.md) |
 | Why mock-only is suspicious (and the mirror-image variant) | [`DESIGN.md` § Mock-only is a smell](./DESIGN.md#mock-only-smell) |
-| When `as any` is allowed (the only sanctioned case) | [`DESIGN.md` § The `as any` runtime-guard exception](./DESIGN.md#as-any-runtime-guard) |
+| When `as any` is allowed | [`DESIGN.md` § The `as any` runtime-guard exception](./DESIGN.md#as-any-runtime-guard) |
 | The symmetry rule + full-canonical-body discipline | [`DESIGN.md` § Symmetry rule](./DESIGN.md#symmetry-rule), [§ Full-canonical-body](./DESIGN.md#full-canonical-body) |
 
 ### … run things
@@ -102,10 +102,9 @@ whose emitted SQL / result type / value is wrong).
 | The unit (type-path) + the COVERED evidence bar | [`TYPE_AUDIT_RUNBOOK.md` § The unit](./TYPE_AUDIT_RUNBOOK.md#the-unit-the-type-path) |
 | The degeneracy bar (output-coincidence ≠ coverage) | [`TYPE_AUDIT_RUNBOOK.md` § The degeneracy bar](./TYPE_AUDIT_RUNBOOK.md#the-degeneracy-bar) |
 | Where the bugs hide (recurring themes to hunt) | [`TYPE_AUDIT_RUNBOOK.md` § Recurring themes](./TYPE_AUDIT_RUNBOOK.md#recurring-themes) |
-| The per-round findings (the audit's output — a working report; only the user removes it, never the agent) | `MISSING_TESTS_AUDIT_<N>.md` |
-| Turning a finding into a baked, propagated test (the generation half) | [`COVERAGE_RUNBOOK.md`](./COVERAGE_RUNBOOK.md) §5 onward (identical regardless of how the gap was found) |
+| Turning a finding into a baked, propagated test (the generation half) | [`COVERAGE_RUNBOOK.md` § Proposing waves](./COVERAGE_RUNBOOK.md#proposing-waves) onward (identical regardless of how the gap was found) |
 
-## … audit where the library and the engine quietly disagree (the semantic audit)
+### … audit where the library and the engine quietly disagree (the semantic audit)
 
 A third audit, on a different axis again. Coverage asks *"what isn't exercised?"*;
 the type audit asks *"which advertised capability is never asserted?"*; this one
@@ -123,7 +122,6 @@ defects across 5 dialects, every one years old.
 | The highest-yield question (*which dialects hand-spell one concept, and do they agree?*) | [`SEMANTIC_AUDIT_RUNBOOK.md` § The four lenses](./SEMANTIC_AUDIT_RUNBOOK.md#the-four-lenses) |
 | Fingerprints to grep for (a string `expected` on a numeric leaf, a rationalising comment, `Number(...)` laundering, a loose `toBeCloseTo`) | [`SEMANTIC_AUDIT_RUNBOOK.md` § Fingerprints](./SEMANTIC_AUDIT_RUNBOOK.md#fingerprints-that-have-paid-off) |
 | **Where the round before you was wrong** (inherited verdicts, false filed premises, load-bearing "excess") | [`SEMANTIC_AUDIT_RUNBOOK.md` § Where the round before you was wrong](./SEMANTIC_AUDIT_RUNBOOK.md#where-the-round-before-you-was-wrong) |
-| The per-round findings (a working report; only the user removes it, never the agent) | `SEMANTIC_AUDIT_<N>.md` |
 
 ### … find context fast (the searcher)
 
@@ -144,7 +142,7 @@ or SQL token, the searcher already models it. Reach for one of these:
 |---|---|
 | a method / type / symbol name in `src/` (`virtualColumnFromFragment`) | `--search <name> --declared full` — every declaration site (the lesson the `Table.ts` miss taught: a bug entry can name two files when the symbol lives in three) |
 | "what helper exists that contains this token?" (`NoTableOrViewRequired`) | `--search-pattern-summary '<token>'` — pick-list of every matching name with kind, visibility, count, sample |
-| "who overrides / implements this?" | `--implemented-by` (classes), `--ref-implements` (interfaces extending it) |
+| "who overrides / implements this?" | `--ref-implements` — each class implementing or extending it, the non-overriders included |
 | "who calls this from the public surface?" | `--chain strict` (default) — call-chain stopping at the first public caller |
 | "from this signature, what types does it compose and where do they live?" | `--location-target types` (or `--ref-type-arg` for blast radius of a type alias) |
 | "what dispatches on this `unique symbol` brand?" | `--location-target brand` or `--ref-brand` |
@@ -168,7 +166,7 @@ Then, for the round-shaping presets:
 | After patching `src/`, find docs/tests/examples to refresh | `--for post-fix-sync` | [`BUGS.md` § When the fix lands](./BUGS.md) |
 | Add or extend a compatibility-version cell | `--for version-work` | [`NEW_DATABASE.md` § Adding a compatibility version](./NEW_DATABASE.md#adding-a-compatibility-version) |
 | Add a `@ts-expect-error` rule, consistent with existing locks | `--neg-types full` | [`WRITING_TESTS.md` § Negative type tests](./WRITING_TESTS.md#negative-type-tests) |
-| Browse declared caveats on cells (all four disabled-test categories per cell: `NOT-APPLICABLE`, `NOT-SUPPORTED`, `TODO[BUG]`, `TODO[LIMITATION]`) | `--cell-caveats summary` (or `full` with `--coord`) | [`LIMITATIONS.md`](./LIMITATIONS.md), [`ENGINE_SUPPORT.md`](./ENGINE_SUPPORT.md), [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md), [`ANTIPATTERNS.md` § Blind copy](./ANTIPATTERNS.md#3-blind-copy-to-bun_sql_postgres) |
+| Browse declared caveats on cells (all four disabled-test categories per cell: `NOT-APPLICABLE`, `NOT-SUPPORTED`, `TODO[BUG]`, `TODO[LIMITATION]`) | `--cell-caveats summary` (or `full` with `--coord`) | [`LIMITATIONS.md`](./LIMITATIONS.md), [`ENGINE_SUPPORT.md`](./ENGINE_SUPPORT.md), [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md) |
 | See which scenarios are validated with a MOCKED input (a live test using `ctx.mockOnlyConnection()`) | `--search <symbol> --mock-only summary` | [`DESIGN.md` § Mock-only smell](./DESIGN.md#mock-only-smell) |
 
 `npm run tests:index:newest` builds the underlying index for the newest cells
@@ -205,15 +203,20 @@ the agent consuming them.
 ```
 test/
 ├── *.md                                  ← documentation (this file is the map)
-├── tsconfig.json
+├── tsconfig.json, tsconfig.newest.json
 ├── lib/                                  ← infra (TEST_LIB.md is the reference)
 │   ├── testRunner.ts                     ← bun:test | vitest shim
 │   ├── testContext.ts                    ← `ctx` factory + mutation safety
 │   ├── captureInterceptor.ts             ← SQL + params capture
+│   ├── switchableRunner.ts               ← the seam behind `ctx.mockOnlyConnection()`
+│   ├── FaultInjectingQueryRunner.ts      ← transaction faults on demand
 │   ├── backends.ts                       ← `isRealDbEnabled`, `RealDbBackend`
 │   ├── assertType.ts                     ← `Exact<A,B>`, `assertType<T extends true>`
 │   ├── audit/                            ← tests:audit: symmetry check + anti-cheat rules (AUDIT.md)
 │   ├── containerLifecycle.ts             ← container/per-worker infra
+│   ├── dockerImages.ts                   ← `ENGINE_IMAGES`, the image per version folder
+│   ├── dockerPreflight.ts, dockerVersionGuard.ts ← docker warmup and guardrails
+│   ├── coords.ts                         ← matrix coordinates
 │   ├── queryIntrospection.ts             ← query introspection escape hatch
 │   ├── setupTimezone.ts                  ← forces UTC
 │   ├── canonical-cell-review-prompt.md   ← validation sub-agent prompt asset
@@ -222,6 +225,8 @@ test/
 │   ├── codeIndexer/                      ← builds the queryable SQLite code map (tests:index, CODE_INDEXER.md)
 │   ├── codeSearcher/                     ← searches that map: where-is a symbol (tests:where-is, CODE_SEARCHER.md)
 │   └── mockRunners/                      ← connector-specialised mocks + DocCodeMockRunner.ts (the doc SQL tests' mock)
+├── runners/                              ← query-runner tests, outside the matrix (RUNNER_TESTS.md)
+├── templates/                            ← doc-code templates (DOC_CODE_EXTRACTOR.md)
 └── db/<database>/<compatibilityVersion>/<connector>/
                                           ← test cells; see PER_DATABASE_LAYOUT.md
 ```
@@ -229,11 +234,13 @@ test/
 - `<database>` = one of `docs/configuration/supported-databases/*.md`
   (`mariadb`, `mysql`, `oracle`, `postgres`, `sqlite`, `sqlserver`).
 - `<compatibilityVersion>` = `newest` (default,
-  `Number.POSITIVE_INFINITY`), the literal numeric value of any
-  documented breakpoint (e.g. `13_000_001`, `10_005_000`), or `oldest`
-  (the `< lowest-breakpoint` zone).
-- `<connector>` = one of `docs/configuration/query-runners/recommended/*.md`
-  for that database.
+  `Number.POSITIVE_INFINITY`), the literal numeric value of a
+  documented breakpoint other than the highest, which `newest` covers (e.g.
+  `10_005_000`, `8_000_017`), or `oldest` (the `< lowest-breakpoint` zone).
+- `<connector>` = a query runner of that database, named after its page in
+  `docs/configuration/query-runners/recommended/*.md` or `additional/*.md`;
+  `<connector>-sync`, the same runner driven synchronously; or `documentation`,
+  the tests generated from the docs.
 
 Not every (version × connector) cell is valid. Folders for invalid
 cells simply do not exist. A WASM engine bundles one database version
@@ -243,16 +250,16 @@ library's compatibility mode against that engine, not an older one.
 ## TL;DR commands
 
 > **One heavy job at a time.** Never run two of these concurrently — the
-> whole matrix peaks ~15.9 GB and a tsc slice ~8 GB, so the second one gets
+> whole matrix peaks roughly 16 GB and a tsc slice roughly 8 GB, so the second one gets
 > OOM-killed (`EXIT=137`) and the survivor reports bogus contention
 > timeouts. **The engines count too**: under `--docker` the containers hold
-> ~7.2 GB at rest inside a Docker VM provisioned ~11.7 GB, and container
+> roughly 7 GB at rest inside a Docker VM provisioned roughly 12 GB, and container
 > reuse keeps them up BETWEEN runs — `bun run tests:stop-containers` frees
 > them before a heavy non-docker job. Wait for each to finish. See
 > [`CLI.md` § One heavy job at a time](./CLI.md#one-heavy-job-at-a-time).
 
 ```bash
-# Daily mocked loop, ~10 s under bun (--no-isolate) / ~48 s under vitest (isolate:false).
+# Daily mocked loop: seconds under bun (--no-isolate), under a minute under vitest (isolate:false).
 bun run tests            # or `npm run tests` for the same matrix under vitest
 
 # One cell, fastest possible iteration.

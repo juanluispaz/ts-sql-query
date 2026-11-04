@@ -5,7 +5,7 @@ them warm across runs, isolates them per-worker, and revalidates schema/seed
 when they change. Covers both **docker-backed engines** (postgres, mysql,
 mariadb, oracle, sqlserver) and **in-process WASM engines** (pglite,
 sqlite-wasm-OO1). Native SQLite drivers (better-sqlite3, bun_sqlite,
-node_sqlite, sqlite3) need no lifecycle — they're in-process and stateless
+bun_sql_sqlite, node_sqlite, sqlite3) need no lifecycle — they're in-process and stateless
 per-test by construction.
 
 The corresponding code lives under [test/lib/containerLifecycle.ts](./lib/containerLifecycle.ts);
@@ -21,7 +21,7 @@ mutation safety contract that runs ON TOP of this infra see
 - [Docker preflight & sequential warmup](#docker-preflight--sequential-warmup)
 - [Narrowing the docker scope](#narrowing-the-docker-scope)
 - [Version-specific docker (`--docker-version closest`)](#version-specific-docker---docker-version-closest)
-- [Participation vs real/mock](#participation-vs-real-mock)
+- [Participation vs real/mock](#participation-vs-realmock)
 - [Schema / seed change revalidation](#schema--seed-change-revalidation)
 - [Per-worker test databases](#per-worker-test-databases)
 - [WASM lifecycle](#wasm-lifecycle)
@@ -32,11 +32,11 @@ mutation safety contract that runs ON TOP of this infra see
 Each docker-backed runner (postgres, mariadb, mysql, oracle, sqlserver) starts
 its testcontainer **lazily on the first `ctx.up()` and keeps it alive for the
 entire test process**, then leaves cleanup to Ryuk on process exit. That alone
-collapses a full `bun test test/db/mysql/` from ~3.5 min (one start/stop per
-`.test.ts` file) to under 10 s.
+collapses a full `bun test test/db/mysql/` from minutes (one start/stop per
+`.test.ts` file) to seconds.
 
-The keep-alive lives in [`createContainerHandle()`](./lib/containerLifecycle.ts#L257)
-and is wired by every `test/db/<db>/runners.ts` factory.
+The keep-alive lives in `createContainerHandle()`
+([`lib/containerLifecycle.ts`](./lib/containerLifecycle.ts)) and is wired by every `test/db/<db>/runners.ts` factory.
 
 ### Cross-invocation reuse
 
@@ -46,7 +46,7 @@ in explicit `--docker-mode` flags:
 
 `--docker-mode reuse` (the default for `tests`) sets
 `TESTCONTAINERS_REUSE_ENABLE=true`. `--docker-mode no-reuse` clears it, giving
-the hermetic behaviour CI wants:
+hermetic behaviour:
 
 Run `--docker` under **bun** (`bun run tests …`) — with `--parallel --no-isolate`
 it builds each cell's pool once per worker, is the fastest runtime on the real-DB
@@ -70,9 +70,9 @@ running between invocations is intentional and acceptable — the time saved on
 every iteration is much larger than the cost of a few residual `docker ps`
 entries.
 
-On the mysql cell, the warm reuse path drops from ~6 s (cold, in-process
-keep-alive only) to ~1.4 s (cross-process reuse). The pre-keep-alive behaviour
-for comparison was ~228 s per run.
+On the mysql cell, cross-process reuse brings a run from several seconds (cold,
+in-process keep-alive only) to about a second; without the keep-alive at all a
+run takes minutes.
 
 ### What "reuse" actually does at process exit
 
@@ -163,8 +163,7 @@ motivation:
   shims, deprecated SQL, fall-back code paths, etc.
 
 The gate sits in [`test/lib/backends.ts`](./lib/backends.ts):
-[`isRealDbEnabled(db, 'docker', version, connector)`](./lib/backends.ts#L105)
-returns `false` when the docker selection is `newest` and the cell's version
+`isRealDbEnabled(db, 'docker', version, connector)` returns `false` when the docker selection is `newest` and the cell's version
 is not `newest`. The version/connector are derived from the cell's `spec.label`
 (`<version> / <connector>`); no per-cell changes are needed when a new
 connector or version is added.
@@ -213,12 +212,9 @@ is **pinned** (no floating `latest`), and may be a **different repository**
 `compatibilityVersion` arithmetic, no "closest-below" guessing — one deliberate,
 hand-maintained image per folder.
 
-The map is **pre-populated** from the documented breakpoints of every engine
-(`docs/configuration/supported-databases/<db>.md`), so the agent that implements
-a version folder doesn't have to research its image — the folder name is the key,
-the image is already there. The entries are **unverified** until each folder + its
-tests exist and run (today only `postgres/oldest` has an actual cell). An
-engine's **highest** breakpoint has no folder: its compat emits SQL identical to
+The map has **one entry per version folder**, taken from the documented
+breakpoints of every engine (`docs/configuration/supported-databases/<db>.md`):
+the folder name is the key. An engine's **highest** breakpoint has no folder: its compat emits SQL identical to
 `newest`, so `newest` covers it.
 
 A `closest` cell whose version folder has **no entry** is a **hard error** — it
@@ -228,9 +224,7 @@ its cells.
 
 ### Adding a version tier — the maintenance step
 
-When you create a new `test/db/<db>/<version>/` folder, its image is likely
-**already in the map** (the documented breakpoints are pre-populated) — just run
-it. If the folder is a version the map doesn't cover yet, add **one** entry to
+When you create a new `test/db/<db>/<version>/` folder, add **one** entry to
 the matching engine map in [`test/lib/dockerImages.ts`](./lib/dockerImages.ts):
 
 ```ts
@@ -271,17 +265,16 @@ the mapping is visible without guessing.
 
 Stopping: `tests:stop-containers` matches the older-version images too — the
 `postgres:` / `mysql:` / `mariadb` / `mcr.microsoft.com/mssql/server` prefixes
-already cover their older tags, and `gvenzl/oracle-xe` was added for pre-23ai
+already cover their older tags, and `gvenzl/oracle-xe` covers pre-23ai
 Oracle — so a version-specific container is cleaned up like any other.
 
 ### Why it exists
 
-The tiers themselves (`oldest`, and any intermediate) are added incrementally.
-This mode is the tool that lets that happen without flying blind: an agent
-creating a new tier folder adds its one image-map entry (above) and can
-immediately run `--docker-version closest` to confirm the version-specific SQL
-executes on a real engine of that version — rather than authoring pre-N SQL that
-is only ever validated against the latest engine.
+Every tier (`oldest`, and any intermediate) emits SQL for its own version, and a
+normal run only ever validates that SQL against the latest engine. This mode is
+the tool that closes the gap: when a tier's SQL changes, or when a new tier folder
+adds its one image-map entry (above), `--docker-version closest` confirms the
+version-specific SQL executes on a real engine of that version.
 
 ## Participation vs real/mock
 
@@ -297,9 +290,11 @@ older-version cells are not even enumerated:
 
 Practical use: coverage runs. Older-version coverage is almost always a
 subset of the newest cell's coverage (same SQL builder, same expressions), so
-feeding the runner an extra ~570 file invocations only pads the report.
-`--run-versions newest` skips them — the mocked matrix drops from ~258k tests /
-~74 s (vitest) to ~66k tests / ~19 s on a typical box.
+feeding the runner the older tiers only pads the report.
+`--run-versions newest` skips them — about a quarter of the files remain, and the
+wall time drops at least as much (see [`BENCHMARKS.md`](./BENCHMARKS.md)). Without
+a coord it also leaves out the query-runner tests (`test/runners/`), which have no
+version tiers.
 
 Focused runs (`tests <coord>`) accept `--run-versions newest` too, and combine it
 with the multi-coord / glob / brace-expansion support to address arbitrary
@@ -308,17 +303,20 @@ slices of the matrix:
 - Single-segment coord (`tests postgres --run-versions newest`): the run expands to
   `<db>/newest/` + `<db>/types.negative/`.
 - Glob coord (`tests 'postgres/*/pg' --run-versions newest`): the script expands the
-  glob, then drops paths matching `*/oldest/*` from the expansion. So
-  `postgres/*/pg` resolves to just `postgres/newest/pg`.
-- Brace expansion (`tests 'postgres/*/{pg,postgres}' --run-versions newest`): works
-  whether you quote the coord or not.
+  glob, then keeps only the `<db>/newest` and `<db>/types.negative` paths of the
+  expansion. So `postgres/*/pg` resolves to just `postgres/newest/pg`, and
+  `mysql/*/mysql2` to just `mysql/newest/mysql2`.
+- Brace expansion (`tests 'postgres/*/{pg,postgres}' --run-versions newest`): the same
+  filter, whether you quote the coord or not.
 - Multi-coord (`tests 'postgres/*/pg' sqlite/newest --run-versions newest`): combine
   literals, globs, and brace-expanded sets in a single invocation.
-- A coord pointing at `*/oldest/*` combined with `--run-versions newest` is rejected
-  outright as an explicit contradiction.
+- A coord literally naming any other version folder (`postgres/oldest`,
+  `mysql/8_000_017`) combined with `--run-versions newest` is rejected outright as an
+  explicit contradiction.
+- Coords under `runners` are not narrowed: the query-runner tests have no version tiers.
 
-`tests --run-connectors wasm --run-versions newest` drops the `oldest` WASM entries from
-the WASM path set too.
+`tests --run-connectors wasm --run-versions newest` drops the older-version WASM entries
+from the WASM path set too.
 
 ## Schema / seed change revalidation
 
@@ -327,12 +325,12 @@ or `seed.sql`, run the suite again, attach to the warm container with last
 week's data. The infra protects against it.
 
 Every docker runner hashes the **content** of `schema.sql` + `seed.sql` the
-first time `acquireContainer` returns inside a process (so once per
+first time a process acquires its container (so once per
 `bun test` invocation, not once per test file). The hash lives in
-[`hashSqlFiles()`](./lib/containerLifecycle.ts#L189) and the comparison
-against the value stored in a small `tssqlquery_meta` table living in a
+`hashSqlFiles()` ([`lib/containerLifecycle.ts`](./lib/containerLifecycle.ts)) and
+the comparison against the value stored in a small `tssqlquery_meta` table living in a
 dedicated control database is per-engine logic in `test/db/<db>/runners.ts`
-(see for instance [`validateOrResetForReuse` in postgres/runners.ts](./db/postgres/runners.ts#L127)).
+(see for instance `validateOrResetForReuse` in [`postgres/runners.ts`](./db/postgres/runners.ts)).
 
 Outcomes:
 
@@ -360,8 +358,8 @@ The cost is paid once per process when the schema actually changed; if it
 didn't, the validator is a single `SELECT … LIMIT 1`.
 
 The cross-process serialisation of the first acquire is in
-[`withCrossProcessLock`](./lib/containerLifecycle.ts#L212) — a lockfile
-under `os.tmpdir()` keyed by the docker image name. Without it, 12 bun
+`withCrossProcessLock` ([`lib/containerLifecycle.ts`](./lib/containerLifecycle.ts)) —
+a lockfile under `os.tmpdir()` keyed by the docker image name. Without it, the bun
 workers all calling `withReuse().start()` at the same instant race past
 testcontainers' `fetchByLabel` (no container has the hash label visible
 yet) and each create their own container.
@@ -374,8 +372,8 @@ You don't need to do anything to opt in — this runs automatically whenever
 Every docker runner gives each worker process its own test database —
 `tssqlquery_w1`, `tssqlquery_w2`, … (for Oracle: users `tsapp_w1`,
 `tsapp_w2`, …). The worker id is read from `BUN_TEST_WORKER_ID` /
-`VITEST_POOL_ID` / `JEST_WORKER_ID` by [`workerId()`](./lib/containerLifecycle.ts#L81);
-when none is set (serial single-process invocation) everyone shares "worker 1"
+`VITEST_POOL_ID` / `JEST_WORKER_ID` by `workerId()`
+([`lib/containerLifecycle.ts`](./lib/containerLifecycle.ts)); when none is set (serial single-process invocation) everyone shares "worker 1"
 and the database simply becomes `tssqlquery` / `tsapp`. The dedicated control
 database `tssqlquery_meta` is disjoint from the worker databases so the reset
 logic doesn't have to special-case "the database that owns the hash row".
@@ -388,16 +386,16 @@ stays intra-worker and parallel test runs are safe by default.
 The model is **parallel by default**; the opt-out is `--mode sequential` on
 `tests` (the script sets `TSSQLQUERY_PARALLEL_DBS=false`, the runner adapter
 then forces a serial pool and the per-worker DB infra collapses to a single
-shared `tssqlquery` / `tsapp` — see
-[`parallelDbsEnabled()`](./lib/containerLifecycle.ts#L102)). The CLI handles
+shared `tssqlquery` / `tsapp` — see `parallelDbsEnabled()` in
+[`lib/containerLifecycle.ts`](./lib/containerLifecycle.ts)). The CLI handles
 the runner-specific flag — `--parallel` for `bun test` (serial out of the
 box), `--no-file-parallelism` for vitest (parallel out of the box).
 
 The dedicated WASM phase (full-matrix `--wasm` two-phase split) is always
 sequential; WASM is CPU-bound and parallel buys nothing. A focused /
-connection-typed WASM run (`tests --run-connectors wasm --wasm`) defaults to
-parallel because the cell set is tiny — pass `--mode sequential` if you want
-the same shape as the old `tests:wasm`.
+connection-typed WASM run (`tests --run-connectors wasm --wasm`) is a single pass
+that defaults to parallel — pass `--mode sequential` if you want the same shape
+as the WASM phase.
 
 ## WASM lifecycle
 
@@ -406,17 +404,20 @@ heap loads inside the worker process and the engine answers queries from
 there. The two costs that make them their own gating category:
 
 1. **Per-worker bootstrap**. PGlite's `PGlite.create('memory://')` spins up
-   a full WASM-hosted PostgreSQL on first call. Without amortisation the
-   ~300 ms × 44 pglite cells dominated postgres-matrix wall time. Per-process
-   memoisation (see [`getOrCreatePglite()` in postgres/runners.ts](./db/postgres/runners.ts#L386))
+   a full WASM-hosted PostgreSQL on first call. Without amortisation those
+   hundreds of milliseconds, repeated per test, dominate postgres-matrix wall
+   time. Per-process memoisation (see `getOrCreatePglite()` in
+   [`postgres/runners.ts`](./db/postgres/runners.ts))
    drops that to a single startup per worker; per-file `up()` just re-applies
    schema + seed.
 2. **CPU-bound under parallel workers**. Several workers bootstrapping WASM
    in parallel saturate the CPU; the docker pass overlapping them then
    doesn't get full parallel benefit. That's why the full-matrix `--wasm`
-   flag triggers a **sequential WASM pass first**, before the parallel main
-   pass (which runs the WASM cells again, mocked) — the WASM cost lands
-   serially, not competing with the docker workers.
+   flag triggers a **sequential WASM pass first** (the WASM cells plus the
+   query-runner tests with a WASM engine, docker and native off), before the
+   parallel main pass (which runs the WASM cells again, mocked, and skips the
+   WASM runners' tests) — the WASM cost lands serially, not competing with the
+   docker workers.
 
 In focused mode (`tests <coord> --wasm`) the two-phase split doesn't fire —
 `--wasm` runs the WASM cells real in a single pass.
@@ -428,25 +429,25 @@ Two costs decide how a real-WASM run is shaped, and they pull differently:
 - **CPU** — every worker bootstraps its own PGlite and sqlite-wasm module.
   Mixed with the other cells in a parallel pass, those bootstraps compete with
   the docker and native workers for the CPU: the run gets slower than running
-  the WASM cells on their own, sequentially (measured on `coverage:runners`
-  below: +75 s mixed in parallel, against ~27 s for the sequential WASM phase
-  of the full matrix).
+  the WASM cells on their own, sequentially (measured on
+  `coverage:runners:with-matrix`: over a minute more mixed in parallel, against
+  under a minute for the whole sequential WASM phase of the full matrix).
 - **Memory** — one runner process holding the whole matrix (its module graph
   plus every result, or every coverage map) is what grows: the mocked matrix +
-  real WASM in one vitest process peaks ~15.9 GB, which a 16 GB CI runner
+  real WASM in one vitest process peaks ~16 GB, which a 16 GB CI runner
   cannot hold. Running WASM in parallel does not by itself blow memory up:
-  `coverage:runners` (every connector's `newest` cell, WASM real in parallel)
-  peaks at 5.9 GB across all bun/vitest processes, against 5.2 GB with WASM
-  mocked.
+  `coverage:runners:with-matrix` (every connector's `newest` cell, WASM real in
+  parallel) stays around 5 GB across all bun/vitest processes, close to the same
+  run with WASM mocked.
 
 So each case gets the shape that avoids the cost it would otherwise hit:
 
 | Case | Problem | Rule the CLI applies |
 |---|---|---|
-| Full matrix, `--wasm` (no coverage) | CPU contention if WASM mixes with the parallel pass | **Two phases**: real WASM alone and sequential first, then the parallel main pass with WASM mocked |
-| Full matrix, `--wasm --coverage` | coverage needs ONE runner invocation, so it cannot use the two phases (merging two coverage outputs is fragile), and mixing WASM into the parallel pass is the contention above | **Rejected in parallel mode** (exit 2): pass `--mode sequential` — one sequential pass, WASM real inside it |
-| No-docker CI (`--shard`) | memory: the whole mocked matrix + WASM in one process OOMs the 16 GB runner | **Shards**: four separate invocations, WASM real in shard 1, sequential — memory frees between them |
-| Focused (`tests <coord> --wasm`), with or without `--coverage` | the cell set is small, so neither the contention nor the memory reaches a problematic size | **Single pass, parallel** allowed — `coverage:runners` uses it: one coherent report in ~5 min, the contention costs ~75 s |
+| Full matrix, `--wasm` (no coverage) | CPU contention if WASM mixes with the parallel pass | **Two phases**: real WASM alone and sequential first (with the query-runner tests of the WASM engines), then the parallel main pass with WASM mocked |
+| Full matrix or `--run-connectors` without coords, `--wasm --coverage` | coverage needs ONE runner invocation, so it cannot use the two phases (merging two coverage outputs is fragile), and mixing WASM into the parallel pass is the contention above | **Rejected in parallel mode** (exit 2): pass `--mode sequential` — one sequential pass, WASM real inside it |
+| No-docker CI (`--shard`) | memory: the whole mocked matrix + WASM in one process OOMs the 16 GB runner | **Shards**: four separate invocations, WASM real in shard 1 (with the query-runner tests of the WASM engines), sequential — memory frees between them |
+| Focused (`tests <coord> --wasm`), with or without `--coverage` | the cell set is small, so neither the contention nor the memory reaches a problematic size | **Single pass, parallel** allowed — `coverage:runners:with-matrix` uses it: one coherent report in several minutes, the contention costs over a minute |
 
 If a focused coverage run ever grows to where the contention matters, the way
 out is the same as on the full matrix: `--mode sequential`. A two-pass run with
@@ -478,7 +479,7 @@ changes column types in ways the reused container hasn't yet picked up:
 bun run tests:stop-containers
 ```
 
-(`bun run tests:stop-containers` works the same — it's the same shell script
+(`npm run tests:stop-containers` works the same — it's the same shell script
 under the hood.)
 
 The helper matches by image, so it only touches containers from this project —

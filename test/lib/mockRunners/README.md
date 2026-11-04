@@ -1,7 +1,7 @@
 # Connector-specialised mock runners
 
-Each file here is a `MockQueryRunner` subclass that mirrors **one** real
-`QueryRunner` from `src/queryRunners/`, narrowed to the slice that
+Each `Mock*QueryRunner` file here is a `MockQueryRunner` subclass that mirrors
+**one** real `QueryRunner` from `src/queryRunners/`, narrowed to the slice that
 observably differs from the generic
 [`MockQueryRunner`](../../../src/queryRunners/MockQueryRunner.ts).
 Used by `test/db/<db>/runners.ts` so the params captured by
@@ -9,11 +9,11 @@ Used by `test/db/<db>/runners.ts` so the params captured by
 bodies do not need `if (ctx.realDbEnabled) ... else ...` branches just
 to satisfy a snapshot that depends on a driver's internal massage.
 
-There is exactly one file per `src/queryRunners/*QueryRunner.ts` that
-the test matrix exercises. Some are intentionally thin (re-export
-`MockQueryRunner` unchanged) — they are kept on disk so adding a
-future connector-specific quirk is a single-file change rather than a
-refactor of the test infrastructure.
+There are seven: the six embedded SQLite connectors and
+`MockBunSqlPostgresQueryRunner`. Every other connector uses the generic mock.
+Some are intentionally thin (behave as `MockQueryRunner` does) — they are kept on
+disk so adding a future connector-specific quirk is a single-file change rather
+than a refactor of the test infrastructure.
 
 > **Also here, but a different kind of mock:**
 > [`DocCodeMockRunner.ts`](./DocCodeMockRunner.ts) is the `MockQueryRunner`
@@ -34,20 +34,21 @@ underlying SQLite drivers reject JS booleans. The generic
 in mock mode and `1` in real mode. Every snapshot of params that
 exercised a boolean column would be inconsistent across modes.
 
-Each `Mock*QueryRunner` in this folder applies the same coercion the
-real runner does, so the captured params come out identical.
+Each of those `Mock*QueryRunner` applies the same coercion the real runner does,
+so the captured params come out identical. `MockSqlite3QueryRunner` does the same
+for its own divergence: `Sqlite3QueryRunner.addParam` coerces `bigint → number`,
+because the `sqlite3` npm driver would bind a JS `BigInt` as `NULL`.
 
 ## Conventions
 
-1. **One class per real runner, even when the subclass is passthrough.**
-   `MockSqlite3QueryRunner` is empty because `Sqlite3QueryRunner.addParam`
-   already pushes values as-is (the `sqlite3` npm driver accepts JS
-   booleans natively). The file stays on disk so that if `sqlite3`
-   ever grows a quirk in the future, the divergence is a one-file edit
-   instead of a refactor of `test/db/sqlite/runners.ts`.
+1. **One class per mirrored runner, even when the subclass is passthrough.**
+   `MockBunSqlPostgresQueryRunner` is empty because
+   `BunSqlPostgresQueryRunner.addParam` already pushes values as-is. The file
+   stays on disk so that if the runner ever grows a quirk in the future, the
+   divergence is a one-file edit instead of a refactor of the `runners.ts`.
 
-2. **The override re-uses `super`, never copy-pastes the real runner's
-   logic.** The pattern is:
+2. **An override that transforms a value re-uses `super`, never copy-pastes the
+   real runner's logic.** The pattern is:
    ```ts
    override addParam(params: any[], value: any): string {
        if (typeof value === 'boolean') {
@@ -58,7 +59,9 @@ real runner does, so the captured params come out identical.
    ```
    Placeholder handling (`?` / `$N` / `:N` / `@N`) already lives in
    `MockQueryRunner` (which knows its `database`) — the subclass only
-   contributes the value transformation.
+   contributes the value transformation. `MockBunSqlSqliteQueryRunner`, which
+   transforms nothing, writes out the same push + `?n` placeholder as its real
+   runner; the result is what the generic mock gives.
 
 3. **Imports come from `src/queryRunners/MockQueryRunner.js`, never
    from the real runner.** Real runners drag native bindings or
@@ -110,12 +113,12 @@ Recipe:
 
 ## Current coverage
 
-Verified exhaustively: today the only observable divergence between
-any real runner and `MockQueryRunner` is `addParam`'s `boolean → int`
-coercion in the four SQLite runners listed above.
-`addOutParam` (Oracle), every `execute*` and every other `addParam`
-(postgres / mysql / mariadb / mssql / oracle SQLite-aside variants)
-already match the generic mock bit-for-bit. If a future real runner
+Today the observable divergences between a real runner and `MockQueryRunner`
+are in `addParam`: the `boolean → int` coercion in the four SQLite runners listed
+above, and the `bigint → number` coercion in `Sqlite3QueryRunner`. Every other
+`addParam` (postgres / mysql / mariadb / mssql / oracle / Bun SQL) pushes the value
+unchanged, with the placeholder the generic mock uses, and nothing here mirrors
+`addOutParam` (Oracle) or any `execute*`. If a future real runner
 introduces a new transformation, the convention above is already
 wired and ready.
 
@@ -123,8 +126,8 @@ wired and ready.
 
 - [`test/lib/testContext.ts`](../testContext.ts) — defines
   `MockRunnerClass` and the `mockRunnerClass` option on
-  `TestContextOptions`. The factory at line ~176 falls back to
+  `TestContextOptions`. `createTestContext` falls back to
   `MockQueryRunner` when the option is omitted.
 - [`test/db/sqlite/runners.ts`](../../db/sqlite/runners.ts) —
-  canonical example of the wiring; five factories, each pointing at
-  its `Mock<X>QueryRunner` sibling.
+  canonical example of the wiring; six factories, each pointing at
+  its `Mock<X>QueryRunner` sibling (the `-sync` factories go through them).

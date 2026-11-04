@@ -25,7 +25,8 @@ test/db/<database>/
 ├── domain/                     ← schema, seed, DBConnection — shared across cells
 │   ├── connection.ts
 │   ├── schema.sql
-│   └── seed.sql
+│   ├── seed.sql
+│   └── reset.sql               ← data-only reset for the per-test reseed (not in sqlite)
 ├── runners.ts                  ← per-connector createXxxTestContext factories
 ├── types.negative/             ← compile-time negative tests at the DB root
 │   ├── select.test.ts
@@ -39,17 +40,18 @@ test/db/<database>/
 
 Three rules from [`DESIGN.md`](./DESIGN.md):
 
-1. **One container per database, modern image only.** All
+1. **One container per database by default, at the `newest` image.** All
    `<version>/<connector>/` cells share the same shared engine instance,
    wired through `runners.ts`. Older `<compatibilityVersion>` cells emit
-   legacy SQL the modern server still accepts.
+   legacy SQL the modern server still accepts. `--docker-version closest` runs
+   a cell against its own version folder's image instead (`ENGINE_IMAGES` in
+   [`dockerImages.ts`](./lib/dockerImages.ts)).
 2. **Connector × version compatibility is per-cell.** Folders for invalid
-   combinations (e.g. `postgres/newest/pglite/`, which would need a pglite
-   running PG18+ that does not exist yet) simply do not exist.
+   combinations simply do not exist.
 3. **Symmetry**: every cell of the **whole matrix** (all databases × versions ×
    connectors, not just one database) contains the same `.test.ts` files with the
    same `test(...)` names in the same order. The audit
-   ([`tests:audit`](./TEST_LIB.md#audittestsymmetryts--the-symmetry-audit))
+   ([`tests:audit`](./TESTS_AUDIT.md))
    enforces this — comment out non-applicable tests (with a `// NOT-APPLICABLE:` / `// NOT-SUPPORTED:` /
    `// TODO[*]:` marker), do not delete them. Exempt from the comparison:
    `config.*` files (connection-config-specific), `*.generated.test.ts`, and files
@@ -57,13 +59,14 @@ Three rules from [`DESIGN.md`](./DESIGN.md):
 
 ## `domain/` — schema, seed, connection
 
-One per database. Three files, all sharing the same project-management
+One per database. These files all share the same project-management
 domain (`organization`, `app_user`, `project`, `issue`, …):
 
 | File | Contract |
 |---|---|
-| `schema.sql` | Raw DDL applied per-container. Multi-statement allowed (every runner has a path that accepts it — see [`reseedAgainstNativePostgresHandle` for an example](./db/postgres/runners.ts#L251)). Dialect-appropriate types and `DEFAULT` clauses; tests that don't enumerate a defaulted column rely on this. |
+| `schema.sql` | Raw DDL applied at the once-per-worker bootstrap. Multi-statement allowed (every runner has a path that accepts it — see `reseedAgainstNativePostgresHandle` in [`postgres/runners.ts`](./db/postgres/runners.ts) for an example). Dialect-appropriate types and `DEFAULT` clauses; tests that don't enumerate a defaulted column rely on this. |
 | `seed.sql` | Canonical fixture rows, explicit values per row so tests have something concrete to assert. Multi-statement. |
+| `reset.sql` | Data-only reset for the per-test reseed: `TRUNCATE`/`DELETE` plus identity/sequence rewind, no `DROP`/`CREATE`, so with `seed.sql` it leaves the state a fresh `schema.sql` + `seed.sql` would. SQLite has none: its reseed re-applies `schema.sql` + `seed.sql`. |
 | `connection.ts` | One `DBConnection extends <DialectName>Connection` subclass declaring tables, views, procedures, functions, typed fragments. The **only** sanctioned `DBConnection` users — tests must not construct their own runner or `new DBConnection(...)`; they go through the factories in `runners.ts`. |
 
 Example connection skeleton (lifted from
@@ -102,39 +105,41 @@ returns a `TestContext<DBConnection>`. Each factory wires:
   `BunSqlPostgresQueryRunner`, …).
 - The container handle (docker) or in-process bootstrap (WASM, native).
 - The `realDbEnabled` decision via
-  [`isRealDbEnabled(database, requires, version?, connector?)`](./lib/backends.ts#L105).
+  `isRealDbEnabled(database, requires, version?, connector?)` in
+  [`backends.ts`](./lib/backends.ts).
 - Optional `mockRunnerClass` for connector-specialised mocks
   ([`mockRunners/`](./lib/mockRunners/README.md)).
-- `onReseed` (re-apply schema+seed against the runner's native handle).
+- `onReseed` (restore the seeded baseline against the runner's native handle:
+  `reset.sql` + `seed.sql`, or `schema.sql` + `seed.sql` on SQLite).
 
-Canonical pattern (excerpt from
-[`test/db/postgres/runners.ts:332-362`](./db/postgres/runners.ts#L332-L362)):
+Canonical pattern (trimmed from `createPgTestContext` in
+[`test/db/postgres/runners.ts`](./db/postgres/runners.ts)):
 
 ```ts
 export function createPgTestContext(spec: PgTestSpec): PostgresTestContext {
     const version = spec.label.split(' / ')[0] ?? ''
     const connector = spec.label.split(' / ')[1] ?? ''
     const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ true, version, connector)
+    // The `newest` image by default; this cell's own folder image under `--docker-version closest`.
+    const image = imageForCell(DATABASE, version, realDbEnabled)
     const buildRunner = memoizeSharedRunner(spec.createRealRunner)
 
     return decoratePostgresContext(createTestContext<DBConnection>({
         label: spec.label,
-        canonicalForDocs: spec.canonicalForDocs,
         compatibilityVersion: spec.compatibilityVersion,
         database: 'postgreSql',
         realDbEnabled,
-        async createRealRunner() {
-            const container = await acquireContainer()
-            const workerUri = await bootstrapWorkerDbSchemaAndSeed(
-                container.getConnectionUri(),
-            )
-            return await buildRunner(workerUri)
+        async createRealRunner(forceNew = false) {
+            const container = await containers.getFor(image).acquire()
+            const workerUri = await bootstrapWorkerDbSchemaAndSeed(container.getConnectionUri())
+            return await buildRunner(workerUri, forceNew)
         },
         onReseed: reseedAgainstNativePostgresHandle,
-        async onDown() { await releaseContainer() },
-        buildConnection: (interceptor, compatibilityVersion) =>
-            new DBConnection(interceptor, compatibilityVersion),
-    }))
+        async onDown() { await containers.getFor(image).release() },
+        buildConnection(interceptor, compatibilityVersion) {
+            return new DBConnection(interceptor, compatibilityVersion)
+        },
+    }), /* … */)
 }
 ```
 
@@ -145,16 +150,16 @@ docker-backed pg/postgres (`createPgTestContext`), one for in-process pglite
 Same shape, different `RealDbBackend` and `createRealRunner` body.
 
 Some `runners.ts` also expose a `PostgresTestContext` interface that extends
-`TestContext<DBConnection>` with helpers (e.g.
-[`withInsensitiveCollation(collation)`](./db/postgres/runners.ts#L62)) for
-tests that need to vary a `DBConnection` field per-test. The decorator
-([`decoratePostgresContext`](./db/postgres/runners.ts#L72)) shares the
-underlying interceptor, so SQL emitted by the alt connection still lands in
+`TestContext<DBConnection>` with helpers (e.g. `withInsensitiveCollation(collation)`)
+for tests that need to vary a `DBConnection` field per-test. The decorator
+(`decoratePostgresContext`) shares the underlying interceptor, so SQL emitted by the alt connection still lands in
 `ctx.lastSql`.
 
 What lives at module scope in `runners.ts`:
 
-- The `createContainerHandle` instance (docker engines).
+- The `createContainerRegistry` instance (docker engines): one keep-alive handle
+  per image, so a default run keeps one container and a `closest` run can bring
+  up an older image as a separate one.
 - Schema/seed loaders memoised once per worker (`ensureSchemaAndSeedLoaded`,
   `pgliteSharedDb` for WASM, etc.).
 - The `validateOrResetForReuse` function that hashes schema+seed and resets
@@ -169,13 +174,14 @@ What lives at module scope in `runners.ts`:
 | Folder name | Pinned `compatibilityVersion` |
 |---|---|
 | `newest/` | `Number.POSITIVE_INFINITY` (library default) |
-| `<literal>/` | The literal numeric value of a documented breakpoint (e.g. `13_000_001`, `10_005_000`) |
+| `<literal>/` | The literal numeric value of a documented breakpoint, except the highest (e.g. `10_005_000`, `8_000_017`) |
 | `oldest/` | A representative value below the lowest documented breakpoint (e.g. `17_000_000`) |
 
 The two named bookends exist because the docs don't give a number for them:
 the default is `Number.POSITIVE_INFINITY` (no clean filename), and the
 lowest zone is described as `< X`. Every other folder uses the literal
-value as its name.
+value as its name. The highest documented breakpoint has no folder of its own:
+at that value the library emits the same SQL as at `newest`, which covers it.
 
 The breakpoints come from
 [`docs/configuration/supported-databases/<database>.md`](../docs/configuration/supported-databases/);
@@ -183,19 +189,18 @@ test folder names must come from that file.
 
 ## `<connector>/setup.ts` — the cell entry
 
-Thin file. Calls the matching factory in `runners.ts`, marks the canonical
-cell, exports `ctx`:
+Thin file. Calls the matching factory in `runners.ts`, exports `ctx`:
 
 ```ts
-// test/db/postgres/newest/pg/setup.ts
+// test/db/postgres/newest/pg/setup.ts (trimmed)
 import { Pool } from 'pg'
-import { PgPoolQueryRunner } from '../../../../../src/queryRunners/PgPoolQueryRunner.js'
 import { createPgTestContext } from '../../runners.js'
+import { PgPoolQueryRunner } from '../../../../../src/queryRunners/PgPoolQueryRunner.js'
 
 export const ctx = createPgTestContext({
     label: 'newest / pg',
-    canonicalForDocs: true,            // exactly one cell per DB sets this
-    createRealRunner: async (uri) => {
+    compatibilityVersion: Number.POSITIVE_INFINITY,
+    async createRealRunner(uri) {
         const pool = new Pool({ connectionString: uri })
         return {
             runner: new PgPoolQueryRunner(pool),
@@ -207,22 +212,13 @@ export const ctx = createPgTestContext({
 
 Rules:
 
-- Exactly one cell per database flags `canonicalForDocs: true`. The docs
-  scraper publishes from that one.
 - `label` is `"<version> / <connector>"`. The audit and the docker-scope
   gating both parse it.
-- `compatibilityVersion` is pinned for every non-`newest` cell.
+- `compatibilityVersion` is pinned in every cell.
 
-Today's canonical cells per database:
-
-| Database | Canonical (`canonicalForDocs: true`) |
-|---|---|
-| mariadb | `newest/mariadb` |
-| mysql | `newest/mysql2` |
-| oracle | `newest/oracledb` |
-| postgres | `newest/pg` |
-| sqlite | `newest/bun_sqlite` |
-| sqlserver | `newest/mssql` |
+The canonical cell, where a test is written first before being propagated, is a
+convention of the workflow, not something `setup.ts` marks — see
+[`WRITING_TESTS.md` § Adding a test](./WRITING_TESTS.md#adding-a-test).
 
 **Exception — `documentation/` connector.** Each database (plus a synthetic
 `general` db) also carries a `newest/documentation/` cell holding the SQL tests
@@ -242,12 +238,12 @@ Naming convention:
 
 | Family | Examples |
 |---|---|
-| Domain-feature tests | `select.basic.test.ts`, `insert.returning.test.ts`, `update.basic.test.ts`, `delete.execute-variants.test.ts` |
+| Domain-feature tests | `select.basic.test.ts`, `insert.returning.test.ts`, `update.execute-variants.test.ts`, `delete.execute-variants.test.ts` |
 | Error / processing tests | `errors.processing.test.ts`, `errors.transaction-attachments.test.ts` |
 | Fragment / composition | `fragments.with-args.test.ts`, `raw-fragment.*.test.ts`, `with-values.*.test.ts` |
 | Dynamic queries | `dynamic-condition.*.test.ts` |
 | Customize hooks | `customize-query.*.test.ts`, `customize-query.insert.test.ts` |
-| Docs snippets | `docs.<page>.test.ts`, `docs.advanced.<page>.test.ts` (mirrored to every cell; one cell publishes — see `canonicalForDocs`) |
+| Docs snippets | `docs.<page>.test.ts`, `docs.advanced.<page>.test.ts` (mirrored to every cell — see [`WRITING_TESTS.md` § Docs snippets](./WRITING_TESTS.md#docs-snippets)) |
 | Postgres-specific (etc.) | `select.postgres-const-force-type-cast.test.ts` lives only under postgres |
 
 ## `types.negative/` — compile-time negatives
@@ -284,8 +280,8 @@ test('postgres-negative-types', () => {
 - `bun run validate:tests` (or `validate:tests:newest` for the fast loop)
   is the real assertion. If a directive becomes "unused", the build fails with the
   canonical message — exactly the regression signal we want.
-- The `types.negative/` folder is **not** part of the cell matrix and is
-  skipped by `tests:audit`.
+- The `types.negative/` folder is **not** part of the cell matrix. `tests:audit`
+  skips it, except for the `ts-ignore` rule (`@ts-ignore` is forbidden everywhere).
 
 For which command to run and where to place `@ts-expect-error` directives see
 [`WRITING_TESTS.md` § Type-checking the test matrix](./WRITING_TESTS.md#type-checking-the-test-matrix).

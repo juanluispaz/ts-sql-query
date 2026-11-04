@@ -30,9 +30,14 @@ the `--docker` / `--wasm` flags drive see
 | Script | What it runs |
 |---|---|
 | `tests [<coord>…]` | No args: full matrix under `test/` (parallel, no docker, no real WASM by default; widen with flags). One or more positional coords: focused run on those paths only — globs (`'postgres/*/pg'`) and brace expansion (`postgres/*/{pg,postgres}`) supported, quoted or not; the root `runners` (`runners`, `runners/postgres`) addresses the query-runner tests under `test/runners/` ([`RUNNER_TESTS.md`](./RUNNER_TESTS.md)). Same flag set either way. `--help` for all options. |
-| `tests:audit [<coord>…]` | Mechanical audit of `test/db/`: the symmetry check + the anti-cheat content rules (`mirror-image`, `one-sided-guard`). Static (no docker/DB), ~1 s. Accepts positional `<coord>` args to scope the run, same grammar as `tests` (see [Coord patterns](#coord-patterns)). Pre-merge check. See [`lib/audit/AUDIT.md`](./lib/audit/AUDIT.md). |
+| `tests:runners` | `tests runners`: only the query-runner tests ([`RUNNER_TESTS.md`](./RUNNER_TESTS.md)). Takes the same flags (`--docker --wasm` for every runner against its engine). |
+| `tests:audit [<coord>…]` | Mechanical audit of `test/db/`: the symmetry check + the anti-cheat content rules (`mirror-image`, `one-sided-guard`). Static (no docker/DB). Accepts positional `<coord>` args to scope the run, same grammar as `tests` (see [Coord patterns](#coord-patterns)). Pre-merge check. See [`lib/audit/AUDIT.md`](./lib/audit/AUDIT.md). |
 | `tests:stop-containers` | Stops the warm docker containers that `--docker --docker-mode reuse` left running. |
 | `tests:reopen` | Re-open the previously generated `--report` / `--coverage` HTML without re-running tests. |
+| `tests:index`, `tests:index:newest` | Build the code index the searcher reads: all version tiers, or only the `newest` + `types.negative` cells (lower RAM, the session default). See [`CODE_SEARCH.md`](./CODE_SEARCH.md). |
+| `tests:index:verify` | Fast structural smoke test of the code indexer (no type checker, no DB). |
+| `tests:where-is` | The code searcher: answers questions about a TypeScript symbol from the index. See [`CODE_SEARCH.md`](./CODE_SEARCH.md). |
+| `tests:where-is:check` | DB-free unit checks of the searcher's coord matching and argument model. |
 
 Each script is a single shell script that detects runtime via
 `npm_config_user_agent` — `bun run X` dispatches to `bun test`, `npm run X`
@@ -40,7 +45,7 @@ to `vitest run`. Same entry under either runtime.
 
 **Under `npm run`**, bare `--flag` tokens are consumed by npm itself as
 config (you'll see `npm warn Unknown cli config "--flag"`). Use the `--`
-separator: `bun run tests --docker --run-versions newest`. Bun does not have
+separator: `npm run tests -- --docker --run-versions newest`. Bun does not have
 this problem.
 
 ## One heavy job at a time
@@ -51,16 +56,18 @@ once. The heavy set:
 
 | Job | Peak RSS |
 |---|---|
-| `bun run tests` (whole matrix; `--docker` / `--wasm` on top) | ~15.9 GB |
+| `bun run tests` (whole matrix; `--docker` / `--wasm` on top) | ~4 GB, plus the engines under `--docker` |
+| `npm run tests` (whole matrix under vitest) | ~16 GB with real WASM in one process; ~9 GB under `--docker` |
 | `bun run validate:tests` (per-connector tsc split) | ~8 GB (largest slice) |
-| `bun run validate:tests <coord>` (narrowed to the cells a coord selects) | smaller — one cell is ~3 s |
+| `bun run validate:tests <coord>` (narrowed to the cells a coord selects) | smaller — one cell takes seconds |
 | `bun run validate:tests:newest` (single tsc program) | ~14 GB |
 | `bun run validate` / `build` | multi-GB |
-| `bun run tests:audit`, `npm run tests:index*` | multi-GB |
+| `bun run tests:audit`, `npm run tests:index` / `tests:index:newest` | multi-GB |
 | `bun run all-examples` / `no-docker-examples` | multi-GB + containers |
 
-Any *two* of those exceed the RAM of a 16 GB box, so the OS OOM-killer takes
-one out. Start one, **wait for it to finish, then start the next**.
+Two of those together can exceed the RAM of a 16 GB box, and then the OS
+OOM-killer takes one out; when they do fit, the CPU contention still produces
+the bogus failures described below. Start one, **wait for it to finish, then start the next**.
 Backgrounding one and launching another "while it runs" is the same violation —
 it is exactly how the OOM happens. Cheap work during the wait (reading files,
 small greps, editing tests or docs) is fine; anything competing for RAM or CPU
@@ -111,10 +118,10 @@ Wall-time numbers assume a machine that is otherwise idle; see
 
 ## Test-loop discipline
 
-The suite has grown past **~357k tests across ~22.5k files**. Mocked-only
-it's ~10 s under bun (`--parallel --no-isolate`), ~48 s under vitest
-(`isolate:false`); with `--docker` add real-DB cost on top — **~11 min under bun**
-(~12 min under vitest, which also mocks the Bun SQL cells; see
+The suite holds **hundreds of thousands of tests across over 20k files**.
+Mocked-only a full run takes seconds under bun (`--parallel --no-isolate`) and
+under a minute under vitest (`isolate:false`); with `--docker` add real-DB cost
+on top — **over 10 minutes** (vitest also mocks the Bun SQL cells; see
 [`BENCHMARKS.md`](./BENCHMARKS.md)). Running the real matrix on every inner
 iteration still burns minutes per hour.
 
@@ -123,12 +130,12 @@ cells emit the **same** SQL + params snapshots as the matching `<db>/newest/*`
 cell (same SqlBuilder, same expression tree). Re-running them is wasted
 feedback.
 
-**Recommended order while iterating** (prefer `bun run tests …`; `bun run tests
+**Recommended order while iterating** (prefer `bun run tests …`; `npm run tests
 -- …` runs the same matrix under vitest):
 
 1. `tests <coord>` — single cell or file. Tightest loop; use while editing.
 2. `tests --run-versions newest` — change spans several databases. Skips
-   the older version tiers (~2 s instead of ~10 s under bun, ~270 k fewer assertions).
+   the older version tiers (about a quarter of the files, and of the wall time or less).
 3. `tests` — full mocked matrix. **Pre-push** sanity sweep.
 4. `tests --docker` / `--wasm` — only when the change touches a docker-backed
    connector / the WASM path, or as a final confidence check
@@ -148,21 +155,22 @@ Orthogonal — combine freely (except for the [Forbidden combinations](#forbidde
 | Flag | What it does | Default |
 |---|---|---|
 | **Axis 1 — participation (what RUNS; excludes, never mocks)** | | |
-| `--run-versions <all\|newest>` | Post-filter on the coords by version: `newest` visits only `<db>/newest/*` (+ `<db>/types.negative/*`) — older versions are **not executed at all**. | `all` |
-| `--run-connectors <all\|docker\|wasm\|native>` | Post-filter on the coords by connector kind. `wasm` = pglite + sqlite-wasm-OO1; `native` = embedded SQLite drivers; `docker` = containerised engines. Pure path filter (excludes the rest from the run) — it does **not** set real/mock. | `all` |
+| `--run-versions <all\|newest>` | Post-filter on the coords by version: `newest` visits only `<db>/newest/*` (+ `<db>/types.negative/*`), also for globs and braces — older versions are **not executed at all**. A coord that literally names another version folder is an error. Coords under `runners` are not narrowed; without a coord the query-runner tests (`test/runners/`) don't run. | `all` |
+| `--run-connectors <all\|docker\|wasm\|native>` | Post-filter on the coords by connector kind. `wasm` = pglite + sqlite-wasm-OO1; `native` = embedded SQLite drivers; `docker` = containerised engines, plus the `documentation` cells (which never reach an engine). Pure path filter (excludes the rest from the run) — it does **not** set real/mock. The query-runner tests (`test/runners/`) are outside the three kinds: any value but `all` leaves them out. | `all` |
 | **Axis 2 — real/mock (what's REAL among what runs)** | | |
 | `--docker [all\|none\|newest\|<coord>]`… | Which docker-backed cells run against a real container. Bare = `all`; `newest` = only `<db>/newest/*`; a `<coord>` = only the matching docker cell(s) real, the rest mock. **Repeat the flag** for several coords (see note below). | `none` (mock) |
 | `--wasm [all\|none\|newest\|<coord>]`… | Same vocabulary and coord rules as `--docker` (repeat the flag for several coords — see note below), for the WASM cells (pglite, sqlite-wasm-OO1). When real on the full matrix, WASM runs in its own sequential phase (two-phase split). | `none` (mock) |
-| `--native [all\|none\|newest\|<coord>]`… | Same vocabulary and coord rules as `--docker` (repeat the flag for several coords — see note below), for the native SQLite drivers (better-sqlite3, bun_sqlite, node_sqlite, sqlite3). `--native none` forces them to the mock — the cheap way to make a run fully mock. | `all` (real) |
+| `--native [all\|none\|newest\|<coord>]`… | Same vocabulary and coord rules as `--docker` (repeat the flag for several coords — see note below), for the native SQLite drivers (better-sqlite3, bun_sqlite, bun_sql_sqlite, node_sqlite, sqlite3). `--native none` forces them to the mock — the cheap way to make a run fully mock. | `all` (real) |
 | **Engine / runtime controls (neither axis — container lifecycle and runtime, not which cells run or which are real)** | | |
 | `--docker-mode <reuse\|no-reuse>` | Container reuse policy. `reuse` sets `TESTCONTAINERS_REUSE_ENABLE=true`, keeps containers alive between invocations, and (in reuse mode only) runs a **docker preflight** before the test phases: a memory-budget check + a sequential cold-start warmup of the engines the run will hit, so they don't all start at once and OOM-kill each other on an under-provisioned host. `no-reuse` is hermetic and skips the preflight. See [`ENGINE_LIFECYCLE.md` § Docker preflight & sequential warmup](./ENGINE_LIFECYCLE.md#docker-preflight--sequential-warmup). The memory check **aborts the run** (exit 3, with how to raise the memory) when Docker is short — set `TSSQLQUERY_DOCKER_MEMORY_STRICT=0` to downgrade it to a warning and proceed. | `reuse` |
-| `--docker-version <latest\|closest>` | Which image a real docker cell runs against. `latest` (default) uses the database's `newest` image for every cell. `closest` runs each real docker cell against **its own version folder's** image (e.g. `postgres/oldest` on a real PostgreSQL 17 instead of 18), so version-specific SQL can be confirmed on a real engine of that version. The map mirrors the version folders on disk — `ENGINE_IMAGES[<db>][<version>]` in [`test/lib/dockerImages.ts`](./lib/dockerImages.ts), one hand-maintained image per folder (the image may be a different repo); a version folder with no entry is a **hard error** (fails loud), and adding a tier means adding one entry — see [`ENGINE_LIFECYCLE.md` § Adding a version tier](./ENGINE_LIFECYCLE.md#adding-a-version-tier--the-maintenance-step). **Narrow by design**: `closest` also requires focused coords and at most one `<version>` folder per engine (older images are separate containers that must not all start at once). | `latest` |
+| `--docker-version <latest\|closest>` | Which image a real docker cell runs against. `latest` (default) uses the database's `newest` image for every cell. `closest` runs each real docker cell against **its own version folder's** image (e.g. `postgres/oldest` on a real PostgreSQL 17 instead of 18), so version-specific SQL can be confirmed on a real engine of that version. The map mirrors the version folders on disk — `ENGINE_IMAGES[<db>][<version>]` in [`test/lib/dockerImages.ts`](./lib/dockerImages.ts), one hand-maintained image per folder (the image may be a different repo); a version folder with no entry is a **hard error** (fails loud), and adding a tier means adding one entry — see [`ENGINE_LIFECYCLE.md` § Adding a version tier](./ENGINE_LIFECYCLE.md#adding-a-version-tier--the-maintenance-step). **Narrow by design**: `closest` also requires focused coords and at most one distinct image per engine (older images are separate containers that must not all start at once; two folders that map to the same image are fine). | `latest` |
 | `--mode <parallel\|sequential>` | Parallel uses one worker per logical core (minus reserved); sequential runs everything in one worker. | `parallel` |
 | `--shard [<1\|2\|3\|4>]` | Split the no-docker matrix into 4 memory-bounded shards, each its own runner invocation (memory freed between them → peak = biggest shard, not the sum). Bare = all four in sequence; `<n>` = only that shard. Full-matrix / no-docker only — rejects coords, `--coverage`, `--docker`, `--run-connectors`, `--run-versions`. See [Sharding the no-docker matrix](#sharding). | off |
 | `--use-vitest` | Force the vitest **runner**, keeping the runtime the script was invoked with: under `bun run` it runs vitest on Bun (`bun --bun vitest`), so the Bun-only cells (`bun_sql_*`, `bun_sqlite`) still run against their engines; under `npm run`, vitest on Node. Implied by `--ui`. | off |
 | `--use-node` | Force the **Node runtime** even under `bun run`. `bun test` needs Bun, so it implies the vitest runner (vitest on Node). The `coverage:report*` / `coverage:for-discover-tests*` scripts pass both flags. | off |
 | `--use-bun` | Force the **Bun runtime** even under `npm run`: `bun test`, or vitest on Bun with `--use-vitest` — what the Bun-only cells need to run against their engines. Exclusive with `--use-node`. The `coverage:runners*` scripts pass `--use-vitest --use-bun`. | off |
 | `--ui` | Launch `@vitest/ui` (implies `--use-vitest`). | off |
+| `--isolate` | `bun test` only: run every test file in a fresh global, instead of each worker keeping one global and module registry across its files (`--no-isolate`). Use it to debug a test that only fails after another file ran in the same worker; slower, every file rebuilds its DB pool. Ignored under vitest. | off |
 | **Reports & coverage** | | |
 | `--report` | Emit test-execution report under `.test-report/`. | off |
 | `--report-format <name>` | Repeatable. See [Test-execution report formats](#test-execution-report-formats). | runtime-dependent |
@@ -227,10 +235,10 @@ pglite / sqlite-wasm-OO1. Native SQLite is real by default (`--native all`);
 `--native none` routes it through the mock too.
 
 ```bash
-# Full matrix, mocked docker/wasm, real native. ~10 s under bun / ~48 s under vitest (~357k tests).
+# Full matrix, mocked docker/wasm, real native. Seconds under bun, under a minute under vitest.
 bun run tests
 
-# + real docker backends. ~11 min under bun with warm containers (~12 min under vitest).
+# + real docker backends. Over 10 minutes with warm containers.
 bun run tests --docker
 
 # Smoke against real DBs but only on the newest version of each engine.
@@ -239,7 +247,7 @@ bun run tests --docker newest
 # Skip older-version cells entirely (participation: not run at all).
 bun run tests --run-versions newest
 
-# Full matrix (docker + real WASM first phase). ~12.5 min under bun (the WASM phase itself ~30 s).
+# Full matrix (docker + real WASM first phase; the WASM phase itself takes under a minute under bun).
 bun run tests --docker --wasm
 
 # Only WASM cells run, real WASM module.
@@ -256,11 +264,11 @@ bun run tests --run-connectors native
 # Bug-fix flow: validate one cell real, everything else cheap mock.
 bun run tests --docker postgres/newest/pg
 
-# Hermetic — fresh containers every run. CI baseline.
+# Hermetic — fresh containers every run.
 bun run tests --docker --docker-mode no-reuse
 
 # Confirm a cell's version-specific SQL on a real engine of that version
-# (postgres/oldest → a real PostgreSQL 17). Focused + one version per engine.
+# (postgres/oldest → a real PostgreSQL 17). Focused + one image per engine.
 bun run tests postgres/oldest/pg --docker --docker-version closest
 
 # Fully mocked — even native SQLite routed through the mock.
@@ -270,9 +278,9 @@ bun run tests --native none
 ## Sharding
 
 The no-docker matrix (the full mocked run plus the real WASM cells — what
-`test:no-docker` covers) is **one logical CI job**, but run as a single
+`tests --wasm` covers) is **one logical CI job**, but run as a single
 process it accumulates every test file's module graph (vitest `isolate:false`)
-and peaks **~15.9 GB**. That is right at the **16 GB** CI-runner limit, where
+and peaks **~16 GB**. That is right at the **16 GB** CI-runner limit, where
 **Node 26 OOMs** at the final aggregation (all tests pass, then the process
 dies). `--shard` splits that one job into **4 memory-bounded groups**, each its
 own runner invocation — so a group's module graph is freed when its process
@@ -283,25 +291,29 @@ exits and the peak is the **biggest shard (~8 GB)**, not the sum.
 bun run tests --shard
 
 # Just one shard — CI runs one step per shard so each gets its own readable log.
-bun run tests --shard 1        # or the package alias: bun run test:no-docker:shard 1
+bun run tests --shard 1
 ```
 
-Every test file lands in **exactly one** shard — the partition is complete and
-disjoint (`Σ shards = 16 972 files`, no overlap):
+Every test runs in **exactly one** shard. The partition of the cells is complete
+and disjoint; the query-runner tests with a WASM engine are named by both shard 1
+and shard 4 (`test/runners/` as a whole), and each shard runs what its selection
+of engines leaves on, so nothing runs twice:
 
-| Shard | Connectors | Mode | ≈Files |
-|---|---|---|---|
-| **1 · wasm** | `pglite`, `sqlite-wasm-OO1`, `sqlite-wasm-OO1-sync` — all versions, **real** | **sequential** | ~3 034 |
-| **2 · sqlite-A** | `better-sqlite3(+sync)`, `node_sqlite(+sync)` | parallel | ~5 060 |
-| **3 · sqlite-B** | `sqlite3`, `bun_sqlite(+sync)` | parallel | ~3 795 |
-| **4 · rest** | everything else — docker engines (mocked) + `documentation` + `types.negative` + the query-runner tests (`test/runners/`) | parallel | ~5 110 |
+| Shard | Connectors | Mode |
+|---|---|---|
+| **1 · wasm** | `pglite`, `sqlite-wasm-OO1`, `sqlite-wasm-OO1-sync` — all versions, **real** — plus the query-runner tests with a WASM engine (`wasm_runner_test_files` in [`scripts/_test-common.sh`](../scripts/_test-common.sh)), docker and native off | **sequential** |
+| **2 · sqlite-A** | `better-sqlite3(+sync)`, `node_sqlite(+sync)` | parallel |
+| **3 · sqlite-B** | `sqlite3`, `bun_sqlite(+sync)`, `bun_sql_sqlite` | parallel |
+| **4 · rest** | everything else — docker engines (mocked) + `documentation` + `types.negative` + the query-runner tests (`test/runners/`), WASM off, so the WASM runners' tests skip here | parallel |
+
+File counts and wall times per shard: [`BENCHMARKS.md` § Sharding](./BENCHMARKS.md#sharding-the-no-docker-ci-split).
 
 - **Shard 1 runs `sequential`** (`--no-file-parallelism` + `TSSQLQUERY_PARALLEL_DBS=false`)
   because the per-worker WASM module bootstrap is CPU-bound and murderous under
   parallel workers (see `getOrCreateSqliteWasm` in [`db/sqlite/runners.ts`](./db/sqlite/runners.ts)).
   It also gets a heap bump (`--max-old-space-size=8192`, node/vitest only) since a
-  single sequential worker holds ~3 k files' module graph at once. Unlike the
-  two-phase `--wasm` flow there is **no double-run**: the WASM cells run only in
+  single sequential worker holds thousands of files' module graph at once. Unlike
+  the two-phase `--wasm` flow there is **no double-run**: the WASM cells run only in
   shard 1 (real), never again mocked in another shard.
 - **Full-matrix / no-docker only.** `--shard` defines its own connector/version
   partition and its own per-shard real/mock policy, so it rejects positional
@@ -309,6 +321,9 @@ disjoint (`Σ shards = 16 972 files`, no overlap):
   Native SQLite stays real by default (`--native none` still forces the mock).
 - **Opt-in.** Without `--shard` nothing changes — the normal WASM-phase +
   main-pass flow is untouched. Docker, focused, and coverage runs are unaffected.
+
+CI calls `--shard` through the `test:no-docker:shard` package alias, one step per
+shard; outside CI use the canonical `tests --shard` (see [Reserved names](#reserved-names)).
 
 ## Focused runs
 
@@ -328,8 +343,8 @@ of four levels — database, version, connector, or a single test file:
 | Level | What it is | Examples |
 |---|---|---|
 | `<db>` | Folder under `test/db/`. | `mariadb`, `mysql`, `oracle`, `postgres`, `sqlite`, `sqlserver` |
-| `<version>` | Compatibility-version folder under `<db>/`. `newest` (= `Number.POSITIVE_INFINITY`), `oldest` (the `< lowest-breakpoint` zone), or the literal numeric breakpoint when one exists. `<db>/types.negative/` is a sibling for compile-time negatives — not a version folder — and is included only under `--run-connectors=all`. | `newest`, `oldest`, `13_000_001`, `10_005_000` |
-| `<connector>` | Per-driver folder under `<db>/<version>/`. | postgres: `pg`, `postgres`, `bun_sql_postgres`, `pglite`; sqlite: `better-sqlite3`, `bun_sqlite`, `node_sqlite`, `sqlite3`, `sqlite-wasm-OO1` |
+| `<version>` | Compatibility-version folder under `<db>/`. `newest` (= `Number.POSITIVE_INFINITY`), `oldest` (the `< lowest-breakpoint` zone), or the literal numeric breakpoint when one exists. `<db>/types.negative/` is a sibling for compile-time negatives — not a version folder — and is included only under `--run-connectors=all`. | `newest`, `oldest`, `8_000_017`, `10_005_000` |
+| `<connector>` | Per-driver folder under `<db>/<version>/`. | postgres: `pg`, `postgres`, `bun_sql_postgres`, `pglite`; sqlite: `better-sqlite3`, `bun_sql_sqlite`, `bun_sqlite`, `node_sqlite`, `sqlite3`, `sqlite-wasm-OO1` |
 | `<file>` | A single `*.test.ts` file inside `<connector>/` — narrowest focus. | `select.basic.test.ts` |
 
 ### Documentation tests are ordinary matrix cells
@@ -339,8 +354,12 @@ matrix as a `documentation` connector in each db's `newest` version
 (`test/db/<db>/newest/documentation/doc-code.generated.test.ts`), plus a synthetic
 `general` db for the non-db templates
 (`test/db/general/newest/documentation/<name>.generated.test.ts`). They are always
-mock (self-contained), so `--docker`/`--wasm` don't apply to them, but they're
-addressed with the same four-level coords as any other cell:
+mock (self-contained), so `--docker`/`--wasm` don't apply to them, and
+`--list-cells-with-mode` / `--validation-summary` report them as
+`mock (documentation; always mock)` whatever the flags. For participation they
+belong to the `docker` kind (`--run-connectors docker` runs them,
+`--run-connectors wasm` / `native` don't). They're addressed with the same
+four-level coords as any other cell:
 
 ```bash
 bun run tests '*/newest/documentation'                              # every doc test cell
@@ -389,12 +408,12 @@ combination — all in any number of positional arguments. **The script
 handles globs AND braces whether you quote the coord or not.**
 
 ```bash
-# Single connector across every existing version (newest + oldest).
+# Single connector across every version folder.
 bun run tests 'postgres/*/pg' --docker
 bun run tests postgres/*/pg --docker
 
-# Same, with --run-versions newest: the script drops `*/oldest/*` paths
-# from the expansion — only postgres/newest/pg actually runs.
+# Same, with --run-versions newest: the script keeps only the newest and
+# types.negative paths of the expansion — only postgres/newest/pg actually runs.
 bun run tests 'postgres/*/pg' --docker --run-versions newest
 
 # Two connectors of one database, every version.
@@ -416,7 +435,8 @@ script vets the string against a strict whitelist (alphanumerics,
 any expansion runs.
 
 An unmatched glob/brace expansion is an error (nullglob), not a silent
-zero-test run. A coord that literally names `oldest` together with
+zero-test run. A coord that literally names a version folder other than
+`newest` or `types.negative` (`postgres/oldest`, `mysql/8_000_017`) together with
 `--run-versions newest` is rejected outright — that's an explicit contradiction.
 
 ## Narrowing inside a coordinate
@@ -442,7 +462,7 @@ bun run tests postgres/newest/pg/select.basic.test.ts --docker \
 # the single `--` separator npm requires for ANY script flag (the same
 # one `--docker` already needs) — there is no SECOND `--` and no
 # runtime-specific runner spelling:
-bun run tests postgres/newest/pg/select.basic.test.ts --docker \
+npm run tests -- postgres/newest/pg/select.basic.test.ts --docker \
                  --test-name-pattern inner-join --update-snapshots
 ```
 
@@ -531,7 +551,8 @@ The per-cell **verdict**:
 - `mock` — runs, but against the mock, with the reason its kind's
   selection didn't include it: `(docker; needs --docker)`, `(wasm; needs
   --wasm)`, `(docker; --docker newest skips <version>)`, or `(docker; not in
-  --docker coords)`.
+  --docker coords)`. The `documentation` cells always say `(documentation;
+  always mock)`.
 - `skipped` — off, **excluded from the run** (the runner never sees it),
   with the reason (in precedence order): `(not selected: outside coords)`,
   `(excluded by --run-connectors <type>)`, `(excluded by --run-versions newest)`.
@@ -553,12 +574,16 @@ bun run tests 'postgres/*/{pg,pglite}' --list-cells-with-mode
 
 # all → the whole matrix, each off cell labelled with why it's excluded.
 bun run tests postgres/newest --run-connectors docker --docker --list-cells-with-mode all
-#   test/db/postgres/newest/pg          real    (docker)
-#   test/db/postgres/newest/pglite      skipped (excluded by --run-connectors docker)
-#   test/db/postgres/oldest/pg          skipped (not selected: outside coords)
-#   test/db/mariadb/newest/mariadb      skipped (not selected: outside coords)
 #   …
-#   -- 3 running cells: 3 real, 0 mock; 14 other cells skipped
+#   test/db/mariadb/newest/mariadb               skipped (not selected: outside coords)
+#   …
+#   test/db/postgres/newest/bun_sql_postgres     real    (docker)
+#   test/db/postgres/newest/documentation        mock    (documentation; always mock)
+#   test/db/postgres/newest/pg                   real    (docker)
+#   test/db/postgres/newest/pglite               skipped (excluded by --run-connectors docker)
+#   test/db/postgres/newest/postgres             real    (docker)
+#   …
+#   -- 4 running cells: 3 real, 1 mock; 84 other cells skipped
 
 # real keeps only the cells that bring up a real engine ("active cases").
 bun run tests postgres/newest --docker --wasm --list-cells-with-mode real
@@ -571,11 +596,11 @@ A footer tallies the **running** cells (real + mock) and, separately, the
 count of **other cells skipped** — independent of the display filter:
 
 ```
--- 3 running cells: 3 real, 0 mock; 14 other cells skipped
+-- 4 running cells: 3 real, 1 mock; 84 other cells skipped
 ```
 
-The real/mock projection mirrors [`isRealDbEnabled()`](./lib/backends.ts#L105)
-— the runtime source of truth for the real/mock gate — but stays a
+The real/mock projection mirrors `isRealDbEnabled()` in
+[`lib/backends.ts`](./lib/backends.ts) — the runtime source of truth for the real/mock gate — but stays a
 runner-free bash computation, so `--list-cells-with-mode` is as instant as
 `--list-cells`. (If the gate logic in `backends.ts` changes, the `cell_mode`
 helper in [`scripts/_test-common.sh`](../scripts/_test-common.sh) must change
@@ -685,11 +710,11 @@ bun run tests --coverage --docker --wasm --mode sequential
 # One cell.
 bun run tests postgres/newest/pg --coverage
 
-# Just the WASM cells.
-bun run tests --run-connectors wasm --wasm --coverage
+# Just the WASM cells. No coord, so it needs --mode sequential as well.
+bun run tests --run-connectors wasm --wasm --coverage --mode sequential
 
 # Under npm/vitest, prefix flags with `--`:
-bun run tests --coverage
+npm run tests -- --coverage
 ```
 
 ### Memory: keep `--report` off a full-matrix coverage run
@@ -698,7 +723,7 @@ The `coverage:*` package scripts deliberately do **not** pass `--report`.
 `--report --report-format=html` (the test-execution SPA, `@vitest/ui`)
 serialises **every** test result in one shot via `flatted.stringify`
 (a `JSON.stringify` with a replacer, backed by a `Map` of every seen
-object). At the matrix's current size (~258k tests) that single
+object). At the matrix's size that single
 serialisation blows past node's ~4 GB default old-space and dies with
 `FATAL … CALL_AND_RETRY_LAST Allocation failed - JavaScript heap out of
 memory` in `JsonStringify`/`MapGrow` — after the whole run already
@@ -706,10 +731,17 @@ passed. The coverage HTML (istanbul, one small `*.ts.html` per source
 file) is not the culprit and is all you need to see what's uncovered, so
 the coverage scripts emit that alone.
 
-The coverage pass is a single un-shardable runner invocation, so it also
-gets an automatic `--max-old-space-size=8192` bump (node/vitest only).
-Export your own `NODE_OPTIONS=--max-old-space-size=<MB>` to override it
-for the heaviest full-real `--docker --wasm` coverage runs.
+The coverage pass is a single un-shardable runner invocation, so vitest on
+Node gets two heap settings of 8 GB:
+
+- The **main vitest process**, which collects every file's results, always
+  starts with `--max-old-space-size=8192` (coverage or not). The
+  `VITEST_MAIN_HEAP_MB` environment variable overrides it.
+- Under `--mode sequential`, the **coverage pass** also exports
+  `NODE_OPTIONS=--max-old-space-size=8192`, for the single worker that holds
+  the whole selection. Export your own `NODE_OPTIONS=--max-old-space-size=<MB>`
+  to override it for the heaviest full-real `--docker --wasm` coverage runs.
+  In parallel mode it isn't set: each worker holds only its slice.
 
 For **src** coverage specifically, `coverage:report` (mock-only, parallel,
 one connector per db) is enough: the only source that runs differently
@@ -759,8 +791,8 @@ skips the Bun runners. `--use-node` forces Node under `bun run` and
 runs every runner — the Bun ones only exist there, and Bun's `node:sqlite`
 exercises `NodeSqliteQueryRunner`'s code the same way Node's does. A run
 takes well under a minute with warm containers.
-`:with-matrix` adds `'*/newest'` (~6 min, ~4.3 GB plus the engines) to see
-what the cells add on top.
+`:with-matrix` adds `'*/newest'` (several minutes, around 5 GB plus the engines)
+to see what the cells add on top.
 
 ### Coverage of the error mappers
 
@@ -791,11 +823,13 @@ bun run coverage:mappers:with-matrix          # the same plus every connector's 
 | `cobertura` | cobertura.xml | (errors) |
 | `json` | full json | (errors) |
 | `json-summary` | summary json | (errors) |
+| `text-summary` | terminal summary | (errors) |
 | `teamcity` | TeamCity service messages | (errors) |
 | `monocart` | swaps `@vitest/coverage-v8` for `vitest-monocart-coverage`; native V8 byte-range coverage; SPA at index.html | lcov + a post-render via [`test/lib/coverage/lcovToMonocart.ts`](./lib/coverage/lcovToMonocart.ts); MCR's `html-spa` + per-file `.ts.html` drill-downs |
 
 Under vitest you can pass `--coverage-format` multiple times to emit
-several formats in one run. Under bun, multiple is supported only when the
+several formats in one run, except `monocart`, which goes alone (it replaces
+the coverage provider the other formats need). Under bun, multiple is supported only when the
 combo doesn't target the same filename (i.e. `html + monocart` errors —
 both write `index.html`).
 
@@ -841,7 +875,7 @@ both write `index.html`).
   matching patterns (`write_scoped_bunfig` in
   [`scripts/_test-common.sh`](../scripts/_test-common.sh)). bun's parallel
   workers only read the repo's `bunfig.toml`, so under `bun test` the
-  `runners` and `all` scopes need `--mode sequential` (or `--use-vitest`).
+  `runners`, `mappers` and `all` scopes need `--mode sequential` (or `--use-vitest`).
 
 To narrow the report for a specific cell, use `tests <coord>` — coverage
 then only sees files imported by that cell's tests.
@@ -944,15 +978,37 @@ pass) and the measurements behind them are in
 rejected with exit 2: bun's parallel workers read only the repo's
 `bunfig.toml`. Pass `--mode sequential` or `--use-vitest`.
 
-When `--coverage` is set, `tests --wasm` bypasses the two-phase split
-entirely and runs everything in one invocation with WASM real (sequential
-is implied). The single-pass coverage report ends up cleaner than two
-separately-collected shards would be.
+When `--coverage` is set, a run that gets past that rejection (`--mode
+sequential` or coords) bypasses the two-phase split entirely and runs everything
+in one invocation with WASM real. The single-pass coverage report ends up cleaner
+than two separately-collected shards would be. The rejection also applies to
+`--run-connectors wasm --wasm --coverage` without coords: it would not split, but
+it isn't focused either, so pass `--mode sequential` there too.
 
 `--shard` is rejected (exit 2) alongside positional coords, `--coverage`,
 `--docker`, `--run-connectors` or `--run-versions`: it defines its own
 connector/version partition and per-shard real/mock policy, so those flags
 would contradict it. See [Sharding the no-docker matrix](#sharding).
+
+The rest of the rejected combinations, all with exit 2:
+
+- `--list-cells`, `--list-cells-with-mode`, `--list-files` and `--list-tests`
+  together: pass only one. `--validation-summary` with any of them: it prints
+  after a run, and they exit before one.
+- `--use-node` with `--use-bun`.
+- `--run-versions newest` with a coord that literally names another version
+  folder, as in [Coord patterns](#coord-patterns).
+- `--run-connectors` with a value that leaves no paths to run (e.g.
+  `runners/postgres --run-connectors native`).
+- `--docker-version closest` without coords, without a real docker cell, or
+  with more than one distinct image per engine.
+- `--coverage-scope runners` / `mappers` / `all` without `--coverage`.
+- `--docker` / `--wasm` / `--native` mixing a literal with a coord
+  (`--docker all postgres/newest/pg`), or with a 4th-level `<file>` coord.
+- `--coverage-format monocart` with another format under vitest, or with `html`
+  under bun; a `--coverage-format` or `--report-format` the active runner doesn't
+  have.
+- `--bail 0` and `--timeout 0`.
 
 ## Reserved names
 
@@ -960,4 +1016,5 @@ would contradict it. See [Sharding the no-docker matrix](#sharding).
 agent must use the canonical `tests` / `tests:audit` / `tests:stop-containers`
 / `tests:reopen` instead. If you see `test` / `test:foo` in `package.json`,
 assume the user added it as a personal shortcut and **do not run it** unless
-explicitly instructed.
+explicitly instructed. The one consumer besides the user is CI, whose steps call
+`test:no-docker:shard`; the canonical spelling of the same run is `tests --shard`.

@@ -1,7 +1,7 @@
 # `test/` — wall-time benchmarks
 
-Reference numbers for the `test/` matrix (now **~357k tests / ~22.5k files**) under
-each invocation regime, on a 12-logical-core reference machine (macOS, warm reused
+Reference numbers for the `test/` matrix (now **~383k tests / ~23.7k files**, see
+[Latest measurements](#latest-measurements)) under each invocation regime, on a 12-logical-core reference machine (macOS, warm reused
 containers when docker is involved), measured one run at a time. Use when picking
 a workflow. The bun and vitest columns are **not** an identical-workload
 comparison — some connectors only run real under one runtime (see the ‡ caveat
@@ -12,6 +12,7 @@ Companion to [`CLI.md`](./CLI.md) (how to run things) and
 [`ENGINE_LIFECYCLE.md`](./ENGINE_LIFECYCLE.md) (why docker is the bottleneck once
 it's on).
 
+- [Latest measurements](#latest-measurements)
 - [The one lever that matters: no per-file isolation](#the-one-lever-that-matters-no-per-file-isolation)
 - [Cross-runtime timings](#cross-runtime-timings)
 - [Bun: `--parallel --no-isolate`](#bun---parallel---no-isolate)
@@ -26,12 +27,26 @@ it's on).
 > default — and with it bun is the faster runtime on every loop measured below,
 > mocked and real. The default runner is **bun** since then.
 
+## Latest measurements
+
+Measured 2026-11-04 under Bun, on the full matrix including the query-runner tests
+(**383,327 tests, 23,690 files**). The other tables of this file are dated runs at
+the matrix size each one states: use them to compare regimes and runtimes, and
+this one for the current cost.
+
+| Invocation | Selection | Wall |
+|---|---|---|
+| `bun run tests` (mocked main pass) | 383,327 tests / 23,690 files | **10.1 s** |
+| `bun run tests --wasm`, the sequential WASM unit | 56,619 tests / 3,496 files | **31 s** |
+| `bun run tests --docker` (warm containers) | the full matrix | **~898 s (~15 min)** |
+| `npm run tests -- --run-connectors native` (Node) | 185,230 tests pass | — |
+
 ## The one lever that matters: no per-file isolation
 
 Almost the entire runtime story reduces to **per-file isolation**.
 
 By default a test runner tears the environment down and re-imports every module
-between files. At ~22.5k files that re-import is the dominant cost: the module
+between files. At over 20k files that re-import is the dominant cost: the module
 graph — including [`lib/containerLifecycle.ts`](./lib/containerLifecycle.ts),
 whose `memoizeSharedRunner` caches the real-DB connection pool + schema bootstrap
 in a module-level closure — is rebuilt per file, so the memoisation is defeated
@@ -44,7 +59,7 @@ Both runtimes are configured to skip it: vitest with `isolate: false` in
 Each worker then **reuses its module graph across every file it runs**, so the
 memoisation holds: one pool per worker, not one per file.
 
-Controlled A/B under bun 1.4.4 on the current matrix (toggling only the flag):
+Controlled A/B under bun 1.4.4 on the 22 530-file matrix (toggling only the flag):
 
 | Selection | bun `--parallel` (isolated) | bun `--parallel --no-isolate` | Speed-up |
 |---|---|---|---|
@@ -59,8 +74,9 @@ worker vs rebuilt per file — and holds at any size.
 
 ## Cross-runtime timings
 
-Same commands under both runtimes, both without per-file isolation, on the
-current ~22.5k-file matrix (12-core macOS, sequential — never two runs at once).
+Same commands under both runtimes, both without per-file isolation, measured when
+the matrix had ~22.5k files (12-core macOS, sequential — never two runs at once);
+for the current cost under bun see [Latest measurements](#latest-measurements).
 Peak RSS is the summed resident memory of the test processes (the docker engines
 are on top — see [Practical workflow](#practical-workflow)):
 
@@ -125,15 +141,19 @@ runs one step per shard (node + bun); bun's unsharded mocked run peaks far lower
 (3.8 GB), but the shards keep both CI jobs on the same partition. Partition +
 rationale: [`CLI.md` § Sharding](./CLI.md#sharding).
 
-| Shard | vitest wall † | peak RSS ‡ |
-|---|---|---|
-| 1 · wasm (real, **sequential**) | ~53 s | 4.8 GiB |
-| 2 · sqlite native A | ~8 s | 8.8 GiB |
-| 3 · sqlite native B | ~8 s | 6.3 GiB |
-| 4 · rest (docker mocked + docs) | ~10 s | 8.4 GiB |
-| **all four in sequence** | ~83 s | biggest shard |
+| Shard | files now § | vitest wall † | peak RSS ‡ |
+|---|---|---|---|
+| 1 · wasm (real, **sequential**) | 3 496 | ~53 s | 4.8 GiB |
+| 2 · sqlite native A | 5 820 | ~8 s | 8.8 GiB |
+| 3 · sqlite native B | 5 820 | ~8 s | 6.3 GiB |
+| 4 · rest (docker mocked + docs + query-runner tests) | 8 558 | ~10 s | 8.4 GiB |
+| **all four in sequence** | | ~83 s | biggest shard |
 
-† 12-core macOS, unconstrained, vitest 5 on the 22.5k-file matrix. ‡ peak resident
+§ Per `shard_paths` in [`scripts/_test-common.sh`](../scripts/_test-common.sh). The
+four query-runner test files with a WASM engine are listed by both shard 1 and
+shard 4, so the column adds up to four more than the matrix's 23 690 files; their
+tests run once, in the shard whose engines are on.
+† 12-core macOS, unconstrained, vitest 5 when the matrix had 22.5k files. ‡ peak resident
 memory under the **CI limit** (`--cpus=4 --memory=16g`, Node 26, Linux; measured
 with vitest 4 on the 17k-file matrix) — the
 number that matters here, ~7 GB under the ~15.9 GB single-process peak. Shard 1 is
@@ -167,8 +187,9 @@ pipeline stays on npm/Node.
   `bun run tests --run-versions newest` (~2 s). `bun run tests <coord>` for a
   single cell.
 - **Validate one cell against real-DB cheaply**: `bun run tests <cell>` — the
-  embedded SQLite cells that run under bun (`bun_sqlite`, `bun_sql_sqlite`,
-  `sqlite3`) are real at mock-loop speed. See
+  embedded SQLite cells (`better-sqlite3`, `bun_sqlite`, `bun_sql_sqlite`, `sqlite3`,
+  `node_sqlite` against Bun's `node:sqlite`, and their `-sync` twins) are real at
+  mock-loop speed. See
   [`DESIGN.md` § Real-DB validation](./DESIGN.md#real-db-validation) for the cost
   tiers.
 - **Pre-merge confidence**: `bun run tests --docker --wasm` — every docker, WASM
@@ -195,5 +216,5 @@ bun run tests:stop-containers                           # tear the engines down 
 Needs enough Docker VM disk for all five engines up at once (oracle + mssql are
 the big ones); free space first if the run aborts with "no space left on device".
 
-CI keeps both runtimes green (both jobs run `test:no-docker:shard`), and the
-publish pipeline stays on npm/Node — see [`CLAUDE.md`](../CLAUDE.md).
+CI keeps both runtimes green (both jobs run `tests --shard`, one step per shard,
+through the `test:no-docker:shard` alias), and the publish pipeline stays on npm/Node — see [`CLAUDE.md`](../CLAUDE.md).

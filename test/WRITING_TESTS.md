@@ -143,18 +143,19 @@ re-validate" loop benefits the most. Full flag reference in
 1. **Read the library docs first.** Tests encode behaviour the library
    documents — they don't invent it. Open the page for the feature you're
    testing (under [`docs/queries/`](../docs/queries/),
-   [`docs/composition/`](../docs/composition/) or
+   [`docs/dynamic/`](../docs/dynamic/),
+   [`docs/advanced/`](../docs/advanced/) or
    [`docs/configuration/`](../docs/configuration/)) and any
    `docs/configuration/supported-databases/<database>.md` /
-   `docs/configuration/query-runners/<connector>.md` pages that affect the
+   `docs/configuration/query-runners/recommended/<connector>.md` pages that affect the
    cells you'll touch.
 
-2. **Check whether the test would be redundant** — grep the existing test
-   inventory:
+2. **Check whether the test would be redundant** — ask the searcher for the
+   existing test inventory (see
+   [`CODE_SEARCH.md`](./CODE_SEARCH.md#this-tool-vs-textual-search)):
 
    ```bash
-   grep -rln "<api-symbol>" test/db/postgres/newest/pg/ | head
-   grep -rln "<api-symbol>" test/db/sqlite/newest/bun_sqlite/ | head
+   bun run tests:where-is --search <api-symbol> --for coverage-gap --tests detail
    ```
 
    If matches exist, read those tests in full. If they already cover the
@@ -162,7 +163,7 @@ re-validate" loop benefits the most. Full flag reference in
    a new one".
 
 3. **Pick the file that fits the scenario** (`select.basic`,
-   `insert.returning`, `update.basic`, …). If none fits, create it in
+   `insert.returning`, `update.execute-variants`, …). If none fits, create it in
    **every** valid `<connector>/` folder in the same commit, with the test
    bodies that do not apply commented out per
    [`DESIGN.md` § Symmetry rule](./DESIGN.md#symmetry-rule) (never deleted,
@@ -174,8 +175,8 @@ re-validate" loop benefits the most. Full flag reference in
      `update.*`, `delete.*`, `errors.*`, `transaction.*`, `fragments.*`,
      `raw-fragment.*`, `with-values.*`, `customize-query.*`,
      `dynamic-condition.*`).
-   - `sqlite/newest/bun_sqlite/` for `docs.*` files — the cell flagged
-     `canonicalForDocs: true`.
+   - `sqlite/newest/bun_sqlite/` for `docs.*` files — in-process, the fastest
+     iteration loop.
    - The cell that owns the dialect-specific behaviour for tests that only
      run on one dialect (`select.postgres-const-force-type-cast.test.ts`
      under postgres, `config.datetime-formats.test.ts` under sqlite, etc.).
@@ -191,7 +192,7 @@ re-validate" loop benefits the most. Full flag reference in
 5. **Bake snapshots** for the canonical:
 
    ```bash
-   bun run tests sqlite/newest/bun_sqlite/<slug>.test.ts --update-snapshots
+   bun run tests <canonical-cell>/<slug>.test.ts --update-snapshots
    ```
 
 6. **Real-validate the canonical** — see
@@ -204,13 +205,14 @@ re-validate" loop benefits the most. Full flag reference in
    The commented body must be the **full canonical** per
    [`DESIGN.md` § Full-canonical-body discipline](./DESIGN.md#full-canonical-body).
 
-8. **If the test should appear in documentation, prefix `docs:`** and add
-   the `// doc-start` / `// doc-end` block. See [Docs snippets](#docs-snippets).
+8. **If the test is the suite's counterpart of a documentation example, prefix
+   `docs:`** and mark that part with `// doc-start` / `// doc-end`. See
+   [Docs snippets](#docs-snippets).
 
 9. **Verify**:
 
    ```bash
-   bun run tests:audit  -- # mechanical anti-cheat gate (symmetry + ~24 rules)
+   bun run tests:audit  -- # mechanical anti-cheat gate (symmetry + content rules)
    bun run validate:tests  # typecheck ✓ (tsc, per-connector split; use validate:tests:newest for the fast loop)
    bun run tests        -- # mock matrix ✓
    ```
@@ -218,7 +220,7 @@ re-validate" loop benefits the most. Full flag reference in
    `tests:audit` walks `test/db/` statically and reports tests that have
    been weakened to pass dishonestly: `mirror-image`, `mock-only`,
    `as-any`, `weak-matcher`, `tautology`, `commented-test-reason`,
-   `non-deterministic-input` and ~18 more
+   `non-deterministic-input` and the rest of its rules
    ([`TESTS_AUDIT.md`](./TESTS_AUDIT.md) lists them with a fix hint each).
    Fix findings by making the test validate honestly; never silence them.
    The rare irreducible case takes a `// tests-audit-disable-next-line
@@ -265,8 +267,8 @@ test('postgres-negative-types', () => {
 - `bun run validate:tests` (or `validate:tests:newest` for the fast loop)
   is the real assertion. If a directive becomes "unused", the build fails —
   exactly the regression signal we want.
-- The `types.negative/` folder is **not** part of the cell matrix and is
-  skipped by `tests:audit`.
+- The `types.negative/` folder is **not** part of the cell matrix. `tests:audit`
+  skips it, except for the `ts-ignore` rule (`@ts-ignore` is forbidden everywhere).
 
 When adding a new `@ts-expect-error` rule, look up the existing locks on
 the symbol so the new one is **consistent with what's already there**
@@ -338,11 +340,11 @@ program **per connector** (TypeScript 7, the Go-based compiler) — and is the
 > - **Full check → `bun run validate:tests`** — one tsc program per connector
 >   (sqlite grew too large to split merely per-db, so every db is split the
 >   same way; configs generated on the fly), so peak = the single largest
->   slice, not the sum (~8 GB), which is what CI gates. Use it before pushing.
+>   slice, not the sum (roughly 8 GB), which is what CI gates. Use it before pushing.
 > - **Inner edit loop → `bun run validate:tests:newest`** — a SINGLE tsc
 >   program (`test/tsconfig.newest.json`) narrowed to every db's `newest` +
 >   `types.negative` cells (drops the older version tiers + `domain/`, mirroring
->   `--run-versions newest`). It peaks ~14 GB — more than any slice of the full split —
+>   `--run-versions newest`). It peaks roughly 14 GB — more than any slice of the full split —
 >   so on a 16 GB box run it alone; for a narrow change `validate:tests <coord>` is cheaper.
 >   A green newest run says nothing about the older tiers, so run
 >   the full `validate:tests` before pushing.
@@ -405,8 +407,9 @@ test('delete without where throws MISSING_WHERE', () => {
 Worked examples: see `test/db/*/*/*/errors.processing.test.ts` and
 `test/db/*/*/*/insert.default-values.test.ts`.
 
-This is the **only** sanctioned `as any` in test bodies. Outside this exact
-use, `as any` is forbidden — see
+This is the sanctioned `as any` in test bodies. Outside this use, `as any` is
+forbidden, except for the bypass a `// TODO[BUG]:`-marked repro needs to compile
+— see
 [`DESIGN.md` § The `as any` runtime-guard exception](./DESIGN.md#as-any-runtime-guard)
 for the full rule and the anti-patterns it's intended to prevent.
 
@@ -430,9 +433,8 @@ Local stubs are still legitimate in two narrow cases:
 
 - The feature being exercised has no natural home in
   organization/app_user/project/issue and a manufactured table is what
-  reads best (e.g. the `TFlag` in
-  `docs.advanced.custom-booleans-values.test.ts` exists to demonstrate the
-  adapter in isolation, mirroring the docs page that uses the same name).
+  reads best (e.g. the `TDefaultsOnly` in `insert.default-values.test.ts`, whose
+  only column is an autogenerated PK so that `.defaultValues()` compiles).
 - The test is purely type-level and never executes against a real DB. The
   table name doesn't matter then; readability does.
 
@@ -449,7 +451,7 @@ shared-domain extension.
    declare it as `columnWithDefaultValue(...)` (or `optionalColumn(...)`)
    in `connection.ts`. Existing INSERT tests that didn't enumerate the new
    column then keep working without surgery.
-3. **Update every dialect in lockstep.** All six pairs need touching
+3. **Update every dialect in lockstep.** All six domains need touching
    together — the symmetry audit walks the test files, not the schemas, so
    a missed dialect surfaces later as a real-DB failure in that cell.
    Files to touch per dialect:
@@ -457,6 +459,8 @@ shared-domain extension.
      dialect-appropriate type and `DEFAULT`.
    - `test/db/<db>/domain/seed.sql` — set explicit values per row so the
      test has something concrete to assert.
+   - `test/db/<db>/domain/reset.sql` (every db but sqlite) — a new table goes in
+     the data-only reset, or the per-test reseed leaves its rows behind.
    - `test/db/<db>/domain/connection.ts` — declare the column on the
      `Table` subclass (and add the `CustomBooleanTypeAdapter` import etc.
      as needed).
@@ -484,11 +488,10 @@ three throwaway `TFlagA` / `TFlagB` / `TFlagC` stubs.
 
 ## When the canonical cell can't compile the body
 
-A test is normally developed in the cell with the fastest iteration loop
-— `sqlite/newest/bun_sqlite/` for `docs.*` files (it's also
-`canonicalForDocs: true`), the closest equivalent for any other test
-family. Sometimes the canonical can't compile the test body because the
-feature is only typed on other dialects:
+A test is normally developed in its canonical cell — `postgres/newest/pg/` for
+most families, `sqlite/newest/bun_sqlite/` for `docs.*` files (see
+[Adding a test](#adding-a-test)). Sometimes the canonical can't compile the test
+body because the feature is only typed on other dialects:
 
 - `tTable.oldValues()` is only typed on PostgreSqlConnection,
   MariaDBConnection and SqlServerConnection.
@@ -577,17 +580,24 @@ in `//` lines exactly as it does inside a `/* … */` block.
 
 ## Docs snippets
 
-Every public feature shown or described in a `docs/queries/*.md` or
-`docs/advanced/*.md` page must have a test that pins:
+The `docs.*.test.ts` files are tests that **try to be similar to the
+documentation's examples**, written with this suite's testing model: SQL +
+params + result type + value, in every cell, against real databases. They are not
+a copy of the docs, they are not exhaustive, and they are not where the docs get
+their code: the source of the documentation's examples is `docs/`. Testing the
+examples as they stand on the page is the job of the tests generated by
+[`DOC_CODE_EXTRACTOR.md`](./DOC_CODE_EXTRACTOR.md), which go from docs to tests.
 
-- the **SQL + params** the documented usage emits, per dialect, via inline
+A docs test pins:
+
+- the **SQL + params** the usage emits, per dialect, via inline
   snapshot,
 - the **TypeScript result type** via `assertType<Exact|Extends<…>>()`,
 - the **runtime value** through `ctx.mockNext(expected)` +
   `expect(result).toEqual(expected)` so mock and real-DB paths agree.
 
-Locking the public API the docs advertise against drift; if a snapshot
-moves, somebody changed the public surface — that is real signal.
+If a snapshot moves, somebody changed the behaviour the docs advertise — that is
+real signal.
 
 ### Where docs tests live
 
@@ -606,10 +616,10 @@ enforces the mirror.
 
 | Prefix | Origin on the page | `doc-start` / `doc-end` |
 |---|---|---|
-| `docs:<page-slug>/<anchor>` | a literal fenced code block on the page | **required** |
+| `docs:<page-slug>/<anchor>` | a fenced code block on the page | expected |
 | `docs-extra:<page-slug>/<anchor>` | behaviour the page **describes in prose** (bullet lists, notes, "the result type also accepts …", method-list options) but does NOT illustrate with code | optional |
 
-Rule of thumb when reading a docs page:
+Rule of thumb when covering a docs page:
 
 - Every fenced ```ts/```tsx block that **calls** the API → one `docs:` test.
 - A fenced block that **declares** the surface (a TypeScript `interface { … }`
@@ -619,24 +629,22 @@ Rule of thumb when reading a docs page:
 - Every sentence, admonition or bullet that promises behaviour that is not
   backed by a fenced block → one `docs-extra:` test.
 
-Both prefixes are equally first-class — the `docs:` ones double as
-publishable snippets; the `docs-extra:` ones are the regression net for
+Both prefixes are equally first-class — the `docs:` ones follow an example of
+the page; the `docs-extra:` ones are the regression net for
 behaviour the page promises without showing. Mix them in the same
 `describe(ctx.label, () => { ... })` block, sharing imports and fixtures.
 
 ### The `doc-start` / `doc-end` block
 
-`docs:` tests must bracket the user-facing snippet with `// doc-start` on
-the line **above** the snippet and `// doc-end` on the line **below**. Only
-the lines between those markers represent the snippet a docs reader sees;
-everything outside (mock seeding, `expect`, `assertType`, fixture imports)
-stays in the file but is not part of the documented example.
+`docs:` tests bracket the part that corresponds to the page's example with
+`// doc-start` on the line **above** it and `// doc-end` on the line **below**.
+Everything outside (mock seeding, `expect`, `assertType`, fixture imports) is the
+test's own machinery. The markers are a reading aid: nothing reads them.
 
-Constraints:
+Conventions:
 
 - At most one `doc-start` / `doc-end` pair per `test(...)` block.
-- The block must be valid TypeScript on its own.
-- Keep the snippet small — if it sprawls past ~25 lines, the docs page is
+- Keep the marked part small — if it sprawls past a screenful, the docs page is
   probably trying to explain two things; split into two tests with their
   own anchors.
 
@@ -662,22 +670,10 @@ and substitute **identifiers**. The SQL the test emits is NOT lexically
 identical to the SQL shown on the docs page; the inline snapshot records
 what the test actually emits.
 
-### Canonical setup per database
+### Canonical cell for `docs.*` files
 
-Exactly one cell per database flags its `setup.ts` with
-`canonicalForDocs: true`. Today:
-
-| Database | Canonical cell |
-|---|---|
-| mariadb | `newest/mariadb` |
-| mysql | `newest/mysql2` |
-| oracle | `newest/oracledb` |
-| postgres | `newest/pg` |
-| sqlite | `newest/bun_sqlite` |
-| sqlserver | `newest/mssql` |
-
-When adding a new docs.* test file, write it first in the sqlite canonical
-(`sqlite/newest/bun_sqlite/`) — in-process, bun-native, fastest iteration
+When adding a new docs.* test file, write it first in
+`sqlite/newest/bun_sqlite/` — in-process, bun-native, fastest iteration
 loop. Mirror to the rest after the file is green there.
 
 ### Cross-page borrowing
@@ -701,7 +697,8 @@ behaviour was documented on.
 2. **Create the file in the sqlite canonical cell**:
    `test/db/sqlite/newest/bun_sqlite/docs.<slug>.test.ts`.
 3. **Write each test.** Translate identifiers per the table above; preserve
-   structure. Wrap `docs:` snippets in `// doc-start` / `// doc-end`. Prime
+   structure. Mark the example's part of `docs:` tests with `// doc-start` /
+   `// doc-end`. Prime
    `ctx.mockNext(expected)`, assert SQL+params with empty
    `toMatchInlineSnapshot()`, assert types with `assertType<...>()`, assert
    value with `expect(result).toEqual(expected)`.
@@ -747,7 +744,7 @@ bun run tests:where-is --search <api> --bugs summary --limitation summary --not-
 If the bug is in the type system (overload, variance, assignability),
 swap the preset: `--for type-bug` bundles `declared full · signature
 full · ref-type-arg full · neg-types full · bugs summary · limitation
-summary · not-supported summary · not-applicable summary · chain none` — the route is the
+summary · not-supported summary · not-applicable summary · mock-only summary · chain none` — the route is the
 signature, not the call-chain, and a `never` typing often means
 `NOT-APPLICABLE` (a deliberate dialect boundary, not a bug). Before
 inventing a new helper or type alias to work around the bug, check
@@ -804,12 +801,11 @@ hand.) Full guide in [`CODE_SEARCH.md` § "This tool vs. textual search"](./CODE
 - Rewriting the `// TODO[BUG]` comment to its final form.
 - Deciding whether the wrapped test gets uncommented after the fix.
 
-**Worked example.** Commit `9b5ab1c` shows the full cycle: this suite
+**Worked example.** This suite
 flagged `PostgreSqlConnection.onConflictDoUpdateSet` accepting the bare
 upsert form that PostgreSQL rejects → entry in `BUGS.md` plus `TODO[BUG]`
-in the 8 postgres cells. The fixing agent removed the methods from
-`PostgreSqlConnection` typing, added 5 negative-type tests in
+in the postgres cells. The fixing agent removed the methods from
+`PostgreSqlConnection` typing, added negative-type tests in
 `test/db/postgres/types.negative/insert.test.ts`, closed the `BUGS.md`
-entry, and converted the wrap reasons in this suite to "Not applicable …
-see test/db/postgres/types.negative/insert.test.ts for the compile-time
-negative".
+entry, and converted the wrap reasons in this suite to `// NOT-APPLICABLE: …`
+pointing at that compile-time negative.

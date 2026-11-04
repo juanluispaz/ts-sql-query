@@ -159,7 +159,9 @@ decision rule](./LIMITATIONS.md#the-decision-rule) for the comparison):
    that can't run it, the marker is
    `// NOT-SUPPORTED: see ENGINE_SUPPORT.md — <one-line>`.)
 3. The lib has a bug — open an entry in [`BUGS.md`](./BUGS.md), block-comment
-   the test with the canonical body and `// TODO[BUG]: see test/BUGS.md`.
+   the test with the canonical body and `// TODO[BUG]: see test/BUGS.md`. (A live
+   repro under that marker may use the bypass it needs to compile; the audit
+   exempts it.)
 4. The API doesn't exist — verify with `bun run tests:where-is --search <name>`
    (see [`CODE_SEARCH.md` § When the symbol is not found](./CODE_SEARCH.md#when-the-symbol-is-not-found))
    before proposing the test.
@@ -168,15 +170,16 @@ decision rule](./LIMITATIONS.md#the-decision-rule) for the comparison):
 warning that one of the four is happening. The test then asserts something
 the type system says shouldn't be reachable.
 
-**Concrete example**: `BUGS.md` § `virtualColumnFromFragment` callback fails
-TS overload resolution when the fragment template has no `${…}` interpolation.
-The interpolation workaround makes TS accept the call but **hides the bug**;
+**Concrete example**: a `virtualColumnFromFragment` callback whose fragment
+template has no `${…}` interpolation failing TS overload resolution. Adding an
+interpolation as a workaround makes TS accept the call but **hides the bug**;
 the canonical form is `fragment.sql\`'open'\`` and the test should be
 block-commented with `// TODO[BUG]: see test/BUGS.md`.
 
 **Remedy**: never use `as any` in test bodies except for the sanctioned
 runtime-guard pattern shown in
-[`DESIGN.md` § As any runtime-guard](./DESIGN.md#as-any-runtime-guard) —
+[`DESIGN.md` § As any runtime-guard](./DESIGN.md#as-any-runtime-guard), or a
+`// TODO[BUG]:`-marked repro —
 cast at the narrowest fluent step that escapes the type, with a comment
 naming the runtime guard being reached.
 
@@ -227,7 +230,9 @@ the docs are stale. See
 **Gate today**: mechanical via [`tests:where-is`](./CODE_SEARCH.md) — the
 searcher reports `not found` against the indexed `src/` surface and the
 agent pastes the `Classification` block into the wave plan as a
-verifiable artifact. COVERAGE_RUNBOOK §4.1 prescribes the call.
+verifiable artifact.
+[`COVERAGE_RUNBOOK.md` § Verify the API actually exists](./COVERAGE_RUNBOOK.md#verify-the-api-actually-exists)
+prescribes the call.
 
 **Gate pending**: none. The check is mechanical and produces a copyable
 artifact; the wave-level discipline gap is closed.

@@ -33,9 +33,9 @@ the test in **this cell**?*
 - **No — only an external upgrade would** → `NOT-SUPPORTED`, here.
 
 An in-repo close path counts **only when it covers every connector of the
-dialect**. A workaround that would rescue three SQLite runners and leave
+dialect**. A workaround that would rescue four SQLite runners and leave
 two behind does not make the gap actionable debt: `cot()` is a
-`TODO[LIMITATION]` because `1 / tan(x)` works on all five SQLite runners
+`TODO[LIMITATION]` because `1 / tan(x)` works on all six SQLite runners
 (Oracle already emits exactly that), while `reverse()` is `NOT-SUPPORTED`
 because the only close path is registering a UDF, and Bun SQL's sqlite adapter
 and `sqlite3` expose no UDF API.
@@ -152,7 +152,7 @@ user-defined function, and it does not reach every SQLite runner
 SQL's sqlite adapter and `sqlite3` do not — § 3). Per the decision rule at the top of this file, a close path
 that leaves connectors of the dialect behind does not make the gap a
 `TODO[LIMITATION]`. Contrast `cot()`, which stays in
-[`LIMITATIONS.md`](./LIMITATIONS.md) because `1 / tan(x)` closes it on all five.
+[`LIMITATIONS.md`](./LIMITATIONS.md) because `1 / tan(x)` closes it on all six.
 
 
 
@@ -184,7 +184,7 @@ because the truncation changes nothing.
 `NOT-SUPPORTED` and not `NOT-APPLICABLE` because the API is callable on SQLite —
 the boundary is the operator's runtime semantics, not the type surface. And not a
 `TODO[LIMITATION]` either: the only close path is a custom float-modulo UDF, which
-`bun:sqlite` and `sqlite3` cannot register (§ 3).
+Bun SQL's sqlite adapter and `sqlite3` cannot register (§ 3).
 
 
 
@@ -443,7 +443,7 @@ project.id = p.id`) against real containers:
 | MariaDB | leading-`WITH` UPDATE / DELETE |
 |---|---|
 | 10.5 · 10.6 · 11.4 · 11.8 · 12.0 · 12.1 · 12.2 | **rejected** (`ER_PARSE_ERROR`) |
-| **12.3.2** (the matrix's `newest` image) | **accepted** |
+| **12.3.2** and later (the matrix's `newest` image is `mariadb:13.0`) | **accepted** |
 
 The `mariadb` SqlBuilder hoists every collected `WITH` — from a `Values`
 source, from a `.forUseInQueryAs(...)` CTE consumed by
@@ -469,7 +469,7 @@ execute it — keyed to the engine version, so a future ≥12.3 tier added below
 `newest` runs it live too. Affects
 `delete.returning.execute-shapes`, `delete.using.variants`,
 `update.from.variants`, `with-values` and
-`with-values.builder-position-hoists` (7 tests).
+`with-values.builder-position-hoists`.
 
 This stays `NOT-SUPPORTED` rather than `NOT-APPLICABLE` because the
 methods are callable on `MariaDBConnection` (no type-level narrowing) and
@@ -940,7 +940,7 @@ arithmetic form above. `marshalling/bigint-column-scalar-read-past-2p53`
 JSON aggregate) through the shared `ctx.conn`, i.e. the driver's default reader.
 Every connector asserts its default-reader outcome: the exact-by-default readers
 return the value intact, and every rounding reader (`mysql2`, `oracledb`,
-`sqlite3`, `better-sqlite3`, `bun:sqlite`) raises
+`sqlite3`, `better-sqlite3`, `bun:sqlite`, Bun SQL's sqlite adapter) raises
 `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`. `node:sqlite` is special — its
 driver *refuses* to return the value (a `RangeError`) rather than rounding it; the
 library **normalizes that driver error to the same

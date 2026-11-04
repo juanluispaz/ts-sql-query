@@ -45,13 +45,14 @@ one idea rejected for noise (a combined `--tests` detail+gaps shape, P2a) is fla
 ## The setup (the real repo)
 
 I'm the agent. The human ran `bun run coverage:for-discover-tests`; I have no memory beyond the
-repo. The discovery report hands me one red line — `src/sqlBuilders/AbstractSqlBuilder.ts:1119`,
-the `else` branch of `_appendOrderByColumnAliasInsensitive`:
+repo. The discovery report hands me one red line — `src/sqlBuilders/AbstractSqlBuilder.ts:1329`,
+the last branch of `_appendOrderByColumnAliasInsensitive`:
 
 ```ts
-} else {
-    return 'lower(' + this._appendOrderByColumnAlias(entry, query, params) + ')'   // ← 1119
+if (collation) {
+    return this._appendInsensitiveOrderByCollateReceiver(wrapped, entry, query) + ' collate ' + collation
 }
+return 'lower(' + wrapped + ')'   // ← 1329
 ```
 
 Problems, all public-API-only: **(1)** what is this internal method, and what public input makes
@@ -65,18 +66,18 @@ existing test I half-remember. **(7)** which other dbs still miss it?
 The biggest lesson up front: **combine sections**. One call answers what/route/feature/signature:
 
 ```bash
-bun run tests:where-is --search-location src/sqlBuilders/AbstractSqlBuilder.ts:1119 \
+bun run tests:where-is --search-location src/sqlBuilders/AbstractSqlBuilder.ts:1329 \
     --classification full --chain full --docs full --signature public-interface --simplified full \
     --ref-implements summary --tests summary
 ```
 
 ```markdown
 # where-is: `_appendOrderByColumnAliasInsensitive`
-> resolved …:1119 → method `AbstractSqlBuilder._appendOrderByColumnAliasInsensitive` (1108–1121)
+> resolved …:1329 → method `AbstractSqlBuilder._appendOrderByColumnAliasInsensitive` (1315–1330)
 
 ## Classification
 internal method on `AbstractSqlBuilder` — reachable only through the public fluent API.
-(The line-1119 branch is the `lower(<col>)` fallback: insensitive mode, a string column, and
+(The line-1329 branch is the `lower(<col>)` fallback: insensitive mode, a string column, and
 `insensitiveCollation` undefined. The index gives the verdict; you read the precondition off the
 docs / branch — there is no auto "fires when …".)
 
@@ -174,11 +175,11 @@ separate is the tighter design. Merging them would trade tightness for noise.
 ## Now built: location targeting the *callees on the line*
 
 A asked a "to design" question — sometimes the line *is* a call and you want the callee, not the
-enclosing function. Line 1119 calls `_appendOrderByColumnAlias` (the shared *sensitive* emitter, a
-different symbol). **This shipped** as `--location-target callees`:
+enclosing function. Line 1322, in the same function, calls `_appendOrderByColumnAlias` (the shared
+*sensitive* emitter, a different symbol). **This shipped** as `--location-target callees`:
 
 ```bash
-bun run tests:where-is --search-location src/sqlBuilders/AbstractSqlBuilder.ts:1119 --location-target callees
+bun run tests:where-is --search-location src/sqlBuilders/AbstractSqlBuilder.ts:1322 --location-target callees
 ```
 
 → resolves to `_appendOrderByColumnAlias`; ≥1 callee on a line → a report per callee. It confirms
@@ -395,6 +396,11 @@ bun run tests:where-is --search _useUpdateOldValueInFrom --ref-implements full -
 **SQLite is the only major dialect that doesn't override `_useUpdateOldValueInFrom()`** → the fix
 is a *missing* override, three layers from anything the test or the stack shows.
 
+> **What holds now.** The failure can't be reproduced as told: the base `_useUpdateOldValueInFrom()`
+> returns `true` (the `_old_` FROM subquery), Oracle doesn't override it either, and `oldValues()` is typed
+> `never` on `SqliteConnection` (a `NOT-APPLICABLE` boundary). The lesson stands: for an emission bug the
+> route is the fragment, and `--ref-implements` shows who does not override.
+
 ### What D taught → what shipped
 - **`--chain` is the wrong tool for an emission bug** → the `--for emission-bug` preset sets
   `--chain none`. Built.
@@ -529,6 +535,13 @@ in [`MODEL.md`](./MODEL.md); the flags in [`../../CODE_SEARCH.md`](../../CODE_SE
 
 ## The setup (the real repo)
 
+> **What holds now.** Neither family exists any more as told below; the two scopings and the mechanism
+> stand. [`BUGS.md`](../../BUGS.md) has no open bug and the matrix carries no `TODO[BUG]` (the
+> `virtualColumnFromFragment` bug is fixed, see Case J). MariaDB `newest` runs 13.0, where a single-table
+> `UPDATE … RETURNING` is live; what stays dark there is `NOT-SUPPORTED`, not `TODO[LIMITATION]` (RETURNING
+> on a multi-table UPDATE, `OLD_VALUE` inside an expression; see
+> [`ENGINE_SUPPORT.md`](../../ENGINE_SUPPORT.md)).
+
 Two real caveat families, indexed as `todo_marker`, with **opposite scoping**:
 
 - **A BUG that names its symbol.** [`BUGS.md`](../../BUGS.md) § `virtualColumnFromFragment` — a
@@ -545,6 +558,9 @@ different: **the library deliberately doesn't do X here, or there's a known bug*
 ignores it is invalid. The searcher should hand me that *before* I write, not the quality gate after.
 
 ## G.1 — the BUG variant: name-scoped, already works, just not in a preset
+
+> **What holds now.** This command finds nothing today (no open bug). P1a shipped: `--bugs` rides `type-bug`,
+> `emission-bug`, `version-work` and `post-fix-sync`; `--limitation` rides all of them but `post-fix-sync`.
 
 I'm fixing around `virtualColumnFromFragment` (an emission-bug / post-fix round) and want to know if
 there's an open bug on it:
@@ -565,6 +581,10 @@ carries it, so on `version-work` / `post-fix-sync` I miss the open bug unless I 
 win:** add `--bugs summary` / `--limitation summary` to the feature-centric presets (call it **P1a**).
 
 ## G.2 — the LIMITATION variant: coord-scoped, the real gap
+
+> **What holds now.** Read the MariaDB story below as a shape, not as the cell's state. The same
+> `--coord mariadb/newest` command lists today's markers, tagged `[NOT-SUPPORTED]`, and they still never
+> name `oldValues`, which is the point of the coord scope.
 
 I'm in a coverage-driven round. Gaps point me to add UPDATE … RETURNING / `oldValues()` coverage,
 and I see cells missing it in `mariadb/newest/mariadb`. I propose a wave — "add the UPDATE … RETURNING
@@ -662,6 +682,13 @@ of *why*, so the idea doesn't get re-proposed.
 
 ## The setup (the real repo)
 
+> **What holds now.** The hole below is closed: aggregates carry an `NAggregate` source brand, so an aggregate
+> in `where(...)`, `groupBy(...)` or a join `on(...)` is a compile error, locked in `types.negative`.
+> [`LIMITATIONS.md`](../../LIMITATIONS.md) § "The library does not auto-rewrite a misplaced aggregate
+> predicate into HAVING" records what remains, and the section quoted below no longer exists. The negative
+> surface is also far larger than the count above. What H drew stands: `--neg-types full` and the
+> type-coverage boundary.
+
 [`LIMITATIONS.md` § "Aggregate functions are not flagged as aggregates in the type system"](../../LIMITATIONS.md)
 says it plainly: the type system does **not** stop you from putting `connection.count(tFoo.id)` in
 `.where(...)`; the engine rejects it at runtime ("aggregate functions are not allowed in WHERE"). It
@@ -701,6 +728,8 @@ Now I can match the wording convention and the per-form shape when I add a fourt
 keeps the compact count — the overview; `full` is the opt-in detail.)
 
 ## H.2 — "what's declared but not locked?" — out of scope (a type-coverage tool)
+
+> **What holds now.** The boundary stands; the example doesn't (the aggregate-in-`where` lock exists now).
 
 The aggregate hole is **documented** but has **no** `@ts-expect-error` — verified: no `neg_type` row
 locks an aggregate in `where`. The tempting next step is a *negative-coverage-gap lens*: cross-reference
@@ -780,7 +809,7 @@ enough to model a fourth. `--neg-types full` now lists the three PG bare-form ru
 
 # Case J — orienting a type-resolution bug (the site that got away)
 
-> **Proposed — verified against the tool, decision pending.** A–I record what shipped; J–L are the
+> **Shipped (J-a, J-b below).** A–I record what shipped first; J–L are the
 > residue of a real bug-fixing session, reasoned as cases *before* deciding. Seed: the
 > `virtualColumnFromFragment` / `optionalVirtualColumnFromFragment` type fix (`5e1050b`). Verifying J
 > against the *current* searcher dissolved its headline premise (Case I's lesson, again) and isolated
@@ -817,7 +846,7 @@ bun run tests:where-is --search virtualColumnFromFragment --declared full
 a **public-surface member**, exposed by `Table`, `Values`, `View` (declared on 3 interfaces + 3 classes).
 
 ## Declared
-- [public impl] class `TableOf.virtualColumnFromFragment(…)`  — src/Table.ts:389
+- [public impl] class `TableOf.virtualColumnFromFragment(…)`  — src/Table.ts:391
 - [public impl] class `ValuesOf.virtualColumnFromFragment(…)` — src/Values.ts:135
 - [public impl] class `ViewOf.virtualColumnFromFragment(…)`   — src/View.ts:120
   (+ the three interface declarations in the simplified def)
@@ -841,7 +870,7 @@ bun run tests:where-is --search virtualColumnFromFragment --signature full
 - [public impl] class `TableOf.virtualColumnFromFragment(type,
     fn: (fragment: BooleanFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>)
       => IBooleanValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>, adapter?): …`
-    — src/Table.ts:389        ← the method's site, NOT where the aliases are defined
+    — src/Table.ts:391        ← the method's site, NOT where the aliases are defined
 ```
 
 To reach the helper at the heart of the fix I take its **name** out of the signature text and run a
@@ -891,7 +920,7 @@ exactly what a type-bug orient wants.
   element is referenced as a type argument; the alias's blast radius is exactly the fix's surfaces) and
   the forward **`--location-target produces`** (from a line → the type it returns). **Shipped:** the
   family rename (`--ref-return`/`--ref-implements`) + `--refs` + `--location-target produces`, then the
-  v5 `reference` dimension powering **`--ref-type-arg`** — `--search NSourceAllowingNoTableOrViewRequired
+  `reference` dimension powering **`--ref-type-arg`** — `--search NSourceAllowingNoTableOrViewRequired
   --ref-type-arg full` lists every overload in Table/Values/View where the alias is a type argument (the
   fix's exact surfaces), which `grep` can't tag as a *type-argument reference to that indexed type*. See
   [`MODEL.md` §3/§5](./MODEL.md).
@@ -900,7 +929,7 @@ exactly what a type-bug orient wants.
     the *broken signature line itself*, enumerate the composed aliases and jump to each definition in
     **one** step (it was two: read the names off `--signature full`, then `--search` each). `types` reads
     the `reference` dimension forward on the exact line; `types-all` does it across the whole function via
-    the **traceable enclosing FK** (every overload + the impl body's `new`s). On `src/Table.ts:389` (a
+    the **traceable enclosing FK** (every overload + the impl body's `new`s). On `src/Table.ts:391` (a
     `virtualColumnFromFragment` overload), `types` returns the 4 types on the line — incl.
     `NSourceAllowingNoTableOrViewRequired` → `src/utils/sourceName.ts:64`; `types-all` returns the
     function's whole 21-type vocabulary with site counts (the alias at 27 sites). It is a **terminal
@@ -957,7 +986,7 @@ reinvent — is right there. The searcher *did* have a path I skipped: when the 
 A first pass *seemed* to show `--search-pattern` **missing** `AllowsNoTableOrViewRequired` (and
 `InferSourceFrom`) — both module-local `type`s with no `export` — which read like an "exported-only"
 scope limit. **Re-verifying killed it** (Case I, a third time): `nameIndex` (the matcher's source,
-[`queries.ts:18`](./queries.ts)) selects `FROM symbol` / `FROM member` with **no visibility filter**,
+[`queries.ts`](./queries.ts)) selects `FROM symbol` / `FROM member` with **no visibility filter**,
 and a clean run lists all 7, the two non-exported ones included. The apparent miss was an *observation
 artifact* — a sliced view that dropped the first rows — not a tool gap. `--search-pattern` reaches
 module-local declarations.
@@ -978,9 +1007,9 @@ module-local declarations.
 
 # Case L (minor) — locating a member keyed by a unique symbol (`[source]`)
 
-> **A small indexer gap, low priority.** The least of the three: a navigation the agent did with
-> `grep` and probably should keep doing — but verifying it drew a precise line about what the index
-> records.
+> **Built (see the end of this case).** The setup and L.1 below tell how it read when it was parked as a
+> small indexer gap: a navigation the agent did with `grep`, where verifying it drew a precise line about
+> what the index records.
 
 ## The setup (the real repo)
 
@@ -1007,6 +1036,9 @@ bun run tests:where-is --search source --signature full
 class" the classification reports is those plain properties, not the computed key. The member the seed
 wanted (`ITableOrView.ts:6`, confirmed by `grep`) never appears: computed-symbol-key members aren't
 indexed as references to the keying symbol.
+
+> **What holds now.** They are indexed: `--search '[source]'` finds every declaration, and
+> `--search source --ref-brand` every type carrying the brand.
 
 ## What case L taught → what to build (and what not to)
 

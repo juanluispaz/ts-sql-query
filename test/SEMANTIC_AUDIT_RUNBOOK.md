@@ -258,7 +258,7 @@ comment in the code.**
 
 ## Wave 1 — discovery agents
 
-**Cap at ~2–3 concurrent** ([memory: delegation OOM discipline](./TYPE_AUDIT_RUNBOOK.md#operational-rules)).
+**Cap at ~2–3 concurrent** ([`CLI.md` § One heavy job at a time](./CLI.md#one-heavy-job-at-a-time) is the memory rule behind it).
 Agents **never** run `tsc`, the whole matrix, `tests:audit`, `--docker`, or
 `tests:index` — the coordinator owns all of those, serially.
 

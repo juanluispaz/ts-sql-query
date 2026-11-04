@@ -39,7 +39,7 @@ For the navigation map see [`README.md`](./README.md); for `test/lib/` see
 
 ```bash
 bun run codegen:doc-code      # regenerate the test/db/<db>/newest/documentation/ cells
-bun run codegen:doc-code      # same, via tsx
+npm run codegen:doc-code      # same, via tsx
 bun run codegen               # umbrella: codegen:doc-code (what CI runs)
 ```
 

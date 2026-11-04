@@ -46,9 +46,9 @@ cell**?*
   tracked by symmetry + the dialect's `types.negative/`.
 
 An in-repo close path counts **only when it covers every connector of the
-dialect**. `cot()` is here because `1 / tan(x)` closes it on all five SQLite
+dialect**. `cot()` is here because `1 / tan(x)` closes it on all six SQLite
 runners (Oracle already emits exactly that); `reverse()` is **not**, because
-its only close path is a UDF that `bun:sqlite` and `sqlite3` cannot
+its only close path is a UDF that Bun SQL's sqlite adapter and `sqlite3` cannot
 register.
 
 |  | Limitation | Bug | Not supported | Dialect boundary |
@@ -240,7 +240,7 @@ an Oracle restriction, it is the consequence of binding untyped.
 
 **Why this is a limitation and not a bug**: closing it properly means
 threading the type into `addParam`, which is a **public-interface change**
-— `QueryRunner` is the seam users override, ~29 runners in `src/` plus the
+— `QueryRunner` is the seam users override, every runner in `src/` plus the
 wrappers (`ConsoleLog` / `Interceptor` / `Mock` / `Chained`) and any
 user-authored runner implement it. The type is already in scope at the
 call site (`AbstractSqlBuilder._appendParam`, where `_columnType` sits
@@ -293,11 +293,9 @@ to meet.
 
 **Workaround in the suite**: the oracle test pool sets `stmtCacheSize: 0`
 (`test/db/oracle/runners.ts`, commented there), which makes each execution
-re-parse with its own bind types. That un-blocked the 33 tests previously
-disabled in `oracle/newest/oracledb/select.connection-trailing-adapter.test.ts`
-under a `NOT-APPLICABLE` reason that misattributed the failure to Oracle
-rejecting the bare bind for non-numeric data types; the whole file (65 tests)
-now runs and passes against the real engine. **Fingerprint if it resurfaces**:
+re-parse with its own bind types, so the whole of
+`oracle/newest/oracledb/select.connection-trailing-adapter.test.ts` runs and
+passes against the real engine. **Fingerprint if it resurfaces**:
 the test passes in isolation and fails only in file order. In the unlikely
 event a user meets all three conditions, the same `stmtCacheSize` setting on
 their own pool is the escape hatch.
@@ -308,10 +306,8 @@ cell then fails, but **which** one depends on file order — the first string
 bind after a numeric one absorbs the stale type and every later one passes, so
 inserting a test into that fan-out migrates the failure to a different test and
 any marker left behind starts lying. Disabling the cache removes the order
-coupling rather than documenting it. The cost is ~1.7% and does not justify the
-trade: the cell measured 80.2s / 82.2s at `0` against 79.9s / 79.8s at `30`
-(two runs each, warm container), and it runs in parallel with the other cells
-inside the matrix's ~7 min.
+coupling rather than documenting it. The cost, under 2% of the oracle
+cell's wall time on a warm container, does not justify the trade.
 
 
 ## SQL Server rejects a bare bind parameter as an ORDER BY term (error 1008)
@@ -357,11 +353,12 @@ They are the scaffolding for an unfinished **query introspection
 API** — the planned public surface (something like
 `query.isAllowed()` alongside a future `query.resultSchema()` for
 OpenAPI emission) is not yet exposed. No `execute*` / `query()` /
-`_build*` call invokes either walker today: `__hasAggregation`'s only
-non-recursive entry point, `hasAggregationQueryColumns()` in
-`src/sqlBuilders/SqlBuilder.ts`, is called exclusively from inside
-other `__hasAggregation` bodies, so the web is closed the same way
-`__isAllowed`'s is.
+`_build*` call invokes `__isAllowed`. `__hasAggregation` has one caller
+outside its own web: `groupByNonAggregatedColumns()` in
+[`SelectQueryBuilder.ts`](../src/queryBuilders/SelectQueryBuilder.ts) asks it
+which selected columns to leave out of the `GROUP BY`. It has no other entry
+point: `hasAggregationQueryColumns()` in `src/sqlBuilders/SqlBuilder.ts` is
+called only from `__hasAggregation` bodies.
 
 Because the public surface does not yet exist, the only way to
 exercise the walkers from tests — and verify that the scaffolding
@@ -444,43 +441,30 @@ transaction to exercise the version store — would let it run.
 ## `attachRollbackError` cannot be exercised through this matrix's runners
 
 `attachRollbackError` (in [`src/TsSqlError.ts`](../src/TsSqlError.ts))
-is wired by `ManagedTransactionQueryRunner.executeInTransaction` when
-the body's error AND the subsequent rollback both throw. The mock
-runner has its own `executeInTransaction` that swallows the rollback
-error without chaining (so it never reaches the attach helper), and the
-real driver runners expose no hook to force a rollback failure without
-corrupting the connection — so the branch is unreachable across
-**every** cell of this matrix (a harness gap, not a per-dialect
-boundary).
+is wired by `ManagedTransactionQueryRunner.executeInTransaction` and its pool
+twin when the body's error AND the subsequent rollback both throw.
+`MockQueryRunner` has its own `executeInTransaction` that swallows the rollback
+error without chaining, so it never reaches the attach helper.
 
-The branch is **dialect-agnostic** — it lives in the shared
-`ManagedTransactionQueryRunner`, not in any per-dialect `SqlBuilder` — so
-a per-cell test (one per connector) is both infeasible (a real driver's
-rollback can't be forced to fail cleanly) and redundant (every cell
-would exercise the same shared code). The only feasible in-matrix shape
-is a **single dialect-agnostic unit test** driving
-`ManagedTransactionQueryRunner.executeInTransaction` with an in-memory
-stub runner whose `executeRollback` rejects and a body that throws a
-`TsSqlQueryExecutionError`; the per-cell matrix has no clean home for a
-library-only unit test, which is why this was parked per-cell instead.
-Meanwhile the helper is covered by real-driver integration tests outside
-this matrix.
+`ctx.withFaultInjection()` does not close this. `faults.failRollback(...)` makes
+the rollback reject in both modes, but in the mocked run the rejection ends in
+that swallow, so `rollbackError` stays unset; only over a real runner does it
+reach the attach branch. The same test would have to assert a different value
+per mode, which is what `mirror-image` / `one-sided-guard` forbid. It is a
+harness gap, not a per-dialect boundary.
 
-It stays `TODO[LIMITATION]` in
-`oracle/newest/oracledb/errors.transaction-attachments.test.ts` (and as
-the symmetric placeholder in every other cell). Reactivate by adding the
-dialect-agnostic unit test described above if a home for lib-only unit
-tests is introduced.
-
-The query-runner tests in [`runners/`](./runners/) are that home for the
-runner side: their contract test
-`execute-in-transaction-keeps-the-body-error-when-the-rollback-fails` ends
+The branch is **dialect-agnostic**, in the shared managed-transaction runners, so
+the query-runner tests in [`runners/`](./runners/) are its home: their contract
+test `execute-in-transaction-keeps-the-body-error-when-the-rollback-fails` ends
 every runner's transaction through an outermost query runner whose rollback
-fails, so the attach branch of `ManagedTransactionQueryRunner` /
-`ManagedTransactionPoolQueryRunner` runs for real (see
+fails, so the attach branch runs for real (see
 [`CLI.md` § Coverage of the query runners](./CLI.md#coverage-of-the-query-runners)).
-The per-cell placeholder stays: through `connection.transaction(...)` the
-path is still not drivable in the matrix.
+
+The per-cell test stays a `TODO[LIMITATION]` placeholder in
+`errors.transaction-attachments.test.ts`, in every cell: through
+`connection.transaction(...)` the path is not drivable in both modes. It would
+reactivate if `MockQueryRunner.executeInTransaction` chained the rollback error
+the way the managed runners do.
 
 
 ## A negative `substr` / `substring` index is only resolved when it is a literal

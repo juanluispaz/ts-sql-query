@@ -1,9 +1,9 @@
 # `tests:where-is` — the report model (design rationale, as built)
 
-The **why** behind the searcher's shape. It was discovered by walking six worked case studies of
+The **why** behind the searcher's shape. It was discovered by walking worked case studies of
 the test-writing agent (a deep/hidden coverage gap; a gap needing per-connector setup; a
 real-vs-mock divergence; an emission bug where the stack is useless; a new DB version; a post-fix
-stale-SQL sweep) — kept in [`CASE_STUDIES.md`](./CASE_STUDIES.md) — and distilling what each *intent*
+stale-SQL sweep; and the later cases G–L) — kept in [`CASE_STUDIES.md`](./CASE_STUDIES.md) — and distilling what each *intent*
 actually needs. This doc records that model **as it ended up built** — what shipped, why, and what
 was deliberately left out.
 
@@ -17,7 +17,7 @@ was deliberately left out.
 
 The searcher is **not one report**. It's a report engine where the agent picks a **door** (what to
 search), then composes **levelled sections** (what to show) under a single **coordinate focus** (which
-matrix cells). The case studies cluster into four intents; the same machinery serves all of them,
+matrix cells). The case studies cluster into a few intents; the same machinery serves all of them,
 and **`--for <intent>` presets the section set**:
 
 | Intent | Triggered by | Door | Sections it raises | Anti-pattern |
@@ -25,9 +25,9 @@ and **`--for <intent>` presets the section set**:
 | **bare** | "I want only one section" | any | **nothing** — every section `none`; add the one(s) you want explicitly (`--for bare --surface own`). Saves a dozen `--<section> none` | — |
 | **coverage-gap** | a red `src/` line, or a name to cover | `--search-location` (enclosing) · `--search` | classification · `--chain full` · `--ref-return` · simplified · docs · `--tests gaps` · examples · `--cell-caveats` | — |
 | **propagation** | the canonical cell is baked; copy it to siblings | `--search` (`--coord '*/newest'`) | classification · `--tests gaps` · examples · `--cell-caveats` · `--chain none` | replicating ≠ finding — no chain/producers needed |
-| **type-bug** | a type-resolution error on a name (case J) | `--search <name>` | `--declared full` · `--signature full` · `--ref-type-arg full` · `--neg-types full` · `--bugs` · `--limitation` · **`--chain none`** | the TYPE twin of emission-bug: the error is in the **signature**, never a frame — chasing the call-chain is wasted |
-| **emission-bug** (real-vs-mock) | "this test fails on the real DB" (a test path) | test-line `--search-location` · `--emits-keyword` | `--emitted-sql` · `--ref-implements` (incl. **non-overriders**) · `--version-gates` · `--bugs` · `--limitation` · **`--chain none`** | `--chain` is useless here (build→execute is data-flow) |
-| **version-work** | a DB release note / breakpoint | `--search compatibilityVersion` · `--emits-keyword` | `--version-gates full` · tests · `--bugs` · `--limitation` | starting from one statement kind hides the others |
+| **type-bug** | a type-resolution error on a name (case J) | `--search <name>` | `--declared full` · `--signature full` · `--ref-type-arg full` · `--neg-types full` · `--bugs` · `--limitation` · `--not-applicable` · `--not-supported` · `--mock-only` · **`--chain none`** | the TYPE twin of emission-bug: the error is in the **signature**, never a frame — chasing the call-chain is wasted |
+| **emission-bug** (real-vs-mock) | "this test fails on the real DB" (a test path) | test-line `--search-location` · `--emits-keyword` | `--emitted-sql` · `--ref-implements` (incl. **non-overriders**) · `--version-gates` · `--bugs` · `--limitation` · `--not-applicable` · `--not-supported` · `--mock-only` · **`--chain none`** | `--chain` is useless here (build→execute is data-flow) |
+| **version-work** | a DB release note / breakpoint | `--search compatibilityVersion` · `--emits-keyword` | `--version-gates full` · tests · `--bugs` · `--limitation` · `--not-applicable` · `--not-supported full` · `--mock-only` | starting from one statement kind hides the others |
 | **post-fix-sync** | a merged fix changed the emitted SQL | `--emits-keyword` · `--search <feature>` | `--emitted-sql` · docs · examples · tests detail · `--bugs` | a `--update-snapshots` run leaves examples + docs stale |
 
 The three axes are orthogonal and combine freely:
@@ -53,7 +53,7 @@ These recurred across the cases and shaped the model. Each notes how it landed.
 - **L1 — Most triggers are *data* preconditions invisible to the call graph.** A line fires because
   of an *argument literal* (`'asc insensitive'`), a *receiver type* (a uuid column), or a
   *compatibility version* (PG≥18) — not because "caller X called it". *Built:* classification names
-  the **kind / public-surface verdict / exposing interfaces**, and the **call-chain** + **producers**
+  the **kind / public-surface verdict / exposing interfaces**, and the **call-chain** + **`--ref-return`**
   + **version-gates** surface the route and the gate; the agent reads the precondition from those.
   (An auto-generated "fires when …" sentence was *not* built — it needs branch reasoning.)
 - **L2 — The build→execute gap breaks both stacks.** SQL is *built* in one call and *executed* later
@@ -62,12 +62,12 @@ These recurred across the cases and shaped the model. Each notes how it landed.
   door (a SQL token → the `SqlBuilder` code that emits it); the `emission-bug` preset sets
   **`--chain none`**.
 - **L3 — Absence is a finding.** The canonical emission bug was a *missing* override (`SqliteSqlBuilder`
-  doesn't override `_useUpdateOldValueInFrom()` while every sibling does); no chain can express an
-  absence. *Built:* **`implemented-by`** lists the base, the overriders **and the non-overriders**
+  doesn't override `_useUpdateOldValueInFrom()` while the PostgreSQL, SQL Server and MySQL/MariaDB builders
+  do); no chain can express an absence. *Built:* **`--ref-implements`** lists the base, the overriders **and the non-overriders**
   ("inherits it, does not override").
 - **L4 — The receiver question ≠ the reach question.** For a method on an intermediate fluent type,
   "who reaches it" is useless; the agent needs "**what public call returns an object I can call this
-  on**". *Built:* **`producers`** (members whose return type resolves to the owner interface).
+  on**". *Built:* **`--ref-return`** (members whose return type resolves to the owner interface).
 - **L5 — Dimensions earn their keep per intent.** `examples` is marginal in one gap, *load-bearing*
   in another (per-connector uuid setup); `bugs`/`emitted-sql` only matter for debugging;
   `version-gates` only for version work. *Built:* every section is independently levelled, default
@@ -89,13 +89,13 @@ These recurred across the cases and shaped the model. Each notes how it landed.
   scattered `// TODO[BUG]` / `// TODO[LIMITATION]` markers are indexed (§5).
 - **L9 — A caveat is scoped two ways, and a wave needs both.** A disabled-test marker matters either
   because it **names the symbol** you're touching (a known bug on `virtualColumnFromFragment`) or because
-  it's declared on the **cell** you're writing into (MariaDB UPDATE…RETURNING needs 13.0.1+ — true of *any*
+  it's declared on the **cell** you're writing into (MariaDB rejects RETURNING on a multi-table UPDATE — true of *any*
   work in that cell, whatever the symbol). The feature-centric intents catch the first; coverage-gap /
   propagation are blocked by the second. *Built:* **name-scoped** `--bugs`/`--limitation`/`--not-supported`/`--not-applicable`
   (markers mentioning the symbol, in the feature-centric presets) **and** **coord-scoped** `--cell-caveats`
   (markers in the `--coord` cells, in coverage-gap/propagation). A wave is invalidated by a cell caveat the
   name filter alone is blind to (case G). *Discovered post-A–F by building case G before deciding.*
-- **L10 — Four first-class caveat CATEGORIES, not two.** A disabled test carries `TODO[BUG]` (src/ defect,
+- **L10 — Five first-class caveat CATEGORIES, not two.** A disabled test carries `TODO[BUG]` (src/ defect,
   re-enabled when fixed), `TODO[LIMITATION]` (not covered yet / harness, *might* re-enable — the fix is
   ours), **`NOT-SUPPORTED`** (the engine / this engine version / its build / the driver can't run it — the
   call compiles, the runtime refuses) or **`NOT-APPLICABLE`**
@@ -106,7 +106,9 @@ These recurred across the cases and shaped the model. Each notes how it landed.
   ~94% of the `TODO[LIMITATION]` markers in the matrix were engine/driver facts nobody could close.
   *Built:* the indexer stores `tag='NOT-APPLICABLE'` and `tag='NOT-SUPPORTED'` separately; the searcher
   gives each its own name-scoped section (`--not-applicable`, `--not-supported`) and a distinct category in
-  `--cell-caveats` — never merged into limitations. *(Added per a second agent's feedback; the audit
+  `--cell-caveats` — never merged into limitations. The fifth, **`MOCK-ONLY`** (`--mock-only`), is the odd one
+  out: it marks a *live* test whose INPUT comes from the mock, so it stays out of `--cell-caveats` (it blocks
+  nothing). *(Added per a second agent's feedback; the audit
   `tests:audit` enforces the marker, the searcher classifies it.)*
 
 ---
@@ -119,15 +121,15 @@ These recurred across the cases and shaped the model. Each notes how it landed.
 | `--search-pattern <regex>` / `--search-pattern-summary <regex>` | matching names → a full report per match / a compact pick-list |
 | `--search-location <path:line>` (`--location-target enclosing`, default) | the enclosing function/member — the **concrete overload** at that line (landing on the impl catch-all un-focuses to the whole function) |
 | `--search-location <path:line>` `--location-target enclosing-all` | the enclosing function but the **whole** of it — every overload (the only way for an interface method, with no impl line) |
-| `--search-location <path:line>` `--location-target callees` | the function(s) **invoked on** that line (≥1 → pick-list) |
+| `--search-location <path:line>` `--location-target callees` | the function(s) **invoked on** that line (several → a report each) |
 | `--search-location <path:line>` `--location-target produces` | the **type the enclosing function returns** → that type's definition (the forward "go to type definition"; reads the `producer` dimension forward) |
 | `--search-location <path:line>` `--location-target types` / `types-all` | the **indexed types referenced** on the line / across the **whole function** (every overload + impl body, via the enclosing FK) → each one's definition. A **terminal navigation report** (`type · role · defined-at(+span)` + site count), NOT a section set — reads `reference` forward; the dual of `--ref-type-arg` |
 | `--search-location <path:line>` `--location-target brand` | the **brand marker** a computed-key line `[sym]: T` keys on → the marker symbol (a full report; add `--ref-brand` for its branded family). Reads `reference` role=`brand` forward; the dual of `--ref-brand` |
 | `--search-location <test-file>:line` | **inverse search**: the enclosing `test_block` + the public API it exercises |
 | `--emits-keyword <sql-fragment>` | the `SqlBuilder` code that emits that SQL token (the build-side bridge) |
 
-`--search-mode` (the old WHAT×HOW "how" axis) was **removed** — the chain/name searches are now
-levelled sections (`--chain`, `--name-search`). Doors that the version-work intent once imagined
+There is no WHAT×HOW mode flag: the chain/name searches are levelled sections (`--chain`,
+`--name-search`). Doors that the version-work intent once imagined
 (`--feature`, a `--matrix` structural door) were **not built**; version work is served by
 `--search compatibilityVersion --version-gates full` + `--emits-keyword`.
 
@@ -150,11 +152,11 @@ flag).
 | `--chain` | none·**strict**·broad·full | call-chain; `full` = the whole internal stack |
 | `--ref-return` | **none**·summary·full | **references-by-role:** referenced **as a return type** — members whose return type yields a receiver of this type (L4) |
 | `--ref-implements` | none·**summary**·full | **references-by-role:** referenced **in implements/extends** — overriders **and non-overriders** (L3) + the simplified def(s) realized |
-| `--ref-type-arg` | **none**·summary·full | **references-by-role:** referenced **as a type argument** (`Outer<This>`) — a type alias's blast radius across signatures (the type-bug, case J); v5 `reference` |
-| `--ref-param` | **none**·summary·full | **references-by-role:** referenced **as a parameter type**; v5 `reference` |
-| `--ref-field` | **none**·summary·full | **references-by-role:** referenced **as a field/property type**; v5 `reference` |
-| `--ref-new` | **none**·summary·full | **references-by-role:** the class referenced **in a construction** (`new This(…)`); v5 `reference` |
-| `--ref-property` | **none**·summary·full | **references-by-role:** the member referenced **via property access** (`x.member`, not a call) — cases B/L; v5 `reference` |
+| `--ref-type-arg` | **none**·summary·full | **references-by-role:** referenced **as a type argument** (`Outer<This>`) — a type alias's blast radius across signatures (the type-bug, case J); `reference` |
+| `--ref-param` | **none**·summary·full | **references-by-role:** referenced **as a parameter type**; `reference` |
+| `--ref-field` | **none**·summary·full | **references-by-role:** referenced **as a field/property type**; `reference` |
+| `--ref-new` | **none**·summary·full | **references-by-role:** the class referenced **in a construction** (`new This(…)`); `reference` |
+| `--ref-property` | **none**·summary·full | **references-by-role:** the member referenced **via property access** (`x.member`, not a call) — cases B/L; `reference` |
 | `--ref-brand` | **none**·summary·full | **references-by-role:** a `unique symbol` used **as a brand key** (`[sym]: T` — the phantom/branded-type markers the compiler discriminates on, `src/utils/symbols.ts`) — case L; `reference` role=`brand` |
 | `--surface` | **none**·own·all·full | the **members of the declaring type(s)**: a TYPE seed → its members; a MEMBER seed → its siblings (one `surfaceOf` query, both entry points). Level = **inheritance scope**: `own`=direct; `all`=+inherited(`extends`)+implemented(`implements`), flat; `full`=broken down by declaring type (incl. interfaces). Every member carries `path:line` + span |
 | `--version-gates` | **none**·summary·full | `compatibilityVersion` comparisons, their breakpoint + the gated method |
@@ -168,11 +170,12 @@ flag).
 | `--limitation` | **none**·summary·full | `// TODO[LIMITATION]` markers **naming the symbol** — not covered yet / env (→ `test/LIMITATIONS.md`); name-scoped |
 | `--not-supported` | **none**·summary·full | `// NOT-SUPPORTED` markers **naming the symbol** — the engine / this engine version / its build / the driver can't run it (→ `test/ENGINE_SUPPORT.md`); name-scoped, permanent, never folded into limitation |
 | `--not-applicable` | **none**·summary·full | `// NOT-APPLICABLE` markers **naming the symbol** — a *permanent dialect boundary* (runs in the cells whose dialect supports it); name-scoped, a DISTINCT category from limitation (L10) |
+| `--mock-only` | **none**·summary·full | `// MOCK-ONLY` markers **naming the symbol** — a *live* test whose INPUT is mocked; name-scoped, and the one category that does not mark a disabled test (L10) |
 | `--cell-caveats` | **none**·summary·full | BUG/LIMITATION/NOT-SUPPORTED/NOT-APPLICABLE declared on cells — coord-scoped, *not* by symbol. **Level = view:** `summary` = per-cell map (each cell + counts), `full` = the markers (cell-prefixed); `--coord` only filters which cells. Case G |
 | `--name-search` | **none**·full | name-based discovery across every dimension (high recall) |
-| `--refs` | none·summary·full | **shortcut, not a section:** sets the whole `--ref-*` family (`--ref-return` + `--ref-implements`) at one level; explicit per-role flag overrides, and `--refs` itself beats a `--for` preset |
+| `--refs` | none·summary·full | **shortcut, not a section:** sets the whole `--ref-*` family (all eight, `--ref-return` to `--ref-brand`) at one level; explicit per-role flag overrides, and `--refs` itself beats a `--for` preset |
 
-**References to this element, by role.** `--ref-return` and `--ref-implements` are two views of one
+**References to this element, by role.** The eight `--ref-*` sections are views of one
 question — *where is this element referenced, and how?* — kept as **separate sections** so the agent
 pays only for the role it needs (granularity = low noise), with `--refs` as the all-at-once shortcut.
 The **forward duals** live on `--search-location` (from a line *outward* to what it references):
@@ -224,22 +227,21 @@ views — see §6.
 
 ---
 
-## 5. What the index provides (schema v4)
+## 5. What the index provides
 
-The v3 base — `symbol` / `member` / `heritage` / `invocation` / `reconcile` / `test_block` /
+The base — `symbol` / `member` / `heritage` / `invocation` / `reconcile` / `test_block` /
 `doc_test_block` / `example_block` / `neg_type` (+ their `*_ref`) — already powered classification,
 signature, chain, implemented-by, docs, simplified, tests, examples, neg-types. The intents above
-added **five schema-v4 dimensions** plus the **v5 `reference`** dimension (built in `extractExtras.ts`,
-asserted in `verify.ts`):
+added **six dimensions** (built in `extractExtras.ts`, asserted in `verify.ts`):
 
 | Dimension | Powers | How it's derived |
 |---|---|---|
 | `version_gate` | `--version-gates` | `compatibilityVersion <op> <breakpoint>` comparisons in the SqlBuilders (AST) |
 | `sql_emit` | `--emits-keyword` | SQL string literals in the SqlBuilders (substring match on `literal_lc`) |
 | `producer` | `--ref-return` | members whose return type resolves (checker) to an indexed interface/class |
-| `todo_marker` | `--bugs` (`tag='BUG'`), `--limitation` (`tag='LIMITATION'`), `--not-supported` (`tag='NOT-SUPPORTED'`), `--not-applicable` (`tag='NOT-APPLICABLE'`) — all name-scoped; `--cell-caveats` (all four, coord-scoped, counted per category) | every `// TODO[<tag>]` **and** `// NOT-SUPPORTED:` / `// NOT-APPLICABLE:` in `test/` |
+| `todo_marker` | `--bugs` (`tag='BUG'`), `--limitation` (`tag='LIMITATION'`), `--not-supported` (`tag='NOT-SUPPORTED'`), `--not-applicable` (`tag='NOT-APPLICABLE'`), `--mock-only` (`tag='MOCK-ONLY'`) — all name-scoped; `--cell-caveats` (all but MOCK-ONLY, coord-scoped, counted per category) | every `// TODO[<tag>]` **and** `// NOT-SUPPORTED:` / `// NOT-APPLICABLE:` / `// MOCK-ONLY:` in `test/db/` |
 | `emitted_sql` | `--emitted-sql` | `toMatchInlineSnapshot` SQL in test + documentation cells; the searcher joins it to the block by file + line-containment |
-| `reference` (v5) | `--ref-type-arg`/`--ref-param`/`--ref-field`/`--ref-new`/`--ref-property` (roles `type-arg`/`param`/`field`/`new`/`property`) | checker-resolved references to an indexed element by syntactic role; resolution-gated (empty under `--no-resolve`) |
+| `reference` | `--ref-type-arg`/`--ref-param`/`--ref-field`/`--ref-new`/`--ref-property`/`--ref-brand` (roles `type-arg`/`param`/`field`/`new`/`property`/`brand`) | checker-resolved references to an indexed element by syntactic role; resolution-gated (empty under `--no-resolve`) |
 
 `example_block` also gained `db`/`version`/`connector` columns (filename-derived) so `--coord`
 addresses the legacy examples by full cell. `test/BUGS.md` and `test/LIMITATIONS.md` are read
@@ -279,7 +281,7 @@ directly by the agent, not indexed.
   *commented out* → no `test_block` → the limited cells *are* genuine gaps, so a `--cell-caveats`
   does catch them. But two things sink the auto-scope: (1) `--cell-caveats` lists **all** caveats in a
   cell, so auto-firing across every gap cell surfaces caveats unrelated to the wave (an `orderBy` wave
-  into mariadb would show the RETURNING limitation — noise); (2) it's premature — `--cell-caveats`
+  into mariadb would show the RETURNING boundary — noise); (2) it's premature — `--cell-caveats`
   already rides the `coverage-gap`/`propagation` presets, so it fires the moment the agent adds a
   `--coord`, which is exactly when it picks the cells it will write into. The explicit focused call is
   the precise, low-noise tool; the no-coord orient is a pure overview. Building the mini-case (Case G

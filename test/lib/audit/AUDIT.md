@@ -77,7 +77,7 @@ The audit is anti-cheat enforcement and nothing else.
 | Out of scope | Why | Who owns it |
 |---|---|---|
 | Database / connector **limitation management** (wrapping the tests a connector caveat affects, etc.) | That is *handling* a limitation, not catching a cheat | [`EXTERNAL_CAVEATS.md`](../../EXTERNAL_CAVEATS.md) + the propagation step |
-| Cross-referencing `// TODO[BUG]` / `// TODO[LIMITATION]` against `BUGS.md` / `LIMITATIONS.md` | The **searcher already does this** (`tests:where-is --bugs / --limitation / --cell-caveats`); duplicating it crosses that tool's boundary. Also has no anchor on the bug side today (`BUGS.md` = *"No open bugs"*, zero `TODO[BUG]` markers) | [searcher](../../CODE_SEARCH.md) |
+| Cross-referencing `// TODO[BUG]` / `// TODO[LIMITATION]` against `BUGS.md` / `LIMITATIONS.md` | The **searcher already does this** (`tests:where-is --bugs / --limitation / --cell-caveats`); duplicating it crosses that tool's boundary. Also has no anchor on the bug side today (`BUGS.md` has no open entry, the cells carry no `TODO[BUG]` marker) | [searcher](../../CODE_SEARCH.md) |
 | Does a symbol exist in `src/`? | The searcher's `Classification` answers it | [searcher](../../CODE_SEARCH.md) |
 | Subjective judgement ("is this assertion *good enough*?") | Requires reading and opining — not mechanical | the [quality-gate sub-agent](../../QUALITY_GATE.md) |
 | "Is this value valid for this type?" in general / assignability | The unbounded semantic question the searcher explicitly walled off (CASE_STUDIES H.2, J–L): the index *locates* types, the compiler *decides* validity. The `uuid-literal` rule stays narrow because of this | the compiler / a future type-coverage tool |
@@ -86,8 +86,8 @@ The audit is anti-cheat enforcement and nothing else.
 ## Relationship to the quality gate
 
 [`QUALITY_GATE.md`](../../QUALITY_GATE.md) runs a sub-agent over the **canonical
-cell only, before propagation**, and explicitly *"doesn't catch
-post-propagation regressions"*. The audit's unique value is the **mechanical
+cell only, before propagation**, so it can't see a regression that propagation
+brings. The audit's unique value is the **mechanical
 sweep over the whole tree, after propagation** — exactly the surface the
 canonical-only gate cannot reach.
 
@@ -96,9 +96,8 @@ an agent can weaken the real-DB branch in a single sibling cell
 (`mariadb/oldest`) to make it pass, and neither the symmetry check nor a
 canonical-only review would see it.
 
-The two are complementary, and the handoff is already specified in
-QUALITY_GATE.md: *"as each mechanical gate lands, the sub-agent prompt can
-drop the matching check."* See [Maintenance contract](#maintenance-contract).
+The two are complementary: when a check lands here, the sub-agent prompt says so.
+See [Maintenance contract](#maintenance-contract).
 
 ## Architecture
 
@@ -115,7 +114,7 @@ The TypeScript compiler API is the motor.
   `no-assertion-runtime`, `empty-catch`, `weak-boolean`, `weak-matcher`,
   `close-to`, `no-op-expect`, `non-deterministic-input`, `manual-connection`) need only
   `ts.SourceFile` ASTs (or the TS scanner),
-  no type checker, so they stay fast over the full ~2.5k-file matrix (~1 s).
+  no type checker, so they stay fast over the whole matrix.
   Even `uuid-literal` (anchored on the string's *shape*, not its static type)
   and `as-any` (which tolerates named patterns rather than resolving intent)
   avoid the checker.
@@ -154,16 +153,17 @@ export const RULE_SEVERITY = {
   'meaningless-type':       'error',  // the `unknown` / `null` / `never` / `void` type annotation (mirror of any-type)
   'type-cast':              'error',  // any other `x as T` / `<T>x` assertion — may force the type or want `satisfies` (as const + cast carve-outs exempt)
   'non-public-api':         'error',  // a relative import into non-public src or non-admitted test/lib
-  'commented-test-reason':  'error',  // a commented-out test with no TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE reason
+  'commented-test-reason':  'error',  // a commented-out test with no TODO[BUG]/TODO[LIMITATION]/NOT-SUPPORTED/NOT-APPLICABLE reason
+  'grouped-commented-tests': 'error', // several commented-out tests crammed into one comment block, sharing a single reason marker — split so each carries its own
   'focused-test':           'error',  // a committed `.only` — silently skips the rest of the suite
   'empty-snapshot':         'error',  // an un-baked `toMatchInlineSnapshot()` in live code (commented placeholders are AST-exempt)
   'ts-ignore':              'error',  // `@ts-ignore` / `@ts-nocheck` — silences every error on the line; forbidden everywhere
   'ts-expect-error':        'error',  // `@ts-expect-error` outside a types.negative cell — a type-error bypass
   'eslint-disable-type':    'error',  // eslint-disable of a type-soundness lint — the lint twin of as-any/any-type
   'eslint-disable-other':   'error',  // eslint-disable of any other (non-type) lint — tracked separately
-  'skipped-test-reason':    'error',  // `test.skip` / `test.todo` with no TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE reason — the .skip twin of commented-test-reason
+  'skipped-test-reason':    'error',  // `test.skip` / `test.todo` with no TODO[BUG]/TODO[LIMITATION]/NOT-SUPPORTED/NOT-APPLICABLE reason — the .skip twin of commented-test-reason
   'skip-real-db':           'error',  // `test.skipIf(realDbEnabled)` — a mock-only evasion at the registration level
-  'misplaced-marker':       'error',  // a TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE marker not at a test
+  'misplaced-marker':       'error',  // a TODO[BUG]/TODO[LIMITATION]/NOT-SUPPORTED/NOT-APPLICABLE marker not at a test
   'tautology':              'error',  // a provably-constant assertion (literal-self-compare, same-expression, `.length` ≥ 0)
   'no-assertion-runtime':   'error',  // a test that runs a query (execute*) but asserts nothing — always green
   'empty-catch':            'error',  // an empty `catch { }` with no deliberate throw in the try — swallows a real failure
@@ -348,7 +348,7 @@ site must be licensed by a marker in the test that makes the call:
 - `// NOT-APPLICABLE: <reason>` / `// TODO[BUG]: <reason>` — the two markers that
   already license a live mock-only test, accepted unchanged.
 
-`MOCK-ONLY` is deliberately a FOURTH marker rather than a reuse of
+`MOCK-ONLY` is deliberately a FIFTH marker rather than a reuse of
 `NOT-APPLICABLE` (see [`reasons.ts`](reasons.ts)): it does not describe a
 disabled test, and it is not a dialect boundary. A `NOT-APPLICABLE` case
 validates fully in the dialects that support it; a `MOCK-ONLY` case validates
@@ -378,7 +378,7 @@ type-bypass rules — see [`as-any`](#as-any--a-cast-to-any-that-bypasses-the-pu
 
 **Verified** (whole matrix): 595 findings on the original run — e.g.
 `select.value-source.trig.test.ts` (swallow; fix with `toBeCloseTo`),
-`exec.procedure-function.test.ts` / `delete.execute-variants.test.ts:97`
+`exec.procedure-function.test.ts` / `delete.execute-variants.test.ts`
 (swallow). The fix is to drive the case on the real engine; a scenario that
 genuinely needs the mock as its input device uses `ctx.mockOnlyConnection()`
 plus a `// MOCK-ONLY:` marker (DESIGN § Mock-only smell — Mock-only connection
@@ -412,10 +412,10 @@ flagged** until it bounds the value. (Every `random` cell now carries the bound
 none stays flagged.)
 
 **Verified**: 145 findings, 100% genuine on the sample, e.g.
-[`select.distinct.test.ts:29`](../../db/postgres/newest/pg/select.distinct.test.ts#L29)
-(`else expect(rows.length).toBeGreaterThanOrEqual(1)`), `update.returning.test.ts:111`
+[`select.distinct.test.ts`](../../db/postgres/newest/pg/select.distinct.test.ts)
+(`else expect(rows.length).toBeGreaterThanOrEqual(1)`), `update.returning.test.ts`
 (`else expect(Array.isArray(rows)).toBe(true)`),
-`select.value-source.null-and-if-value-modifiers.test.ts:183`
+`select.value-source.null-and-if-value-modifiers.test.ts`
 (`else expect(rows.length).toBeGreaterThanOrEqual(0)` — vacuously true). A
 subagent false-positive review of the pg cell found 2 FPs here — a two-sided
 `toEqual` (mock) / `toBeNull` (real) guard on a no-match `…NoneOrOne` query, where
@@ -474,9 +474,9 @@ flagged:
 
 - a guarded assertion on a value NOT from such a producer — a **SELECT** result,
   or a `returningOneColumn(t.<col>)` of a **non-id** column whose value is
-  deterministic (e.g. [`update.execute-variants.test.ts:112`](../../db/postgres/newest/pg/update.execute-variants.test.ts#L112)
+  deterministic (e.g. [`update.execute-variants.test.ts`](../../db/postgres/newest/pg/update.execute-variants.test.ts)
   `returningOneColumn(t.status)` → `'reviewed'`,
-  [`delete.execute-variants.test.ts:106`](../../db/postgres/newest/pg/delete.execute-variants.test.ts#L106)
+  [`delete.execute-variants.test.ts`](../../db/postgres/newest/pg/delete.execute-variants.test.ts)
   → `'open'`) — must be asserted unconditionally (`ORDER BY` / JS-sort) or carry
   a `// tests-audit-disable-next-line one-sided-guard -- <reason>`;
 - a `returning(t.id)` on an **UPDATE/DELETE** would return a PRE-EXISTING,
@@ -553,13 +553,13 @@ a **helper that wraps the query** (`isolation as any`) — it defeats the
 realistic-query goal. These are smells the rule keeps visible.
 
 The line the rule can't draw is **intent** (testing a guard vs faking a query);
-that residue is the [quality-gate sub-agent](../../QUALITY_GATE.md)'s — its
-"Gate today" for #4 stays the sub-agent even though the rule has promoted to
-`error` and the backlog is now 0.
+that residue is the [quality-gate sub-agent](../../QUALITY_GATE.md)'s. The
+"Gate today" of [`ANTIPATTERNS.md`](../../ANTIPATTERNS.md) #4 is this rule; the
+sub-agent stays as the earlier feedback on the canonical cell.
 
 **TODO[BUG] carve-out** (shared by `as-any`, `any-type`, `as-unknown-as`,
-`meaningless-cast`, `meaningless-type`). A test marked `// TODO[BUG]: <reason>`
-(in its body or within 3 lines above) is exempt from all five type-bypass rules:
+`meaningless-cast`, `meaningless-type`, `type-cast`). A test marked `// TODO[BUG]: <reason>`
+(in its body or within 3 lines above) is exempt from all six type-bypass rules:
 a reproducible bug often *needs* a cast to even compile its repro, and the marker
 keeps that visible and tracked until the fix lands. Keyed on `TODO[BUG]`
 specifically (`markerLines(sf, TODO_BUG_REASON)` + `isNodeInMarkedTest`), scoped
@@ -767,7 +767,7 @@ lumped into a single `/* … */` block, one marker above the block satisfies
 lost and a reader cannot tell which reason applies to which test (the marker may
 even be right for one test and wrong for the next). The fix is to **split the
 block**: one commented-out test per comment, each carrying its own
-`// TODO[BUG]:` / `// TODO[LIMITATION]:` / `// NOT-APPLICABLE:` marker — after
+`// TODO[BUG]:` / `// TODO[LIMITATION]:` / `// NOT-SUPPORTED:` / `// NOT-APPLICABLE:` marker — after
 which `commented-test-reason` enforces a distinct reason on every one. So the two
 rules compose: this one forbids the block, that one fills each split with a reason.
 
@@ -803,7 +803,7 @@ the documented anchor that was previously missing.
 
 **Anchor — the SHAPE of the literal, not its type** (project decision: *"find
 strings that look like a UUID and validate them"*). No `ts.Program` is needed,
-so the rule stays in the ~1 s syntactic lane and — unlike a type-directed
+so the rule stays in the fast syntactic lane and — unlike a type-directed
 check — catches the literal in **any** position (a `uuid` column in `.values({
 … })`, a `.equals(…)`, a `const(…, 'uuid')`, a `mockNext`). "Looks like a UUID"
 is the OR of two narrow patterns so a hyphenated English phrase
@@ -907,8 +907,8 @@ call, so it is **naturally exempt**, no special-casing needed.
 whole-matrix grep finds **384** empty `toMatchInlineSnapshot()`, but an AST pass
 (live code only) finds **0**: every one of the 384 sits **inside a commented-out
 test** (e.g.
-[`select.aggregate-as-array-inline-wrapped.test.ts:508`](../../db/postgres/newest/pg/select.aggregate-as-array-inline-wrapped.test.ts#L508),
-inside the `/* … */` opened at line 488). They are un-baked placeholders in
+[`select.aggregate-as-array-inline-wrapped.test.ts`](../../db/postgres/newest/pg/select.aggregate-as-array-inline-wrapped.test.ts),
+inside a `/* … */` block). They are un-baked placeholders in
 tests copied verbatim from the canonical cell for cross-cell diff parity and
 then commented out because they don't apply to that dialect — *not* a live
 backlog. They are governed by [`commented-test-reason`](#commented-test-reason--a-commented-out-test-with-no-stated-reason)
@@ -987,9 +987,9 @@ comments; no type checker).
   `test.todo` / `it.todo`, plus the identifier forms `xit` / `xtest` /
   `xdescribe`. A disabled test carries the SAME obligation as a commented-out one
   (the [`commented-test-reason`](#commented-test-reason--a-commented-out-test-with-no-stated-reason)
-  twin, by project decision): it must state why with one of the same three
-  first-class markers — `// TODO[BUG]:`, `// TODO[LIMITATION]:`, or
-  `// NOT-APPLICABLE:` `<reason>` — within 3 lines above (or on the call's own
+  twin, by project decision): it must state why with one of the same four
+  first-class markers — `// TODO[BUG]:`, `// TODO[LIMITATION]:`,
+  `// NOT-SUPPORTED:` or `// NOT-APPLICABLE:` `<reason>` — within 3 lines above (or on the call's own
   line). A `.skip` with no stated reason reads as "someone gave up here".
   **Anchor: 0** — no disabled tests in the matrix today.
 - **`skip-real-db`** — `test.skipIf(ctx.realDbEnabled)` /
@@ -1056,8 +1056,8 @@ receiver is `expect(x).not`, not the `expect(x)` call), and `expect(true).toBe(f
 (distinct literals — a failing assertion, not a tautology).
 
 **Verified**: 17 findings, **all** the `expect(rows.length).toBeGreaterThanOrEqual(0)`
-form (the `mirror-image` §`select.value-source.null-and-if-value-modifiers.test.ts:184`
-site and its replicas); literal-self-compare and same-expression are **0** today.
+form (the `mirror-image` site in `select.value-source.null-and-if-value-modifiers.test.ts`
+and its replicas); literal-self-compare and same-expression are **0** today.
 
 **Status**: **built** (`error`), in [`checks/tautology.ts`](./checks/tautology.ts).
 The narrowest of the content rules by design — the open-ended "is this assertion
@@ -1082,12 +1082,12 @@ don't actually validate**. Three mechanical shapes, three rule ids
   **deliberate `throw` inside the try block** — the catch is swallowing the
   test's OWN intentional throw, the mechanism of the scenario. The sole legitimate
   population is the 17 `docs.transaction` rollback tests
-  ([`docs.transaction.test.ts:182`](../../db/postgres/newest/pg/docs.transaction.test.ts#L182):
+  ([`docs.transaction.test.ts`](../../db/postgres/newest/pg/docs.transaction.test.ts):
   `throw new Error('roll me back')` … `catch { /* swallow */ }` … `expect(fired).toBe(true)`).
   An empty catch around an `execute*` with **no** such throw is **flagged** — 66
   cases that swallow a real execution failure to assert only the
   interceptor-captured SQL (e.g.
-  [`docs.advanced.custom-booleans-values.test.ts:44`](../../db/postgres/newest/pg/docs.advanced.custom-booleans-values.test.ts#L44)):
+  [`docs.advanced.custom-booleans-values.test.ts`](../../db/postgres/newest/pg/docs.advanced.custom-booleans-values.test.ts)):
   a `mock-only` pattern in disguise (per the project author — *"there is no reason
   you can't validate that on the mock without the swallow"*), and one the
   body-scoped `mock-only` rule misses because the swallow is **unconditional**
@@ -1118,7 +1118,7 @@ type checker):
   `[1,2,3]`, in any order). **Flagged everywhere** — they widen a value's *shape*,
   never the right tool for non-determinism (you sort + `toEqual` instead). Anchor
   14, all `expect.arrayContaining` over a non-deterministically-ordered `json_agg`
-  in [`docs.aggregate-as-object-array.test.ts:233`](../../db/postgres/newest/pg/docs.aggregate-as-object-array.test.ts#L233);
+  in [`docs.aggregate-as-object-array.test.ts`](../../db/postgres/newest/pg/docs.aggregate-as-object-array.test.ts);
   fix is the DESIGN §1 JS-reorder remedy `expect(rows.slice().sort()).toEqual([...])`.
 - **String-pattern matchers** — `.toContain` / `.toMatch` (direct) and
   `expect.stringMatching` (asymmetric). Weak on a value, but the correct tool in
@@ -1135,7 +1135,7 @@ type checker):
   but wrong: a real-engine *string* value is usually deterministic — known seed
   data with only specific columns (an autogenerated `id`, a timestamp) varying —
   so the precise assertion is a `toEqual` with those columns normalised, not a
-  `toContain`. [`update.from.test.ts:47`](../../db/postgres/newest/pg/update.from.test.ts#L47)
+  `toContain`. [`update.from.test.ts`](../../db/postgres/newest/pg/update.from.test.ts)
   `expect(p.name).toContain('Acme Corp')` after `SET name = name || ' / ' ||
   organization.name` looks non-deterministic but the name is fully known; it
   should be `expect(projects.map(({ id, ...r }) => r)).toEqual([...])`. "Pinnable
@@ -1234,9 +1234,9 @@ test/lib/audit/
     ├── mockOnlyConnection.ts ← mock-only request form (unjustified ctx.mockOnlyConnection())
     ├── uuidLiteral.ts ← `uuid-literal` (malformed-UUID-looking string literals)
     ├── asAny.ts       ← `as-any` + `any-type` + `as-unknown-as` + `meaningless-cast` + `meaningless-type` + `type-cast` (all the type-bypass / cast rules; TODO[BUG]-exempt)
-    ├── markerPlacement.ts ← `misplaced-marker` (a TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE marker not at a test)
+    ├── markerPlacement.ts ← `misplaced-marker` (a TODO[BUG]/TODO[LIMITATION]/NOT-SUPPORTED/NOT-APPLICABLE marker not at a test)
     ├── nonPublicApi.ts ← `non-public-api` (relative imports past the public surface)
-    ├── commentedTest.ts ← `commented-test-reason` (commented tests need a TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE reason marker — see reasons.ts)
+    ├── commentedTest.ts ← `commented-test-reason` (commented tests need a TODO[BUG]/TODO[LIMITATION]/NOT-SUPPORTED/NOT-APPLICABLE reason marker — see reasons.ts)
     ├── groupedCommentedTests.ts ← `grouped-commented-tests` (one `/* … */` block holding 2+ commented-out tests — split so each gets its own reason marker)
     ├── focusedTest.ts ← `focused-test` (committed `.only` — skips the rest of the file)
     ├── emptySnapshot.ts ← `empty-snapshot` (un-baked `toMatchInlineSnapshot()` in live code)
@@ -1244,7 +1244,7 @@ test/lib/audit/
     ├── registrationSkip.ts ← `skipped-test-reason` / `skip-real-db` (registration-level skip)
     ├── tautology.ts ← `tautology` (provably-constant assertions: literal-self / same-expr / `.length` ≥ 0)
     ├── noValidation.ts ← `no-assertion-runtime` / `empty-catch` / `weak-boolean` (tests that run but don't validate)
-    ├── weakMatcher.ts ← `weak-matcher` (asymmetric matcher / `.toContain`/`.toMatch` on a value; approximate reserved for diagnostic + real-DB branch)
+    ├── weakMatcher.ts ← `weak-matcher` (asymmetric matcher / `.toContain`/`.toMatch` on a value; approximate reserved for a diagnostic blob)
     ├── closeTo.ts ← `close-to` (`toBeCloseTo` outside a real-DB branch; separate, lenient float rule)
     ├── noOpExpect.ts ← `no-op-expect` (an `expect(...)` chain with no matcher invoked)
     ├── nonDeterministicInput.ts ← `non-deterministic-input` (`new Date()`/`Date.now()`/`Math.random()` as a query input; mock data carved out)
@@ -1274,10 +1274,11 @@ When a rule is **promoted to `error`**:
 1. Update the matching entry's **"Gate today"** line in
    [`ANTIPATTERNS.md`](../../ANTIPATTERNS.md) (#1 mirror-image, #2
    stub-as-commented, #4 as-any) from the sub-agent to this audit.
-2. Drop the matching check from the sub-agent prompt
-   [`../canonical-cell-review-prompt.md`](../canonical-cell-review-prompt.md)
-   — per [`QUALITY_GATE.md` § Future](../../QUALITY_GATE.md) the prompt is the
-   single point of update.
+2. In the sub-agent prompt
+   [`../canonical-cell-review-prompt.md`](../canonical-cell-review-prompt.md), add
+   the rule to the "Division of work with tests:audit" paragraph and tag the
+   matching check `[also caught by tests:audit: <rule>]`, as the prompt's own
+   maintenance notes say.
 3. Record the user-visible promotion in [`docs/CHANGELOG.md`](../../../docs/CHANGELOG.md)
    only if it changes anything a consumer observes (usually not — this is
    test-suite infrastructure).
@@ -1307,10 +1308,9 @@ EXTERNAL_CAVEATS subsection), update the link here in the same change.
     suppression + meta-rules (`ignores.ts`), compiler-style output
     (`report.ts`), the orchestrator (`main.ts`); `--explain` / `--strict` /
     `--all` / `--only`;
-  - thirty content rules, **all `error`** today — the warn→error ramp is complete
+  - thirty-one content rules, **all `error`** today — the warn→error ramp is complete
     (the split into one rule per mechanism is what let each be promoted to `error`
-    independently), whole run
-    ~1 s (syntactic AST, no type checker). The five type-bypass / cast siblings of
+    independently), syntactic AST, no type checker. The four type-bypass / cast siblings of
     `as-any`/`any-type` — `as-unknown-as` (62; `x as unknown as T` laundering),
     `meaningless-cast` (170; `as unknown`/`null`/`never`/`void`, incl. `as unknown[]`),
     `meaningless-type` (167; the same four as a type — `unknown`/`null` permitted in
@@ -1349,7 +1349,7 @@ EXTERNAL_CAVEATS subsection), update the link here in the same change.
     types.negative cell), `eslint-disable-type` (34 — the lint twin of
     as-any/any-type), `eslint-disable-other` (17 — non-type lint suppressions),
     and the two registration-skip rules `skipped-test-reason` (0 — `.skip`/`.todo`
-    needs a TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE reason) and `skip-real-db` (0 — `skipIf(realDbEnabled)`
+    needs a TODO[BUG]/TODO[LIMITATION]/NOT-SUPPORTED/NOT-APPLICABLE reason) and `skip-real-db` (0 — `skipIf(realDbEnabled)`
     registration-level mock-only evasion), and `tautology` (17 — all the
     `expect(rows.length).toBeGreaterThanOrEqual(0)` form; only provably-constant
     shapes flagged, the rest stays the sub-agent's call), and the three

@@ -19,6 +19,8 @@ whatever class hierarchy implements it.
 | `runners/lib/runnerContract.ts` | `describeRunnerContract(...)`: the behaviour every runner promises — the five select shapes and their shape errors, inserts / updates / deletes with and without RETURNING, ids, procedures and functions, transactions (levels, access modes, nesting, the state guards), concurrent use, the rest of the interface and error classification |
 | `runners/lib/errorScenarios.ts` | the real errors provoked per database (`error.*` tests) and how a connection that fails on purpose is reported — see [The error scenarios](#the-error-scenarios) |
 | `runners/lib/raisedErrors.ts`, `runners/lib/documentedMappings.ts` | the codes the engine raises on demand (`raised.*` tests), with their expected reason read from the native mapping docs — see [The raised errors](#the-raised-errors) |
+| `runners/lib/overADriverTransaction.ts` | `describeOverADriverTransaction(...)`: a runner created inside a transaction something else manages. The statements run in that transaction, and the runner neither begins a transaction inside it nor ends it. One `<db>/QueryRunnerOverADriverTransaction.test.ts` per database that has such a runner (PostgreSQL, MySQL, MariaDB, SQLite, SQL Server) |
+| `runners/lib/deadlockRollback.ts` | `describeDeadlockRollback(...)`: a deadlock makes MySQL and MariaDB roll back the victim's whole transaction, and its runner must reject what follows instead of running it outside any transaction. `mysql/TransactionRolledBackByADeadlock.test.ts`, `mariadb/TransactionRolledBackByADeadlock.test.ts` |
 | `runners/lib/dialects.ts` | the hand-written SQL per database: the probe tables, function and procedure the contract creates, and the statement shapes the SqlBuilders emit there (RETURNING / OUTPUT / RETURNING INTO, `from dual`, …). What a database can't do is a missing entry, and the matching test is skipped |
 | `runners/lib/queryRunnerCalls.ts` | every executing `QueryRunner` method with the shape of what it returns, for the database-less tests |
 | `runners/<db>/<Runner>.test.ts` | one file per driver runner: a factory for the runner (and its variants: `SynchronousPromise`, `allowNestedTransactions`, the `*PoolPromise` twin) handed to the contract, plus what is particular to it |
@@ -138,14 +140,18 @@ would (`addTypedParam` in the contract, `setParamType`,
 ## Running them
 
 ```bash
-bun run tests:runners                 # all of them (docker runners skipped)
-bun run tests:runners --docker --wasm # every runner against its engine (~7 s warm)
+bun run tests:runners                 # all of them (docker and WASM runners skipped)
+bun run tests:runners --docker --wasm # every runner against its engine (seconds, warm)
 bun run tests runners/postgres --docker
 bun run validate:tests runners        # type-check them (part of the full validate:tests)
 ```
 
-`runners` is a coordinate root of the `tests` CLI; the full matrix
-(`bun run tests` with no coord) includes them.
+`runners` is a coordinate root of the `tests` CLI. The full matrix (`bun run
+tests` with no coord) includes them. A full `--wasm` run and `--shard 1` run the
+tests with a WASM engine real, in their sequential unit with docker and native
+off; the main pass and shard 4 have WASM off, skip those and run the others, so
+nothing runs twice. `--run-versions newest` and `--run-connectors` without a
+`runners` coord leave them out.
 
 ## Adding a runner
 

@@ -19,26 +19,26 @@ reuses this tool's [`db.ts`](db.ts) (its read-only `openIndexDbReadonly`) and
 
 > **Just want to USE it?** Read [`test/CODE_SEARCH.md`](../../CODE_SEARCH.md) instead —
 > the agent-facing usage doc. This file is the **implementation reference** (how to
-> build it, what's inside, how to extend it). The full design rationale, decisions and
-> roadmap live in the working document [`test/lib/symbolIndex/DESIGN.md`](../symbolIndex/DESIGN.md).
+> build it, what's inside, how to extend it). The rationale of the searcher that reads it lives in
+> [`../codeSearcher/MODEL.md`](../codeSearcher/MODEL.md).
 
 ## Build it
 
 ```bash
-npm run tests:index:newest                   -- # preferred day-to-day: newest cells only (low RAM/fast, type-resolved)
-npm run tests:index                          -- # full index: all version tiers + domain (precise, type-resolved; heavier RAM)
-npm run tests:index -- -- --no-resolve          # name-based, low-memory / fast build
-npm run tests:index:verify                   -- # structural smoke test of the extractors (~4 s)
-# or, directly:
+npm run tests:index:newest         # preferred day-to-day: newest cells only (low RAM/fast, type-resolved)
+npm run tests:index                # full index: all version tiers + domain (precise, type-resolved; heavier RAM)
+npm run tests:index -- --no-resolve   # name-based, low-memory / fast build
+npm run tests:index:verify         # structural smoke test of the extractors (a few seconds)
+# or, directly (under Node the heap must be raised by hand; the script does it for you):
 bun test/lib/codeIndexer/build.ts [--newest] [--out <path>] [--no-resolve]
-npx tsx test/lib/codeIndexer/build.ts [--newest] [--out <path>] [--no-resolve]   # under Node
+NODE_OPTIONS=--max-old-space-size=20480 npx tsx test/lib/codeIndexer/build.ts [--newest] [--out <path>] [--no-resolve]
 ```
 
 **`--no-resolve`** (experimental, internal — **not** part of the searcher's documented usage) skips the
-type resolution (`getSymbolAtLocation`), so the checker's type cache never grows: **~3.6 GB / ~15 s**
-instead of **~12 GB / ~2 min**. Same schema and same rows; the only difference is every
+type resolution (`getSymbolAtLocation`), so the checker's type cache never grows: **roughly 4 GB and
+seconds** instead of **roughly 12 GB and a couple of minutes**. Same schema and same rows; the only difference is every
 `resolved_symbol_id` / `resolved_member_id` is NULL — name-based search (`symbol_name`) still works, but
-you lose binding-level precision and the lib-vs-noise filter (≈84% of test-ref name occurrences aren't
+you lose binding-level precision and the lib-vs-noise filter (most test-ref name occurrences aren't
 lib API). Use it on RAM-constrained machines or when only name discovery is needed; the precise build is
 the default.
 
@@ -52,7 +52,7 @@ nothing). The report header prints `name-based` and the chain section flags the 
 is the precise (resolved) build.
 
 Output (default): **`test/lib/codeIndexer/generated/code-index.sqlite`** — gitignored
-(via the `generated` rule), and rebuilt **from scratch each run** (~2 min: ~5 s to build
+(via the `generated` rule), and rebuilt **from scratch each run** (a couple of minutes: seconds to build
 the unified TypeScript Program, the rest to extract + type-resolve every reference and
 stream it out). It lives in the tool's own `generated/` folder rather than `.test-report/`, which
 the test harness wipes even when the index is still valid. The run prints the chosen
@@ -98,8 +98,8 @@ dynamic element access) — that stays the name-only `operation` bridge (pattern
 **Resolution-scatter caveat (read before counting member coverage).** A fluent call resolves
 to the declaration the checker binds for the *static* receiver type, which for this library is
 usually an **overloaded interface signature**, not the implementation. `.orderBy(...)` resolves
-across the `*ExecutableSelectExpression` overloads in `src/expressions/select.ts` (member ids
-1354/1404/1423/…), NOT the `AbstractSelect.orderBy` implementation (4872) that wraps
+across the `*ExecutableSelectExpression` overloads in `src/expressions/select.ts`, NOT the
+`AbstractSelect.orderBy` implementation that wraps
 `__addOrderBy`. So a single `resolved_member_id` under-counts a logical method. To ask "is method
 M exercised?", match by **member NAME across the owning family** (all real members named `M`),
 not one id — start from `__addOrderBy`'s invocation caller name, then the real members of that
@@ -114,8 +114,11 @@ bulk-inserted by [`build.ts`](build.ts) (which also writes the `meta` table dire
 ### build metadata — `meta`
 - **meta** — key/value build provenance: `schema_version` (bump → a consumer can reject an
   incompatible index), `built_at` (ISO), `git_rev` + `git_dirty`, `resolve`
-  (`resolved`|`name-based`), `tool`. Lets a consumer detect a STALE index (compare `built_at`/
-  `git_rev` to the working tree) or a `--no-resolve` index (FKs are NULL) before trusting it.
+  (`resolved`|`name-based`), `rows` (`streamed/<batch>`|`buffered`, the `--sink` mode), `scope`
+  (`full`|`newest`), `tool`. Lets a consumer detect a STALE index (compare `built_at`/
+  `git_rev` to the working tree), a `--no-resolve` index (FKs are NULL) or a newest-scope index
+  (older version tiers + domain cells absent) before trusting it. The searcher reads all of these
+  but `rows`, `scope` and `tool`, so its report header does not show the scope.
 
 ### `src/` dimension — [`extractSrc.ts`](extractSrc.ts)
 - **module** — every `src/**/*.ts` (+ the simplified query map as a pseudo-module);
@@ -224,9 +227,10 @@ the impl — match by name across the owning family).
 - **neg_type_ref** — the API names in the statement that contains the target line, resolved —
   "WHICH API (+ line) does this negative test guard?" (e.g. `onConflictOn`/`insertInto`/`values`).
 
-### schema-v4/v5 extras — [`extractExtras.ts`](extractExtras.ts)
-Four dimensions the searcher's v2 intents need (see [`../symbolIndex/REPORT_MODEL_V2.md`](../symbolIndex/REPORT_MODEL_V2.md)).
-The first three reuse the `extractSrc` declMap; `bug_marker` is a plain comment scan over `test/`.
+### extras — [`extractExtras.ts`](extractExtras.ts)
+Six dimensions the searcher's intents need (see [`../codeSearcher/MODEL.md`](../codeSearcher/MODEL.md) §5).
+`version_gate`, `sql_emit`, `producer` and `reference` reuse the `extractSrc` declMap; `todo_marker` and
+`emitted_sql` scan the test sources (no declMap).
 - **version_gate** — one row per comparison against a per-db compatibility-version field
   (`compatibilityVersion <op> <numeric breakpoint>`) in the SqlBuilders: the enclosing method,
   the `operator` (mirrored so it reads field-first), the `breakpoint` literal. The navigation
@@ -237,7 +241,7 @@ The first three reuse the `extractSrc` declMap; `bug_marker` is a plain comment 
 - **producer** — `(member_id, produces_symbol_id)`: a member whose return type resolves (via the
   checker) to an indexed interface/class — "what call returns a receiver of this type" (`--ref-return`,
   case B). Self-returns (`this`) and unresolved types are skipped.
-- **reference** (schema v5) — references to an indexed **element**, tagged by syntactic **`role`**.
+- **reference** — references to an indexed **element**, tagged by syntactic **`role`**.
   TYPE roles (`resolved_symbol_id` set): `type-arg` (used as a type argument `Outer<This>` —
   `--ref-type-arg`, the type-bug surface, case J), `param` (a parameter's declared type — `--ref-param`),
   `field` (a property/field's declared type — `--ref-field`). VALUE roles: `new` (a class constructed
@@ -325,7 +329,7 @@ The interfaces in `src/expressions/*` are meant to be IMPLEMENTED by the builder
 AST drops. The indexer parses those too (**`heritage.commented=1`**), so a deliberate gap
 is distinguishable from a forgotten one.
 
-That powers a **coverage audit** (recipe **R7** in the working doc): close the real
+That powers a **coverage audit** (a query over `heritage`): close the real
 `implements` edges upward over `extends`; any `src/expressions` interface outside that
 closure is uncovered — then split into deliberate (commented), by-design families
 (`*Filter` / `*FragmentExpression` / `FragmentBuilder*` / callbacks, never
@@ -436,7 +440,7 @@ db.close()
 ```sql
 -- Build provenance / staleness gate (run FIRST in a consumer): is the index resolved,
 -- which git rev, and was the tree dirty? Compare git_rev to `git rev-parse HEAD`.
-SELECT key, value FROM meta;   -- schema_version, built_at, git_rev, git_dirty, resolve, tool
+SELECT key, value FROM meta;   -- schema_version, built_at, git_rev, git_dirty, resolve, rows, scope, tool
 
 -- Existence & classification (kills hallucinated API)
 SELECT (SELECT count(*) FROM symbol WHERE name=:n AND is_public=1) AS public_symbol,
@@ -491,13 +495,14 @@ each other (schema ↔ model ↔ extractor), kept in sync by hand.
   extractTests.ts        │  (BEGIN/END honoured by line range, never sliced); resolve
   extractDocTests.ts     │  each reference via the checker → resolved_*_id; emit row
   extractExamples.ts     │  objects (ids from a shared Ids counter)
-  extractNegTypeTests.ts ─┘
+  extractNegTypeTests.ts │
+  extractExtras.ts       ─┘
         │  walk.ts only ENUMERATES paths (test/, src/examples/) to feed the Program lookup
         ▼
   model.ts   row TYPES (one interface per table) + INSERTS (sql + column order)
         │
         ▼
-  build.ts   buildProgram() → extractors → open db → exec SCHEMA → insertMany per table → close
+  build.ts   buildProgram() → open db → exec SCHEMA → extractors, one dimension at a time, each inserted as it is extracted → close
         │
         ▼
   db.ts      IndexDb backend (bun:sqlite / node:sqlite / better-sqlite3)
@@ -513,6 +518,7 @@ each other (schema ↔ model ↔ extractor), kept in sync by hand.
 | [`extractDocTests.ts`](extractDocTests.ts) | the documentation dimension (BEGIN/END snippet regions in the compiled generated cells; refs resolved, positions mapped back to the `.md`). |
 | [`extractExamples.ts`](extractExamples.ts) | `example_block`/`example_ref` (interval segmentation of legacy examples). |
 | [`extractNegTypeTests.ts`](extractNegTypeTests.ts) | `neg_type`/`neg_type_ref` — one row per `// @ts-expect-error` in `types.negative` cells + the API it guards (resolved). |
+| [`extractExtras.ts`](extractExtras.ts) | `version_gate`/`sql_emit`/`producer`/`reference` (`extractExtras`), `todo_marker` (`extractTodoMarkers`) and `emitted_sql` (`extractEmittedSql`). |
 | [`verify.ts`](verify.ts) | structural smoke test (`tests:index:verify`) — re-extracts in `--no-resolve` mode and asserts counts/referential-integrity/id-uniqueness/reconcile invariants in memory. |
 | [`model.ts`](model.ts) | `*Row` interfaces + `INSERTS` (the SQL + column order + a `row()` mapper) + the `Ids` counter. |
 | [`schema.ts`](schema.ts) | the SQLite DDL as one exported `SCHEMA` string. |
@@ -569,6 +575,6 @@ wire it into the `openIndexDb` dispatcher. Everything above `db.ts` is backend-a
   current.
 - It uses the TypeScript 6 API (`typescript6`, see above).
   Unlike a pure-parse pass, it builds a real type-checked Program over the whole tree, so
-  a rebuild is ~2 min and peaks at ~12 GB (the type resolution is the cost — and the point;
+  a rebuild takes a couple of minutes and peaks at roughly 12 GB (the type resolution is the cost — and the point;
   it is ~70% of the peak). This is why `tests:index` is the one script whose runtime is not
   interchangeable — see `scripts/tests-index.sh --help`.

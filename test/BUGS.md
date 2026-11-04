@@ -34,7 +34,7 @@ skipped — internalise it before any `grep` or `Read` over `src/`:
    they saw; the searcher gives you every declaration site, every
    implementing class, every test that exercises the API, every
    first-class reason marker that names the symbol (`// TODO[BUG]`,
-   `// TODO[LIMITATION]`, `// NOT-APPLICABLE`), and the wrap shape
+   `// TODO[LIMITATION]`, `// NOT-SUPPORTED`, `// NOT-APPLICABLE`), and the wrap shape
    across cells — in one report.
 
    Recent miss: an entry on `virtualColumnFromFragment` named
@@ -107,11 +107,12 @@ Then gather the context appropriate to the bug's shape:
 - **SQL-emission bug** (the lib emits SQL the engine rejects, or the
   emitted SQL is wrong) — `bun run tests:where-is --search <symbol> --for emission-bug`
   bundles `emitted-sql full · implemented-by full (non-overriders) ·
-  version-gates · bugs full · limitation · not-applicable · chain
-  none`: the SQL the symbol emits across tests and docs, every
+  version-gates · bugs full · limitation · not-applicable ·
+  not-supported · mock-only · chain none`: the SQL the symbol emits across tests and docs, every
   implementing class, the compatibility-version branches that gate
   the method, sibling `// TODO[BUG]` markers and any declared
-  `// TODO[LIMITATION]` / `// NOT-APPLICABLE` that names the symbol.
+  `// TODO[LIMITATION]` / `// NOT-APPLICABLE` / `// NOT-SUPPORTED` /
+  `// MOCK-ONLY` that names the symbol.
   `chain` is off on purpose — emission happens after the call-chain,
   so the chain never reaches the emission site; use
   `--emits-keyword <sql-fragment>` to walk back from the SQL token
@@ -121,7 +122,7 @@ Then gather the context appropriate to the bug's shape:
   `bun run tests:where-is --search <symbol> --for type-bug` bundles
   `declared full · signature full · ref-type-arg full · neg-types
   full · bugs summary · limitation summary · not-applicable summary ·
-  chain none`: every declaration + signature, every place the type is
+  not-supported summary · mock-only summary · chain none`: every declaration + signature, every place the type is
   **used as a type argument** (the blast radius of an alias), the
   existing `@ts-expect-error` locks and sibling markers. The route
   for a type

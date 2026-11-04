@@ -78,9 +78,9 @@ tests:where-is  <door>  [<section> <level>]…  [<filter>]…  [--for <intent>] 
 ```bash
 bun run tests:where-is --search __addOrderBy                              # an exact name
 bun run tests:where-is --search-pattern 'orderBy'                         # regex → full reports
-bun run tests:where-is --search-location src/sqlBuilders/AbstractSqlBuilder.ts:1119               # a source line → enclosing fn
-bun run tests:where-is --search-location …:1119 --location-target produces                        # the TYPE it returns → its def (and more: see --location-target)
-bun run tests:where-is --search-location src/Table.ts:389 --location-target types                  # the indexed TYPES named on that line → each one's def
+bun run tests:where-is --search-location src/sqlBuilders/AbstractSqlBuilder.ts:1329               # a source line → enclosing fn
+bun run tests:where-is --search-location …:1329 --location-target produces                        # the TYPE it returns → its def (and more: see --location-target)
+bun run tests:where-is --search-location src/Table.ts:391 --location-target types                  # the indexed TYPES named on that line → each one's def
 bun run tests:where-is --search-location test/db/postgres/newest/pg/select.basic.test.ts:45       # a TEST line → inverse search
 bun run tests:where-is --emits-keyword 'returning old.'                  # a SQL token → the code that emits it
 bun run tests:where-is --search orderBy --coord postgres --chain full --for coverage-gap          # combine freely
@@ -163,7 +163,7 @@ to hide it (`--chain none`).
 | `--docs` | none · **summary** · by-page · full | where it's **explained**: doc page + heading + exact line, per db, with the snippet kind |
 | `--simplified` | none · **summary** · full | when the name IS a simplified def: completeness vs the real API per source + drift; and where the member appears **inside** a simplified-def snippet |
 | `--emitted-sql` | **none** · summary · full | the asserted `toMatchInlineSnapshot` SQL the symbol's **tests + docs** produce, de-duped with the asserting cells + the refresh kind |
-| `--tests` | none · **summary** · detail · gaps | matrix coverage — `summary` = `newest/total` per db; `detail` = per-test; `gaps` = who's-**missing** per db |
+| `--tests` | none · **summary** · detail · gaps | matrix coverage — `summary` = `newest/total` per db (`total` counts the indexed cells only: see [Index scope](#index-scope)); `detail` = per-test; `gaps` = who's-**missing** per db |
 | `--examples` | none · **summary** · full | legacy `src/examples/` occurrences |
 | `--neg-types` | none · **summary** · full | `@ts-expect-error` negative-type assertions — `summary` = count per db; `full` = each assertion's **rule comment + rejected snippet + file:line** (what you model a new lock on) |
 | `--bugs` | **none** · summary · full | `// TODO[BUG]` markers whose text **names the searched symbol** — a **src/ defect** (the library should do this but fails; re-enabled in this cell once fixed) |
@@ -214,7 +214,7 @@ to hide it (`--chain none`).
 >   under test, or the fault is injected. Never folded into NOT-APPLICABLE: a dialect boundary still
 >   validates in the dialects that support it, whereas a MOCK-ONLY case validates against **no engine in
 >   any cell**. Surfaced by `--mock-only`; **not** part of `--cell-caveats` (it blocks no wave, and the
->   markers repeat identically across all 67 cells).
+>   markers repeat identically across every cell).
 >
 > Each of the five is its own **name-scoped** section (`--bugs` / `--limitation` / `--not-supported` /
 > `--not-applicable` / `--mock-only`) — *"is there a known bug / limitation / engine boundary /
@@ -225,9 +225,10 @@ to hide it (`--chain none`).
 > view by design: it blocks nothing, and being uniform across the matrix it would bury the caveats that do.
 >
 > They diverge when a caveat is about a *dialect/version*, not a method. Searching `oldValues`,
-> `--not-supported` finds the markers that literally say `oldValues()`, but **misses** the "MariaDB
-> UPDATE…RETURNING needs 13.0.1+" entry in the same cells (its text never says `oldValues`) —
-> which `--cell-caveats --coord mariadb/newest` **does** surface. Name-scoped for *my symbol*,
+> `--not-applicable` finds the markers that literally say `oldValues()` (SQLite types it `never`), but
+> `--not-supported` **misses** the "MariaDB rejects RETURNING on a multi-table UPDATE" entry in the
+> update cells (its text never says `oldValues`) — which `--cell-caveats --coord mariadb/newest`
+> **does** surface. Name-scoped for *my symbol*,
 > coord-scoped for *my cell*; and `--not-applicable` keeps a *deliberate dialect boundary* from looking
 > like *actionable debt*.
 >
@@ -250,7 +251,8 @@ global focus). Exact closed-set values; no fuzzy substrings.
 
 The optional **4th (file) segment** is a glob/brace on the test-file **basename**; it **coexists**
 with `--file-name-pattern` (a regex over the full path that also covers doc pages) — both AND. A
-coord matching no indexed cell/file is an **error** (nullglob). Examples: `--coord postgres`
+coord matching no indexed cell/file is an **error** (nullglob), which depends on the [index
+scope](#index-scope). Examples: `--coord postgres`
 (everything postgres) · `--coord 'postgres/*/{pg,postgres}'` (those connectors) · `--coord
 'mariadb/oldest'` (the `-compatibility` examples) · `--coord 'postgres/newest/pg/select.order-by*'`
 (a test file) · `--coord '*/newest' --coord mysql`.
@@ -273,15 +275,15 @@ default. Explicit flags still override.
 |---|---|
 | `bare` | **every section `none`** — a blank report; add only the section(s) you want instead of typing a dozen `--<section> none`. Explicit flags (and `--refs`) turn things back on: `--for bare --surface own` shows only the surface |
 | `coverage-gap` | classification `full` · chain `full` · ref-return `summary` · tests `gaps` · examples `full` · cell-caveats `summary`→`full` if `--coord` |
-| `type-bug` | declared `full` · signature `full` · ref-type-arg `full` · neg-types `full` · bugs `summary` · limitation `summary` · not-applicable `summary` · mock-only `summary` · chain `none` — the TYPE counterpart of `emission-bug`: a type-resolution bug lives in the **signature**, not the call-chain, so it raises every declaration site, the full signature/overloads, the alias's blast radius (where the type is a type argument), the negative type tests, and any dialect-boundary marker (a `never` is often `NOT-APPLICABLE`) |
-| `emission-bug` | emitted-sql `full` · ref-implements `full` (non-overriders) · version-gates `summary` · bugs `full` · limitation `summary` · not-applicable `summary` · mock-only `summary` · chain `none` |
-| `version-work` | version-gates `full` · tests `summary` · bugs `summary` · limitation `summary` · not-applicable `summary` · mock-only `summary` · chain `none` |
+| `type-bug` | declared `full` · signature `full` · ref-type-arg `full` · neg-types `full` · bugs `summary` · limitation `summary` · not-applicable `summary` · not-supported `summary` · mock-only `summary` · chain `none` — the TYPE counterpart of `emission-bug`: a type-resolution bug lives in the **signature**, not the call-chain, so it raises every declaration site, the full signature/overloads, the alias's blast radius (where the type is a type argument), the negative type tests, and any dialect-boundary marker (a `never` is often `NOT-APPLICABLE`) |
+| `emission-bug` | emitted-sql `full` · ref-implements `full` (non-overriders) · version-gates `summary` · bugs `full` · limitation `summary` · not-applicable `summary` · not-supported `summary` · mock-only `summary` · chain `none` |
+| `version-work` | version-gates `full` · tests `summary` · bugs `summary` · limitation `summary` · not-applicable `summary` · not-supported `full` · mock-only `summary` · chain `none` |
 | `post-fix-sync` | emitted-sql `full` · docs `full` · examples `full` · tests `detail` · bugs `summary` · chain `none` |
 | `propagation` | classification `summary` · tests `gaps` · examples `summary` · cell-caveats `summary`→`full` if `--coord` · chain `none` — the COVERAGE_RUNBOOK *Propagation* view (copy the canonical test to the sibling cells) |
 
-The caveat sections split by *scope*: `--bugs`/`--limitation`/`--not-applicable`/`--mock-only` are **name-scoped**
-(markers naming the symbol) and ride the feature-centric presets (`type-bug`/`emission-bug`/`version-work`
-carry all four — a `never` typing is often a `NOT-APPLICABLE` boundary); `--cell-caveats` is **coord-scoped** and rides
+The caveat sections split by *scope*: `--bugs`/`--limitation`/`--not-supported`/`--not-applicable`/`--mock-only` are
+**name-scoped** (markers naming the symbol) and ride the feature-centric presets (`type-bug`/`emission-bug`/`version-work`
+carry all five — a `never` typing is often a `NOT-APPLICABLE` boundary); `--cell-caveats` is **coord-scoped** and rides
 `coverage-gap` / `propagation` **coord-aware** — `summary` (the per-cell **map**) while you browse
 with no `--coord`, auto-raised to `full` (the **markers**) the moment you scope with a `--coord`. The
 level meaning is fixed (`summary`=map, `full`=markers); the preset just picks the useful one. An
@@ -292,8 +294,24 @@ explicit `--cell-caveats` still overrides.
 the index once** before the first search and refresh it when stale:
 
 ```bash
-npm run tests:index:newest           -- # build / refresh the index — newest cells only (low RAM, the session default)
-npm run tests:index                  -- # full index (all version tiers + domain) — heavier; only when a query must reach an older tier
+npm run tests:index:newest    # build / refresh the index — newest cells only (low RAM, the session default)
+npm run tests:index           # full index (all version tiers + domain) — heavier; only when a query must reach an older tier
+```
+
+### Index scope
+
+An index built with `tests:index:newest` (`meta.scope` = `newest`) holds all of `src/`, `docs/` and
+`src/examples/`, but of the matrix only `<db>/newest` and `<db>/types.negative`. **The older version
+tiers and the `domain` cells are simply absent, and no report says so**: the header does not print the
+scope, so an empty section can mean "no such test" or "not indexed". On such an index, `--tests summary`
+shows a `newest/total` whose `total` leaves the older tiers out; a `--coord` naming an older tier or a domain cell is an
+error, unless a legacy example maps to it (`mariadb/oldest`), and then only the examples match.
+
+Before trusting an absence that may live in an older tier, read the scope and rebuild with `tests:index`
+if it says `newest`:
+
+```bash
+sqlite3 test/lib/codeIndexer/generated/code-index.sqlite "select value from meta where key = 'scope'"
 ```
 
 ## When you'd use it
@@ -327,7 +345,7 @@ In a **chain search**, the line shown is the **exact invocation line** (where th
 called), and the labelled range is the body of the calling function:
 
 ```
-- `orderBy` invokes `__addOrderBy` at src/queryBuilders/SelectQueryBuilder.ts:247 (caller body lines 241–249)
+- `orderBy` invokes `__addOrderBy` at src/queryBuilders/SelectQueryBuilder.ts:288 (caller body lines 282–290)
 ```
 
 **Public surface vs internal.** Only functions **exposed by a public interface** are public.
@@ -399,7 +417,7 @@ under `bun run` they pass straight through.
 
 ## Worked example — internal symbol to docs & tests
 
-`__addOrderBy` (an internal method at `src/queryBuilders/SelectQueryBuilder.ts:250`,
+`__addOrderBy` (an internal method in `src/queryBuilders/SelectQueryBuilder.ts`,
 the kind of thing a coverage report points you at):
 
 1. `tests:where-is --search __addOrderBy` → the **chain-strict** search shows it's reached by
@@ -407,7 +425,7 @@ the kind of thing a coverage report points you at):
 2. `tests:where-is --search orderBy` → **Implemented by** `AbstractSelect`, realizing the
    simplified def `SelectExpression`; **Explained in docs** at `docs/api/select.md`
    plus every `.orderBy(...)` example across `docs/queries/*.md` with exact lines;
-   **Coverage** ~5 k matrix tests across all databases + legacy examples + 6
+   **Coverage** the matrix tests across all databases + legacy examples + the
    negative-type assertions.
 
 That's the internal → public → docs → tests trail, from a single symbol.
@@ -418,11 +436,14 @@ The index is a **snapshot** of the tree at build time. Every report header state
 provenance and warns when it's likely out of date:
 
 ```
-> index: built 2026-06-05T14:20:00Z · 40fa555f-dirty · resolved · schema v4
-> ⚠️  index built at 40fa555f, working tree is at d9100896 — likely STALE; rebuild with `tests:index`
+> index: built 2026-06-05T14:20:00Z · 40fa555f-dirty · resolved · schema v6
+> ⚠️  index built at 40fa555f, working tree is at d9100896 — likely STALE; rebuild with `tests:index:newest` (or `tests:index` for every version tier)
 > ⚠️  working tree is dirty — the index may not reflect uncommitted edits
 ```
 
 If you see those warnings and your question is about code you just changed, re-run
-`npm run tests:index`. If the searcher ever refuses the index outright instead of
-just warning, the same rebuild is the fix.
+`npm run tests:index:newest` (or `npm run tests:index` when the question reaches an older tier). If
+the searcher ever refuses the index outright instead of just warning, the same rebuild is the fix.
+
+The header says nothing about [scope](#index-scope): a fresh newest-scope index still lacks the older
+tiers and the domain cells.

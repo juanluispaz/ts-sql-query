@@ -52,7 +52,7 @@ Agent({
 ```
 
 The prompt deliberately asks the sub-agent to read
-DESIGN/WRITING_TESTS/BUGS/LIMITATIONS/ENGINE_SUPPORT/EXTERNAL_CAVEATS/ANTIPATTERNS
+DESIGN/WRITING_TESTS/BUGS/LIMITATIONS/ENGINE_SUPPORT/EXTERNAL_CAVEATS/ANTIPATTERNS/TESTS_AUDIT
 itself, rather than trust a summary. That gives the gate independence
 from whatever assumptions the writing agent made.
 
@@ -92,7 +92,7 @@ with it inside the loop defeats the point.
 
 This gate sits **next to** [`tests:audit`](./TESTS_AUDIT.md), not in
 competition with it. The audit is the **mechanical anti-cheat layer**:
-~24 syntactic rules (`mirror-image`, `one-sided-guard`, `mock-only`,
+syntactic rules (`mirror-image`, `one-sided-guard`, `mock-only`,
 `as-any`, `commented-test-reason`, `tautology`, `weak-matcher` …) that
 fire across the **whole matrix** at the close of the round and block
 merge on `error` severity. The sub-agent is the **earlier feedback** on
@@ -133,7 +133,7 @@ blocks them across the matrix at round close):
 - Mock-only tests + real-DB skips — `mock-only` / `skip-real-db` rules.
 
 The sub-agent still reads these on the canonical because catching them
-**before** propagation saves the cost of re-baking 17 sibling cells; the
+**before** propagation saves the cost of re-baking every sibling cell; the
 audit catches them **after** propagation as the final blocker. Belt and
 braces.
 
@@ -199,6 +199,7 @@ wrappers):
 
 Pending items are tracked under the matching entries in
 [`ANTIPATTERNS.md`](./ANTIPATTERNS.md) as "Gate pending". As each
-lands, this section and the sub-agent prompt
+lands, this section drops it and the sub-agent prompt
 ([`lib/canonical-cell-review-prompt.md`](./lib/canonical-cell-review-prompt.md))
-both drop the matching check.
+tags the matching check `[also caught by tests:audit: <rule>]`, keeping only the
+calls the audit can't make.

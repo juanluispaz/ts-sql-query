@@ -14,10 +14,7 @@ deliberately does not expose `.returning(...)` on `MySqlConnection`,
 — the call cannot even be written — which is why they are tracked by
 symmetry rather than by a catalogue of their own.
 
-*(This file used to be titled "external caveats … driver / engine /
-runtime" while most of its content was those library-side narrowings.
-The mismatch got it misread more than once; the runtime facts now live in
-[`ENGINE_SUPPORT.md`](./ENGINE_SUPPORT.md).)*
+The runtime facts live in [`ENGINE_SUPPORT.md`](./ENGINE_SUPPORT.md).
 
 Boundary with the other catalogues:
 
@@ -28,7 +25,7 @@ Boundary with the other catalogues:
 | [`ENGINE_SUPPORT.md`](./ENGINE_SUPPORT.md) | what the engine / this engine **version** / its build / the driver **cannot run**, with the `// NOT-SUPPORTED:` markers that disable those tests |
 | This file | the **operational** side of the same story: how each constraint is wired in today's matrix (workarounds already in the runners, per-dialect typed narrowings, the checklist when adding a connector) |
 
-> **Read this boundary carefully — it has been misread before.** Most of the
+> **Read this boundary carefully.** Most of the
 > per-dialect notes below are **typed narrowings**: the library deliberately does
 > not expose `.returning(...)` on `MySqlConnection`, `oldValues()` on
 > `SqliteConnection`, `onConflictOn(...)` on `MariaDBConnection`, … Those are
@@ -162,7 +159,7 @@ that version.
 *or* the access mode but not both simultaneously. The
 `docs:transaction/isolation-level` snippet from
 `docs/queries/transaction.md` uses
-`connection.isolationLevel('serializable', 'read only')` and is
+`connection.isolationLevel('snapshot', 'read only')` and is
 commented out in `test/db/oracle/newest/oracledb/docs.transaction.test.ts`.
 When adding a new Oracle cell, either keep the test commented or write
 a single-arg Oracle-friendly variant.
@@ -195,12 +192,11 @@ following tests are commented out in `test/db/mariadb/newest/mariadb/docs.insert
 
 ### PostgreSQL — targeted upsert required (no bare form)
 
-PostgreSQL requires `.onConflictOn(col).doUpdateSet({...})`. The bare
-`.onConflictDoUpdateSet({...})` form emits an untargeted `ON CONFLICT
-DO UPDATE` clause which postgres rejects at execution time (pglite
-catches it, the other postgres cells run mock-only and silently pass —
-the symmetry-rule comment-out keeps every postgres cell aligned). The
-following is commented out in every `test/db/postgres/*/<connector>/docs.insert.test.ts`:
+PostgreSQL requires a target: `.onConflictOn(col).doUpdateSet({...})` or
+`.onConflictOnConstraint(name).doUpdateSet({...})`. The bare
+`.onConflictDoUpdateSet({...})` form is not typed on `PostgreSqlConnection`, so
+the call doesn't compile, a `// NOT-APPLICABLE:` boundary with its negative in
+the dialect's `types.negative/`. The following is commented out in every `test/db/postgres/*/<connector>/docs.insert.test.ts`:
 
 - `docs-extra:insert/insert-on-conflict-do-update-bare`
 
@@ -222,17 +218,21 @@ cell (`test/db/sqlite/*/<connector>/docs.transaction.test.ts`).
 
 ## Connectors not in the matrix today
 
-A query runner reachable from the public exports, with its own implementation
-in `src/queryRunners/` but no `test/db/<db>/<version>/<connector>/` cell, would
-be listed here; none is today. (The **sync runners** are no longer among them: `extras/sync`
-is covered by the `<connector>-sync` cells that exist for every embedded SQLite
-driver — `better-sqlite3-sync`, `bun_sqlite-sync`, `node_sqlite-sync`,
-`sqlite-wasm-OO1-sync` — inside the main matrix, not in a separate sub-tree.)
+A driver with a query runner in the public exports but no
+`test/db/<db>/<version>/<connector>/` cell would be listed here; none is today.
+Cells go one per driver, so a runner over the same driver as a cell has none of
+its own: the single-connection `PgQueryRunner`, `MySql2QueryRunner`,
+`MariaDBQueryRunner` and `OracleDBQueryRunner`, and the `*PoolPromise` twins
+`MssqlPoolPromiseQueryRunner` and `OracleDBPoolPromiseQueryRunner`, are exercised
+by the query-runner tests ([`RUNNER_TESTS.md`](./RUNNER_TESTS.md)). `extras/sync`
+is covered by the `<connector>-sync` cells inside the main matrix
+(`better-sqlite3-sync`, `bun_sqlite-sync`, `node_sqlite-sync`,
+`sqlite-wasm-OO1-sync`).
 
 When one is added to the main matrix:
 
 1. Create the cell folder under the appropriate database following
-   `DESIGN.md §8`.
+   [`NEW_DATABASE.md`](./NEW_DATABASE.md).
 2. Copy every `docs.*.test.ts` from a sibling cell (sqlite canonical
    is the cheapest source).
 3. Run `bun run tests <db>/<version>/<connector> --update-snapshots`
@@ -245,28 +245,21 @@ When one is added to the main matrix:
    merging (tsc, one program per connector; a single whole-matrix program
    OOMs, >17 GB).
 
-## Connection-subclass patterns not testable in the shared domain
+## Connection-subclass patterns and the `docs.*` tests
 
-A handful of features documented in `docs/advanced/` require a custom
-`DBConnection` subclass — they extend `transformValueFromDB` /
-`transformValueToDB` or expose typed helper methods built with
-`buildFragmentWithArgs`. The shared domain
-(`test/db/<db>/domain/connection.ts`) is intentionally vanilla, so
-these features can't be exercised end-to-end inside `docs.*.test.ts`
-without diverging the domain (which breaks symmetry across cells).
-
-The library functions involved are nevertheless tested in isolation
-where possible. Items to revisit if/when the domain gains a feature
-that justifies the divergence:
+A handful of features documented in `docs/` require a custom `DBConnection`
+subclass — they extend `transformValueFromDB` / `transformValueToDB` or expose
+typed helper methods built with `buildFragmentWithArgs`. The shared domain
+(`test/db/<db>/domain/connection.ts`) carries what the matrix covers of them, and
+those tests live outside the `docs.*` files:
 
 - **`buildFragmentWithArgs` / `buildFragmentWithArgsIfValue` / `buildFragmentWithMaybeOptionalArgs`**
   (docs/queries/sql-fragments.md, "Reusable fragments" /
   "Conditional fragments" / "Nullable fragments"). All three are
-  `protected` on AbstractConnection and meant to be called from
-  inside a DBConnection subclass. Slot kept in
-  `docs.sql-fragments.test.ts` as a TODO comment; reintroduce when
-  the shared domain grows a real helper that demonstrates the
-  pattern.
+  `protected` on AbstractConnection; the domain's `DBConnection` exposes helpers
+  built with them, covered by `fragments.with-args.test.ts`.
+  `docs.sql-fragments.test.ts` keeps a TODO comment as the slot of the page's
+  example.
 - **Globally Encrypted ID (id-manipulation.md)** — needs a
   DBConnection subclass overriding `transformValueFromDB` /
   `transformValueToDB` and a per-table `ID_<prefix>` custom type.
@@ -275,18 +268,19 @@ that justifies the divergence:
   to lock its round-trip contract.
 - **createTableOrViewCustomization** (sql-fragments.md "Table or view
   customization") — defines alternative renderings for table
-  references. Requires either a custom Table subclass per case or a
-  Values-based pattern. Out-of-scope for the symmetric domain today.
+  references. Declared on the domain's `DBConnection`, covered by
+  `select.table-customization.test.ts` and
+  `select.table-customization-positions.test.ts`.
 
 ## "Could test more if real DB were on" assertions
 
 A handful of tests check structural shape only (SQL+params+type)
 because the value can't be locked in without docker / real WASM:
 
-- `docs:insert/insert-returning` — the real id is autogenerated; the
+- `docs:insert/insert-one-set` — the real id is autogenerated; the
   mock returns the primed value, real returns whatever the engine
   picked. Pattern: `if (!ctx.realDbEnabled) expect(id).toBe(...)`.
-- `docs:select-page/extras-with-data-skips-data-query` — count is the
+- `docs-extra:select-page/extras-with-data-skips-data-query` — count is the
   primed value in mock mode, real `count(*)` in real-DB mode.
 - `docs-extra:transaction/hooks-cleared-after-use` and similar hook
   tests — work in both modes, but only the side-effect counter is
@@ -327,5 +321,6 @@ matrix is extended:
 - `docs/about/*` — narrative.
 - `docs/CHANGELOG.md`, `docs/index.md` — meta.
 
-`docs/advanced/synchronous-query-runners.md` belongs to the future
-sync sub-tree, not to the main matrix.
+`docs/advanced/synchronous-query-runners.md` is a feature page: its tests are
+`docs.advanced.synchronous-query-runners.test.ts`, in every cell, and the sync
+runners run in the `<connector>-sync` cells.

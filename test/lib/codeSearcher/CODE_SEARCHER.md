@@ -30,7 +30,7 @@ and [`schema.ts`](../codeIndexer/schema.ts) (the `SCHEMA_VERSION` it gates on).
 > **Just want to USE it?** Read [`test/CODE_SEARCH.md`](../../CODE_SEARCH.md) instead —
 > the agent-facing usage doc. This file is the **implementation reference** (modules,
 > the read-only seam, how to extend it). The design rationale (the **why** — intents, the
-> cross-cutting lessons, what was and wasn't built) lives in [`MODEL.md`](./MODEL.md), and the six
+> cross-cutting lessons, what was and wasn't built) lives in [`MODEL.md`](./MODEL.md), and the
 > worked case studies that discovered it in [`CASE_STUDIES.md`](./CASE_STUDIES.md).
 
 ## Run it
@@ -44,19 +44,19 @@ bun run tests:where-is --search-pattern-summary '<regex>'               # regex 
 bun run tests:where-is --search-location src/foo/Bar.ts:84               # a source location → enclosing fn
 ```
 
-Plus the v4 doors: `--location-target callees` (the fn invoked ON a src line), a TEST-file
+Also: `--location-target callees` (the fn invoked ON a src line), a TEST-file
 `--search-location` (inverse search → the `test_block` + API it exercises), and
 `--emits-keyword <sql-fragment>` (SQL token → the SqlBuilder code that emits it).
 
-HOW to shape the report — **one levelled flag per section** (`--search-mode` was removed):
+HOW to shape the report — **one levelled flag per section**:
 
 ```bash
 bun run tests:where-is --search <name> --chain full          # whole internal stack (vs strict/broad)
 bun run tests:where-is --search <name> --tests gaps          # who's-missing per db
 bun run tests:where-is --search <name> --ref-return full --version-gates full --bugs full
-bun run tests:where-is --search <name> --name-search full    # name-based discovery (was --search-mode name)
+bun run tests:where-is --search <name> --name-search full    # name-based discovery
 bun run tests:where-is --search <name> --for emission-bug    # preset a section set
-bun run tests:where-is --search <name> --db <path>           # non-default index file
+bun run tests:where-is --search <name> --index <path>        # non-default index file
 # or, directly:
 bun test/lib/codeSearcher/search.ts --search <name> [flags]
 npx tsx test/lib/codeSearcher/search.ts --search <name> [flags]          # under Node
@@ -75,11 +75,11 @@ doors × levelled sections × `--coord` focus × presets, and the rationale behi
   contains that line (`enclosingAt` in [`queries.ts`](queries.ts)) and prints what it found
   before the report.
 
-Under `npm run`, bare flags need the `--` separator (`npm run tests:where-is -- --search <name> --search-mode name`);
+Under `npm run`, bare flags need the `--` separator (`npm run tests:where-is -- --search <name> --name-search full`);
 under `bun run` they pass straight through.
 
 It reads **`test/lib/codeIndexer/generated/code-index.sqlite`** by default (build it
-first with `tests:index`). If the file is missing it exits non-zero with a hint.
+first with `tests:index:newest`, or `tests:index` for every version tier). If the file is missing it exits non-zero with a hint.
 
 ## Staleness & compatibility gate ([`meta.ts`](meta.ts))
 
@@ -101,13 +101,13 @@ searcher reads the indexer's `meta` table and:
 Every report starts with a provenance line so the answer carries its own trust level:
 
 ```
-> index: built 2026-06-03T20:32:03Z · 40fa555f-dirty · resolved · schema v3
-> ⚠️  index built at 40fa555f, working tree is at d9100896 — likely STALE; rebuild with `tests:index`
+> index: built 2026-06-03T20:32:03Z · 40fa555f-dirty · resolved · schema v6
+> ⚠️  index built at 40fa555f, working tree is at d9100896 — likely STALE; rebuild with `tests:index:newest` (or `tests:index` for every version tier)
 ```
 
 ## What the report contains
 
-Sections are emitted only when they have content; the order maps to DESIGN.md §9.4.
+Sections are emitted only when they have content.
 Every printed `file:line` is followed by a **labelled** block range — `definition spans`
 (declaration), `caller body` (calling function), `snippet spans` (doc fence) — from
 `*_start_line`/`*_end_line` in the index (`symbol`, `member`, `invocation.caller_*`,
@@ -117,7 +117,8 @@ the searched symbol is called), not the caller's start; the labelled range is th
 caller's body.
 
 Each section is a **levelled flag** (`none`/`summary`/`full` + shape levels); `none` hides it.
-Defaults reproduce the classic report. The sections:
+Defaults reproduce the classic report. The `R<n>` recipe labels match the section comments in
+[`queries.ts`](queries.ts). The sections:
 
 | Section | Source recipe | Answers |
 |---|---|---|
@@ -141,9 +142,11 @@ Defaults reproduce the classic report. The sections:
 | **Coverage** | R2 + neg_type | (`--tests <summary\|detail\|gaps>`) matrix tests by db (`newest/total`), per-test detail, or who's-missing per db; legacy examples; negative-type assertions |
 | **Known divergences** | `todo_marker` | (`--bugs`) `// TODO[BUG]` markers **naming the symbol** (case C/D/F); name-scoped |
 | **Known limitations** | `todo_marker` | (`--limitation`) `// TODO[LIMITATION]` markers **naming the symbol**; name-scoped |
+| **Dialect boundaries** | `todo_marker` | (`--not-applicable`) `// NOT-APPLICABLE` markers **naming the symbol** — a permanent dialect boundary; name-scoped. `summary` groups by reason and reports the cell count |
+| **External-runtime boundaries** | `todo_marker` | (`--not-supported`) `// NOT-SUPPORTED` markers **naming the symbol** — the engine, this engine version, its build or the driver can't run it; name-scoped. `summary` groups by reason and reports the cell count |
 | **Mock-only scenarios** | `todo_marker` | (`--mock-only`) `// MOCK-ONLY` markers **naming the symbol**; name-scoped. The one category that is NOT a disabled test — the test runs in every mode, only its INPUT is mocked. `summary` groups by reason (the matrix is symmetric, so one scenario = N identical markers) and reports the cell count; `full` lists each |
-| **Cell caveats** | `todo_marker` | (`--cell-caveats`) BUG+LIMITATION markers in the cells `--coord` matches — **coord-scoped**, not by symbol; `caveatMarkers` filtered by `cellFromPath ∈ coord` (case G) |
-| **Search: chain (strict/broad/full)** | R5 + §9.1/§9.2 | *(search, `--chain`)* call-chain — public callers grouped by area + direct callers; `full` = the whole internal stack |
+| **Cell caveats** | `todo_marker` | (`--cell-caveats`) BUG, LIMITATION, NOT-SUPPORTED and NOT-APPLICABLE markers in the cells `--coord` matches — **coord-scoped**, not by symbol; `caveatMarkers` filtered by `cellFromPath ∈ coord` (case G) |
+| **Search: chain (strict/broad/full)** | R5 | *(search, `--chain`)* call-chain — public callers grouped by area + direct callers; `full` = the whole internal stack |
 | **Search: name** | R6 | *(search, `--name-search`)* name-based — hit count per dimension (low precision, high recall) |
 
 **Public surface — read straight from the index.** The public/internal verdict is
@@ -158,8 +161,8 @@ chain search.
 
 ### The two searches (`--chain`, `--name-search`)
 
-The "where/how is this used?" question has two distinct answers, each its own levelled flag
-(`--search-mode` was removed). `--chain` defaults to `strict`.
+The "where/how is this used?" question has two distinct answers, each its own levelled flag.
+`--chain` defaults to `strict`.
 
 **Call-chain search (`--chain strict|broad|full`).** `callChain` in
 [`queries.ts`](queries.ts) is an **iterative BFS upward** over the `invocation` table,
@@ -193,25 +196,26 @@ call-chain entirely and counts every occurrence of the name across all dimension
 (symbol/member/invocation/test/doc/example/neg). It finds usages the graph can't connect
 (dynamic dispatch, re-exports), at the cost of noise — high recall, low precision.
 
-> **Resolution-scatter caveat** (inherited from the index, DESIGN.md §11.2): a fluent
+> **Resolution-scatter caveat** (inherited from the index, see
+> [`CODE_INDEXER.md`](../codeIndexer/CODE_INDEXER.md)): a fluent
 > `.orderBy` resolves to the overloaded *interface* signatures, not the impl. The
 > searcher therefore keys cross-dimension lookups on the **name** (`symbol_name` /
 > `callee_name`), which is what the recipes do, so this scatter does not distort the
 > answer. The `resolved_*` FKs are available for callers that want an exact link — the
-> **call-chain now uses them** (the precise walk above); the flat cross-dimension recipes stay name-keyed.
+> **call-chain uses them** (the precise walk above); the flat cross-dimension recipes stay name-keyed.
 
 ## Worked example — the validated chain
 
-`tests:where-is --search __addOrderBy` (internal, `src/queryBuilders/SelectQueryBuilder.ts:250`)
-— equivalently `--search-location src/queryBuilders/SelectQueryBuilder.ts:252`:
+`tests:where-is --search __addOrderBy` (internal, in `src/queryBuilders/SelectQueryBuilder.ts`)
+— equivalently `--search-location src/queryBuilders/SelectQueryBuilder.ts:291`:
 
 - **Search: chain-strict** → `orderBy` / `orderByFromString` at the `queryBuilders`
   layer — the public methods that wrap it.
 - `tests:where-is --search orderBy` then lands the rest: **Referenced in implements/extends** `AbstractSelect`
   realizing the simplified def `SelectExpression`; **Explained in docs** at
-  `docs/api/select.md:99-104` (the `SelectExpression` decl) plus every `.orderBy(...)`
-  query example across `docs/queries/*.md` with exact lines; **Coverage** ~5 k matrix
-  tests + 531 example occurrences + 6 negative-type assertions.
+  `docs/api/select.md` (the `SelectExpression` decl) plus every `.orderBy(...)`
+  query example across `docs/queries/*.md` with exact lines; **Coverage** the matrix
+  tests + the example occurrences + the negative-type assertions.
 
 That is the precise internal→public→docs→tests chain the index was built to support,
 reachable from a single coverage-report symbol.
@@ -223,7 +227,8 @@ test/lib/codeSearcher/
 ├── search.ts     ← CLI entry: arg parse, open read-only, meta gate, print
 ├── meta.ts       ← staleness / schema-compat gate (reads the meta table)
 ├── queries.ts    ← the query layer: one typed function per recipe (R1–R8 + BFS)
-└── render.ts     ← orchestrates queries → markdown; emits only non-empty sections
+├── render.ts     ← orchestrates queries → markdown; emits only non-empty sections
+└── verify.ts     ← regression guard (tests:where-is:check)
 ```
 
 - **Read-only seam.** `openIndexDbReadonly(path)` in [`db.ts`](../codeIndexer/db.ts)
@@ -234,38 +239,39 @@ test/lib/codeSearcher/
   parameters, never interpolate), then a section in [`render.ts`](render.ts) that
   calls it and only prints when non-empty. Keep the recipe ↔ section mapping above in
   sync.
-- **Add a search strategy**: add it to the `Strategy` union + `STRATEGIES` in
-  [`render.ts`](render.ts) (a single source of truth `parseArgs` validates against),
-  render its section, and document it in `HELP` /
-  [`scripts/tests-where-is.sh`](../../../scripts/tests-where-is.sh).
+- **Add a section**: add its flag + levels to `SECTION_SPECS` in [`search.ts`](search.ts)
+  (the table `parseArgs` validates against) and its key to `Sections` / `DEFAULT_SECTIONS` in
+  [`render.ts`](render.ts), render it, add it to the `PRESETS` it belongs to, and document it
+  in `HELP` ([`search.ts`](search.ts)) and [`test/CODE_SEARCH.md`](../../CODE_SEARCH.md).
 - **Schema changes** ride through `SCHEMA_VERSION`: when the indexer bumps it, an old
   index is refused automatically — no version logic needed here.
 
 ## Status & remaining candidates
 
-The searcher is **complete** for the flows the case studies (A–I) surfaced — see
+The searcher is **complete** for the flows the case studies (A–L) surfaced — see
 [`MODEL.md`](./MODEL.md) for the as-built model and [`CASE_STUDIES.md`](./CASE_STUDIES.md) for what
 drove each piece, including what was deliberately **not** built and why ([`MODEL.md` §6](./MODEL.md)).
 
-**Shipped** (incl. items off the original roadmap): coverage **gaps per db** (`--tests gaps`),
+**Shipped:** coverage **gaps per db** (`--tests gaps`),
 **negative-type detail** (`--neg-types full`), **`--search-location` over tests** (the inverse
-search), plus the v4 dimensions — producers, version-gates, emitted-sql, **cell-caveats** (coord-scoped
-caveats), the `propagation` preset, and `--bugs`/`--limitation`. **The "references by role" family**
-(case J): `--ref-return`/`--ref-implements` (renamed from `--producers`/`--implemented-by`) + the v5
+search), plus the dimensions `--ref-return`, version-gates, emitted-sql, **cell-caveats** (coord-scoped
+caveats), the `propagation` preset, and the name-scoped caveat sections (`--bugs`/`--limitation`/
+`--not-supported`/`--not-applicable`/`--mock-only`). **The "references by role" family**
+(case J): `--ref-return`/`--ref-implements` + the
 `reference` dimension powering **`--ref-type-arg`** (type-bug), **`--ref-param`**, **`--ref-field`**,
 **`--ref-new`** and **`--ref-property`** (cases B/L), the `--refs` shortcut, and the forward
 **`--location-target produces`**. Plus **overload handling** — `--search-location` pins to the concrete
 overload (with `--location-target enclosing-all` / landing on the impl → the whole function), keyed off
-the new **`member.is_implementation`** flag; and the **traceable `reference.enclosing_member_id/_symbol_id`
+the **`member.is_implementation`** flag; and the **traceable `reference.enclosing_member_id/_symbol_id`
 FK** (replacing a vague enclosing name). Plus the **`--for type-bug` preset** (J-a) — `--declared full ·
---signature full · --ref-type-arg full · --neg-types full · --bugs/--limitation summary · --chain none`,
+--signature full · --ref-type-arg full · --neg-types full · --bugs/--limitation/--not-applicable/--not-supported/--mock-only summary · --chain none`,
 the TYPE twin of `emission-bug` (the route is the signature, never the stack). Plus the **forward-from-line
 type navigation** (J-b) — **`--location-target types`** (the indexed types referenced ON the exact line →
 each one's def) and **`--location-target types-all`** (across the whole function — every overload + impl
 body, via the enclosing FK). A **terminal navigation report** (`type · role · defined-at` + site count),
 not a section set — the dual of `--ref-type-arg`, reading `reference` forward; the 1-step replacement for
 "read the alias names off `--signature full`, then `--search` each". Plus the **brand / phantom-type
-dimension** (L) — `memberName` now indexes identifier-keyed computed properties under `[source]`/`[type]`,
+dimension** (L) — `memberName` indexes identifier-keyed computed properties under `[source]`/`[type]`,
 and a `reference` role=`brand` links each brand declaration to its `unique symbol` marker
 (`src/utils/symbols.ts`), powering the reverse **`--ref-brand`** (`--search source --ref-brand` → every
 type carrying the brand) and the forward **`--location-target brand`** (a `[sym]: T` line → the marker
@@ -281,11 +287,11 @@ keeping them broken down by declaring type. Every member carries `path:line` + i
 
 **Genuinely-open candidates** (pick up when wanted):
 - *(none material — the bug-fixer agenda is closed, the surface/chain/brand enhancements shipped, and the
-  **output-regression harness** is now in `verify.ts` phase 2: golden query+render asserts against the built
+  **output-regression harness** is in `verify.ts` phase 2: golden query+render asserts against the built
   index, derived line numbers, skipped when absent.)*
 
 **Out of scope** (rationale in [`MODEL.md` §6](./MODEL.md)): JSON output (the agent reads markdown);
-a `--real-capable` annotation (runtime, not static); a `--todo <category>` generic flag (no tag beyond
-BUG/LIMITATION exists); the **untested-public-surface sweep** and any **negative-coverage-gap lens** —
+a `--real-capable` annotation (runtime, not static); a `--todo <category>` generic flag (each marker tag the
+searcher consumes already has its own section); the **untested-public-surface sweep** and any **negative-coverage-gap lens** —
 *"what's untested / what type-safety is missing"* belongs to a future **type-coverage** tool (the
 type-level twin of runtime code coverage, which can read this index), not to the searcher.

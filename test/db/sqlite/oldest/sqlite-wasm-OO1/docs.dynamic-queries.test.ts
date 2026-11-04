@@ -5,119 +5,134 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tProject } from '../../domain/connection.js'
+import { tIssue, tProject, tOrganization } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+
+const byTitleDescending = (a: { title: string }, b: { title: string }) => b.title.localeCompare(a.title)
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    test('docs:dynamic-queries/with-equals-if-value', async () => {
+    test('docs:dynamic-queries/easy-dynamic-queries', async () => {
         const expected = [
-            { id: 1, title: 'Update hero copy', status: 'open' },
-            { id: 3, title: 'Migrate to ESM',   status: 'open' },
+            { id: 2, name: 'Internal tools tools' },
+            { id: 1, name: 'Marketing site mktg-site' },
         ]
         ctx.mockNext(expected)
         const connection = ctx.conn
 
         // doc-start
-        const filterStatus: string | null = 'open'
-        const filterPriority: number | null = null
+        const nameContains = 'te'
+        const slugContains = null
+        const archivedAtIs = null
+        const searchOrderBy = 'name insensitive, archivedAt asc nulls last'
 
-        const issues = await connection.selectFrom(tIssue)
-            .where(tIssue.status.equalsIfValue(filterStatus))
-              .and(tIssue.priority.equalsIfValue(filterPriority))
+        const searchedProjects = await connection.selectFrom(tProject)
+            .where(
+                        tProject.name.containsIfValue(nameContains)
+                    .or(tProject.slug.containsIfValue(slugContains))
+                ).and(
+                    tProject.archivedAt.equalsIfValue(archivedAtIs)
+                )
             .select({
-                id:     tIssue.id,
-                title:  tIssue.title,
-                status: tIssue.status,
+                id:         tProject.id,
+                name:       tProject.name.concat(' ').concat(tProject.slug),
+                archivedAt: tProject.archivedAt,
             })
-            .orderBy('id')
+            .orderByFromString(searchOrderBy)
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title, status as status from issue where status = ?1 order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name || ?1 || slug as name, archived_at as archivedAt from project where name like ('%' || ?2 || '%') escape '\\' order by lower(name || ?1 || slug), archived_at is null, archivedAt asc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "open",
+            " ",
+            "te",
           ]
         `)
-        assertType<Exact<typeof issues, Array<{
-            id:     number
-            title:  string
-            status: string
+        assertType<Exact<typeof searchedProjects, Array<{
+            id:          number
+            name:        string
+            archivedAt?: Date
         }>>>()
-        expect(issues).toEqual(expected)
+        expect(searchedProjects).toEqual(expected)
     })
 
-    test('docs:dynamic-queries/only-when-or-null', async () => {
-        // Section "Ignorable expression as null" — `onlyWhenOrNull(cond)`
-        // keeps the expression in the SELECT when `cond` is true and
-        // replaces it with `null` when false.
-        const expected = { id: 1, title: 'Update hero copy', body: 'hidden' }
+    test('docs:dynamic-queries/only-when', async () => {
+        const expected = [
+            { title: 'Update hero copy', status: 'open' },
+            { title: 'Redesign navbar',  status: 'in_progress', body: 'Use new tokens' },
+        ]
         ctx.mockNext(expected)
         const connection = ctx.conn
 
         // doc-start
-        const displayBody = true
-        const issue = await connection.selectFrom(tIssue)
-            .where(tIssue.id.equals(1))
+        const userProjectId = 1
+        const onlyIssuesOfUserProject = true
+
+        const issues = await connection.selectFrom(tIssue)
+            .where(tIssue.projectId.equals(userProjectId).onlyWhen(onlyIssuesOfUserProject))
             .select({
-                id:    tIssue.id,
-                title: tIssue.title,
-                body:  tIssue.body.onlyWhenOrNull(displayBody),
+                title:  tIssue.title,
+                status: tIssue.status,
+                body:   tIssue.body,
             })
-            .executeSelectOne()
+            .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title, body as body from issue where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title as title, status as status, body as body from issue where project_id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
           ]
         `)
-        assertType<Exact<typeof issue, {
-            id:    number
-            title: string
-            body?: string
-        }>>()
+        assertType<Exact<typeof issues, Array<{
+            title:  string
+            status: string
+            body?:  string
+        }>>>()
+        // The query has no order by.
+        expect([...issues].sort(byTitleDescending)).toEqual(expected)
     })
 
-    test('docs-extra:dynamic-queries/ignore-when-as-null', async () => {
-        // Same section: `ignoreWhenAsNull(cond)` is the opposite of
-        // `onlyWhenOrNull` — null when cond is true, value when false.
-        ctx.mockNext({ id: 1, title: 'Update hero copy', body: undefined })
+    test('docs:dynamic-queries/only-when-false', async () => {
+        const expected = [
+            { title: 'Update hero copy',   status: 'open' },
+            { title: 'Redesign navbar',    status: 'in_progress', body: 'Use new tokens' },
+            { title: 'Migrate to ESM',     status: 'open' },
+            { title: 'Document /v2/users', status: 'closed', body: 'See ADR-014' },
+        ]
+        ctx.mockNext(expected)
         const connection = ctx.conn
 
-        const hide = true
-        const issue = await connection.selectFrom(tIssue)
-            .where(tIssue.id.equals(1))
-            .select({
-                id:    tIssue.id,
-                title: tIssue.title,
-                body:  tIssue.body.ignoreWhenAsNull(hide),
-            })
-            .executeSelectOne()
+        // doc-start
+        const userProjectId = 1
+        const onlyIssuesOfUserProject = false // CHANGED
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title, null as body from issue where id = ?1"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-          ]
-        `)
-        assertType<Exact<typeof issue, {
-            id:    number
-            title: string
-            body?: string
-        }>>()
+        const issues = await connection.selectFrom(tIssue)
+            .where(tIssue.projectId.equals(userProjectId).onlyWhen(onlyIssuesOfUserProject))
+            .select({
+                title:  tIssue.title,
+                status: tIssue.status,
+                body:   tIssue.body,
+            })
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title as title, status as status, body as body from issue"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof issues, Array<{
+            title:  string
+            status: string
+            body?:  string
+        }>>>()
+        // The query has no order by.
+        expect([...issues].sort(byTitleDescending)).toEqual(expected)
     })
 
-    test('docs:dynamic-queries/optional-join', async () => {
-        // Section "Optional joins" — `optionalJoin(other).on(...)` is
-        // omitted from the final SQL when no column of `other` ends up
-        // referenced (selected, used in a where, etc.). Here we pass a
-        // null filter; the join must NOT be emitted.
+    test('docs:dynamic-queries/no-value-boolean', async () => {
         const expected = [
             { id: 1, title: 'Update hero copy' },
             { id: 2, title: 'Redesign navbar' },
@@ -128,28 +143,327 @@ describe(ctx.label, () => {
         const connection = ctx.conn
 
         // doc-start
-        const projectName: string | null = null
+        const canSeeEveryProject: boolean = true
+        const userProjectId = 1
 
         const issues = await connection.selectFrom(tIssue)
-            .optionalJoin(tProject).on(tProject.id.equals(tIssue.projectId))
-            .where(tProject.name.equalsIfValue(projectName))
+            .where(canSeeEveryProject ? connection.noValueBoolean() : tIssue.projectId.equals(userProjectId))
             .select({
                 id:    tIssue.id,
                 title: tIssue.title,
             })
-            .orderBy('id')
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof issues, Array<{
             id:    number
             title: string
         }>>>()
-        // With no filter on tProject and no select of its columns the join is
-        // elided (verified by the full SQL snapshot above); all four issues
-        // come back ordered by id.
-        expect(issues).toEqual(expected)
+        // The query has no order by.
+        expect([...issues].sort((a, b) => a.id - b.id)).toEqual(expected)
+    })
+
+    test('docs:dynamic-queries/only-when-or-null', async () => {
+        const expected = { id: 2, title: 'Redesign navbar', status: 'in_progress', body: 'Use new tokens' }
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const issueId = 2
+        const displayNames = true
+
+        const issueWithRules = await connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(issueId))
+            .select({
+                id:     tIssue.id,
+                title:  tIssue.title.onlyWhenOrNull(displayNames),
+                status: tIssue.status.onlyWhenOrNull(displayNames),
+                body:   tIssue.body,
+            })
+            .executeSelectOne()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title, status as status, body as body from issue where id = ?1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof issueWithRules, {
+            id:      number
+            title?:  string
+            status?: string
+            body?:   string
+        }>>()
+        expect(issueWithRules).toEqual(expected)
+    })
+
+    test('docs:dynamic-queries/only-when-or-null-false', async () => {
+        const expected = { id: 2, body: 'Use new tokens' }
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const issueId = 2
+        const displayNames = false // CHANGED
+
+        const issueWithRules = await connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(issueId))
+            .select({
+                id:     tIssue.id,
+                title:  tIssue.title.onlyWhenOrNull(displayNames),
+                status: tIssue.status.onlyWhenOrNull(displayNames),
+                body:   tIssue.body,
+            })
+            .executeSelectOne()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, null as title, null as status, body as body from issue where id = ?1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof issueWithRules, {
+            id:      number
+            title?:  string
+            status?: string
+            body?:   string
+        }>>()
+        expect(issueWithRules).toEqual(expected)
+    })
+
+    test('docs-extra:dynamic-queries/ignore-when-as-null', async () => {
+        // `ignoreWhenAsNull(cond)` is the opposite of `onlyWhenOrNull`: null when cond is true.
+        const expected = { id: 2, title: 'Redesign navbar' }
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const hide = true
+        const issue = await connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({
+                id:    tIssue.id,
+                title: tIssue.title,
+                body:  tIssue.body.ignoreWhenAsNull(hide),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title, null as body from issue where id = ?1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof issue, {
+            id:    number
+            title: string
+            body?: string
+        }>>()
+        expect(issue).toEqual(expected)
+    })
+
+    test('docs:dynamic-queries/dynamic-on-and-having', async () => {
+        // Without an archive date: two projects of 'Acme Corp', one of 'Globex Ltd'.
+        const expected = [{ id: 1, name: 'Acme Corp', projectCount: 2 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const onlyProjectsNotArchived = true
+        const minimumProjects: number | undefined = 2
+
+        const query = connection.selectFrom(tOrganization)
+            .innerJoin(tProject).dynamicOn()
+            .and(tProject.organizationId.equals(tOrganization.id))
+        if (onlyProjectsNotArchived) {
+            query.and(tProject.archivedAt.isNull())
+        }
+
+        const grouped = query.groupBy(tOrganization.id, tOrganization.name).dynamicHaving()
+        if (minimumProjects !== undefined) {
+            grouped.and(connection.count(tProject.id).greaterOrEqual(minimumProjects))
+        }
+
+        const organizations = await grouped
+            .select({
+                id:           tOrganization.id,
+                name:         tOrganization.name,
+                projectCount: connection.count(tProject.id),
+            })
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as id, organization.name as name, count(project.id) as projectCount from organization inner join project on project.organization_id = organization.id and project.archived_at is null group by organization.id, organization.name having count(project.id) >= ?1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof organizations, Array<{
+            id:           number
+            name:         string
+            projectCount: number
+        }>>>()
+        expect(organizations).toEqual(expected)
+    })
+
+    test('docs:dynamic-queries/optional-join-with-value', async () => {
+        const expected = [
+            { title: 'Update hero copy', status: 'open' },
+            { title: 'Redesign navbar',  status: 'in_progress', body: 'Use new tokens' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const projectName = 'Marketing site'
+
+        const issues = await connection.selectFrom(tIssue)
+            .optionalJoin(tProject).on(tProject.id.equals(tIssue.projectId))
+            .where(tProject.name.equalsIfValue(projectName))
+            .select({
+                title:  tIssue.title,
+                status: tIssue.status,
+                body:   tIssue.body,
+            })
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.title as title, issue.status as status, issue.body as body from issue join project on project.id = issue.project_id where project.name = ?1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "Marketing site",
+          ]
+        `)
+        assertType<Exact<typeof issues, Array<{
+            title:  string
+            status: string
+            body?:  string
+        }>>>()
+        // The query has no order by.
+        expect([...issues].sort(byTitleDescending)).toEqual(expected)
+    })
+
+    test('docs:dynamic-queries/optional-join', async () => {
+        const expected = [
+            { title: 'Update hero copy',   status: 'open' },
+            { title: 'Redesign navbar',    status: 'in_progress', body: 'Use new tokens' },
+            { title: 'Migrate to ESM',     status: 'open' },
+            { title: 'Document /v2/users', status: 'closed', body: 'See ADR-014' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const projectName = null // CHANGED
+
+        const issues = await connection.selectFrom(tIssue)
+            .optionalJoin(tProject).on(tProject.id.equals(tIssue.projectId))
+            .where(tProject.name.equalsIfValue(projectName))
+            .select({
+                title:  tIssue.title,
+                status: tIssue.status,
+                body:   tIssue.body,
+            })
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title as title, status as status, body as body from issue"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof issues, Array<{
+            title:  string
+            status: string
+            body?:  string
+        }>>>()
+        // The query has no order by.
+        expect([...issues].sort(byTitleDescending)).toEqual(expected)
+    })
+
+    test('docs:dynamic-queries/optional-join-only-when-or-null', async () => {
+        const expected = [{ id: 2, title: 'Redesign navbar', status: 'in_progress', body: 'Use new tokens' }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const canSeeProjectInfo = false
+
+        const issueWithOptionalProject = await connection.selectFrom(tIssue)
+            .optionalInnerJoin(tProject).on(tProject.id.equals(tIssue.projectId))
+            .select({
+                id:          tIssue.id,
+                title:       tIssue.title,
+                status:      tIssue.status,
+                body:        tIssue.body,
+                projectId:   tProject.id.onlyWhenOrNull(canSeeProjectInfo),
+                projectName: tProject.name.onlyWhenOrNull(canSeeProjectInfo),
+            })
+            .where(tIssue.id.equals(2))
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title, status as status, body as body, null as projectId, null as projectName from issue where id = ?1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof issueWithOptionalProject, Array<{
+            id:           number
+            title:        string
+            status:       string
+            body?:        string
+            projectId?:   number
+            projectName?: string
+        }>>>()
+        expect(issueWithOptionalProject).toEqual(expected)
+    })
+
+    test('docs:dynamic-queries/optional-join-only-when-or-null-true', async () => {
+        const expected = [{
+            id:          2,
+            title:       'Redesign navbar',
+            status:      'in_progress',
+            body:        'Use new tokens',
+            projectId:   1,
+            projectName: 'Marketing site',
+        }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const canSeeProjectInfo = true // CHANGED
+
+        const issueWithOptionalProject = await connection.selectFrom(tIssue)
+            .optionalInnerJoin(tProject).on(tProject.id.equals(tIssue.projectId))
+            .select({
+                id:          tIssue.id,
+                title:       tIssue.title,
+                status:      tIssue.status,
+                body:        tIssue.body,
+                projectId:   tProject.id.onlyWhenOrNull(canSeeProjectInfo),
+                projectName: tProject.name.onlyWhenOrNull(canSeeProjectInfo),
+            })
+            .where(tIssue.id.equals(2))
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.title as title, issue.status as status, issue.body as body, project.id as projectId, project.name as projectName from issue inner join project on project.id = issue.project_id where issue.id = ?1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof issueWithOptionalProject, Array<{
+            id:           number
+            title:        string
+            status:       string
+            body?:        string
+            projectId?:   number
+            projectName?: string
+        }>>>()
+        expect(issueWithOptionalProject).toEqual(expected)
     })
 })

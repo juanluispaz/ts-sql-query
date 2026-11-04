@@ -2,7 +2,8 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tOrganization, tProject } from '../../domain/connection.js'
+import { tIssue, tOrganization, tProject, type DBConnection } from '../../domain/connection.js'
+import { Values } from '../../../../../src/Values.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -17,21 +18,25 @@ describe(ctx.label, () => {
             const connection = ctx.conn
 
             // doc-start
-            const affected = await connection.update(tProject)
-                .set({ name: 'Marketing site (v2)' })
+            const updateProject = await connection.update(tProject).set({
+                    name:       'Marketing site (v2)',
+                    slug:       'mktg-site-v2',
+                    archivedAt: new Date('2024-01-01'),
+                }).ignoreIfSet('archivedAt')
                 .where(tProject.id.equals(1))
                 .executeUpdate()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?, slug = ? where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Marketing site (v2)",
+                "mktg-site-v2",
                 1,
               ]
             `)
-            assertType<Exact<typeof affected, number>>()
-            expect(affected).toBe(1)
+            assertType<Exact<typeof updateProject, number>>()
+            expect(updateProject).toBe(1)
         })
     })
 
@@ -62,6 +67,34 @@ describe(ctx.label, () => {
             `)
             assertType<Exact<typeof affected, number>>()
             expect(affected).toBe(1)
+        })
+    })
+
+    test('docs:update/returning-one-column', async () => {
+        ctx.mockNext('Marketing site (v2)')
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            // doc-start
+            const updatedProjectName = await connection.update(tProject)
+                .set({
+                    name: 'Marketing site (v2)',
+                })
+                .where(tProject.id.equals(1))
+                .returningOneColumn(tProject.name)
+                .executeUpdateOne()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ? returning name as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Marketing site (v2)",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof updatedProjectName, string>>()
+            expect(updatedProjectName).toBe('Marketing site (v2)')
         })
     })
 
@@ -99,21 +132,22 @@ describe(ctx.label, () => {
         })
     })
 
-    test('docs-extra:update/update-returning-old-values', async () => {
-        // Section "Update returning old values" — `tTable.oldValues()`
-        // yields a reference whose columns resolve to the PRE-update row.
-        ctx.mockNext({ oldName: 'Marketing site', newName: 'Marketing site (v2)' })
+    test('docs:update/update-returning-old-values', async () => {
+        const expected = { oldName: 'Marketing site', newName: 'Marketing site (v2)' }
+        ctx.mockNext(expected)
 
         await ctx.withRollback(async () => {
             const connection = ctx.conn
 
             // doc-start
-            const oldProject = tProject.oldValues()
-            const updated = await connection.update(tProject)
-                .set({ name: 'Marketing site (v2)' })
+            const oldProjectValues = tProject.oldValues()
+            const updatedNames = await connection.update(tProject)
+                .set({
+                    name: 'Marketing site (v2)',
+                })
                 .where(tProject.id.equals(1))
                 .returning({
-                    oldName: oldProject.name,
+                    oldName: oldProjectValues.name,
                     newName: tProject.name,
                 })
                 .executeUpdateOne()
@@ -126,36 +160,78 @@ describe(ctx.label, () => {
                 1,
               ]
             `)
-            assertType<Exact<typeof updated, { oldName: string; newName: string }>>()
+            assertType<Exact<typeof updatedNames, { oldName: string; newName: string }>>()
+            expect(updatedNames).toEqual(expected)
         })
     })
     test('docs:update/update-from-other-table', async () => {
-        // Section "Update using other tables or views" — `.from(other)`
-        // joins the other table for use in the SET / WHERE expressions.
+        // The seeded 'Acme Corp' owns two projects.
         ctx.mockNext(2)
 
         await ctx.withRollback(async () => {
             const connection = ctx.conn
 
             // doc-start
-            const affected = await connection.update(tProject)
+            const addAcmeNameToProjectName = await connection.update(tProject)
                 .from(tOrganization)
                 .set({
-                    name: tProject.name.concat(' / ').concat(tOrganization.name),
+                    name: tProject.name.concat(' - ').concat(tOrganization.name),
                 })
                 .where(tProject.organizationId.equals(tOrganization.id))
-                .and(tOrganization.plan.equals('pro'))
+                .and(tOrganization.name.containsInsensitive('ACME'))
                 .executeUpdate()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project, organization set project.name = concat(project.name, ?, organization.name) where project.organization_id = organization.id and organization.plan = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project, organization set project.name = concat(project.name, ?, organization.name) where project.organization_id = organization.id and lower(organization.name) like concat('%', lower(?), '%')"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
-                " / ",
-                "pro",
+                " - ",
+                "ACME",
               ]
             `)
-            assertType<Exact<typeof affected, number>>()
+            assertType<Exact<typeof addAcmeNameToProjectName, number>>()
+            expect(addAcmeNameToProjectName).toBe(2)
+        })
+    })
+
+    test('docs:update/bulk-update', async () => {
+        ctx.mockNext(1)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            // doc-start
+            class VProjectForUpdate extends Values<DBConnection, 'projectForUpdate'> {
+                id   = this.column('int')
+                name = this.column('string')
+                slug = this.column('string')
+            }
+            const projectForUpdate = Values.create(VProjectForUpdate, 'projectForUpdate', [{
+                id:   1,
+                name: 'First name',
+                slug: 'first-slug',
+            }])
+
+            const updateProject = await connection.update(tProject)
+                .from(projectForUpdate)
+                .set({
+                    name: projectForUpdate.name,
+                    slug: projectForUpdate.slug,
+                })
+                .where(tProject.id.equals(projectForUpdate.id))
+                .executeUpdate()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectForUpdate(id, name, slug) as (values (?, ?, ?)) update project, projectForUpdate set project.name = projectForUpdate.name, project.slug = projectForUpdate.slug where project.id = projectForUpdate.id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "First name",
+                "first-slug",
+              ]
+            `)
+            assertType<Exact<typeof updateProject, number>>()
+            expect(updateProject).toBe(1)
         })
     })
 
@@ -205,28 +281,44 @@ describe(ctx.label, () => {
         })
     })
 
-    test('docs:update/returning-one-column', async () => {
-        // "Update returning" prose: `returningOneColumn(col)` is the
-        // single-column counterpart of `returning({...})`.
-        ctx.mockNext('Marketing site (v2)')
+    test('docs:update/update-multiple-tables', async () => {
+        // Both tables change, so the engine counts one row in each.
+        ctx.mockNext(2)
 
         await ctx.withRollback(async () => {
             const connection = ctx.conn
 
-            const newName = await connection.update(tProject)
-                .set({ name: 'Marketing site (v2)' })
-                .where(tProject.id.equals(1))
-                .returningOneColumn(tProject.name)
-                .executeUpdateOne()
+            // doc-start
+            const projectNameAndOrganizationName = {
+                id:               1,
+                projectName:      'Marketing site (v2)',
+                projectSlug:      'mktg-site-v2',
+                organizationName: 'Acme Inc.',
+            }
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ? returning name as result"`)
+            const updatedCount = await connection.update(tProject)
+                .innerJoin(tOrganization).on(tProject.organizationId.equals(tOrganization.id))
+                .shapedAs({
+                    projectName:      tProject.name,
+                    projectSlug:      tProject.slug,
+                    organizationName: tOrganization.name,
+                })
+                .set(projectNameAndOrganizationName)
+                .where(tProject.id.equals(projectNameAndOrganizationName.id))
+                .executeUpdate()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project inner join organization on project.organization_id = organization.id set project.name = ?, project.slug = ?, organization.name = ? where project.id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Marketing site (v2)",
+                "mktg-site-v2",
+                "Acme Inc.",
                 1,
               ]
             `)
-            assertType<Exact<typeof newName, string>>()
+            assertType<Exact<typeof updatedCount, number>>()
+            expect(updatedCount).toBe(2)
         })
     })
 
@@ -457,5 +549,37 @@ describe(ctx.label, () => {
                 .disallowAnyOtherSet('only title may be updated by this path', 'title')
                 .where(tIssue.id.equals(1))
         }).toThrow(/only title may be updated by this path/)
+    })
+
+    test('docs:update/ignore-if-set-when', async () => {
+        ctx.mockNext(1)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            // doc-start
+            const canChangeTheOrganization = false
+
+            const updatedCount = await connection.update(tProject).set({
+                    name:           'Marketing site (v2)',
+                    slug:           'mktg-site-v2',
+                    organizationId: 2,
+                })
+                .ignoreIfSetWhen(!canChangeTheOrganization, 'organizationId')
+                .where(tProject.id.equals(1))
+                .executeUpdate()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?, slug = ? where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Marketing site (v2)",
+                "mktg-site-v2",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof updatedCount, number>>()
+            expect(updatedCount).toBe(1)
+        })
     })
 })

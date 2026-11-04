@@ -2,7 +2,8 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tProject } from '../../domain/connection.js'
+import { Values } from '../../../../../src/Values.js'
+import { type DBConnection, tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 // tProject is referenced by the commented-out `docs:delete/delete-using`
@@ -37,29 +38,6 @@ describe(ctx.label, () => {
         })
     })
 
-    test('docs-extra:delete/delete-many', async () => {
-        ctx.mockNext(2)
-
-        await ctx.withRollback(async () => {
-            const connection = ctx.conn
-
-            // doc-start
-            const affected = await connection.deleteFrom(tIssue)
-                .where(tIssue.status.equals('open'))
-                .executeDelete()
-            // doc-end
-
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where status = $1"`)
-            expect(ctx.lastParams).toMatchInlineSnapshot(`
-              [
-                "open",
-              ]
-            `)
-            assertType<Exact<typeof affected, number>>()
-            expect(affected).toBe(2)
-        })
-    })
-
     test('docs:delete/delete-returning', async () => {
         ctx.mockNext({ id: 4, title: 'Document /v2/users' })
 
@@ -90,33 +68,6 @@ describe(ctx.label, () => {
         })
     })
 
-    test('docs:delete/delete-using', async () => {
-        // Section "Delete using other tables or views" — `.using(other)`
-        // brings another table into the delete so the WHERE can reference
-        // its columns.
-        ctx.mockNext(1)
-
-        await ctx.withRollback(async () => {
-            const connection = ctx.conn
-
-            // doc-start
-            const affected = await connection.deleteFrom(tIssue)
-                .using(tProject)
-                .where(tIssue.projectId.equals(tProject.id))
-                .and(tProject.name.containsInsensitive('Legacy'))
-                .executeDelete()
-            // doc-end
-
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using project where issue.project_id = project.id and project.name ilike ('%' || $1 || '%')"`)
-            expect(ctx.lastParams).toMatchInlineSnapshot(`
-              [
-                "Legacy",
-              ]
-            `)
-            assertType<Exact<typeof affected, number>>()
-        })
-    })
-
     test('docs-extra:delete/returning-one-column', async () => {
         // "Delete returning" prose: `returningOneColumn(col)` is the
         // single-column counterpart of `returning({...})`.
@@ -139,4 +90,67 @@ describe(ctx.label, () => {
             assertType<Exact<typeof removedTitle, string>>()
         })
     })
+
+    test('docs:delete/delete-using', async () => {
+        // The seeded 'Public API' project has one issue.
+        ctx.mockNext(1)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            // doc-start
+            const deletePublicApiIssues = await connection.deleteFrom(tIssue)
+                .using(tProject)
+                .where(tIssue.projectId.equals(tProject.id))
+                .and(tProject.name.containsInsensitive('PUBLIC'))
+                .executeDelete()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using project where issue.project_id = project.id and project.name ilike ('%' || $1 || '%')"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "PUBLIC",
+              ]
+            `)
+            assertType<Exact<typeof deletePublicApiIssues, number>>()
+            expect(deletePublicApiIssues).toBe(1)
+        })
+    })
+
+    test('docs:delete/bulk-delete', async () => {
+        // Seeded issue 4 is the only one with this title and status.
+        ctx.mockNext(1)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            // doc-start
+            class VIssueForDelete extends Values<DBConnection, 'issueForDelete'> {
+                title  = this.column('string')
+                status = this.column('string')
+            }
+            const issueForDelete = Values.create(VIssueForDelete, 'issueForDelete', [{
+                title:  'Document /v2/users',
+                status: 'closed',
+            }])
+
+            const deleteIssue = await connection.deleteFrom(tIssue)
+                .using(issueForDelete)
+                .where(tIssue.title.equals(issueForDelete.title))
+                .and(tIssue.status.equals(issueForDelete.status))
+                .executeDelete()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueForDelete(title, status) as (values ($1::text, $2::text)) delete from issue using issueForDelete where issue.title = issueForDelete.title and issue.status = issueForDelete.status"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Document /v2/users",
+                "closed",
+              ]
+            `)
+            assertType<Exact<typeof deleteIssue, number>>()
+            expect(deleteIssue).toBe(1)
+        })
+    })
+
 })

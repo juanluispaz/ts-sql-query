@@ -5,8 +5,21 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tOrganization } from '../../domain/connection.js'
+import { tOrganization, tAppUser, tProject, tWebhookEvent } from '../../domain/connection.js'
+import { TsSqlError, TsSqlQueryExecutionError } from '../../../../../src/TsSqlError.js'
 import { ctx } from './setup.js'
+
+// The statements the test ran; a transaction managed by the driver doesn't record its begin and commit.
+function statementsSql() {
+    return ctx.history.map((op) => op.sql).filter((sql) => sql !== 'beginTransaction' && sql !== 'commit')
+}
+
+function registerUser(email: string, fullName: string) {
+    return ctx.conn.insertInto(tAppUser)
+        .set({ email, fullName })
+        .returningLastInsertedId()
+        .executeInsert()
+}
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -14,41 +27,49 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('docs:transaction/commit-on-success', async () => {
-        ctx.mockNext(99)  // value returned by returningLastInsertedId in mock mode
-
+        ctx.mockNext(99)
+        ctx.mockNext(100)
         const connection = ctx.conn
 
-        // `ctx.withReseed` runs the body without an outer transaction
-        // (the body opens its own via `connection.transaction(...)`)
-        // and reseeds in real-DB mode on exit so the committed insert
-        // doesn't leak into the next test.
         await ctx.withReseed(async () => {
             // doc-start
-            const id = await connection.transaction(async () => {
-                return await connection.insertInto(tOrganization)
-                    .values({ name: 'Inside-tx Co', plan: 'free' })
+            const transactionResult = await connection.transaction(async () => {
+                const organizationId = await connection.insertInto(tOrganization).set({
+                        name: 'Top Organization',
+                        plan: 'free',
+                    })
                     .returningLastInsertedId()
                     .executeInsert()
+
+                const projectId = await connection.insertInto(tProject).set({
+                        name:           'Top project',
+                        slug:           'top-project',
+                        organizationId: organizationId,
+                    })
+                    .returningLastInsertedId()
+                    .executeInsert()
+
+                return { organizationId, projectId }
             })
             // doc-end
 
-            // After a `connection.transaction(...)` block `ctx.lastSql`
-            // would show `"commit"` (the synthetic entry the interceptor
-            // emits via the empty-query fallback). `lastNoTransactionSql`
-            // skips transaction-control ops so the assertion lands on the
-            // insert in both mock and real-DB mode.
-            expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.id values (@0, @1)"`)
-            expect(ctx.lastNoTransactionParams).toMatchInlineSnapshot(`
+            expect(statementsSql()).toMatchInlineSnapshot(`
               [
-                "Inside-tx Co",
-                "free",
+                "insert into organization (name, [plan]) output inserted.id values (@0, @1)",
+                "insert into project (name, slug, organization_id) output inserted.id values (@0, @1, @2)",
               ]
             `)
-            assertType<Exact<typeof id, number>>()
-            // Mock mode: returns the primed 99. Real-DB mode: the seed
-            // reserves ids 1 and 2, so the new row's id is > 2.
-            if (ctx.realDbEnabled) expect(id).toBeGreaterThan(2)
-            else expect(id).toBe(99)
+            expect(ctx.lastNoTransactionParams.slice(0, 2)).toMatchInlineSnapshot(`
+              [
+                "Top project",
+                "top-project",
+              ]
+            `)
+            expect(ctx.lastNoTransactionParams[2]).toBe(transactionResult.organizationId)
+            assertType<Exact<typeof transactionResult, { organizationId: number; projectId: number }>>()
+            // The seed reserves the organization ids up to 2 and the project ids up to 4.
+            expect(transactionResult.organizationId).toBeGreaterThan(2)
+            expect(transactionResult.projectId).toBeGreaterThan(4)
         })
     })
 
@@ -56,11 +77,6 @@ describe(ctx.label, () => {
         class SentinelError extends Error {}
         const connection = ctx.conn
 
-        // The body throws before any work — the library rolls back the
-        // transaction automatically. `withReseed` still resets the
-        // baseline on the way out, mirroring `commit-on-success` for
-        // symmetry (and protecting against any side-effect a future
-        // edit of this test might introduce).
         await ctx.withReseed(async () => {
             // doc-start
             let caught: unknown = null
@@ -74,7 +90,8 @@ describe(ctx.label, () => {
             }
             // doc-end
 
-            expect(caught).not.toBeNull()
+            // The mock runner takes any error as a database error and wraps it.
+            expect(caught instanceof TsSqlError ? caught.cause : caught).toBeInstanceOf(SentinelError)
         })
     })
 
@@ -109,6 +126,107 @@ describe(ctx.label, () => {
         })
     })
 
+    // NOT-APPLICABLE: the error that rolls back the whole transaction on SQL Server is a deadlock, which needs two concurrent connections
+    /*
+    test('docs:transaction/retried-statement-rejected', async () => {
+        // On this engine any statement that fails aborts the transaction. The email of the
+        // seeded user 2 makes the update of user 1 fail on a real engine.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(0)
+        const connection = ctx.conn
+        let raised: unknown
+
+        await ctx.withReseed(async () => {
+            try {
+                // doc-start
+                await connection.transaction(async () => {
+                    await connection.insertInto(tOrganization).set({ name: 'Top Organization', plan: 'free' }).executeInsert()
+                    try {
+                        await connection.update(tAppUser).set({ email: 'grace@acme.test' }).where(tAppUser.id.equals(1)).executeUpdate()
+                    } catch {
+                        // The database rolled back the whole transaction, the organization included
+                        await connection.update(tAppUser).set({ email: 'grace@acme.test' }).where(tAppUser.id.equals(1)).executeUpdate()
+                    }
+                })
+                // doc-end
+            } catch (e) {
+                raised = e
+            }
+
+            const savedOrganizations = await connection.selectFrom(tOrganization)
+                .where(tOrganization.name.equals('Top Organization'))
+                .selectCountAll()
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(savedOrganizations).toBe(0)
+        })
+
+        if (ctx.realDbEnabled) {
+            expect(raised).toBeInstanceOf(TsSqlError)
+        } else {
+            expect(raised).toBeUndefined()
+        }
+    })
+    */
+
+    test('docs:transaction/native-connection', async () => {
+        const jobs: Array<{ name: string; hasClient: boolean }> = []
+        const jobQueue = {
+            async send<CLIENT>(name: string, _data: object, client: CLIENT) {
+                jobs.push({ name, hasClient: client !== undefined && client !== null })
+            },
+        }
+        ctx.mockNext(50)
+        const connection = ctx.conn
+
+        await ctx.withReseed(async () => {
+            // doc-start
+            await connection.transaction(async () => {
+                const userId = await registerUser('john@acme.test', 'John Smith')
+                const client = connection.queryRunner.getCurrentNativeConnection()
+                await jobQueue.send('send-welcome-email', { userId }, client)
+            })
+            // doc-end
+
+            expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"insert into app_user (email, full_name) output inserted.id values (@0, @1)"`)
+            expect(ctx.lastNoTransactionParams).toMatchInlineSnapshot(`
+              [
+                "john@acme.test",
+                "John Smith",
+              ]
+            `)
+        })
+
+        // The mock runner has no driver connection to give.
+        expect(jobs).toEqual([{ name: 'send-welcome-email', hasClient: ctx.realDbEnabled }])
+    })
+
+    test('docs:transaction/execute-with-native-connection', async () => {
+        const jobs: Array<{ name: string; hasClient: boolean }> = []
+        const jobQueue = {
+            async send<CLIENT>(name: string, _data: object, client: CLIENT) {
+                jobs.push({ name, hasClient: client !== undefined && client !== null })
+            },
+        }
+        const connection = ctx.conn
+
+        await ctx.withReseed(async () => {
+            // doc-start
+            await connection.transaction(async () => {
+                await connection.queryRunner.execute(async (client) => {
+                    await jobQueue.send('send-welcome-email', { userId: 10 }, client)
+                })
+            })
+            // doc-end
+        })
+
+        // The mock runner has no driver connection to give.
+        expect(jobs).toEqual([{ name: 'send-welcome-email', hasClient: ctx.realDbEnabled }])
+    })
+
     // NOT-APPLICABLE: SQL Server's isolationLevel takes only a level, no access mode (the body passes `'read only'`). Body kept verbatim for cross-cell diff parity per the symmetry rule.
     /*
     test('docs:transaction/isolation-level', async () => {
@@ -137,59 +255,260 @@ describe(ctx.label, () => {
     })
     */
 
-    test('docs:transaction/execute-before-next-commit', async () => {
-        // Section "Deferring logic during a transaction" —
-        // `executeBeforeNextCommit` runs the hook just before commit.
+    // NOT-APPLICABLE: SQL Server's isolationLevel takes only a level, no access mode (the body passes `'read only'`). Body kept verbatim for cross-cell diff parity per the symmetry rule.
+    /*
+    test('docs:transaction/begin-with-isolation-level', async () => {
         const connection = ctx.conn
-        let fired = false
 
         await ctx.withReseed(async () => {
             // doc-start
-            await connection.transaction(async () => {
-                connection.executeBeforeNextCommit(() => {
-                    fired = true
+            await connection.beginTransaction(connection.isolationLevel('snapshot', 'read only'))
+            // doc-end
+            await connection.commit()
+
+            expect(ctx.lastTransactionOpts).toEqual(['snapshot', 'read only'])
+        })
+    })
+    */
+
+    test('docs:transaction/execute-before-next-commit', async () => {
+        // Each seeded organization owns two projects, so both checks find one to keep.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(2)
+        ctx.mockNext(2)
+        ctx.mockNext(2)
+        const connection = ctx.conn
+
+        await ctx.withReseed(async () => {
+            // doc-start
+            async function moveProject(projectId: number, fromOrganizationId: number, toOrganizationId: number) {
+                await connection.update(tProject)
+                    .set({ organizationId: toOrganizationId })
+                    .where(tProject.id.equals(projectId))
+                    .executeUpdate()
+
+                connection.executeBeforeNextCommit(async () => {
+                    const remaining = await connection.selectFrom(tProject)
+                        .where(tProject.organizationId.equals(fromOrganizationId))
+                        .selectCountAll()
+                        .executeSelectOne()
+                    if (remaining === 0) {
+                        throw new Error('The organization ' + fromOrganizationId + ' must keep at least one project')
+                    }
                 })
+            }
+
+            await connection.transaction(async () => {
+                await moveProject(1, 1, 2)
+                await moveProject(3, 2, 1)
             })
             // doc-end
+
+            expect(statementsSql()).toMatchInlineSnapshot(`
+              [
+                "update project set organization_id = @0 where id = @1",
+                "update project set organization_id = @0 where id = @1",
+                "select count(*) as [result] from project where organization_id = @0",
+                "select count(*) as [result] from project where organization_id = @0",
+              ]
+            `)
+
+            const organizationOfProject1 = await connection.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .selectOneColumn(tProject.organizationId)
+                .executeSelectOne()
+            expect(organizationOfProject1).toBe(2)
+        })
+    })
+
+    test('docs-extra:transaction/execute-before-next-commit-rule-rolls-back', async () => {
+        // Moving both seeded projects leaves organization 1 with none: the first check fails.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(0)
+        ctx.mockNext(1)
+        const connection = ctx.conn
+        let caught: unknown
+
+        await ctx.withReseed(async () => {
+            async function moveProject(projectId: number, fromOrganizationId: number, toOrganizationId: number) {
+                await connection.update(tProject)
+                    .set({ organizationId: toOrganizationId })
+                    .where(tProject.id.equals(projectId))
+                    .executeUpdate()
+
+                connection.executeBeforeNextCommit(async () => {
+                    const remaining = await connection.selectFrom(tProject)
+                        .where(tProject.organizationId.equals(fromOrganizationId))
+                        .selectCountAll()
+                        .executeSelectOne()
+                    if (remaining === 0) {
+                        throw new Error('The organization ' + fromOrganizationId + ' must keep at least one project')
+                    }
+                })
+            }
+
+            try {
+                await connection.transaction(async () => {
+                    await moveProject(1, 1, 2)
+                    await moveProject(2, 1, 2)
+                })
+            } catch (e) {
+                caught = e
+            }
+
+            const organizationOfProject1 = await connection.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .selectOneColumn(tProject.organizationId)
+                .executeSelectOne()
+            expect(organizationOfProject1).toBe(1)
         })
 
-        expect(fired).toBe(true)
+        expect(caught).toBeInstanceOf(TsSqlError)
+        expect(caught instanceof TsSqlError && caught.errorReason.reason).toBe('ERROR_EXECUTING_DEFERRED_IN_TRANSACTION')
     })
 
     test('docs:transaction/execute-after-next-commit', async () => {
-        // `executeAfterNextCommit` runs the hook only after a successful
-        // commit.
+        const sentTo: number[] = []
+        const emailService = {
+            async sendWelcomeEmail(userId: number) {
+                sentTo.push(userId)
+            },
+        }
+        const loggedErrors: string[] = []
+        const logger = {
+            error<ERROR>(message: string, _error: ERROR) {
+                loggedErrors.push(message)
+            },
+        }
+        ctx.mockNext(50)
         const connection = ctx.conn
-        let fired = false
 
         await ctx.withReseed(async () => {
-            await connection.transaction(async () => {
-                connection.executeAfterNextCommit(() => {
-                    fired = true
+            // doc-start
+            async function registerUserAndWelcome(email: string, fullName: string) {
+                const userId = await connection.insertInto(tAppUser)
+                    .set({ email, fullName })
+                    .returningLastInsertedId()
+                    .executeInsert()
+
+                connection.executeAfterNextCommit(async () => {
+                    try {
+                        await emailService.sendWelcomeEmail(userId)
+                    } catch (error) {
+                        logger.error('The welcome e-mail could not be sent to the user ' + userId, error)
+                    }
                 })
-            })
+
+                return userId
+            }
+            // doc-end
+
+            const userId = await connection.transaction(() => registerUserAndWelcome('john@acme.test', 'John Smith'))
+
+            expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"insert into app_user (email, full_name) output inserted.id values (@0, @1)"`)
+            expect(ctx.lastNoTransactionParams).toMatchInlineSnapshot(`
+              [
+                "john@acme.test",
+                "John Smith",
+              ]
+            `)
+            assertType<Exact<typeof userId, number>>()
+            expect(sentTo).toEqual([userId])
         })
 
-        expect(fired).toBe(true)
+        expect(loggedErrors).toEqual([])
     })
 
     test('docs:transaction/execute-after-next-rollback', async () => {
-        // `executeAfterNextRollback` runs the hook only after a rollback.
+        const uploaded: string[] = []
+        const deleted: string[] = []
+        const fileStorage = {
+            async upload(path: string, _content: Uint8Array) {
+                uploaded.push(path)
+            },
+            async delete(path: string) {
+                deleted.push(path)
+            },
+        }
+        const laterStepError = new Error('A later step of the transaction failed')
+        ctx.mockNext(50)
         const connection = ctx.conn
-        let fired = false
+        let caught: unknown
 
         await ctx.withReseed(async () => {
+            // doc-start
+            async function registerUserWithPhoto(email: string, fullName: string, photo: Uint8Array) {
+                const userId = await connection.insertInto(tAppUser)
+                    .set({ email, fullName })
+                    .returningLastInsertedId()
+                    .executeInsert()
+
+                const photoPath = 'users/' + userId + '.jpg'
+                await fileStorage.upload(photoPath, photo)
+                connection.executeAfterNextRollback(async () => {
+                    await fileStorage.delete(photoPath)
+                })
+
+                return userId
+            }
+            // doc-end
+
             try {
                 await connection.transaction(async () => {
-                    connection.executeAfterNextRollback(() => {
-                        fired = true
-                    })
-                    throw new Error('roll me back')
+                    await registerUserWithPhoto('john@acme.test', 'John Smith', new Uint8Array([1, 2, 3]))
+                    throw laterStepError
                 })
-            } catch { /* swallow */ }
+            } catch (e) {
+                caught = e
+            }
+
+            expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"insert into app_user (email, full_name) output inserted.id values (@0, @1)"`)
+            expect(ctx.lastNoTransactionParams).toMatchInlineSnapshot(`
+              [
+                "john@acme.test",
+                "John Smith",
+              ]
+            `)
         })
 
-        expect(fired).toBe(true)
+        // The mock runner takes any error as a database error and wraps it.
+        expect(caught instanceof TsSqlError ? caught.cause : caught).toBe(laterStepError)
+        expect(uploaded).toHaveLength(1)
+        expect(deleted).toEqual(uploaded)
+    })
+
+    test('docs:transaction/join-or-begin', async () => {
+        ctx.mockNext(50)
+        ctx.mockNext(51)
+        const connection = ctx.conn
+
+        await ctx.withReseed(async () => {
+            // doc-start
+            function inTransaction<T>(fn: () => Promise<T>): Promise<T> {
+                if (connection.isTransactionActive()) {
+                    return fn()
+                }
+                return connection.transaction(fn)
+            }
+
+            const userId = await inTransaction(() => registerUser('john@acme.test', 'John Smith'))
+            // doc-end
+
+            // Called with a transaction running, it joins it: this connection rejects a nested transaction.
+            const otherUserId = await connection.transaction(() => inTransaction(() => registerUser('jane@acme.test', 'Jane Doe')))
+
+            expect(statementsSql()).toMatchInlineSnapshot(`
+              [
+                "insert into app_user (email, full_name) output inserted.id values (@0, @1)",
+                "insert into app_user (email, full_name) output inserted.id values (@0, @1)",
+              ]
+            `)
+            assertType<Exact<typeof userId, number>>()
+            assertType<Exact<typeof otherUserId, number>>()
+            expect(connection.isTransactionActive()).toBe(false)
+        })
     })
 
     test('docs:transaction/get-transaction-metadata', async () => {
@@ -209,14 +528,114 @@ describe(ctx.label, () => {
         })
     })
 
+    test('docs:transaction/once-per-transaction', async () => {
+        const invalidated: number[][] = []
+        const userCache = {
+            invalidate(userIds: Set<number>) {
+                invalidated.push([...userIds])
+            },
+        }
+        const connection = ctx.conn
+
+        await ctx.withReseed(async () => {
+            // doc-start
+            const changedUsers = Symbol('changedUsers')
+
+            function refreshUserInCacheAfterCommit(userId: number) {
+                const metadata = connection.getTransactionMetadata()
+                // 1. Look for what this transaction has collected so far
+                const collected = metadata.get(changedUsers)
+                let userIds = collected instanceof Set ? collected : undefined
+                if (!userIds) {
+                    // 2. The first time in this transaction: keep the collection in the metadata
+                    //    and register the function, which will use it
+                    const newUserIds = new Set<number>()
+                    metadata.set(changedUsers, newUserIds)
+                    connection.executeAfterNextCommit(() => {
+                        userCache.invalidate(newUserIds)
+                    })
+                    userIds = newUserIds
+                }
+                // 3. Every time: add this user to the collection
+                userIds.add(userId)
+            }
+            // doc-end
+
+            await connection.transaction(async () => {
+                refreshUserInCacheAfterCommit(1)
+                refreshUserInCacheAfterCommit(2)
+                refreshUserInCacheAfterCommit(1)
+            })
+            expect(invalidated).toEqual([[1, 2]])
+
+            // The next transaction starts with empty metadata, so it registers its own function.
+            await connection.transaction(async () => {
+                refreshUserInCacheAfterCommit(3)
+            })
+            expect(invalidated).toEqual([[1, 2], [3]])
+        })
+    })
+
+    test('docs:transaction/outbox', async () => {
+        let wakeUps = 0
+        const outboxRelay = {
+            wakeUp() {
+                wakeUps += 1
+            },
+        }
+        ctx.mockNext(50)
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        // Seeded issue 1 already has one event.
+        ctx.mockNext(3)
+        const connection = ctx.conn
+
+        await ctx.withReseed(async () => {
+            // doc-start
+            const relayWakeUpRegistered = Symbol('relayWakeUpRegistered')
+
+            async function addToOutbox(issueId: number, eventType: 'created' | 'updated') {
+                await connection.insertInto(tWebhookEvent)
+                    .set({ issueId, eventType })
+                    .executeInsert()
+
+                const metadata = connection.getTransactionMetadata()
+                if (!metadata.get(relayWakeUpRegistered)) {
+                    metadata.set(relayWakeUpRegistered, true)
+                    connection.executeAfterNextCommit(() => {
+                        // Not awaited: the caller doesn't wait for the messages to be sent
+                        outboxRelay.wakeUp()
+                    })
+                }
+            }
+
+            await connection.transaction(async () => {
+                await registerUser('john@acme.test', 'John Smith')
+                await addToOutbox(1, 'created')
+                await addToOutbox(1, 'updated')
+            })
+            // doc-end
+
+            expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"insert into webhook_event (issue_id, event_type) values (@0, @1)"`)
+            expect(ctx.lastNoTransactionParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "updated",
+              ]
+            `)
+
+            const eventsOfIssue1 = await connection.selectFrom(tWebhookEvent)
+                .where(tWebhookEvent.issueId.equals(1))
+                .selectCountAll()
+                .executeSelectOne()
+            expect(eventsOfIssue1).toBe(3)
+        })
+
+        expect(wakeUps).toBe(1)
+    })
+
     test('docs-extra:transaction/hooks-throw-without-transaction', async () => {
-        // "Note" on the page: deferred-hook registration outside a
-        // transaction throws `NOT_IN_TRANSACTION`. The guard now fires
-        // uniformly in mock and real-DB mode: the lenient mock
-        // short-circuit that used to silence it (`isMocked()` skipping
-        // the check) has been removed. Transaction depth is tracked
-        // internally and `AbstractConnection` consults
-        // `isTransactionActive()` directly.
+        // Registering a function when there is no transaction throws `NOT_IN_TRANSACTION`.
         const connection = ctx.conn
 
         expect(() => connection.executeBeforeNextCommit(() => { /* */ })).toThrow(/NOT_IN_TRANSACTION/)
@@ -379,10 +798,8 @@ describe(ctx.label, () => {
     })
 
     test('docs-extra:transaction/metadata-throws-without-transaction', async () => {
-        // "Transaction metadata" section: `getTransactionMetadata()` is scoped
-        // to the current transaction. Called with no active transaction it
-        // throws `NOT_IN_TRANSACTION` — the same guard the deferred-hook
-        // registrars enforce (see hooks-no-effect-without-transaction above).
+        // `getTransactionMetadata()` is scoped to the current transaction; with none active
+        // it throws `NOT_IN_TRANSACTION`.
         const connection = ctx.conn
         expect(() => connection.getTransactionMetadata()).toThrow(/NOT_IN_TRANSACTION/)
     })
@@ -406,4 +823,190 @@ describe(ctx.label, () => {
 
         expect(secondHasKey).toBe(false)
     })
+
+    test('docs-extra:transaction/before-commit-query-commits-with-rest', async () => {
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(2)
+        const connection = ctx.conn
+
+        await ctx.withReseed(async () => {
+            await connection.transaction(async () => {
+                await connection.insertInto(tOrganization).set({ name: 'Top Organization', plan: 'free' }).executeInsert()
+                connection.executeBeforeNextCommit(async () => {
+                    await connection.insertInto(tOrganization).set({ name: 'Top Organization', plan: 'pro' }).executeInsert()
+                })
+            })
+
+            const savedOrganizations = await connection.selectFrom(tOrganization)
+                .where(tOrganization.name.equals('Top Organization'))
+                .selectCountAll()
+                .executeSelectOne()
+
+            expect(statementsSql()).toMatchInlineSnapshot(`
+              [
+                "insert into organization (name, [plan]) values (@0, @1)",
+                "insert into organization (name, [plan]) values (@0, @1)",
+                "select count(*) as [result] from organization where name = @0",
+              ]
+            `)
+            expect(savedOrganizations).toBe(2)
+        })
+    })
+
+    test('docs-extra:transaction/after-commit-query-runs-outside', async () => {
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        const connection = ctx.conn
+        let activeInTheFunction = true
+
+        await ctx.withReseed(async () => {
+            await connection.transaction(async () => {
+                connection.executeAfterNextCommit(async () => {
+                    activeInTheFunction = connection.isTransactionActive()
+                    await connection.insertInto(tOrganization).set({ name: 'Top Organization', plan: 'free' }).executeInsert()
+                })
+            })
+
+            const savedOrganizations = await connection.selectFrom(tOrganization)
+                .where(tOrganization.name.equals('Top Organization'))
+                .selectCountAll()
+                .executeSelectOne()
+
+            expect(statementsSql()).toMatchInlineSnapshot(`
+              [
+                "insert into organization (name, [plan]) values (@0, @1)",
+                "select count(*) as [result] from organization where name = @0",
+              ]
+            `)
+            expect(savedOrganizations).toBe(1)
+        })
+
+        expect(activeInTheFunction).toBe(false)
+    })
+
+    test('docs-extra:transaction/resolves-after-hooks', async () => {
+        const connection = ctx.conn
+        let finished = false
+
+        await ctx.withReseed(async () => {
+            const result = await connection.transaction(async () => {
+                connection.executeAfterNextCommit(async () => {
+                    await new Promise((resolve) => setTimeout(resolve, 1))
+                    finished = true
+                })
+                return 'the value of fn'
+            })
+
+            assertType<Exact<typeof result, string>>()
+            expect(result).toBe('the value of fn')
+            expect(finished).toBe(true)
+        })
+    })
+
+    test('docs-extra:transaction/after-commit-error-keeps-changes', async () => {
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        const connection = ctx.conn
+        const hookError = new Error('The function failed')
+        let caught: unknown
+
+        await ctx.withReseed(async () => {
+            try {
+                await connection.transaction(async () => {
+                    await connection.insertInto(tOrganization).set({ name: 'Top Organization', plan: 'free' }).executeInsert()
+                    connection.executeAfterNextCommit(() => {
+                        throw hookError
+                    })
+                })
+            } catch (e) {
+                caught = e
+            }
+
+            const savedOrganizations = await connection.selectFrom(tOrganization)
+                .where(tOrganization.name.equals('Top Organization'))
+                .selectCountAll()
+                .executeSelectOne()
+            expect(savedOrganizations).toBe(1)
+        })
+
+        expect(caught).toBeInstanceOf(TsSqlQueryExecutionError)
+        expect(caught instanceof TsSqlError && caught.errorReason.reason).toBe('ERROR_EXECUTING_DEFERRED_IN_TRANSACTION')
+        expect(caught instanceof TsSqlError && caught.cause).toBe(hookError)
+    })
+
+    test('docs-extra:transaction/commit-before-hook-failure-leaves-open', async () => {
+        const connection = ctx.conn
+        const hookError = new Error('The function failed')
+        let caught: unknown
+
+        await ctx.withReseed(async () => {
+            await connection.beginTransaction()
+            connection.executeBeforeNextCommit(() => {
+                throw hookError
+            })
+
+            try {
+                await connection.commit()
+            } catch (e) {
+                caught = e
+            }
+            expect(connection.isTransactionActive()).toBe(true)
+
+            await connection.rollback()
+            expect(connection.isTransactionActive()).toBe(false)
+        })
+
+        expect(caught).toBeInstanceOf(TsSqlQueryExecutionError)
+        expect(caught instanceof TsSqlError && caught.errorReason.reason).toBe('ERROR_EXECUTING_DEFERRED_IN_TRANSACTION')
+        expect(caught instanceof TsSqlError && caught.cause).toBe(hookError)
+    })
+
+    test('docs-extra:transaction/rollback-hook-error', async () => {
+        const connection = ctx.conn
+        const hookError = new Error('The function failed')
+        let caught: unknown
+
+        await ctx.withReseed(async () => {
+            await connection.beginTransaction()
+            connection.executeAfterNextRollback(() => {
+                throw hookError
+            })
+
+            try {
+                await connection.rollback()
+            } catch (e) {
+                caught = e
+            }
+            expect(connection.isTransactionActive()).toBe(false)
+        })
+
+        expect(caught).toBeInstanceOf(TsSqlQueryExecutionError)
+        expect(caught instanceof TsSqlError && caught.errorReason.reason).toBe('ERROR_EXECUTING_DEFERRED_IN_TRANSACTION')
+        expect(caught instanceof TsSqlError && caught.cause).toBe(hookError)
+    })
+
+    // NOT-APPLICABLE: this connector's query runner does not support allowNestedTransactions.
+    /*
+    test('docs-extra:transaction/nested-metadata', async () => {
+        const connection = ctx.nestedTransactionConn()
+        const seen: string[] = []
+
+        await ctx.withReseed(async () => {
+            await connection.transaction(async () => {
+                connection.getTransactionMetadata().set('my key', 'outer value')
+
+                await connection.transaction(async () => {
+                    seen.push(String(connection.getTransactionMetadata().has('my key')))
+                    connection.getTransactionMetadata().set('my key', 'inner value')
+                    seen.push(String(connection.getTransactionMetadata().get('my key')))
+                })
+
+                seen.push(String(connection.getTransactionMetadata().get('my key')))
+            })
+        })
+
+        expect(seen).toEqual(['false', 'inner value', 'outer value'])
+    })
+    */
 })

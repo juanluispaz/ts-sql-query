@@ -2,7 +2,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tOrganization, tProject } from '../../domain/connection.js'
+import { tIssue, tOrganization, tProject, tLedgerEntry } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -10,69 +10,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    test('docs:insert/insert-one-set', async () => {
-        ctx.mockNext(42)
-
-        await ctx.withRollback(async () => {
-            const connection = ctx.conn
-
-            // doc-start
-            const id = await connection.insertInto(tOrganization)
-                .set({
-                    name: 'Initrode',
-                    plan: 'free',
-                })
-                .returningLastInsertedId()
-                .executeInsert()
-            // doc-end
-
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2) returning id"`)
-            expect(ctx.lastParams).toMatchInlineSnapshot(`
-              [
-                "Initrode",
-                "free",
-              ]
-            `)
-            assertType<Exact<typeof id, number>>()
-            expect(typeof id).toBe('number')
-            if (!ctx.realDbEnabled) expect(id).toBe(42)
-        })
-    })
-
-    test('docs:insert/insert-many-values', async () => {
-        ctx.mockNext([{ id: 50 }, { id: 51 }])
-
-        await ctx.withRollback(async () => {
-            const connection = ctx.conn
-
-            // doc-start
-            const valuesToInsert = [
-                { name: 'Mobile app',  organizationId: 1, slug: 'mobile-1'  },
-                { name: 'Dashboard',   organizationId: 1, slug: 'dashboard' },
-            ]
-            const inserted = await connection.insertInto(tProject)
-                .values(valuesToInsert)
-                .returning({ id: tProject.id })
-                .executeInsertMany()
-            // doc-end
-
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (name, organization_id, slug) values (?1, ?2, ?3), (?4, ?5, ?6) returning id as id"`)
-            expect(ctx.lastParams).toMatchInlineSnapshot(`
-              [
-                "Mobile app",
-                1,
-                "mobile-1",
-                "Dashboard",
-                1,
-                "dashboard",
-              ]
-            `)
-            assertType<Exact<typeof inserted, Array<{ id: number }>>>()
-            expect(inserted).toHaveLength(2)
-        })
-    })
-
-    test('docs:insert/insert-set-if-not-set', async () => {
+    test('docs:insert/insert-one-row', async () => {
         ctx.mockNext(7)
 
         await ctx.withRollback(async () => {
@@ -111,38 +49,78 @@ describe(ctx.label, () => {
         })
     })
 
-    test('docs:insert/insert-from-select', async () => {
-        ctx.mockNext(2)
+    test('docs:insert/insert-many-values', async () => {
+        ctx.mockNext([50, 51])
 
         await ctx.withRollback(async () => {
             const connection = ctx.conn
 
             // doc-start
-            const inserted = await connection.insertInto(tProject)
+            const valuesToInsert = [
+                {
+                    name:           'Mobile app',
+                    slug:           'mobile-1',
+                    organizationId: 1,
+                },
+                {
+                    name:           'Dashboard',
+                    slug:           'dashboard',
+                    organizationId: 1,
+                },
+            ]
+
+            const insertMultipleProjects = await connection.insertInto(tProject)
+                .values(valuesToInsert)
+                .returningLastInsertedId()
+                .executeInsert()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (name, slug, organization_id) values (?1, ?2, ?3), (?4, ?5, ?6) returning id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Mobile app",
+                "mobile-1",
+                1,
+                "Dashboard",
+                "dashboard",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof insertMultipleProjects, number[]>>()
+            expect(insertMultipleProjects).toHaveLength(2)
+        })
+    })
+
+    test('docs:insert/insert-from-select', async () => {
+        ctx.mockNext(1)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            // doc-start
+            const insertOrganizationsFromSelect = await connection.insertInto(tOrganization)
                 .from(
-                    connection.selectFrom(tProject)
-                        .where(tProject.organizationId.equals(1))
+                    connection.selectFrom(tOrganization)
+                        .where(
+                            tOrganization.plan.equals('pro')
+                        )
                         .select({
-                            organizationId: connection.const(2, 'int'),
-                            name:           tProject.name.concat(' (clone)'),
-                            slug:           tProject.slug.concat('-clone'),
+                            name: tOrganization.name,
+                            plan: tOrganization.plan,
                         })
                 )
                 .executeInsert()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) select ?1 as organizationId, name || ?2 as name, slug || ?3 as slug from project where organization_id = ?4"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") select name as name, "plan" as "plan" from organization where "plan" = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
-                2,
-                " (clone)",
-                "-clone",
-                1,
+                "pro",
               ]
             `)
-            assertType<Exact<typeof inserted, number>>()
-            expect(typeof inserted).toBe('number')
-            if (!ctx.realDbEnabled) expect(inserted).toBe(2)
+            assertType<Exact<typeof insertOrganizationsFromSelect, number>>()
+            // Only the seeded 'Acme Corp' has the plan 'pro'.
+            expect(insertOrganizationsFromSelect).toBe(1)
         })
     })
 
@@ -229,7 +207,7 @@ describe(ctx.label, () => {
         // Section "Insert multiple with value's shape" — combine
         // `shapedAs` with `values(arr)` + `extendShape` + `setForAll` to
         // apply a constant to every row.
-        ctx.mockNext([{ id: 81 }, { id: 82 }])
+        ctx.mockNext([81, 82])
 
         await ctx.withRollback(async () => {
             const connection = ctx.conn
@@ -241,7 +219,7 @@ describe(ctx.label, () => {
             ]
             const currentOrgId = 1
 
-            const inserted = await connection.insertInto(tProject)
+            const insertMultipleProjects = await connection.insertInto(tProject)
                 .shapedAs({
                     projectName: 'name',
                     projectSlug: 'slug',
@@ -251,12 +229,11 @@ describe(ctx.label, () => {
                     projectOrganizationId: 'organizationId',
                 }).setForAll({
                     projectOrganizationId: currentOrgId,
-                })
-                .returning({ id: tProject.id })
-                .executeInsertMany()
+                }).returningLastInsertedId()
+                .executeInsert()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (name, slug, organization_id) values (?1, ?2, ?3), (?4, ?5, ?6) returning id as id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (name, slug, organization_id) values (?1, ?2, ?3), (?4, ?5, ?6) returning id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Mobile app",
@@ -267,8 +244,8 @@ describe(ctx.label, () => {
                 1,
               ]
             `)
-            assertType<Exact<typeof inserted, Array<{ id: number }>>>()
-            expect(inserted).toHaveLength(2)
+            assertType<Exact<typeof insertMultipleProjects, number[]>>()
+            expect(insertMultipleProjects).toHaveLength(2)
         })
     })
 
@@ -300,28 +277,62 @@ describe(ctx.label, () => {
     })
 
     test('docs:insert/set-when', async () => {
-        // "Manipulating values to insert" prose: the `When` variants take
-        // a boolean and only apply the chained set when it is true.
-        ctx.mockNext(100)
+        ctx.mockNext(1)
 
         await ctx.withRollback(async () => {
             const connection = ctx.conn
-            const includePlan = true
 
-            const id = await connection.insertInto(tOrganization)
-                .set({ name: 'Pied Piper', plan: 'free' })
-                .setWhen(includePlan, { plan: 'pro' })
-                .returningLastInsertedId()
+            // doc-start
+            const assignTheDefaultPlan = true
+
+            const insertedCount = await connection.insertInto(tOrganization).set({
+                    name: 'Pied Piper',
+                    plan: 'pro',
+                })
+                .setWhen(assignTheDefaultPlan, { plan: 'free' })
                 .executeInsert()
+            // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2) returning id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Pied Piper",
-                "pro",
+                "free",
               ]
             `)
-            assertType<Exact<typeof id, number>>()
+            assertType<Exact<typeof insertedCount, number>>()
+            expect(insertedCount).toBe(1)
+        })
+    })
+
+    test('docs-extra:insert/set-when-does-not-set-required', async () => {
+        // A required column set only through a `When` variant stays missing: the
+        // execute methods appear once `set` provides it.
+        ctx.mockNext(1)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            const missingPlan = connection.insertInto(tOrganization)
+                .dynamicSet()
+                .set({ name: 'Pied Piper' })
+                .setWhen(true, { plan: 'pro' })
+            assertType<Exact<'executeInsert' extends keyof typeof missingPlan ? true : false, false>>()
+
+            const withPlan = missingPlan.set({ plan: 'free' })
+            assertType<Exact<'executeInsert' extends keyof typeof withPlan ? true : false, true>>()
+
+            const insertedCount = await withPlan.executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Pied Piper",
+                "free",
+              ]
+            `)
+            assertType<Exact<typeof insertedCount, number>>()
+            expect(insertedCount).toBe(1)
         })
     })
 
@@ -580,7 +591,7 @@ describe(ctx.label, () => {
         }).toThrow(/only name may be set by this path/)
     })
 
-    test('docs:insert/set-when-false-skips', async () => {
+    test('docs-extra:insert/set-when-false-skips', async () => {
         // "Manipulating values to insert" prose: every method has a
         // `When` variant — `setWhen(false, ...)` is a no-op, so the chain
         // emits only what `set(...)` already had.
@@ -638,6 +649,59 @@ describe(ctx.label, () => {
               ]
             `)
             assertType<Exact<typeof inserted, Array<{ id: number }>>>()
+        })
+    })
+
+    test('docs:insert/set-for-all-when', async () => {
+        ctx.mockNext(2)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            // doc-start
+            const assignTheDefaultOrganization = true
+
+            const insertedCount = await connection.insertInto(tProject).values([
+                    { name: 'Mobile app', slug: 'mobile', organizationId: 2 },
+                    { name: 'Dashboard',  slug: 'dash',   organizationId: 2 },
+                ])
+                .setForAllWhen(assignTheDefaultOrganization, { organizationId: 1 })
+                .executeInsert()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (name, slug, organization_id) values (?1, ?2, ?3), (?4, ?5, ?6)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Mobile app",
+                "mobile",
+                1,
+                "Dashboard",
+                "dash",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof insertedCount, number>>()
+            expect(insertedCount).toBe(2)
+        })
+    })
+
+    test('docs:insert/insert-default-values', async () => {
+        ctx.mockNext(1001)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            // doc-start
+            const entryNo = await connection.insertInto(tLedgerEntry)
+                .defaultValues()
+                .returningLastInsertedId()
+                .executeInsert()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into ledger_entry default values returning entry_no"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            assertType<Exact<typeof entryNo, number>>()
+            expect(typeof entryNo).toBe('number')
         })
     })
 })

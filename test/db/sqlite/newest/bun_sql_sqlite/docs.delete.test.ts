@@ -37,29 +37,6 @@ describe(ctx.label, () => {
         })
     })
 
-    test('docs-extra:delete/delete-many', async () => {
-        ctx.mockNext(2)
-
-        await ctx.withRollback(async () => {
-            const connection = ctx.conn
-
-            // doc-start
-            const affected = await connection.deleteFrom(tIssue)
-                .where(tIssue.status.equals('open'))
-                .executeDelete()
-            // doc-end
-
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where status = ?1"`)
-            expect(ctx.lastParams).toMatchInlineSnapshot(`
-              [
-                "open",
-              ]
-            `)
-            assertType<Exact<typeof affected, number>>()
-            expect(affected).toBe(2)
-        })
-    })
-
     test('docs:delete/delete-returning', async () => {
         ctx.mockNext({ id: 4, title: 'Document /v2/users' })
 
@@ -90,32 +67,6 @@ describe(ctx.label, () => {
         })
     })
 
-    // NOT-APPLICABLE: SQLite does not support `deleteFrom(...).using(...)`; it is only typed on PostgreSqlConnection, SqlServerConnection, MariaDBConnection, MySqlConnection and OracleConnection (23ai+). Body kept verbatim for cross-cell diff parity per the symmetry rule.
-    /*
-    test('docs:delete/delete-using', async () => {
-        // Section "Delete using other tables or views" — `.using(other)`
-        // brings another table into the delete so the WHERE can reference
-        // its columns.
-        ctx.mockNext(1)
-
-        await ctx.withRollback(async () => {
-            const connection = ctx.conn
-
-            // doc-start
-            const affected = await connection.deleteFrom(tIssue)
-                .using(tProject)
-                .where(tIssue.projectId.equals(tProject.id))
-                .and(tProject.name.containsInsensitive('Legacy'))
-                .executeDelete()
-            // doc-end
-
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
-            assertType<Exact<typeof affected, number>>()
-        })
-    })
-    */
-
     test('docs-extra:delete/returning-one-column', async () => {
         // "Delete returning" prose: `returningOneColumn(col)` is the
         // single-column counterpart of `returning({...})`.
@@ -138,4 +89,63 @@ describe(ctx.label, () => {
             assertType<Exact<typeof removedTitle, string>>()
         })
     })
+
+    // NOT-APPLICABLE: SQLite does not support `deleteFrom(...).using(...)`; it is only typed on PostgreSqlConnection, SqlServerConnection, MariaDBConnection, MySqlConnection and OracleConnection (23ai+). Body kept verbatim for cross-cell diff parity per the symmetry rule.
+    /*
+    test('docs:delete/delete-using', async () => {
+        // The seeded 'Public API' project has one issue.
+        ctx.mockNext(1)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            // doc-start
+            const deletePublicApiIssues = await connection.deleteFrom(tIssue)
+                .using(tProject)
+                .where(tIssue.projectId.equals(tProject.id))
+                .and(tProject.name.containsInsensitive('PUBLIC'))
+                .executeDelete()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof deletePublicApiIssues, number>>()
+            expect(deletePublicApiIssues).toBe(1)
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: SQLite does not support deleteFrom(...).using(...); it is not typed on SqliteConnection
+    /*
+    test('docs:delete/bulk-delete', async () => {
+        // Seeded issue 4 is the only one with this title and status.
+        ctx.mockNext(1)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            // doc-start
+            class VIssueForDelete extends Values<DBConnection, 'issueForDelete'> {
+                title  = this.column('string')
+                status = this.column('string')
+            }
+            const issueForDelete = Values.create(VIssueForDelete, 'issueForDelete', [{
+                title:  'Document /v2/users',
+                status: 'closed',
+            }])
+
+            const deleteIssue = await connection.deleteFrom(tIssue)
+                .using(issueForDelete)
+                .where(tIssue.title.equals(issueForDelete.title))
+                .and(tIssue.status.equals(issueForDelete.status))
+                .executeDelete()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof deleteIssue, number>>()
+            expect(deleteIssue).toBe(1)
+        })
+    })
+    */
 })

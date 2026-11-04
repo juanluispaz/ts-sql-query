@@ -202,4 +202,188 @@ describe(ctx.label, () => {
         expect(customer.company.id).toBe(7)
         expect(customer.company.name).toBe('Acme')
     })
+
+    test('docs-extra:deep-utilities/deep-omit-the-pages-union-of-paths', () => {
+        assertType<Exact<DeepOmit<CustomerWithCompany, 'lastName' | 'company.id'>, {
+            id:        number
+            firstName: string
+            company?:  { name: string }
+        }>>()
+    })
+
+    test('docs-extra:deep-utilities/deep-omit-runtime-whole-nested-object-by-bare-key', () => {
+        const customer = { id: 1, firstName: 'John', company: { id: 7, name: 'Acme' } }
+        const trimmed = deepOmit(customer, ['company'])
+        assertType<Exact<typeof trimmed, { id: number; firstName: string }>>()
+        expect(trimmed).toEqual({ id: 1, firstName: 'John' })
+    })
+
+    test('docs-extra:deep-utilities/deep-omit-untouched-values-copied-by-reference', () => {
+        const contact = { phone: '555' }
+        const company = { id: 7, name: 'Acme', contact }
+        const customer = { id: 1, company, contact }
+        const trimmed = deepOmit(customer, ['company.id'])
+
+        // A value no path touches is the same object; an intermediate of a path is a new one.
+        expect(trimmed.contact).toBe(contact)
+        expect(trimmed.company.contact).toBe(contact)
+        expect(trimmed.company).not.toBe(company)
+        expect(company).toEqual({ id: 7, name: 'Acme', contact })
+    })
+
+    test('docs-extra:deep-utilities/deep-pick-paths-regexp-and-function-are-terminal', () => {
+        interface WithTerminals {
+            pattern:  RegExp
+            callback: () => void
+            pending:  Promise<number>
+            lookup:   WeakMap<object, string>
+            seen:     WeakSet<object>
+            optional?: RegExp | null
+            nested:   { pattern: RegExp; id: number }
+        }
+        assertType<Exact<DeepPickPaths<WithTerminals>,
+            'pattern' | 'callback' | 'pending' | 'lookup' | 'seen' | 'optional' | 'nested' | 'nested.pattern' | 'nested.id'>>()
+    })
+
+    test('docs-extra:deep-utilities/deep-omit-terminal-values', () => {
+        interface WithTerminals {
+            id:       number
+            bornOn:   Date
+            tags:     string[]
+            pattern:  RegExp
+        }
+        assertType<Exact<DeepOmit<WithTerminals, 'bornOn' | 'tags'>, { id: number; pattern: RegExp }>>()
+
+        const bornOn = new Date('2024-01-02T03:04:05Z')
+        const tags = ['a']
+        const pattern = /a/
+        const source: WithTerminals = { id: 1, bornOn, tags, pattern }
+        const kept = deepOmit(source, ['id'])
+        assertType<Exact<typeof kept, { bornOn: Date; tags: string[]; pattern: RegExp }>>()
+        expect(kept.bornOn).toBe(bornOn)
+        expect(kept.tags).toBe(tags)
+        expect(kept.pattern).toBe(pattern)
+        expect(deepOmit(source, ['bornOn', 'tags'])).toEqual({ id: 1, pattern })
+        expect(deepPick(source, ['bornOn', 'pattern'])).toEqual({ bornOn, pattern })
+    })
+
+    test('docs-extra:deep-utilities/deep-pick-runtime-undefined-intermediate', () => {
+        const customer: { id: number; company?: { name: string } | undefined } = { id: 1, company: undefined }
+        const picked = deepPick(customer, ['id', 'company.name'])
+        assertType<Exact<typeof picked, { id: number; company?: { name: string } }>>()
+        expect(picked).toEqual({ id: 1 })
+        expect('company' in picked).toBe(false)
+    })
+
+    test('docs-extra:deep-utilities/deep-pick-forced-paths-by-spread', () => {
+        const customer = { id: 1, firstName: 'John', lastName: 'Doe', company: { id: 7, name: 'Acme' } }
+        const fields: ('firstName' | 'company.name')[] = ['company.name']
+        const picked = deepPick(customer, ['id', ...fields])
+        assertType<Exact<typeof picked, { id: number; firstName: string; company: { name: string } }>>()
+        expect(picked).toEqual({ id: 1, company: { name: 'Acme' } })
+    })
+
+    test('docs-extra:deep-utilities/empty-selection-picks-nothing-and-omits-nothing', () => {
+        const customer = { id: 1, company: { id: 7 } }
+        const picked = deepPick(customer, [])
+        const trimmed = deepOmit(customer, [])
+        assertType<Exact<typeof picked, {}>>()
+        assertType<Exact<typeof trimmed, { id: number; company: { id: number } }>>()
+        expect(picked).toEqual({})
+        expect(trimmed).toEqual(customer)
+        expect(trimmed).not.toBe(customer)
+    })
+
+    test('docs-extra:deep-utilities/every-leaf-of-the-object-omitted-keeps-it-empty', () => {
+        const customer = { id: 1, company: { id: 7, name: 'Acme' } }
+        const trimmed = deepOmit(customer, ['company.id', 'company.name'])
+        assertType<Exact<typeof trimmed, { id: number; company: {} }>>()
+        expect(trimmed).toEqual({ id: 1, company: {} })
+    })
+
+    test('docs-extra:deep-utilities/whole-object-omitted-wins-over-its-inner-path', () => {
+        const customer = { id: 1, company: { id: 7, name: 'Acme' } }
+        const trimmed = deepOmit(customer, ['company', 'company.id'])
+        assertType<Exact<typeof trimmed, { id: number }>>()
+        expect(trimmed).toEqual({ id: 1 })
+    })
+
+    test('docs-extra:deep-utilities/type-and-function-agree-at-depth-5', () => {
+        const source = { id: 1, a: { b: { c: { d: { e: 'leaf', other: 2 }, q: 3 }, q: 4 }, q: 5 } }
+        assertType<Extends<'a.b.c.d.e', DeepPickPaths<typeof source>>>()
+
+        const picked = deepPick(source, ['id', 'a.b.c.d.e'])
+        assertType<Exact<typeof picked, { id: number; a: { b: { c: { d: { e: string } } } } }>>()
+        expect(picked).toEqual({ id: 1, a: { b: { c: { d: { e: 'leaf' } } } } })
+
+        const trimmed = deepOmit(source, ['a.b.c.d.e', 'a.q'])
+        assertType<Exact<typeof trimmed, { id: number; a: { b: { c: { d: { other: number }; q: number }; q: number } } }>>()
+        expect(trimmed).toEqual({ id: 1, a: { b: { c: { d: { other: 2 }, q: 3 }, q: 4 } } })
+    })
+
+    test('docs-extra:deep-utilities/optional-intermediates-at-depth-3', () => {
+        interface Model { id: number; a?: { b?: { c: number } } }
+        assertType<Exact<DeepPick<Model, 'a.b.c'>, { a?: { b?: { c: number } } }>>()
+        assertType<Exact<DeepOmit<Model, 'a.b.c'>, { id: number; a?: { b?: {} } }>>()
+
+        const present: Model = { id: 1, a: {} }
+        const picked = deepPick(present, ['a.b.c'])
+        assertType<Exact<typeof picked, { a?: { b?: { c: number } } }>>()
+        expect(picked).toEqual({ a: {} })
+        const absent: Model = { id: 1 }
+        expect(deepPick(absent, ['a.b.c'])).toEqual({})
+        expect(deepOmit(absent, ['a.b.c'])).toEqual({ id: 1 })
+    })
+
+    // TODO[BUG]: DeepPick of a path into a required property holding null removes the null and keeps the property required: the type is { company: { name: string } }, the function returns {} without the property, as the page says for a null intermediate.
+    /*
+    test('docs-extra:deep-utilities/deep-pick-path-into-a-nullable-required-object', () => {
+        const customer: { id: number; company: { name: string; plan: string } | null } = { id: 1, company: null }
+        const picked = deepPick(customer, ['id', 'company.name'])
+        assertType<Exact<typeof picked, { id: number; company?: { name: string } }>>()
+        expect(picked).toEqual({ id: 1 })
+    })
+    */
+
+    // TODO[BUG]: DeepOmit of a path into a property holding null removes the null: the type is { company: { name: string } }, the function keeps company: null.
+    /*
+    test('docs-extra:deep-utilities/deep-omit-path-into-a-nullable-object', () => {
+        const customer: { id: number; company: { id: number; name: string } | null } = { id: 1, company: null }
+        const trimmed = deepOmit(customer, ['company.id'])
+        assertType<Exact<typeof trimmed, { id: number; company: { name: string } | null }>>()
+        expect(trimmed).toEqual({ id: 1, company: null })
+    })
+    */
+
+    // TODO[BUG]: deepOmit drops a key named like a member of Object.prototype (toString, valueOf, constructor...) even when no path selects it, because it looks the key up with in on a plain object; the type keeps the key.
+    /*
+    test('docs-extra:deep-utilities/deep-omit-keeps-a-key-named-like-an-object-member', () => {
+        const source: { id: number; toString: string; valueOf: string } = { id: 1, toString: 'a', valueOf: 'b' }
+        const trimmed = deepOmit(source, ['id'])
+        assertType<Exact<typeof trimmed, { toString: string; valueOf: string }>>()
+        expect(Object.keys(trimmed).sort()).toEqual(['toString', 'valueOf'])
+    })
+    */
+
+    // TODO[BUG]: DeepPick keeps the symbol and numeric keys of the model whatever the paths are, like { a: number; 1: string; [mark]: number } for the path 'a'; deepPick returns only a.
+    /*
+    test('docs-extra:deep-utilities/deep-pick-leaves-out-keys-that-are-not-strings', () => {
+        const mark = Symbol('mark')
+        const source: { a: number; 1: string; [mark]: number } = { a: 1, 1: 'x', [mark]: 2 }
+        const picked = deepPick(source, ['a'])
+        assertType<Exact<typeof picked, { a: number }>>()
+        expect(Reflect.ownKeys(picked)).toEqual(['a'])
+    })
+    */
+
+    // TODO[BUG]: DeepPick of a whole object and an inner path keeps only the inner path, while deepPick returns the whole object, and PickValuesPath of the same paths brings the whole object.
+    /*
+    test('docs-extra:deep-utilities/deep-pick-whole-object-and-inner-path', () => {
+        const customer = { id: 1, company: { id: 7, name: 'Acme' } }
+        const picked = deepPick(customer, ['company', 'company.id'])
+        assertType<Exact<typeof picked, { company: { id: number; name: string } }>>()
+        expect(picked).toEqual({ company: { id: 7, name: 'Acme' } })
+        expect(deepPick(customer, ['company.id', 'company'])).toEqual({ company: { id: 7, name: 'Acme' } })
+    })
+    */
 })

@@ -11,17 +11,59 @@
 // receives in `onQuery(...)`).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
-import {
-    getQueryExecutionStack,
-    getFunctionExecutingQuery,
-    isSelectPageCountQuery,
-    getQueryExecutionName,
-    getQueryExecutionMetadata,
-    type FunctionExecutingQueryInformation,
-} from '../../../../../src/queryRunners/QueryRunner.js'
-import { tIssue, tProject } from '../../domain/connection.js'
+import { getQueryExecutionStack, getFunctionExecutingQuery, isSelectPageCountQuery, getQueryExecutionName, getQueryExecutionMetadata, type FunctionExecutingQueryInformation } from '../../../../../src/queryRunners/QueryRunner.js'
+import { tIssue, tProject, DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { InterceptorQueryRunner } from '../../../../../src/queryRunners/InterceptorQueryRunner.js'
+import type { QueryRunner, QueryType } from '../../../../../src/queryRunners/QueryRunner.js'
 import { sync } from '../../../../../src/extras/sync.js'
+
+interface ObservedMetadata {
+    queryType: QueryType
+    stack: string | undefined
+    info: FunctionExecutingQueryInformation | undefined
+    isCount: boolean
+    name: string | undefined
+    metadata: ReturnType<typeof getQueryExecutionMetadata>
+}
+
+// What the page's runner reads in onQuery, kept for the assertion instead of logged.
+const observed: ObservedMetadata[] = []
+
+class MetadataReadingQueryRunner extends InterceptorQueryRunner<boolean> {
+    onQuery(queryType: QueryType, query: string, params: Parameters<typeof getQueryExecutionStack>[1]): boolean {
+        observed.push({
+            queryType,
+            stack: getQueryExecutionStack(query, params),
+            info: getFunctionExecutingQuery(query, params),
+            isCount: isSelectPageCountQuery(query, params),
+            name: getQueryExecutionName(query, params),
+            metadata: getQueryExecutionMetadata(query, params),
+        })
+        return true
+    }
+    onQueryResult(): void {
+    }
+    onQueryError(): void {
+    }
+}
+
+class MetadataReadingConnection extends DBConnection {
+    constructor(queryRunner: QueryRunner, compatibilityVersion?: number) {
+        super(new MetadataReadingQueryRunner(queryRunner), compatibilityVersion)
+    }
+}
+
+async function functionRequestingTheQuery(connection: DBConnection) {
+    return sync(connection.selectFrom(tProject)
+        .where(tProject.id.equals(1))
+        .select({ id: tProject.id, name: tProject.name })
+        .customizeQuery({
+            queryExecutionName: 'My query name',
+            queryExecutionMetadata: { myMetadataProp: 'my metadata value' },
+        })
+        .executeSelectOne())
+}
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -45,25 +87,16 @@ describe(ctx.label, () => {
 
     test('docs:query-execution-metadata/get-function-executing-query', async () => {
         ctx.mockNext({ id: 1, name: 'Marketing site' })
-        sync(ctx.conn.selectFrom(tProject)
-            .where(tProject.id.equals(1))
-            .select({ id: tProject.id, name: tProject.name })
-            .executeSelectOne())
+        await functionRequestingTheQuery(ctx.conn)
 
         // doc-start
         const info: FunctionExecutingQueryInformation | undefined =
             getFunctionExecutingQuery(ctx.lastSql, ctx.lastParams)
         // doc-end
-        // The stack regex requires a recognisable frame after the
-        // synthetic "Query executed at" header — present on Node/Bun.
-        if (info !== undefined) {
-            // Each property is independently optional; we only assert
-            // the types stay aligned with the documented surface.
-            if (info.fileName !== undefined) expect(typeof info.fileName).toBe('string')
-            if (info.functionName !== undefined) expect(typeof info.functionName).toBe('string')
-            if (info.lineNumber !== undefined) expect(typeof info.lineNumber).toBe('string')
-            if (info.positionNumber !== undefined) expect(typeof info.positionNumber).toBe('string')
-        }
+        expect(info?.functionName).toBe('functionRequestingTheQuery')
+        expect(info?.fileName?.split('/').at(-1)).toBe('docs.advanced.query-execution-metadata.test.ts')
+        expect(Number(info?.lineNumber)).toBeGreaterThan(0)
+        expect(Number(info?.positionNumber)).toBeGreaterThan(0)
     })
 
     test('docs:query-execution-metadata/is-select-page-count-query', async () => {
@@ -273,5 +306,79 @@ describe(ctx.label, () => {
 
         expect(getQueryExecutionName(ctx.lastSql, ctx.lastParams)).toBe('compound-select')
         expect(getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams)).toEqual({ tag: 'compound-path' })
+    })
+
+    test('docs-extra:query-execution-metadata/interceptor-subclass-reads-metadata-in-on-query', async () => {
+        observed.length = 0
+        const connection = ctx.withConnection(MetadataReadingConnection)
+        ctx.mockNext({ id: 1, name: 'Marketing site' })
+
+        const row = await functionRequestingTheQuery(connection)
+
+        expect(row).toEqual({ id: 1, name: 'Marketing site' })
+        expect(observed.length).toBe(1)
+        const seen = observed[0]!
+        expect(seen.queryType).toBe('selectOneRow')
+        expect(seen.isCount).toBe(false)
+        expect(seen.name).toBe('My query name')
+        expect(seen.metadata).toEqual({ myMetadataProp: 'my metadata value' })
+    })
+
+    test('docs-extra:query-execution-metadata/stack-names-builder-method-and-caller', async () => {
+        observed.length = 0
+        const connection = ctx.withConnection(MetadataReadingConnection)
+        ctx.mockNext({ id: 1, name: 'Marketing site' })
+
+        await functionRequestingTheQuery(connection)
+
+        const stack = observed[0]!.stack
+        expect(stack).toMatch(/^Query executed at\n/)
+        expect(stack).toContain('executeSelectOne')
+        expect(stack).toContain('functionRequestingTheQuery')
+    })
+
+    test('docs-extra:query-execution-metadata/function-executing-query-identifies-caller', async () => {
+        observed.length = 0
+        const connection = ctx.withConnection(MetadataReadingConnection)
+        ctx.mockNext({ id: 1, name: 'Marketing site' })
+
+        await functionRequestingTheQuery(connection)
+
+        const info = observed[0]!.info
+        expect(info?.functionName).toBe('functionRequestingTheQuery')
+        expect(info?.fileName?.split('/').at(-1)).toBe('docs.advanced.query-execution-metadata.test.ts')
+        expect(Number(info?.lineNumber)).toBeGreaterThan(0)
+        expect(Number(info?.positionNumber)).toBeGreaterThan(0)
+    })
+
+    // TODO[BUG]: getFunctionExecutingQuery returns undefined when the frame of the caller is the last line of the stack, because its regular expression requires a line break after that frame: on Bun, a query executed directly from a test function has only that frame after the builder's.
+    /*
+    test('docs-extra:query-execution-metadata/function-executing-query-with-the-caller-in-the-last-frame', async () => {
+        ctx.mockNext({ id: 1, name: 'Marketing site' })
+        await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, name: tProject.name })
+            .executeSelectOne()
+
+        const info = getFunctionExecutingQuery(ctx.lastSql, ctx.lastParams)
+        expect(info?.fileName?.split('/').at(-1)).toBe('docs.advanced.query-execution-metadata.test.ts')
+        expect(Number(info?.lineNumber)).toBeGreaterThan(0)
+    })
+    */
+
+    test('docs-extra:query-execution-metadata/interceptor-subclass-detects-the-select-page-count', async () => {
+        observed.length = 0
+        const connection = ctx.withConnection(MetadataReadingConnection)
+        ctx.mockNext([{ id: 1, name: 'Marketing site' }])
+        ctx.mockNext(4)
+
+        const page = sync(connection.selectFrom(tProject)
+            .select({ id: tProject.id, name: tProject.name })
+            .orderBy('id')
+            .limit(1)
+            .executeSelectPage())
+
+        expect(page).toEqual({ data: [{ id: 1, name: 'Marketing site' }], count: 4 })
+        expect(observed.map((seen) => seen.isCount)).toEqual([false, true])
     })
 })

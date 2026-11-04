@@ -45,6 +45,30 @@ describe(ctx.label, () => {
             // The engine assigns the id (non-deterministic); the mock pins it.
             if (!ctx.realDbEnabled) expect(id).toBe(99)
             else expect(typeof id).toBe('number')
+
+            ctx.mockNext(100)
+            const falseId = await ctx.conn.insertInto(tOrganization).set({
+                    name:     'Other Corp',
+                    plan:     'free',
+                    verified: false,
+                })
+                .returningLastInsertedId()
+                .executeInsert()
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Other Corp",
+                "free",
+                0,
+              ]
+            `)
+
+            ctx.mockNext([{ name: 'Demo Corp', verified: true }, { name: 'Other Corp', verified: false }])
+            const rows = await ctx.conn.selectFrom(tOrganization)
+                .where(tOrganization.id.in([id, falseId]))
+                .select({ name: tOrganization.name, verified: tOrganization.verified })
+                .orderBy('name')
+                .executeSelectMany()
+            expect(rows).toEqual([{ name: 'Demo Corp', verified: true }, { name: 'Other Corp', verified: false }])
         })
     })
 

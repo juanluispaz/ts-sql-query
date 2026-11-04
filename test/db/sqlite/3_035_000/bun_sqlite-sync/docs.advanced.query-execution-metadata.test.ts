@@ -351,8 +351,6 @@ describe(ctx.label, () => {
         expect(Number(info?.positionNumber)).toBeGreaterThan(0)
     })
 
-    // TODO[BUG]: getFunctionExecutingQuery returns undefined when the frame of the caller is the last line of the stack, because its regular expression requires a line break after that frame: on Bun, a query executed directly from a test function has only that frame after the builder's.
-    /*
     test('docs-extra:query-execution-metadata/function-executing-query-with-the-caller-in-the-last-frame', async () => {
         ctx.mockNext({ id: 1, name: 'Marketing site' })
         await ctx.conn.selectFrom(tProject)
@@ -364,7 +362,6 @@ describe(ctx.label, () => {
         expect(info?.fileName?.split('/').at(-1)).toBe('docs.advanced.query-execution-metadata.test.ts')
         expect(Number(info?.lineNumber)).toBeGreaterThan(0)
     })
-    */
 
     test('docs-extra:query-execution-metadata/interceptor-subclass-detects-the-select-page-count', async () => {
         observed.length = 0

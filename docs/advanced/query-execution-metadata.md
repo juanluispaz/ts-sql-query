@@ -16,7 +16,8 @@ The `getQueryExecutionStack` will return a string with the stack trace where the
 
 ```ts
 import { getQueryExecutionStack } from 'ts-sql-query/queryRunners/QueryRunner';
-import { InterceptorQueryRunner, QueryType } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
+import { InterceptorQueryRunner } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
+import type { QueryType } from "ts-sql-query/queryRunners/QueryRunner";
 
 class DurationLogginQueryRunner extends InterceptorQueryRunner<void> {
     onQuery(queryType: QueryType, query: string, params: any[]): void {
@@ -34,7 +35,7 @@ class DurationLogginQueryRunner extends InterceptorQueryRunner<void> {
 }
 ```
  
-**The stack strace will looks like**:
+**The stack trace will look like**:
 
 ```
 Query executed at
@@ -50,7 +51,8 @@ The `getFunctionExecutingQuery` will return an object with information related t
 
 ```ts
 import { getFunctionExecutingQuery, FunctionExecutingQueryInformation } from 'ts-sql-query/queryRunners/QueryRunner';
-import { InterceptorQueryRunner, QueryType } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
+import { InterceptorQueryRunner } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
+import type { QueryType } from "ts-sql-query/queryRunners/QueryRunner";
 
 class DurationLogginQueryRunner extends InterceptorQueryRunner<void> {
     onQuery(queryType: QueryType, query: string, params: any[]): void {
@@ -91,7 +93,8 @@ The [Select page](../queries/select-page.md) is the only place where `ts-sql-que
 
 ```ts
 import { isSelectPageCountQuery } from 'ts-sql-query/queryRunners/QueryRunner';
-import { InterceptorQueryRunner, QueryType } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
+import { InterceptorQueryRunner } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
+import type { QueryType } from "ts-sql-query/queryRunners/QueryRunner";
 
 class DurationLogginQueryRunner extends InterceptorQueryRunner<void> {
     onQuery(queryType: QueryType, query: string, params: any[]): void {
@@ -115,7 +118,8 @@ Before you execute a query, you can customize the query; in the customization po
 
 ```ts
 import { getQueryExecutionName } from 'ts-sql-query/queryRunners/QueryRunner';
-import { InterceptorQueryRunner, QueryType } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
+import { InterceptorQueryRunner } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
+import type { QueryType } from "ts-sql-query/queryRunners/QueryRunner";
 
 class DurationLogginQueryRunner extends InterceptorQueryRunner<void> {
     onQuery(queryType: QueryType, query: string, params: any[]): void {
@@ -155,7 +159,8 @@ Before executing a query, you can customize it by specifying options using `quer
 
 ```ts
 import { getQueryExecutionMetadata } from 'ts-sql-query/queryRunners/QueryRunner';
-import { InterceptorQueryRunner, QueryType } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
+import { InterceptorQueryRunner } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
+import type { QueryType } from "ts-sql-query/queryRunners/QueryRunner";
 
 class DurationLogginQueryRunner extends InterceptorQueryRunner<void> {
     onQuery(queryType: QueryType, query: string, params: any[]): void {

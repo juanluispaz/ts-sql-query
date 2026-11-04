@@ -156,7 +156,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             id:   number
-            meta: { priority: number; status: string }
+            meta: { priority: number; status?: string }
         }>>>()
         expect(rows).toEqual(expected)
     })
@@ -530,7 +530,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             id:   number
-            meta: { gate: string; assigneeId: number | null } | null
+            meta: { gate: string; assigneeId?: number | null } | null
         }>>>()
         expect(rows).toEqual(expected)
     })
@@ -610,7 +610,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             iid:  number
-            proj: { id: number; name: string; archivedAt: Date | null } | null
+            proj: { id: number; name: string; archivedAt?: Date | null } | null
         }>>>()
         expect(rows).toEqual([{ iid: 1, proj: { id: 1, name: 'Marketing site', archivedAt: null } }])
         // Project 1's null archivedAt is PRESENT-null under the nullable projector.

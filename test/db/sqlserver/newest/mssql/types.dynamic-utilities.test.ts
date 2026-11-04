@@ -234,8 +234,6 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // TODO[BUG]: a sibling of a mandatory path is only known at runtime, so it must be optional; today it comes out required.
-    /*
     test('dynamic-utilities/sibling-of-a-mandatory-path-is-optional', async () => {
         const fields = { id: tIssue.id, info: { priority: tIssue.priority, status: tIssue.status } }
 
@@ -247,15 +245,16 @@ describe(ctx.label, () => {
             .select(picked)
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority as [info.priority] from issue where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
         assertType<Exact<typeof rows, Array<{ id: number; info: { priority: number; status?: string } }>>>()
         expect(rows).toEqual(expected)
     })
-    */
 
-    // TODO[BUG]: the page says unselected fields are optional; a parent with a selected path today makes all its leaves required.
-    /*
     test('dynamic-utilities/with-all-properties-keeps-unselected-siblings-optional', () => {
         const fields = {
             id: tIssue.id,
@@ -267,10 +266,7 @@ describe(ctx.label, () => {
         assertType<Exact<PickValuesPathWitAllProperties<typeof fields, 'gated.gate'>['gated'], { gate: string; title?: string } | undefined>>()
         assertType<Exact<PickValuesPathWitAllProperties<typeof fields, 'deep.a.b.x'>['deep'], { a: { b: { x: number; y?: string }; z?: string }; w?: string }>>()
     })
-    */
 
-    // TODO[BUG]: alwaysIncluded is ignored by dynamicPick for a nested path when its parent isn't in the pick; dynamicPickPaths keeps it, and the type says required.
-    /*
     test('dynamic-utilities/always-included-nested-path-survives-any-pick', () => {
         const fields = { id: tIssue.id, info: { priority: tIssue.priority, status: tIssue.status }, a: { b: { c: tIssue.title } } }
 
@@ -282,7 +278,6 @@ describe(ctx.label, () => {
         expect(fromMap.info.priority).toBe(tIssue.priority)
         expect(fromMap.a.b.c).toBe(tIssue.title)
     })
-    */
 
     // TODO[BUG]: expandTypeFromDynamicPickPaths types the object as required (the rule of all its leaves) when the picked leaves make it optional; the row doesn't have it.
     /*

@@ -183,7 +183,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             pid:    number
-            issues: Array<{ iid?: number; title?: string }>
+            issues: Array<{ iid: number; title?: string }>
         }>>>()
         const sorted = rows.map(r => ({ ...r, issues: [...r.issues].sort((a, b) => a.iid! - b.iid!) }))
         expect(sorted).toEqual([{ pid: 1, issues: [{ iid: 1, title: 'Update hero copy' }, { iid: 2, title: 'Redesign navbar' }] }])

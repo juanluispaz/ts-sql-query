@@ -3,7 +3,6 @@ import type { Expand, RequiredKeys, UsableKeyOf } from '../utils/objectUtils.js'
 
 type ExtractFirstPropertyInPath<PATH extends string> = PATH extends `${infer FIRST}.${any}` ? FIRST : never
 type UnprefixPath<NAME extends string, PREFIX extends string> = NAME extends `${PREFIX}.${infer R}` ? R : never
-type UnprefixPathExtractFirstProperty<NAME extends string, PREFIX extends string> = NAME extends `${PREFIX}.${infer R}` ? R | ExtractFirstPropertyInPath<R>: never
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -85,22 +84,23 @@ type PickingAsBooleanObjectMap5<TYPE> =
  * Create a object where all non-mandatories properties are marked as
  * optionals, keeping in mind that only apply for the innnermost elements
  * 
- * ExtractFirstProperty is used to avoid required objects where all inside
- * is optional
+ * An object is kept when one of its inner paths is picked, to avoid required
+ * objects where all inside is optional; only picking the object itself picks
+ * all that it contains
  */
 
-export type PickWitOthersAsOptionals<TYPE, MANDATORY extends string> = PickWitOthersAsOptionals1<TYPE, MANDATORY | ExtractFirstPropertyInPath<MANDATORY>, false>
+export type PickWitOthersAsOptionals<TYPE, MANDATORY extends string> = PickWitOthersAsOptionals1<TYPE, MANDATORY, false>
 
 type PickWitOthersAsOptionals1<TYPE, MANDATORY_AT_LEVEL extends string, MANDATORY_PARENT> = Expand<{ 
         [K in MadatoriyValuesKeysForPickResult<TYPE, MANDATORY_AT_LEVEL, MANDATORY_PARENT>]: TYPE[K] 
     } & {
         [K in MandatoryNonValueKeysForResult<TYPE, MANDATORY_AT_LEVEL, MANDATORY_PARENT>]: 
-            PickWitOthersAsOptionals2<TYPE[K], UnprefixPathExtractFirstProperty<MANDATORY_AT_LEVEL, K>, InMandatory<K, MANDATORY_AT_LEVEL, MANDATORY_PARENT>>
+            PickWitOthersAsOptionals2<TYPE[K], UnprefixPath<MANDATORY_AT_LEVEL, K>, InMandatory<K, MANDATORY_AT_LEVEL, MANDATORY_PARENT>>
     } & {
         [K in OptionalValueKeysForPickResult<TYPE, MANDATORY_AT_LEVEL, MANDATORY_PARENT>]?: TYPE[K]
     } & {
         [K in OptionalNonValueKeysForResult<TYPE, MANDATORY_AT_LEVEL, MANDATORY_PARENT>]?: 
-            PickWitOthersAsOptionals2<TYPE[K], UnprefixPathExtractFirstProperty<MANDATORY_AT_LEVEL, K>, InMandatory<K, MANDATORY_AT_LEVEL, MANDATORY_PARENT>>
+            PickWitOthersAsOptionals2<TYPE[K], UnprefixPath<MANDATORY_AT_LEVEL, K>, InMandatory<K, MANDATORY_AT_LEVEL, MANDATORY_PARENT>>
     }
 >
 
@@ -108,12 +108,12 @@ type PickWitOthersAsOptionals2<TYPE, MANDATORY_AT_LEVEL extends string, MANDATOR
         [K in MadatoriyValuesKeysForPickResult<TYPE, MANDATORY_AT_LEVEL, MANDATORY_PARENT>]: TYPE[K] 
     } & {
         [K in MandatoryNonValueKeysForResult<TYPE, MANDATORY_AT_LEVEL, MANDATORY_PARENT>]: 
-            PickWitOthersAsOptionals3<TYPE[K], UnprefixPathExtractFirstProperty<MANDATORY_AT_LEVEL, K>, InMandatory<K, MANDATORY_AT_LEVEL, MANDATORY_PARENT>>
+            PickWitOthersAsOptionals3<TYPE[K], UnprefixPath<MANDATORY_AT_LEVEL, K>, InMandatory<K, MANDATORY_AT_LEVEL, MANDATORY_PARENT>>
     } & {
         [K in OptionalValueKeysForPickResult<TYPE, MANDATORY_AT_LEVEL, MANDATORY_PARENT>]?: TYPE[K]
     } & {
         [K in OptionalNonValueKeysForResult<TYPE, MANDATORY_AT_LEVEL, MANDATORY_PARENT>]?: 
-            PickWitOthersAsOptionals3<TYPE[K], UnprefixPathExtractFirstProperty<MANDATORY_AT_LEVEL, K>, InMandatory<K, MANDATORY_AT_LEVEL, MANDATORY_PARENT>>
+            PickWitOthersAsOptionals3<TYPE[K], UnprefixPath<MANDATORY_AT_LEVEL, K>, InMandatory<K, MANDATORY_AT_LEVEL, MANDATORY_PARENT>>
     }
 >
 
@@ -121,12 +121,12 @@ type PickWitOthersAsOptionals3<TYPE, MANDATORY_AT_LEVEL extends string, MANDATOR
         [K in MadatoriyValuesKeysForPickResult<TYPE, MANDATORY_AT_LEVEL, MANDATORY_PARENT>]: TYPE[K] 
     } & {
         [K in MandatoryNonValueKeysForResult<TYPE, MANDATORY_AT_LEVEL, MANDATORY_PARENT>]: 
-            PickWitOthersAsOptionals4<TYPE[K], UnprefixPathExtractFirstProperty<MANDATORY_AT_LEVEL, K>, InMandatory<K, MANDATORY_AT_LEVEL, MANDATORY_PARENT>>
+            PickWitOthersAsOptionals4<TYPE[K], UnprefixPath<MANDATORY_AT_LEVEL, K>, InMandatory<K, MANDATORY_AT_LEVEL, MANDATORY_PARENT>>
     } & {
         [K in OptionalValueKeysForPickResult<TYPE, MANDATORY_AT_LEVEL, MANDATORY_PARENT>]?: TYPE[K]
     } & {
         [K in OptionalNonValueKeysForResult<TYPE, MANDATORY_AT_LEVEL, MANDATORY_PARENT>]?: 
-            PickWitOthersAsOptionals4<TYPE[K], UnprefixPathExtractFirstProperty<MANDATORY_AT_LEVEL, K>, InMandatory<K, MANDATORY_AT_LEVEL, MANDATORY_PARENT>>
+            PickWitOthersAsOptionals4<TYPE[K], UnprefixPath<MANDATORY_AT_LEVEL, K>, InMandatory<K, MANDATORY_AT_LEVEL, MANDATORY_PARENT>>
     }
 >
 
@@ -134,12 +134,12 @@ type PickWitOthersAsOptionals4<TYPE, MANDATORY_AT_LEVEL extends string, MANDATOR
         [K in MadatoriyValuesKeysForPickResult<TYPE, MANDATORY_AT_LEVEL, MANDATORY_PARENT>]: TYPE[K] 
     } & {
         [K in MandatoryNonValueKeysForResult<TYPE, MANDATORY_AT_LEVEL, MANDATORY_PARENT>]: 
-            PickWitOthersAsOptionals5<TYPE[K], UnprefixPathExtractFirstProperty<MANDATORY_AT_LEVEL, K>, InMandatory<K, MANDATORY_AT_LEVEL, MANDATORY_PARENT>>
+            PickWitOthersAsOptionals5<TYPE[K], UnprefixPath<MANDATORY_AT_LEVEL, K>, InMandatory<K, MANDATORY_AT_LEVEL, MANDATORY_PARENT>>
     } & {
         [K in OptionalValueKeysForPickResult<TYPE, MANDATORY_AT_LEVEL, MANDATORY_PARENT>]?: TYPE[K]
     } & {
         [K in OptionalNonValueKeysForResult<TYPE, MANDATORY_AT_LEVEL, MANDATORY_PARENT>]?: 
-            PickWitOthersAsOptionals5<TYPE[K], UnprefixPathExtractFirstProperty<MANDATORY_AT_LEVEL, K>, InMandatory<K, MANDATORY_AT_LEVEL, MANDATORY_PARENT>>
+            PickWitOthersAsOptionals5<TYPE[K], UnprefixPath<MANDATORY_AT_LEVEL, K>, InMandatory<K, MANDATORY_AT_LEVEL, MANDATORY_PARENT>>
     }
 >
 
@@ -160,8 +160,9 @@ type PickWitOthersAsOptionals5<TYPE, MANDATORY_AT_LEVEL extends string, MANDATOR
  * Create a object where all non-mandatories properties are removed,
  * keeping in mind that only apply for the innnermost elements
  * 
- * ExtractFirstProperty is used to avoid required objects where all inside
- * is optional
+ * An object is kept when one of its inner paths is picked, to avoid required
+ * objects where all inside is optional; only picking the object itself picks
+ * all that it contains
  */
 
 export type PickMandatoryOnly<TYPE, MANDATORY extends string> = PickMandatoryOnly1<TYPE, MANDATORY, false>

@@ -355,18 +355,13 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[BUG]: deepOmit drops a key named like a member of Object.prototype (toString, valueOf, constructor...) even when no path selects it, because it looks the key up with in on a plain object; the type keeps the key.
-    /*
     test('docs-extra:deep-utilities/deep-omit-keeps-a-key-named-like-an-object-member', () => {
         const source: { id: number; toString: string; valueOf: string } = { id: 1, toString: 'a', valueOf: 'b' }
         const trimmed = deepOmit(source, ['id'])
         assertType<Exact<typeof trimmed, { toString: string; valueOf: string }>>()
         expect(Object.keys(trimmed).sort()).toEqual(['toString', 'valueOf'])
     })
-    */
 
-    // TODO[BUG]: DeepPick keeps the symbol and numeric keys of the model whatever the paths are, like { a: number; 1: string; [mark]: number } for the path 'a'; deepPick returns only a.
-    /*
     test('docs-extra:deep-utilities/deep-pick-leaves-out-keys-that-are-not-strings', () => {
         const mark = Symbol('mark')
         const source: { a: number; 1: string; [mark]: number } = { a: 1, 1: 'x', [mark]: 2 }
@@ -374,10 +369,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof picked, { a: number }>>()
         expect(Reflect.ownKeys(picked)).toEqual(['a'])
     })
-    */
 
-    // TODO[BUG]: DeepPick of a whole object and an inner path keeps only the inner path, while deepPick returns the whole object, and PickValuesPath of the same paths brings the whole object.
-    /*
     test('docs-extra:deep-utilities/deep-pick-whole-object-and-inner-path', () => {
         const customer = { id: 1, company: { id: 7, name: 'Acme' } }
         const picked = deepPick(customer, ['company', 'company.id'])
@@ -385,6 +377,5 @@ describe(ctx.label, () => {
         expect(picked).toEqual({ company: { id: 7, name: 'Acme' } })
         expect(deepPick(customer, ['company.id', 'company'])).toEqual({ company: { id: 7, name: 'Acme' } })
     })
-    */
 
 })

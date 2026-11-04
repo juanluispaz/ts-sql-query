@@ -126,7 +126,7 @@ export function getFunctionExecutingQuery(query: string, params: any[]): Functio
     if (!stack) {
         return undefined
     }
-    const lineRegex = /^.+?\n.+?\n\s+?at(?: async)? (.+?)(?: (?:\((.+?)\)))?\n/m
+    const lineRegex = /^.+?\n.+?\n\s+?at(?: async)? (.+?)(?: (?:\((.+?)\)))?$/m
     const lineMatch = stack.match(lineRegex)
     if (!lineMatch) {
         return undefined

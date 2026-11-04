@@ -35,7 +35,7 @@ type FlatPickValuesProjectedAsNullable<COLUMNS extends Pickable, PICKED extends 
 
 export function dynamicPick<TYPE extends Pickable, MANDATORY extends PickablePaths<NoInfer<TYPE>> = never>(obj: TYPE, pick: DynamicPick<TYPE>, mandatory?: MANDATORY[]): PickWitOthersAsOptionals<TYPE, MANDATORY> {
     const result: any = {}
-    const required: any = {}
+    const required: any = Object.create(null)
 
     if (mandatory) {
         for (let i = 0, length = mandatory.length; i < length; i++) {
@@ -55,10 +55,8 @@ export function dynamicPick<TYPE extends Pickable, MANDATORY extends PickablePat
             const isRequired = p[prop]
             if (isRequired === true) {
                 result[prop] = o[prop]
-            } else if (!isRequired) {
-                // Do nothing
-            } else if (typeof isRequired === 'object') {
-                const content = internalDynamicPick(o[prop], isRequired, required, prop)
+            } else if (!isValueSource(o[prop])) {
+                const content = internalDynamicPick(o[prop], isRequired && typeof isRequired === 'object' ? isRequired : {}, required, prop)
                 if (content !== undefined) {
                     result[prop] = content
                 }
@@ -83,10 +81,8 @@ function internalDynamicPick(o: any, p: any, required: any, prefix: string): any
             if (isRequired === true) {
                 hasContent = true
                 result[prop] = o[prop]
-            } else if (!isRequired) {
-                // Do nothing
-            } else if (typeof isRequired === 'object') {
-                const content = internalDynamicPick(o[prop], isRequired, required, prefix + '.' + prop)
+            } else if (!isValueSource(o[prop])) {
+                const content = internalDynamicPick(o[prop], isRequired && typeof isRequired === 'object' ? isRequired : {}, required, prefix + '.' + prop)
                 if (content !== undefined) {
                     hasContent = true
                     result[prop] = content
@@ -103,7 +99,7 @@ function internalDynamicPick(o: any, p: any, required: any, prefix: string): any
 
 export function dynamicPickPaths<TYPE extends Pickable, MANDATORY extends PickablePaths<NoInfer<TYPE>> = never>(obj: TYPE, pick: DynamicPickPaths<TYPE>[], mandatory?: MANDATORY[]): PickWitOthersAsOptionals<TYPE, MANDATORY> {
     const result: any = {}
-    const required: any = {}
+    const required: any = Object.create(null)
 
     if (mandatory) {
         for (let i = 0, length = mandatory.length; i < length; i++) {

@@ -59,8 +59,10 @@ type DeepPickTail<PATH extends string, KEY extends string> = PATH extends `${KEY
  * `MODEL` is preserved, exactly like `Pick`.
  */
 export type DeepPick<MODEL, PATHS extends string> = {
-    [K in keyof MODEL as Extract<K, string> extends DeepPickHead<PATHS> ? K : never]:
+    [K in keyof MODEL as K extends string ? (K extends DeepPickHead<PATHS> ? K : never) : never]:
         [DeepPickTail<PATHS, Extract<K, string>>] extends [never]
+            ? MODEL[K]
+            : Extract<K, string> extends PATHS
             ? MODEL[K]
             : DeepPick<NonNullable<MODEL[K]>, DeepPickTail<PATHS, Extract<K, string>>>
 }
@@ -108,7 +110,7 @@ export function deepPick<TYPE extends object, PATHS extends DeepPickPaths<TYPE>>
                 reachable = false
                 break
             }
-            if (dst[segment] === undefined) {
+            if (!Object.hasOwn(dst, segment)) {
                 dst[segment] = {}
             }
             dst = dst[segment]
@@ -138,8 +140,8 @@ export function deepOmit<TYPE extends object, PATHS extends DeepPickPaths<TYPE>>
         return obj as any
     }
 
-    const wholeKeys: any = {}
-    const deeperTails: any = {}
+    const wholeKeys: any = Object.create(null)
+    const deeperTails: any = Object.create(null)
     if (paths) {
         for (let i = 0, length = paths.length; i < length; i++) {
             const path = paths[i] as string

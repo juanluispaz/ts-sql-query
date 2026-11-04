@@ -376,7 +376,7 @@ type TsSqlErrorReason =
       { reason: 'EXPRESSION_IS_NOT_CONST' }
     | /** You performed a real async operation (not a synchronous database call) 
           inside a function meant to execute synchronous database queries. */
-      { reason: 'SYNCHRONOUS_PROSIME_EXPECTED' }
+      { reason: 'SYNCHRONOUS_PROMISE_EXPECTED' }
 
     /* ********************************************************************************************
      * Unknown error

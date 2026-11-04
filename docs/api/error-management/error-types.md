@@ -124,5 +124,5 @@ try {
 | `INVALID_CONFIGURATION` | `name`, `value` |
 | `INVALID_MOCKED_VALUE` | `value`, `queryType`, `index` |
 | `EXPRESSION_IS_NOT_CONST` | none |
-| `SYNCHRONOUS_PROSIME_EXPECTED` | none |
+| `SYNCHRONOUS_PROMISE_EXPECTED` | none |
 | `UNKNOWN` | none |

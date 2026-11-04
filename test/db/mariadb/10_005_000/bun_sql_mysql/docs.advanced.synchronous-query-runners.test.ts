@@ -3,7 +3,7 @@
 // contract from `ts-sql-query/extras/sync`: it unwraps a promise that has
 // resolved synchronously (the shape `synchronous-promise` produces with a
 // synchronous query runner) in a blocking manner — and throws
-// SYNCHRONOUS_PROSIME_EXPECTED when handed a real async promise whose `.then`
+// SYNCHRONOUS_PROMISE_EXPECTED when handed a real async promise whose `.then`
 // defers. Pure helper behaviour: no connection, no database.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
@@ -35,7 +35,7 @@ describe(ctx.label, () => {
     test('docs-extra:synchronous-query-runners/sync-throws-on-a-real-async-promise', () => {
         // A native Promise defers `.then`, so neither result nor error is set
         // by the time `.then(...)` returns — the guard fires with the
-        // SYNCHRONOUS_PROSIME_EXPECTED reason.
+        // SYNCHRONOUS_PROMISE_EXPECTED reason.
         let caught: unknown
         try {
             sync(Promise.resolve(1))
@@ -44,6 +44,6 @@ describe(ctx.label, () => {
         }
         expect(caught).toBeInstanceOf(TsSqlProcessingError)
         expect(caught instanceof TsSqlProcessingError ? caught.errorReason.reason : undefined)
-            .toBe('SYNCHRONOUS_PROSIME_EXPECTED')
+            .toBe('SYNCHRONOUS_PROMISE_EXPECTED')
     })
 })

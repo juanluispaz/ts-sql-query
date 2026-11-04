@@ -13,7 +13,7 @@ import { TsSqlProcessingError } from '../TsSqlError.js'
  *
  * The promise passed to `sync()` must be truly synchronous; if it has not
  * resolved (or rejected) by the time `.then(...)` returns, this function throws
- * a `TsSqlProcessingError` with the `SYNCHRONOUS_PROSIME_EXPECTED` reason,
+ * a `TsSqlProcessingError` with the `SYNCHRONOUS_PROMISE_EXPECTED` reason,
  * preventing accidental misuse from any real async operation slipping in.
  */
 export function sync<T>(promise: Promise<T>): T {
@@ -43,7 +43,7 @@ export function sync<T>(promise: Promise<T>): T {
     // To ensure that we're indeed using a synchronous promise, ensure that the promise resolved
     // immediately.
     throw new TsSqlProcessingError(
-        { reason: 'SYNCHRONOUS_PROSIME_EXPECTED' },
+        { reason: 'SYNCHRONOUS_PROMISE_EXPECTED' },
         'You performed a real async operation (not a synchronous database call) ' +
             'inside a function meant to execute synchronous database queries.',
     )

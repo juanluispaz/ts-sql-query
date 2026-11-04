@@ -8,7 +8,7 @@
 #   * bun-only:  BunSqlite*, BunSqlSqlite*, BunSqlPostgres*,
 #                BunSqlMySql*, BunSqlMariaDB*.
 #   * common:    everything under documentation/, Sqlite3Example,
-#                BetterSqlite3*, NodeSqlite* (Node 24+ / Bun), PrismaSqlite,
+#                BetterSqlite3*, NodeSqlite* (Node 24+ / Bun),
 #                Sqlite3WasmOO1*, PgLiteExample, the per-driver scripts
 #                that share between runtimes.
 
@@ -76,7 +76,6 @@ else
         set -x
     fi
 fi
-$RUN ./src/examples/PrismaSqliteExample.ts || exit 1
 $RUN ./src/examples/Sqlite3WasmOO1Example.ts || exit 1
 $RUN ./src/examples/Sqlite3WasmOO1SynchronousExample.ts || exit 1
 
@@ -90,7 +89,6 @@ $RUN ./src/examples/PostgresExample.ts || { docker stop ts-sql-query-postgres; d
 if [ "$runtime" = "bun" ]; then
     $RUN ./src/examples/BunSqlPostgresExample.ts || { docker stop ts-sql-query-postgres; docker rm ts-sql-query-postgres; exit 1; }
 fi
-$RUN ./src/examples/PrismaPostgresExample.ts || { docker stop ts-sql-query-postgres; docker rm ts-sql-query-postgres; exit 1; }
 docker stop ts-sql-query-postgres
 docker rm ts-sql-query-postgres
 
@@ -100,7 +98,6 @@ $RUN ./src/examples/MySql2Example.ts || { docker stop ts-sql-query-mysql; docker
 if [ "$runtime" = "bun" ]; then
     $RUN ./src/examples/BunSqlMySqlExample.ts || { docker stop ts-sql-query-mysql; docker rm ts-sql-query-mysql; exit 1; }
 fi
-$RUN ./src/examples/PrismaMySqlExample.ts || { docker stop ts-sql-query-mysql; docker rm ts-sql-query-mysql; exit 1; }
 docker stop ts-sql-query-mysql
 docker rm ts-sql-query-mysql
 
@@ -111,14 +108,12 @@ $RUN ./src/examples/MariaDBExample-compatibility.ts || { docker stop ts-sql-quer
 if [ "$runtime" = "bun" ]; then
     $RUN ./src/examples/BunSqlMariaDBExample.ts || { docker stop ts-sql-query-mariadb; docker rm ts-sql-query-mariadb; exit 1; }
 fi
-$RUN ./src/examples/PrismaMariaDBExample.ts || { docker stop ts-sql-query-mariadb; docker rm ts-sql-query-mariadb; exit 1; }
 docker stop ts-sql-query-mariadb
 docker rm ts-sql-query-mariadb
 
 docker run --name ts-sql-query-sqlserver -e 'ACCEPT_EULA=Y' -e 'MSSQL_SA_PASSWORD=yourStrong(!)Password' -p 1433:1433 --health-cmd "bash -c '</dev/tcp/127.0.0.1/1433'" --health-interval 1s --health-timeout 5s --health-retries 120 -d mcr.microsoft.com/mssql/server:2025-latest
 wait_healthy ts-sql-query-sqlserver 120 || { docker stop ts-sql-query-sqlserver; docker rm ts-sql-query-sqlserver; exit 1; }
 $RUN ./src/examples/MssqlTediousExample.ts || { docker stop ts-sql-query-sqlserver; docker rm ts-sql-query-sqlserver; exit 1; }
-$RUN ./src/examples/PrismaSqlServerExample.ts || { docker stop ts-sql-query-sqlserver; docker rm ts-sql-query-sqlserver; exit 1; }
 docker stop ts-sql-query-sqlserver
 docker rm ts-sql-query-sqlserver
 

@@ -215,7 +215,6 @@ the impl — match by name across the owning family).
   address the legacy examples by full cell, exactly like the matrix test cells.
 - **example_block** / **example_ref** — `src/examples/` cases; `example_ref` is one row
   per occurrence with `line`/`col` + `resolved_symbol_id`/`resolved_member_id`.
-  `src/examples/prisma/` (generated) excluded.
 
 ### negative-type dimension — [`extractNegTypeTests.ts`](extractNegTypeTests.ts)
 - **neg_type** — one row per `// @ts-expect-error` in a `test/db/<db>/types.negative/` cell:
@@ -559,7 +558,7 @@ wire it into the `openIndexDb` dispatcher. Everything above `db.ts` is backend-a
   `test/tsconfig.json`), shared by every extractor — no per-file `createSourceFile`, no
   in-memory slicing. It uses the TypeScript 6 API, through the `typescript6` dev dependency (an alias of
   `typescript@6`): TypeScript 7 — the project's compiler — only publishes its API under
-  `typescript/unstable/*`. `src/examples/prisma/` is excluded.
+  `typescript/unstable/*`.
 - Typecheck edits with `bun run validate:tests`.
 
 ## Notes

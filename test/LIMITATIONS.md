@@ -660,10 +660,6 @@ transaction, each one committed at once:
   but the `Database` the query runner gets doesn't reach it (`db.pointer`
   does, `sqlite3.capi` lives on the module). It would need the module in the
   query runner's configuration.
-- **`PrismaQueryRunner`**: Prisma gives neither the server status nor its
-  connection's transaction state. Its error, mapped to `TRANSACTION_ERROR`
-  `deadlock`, would do on MySQL and MariaDB, as the other MySQL query runners
-  do.
 - **MySQL / MariaDB with `innodb_rollback_on_timeout`**: the lock wait timeout
   then rolls back the transaction; the error is the same as without it, and
   the server status that would say it is not in an error's answer.

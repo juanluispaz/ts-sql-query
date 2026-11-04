@@ -259,7 +259,7 @@ CREATE INDEX idx_inv_rmem   ON invocation(resolved_member_id);
 -- for the legacy files, while documentation/ examples use the Preparation
 -- banner. An example_block is one example case; example_ref links the API names
 -- it references — the analogue of test_block/test_ref, answering "which example
--- shows how to use <symbol>?". src/examples/prisma/ (generated) excluded.
+-- shows how to use <symbol>?".
 CREATE TABLE example_block (
     id          INTEGER PRIMARY KEY,
     file        TEXT NOT NULL,            -- src/examples/<...>.ts

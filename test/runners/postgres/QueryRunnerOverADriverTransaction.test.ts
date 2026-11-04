@@ -1,10 +1,12 @@
 // PostgresQueryRunner and BunSqlPostgresQueryRunner created inside a transaction the caller began with the driver
-// (sql.begin(tx => ...)): the statements run in that transaction, execute gives it, and the query runner doesn't begin
-// another one inside it.
+// (sql.begin(tx => ...)), and PgQueryRunner with forUseInTransaction over a connection in a transaction: the statements
+// run in that transaction, execute gives it, and the query runner doesn't begin another one inside it.
 
+import pg from 'pg'
 import postgres from 'postgres'
 import { afterAll, beforeAll, describe, expect, test } from '../../lib/testRunner.js'
 import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
+import { PgQueryRunner } from '../../../src/queryRunners/PgQueryRunner.js'
 import { PostgresQueryRunner } from '../../../src/queryRunners/PostgresQueryRunner.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/postgres/runners.js'
@@ -14,6 +16,7 @@ const isBun = typeof globalThis.Bun !== 'undefined'
 
 interface Driver {
     begin<T>(fn: (transaction: any) => Promise<T>): Promise<T>
+    run(sql: string): Promise<unknown>
     count(): Promise<number>
     close(): Promise<void>
 }
@@ -31,10 +34,8 @@ function describeOverADriverTransaction(label: string, realEnabled: boolean, ope
             const db = await acquireRunnerTestDatabase()
             driver = await open(db.uri)
             release = () => db.release()
-            await d().begin(async transaction => {
-                await transaction.unsafe('drop table if exists rt_given')
-                await transaction.unsafe('create table rt_given (id integer primary key)')
-            })
+            await d().run('drop table if exists rt_given')
+            await d().run('create table rt_given (id integer primary key)')
         }, 180_000)
 
         afterAll(async () => {
@@ -73,6 +74,7 @@ describeOverADriverTransaction('PostgresQueryRunner (transaction of postgres.js)
     const sql = postgres(uri, { max: 2, onnotice: () => {} })
     return {
         begin: fn => sql.begin(fn) as Promise<any>,
+        run: sql_ => sql.unsafe(sql_),
         count: async () => Number((await sql.unsafe('select count(*) as n from rt_given'))[0]!['n']),
         close: () => sql.end(),
     }
@@ -83,6 +85,7 @@ describeOverADriverTransaction('BunSqlPostgresQueryRunner (transaction of Bun SQ
     const sql = new SQL(uri, { max: 2 })
     return {
         begin: fn => sql.begin(fn) as Promise<any>,
+        run: sql_ => sql.unsafe(sql_),
         count: async () => Number((await sql.unsafe('select count(*) as n from rt_given'))[0]['n']),
         close: () => sql.close(),
     }
@@ -90,6 +93,27 @@ describeOverADriverTransaction('BunSqlPostgresQueryRunner (transaction of Bun SQ
     const { BunSqlPostgresQueryRunner } = await import('../../../src/queryRunners/BunSqlPostgresQueryRunner.js')
     return new BunSqlPostgresQueryRunner(transaction)
 })
+
+describeOverADriverTransaction('PgQueryRunner (forUseInTransaction)', isRealDbEnabled('postgres', 'docker', 'newest', 'pg'), async uri => {
+    const client = new pg.Client(uri)
+    await client.connect()
+    return {
+        begin: async fn => {
+            await client.query('begin')
+            try {
+                const result = await fn(client)
+                await client.query('commit')
+                return result
+            } catch (error) {
+                await client.query('rollback')
+                throw error
+            }
+        },
+        run: sql => client.query(sql),
+        count: async () => Number((await client.query('select count(*) as n from rt_given')).rows[0].n),
+        close: () => client.end(),
+    }
+}, async transaction => new PgQueryRunner(transaction, { forUseInTransaction: true }))
 
 // The commit of a transaction a failed statement aborted is answered ROLLBACK: the rollback that follows it sends
 // nothing, as there is no transaction left, so PostgreSQL has nothing to warn about (postgres.js writes its notices to

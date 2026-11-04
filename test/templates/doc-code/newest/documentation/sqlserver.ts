@@ -7,9 +7,6 @@ import { CustomBooleanTypeAdapter } from '../../../../../src/TypeAdapter.js'
 import { View } from '../../../../../src/View.js'
 import { Values } from '../../../../../src/Values.js'
 
-import { PrismaMssql } from '@prisma/adapter-mssql'
-import { PrismaClient } from '../../../../../src/examples/prisma/generated/sqlserver/client.js'
-import { PrismaQueryRunner } from '../../../../../src/queryRunners/PrismaQueryRunner.js'
 import { MssqlPoolPromiseQueryRunner } from '../../../../../src/queryRunners/MssqlPoolPromiseQueryRunner.js'
 import { MssqlPoolQueryRunner } from '../../../../../src/queryRunners/MssqlPoolQueryRunner.js'
 
@@ -154,9 +151,6 @@ void tCustomer
 void tCustomCompany
 void tRecord
 void connection
-void PrismaMssql
-void PrismaClient
-void PrismaQueryRunner
 void mssql
 void MssqlPoolPromiseQueryRunner
 void MssqlPoolQueryRunner

@@ -762,8 +762,6 @@ takes well under a minute with warm containers.
 `:with-matrix` adds `'*/newest'` (~6 min, ~4.3 GB plus the engines) to see
 what the cells add on top.
 
-`PrismaQueryRunner` has no test yet and shows as uncovered.
-
 ### Coverage of the error mappers
 
 The error mappers (`src/queryRunners/connectorErrorMappers/`,

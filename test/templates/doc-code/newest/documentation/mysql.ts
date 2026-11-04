@@ -7,9 +7,6 @@ import { CustomBooleanTypeAdapter } from '../../../../../src/TypeAdapter.js'
 import { View } from '../../../../../src/View.js'
 import { Values } from '../../../../../src/Values.js'
 
-import { PrismaMariaDb } from '@prisma/adapter-mariadb'
-import { PrismaClient } from '../../../../../src/examples/prisma/generated/mysql/client.js'
-import { PrismaQueryRunner } from '../../../../../src/queryRunners/PrismaQueryRunner.js'
 
 import { createPool } from 'mysql2'
 import { MySql2PoolQueryRunner } from '../../../../../src/queryRunners/MySql2PoolQueryRunner.js'
@@ -157,9 +154,6 @@ void tCustomer
 void tCustomCompany
 void tRecord
 void connection
-void PrismaMariaDb
-void PrismaClient
-void PrismaQueryRunner
 void SQL
 void BunSqlMySqlQueryRunner
 void createPool

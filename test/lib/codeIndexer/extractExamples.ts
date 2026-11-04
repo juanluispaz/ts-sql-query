@@ -17,7 +17,6 @@
 //     the assertEquals call is the boundary. Block i = (assert_{i-1}, assert_i];
 //     refs are assigned to the first assertEquals at or after their position.
 //
-// src/examples/prisma/ (generated client) is excluded, matching extractSrc.
 
 import ts from 'typescript6'
 import { resolve } from 'node:path'
@@ -58,7 +57,6 @@ export function versionFromExampleFile(file: string): string {
 export function connectorFromExampleFile(file: string): string {
     if (file.includes('/examples/documentation/')) return ''
     const base = (file.split('/').pop() ?? '').toLowerCase()
-    if (/prisma/.test(base)) return 'prisma'
     if (/bunsqlpostgres/.test(base)) return 'bun_sql_postgres'
     if (/bunsqlmysql/.test(base)) return 'bun_sql_mysql'
     if (/bunsqlmariadb/.test(base)) return 'bun_sql_mariadb'
@@ -166,7 +164,7 @@ function processFile(relPath: string, ids: Ids, blocks: ExampleBlockRow[], refs:
 }
 
 export function extractExamples(program: ts.Program, checker: ts.TypeChecker, declMap: DeclMap, ids: Ids): ExampleExtract {
-    const files = walkFiles('src/examples', '.ts').filter(f => !f.startsWith('src/examples/prisma/'))
+    const files = walkFiles('src/examples', '.ts')
     const exampleBlocks: ExampleBlockRow[] = []
     const exampleRefs: ExampleRefRow[] = []
     for (const f of files.sort()) processFile(f, ids, exampleBlocks, exampleRefs, program, checker, declMap)

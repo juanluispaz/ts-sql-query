@@ -29,8 +29,6 @@ A `-` in a native table means that semantic row is not implemented for that data
 
 MySQL and MariaDB reuse numeric ranges with different meanings. Their native mapping pages interpret a bare error number only against the active database family. If a number belongs only to the other family, it is treated as an unmapped numeric error and is not listed as a native mapping for the current page. When a driver provides an explicit symbolic code, that code is preserved in `databaseErrorCode` even if the number is otherwise ambiguous.
 
-Prisma is not folded into the native tables because Prisma exposes its own `Pxxxx` error space before the underlying database error reaches the library. Prisma mappings are handled by the Prisma query runner and should be read separately from these native database pages.
-
 For non-database failures raised by the library itself, see [Library-raised errors](library-raised-errors.md). For the current reason type catalog, see [Error types](error-types.md). For TypeScript declarations useful in application code, see [TypeScript types](typescript-types.md).
 
 <!--
@@ -99,12 +97,6 @@ Connector link inventory:
 - [sqlite-wasm](https://sqlite.org/wasm/doc/trunk/index.md)
 - [sqlite3](https://www.npmjs.com/package/sqlite3)
 - [tarn](https://www.npmjs.com/package/tarn)
-
-Prisma:
-
-- Do not fold Prisma into the six native mapping pages.
-- Prisma exposes its own `Pxxxx` error space before many underlying database errors reach this library.
-- Prisma mapping belongs to the Prisma query runner and, if documented later, should get separate Prisma-specific documentation.
 
 Native mapping page rules:
 

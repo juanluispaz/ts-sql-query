@@ -12,7 +12,6 @@ The first time you download the project:
 
 ```sh
 npm install
-npm run generate-prisma
 ```
 
 To execute all examples:

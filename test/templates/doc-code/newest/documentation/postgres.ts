@@ -7,9 +7,6 @@ import { CustomBooleanTypeAdapter } from '../../../../../src/TypeAdapter.js'
 import { View } from '../../../../../src/View.js'
 import { Values } from '../../../../../src/Values.js'
 
-import { PrismaPg } from '@prisma/adapter-pg'
-import { PrismaClient } from '../../../../../src/examples/prisma/generated/postgresql/client.js'
-import { PrismaQueryRunner } from '../../../../../src/queryRunners/PrismaQueryRunner.js'
 
 import { 
     type ColumnKeys, 
@@ -202,9 +199,9 @@ const availableFields = {
     birthday: tCustomer.birthday
 };
 
-const prisma = new PrismaClient({
-        adapter: new PrismaPg('postgresql://postgres:mysecretpassword@localhost:5432/postgres')
-    })
+const prismaPostgres = null as any
+const contract = null as any
+type PoolClient = any
 
 let otherQueryRunner: any
 let executor: any
@@ -253,9 +250,6 @@ void tCustomer
 void tCustomCompany
 void tRecord
 void connection
-void PrismaPg
-void PrismaClient
-void PrismaQueryRunner
 void Values
 void MockQueryRunner
 
@@ -338,7 +332,9 @@ function _expect(_1: any): any {}
 void _expect
 function _beforeEach(_1: any) {}
 void _beforeEach
-void prisma
+void prismaPostgres
+void contract
+void (null as unknown as PoolClient)
 void otherQueryRunner
 void executor
 void req

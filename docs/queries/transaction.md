@@ -95,7 +95,7 @@ await connection.transaction(async () => {
 
 !!! warning "Query runners that can't tell"
 
-    `Sqlite3QueryRunner`, `Sqlite3WasmOO1QueryRunner`, `BunSqlSqliteQueryRunner` and `PrismaQueryRunner` can't tell when the database rolled the transaction back (their driver doesn't say it): the statements that follow run outside any transaction, as described above.
+    `Sqlite3QueryRunner`, `Sqlite3WasmOO1QueryRunner` and `BunSqlSqliteQueryRunner` can't tell when the database rolled the transaction back (their driver doesn't say it): the statements that follow run outside any transaction, as described above.
 
     On MariaDB and MySQL a lock wait timeout rolls back only the statement that waited, unless the server runs with `innodb_rollback_on_timeout`: then it rolls back the whole transaction, and that isn't detected.
 
@@ -135,7 +135,6 @@ What each query runner gives:
 | `PostgresQueryRunner`, `BunSqlPostgresQueryRunner`, `BunSqlMySqlQueryRunner` | The `sql` of the transaction (`connection.transaction(...)`), or the connection reserved for it (`connection.beginTransaction()`) | A connection reserved for `fn` | The `sql` |
 | `PgQueryRunner`, `PgLiteQueryRunner`, `MySql2QueryRunner`, `MariaDBQueryRunner`, `OracleDBQueryRunner` and the SQLite query runners | The connection you gave the query runner | The connection you gave the query runner | The connection |
 | `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner` | The mssql `Transaction` | The pool: mssql only gives one of its connections for a transaction | The pool |
-| `PrismaQueryRunner` | The client of the interactive transaction | The Prisma client | The Prisma client |
 
 The connection belongs to the query runner: don't release it, and don't commit or roll back with it. A connection `execute(fn)` takes for `fn` alone is given back when `fn` ends, so don't keep it to use later.
 

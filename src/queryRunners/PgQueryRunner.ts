@@ -1,4 +1,4 @@
-import type { DatabaseType } from './QueryRunner.js'
+import type { BeginTransactionOpts, DatabaseType } from './QueryRunner.js'
 import type { ClientBase } from 'pg'
 import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
 import { PostgresTransactionOutcome } from '../utils/postgresTransactionOutcome.js'
@@ -7,6 +7,8 @@ import { getPgErrorReason, isPgError } from './connectorErrorMappers/PgErrorMapp
 
 export interface PgQueryRunnerConfig {
     allowNestedTransactions?: boolean | undefined
+    /** The connection is in a transaction that something else began, and that something else ends: none begins on it */
+    forUseInTransaction?: boolean | undefined
 }
 
 export class PgQueryRunner extends SqlTransactionQueryRunner {
@@ -51,6 +53,12 @@ export class PgQueryRunner extends SqlTransactionQueryRunner {
             this.transactionOutcome.checkCommit(result.command)
             return 0
         })
+    }
+    override executeBeginTransaction(opts?: BeginTransactionOpts): Promise<void> {
+        if (this.config?.forUseInTransaction) {
+            return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, 'PgQueryRunner created with forUseInTransaction runs in a transaction that something else manages: a transaction cannot begin on it'))
+        }
+        return super.executeBeginTransaction(opts)
     }
     addParam(params: any[], value: any): string {
         params.push(value)

@@ -8,7 +8,7 @@ database has to satisfy see [`PER_DATABASE_LAYOUT.md`](./PER_DATABASE_LAYOUT.md)
 - [Adding a connector](#adding-a-connector)
 - [Adding a compatibility version](#adding-a-compatibility-version)
 - [Mirror cells from EXTERNAL_CAVEATS](#mirror-cells-from-external_caveats)
-- [Prisma and sync runners](#prisma-and-sync-runners)
+- [Sync runners](#sync-runners)
 
 ## Adding a database
 
@@ -205,19 +205,13 @@ When propagating tests across cells, the catalog above is what
 [`COVERAGE_RUNBOOK.md` § EXTERNAL_CAVEATS sweep](./COVERAGE_RUNBOOK.md)
 asks the validation sub-agent to re-check post-propagation.
 
-## Prisma and sync runners
-
-Prisma support in ts-sql-query is experimental. It lives in its own
-sub-tree (sketched as `test/db/<database>/<version>/prisma/`) with
-deliberately minimal coverage — enough to verify the integration works,
-not to exhaustively re-test the SQL surface (which the per-driver
-connectors already cover).
+## Sync runners
 
 Synchronous query runners (and the `extras/sync` helper) live in their own
-tree for the same reason: their runtime semantics differ enough that mixing
+tree: their runtime semantics differ enough that mixing
 them into the main matrix would force every async-shaped test to grow
 conditional paths. A light mirror set proves the sync path is wired
 correctly.
 
-**Do not block PRs on Prisma or sync parity** unless the PR is specifically
-about those subsystems.
+**Do not block PRs on sync parity** unless the PR is specifically
+about that subsystem.

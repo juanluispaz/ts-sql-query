@@ -16,7 +16,7 @@ export interface QueryRunner {
      * transaction runs on (taken from the pool, and the transaction begun on it, when it had none yet); outside a
      * transaction, the query runner's connection, or one taken from the pool for fn alone and given back when the
      * promise fn returns ends. mssql only gives a connection of its pool for a transaction: outside one, fn receives the
-     * pool; Prisma gives no connection: fn receives the client, or the client of the interactive transaction
+     * pool
      */
     execute<RESULT>(fn: (connection: unknown) => Promise<RESULT>): Promise<RESULT>
     executeSelectOneRow(query: string, params?: any[]): Promise<any>

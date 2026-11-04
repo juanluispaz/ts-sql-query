@@ -222,20 +222,14 @@ cell (`test/db/sqlite/*/<connector>/docs.transaction.test.ts`).
 
 ## Connectors not in the matrix today
 
-These are reachable from the public exports and have their own runner
-implementation in `src/queryRunners/`, but no `test/db/<db>/<version>/<connector>/`
-cell exists yet. (The **sync runners** are no longer among them: `extras/sync`
+A query runner reachable from the public exports, with its own implementation
+in `src/queryRunners/` but no `test/db/<db>/<version>/<connector>/` cell, would
+be listed here; none is today. (The **sync runners** are no longer among them: `extras/sync`
 is covered by the `<connector>-sync` cells that exist for every embedded SQLite
 driver — `better-sqlite3-sync`, `bun_sqlite-sync`, `node_sqlite-sync`,
 `sqlite-wasm-OO1-sync` — inside the main matrix, not in a separate sub-tree.)
 
-- **prisma** — different runtime semantics (Prisma client wraps the
-  driver). Plan in `DESIGN.md §1.15`: light mirror coverage under
-  `test/db/<database>/<version>/prisma/`, NOT the full docs.* set.
-  Treat the docs tests as out-of-scope until prisma parity is the
-  explicit task.
-
-When any of these are added to the main matrix:
+When one is added to the main matrix:
 
 1. Create the cell folder under the appropriate database following
    `DESIGN.md §8`.

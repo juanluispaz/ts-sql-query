@@ -38,14 +38,6 @@ export interface SrcExtract {
 // 'simplified' pseudo-module, restricted to its BEGIN/END region.
 const SIMPLIFIED = 'src/examples/documentation/simplifiedQueryDefinition.ts'
 
-// src/examples/prisma/ is GENERATED Prisma client code (pure noise) — dropped from
-// the walk. (The doc-code templates live under test/templates/doc-code/ and the
-// generated output under test/db/<db>/newest/documentation/ — handled by the doc-test
-// extractor, not here.)
-function isIgnoredSrc(relPath: string): boolean {
-    return relPath.startsWith('src/examples/prisma/')
-}
-
 // ── public surface: (declaring file, name) pairs reachable through exports ───
 interface PublicInfo {
     publicKeys: Set<string>                 // `${fileAbs} ${name}`
@@ -444,7 +436,7 @@ export function extractSrc(program: ts.Program, checker: ts.TypeChecker, ids: Id
         const abs = sf.fileName
         if (abs.endsWith('.d.ts')) continue
         const rel = relative(process.cwd(), abs)
-        if (!rel.startsWith('src/') || isIgnoredSrc(rel)) continue
+        if (!rel.startsWith('src/')) continue
         const isMaster = rel === SIMPLIFIED
         const after = rel.slice('src/'.length)
         const area = isMaster ? 'simplified' : (after.includes('/') ? after.split('/')[0]! : 'root')

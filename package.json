@@ -185,10 +185,6 @@
             "types": "./queryRunners/PostgresQueryRunner.d.ts",
             "default": "./queryRunners/PostgresQueryRunner.js"
         },
-        "./queryRunners/PrismaQueryRunner": {
-            "types": "./queryRunners/PrismaQueryRunner.d.ts",
-            "default": "./queryRunners/PrismaQueryRunner.js"
-        },
         "./queryRunners/QueryRunner": {
             "types": "./queryRunners/QueryRunner.d.ts",
             "default": "./queryRunners/QueryRunner.js"
@@ -260,7 +256,6 @@
     ],
     "scripts": {
         "codegen": "bash scripts/codegen.sh",
-        "codegen:prisma": "prisma generate --schema src/examples/prisma/postgresql.prisma; prisma generate --schema src/examples/prisma/mysql.prisma; prisma generate --schema src/examples/prisma/mariadb.prisma; prisma generate --schema src/examples/prisma/sqlite.prisma; prisma generate --schema src/examples/prisma/sqlserver.prisma",
         "codegen:doc-code": "bash scripts/codegen-doc-code.sh",
         "all-examples": "sh ./scripts/all-examples.sh",
         "no-docker-examples": "sh ./scripts/no-docker-examples.sh",
@@ -313,12 +308,6 @@
     "homepage": "https://ts-sql-query.readthedocs.io/",
     "devDependencies": {
         "@electric-sql/pglite": "^0.5.11",
-        "@prisma/adapter-better-sqlite3": "^7.10.1",
-        "@prisma/adapter-libsql": "^7.10.1",
-        "@prisma/adapter-mariadb": "^7.10.1",
-        "@prisma/adapter-mssql": "^7.10.1",
-        "@prisma/adapter-pg": "^7.10.1",
-        "@prisma/client": "^7.10.1",
         "@sqlite.org/sqlite-wasm": "^3.54.1-build1",
         "@testcontainers/postgresql": "^12.2.1",
         "@types/better-sqlite3": "^9.6.0",
@@ -342,7 +331,6 @@
         "oracledb": "^26.0.0",
         "pg": "^8.23.1",
         "postgres": "^3.4.9",
-        "prisma": "^7.10.1",
         "sqlite3": "^6.0.1",
         "synchronous-promise": "^2.0.18",
         "testcontainers": "^12.2.1",

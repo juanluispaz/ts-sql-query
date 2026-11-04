@@ -7,8 +7,6 @@ import { CustomBooleanTypeAdapter } from '../../../../../src/TypeAdapter.js'
 import { View } from '../../../../../src/View.js'
 import { Values } from '../../../../../src/Values.js'
 
-import { PrismaClient } from '../../../../../src/examples/prisma/generated/sqlite/client.js'
-import { PrismaQueryRunner } from '../../../../../src/queryRunners/PrismaQueryRunner.js'
 
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
 import { Sqlite3WasmOO1QueryRunner } from '../../../../../src/queryRunners/Sqlite3WasmOO1QueryRunner.js'
@@ -29,7 +27,6 @@ import {
 import { deepPick, deepOmit, type DeepPick, type DeepOmit, type DeepPickPaths } from '../../../../../src/extras/deepUtilities.js'
 import { fromRef, type TableOrViewLeftJoinOf, type TableOrViewOf } from '../../../../../src/extras/types.js'
 
-const PrismaLibSql = null as any
 const BetterSqlite3QueryRunner = null as any
 const Sqlite3QueryRunner = null as any
 const BunSqliteQueryRunner = null as any
@@ -191,9 +188,6 @@ void connection
 void options
 void Values
 
-void PrismaLibSql
-void PrismaClient
-void PrismaQueryRunner
 
 void BetterSqlite3QueryRunner
 void Sqlite3QueryRunner

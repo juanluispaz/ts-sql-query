@@ -2,253 +2,117 @@
 search:
   boost: 0.573
 ---
+<!-- doc-code-template: postgresql -->
 # prisma
 
-This query runner allows executing SQL queries using a [Prisma](https://www.prisma.io) client. It requires Prisma 7.
+`ts-sql-query` has no query runner for [Prisma](https://www.prisma.io). With Prisma 8 on PostgreSQL it doesn't need one: Prisma takes a [pg](https://www.npmjs.com/package/pg) pool or connection, so Prisma and the [pg query runners](../recommended/pg.md) can work over the same one, and share a transaction.
 
-!!! success "Supported databases"
+!!! info "Checked with"
 
-    - [MariaDB](../../supported-databases/mariadb.md)
-    - [MySQL](../../supported-databases/mysql.md)
-    - [PostgreSQL](../../supported-databases/postgresql.md)
-    - [SQLite](../../supported-databases/sqlite.md)
-    - [SQL Server](../../supported-databases/sqlserver.md)
+    `@prisma/orm-postgres` `8.0.0-rc.22` and PostgreSQL 18, by hand. Prisma is not part of this project's test suite, and that version is a release candidate: check this page against the version you use.
 
-!!! info "Tested with"
+## Sharing the pool
 
-    [prisma](https://www.npmjs.com/package/prisma) and [@prisma/client](https://www.npmjs.com/package/@prisma/client) `^7.10.1` on **Node.js** and **Bun**. With SQLite, through `@prisma/adapter-libsql`.
-
-    This information reflects the driver version pinned in this project's `devDependencies` and the runtimes the test suite runs it on against a real database. Other compatible versions may work but are not actively tested.
-
-!!! danger "Experimental"
-
-    This query runner is experimental.
-
-    This implementation emulates the behaviour of Prisma's unconventional promise-like object, which can be challenging.
-
-!!! warning "Do not share connections between requests"
-
-    A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
-
-    Therefore, **you must not share the same connection object between concurrent HTTP requests**. Instead, create a new connection object for each request, along with its own query runners.
-
-    Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
-
-## Using a connection pool
-
-Enables executing queries through a [Prisma](https://www.prisma.io) client.
-
-Prisma 7 requires a driver adapter to connect to the database. Therefore, you must instantiate the Prisma client using the generated client and the adapter corresponding to your database.
-
-The generated Prisma client and the adapter must correspond to the same database.
-
-=== "MariaDB"
-    ```ts
-    import { PrismaMariaDb } from '@prisma/adapter-mariadb'
-    import { PrismaClient } from './prisma/generated/mariadb/client.js'
-    import { PrismaQueryRunner } from 'ts-sql-query/queryRunners/PrismaQueryRunner'
-
-    const prisma = new PrismaClient({
-        adapter: new PrismaMariaDb({
-            host: 'localhost',
-            user: 'root',
-            password: 'my-secret-pw',
-            database: 'test',
-        })
-    })
-
-    async function main() {
-        const connection = new DBConnection(new PrismaQueryRunner(prisma))
-        // Do your queries here
-        connection // ...
-    }
-    ```
-=== "MySQL"
-    ```ts
-    import { PrismaMariaDb } from '@prisma/adapter-mariadb'
-    import { PrismaClient } from './prisma/generated/mysql/client.js'
-    import { PrismaQueryRunner } from 'ts-sql-query/queryRunners/PrismaQueryRunner'
-
-    const prisma = new PrismaClient({
-        adapter: new PrismaMariaDb({
-            host: 'localhost',
-            user: 'root',
-            password: 'my-secret-pw',
-            database: 'sys',
-        })
-    })
-
-    async function main() {
-        const connection = new DBConnection(new PrismaQueryRunner(prisma))
-        // Do your queries here
-        connection // ...
-    }
-    ```
-===+ "PostgreSQL"
-    ```ts
-    import { PrismaPg } from '@prisma/adapter-pg'
-    import { PrismaClient } from './prisma/generated/postgresql/client.js'
-    import { PrismaQueryRunner } from 'ts-sql-query/queryRunners/PrismaQueryRunner'
-
-    const prisma = new PrismaClient({
-        adapter: new PrismaPg('postgresql://postgres:mysecretpassword@localhost:5432/postgres')
-    })
-
-    async function main() {
-        const connection = new DBConnection(new PrismaQueryRunner(prisma))
-        // Do your queries here
-        connection // ...
-    }
-    ```
-=== "SQLite"
-    ```ts
-    import { PrismaLibSql } from '@prisma/adapter-libsql'
-    import { PrismaClient } from './prisma/generated/sqlite/client.js'
-    import { PrismaQueryRunner } from 'ts-sql-query/queryRunners/PrismaQueryRunner'
-
-    const prisma = new PrismaClient({
-        adapter: new PrismaLibSql({
-            url: 'file:src/examples/prisma/generated/prismasqlitetest.db'
-        })
-    })
-
-    async function main() {
-        const connection = new DBConnection(new PrismaQueryRunner(prisma))
-        // Do your queries here
-        connection // ...
-    }
-    ```
-
-    !!! warning "Prisma's better-sqlite3 adapter is not supported"
-
-        `ts-sql-query` writes numbered placeholders for SQLite (`?1`, `?2`, …). Prisma's `@prisma/adapter-better-sqlite3` binds every parameter by position, and better-sqlite3 only binds numbered placeholders by name, so every query fails with `Too many parameter values were provided`. Use Prisma's libsql adapter (`@prisma/adapter-libsql`), on Node.js and Bun.
-=== "SQL Server"
-    ```ts
-    import { PrismaMssql } from '@prisma/adapter-mssql'
-    import { PrismaClient } from './prisma/generated/sqlserver/client.js'
-    import { PrismaQueryRunner } from 'ts-sql-query/queryRunners/PrismaQueryRunner'
-
-    const prisma = new PrismaClient({
-        adapter: new PrismaMssql({
-            server: 'localhost',
-            port: 1433,
-            user: 'sa',
-            password: 'yourStrong(!)Password',
-            options: {
-                trustServerCertificate: true,
-            },
-        })
-    })
-
-    async function main() {
-        const connection = new DBConnection(new PrismaQueryRunner(prisma))
-        // Do your queries here
-        connection // ...
-    }
-    ```
-
-## Transactions
-
-Prisma distinguishes between short (sequential) and long-running (interactive) transactions. You must understand this concept in order to use Prisma's transactions properly. The [blog page](https://www.prisma.io/blog/how-prisma-supports-transactions-x45s1d5l0ww1) explaining it and the [transaction page](https://www.prisma.io/docs/orm/prisma-client/queries/transactions) detail the differences.
-
-In a few words:
-
-- A **short-running transaction** (NOT SUPPORTED, also called sequential operations) allows you to execute multiple Prisma operations together; this allows Prisma to optimize the execution of all the queries and reduce the transaction's duration to the minimum possible. The limitation is you cannot depend on the result of one query as input for the next one.
-- A **long-running transaction** (also called interactive transactions in the documentation) allows you to obtain a dedicated connection to the database that will allow you to execute all the queries within a transaction. This dedicated connection allows you to query the database while the transaction is open, and the queries can be performed at different times. This model corresponds to the transaction model supported by the other libraries used in `ts-sql-query` to connect with the database.
-
-The consequence of this design is you cannot call the low-level transaction methods:
-
-- `beginTransaction`
-- `commit`
-- `rollback`
-
-But, you can use `connection.transaction` method to perform a transaction in Prisma (under the hood, it calls `prismaClient.$transaction`). When you use `connection.transaction` method, you can combine `ts-sql-query` and Prisma operations.
-
-## Short-running transactions
-
-!!! failure "Not supported"
-
-    Prisma's short-running transactions are not supported in `ts-sql-query`. Make sure to distinguish Prisma's short-running transactions from standard SQL transactions.
-
-## Long-running transactions
-
-It is called, as well, interactive transactions in the Prisma documentation.
-
-You can pass as the second argument of the `PrismaQueryRunner` constructor a configuration for long-running transactions. The configuration object supports the following properties:
-
-- `interactiveTransactionsOptions`(object, optional, default `undefined`): Object with the second parameter of the `$transaction` method in the Prisma client object. It supports the following properties: 
-  - `maxWait` (number, optional, default `2000`): The maximum amount of time (milliseconds) the Prisma Client will wait to acquire a transaction from the database. The default is 2 seconds.
-  - `timeout` (number, optional, default `5000`): The maximum amount of time (milliseconds) the interactive transaction can run before being cancelled and rolled back. The default value is 5 seconds.
-
-!!! warning
-
-    Prisma doesn't allow to specify an access mode in the isolation level when you initiate a transaction.
+Give Prisma and the query runner the same pool. Each one takes a connection from it for its own work, so they don't share a transaction. Closing the Prisma client doesn't close a pool you gave it.
 
 ```ts
-const connection = new DBConnection(new PrismaQueryRunner(prisma));
+import { Pool } from 'pg';
+import prismaPostgres from '@prisma/orm-postgres/runtime';
+import { PgPoolQueryRunner } from "ts-sql-query/queryRunners/PgPoolQueryRunner";
 
-const transactionResult = connection.transaction(async () => {
-    const companyId = await connection.insertInto(tCompany).set({
-            name: 'Top Company'
-        })
-        .returningLastInsertedId()
-        .executeInsert();
+const pool = new Pool(/* configuration */);
+const db = prismaPostgres({ contract, pg: pool });
 
-    const customerId = await connection.insertInto(tCustomer).set({
-            firstName: 'John',
-            lastName: 'Smith',
-            companyId: companyId
-        })
-        .returningLastInsertedId()
-        .executeInsert();
-
-    return {companyId, customerId};
-});
-```
-
-If you want to use `prismaClient.$transaction` directly, you must create the `PrismaQueryRunner` using the Prisma client provided by the `$transaction` function.
-
-```ts
-const transactionResult = prisma.$transaction(async (prismaTransaction) => {
-    const connection = new DBConnection(new PrismaQueryRunner(prismaTransaction));
-
-    const companyId = await connection.insertInto(tCompany).set({
-            name: 'Top Company'
-        })
-        .returningLastInsertedId()
-        .executeInsert();
-
-    const customerId = await connection.insertInto(tCustomer).set({
-            firstName: 'John',
-            lastName: 'Smith',
-            companyId: companyId
-        })
-        .returningLastInsertedId()
-        .executeInsert();
-
-    return {companyId, customerId};
-});
-```
-
-## Accessing the Prisma Client from the connection
-
-If you want to access the underlying Prisma Client from your connection object, you can define an accessor method in your connection class like:
-
-In the following example, `PrismaClient` refers to the generated Prisma client for your database.
-
-```ts
-class DBConnection extends PostgreSqlConnection<'DBConnection'> {
-    getPrismaClient(): PrismaClient {
-        const prisma = this.queryRunner.getCurrentNativeConnection() || this.queryRunner.getNativeRunner()
-        /*
-         * This code attempts to retrieve the current Prisma client being used in the transaction. 
-         * If there is no active transaction, it falls back to the default Prisma client instance.
-         */
-        if (prisma instanceof PrismaClient) {
-            return prisma
-        } else {
-            throw new Error('Unable to find the Prisma Client')
-        }
-    }
+async function main() {
+    const connection = new DBConnection(new PgPoolQueryRunner(pool));
+    // Do your queries here
+    connection // ...
+    // Do Prisma's queries here
+    db // ...
 }
 ```
+
+## Sharing a transaction
+
+Prisma's transaction doesn't give its connection, so what the two share is a connection that one of them hands to the other. There are two ways, depending on which one manages the transaction.
+
+| | `ts-sql-query` manages the transaction | Prisma manages the transaction |
+| --- | --- | --- |
+| Isolation levels | Yes | No: Prisma 8 doesn't offer them |
+| `executeAfterNextCommit` and the other end-of-transaction functions | Yes | No |
+| `connection.transaction(...)` | Yes | Rejected: the transaction is Prisma's |
+| `db.transaction(...)` | Not allowed | Yes |
+
+### ts-sql-query manages the transaction
+
+This is the recommended way. Inside the transaction, ask the query runner for its connection and create the Prisma client over it:
+
+```ts
+import { Pool, type PoolClient } from 'pg';
+import prismaPostgres from '@prisma/orm-postgres/runtime';
+import { PgPoolQueryRunner } from "ts-sql-query/queryRunners/PgPoolQueryRunner";
+
+const pool = new Pool(/* configuration */);
+
+async function main() {
+    const connection = new DBConnection(new PgPoolQueryRunner(pool));
+    await connection.transaction(async () => {
+        await connection.queryRunner.execute(async (client) => {
+            const db = prismaPostgres({ contract, pg: client as PoolClient });
+            // Do your queries and Prisma's here, in the same transaction
+            connection // ...
+            db // ...
+        });
+    });
+}
+```
+
+!!! danger "Two things commit or lose the transaction"
+
+    Prisma doesn't know this connection is in a transaction, so on this client:
+
+    - **Don't use the `cursor` option of `prismaPostgres(...)`.** With it, Prisma wraps each read in its own `BEGIN` and `COMMIT`, and that `COMMIT` ends your transaction: what you wrote before stays committed even if you roll back later.
+    - **Don't call `db.transaction(...)`.** It would begin a transaction on the same connection, and give the connection back to the pool when it ends.
+
+### Prisma manages the transaction
+
+Take a connection from the pool, create the Prisma client over it, and inside the transaction create the query runner over the same connection with [`forUseInTransaction`](../recommended/pg.md#inside-a-transaction-something-else-manages):
+
+```ts
+import { Pool } from 'pg';
+import prismaPostgres from '@prisma/orm-postgres/runtime';
+import { PgQueryRunner } from "ts-sql-query/queryRunners/PgQueryRunner";
+
+const pool = new Pool(/* configuration */);
+
+async function main() {
+    const client = await pool.connect();
+    const db = prismaPostgres({ contract, pg: client });
+    await db.transaction(async (tx: any) => {
+        const connection = new DBConnection(new PgQueryRunner(client, { forUseInTransaction: true }));
+        // Do your queries here, and Prisma's through tx, in the same transaction
+        connection // ...
+        tx // ...
+    });
+    // Prisma already gave the connection back to the pool: don't release it
+}
+```
+
+!!! warning "The connection lasts one transaction"
+
+    Prisma gives a connection taken from a pool back when its transaction ends, and releasing it again throws. For another transaction, take another connection and create another Prisma client. Creating a Prisma client is cheap, and you don't need to close one created this way. If you end up not calling `db.transaction(...)`, release the connection yourself.
+
+!!! note "A setting of the session"
+
+    The first time a Prisma client uses a connection it sends one query of its own, a `set_config` of `DateStyle` to `ISO` and `lc_monetary` to `C`, which stays in the session of that connection.
+
+## Other databases, and Prisma 7
+
+Sharing a transaction takes a database driver that Prisma accepts from you. Elsewhere, use the query runner of your driver next to Prisma, in transactions of their own:
+
+- **Prisma 8 on MySQL**: the package has no query client yet, only contracts and migrations.
+- **Prisma 8 on SQLite**: it takes only the path of the database file, and opens it with `node:sqlite`.
+- **Prisma 8 on SQL Server**: no package was available when this page was written.
+- **Prisma 7**: `PrismaPg` and `PrismaMariaDb` take your pool, so the pool can be shared, but not a connection.
+
+If your application needs a transaction shared with Prisma 7, stay on `ts-sql-query` `v2.0.0-beta.2`, the last version with a `PrismaQueryRunner` for Prisma 7.

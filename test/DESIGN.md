@@ -227,14 +227,7 @@ for how the report should look.
     or `vitest run` accordingly. Both runners produce compatible inline
     snapshot format.
 
-15. **Prisma is a special case with minimum viable coverage.** Prisma
-    support in ts-sql-query is experimental; treating it like any other
-    connector would balloon the matrix. Prisma tests live in
-    `test/db/<database>/<compatibilityVersion>/prisma/` and use a
-    deliberately smaller test set chosen to verify the integration shape,
-    not the full SQL surface.
-
-16. **Synchronous query runners are a separate, light track.** Sync
+15. **Synchronous query runners are a separate, light track.** Sync
     runners and the `extras/sync` helper produce different runtime
     semantics; squeezing them into the main matrix would force every
     async-shaped test to grow conditional paths. They live in a dedicated

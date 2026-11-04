@@ -49,7 +49,6 @@ else
         set -x
     fi
 fi
-$RUN ./src/examples/PrismaSqliteExample.ts || exit 1
 $RUN ./src/examples/Sqlite3WasmOO1Example.ts || exit 1
 $RUN ./src/examples/Sqlite3WasmOO1SynchronousExample.ts || exit 1
 

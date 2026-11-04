@@ -84,6 +84,23 @@ async function main() {
 
     If you want to allow to have nested transactions you must create the instance as `new PgQueryRunner(pgConnection, {allowNestedTransactions: true})` 
 
+## Inside a transaction something else manages
+
+When the connection is already in a transaction that something else began and ends, like [a Prisma transaction](../additional/prisma.md#prisma-manages-the-transaction), create the query runner with `forUseInTransaction`. Its statements run in that transaction, and a transaction can't begin on it: `connection.transaction(...)` and `connection.beginTransaction()` reject with `NESTED_TRANSACTION_NOT_SUPPORTED`. Without the option, the commit of that inner transaction would end the outer one.
+
+For `ts-sql-query` there is no transaction open, so `executeAfterNextCommit`, the other end-of-transaction functions and `getTransactionMetadata()` reject with `NOT_IN_TRANSACTION`.
+
+```ts
+import type { PoolClient } from 'pg';
+import { PgQueryRunner } from "ts-sql-query/queryRunners/PgQueryRunner";
+
+async function main(pgConnection: PoolClient) {
+    const connection = new DBConnection(new PgQueryRunner(pgConnection, { forUseInTransaction: true }));
+    // Do your queries here, in the transaction
+    connection // ...
+}
+```
+
 ## Running a statement on each new connection
 
 Some settings are properties of the **database session**, not of the query — notably the [session time zone](../../time-zones.md#per-database). To pin it without touching your schema, run the statement **once per connection**, when the pool opens it. The `pg` pool emits a `connect` event on each brand-new client for exactly this:

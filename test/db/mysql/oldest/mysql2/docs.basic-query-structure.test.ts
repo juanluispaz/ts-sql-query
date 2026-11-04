@@ -1,10 +1,5 @@
 // Documentation snippets for the "Basic query structure" page
 // (docs/queries/basic-query-structure.md).
-//
-// Tests prefixed `docs:` are scraped by the docs build. Inside each test,
-// the code BETWEEN `// doc-start` and `// doc-end` is the snippet that
-// appears on the page; SQL + params live in `toMatchInlineSnapshot(...)`
-// so the test gates the snippet against drift.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -47,33 +42,39 @@ describe(ctx.label, () => {
     })
 
     test('docs:basic-query-structure/select-one', async () => {
+        // Project 1 has no archived_at: the optional property isn't set.
         const expected = { id: 1, name: 'Marketing site', slug: 'mktg-site' }
-        ctx.mockNext(expected)
+        ctx.mockNext({ ...expected, archivedAt: null })
         const connection = ctx.conn
 
         // doc-start
-        const project = await connection.selectFrom(tProject)
-            .where(tProject.id.equals(1))
+        const projectId = 1
+
+        const projectWithId = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(projectId))
             .select({
-                id:   tProject.id,
-                name: tProject.name,
-                slug: tProject.slug,
+                id:         tProject.id,
+                name:       tProject.name,
+                slug:       tProject.slug,
+                archivedAt: tProject.archivedAt,
             })
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, slug as slug from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, slug as slug, archived_at as archivedAt from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
           ]
         `)
-        assertType<Exact<typeof project, {
-            id:   number
-            name: string
-            slug: string
+        assertType<Exact<typeof projectWithId, {
+            id:          number
+            name:        string
+            slug:        string
+            archivedAt?: Date
         }>>()
-        expect(project).toEqual(expected)
+        expect(projectWithId).toEqual(expected)
+        expect('archivedAt' in projectWithId).toBe(false)
     })
 
     test('docs-extra:basic-query-structure/select-none-or-one', async () => {
@@ -142,6 +143,40 @@ describe(ctx.label, () => {
         expect(project).toEqual(expected)
     })
 
+    test('docs:basic-query-structure/constant-values', async () => {
+        const expected = { id: 1, source: 'import' }
+        ctx.mockNext({ ...expected, note: null })
+        const connection = ctx.conn
+
+        // doc-start
+        const noteForTheProject: string | null = null
+
+        const projectWithNote = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({
+                id:     tProject.id,
+                source: connection.const('import', 'string'),
+                note:   connection.optionalConst(noteForTheProject, 'string'),
+            })
+            .executeSelectOne()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ? as \`source\`, ? as note from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "import",
+            null,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof projectWithNote, {
+            id:     number
+            source: string
+            note?:  string
+        }>>()
+        expect(projectWithNote).toEqual(expected)
+    })
+
     test('docs-extra:basic-query-structure/select-one-column', async () => {
         // The page lists `selectOneColumn(column)` as the single-column
         // counterpart of `select({...})`. Same fluent shape; result is
@@ -179,5 +214,31 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof total, number>>()
         expect(total).toBe(4)
+    })
+
+    test('docs:basic-query-structure/query-and-params', async () => {
+        const connection = ctx.conn
+
+        // doc-start
+        const projectQuery = connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({
+                id:   tProject.id,
+                name: tProject.name,
+            })
+
+        const sql = projectQuery.query()
+        const params = projectQuery.params()
+        // doc-end
+
+        expect(sql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from project where id = ?"`)
+        expect(params).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof sql, string>>()
+        // Nothing was executed.
+        expect(ctx.history.length).toBe(0)
     })
 })

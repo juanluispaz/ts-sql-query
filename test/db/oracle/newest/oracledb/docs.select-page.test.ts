@@ -14,49 +14,54 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('docs:select-page/projects-paginated', async () => {
-        // Page 1 (10 per page, offset 0). Seed has 4 projects, but the page
-        // is sized so the result has all of them and count = 4.
-        ctx.mockNext([
-            { id: 2, name: 'Internal tools', slug: 'tools' },
-            { id: 4, name: 'Legacy app',     slug: 'legacy' },
-            { id: 1, name: 'Marketing site', slug: 'mktg-site' },
-            { id: 3, name: 'Public API',     slug: 'public-api' },
-        ])
-        ctx.mockNext(4)
-
+        // Only project 1 matches, on both columns; the offset leaves the page
+        // empty while the count still sees the matching row.
+        ctx.mockNext([])
+        ctx.mockNext(1)
         const connection = ctx.conn
 
         // doc-start
-        const page = await connection.selectFrom(tProject)
-            .select({
+        const projectName = 'M'
+
+        const projectPageWithName = await connection.selectFrom(tProject)
+            .where(
+                tProject.name.startsWithInsensitive(projectName),
+            ).or(
+                tProject.slug.startsWithInsensitive(projectName),
+            ).select({
                 id:   tProject.id,
                 name: tProject.name,
                 slug: tProject.slug,
             })
             .orderBy('name')
+            .orderBy('slug')
             .limit(10)
-            .offset(0)
+            .offset(20)
             .executeSelectPage()
         // doc-end
 
-        // executeSelectPage runs two queries: first the data page, then
-        // the unpaginated count. We assert both via ctx.history.
         expect(ctx.history.length).toBe(2)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select id as "id", name as "name", slug as "slug" from project order by "name" offset :0 rows fetch next :1 rows only"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select id as "id", name as "name", slug as "slug" from project where lower(name) like lower(:0 || '%') escape '\\' or lower(slug) like lower(:1 || '%') escape '\\' order by "name", "slug" offset :2 rows fetch next :3 rows only"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
           [
-            0,
+            "M",
+            "M",
+            20,
             10,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"select count(*) from project"`)
-        expect(ctx.history[1]!.params).toMatchInlineSnapshot(`[]`)
-        assertType<Exact<typeof page, {
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"select count(*) from project where lower(name) like lower(:0 || '%') escape '\\' or lower(slug) like lower(:1 || '%') escape '\\'"`)
+        expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
+          [
+            "M",
+            "M",
+          ]
+        `)
+        assertType<Exact<typeof projectPageWithName, {
             data:  Array<{ id: number; name: string; slug: string }>
             count: number
         }>>()
-        expect(page.count).toBe(4)
-        expect(page.data).toHaveLength(4)
+        expect(projectPageWithName).toEqual({ data: [], count: 1 })
     })
 
     test('docs-extra:select-page/plain-filtered-count-retains-where-drops-paging', async () => {

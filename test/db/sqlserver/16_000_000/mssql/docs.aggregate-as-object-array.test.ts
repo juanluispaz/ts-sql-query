@@ -1,8 +1,7 @@
 // Documentation snippets for the Aggregate-as-object-array page
 // (docs/queries/aggregate-as-object-array.md). Covers
-// `aggregateAsArray`, `aggregateAsArrayOfOneColumn`, their distinct
-// variants, the `forUseAsInlineAggregatedArrayValue` inline form, and
-// `projectingOptionalValuesAsNullable`.
+// `aggregateAsArray`, `aggregateAsArrayOfOneColumn`, the distinct variant
+// of the latter, and the `forUseAsInlineAggregatedArrayValue` inline form.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -34,8 +33,7 @@ describe(ctx.label, () => {
         // doc-start
         const tProjectLeftJoin = tProject.forUseInLeftJoin()
         const row = await connection.selectFrom(tOrganization)
-            .leftJoin(tProjectLeftJoin).on(tProjectLeftJoin.organizationId.equals(tOrganization.id)
-                .and(tProjectLeftJoin.archivedAt.isNull()))
+            .leftJoin(tProjectLeftJoin).on(tProjectLeftJoin.organizationId.equals(tOrganization.id))
             .where(tOrganization.id.equals(1))
             .select({
                 id:   tOrganization.id,
@@ -49,7 +47,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as id, organization.name as name, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar, project.id), 'null'), ', "name": ', isnull('"' + string_escape(convert(nvarchar(max), project.name), 'json') + '"', 'null'), '}'), ','), ']') as projects from organization left join project on project.organization_id = organization.id and project.archived_at is null where organization.id = @0 group by organization.id, organization.name"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as id, organization.name as name, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar, project.id), 'null'), ', "name": ', isnull('"' + string_escape(convert(nvarchar(max), project.name), 'json') + '"', 'null'), '}'), ','), ']') as projects from organization left join project on project.organization_id = organization.id where organization.id = @0 group by organization.id, organization.name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -66,11 +64,11 @@ describe(ctx.label, () => {
     test('docs:aggregate-as-object-array/aggregate-as-array-of-one-column', async () => {
         const expected = {
             id: 1, name: 'Acme Corp',
-            projectNames: ['Marketing site', 'Internal tools'],
+            projectNames: ['Marketing site mktg-site', 'Internal tools tools'],
         }
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
-            projectNames: JSON.stringify(['Marketing site', 'Internal tools']),
+            projectNames: JSON.stringify(['Marketing site mktg-site', 'Internal tools tools']),
         })
         const connection = ctx.conn
 
@@ -82,15 +80,16 @@ describe(ctx.label, () => {
             .select({
                 id:           tOrganization.id,
                 name:         tOrganization.name,
-                projectNames: connection.aggregateAsArrayOfOneColumn(tProjectLeftJoin.name),
+                projectNames: connection.aggregateAsArrayOfOneColumn(tProjectLeftJoin.name.concat(' ').concat(tProjectLeftJoin.slug)),
             })
             .groupBy('id', 'name')
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as id, organization.name as name, concat('[', string_agg(isnull('"' + string_escape(convert(nvarchar(max), project.name), 'json') + '"', 'null'), ','), ']') as projectNames from organization left join project on project.organization_id = organization.id where organization.id = @0 group by organization.id, organization.name"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as id, organization.name as name, concat('[', string_agg(isnull('"' + string_escape(convert(nvarchar(max), project.name + @0 + project.slug), 'json') + '"', 'null'), ','), ']') as projectNames from organization left join project on project.organization_id = organization.id where organization.id = @1 group by organization.id, organization.name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
+            " ",
             1,
           ]
         `)
@@ -121,8 +120,7 @@ describe(ctx.label, () => {
 
         // doc-start
         const orgProjects = connection.subSelectUsing(tOrganization).from(tProject)
-            .where(tProject.organizationId.equals(tOrganization.id)
-                .and(tProject.archivedAt.isNull()))
+            .where(tProject.organizationId.equals(tOrganization.id))
             .select({
                 id:   tProject.id,
                 name: tProject.name,
@@ -140,7 +138,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select id as id, name as name from project where organization_id = organization.id and archived_at is null order by id offset 0 rows for json path) as projects from organization where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select id as id, name as name from project where organization_id = organization.id order by id offset 0 rows for json path) as projects from organization where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -158,18 +156,18 @@ describe(ctx.label, () => {
         // orderBy('result') → real DB returns the names alphabetically.
         const expected = {
             id: 1, name: 'Acme Corp',
-            projectNames: ['Internal tools', 'Marketing site'],
+            projectNames: ['Internal tools tools', 'Marketing site mktg-site'],
         }
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
-            projectNames: JSON.stringify(['Internal tools', 'Marketing site']),
+            projectNames: JSON.stringify(['Internal tools tools', 'Marketing site mktg-site']),
         })
         const connection = ctx.conn
 
         // doc-start
         const orgProjectNames = connection.subSelectUsing(tOrganization).from(tProject)
             .where(tProject.organizationId.equals(tOrganization.id))
-            .selectOneColumn(tProject.name)
+            .selectOneColumn(tProject.name.concat(' ').concat(tProject.slug))
             .orderBy('result')
             .forUseAsInlineAggregatedArrayValue()
 
@@ -183,9 +181,10 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.[result]), 'json') + '"', ','), ']') from (select name as [result] from project where organization_id = organization.id order by [result] offset 0 rows) as a_1_) as projectNames from organization where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.[result]), 'json') + '"', ','), ']') from (select name + @0 + slug as [result] from project where organization_id = organization.id order by [result] offset 0 rows) as a_1_) as projectNames from organization where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
+            " ",
             1,
           ]
         `)

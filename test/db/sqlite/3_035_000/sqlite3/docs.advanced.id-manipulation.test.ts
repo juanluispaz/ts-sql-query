@@ -16,7 +16,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    test('docs:id-manipulation/encrypter-round-trip', () => {
+    test('docs-extra:id-manipulation/encrypter-round-trip', () => {
         // doc-start: same passwords as in the docs page.
         const enc = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c')
         const encrypted = enc.encrypt(1n)
@@ -46,7 +46,7 @@ describe(ctx.label, () => {
         expect(enc.decrypt(e)).toBe(large)
     })
 
-    test('docs:id-manipulation/encrypter-with-prefix', () => {
+    test('docs-extra:id-manipulation/encrypter-with-prefix', () => {
         // Section "Globally Encrypted ID" — `encrypt(id, prefix)` adds a
         // table-scoped prefix to the encrypted output so two tables with
         // overlapping numeric ids serialise to distinct strings.

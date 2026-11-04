@@ -59,7 +59,7 @@ describe(ctx.label, () => {
         expect(row.verified).toBe(true)
     })
 
-    test('docs:columns-from-object/extract-columns-exclude-keys', async () => {
+    test('docs-extra:columns-from-object/extract-columns-exclude-keys', async () => {
         // doc-start
         const cols = extractColumnsFrom(tOrganization, ['createdAt'])
         // doc-end

@@ -1,9 +1,4 @@
 // Documentation snippets for the SELECT page (docs/queries/select.md).
-//
-// Tests prefixed `docs:` are scraped by the docs build. Inside each test,
-// the code BETWEEN `// doc-start` and `// doc-end` is the snippet that
-// appears on the page; SQL + params live in `toMatchInlineSnapshot(...)`
-// so the test gates the snippet against drift.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -17,38 +12,46 @@ describe(ctx.label, () => {
 
     test('docs:select/joins-and-order-by', async () => {
         const expected = [
-            { id: 1, title: 'Update hero copy', projectName: 'Marketing site' },
-            { id: 3, title: 'Migrate to ESM',   projectName: 'Internal tools' },
+            { id: 1, name: 'Marketing site', slug: 'mktg-site', organizationName: 'Acme Corp' },
         ]
         ctx.mockNext(expected)
         const connection = ctx.conn
 
         // doc-start
-        const project = tProject.as('proj')
-        const openIssues = await connection.selectFrom(tIssue)
-            .innerJoin(project).on(tIssue.projectId.equals(project.id))
-            .where(tIssue.status.equals('open'))
+        const name = 'market'
+        const slug = null
+
+        const organization = tOrganization.as('org')
+        const projectsWithOrganizationName = await connection.selectFrom(tProject)
+            .innerJoin(organization).on(tProject.organizationId.equals(organization.id))
+            .where(tProject.name.startsWithInsensitive(name))
+                .and(tProject.slug.startsWithInsensitiveIfValue(slug))
             .select({
-                id:          tIssue.id,
-                title:       tIssue.title,
-                projectName: project.name,
+                id:               tProject.id,
+                name:             tProject.name,
+                slug:             tProject.slug,
+                archivedAt:       tProject.archivedAt,
+                organizationName: organization.name,
             })
-            .orderBy('id')
+            .orderBy('name', 'insensitive')
+            .orderBy('slug', 'asc insensitive')
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.title as title, proj.name as projectName from issue inner join project as proj on issue.project_id = proj.id where issue.status = @0 order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, project.slug as slug, project.archived_at as archivedAt, org.name as organizationName from project inner join organization as org on project.organization_id = org.id where lower(project.name) like lower(@0 + '%') order by lower(project.name), lower(project.slug) asc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "open",
+            "market",
           ]
         `)
-        assertType<Exact<typeof openIssues, Array<{
-            id:          number
-            title:       string
-            projectName: string
+        assertType<Exact<typeof projectsWithOrganizationName, Array<{
+            id:               number
+            name:             string
+            slug:             string
+            archivedAt?:      Date
+            organizationName: string
         }>>>()
-        expect(openIssues).toEqual(expected)
+        expect(projectsWithOrganizationName).toEqual(expected)
     })
 
     test('docs:select/ordering-by-not-returned-column', async () => {
@@ -387,6 +390,70 @@ describe(ctx.label, () => {
         expect(organizationsWithProjectCount).toEqual(expected)
     })
 
+    test('docs:select/inline-subquery-distinct', async () => {
+        ctx.mockNext([
+            { id: 1, name: 'Acme Corp',  projectNames: JSON.stringify(['Marketing site', 'Internal tools']) },
+            { id: 2, name: 'Globex Ltd', projectNames: JSON.stringify(['Public API', 'Legacy app']) },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const namesOfTheProjects = connection
+            .subSelectDistinctUsing(tOrganization)
+            .from(tProject)
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .selectOneColumn(tProject.name)
+            .forUseAsInlineAggregatedArrayValue()
+
+        const organizationsWithTheNamesOfTheirProjects = await connection.selectFrom(tOrganization)
+            .select({
+                id:           tOrganization.id,
+                name:         tOrganization.name,
+                projectNames: namesOfTheProjects,
+            })
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.[result]), 'json') + '"', ','), ']') from (select distinct name as [result] from project where organization_id = organization.id) as a_1_) as projectNames from organization"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof organizationsWithTheNamesOfTheirProjects, Array<{
+            id:           number
+            name:         string
+            projectNames: string[]
+        }>>>()
+        // Neither the rows nor the aggregated array have an order by.
+        const sorted = organizationsWithTheNamesOfTheirProjects
+            .map((row) => ({ ...row, projectNames: [...row.projectNames].sort() }))
+            .sort((a, b) => a.id - b.id)
+        expect(sorted).toEqual([
+            { id: 1, name: 'Acme Corp',  projectNames: ['Internal tools', 'Marketing site'] },
+            { id: 2, name: 'Globex Ltd', projectNames: ['Legacy app', 'Public API'] },
+        ])
+    })
+
+    test('docs:select/select-without-table', async () => {
+        const expected = { users: 3, organizations: 2 }
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const counts = await connection.selectFromNoTable()
+            .select({
+                users:         connection.selectFrom(tAppUser).selectCountAll().forUseAsInlineQueryValue(),
+                organizations: connection.selectFrom(tOrganization).selectCountAll().forUseAsInlineQueryValue(),
+            })
+            .executeSelectOne()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(*) as [result] from app_user) as users, (select count(*) as [result] from organization) as organizations"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof counts, {
+            users:         number
+            organizations: number
+        }>>()
+        expect(counts).toEqual(expected)
+    })
+
     test('docs-extra:select/clauses-order-where-after-groupby', async () => {
         // Section "Select clauses order" lists a number of legal clause
         // orderings. The default (logical) and the "alternative" variants
@@ -528,32 +595,216 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    test('docs-extra:select/aliased-table', async () => {
-        // Page-derived: aliasing a table with `.as('alias')` to keep
-        // subsequent column references namespaced by the alias.
-        const expected = [{ id: 1, fullName: 'Ada Lovelace' }]
+    test('docs-extra:select/clauses-where-after-customize-query', async () => {
+        // Section "Select clauses order": where as the last clause, with group by and having first.
+        const expected = [
+            { organizationId: 1, projectCount: 2 },
+            { organizationId: 2, projectCount: 1 },
+        ]
         ctx.mockNext(expected)
         const connection = ctx.conn
 
-        const u = tAppUser.as('u')
-        const onlyAda = await connection.selectFrom(u)
-            .where(u.email.startsWith('ada@'))
+        const result = await connection.selectFrom(tProject)
+            .groupBy(tProject.organizationId)
+            .having(connection.count(tProject.id).greaterThan(0))
             .select({
-                id:       u.id,
-                fullName: u.fullName,
+                organizationId: tProject.organizationId,
+                projectCount:   connection.count(tProject.id),
             })
+            .orderBy('organizationId')
+            .limit(10)
+            .offset(0)
+            .customizeQuery({
+                afterQuery: connection.rawFragment`/* trailing comment */`,
+            })
+            .where(tProject.archivedAt.isNull())
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select [u].id as id, [u].full_name as fullName from app_user as [u] where [u].email like (@0 + '%')"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, count(id) as projectCount from project where archived_at is null group by organization_id having count(id) > @0 order by organizationId offset @1 rows fetch next @2 rows only /* trailing comment */"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "ada@",
+            0,
+            0,
+            10,
           ]
         `)
-        assertType<Exact<typeof onlyAda, Array<{
-            id:       number
-            fullName: string
+        assertType<Exact<typeof result, Array<{
+            organizationId: number
+            projectCount:   number
         }>>>()
-        expect(onlyAda).toEqual(expected)
+        expect(result).toEqual(expected)
     })
+
+    test('docs-extra:select/clauses-select-first-where-after-having', async () => {
+        // Section "Select clauses order": select first, where after having.
+        const expected = [
+            { organizationId: 1, projectCount: 2 },
+            { organizationId: 2, projectCount: 1 },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const result = await connection.selectFrom(tProject)
+            .select({
+                organizationId: tProject.organizationId,
+                projectCount:   connection.count(tProject.id),
+            })
+            .groupBy('organizationId')
+            .having(connection.count(tProject.id).greaterThan(0))
+            .where(tProject.archivedAt.isNull())
+            .orderBy('organizationId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, count(id) as projectCount from project where archived_at is null group by organization_id having count(id) > @0 order by organizationId"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            organizationId: number
+            projectCount:   number
+        }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('docs-extra:select/clauses-select-first-where-after-order-by', async () => {
+        // Section "Select clauses order": select first, where after order by.
+        const expected = [
+            { organizationId: 1, projectCount: 2 },
+            { organizationId: 2, projectCount: 1 },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const result = await connection.selectFrom(tProject)
+            .select({
+                organizationId: tProject.organizationId,
+                projectCount:   connection.count(tProject.id),
+            })
+            .groupBy('organizationId')
+            .having(connection.count(tProject.id).greaterThan(0))
+            .orderBy('organizationId')
+            .where(tProject.archivedAt.isNull())
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, count(id) as projectCount from project where archived_at is null group by organization_id having count(id) > @0 order by organizationId"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            organizationId: number
+            projectCount:   number
+        }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('docs-extra:select/clauses-select-first-where-after-offset', async () => {
+        // Section "Select clauses order": select first, where after limit and offset.
+        const expected = [
+            { organizationId: 1, projectCount: 2 },
+            { organizationId: 2, projectCount: 1 },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const result = await connection.selectFrom(tProject)
+            .select({
+                organizationId: tProject.organizationId,
+                projectCount:   connection.count(tProject.id),
+            })
+            .groupBy('organizationId')
+            .having(connection.count(tProject.id).greaterThan(0))
+            .orderBy('organizationId')
+            .limit(10)
+            .offset(0)
+            .where(tProject.archivedAt.isNull())
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, count(id) as projectCount from project where archived_at is null group by organization_id having count(id) > @0 order by organizationId offset @1 rows fetch next @2 rows only"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+            0,
+            10,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            organizationId: number
+            projectCount:   number
+        }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('docs-extra:select/clauses-select-first-where-after-customize-query', async () => {
+        // Section "Select clauses order": select first, where as the last clause.
+        const expected = [
+            { organizationId: 1, projectCount: 2 },
+            { organizationId: 2, projectCount: 1 },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const result = await connection.selectFrom(tProject)
+            .select({
+                organizationId: tProject.organizationId,
+                projectCount:   connection.count(tProject.id),
+            })
+            .groupBy('organizationId')
+            .having(connection.count(tProject.id).greaterThan(0))
+            .orderBy('organizationId')
+            .limit(10)
+            .offset(0)
+            .customizeQuery({
+                afterQuery: connection.rawFragment`/* trailing comment */`,
+            })
+            .where(tProject.archivedAt.isNull())
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, count(id) as projectCount from project where archived_at is null group by organization_id having count(id) > @0 order by organizationId offset @1 rows fetch next @2 rows only /* trailing comment */"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+            0,
+            10,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            organizationId: number
+            projectCount:   number
+        }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    // NOT-APPLICABLE: `.startWith` / `.connectBy` are typed `never` on this connection; the hierarchical query clauses exist only on Oracle.
+    /*
+    test('docs-extra:select/clauses-oracle-select-first-where-after-ordering-siblings', async () => {
+        // Section "Select clauses order", Oracle variants: select first, then
+        // start with + connect by, with where after ordering siblings only.
+        // No issue has a parent in the seed, so every issue is a root and the
+        // where keeps those with priority above 1.
+        const expected = [{ id: 1 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const result = await connection.selectFrom(tIssue)
+            .select({
+                id: tIssue.id,
+            })
+            .startWith(tIssue.parentId.isNull())
+            .connectBy((prior) => prior(tIssue.id).equals(tIssue.parentId))
+            .orderBy('id')
+            .orderingSiblingsOnly()
+            .where(tIssue.priority.greaterThan(1))
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
+    */
+
 })

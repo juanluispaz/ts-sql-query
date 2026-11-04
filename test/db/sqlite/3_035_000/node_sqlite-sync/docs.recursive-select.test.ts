@@ -15,31 +15,28 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('docs:recursive-select/parents-chain', async () => {
-        // Seed has no parent_id set, so the recursive CTE returns only the
-        // starting issue (id=2); its parent_id is NULL → parentId undefined.
-        // Note: `parentId` MUST be projected so the recursive view exposes
-        // it for the JOIN ON to reference.
+        // No issue has a parent in the seed, so only the starting issue comes back.
         const expected = [
-            { id: 2, title: 'Redesign navbar' },
+            { id: 2, title: 'Redesign navbar', parentId: undefined },
         ]
         ctx.mockNext(expected)
         const connection = ctx.conn
 
         // doc-start
-        const ancestors = sync(connection.selectFrom(tIssue)
+        const ancestors = await connection.selectFrom(tIssue)
             .where(tIssue.id.equals(2))
             .select({
                 id:       tIssue.id,
                 title:    tIssue.title,
                 parentId: tIssue.parentId,
             })
-            .recursiveUnionAllOn((parent) =>
-                tIssue.id.equals(parent.parentId)
-            )
-            .executeSelectMany())
+            .recursiveUnionAllOn((child) => {
+                return child.parentId.equals(tIssue.id)
+            })
+            .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, parent_id as parentId from issue where id = ?1 union all select issue.id as id, issue.title as title, issue.parent_id as parentId from issue join recursive_select_1 on issue.id = recursive_select_1.parentId) select id as id, title as title, parentId as parentId from recursive_select_1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, parent_id as parentId from issue where id = ?1 union all select issue.id as id, issue.title as title, issue.parent_id as parentId from issue join recursive_select_1 on recursive_select_1.parentId = issue.id) select id as id, title as title, parentId as parentId from recursive_select_1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -99,28 +96,26 @@ describe(ctx.label, () => {
     })
 
     test('docs:recursive-select/children-tree', async () => {
-        // Section "Recursive select looking for children" — same shape
-        // as "parents" but the JOIN direction is flipped so we walk down
-        // the tree from a root.
+        // No issue has a parent in the seed, so only the starting issue comes back.
         const expected = [{ id: 1, title: 'Update hero copy' }]
         ctx.mockNext(expected)
         const connection = ctx.conn
 
         // doc-start
-        const descendants = sync(connection.selectFrom(tIssue)
+        const descendants = await connection.selectFrom(tIssue)
             .where(tIssue.id.equals(1))
             .select({
                 id:       tIssue.id,
                 title:    tIssue.title,
                 parentId: tIssue.parentId,
             })
-            .recursiveUnionAllOn((parent) =>
-                tIssue.parentId.equals(parent.id),
-            )
-            .executeSelectMany())
+            .recursiveUnionAllOn((parent) => {
+                return parent.id.equals(tIssue.parentId)
+            })
+            .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, parent_id as parentId from issue where id = ?1 union all select issue.id as id, issue.title as title, issue.parent_id as parentId from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, title as title, parentId as parentId from recursive_select_1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, parent_id as parentId from issue where id = ?1 union all select issue.id as id, issue.title as title, issue.parent_id as parentId from issue join recursive_select_1 on recursive_select_1.id = issue.parent_id) select id as id, title as title, parentId as parentId from recursive_select_1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -131,39 +126,145 @@ describe(ctx.label, () => {
             title:     string
             parentId?: number
         }>>>()
+        expect(descendants).toEqual(expected)
     })
 
-    test('docs-extra:recursive-select/union-vs-union-all', async () => {
-        // Section "UNION vs UNION ALL inside a recursive CTE" — both
-        // `recursiveUnion` and `recursiveUnionAll` exist where the
-        // dialect supports the operator. The deduplicating variant
-        // (`recursiveUnion`) is only available on the dialects that
-        // accept `UNION` (not `UNION ALL`) in a recursive CTE.
-        ctx.mockNext([{ id: 1, title: 'Root', parentId: undefined }])
+    test('docs:recursive-select/children-tree-full-inner', async () => {
+        // Issues 2 and 3 become children of issue 1, inside the rollback.
+        const expected = [
+            { id: 1, title: 'Update hero copy' },
+            { id: 2, title: 'Redesign navbar', parentId: 1 },
+            { id: 3, title: 'Migrate to ESM',  parentId: 1 },
+        ]
+        ctx.mockNext(1)
+        ctx.mockNext(expected)
         const connection = ctx.conn
 
-        const result = sync(connection.selectFrom(tIssue)
-            .where(tIssue.id.equals(1))
-            .select({
-                id:       tIssue.id,
-                title:    tIssue.title,
-                parentId: tIssue.parentId,
-            })
-            .recursiveUnionAllOn((parent) =>
-                tIssue.id.equals(parent.parentId),
-            )
-            .executeSelectMany())
+        await ctx.withRollback(async () => {
+            await connection.update(tIssue).set({ parentId: 1 }).where(tIssue.id.in([2, 3])).executeUpdate()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, parent_id as parentId from issue where id = ?1 union all select issue.id as id, issue.title as title, issue.parent_id as parentId from issue join recursive_select_1 on issue.id = recursive_select_1.parentId) select id as id, title as title, parentId as parentId from recursive_select_1"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-          ]
-        `)
-        assertType<Exact<typeof result, Array<{
-            id:        number
-            title:     string
-            parentId?: number
-        }>>>()
+            // doc-start
+            const descendants = await connection.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({
+                    id:       tIssue.id,
+                    title:    tIssue.title,
+                    parentId: tIssue.parentId,
+                })
+                .recursiveUnionAll((parent) => {
+                    return connection.selectFrom(tIssue)
+                        .join(parent).on(parent.id.equals(tIssue.parentId))
+                        .select({
+                            id:       tIssue.id,
+                            title:    tIssue.title,
+                            parentId: tIssue.parentId,
+                        })
+                })
+                .executeSelectMany()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, parent_id as parentId from issue where id = ?1 union all select issue.id as id, issue.title as title, issue.parent_id as parentId from issue join recursive_select_1 on recursive_select_1.id = issue.parent_id) select id as id, title as title, parentId as parentId from recursive_select_1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof descendants, Array<{
+                id:        number
+                title:     string
+                parentId?: number
+            }>>>()
+            // A recursive select has no order by here.
+            expect([...descendants].sort((a, b) => a.id - b.id)).toEqual(expected)
+        })
     })
+
+    // NOT-APPLICABLE: `.startWith` / `.connectBy` are typed `never` on this connection; the hierarchical query clauses exist only on Oracle.
+    /*
+    test('docs:recursive-select/connect-by', async () => {
+        // Issues 2 and 3 become children of issue 1, inside the rollback. The
+        // siblings come back ordered by title, under their parent.
+        const expected = [
+            { id: 1, title: 'Update hero copy' },
+            { id: 3, title: 'Migrate to ESM',  parentId: 1 },
+            { id: 2, title: 'Redesign navbar', parentId: 1 },
+        ]
+        ctx.mockNext(1)
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        await ctx.withRollback(async () => {
+            await connection.update(tIssue).set({ parentId: 1 }).where(tIssue.id.in([2, 3])).executeUpdate()
+
+            // doc-start
+            const descendants = await connection.selectFrom(tIssue)
+                .select({
+                    id:       tIssue.id,
+                    title:    tIssue.title,
+                    parentId: tIssue.parentId,
+                })
+                .startWith(tIssue.id.equals(1))
+                .connectBy((prior) => {
+                    return prior(tIssue.id).equals(tIssue.parentId)
+                })
+                .orderBy('title')
+                .orderingSiblingsOnly()
+                .executeSelectMany()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof descendants, Array<{
+                id:        number
+                title:     string
+                parentId?: number
+            }>>>()
+            expect(descendants).toEqual(expected)
+        })
+    })
+    */
+
+    test('docs-extra:recursive-select/recursive-union-dedup', async () => {
+        // Section "UNION vs UNION ALL inside a recursive CTE": `recursiveUnionOn`
+        // emits a plain union. Issues 2 and 3 become children of issue 1, inside
+        // the rollback.
+        const expected = [
+            { id: 1, title: 'Update hero copy' },
+            { id: 2, title: 'Redesign navbar', parentId: 1 },
+            { id: 3, title: 'Migrate to ESM',  parentId: 1 },
+        ]
+        ctx.mockNext(1)
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        await ctx.withRollback(async () => {
+            await connection.update(tIssue).set({ parentId: 1 }).where(tIssue.id.in([2, 3])).executeUpdate()
+
+            const descendants = await connection.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({
+                    id:       tIssue.id,
+                    title:    tIssue.title,
+                    parentId: tIssue.parentId,
+                })
+                .recursiveUnionOn((parent) => {
+                    return parent.id.equals(tIssue.parentId)
+                })
+                .executeSelectMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, parent_id as parentId from issue where id = ?1 union select issue.id as id, issue.title as title, issue.parent_id as parentId from issue join recursive_select_1 on recursive_select_1.id = issue.parent_id) select id as id, title as title, parentId as parentId from recursive_select_1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof descendants, Array<{
+                id:        number
+                title:     string
+                parentId?: number
+            }>>>()
+            expect([...descendants].sort((a, b) => a.id - b.id)).toEqual(expected)
+        })
+    })
+
 })

@@ -3,7 +3,7 @@
 // projection and optional-object projection on a left join.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
-import { assertType, type Exact, type Extends } from '../../../../lib/assertType.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tAppUser, tIssue, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -14,174 +14,261 @@ describe(ctx.label, () => {
 
     test('docs:complex-projections/nested-object', async () => {
         const expected = [
-            { id: 1, header: { number: 1, title: 'Update hero copy' } },
-            { id: 2, header: { number: 2, title: 'Redesign navbar' } },
+            { id: 2, header: { title: 'Redesign navbar',  status: 'in_progress' }, body: 'Use new tokens' },
+            { id: 1, header: { title: 'Update hero copy', status: 'open' } },
         ]
         ctx.mockNext([
-            { id: 1, 'header.number': 1, 'header.title': 'Update hero copy' },
-            { id: 2, 'header.number': 2, 'header.title': 'Redesign navbar' },
+            { id: 2, 'header.title': 'Redesign navbar',  'header.status': 'in_progress', body: 'Use new tokens' },
+            { id: 1, 'header.title': 'Update hero copy', 'header.status': 'open',        body: null },
         ])
         const connection = ctx.conn
 
         // doc-start
-        const rows = await connection.selectFrom(tIssue)
-            .where(tIssue.projectId.equals(1))
+        const projectId = 1
+
+        const issuesOfProject = await connection.selectFrom(tIssue)
+            .where(tIssue.projectId.equals(projectId))
             .select({
                 id: tIssue.id,
                 header: {
-                    number: tIssue.number,
                     title:  tIssue.title,
+                    status: tIssue.status,
                 },
+                body: tIssue.body,
             })
-            .orderBy('id')
+            .orderBy('header.title')
+            .orderBy('header.status')
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`number\` as \`header.number\`, title as \`header.title\` from issue where project_id = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as \`header.title\`, \`status\` as \`header.status\`, body as body from issue where project_id = ? order by \`header.title\`, \`header.status\`"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{
+        assertType<Exact<typeof issuesOfProject, Array<{
             id: number
-            header: { number: number; title: string }
+            header: { title: string; status: string }
+            body?: string
         }>>>()
-        expect(rows).toEqual(expected)
+        expect(issuesOfProject).toEqual(expected)
+    })
+
+    test('docs-extra:complex-projections/five-nesting-levels', async () => {
+        // Section "Nested object projections": five levels, the root object
+        // being the first.
+        const expected = {
+            id: 1,
+            level2: { level3: { level4: { level5: { title: 'Update hero copy' } } } },
+        }
+        ctx.mockNext({ id: 1, 'level2.level3.level4.level5.title': 'Update hero copy' })
+        const connection = ctx.conn
+
+        const issue = await connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                level2: { level3: { level4: { level5: {
+                    title: tIssue.title,
+                } } } },
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as \`level2.level3.level4.level5.title\` from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof issue, {
+            id: number
+            level2: { level3: { level4: { level5: { title: string } } } }
+        }>>()
+        expect(issue).toEqual(expected)
     })
 
     test('docs:complex-projections/inner-join-required-object', async () => {
-        const expected = [
-            { id: 1, name: 'Marketing site',
-              organization: { id: 1, name: 'Acme Corp' } },
-        ]
-        ctx.mockNext([
-            { id: 1, name: 'Marketing site',
-              'organization.id': 1, 'organization.name': 'Acme Corp' },
-        ])
+        // Project 1 has no archived_at: the optional property isn't set.
+        const expected = {
+            id: 1, name: 'Marketing site', slug: 'mktg-site',
+            organization: { id: 1, name: 'Acme Corp' },
+        }
+        ctx.mockNext({
+            id: 1, name: 'Marketing site', slug: 'mktg-site', archivedAt: null,
+            'organization.id': 1, 'organization.name': 'Acme Corp',
+        })
         const connection = ctx.conn
 
-        // doc-start: nested object backed by an inner join → the inner
-        // object is required (no leftJoin), so its properties stay required.
-        const rows = await connection.selectFrom(tProject)
+        // doc-start
+        const projectWithOrganizationInOneQuery = await connection.selectFrom(tProject)
             .innerJoin(tOrganization).on(tOrganization.id.equals(tProject.organizationId))
-            .where(tProject.id.equals(1))
             .select({
-                id:   tProject.id,
-                name: tProject.name,
+                id:         tProject.id,
+                name:       tProject.name,
+                slug:       tProject.slug,
+                archivedAt: tProject.archivedAt,
                 organization: {
                     id:   tOrganization.id,
                     name: tOrganization.name,
                 },
-            })
-            .executeSelectMany()
+            }).where(
+                tProject.id.equals(1),
+            ).executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.\`name\` as \`name\`, \`organization\`.id as \`organization.id\`, \`organization\`.\`name\` as \`organization.name\` from project inner join \`organization\` on \`organization\`.id = project.organization_id where project.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.\`name\` as \`name\`, project.slug as slug, project.archived_at as archivedAt, \`organization\`.id as \`organization.id\`, \`organization\`.\`name\` as \`organization.name\` from project inner join \`organization\` on \`organization\`.id = project.organization_id where project.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{
-            id:   number
-            name: string
+        assertType<Exact<typeof projectWithOrganizationInOneQuery, {
+            id:          number
+            name:        string
+            slug:        string
+            archivedAt?: Date
             organization: { id: number; name: string }
-        }>>>()
-        expect(rows).toEqual(expected)
+        }>>()
+        expect(projectWithOrganizationInOneQuery).toEqual(expected)
     })
 
     test('docs:complex-projections/multi-level-left-join', async () => {
-        // Issue 1 has no parent, so the `parent` object is absent.
-        const expected = [{ id: 1, title: 'Update hero copy' }]
+        // Inside the rollback the issues form the chain 4 -> 3 -> 2 -> 1, so every
+        // level shows up: no parent, parent without grandparent, grandparent
+        // without parentId, and grandparent with parentId.
+        const expected = [
+            { id: 1, title: 'Update hero copy' },
+            { id: 2, title: 'Redesign navbar',
+              parent: { id: 1, title: 'Update hero copy' } },
+            { id: 3, title: 'Migrate to ESM',
+              parent: { id: 2, title: 'Redesign navbar',
+                        parent: { id: 1, title: 'Update hero copy' } } },
+            { id: 4, title: 'Document /v2/users',
+              parent: { id: 3, title: 'Migrate to ESM',
+                        parent: { id: 2, title: 'Redesign navbar', parentId: 1 } } },
+        ]
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(1)
         ctx.mockNext([
             { id: 1, title: 'Update hero copy',
               'parent.id': null, 'parent.title': null,
-              'parent.parent.id': null, 'parent.parent.title': null },
+              'parent.parent.id': null, 'parent.parent.title': null, 'parent.parent.parentId': null },
+            { id: 2, title: 'Redesign navbar',
+              'parent.id': 1, 'parent.title': 'Update hero copy',
+              'parent.parent.id': null, 'parent.parent.title': null, 'parent.parent.parentId': null },
+            { id: 3, title: 'Migrate to ESM',
+              'parent.id': 2, 'parent.title': 'Redesign navbar',
+              'parent.parent.id': 1, 'parent.parent.title': 'Update hero copy', 'parent.parent.parentId': null },
+            { id: 4, title: 'Document /v2/users',
+              'parent.id': 3, 'parent.title': 'Migrate to ESM',
+              'parent.parent.id': 2, 'parent.parent.title': 'Redesign navbar', 'parent.parent.parentId': 1 },
         ])
         const connection = ctx.conn
 
-        // doc-start: tree of issues — issue → parent → parent's parent, all
-        // via left join. With no parent_id seeded, every inner object is
-        // absent, demonstrating that nested optional objects propagate.
-        const parent = tIssue.forUseInLeftJoinAs('parent')
-        const grandparent = tIssue.forUseInLeftJoinAs('grandparent')
+        await ctx.withRollback(async () => {
+            await connection.update(tIssue).set({ parentId: 1 }).where(tIssue.id.equals(2)).executeUpdate()
+            await connection.update(tIssue).set({ parentId: 2 }).where(tIssue.id.equals(3)).executeUpdate()
+            await connection.update(tIssue).set({ parentId: 3 }).where(tIssue.id.equals(4)).executeUpdate()
 
-        const rows = await connection.selectFrom(tIssue)
-            .leftJoin(parent).on(parent.id.equals(tIssue.parentId))
-            .leftJoin(grandparent).on(grandparent.id.equals(parent.parentId))
-            .where(tIssue.id.equals(1))
-            .select({
-                id:    tIssue.id,
-                title: tIssue.title,
-                parent: {
-                    id:    parent.id,
-                    title: parent.title,
+            // doc-start
+            const parent = tIssue.forUseInLeftJoinAs('parent')
+            const parentParent = tIssue.forUseInLeftJoinAs('parentParent')
+
+            const issueMultiParent = await connection.selectFrom(tIssue)
+                .leftJoin(parent).on(tIssue.parentId.equals(parent.id))
+                .leftJoin(parentParent).on(parent.parentId.equals(parentParent.id))
+                .select({
+                    id:    tIssue.id,
+                    title: tIssue.title,
                     parent: {
-                        id:    grandparent.id,
-                        title: grandparent.title,
+                        id:    parent.id,
+                        title: parent.title,
+                        parent: {
+                            id:       parentParent.id,
+                            title:    parentParent.title,
+                            parentId: parentParent.parentId,
+                        },
                     },
-                },
-            })
-            .executeSelectMany()
-        // doc-end
+                })
+                .executeSelectMany()
+            // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.title as title, parent.id as \`parent.id\`, parent.title as \`parent.title\`, grandparent.id as \`parent.parent.id\`, grandparent.title as \`parent.parent.title\` from issue left join issue as parent on parent.id = issue.parent_id left join issue as grandparent on grandparent.id = parent.parent_id where issue.id = ?"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-          ]
-        `)
-        // The lib's exact emitted shape for nested left-join projections
-        // is structurally intricate; at minimum the row has id+title.
-        assertType<Extends<typeof rows, Array<{ id: number }>>>()
-        expect(rows).toEqual(expected)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.title as title, parent.id as \`parent.id\`, parent.title as \`parent.title\`, parentParent.id as \`parent.parent.id\`, parentParent.title as \`parent.parent.title\`, parentParent.parent_id as \`parent.parent.parentId\` from issue left join issue as parent on issue.parent_id = parent.id left join issue as parentParent on parent.parent_id = parentParent.id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            assertType<Exact<typeof issueMultiParent, Array<{
+                id:    number
+                title: string
+                parent?: {
+                    id:    number
+                    title: string
+                    parent?: {
+                        id:        number
+                        title:     string
+                        parentId?: number
+                    }
+                }
+            }>>>()
+            expect([...issueMultiParent].sort((a, b) => a.id - b.id)).toEqual(expected)
+        })
     })
 
     test('docs:complex-projections/as-required-in-optional-object', async () => {
-        // Issue 1 (project 1): body=null            → meta absent
-        // Issue 2 (project 1): body='Use new tokens', assigneeId=2 → meta full
+        // Issue 1: both required properties, no body. Issue 2: everything.
+        // Issue 3: nothing. Issue 4: no external_ref, so the whole object goes
+        // even though it has assignee_id and body.
         const expected = [
-            { id: 1 /* meta absent: body is null */ },
-            { id: 2, meta: { body: 'Use new tokens', assigneeId: 2 } },
+            { id: 1, title: 'Update hero copy',
+              meta: { externalRef: '0a8f9c1e-1111-4222-8333-444455556666', assigneeId: 1 } },
+            { id: 2, title: 'Redesign navbar',
+              meta: { externalRef: '7b3e9d20-2222-4c55-9b66-dddd00009999', assigneeId: 2, body: 'Use new tokens' } },
+            { id: 3, title: 'Migrate to ESM' },
+            { id: 4, title: 'Document /v2/users' },
         ]
         ctx.mockNext([
-            { id: 1, 'meta.body': null, 'meta.assigneeId': null },
-            { id: 2, 'meta.body': 'Use new tokens', 'meta.assigneeId': 2 },
+            { id: 1, title: 'Update hero copy', parentId: null,
+              'meta.externalRef': '0a8f9c1e-1111-4222-8333-444455556666', 'meta.assigneeId': 1, 'meta.body': null },
+            { id: 2, title: 'Redesign navbar', parentId: null,
+              'meta.externalRef': '7b3e9d20-2222-4c55-9b66-dddd00009999', 'meta.assigneeId': 2, 'meta.body': 'Use new tokens' },
+            { id: 3, title: 'Migrate to ESM', parentId: null,
+              'meta.externalRef': null, 'meta.assigneeId': null, 'meta.body': null },
+            { id: 4, title: 'Document /v2/users', parentId: null,
+              'meta.externalRef': null, 'meta.assigneeId': 3, 'meta.body': 'See ADR-014' },
         ])
         const connection = ctx.conn
 
-        // doc-start: both `body` and `priority` (priority remapped optional
-        // via .ignoreWhen(false) trick) — use a real optional pair: body
-        // and assigneeId. Mark body as required-in-optional-object so the
-        // object appears only when body has a value.
-        const rows = await connection.selectFrom(tIssue)
-            .where(tIssue.projectId.equals(1))
+        // doc-start
+        const issues = await connection.selectFrom(tIssue)
             .select({
-                id:    tIssue.id,
+                id:       tIssue.id,
+                title:    tIssue.title,
+                parentId: tIssue.parentId,
                 meta: {
-                    body:       tIssue.body.asRequiredInOptionalObject(),
-                    assigneeId: tIssue.assigneeId,
+                    externalRef: tIssue.externalRef.asRequiredInOptionalObject(),
+                    assigneeId:  tIssue.assigneeId.asRequiredInOptionalObject(),
+                    body:        tIssue.body,
                 },
             })
-            .orderBy('id')
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, body as \`meta.body\`, assignee_id as \`meta.assigneeId\` from issue where project_id = ? order by id"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-          ]
-        `)
-        // Loose assertion — the exact `?:` vs `?: undefined` shape
-        // differs by lib version. The runtime check below catches the
-        // important contract: `meta` is present only when `body` is.
-        assertType<Extends<typeof rows, Array<{ id: number }>>>()
-        expect(rows).toEqual(expected)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title, parent_id as parentId, bin_to_uuid(external_ref) as \`meta.externalRef\`, assignee_id as \`meta.assigneeId\`, body as \`meta.body\` from issue"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof issues, Array<{
+            id:        number
+            title:     string
+            parentId?: number
+            meta?: {
+                externalRef: string
+                assigneeId:  number
+                body?:       string
+            }
+        }>>>()
+        expect([...issues].sort((a, b) => a.id - b.id)).toEqual(expected)
     })
 
-    test('docs-extra:complex-projections/optional-object-left-join', async () => {
+    test('docs-extra:complex-projections/rule-2-left-join-required-columns', async () => {
         // Issue 3 has assignee_id = NULL → assignee object absent.
         // Issue 1 has assignee_id = 1 (Ada) → assignee object present.
         const expected = [

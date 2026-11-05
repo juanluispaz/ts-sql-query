@@ -25,6 +25,7 @@ The nested objects that a select and the `with` queries already accepted now wor
 **Bug fixes**:
 
 - A `Values` class with a nested object of columns compiled and failed on the database, and renamed the columns after the object.
+- Compound selects compose as they are written: `a.union(b).intersect(c)` is `(a union b) intersect c` and `a.except(b.union(c))` is `a except (b union c)`, on every database. Before, the selects were written one after the other without grouping, so the database decided, and the rows could be different: PostgreSQL, MySQL, MariaDB and SQL Server did `intersect` first, and an operand that was itself a compound was read as part of the chain on every database.
 - `DynamicPick`, `DynamicPickPaths` and the functions that use them stopped one level before what a select projects: the columns of an object at the fifth level couldn't be picked.
 
 ## v2.0.0-beta.3 (5 Nov 2026)

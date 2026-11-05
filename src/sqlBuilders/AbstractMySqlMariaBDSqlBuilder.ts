@@ -12,6 +12,13 @@ import { SqlOperation1ValueSource, SqlOperation1ValueSourceIfValueOrIgnore } fro
 import { TsSqlProcessingError } from '../TsSqlError.js'
 
 export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
+    override _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean, needsGrouping: boolean): string {
+        if (needsGrouping) {
+            // MySQL 5.7 and MariaDB 10.3 don't accept a compound in parentheses as an operand of another one
+            return 'select * from (' + this._buildSelectWithColumnsInfo(query, params, columnsForInsert, isOutermostQuery) + ') as _t_' + this._generateUnique() + '_'
+        }
+        return super._buildSelectWithColumnsInfoForCompound(query, params, columnsForInsert, isOutermostQuery, needsGrouping)
+    }
     constructor() {
         super()
         this._operationsThatNeedParenthesis._concat = false

@@ -177,11 +177,8 @@ describe(ctx.label, () => {
 
     test('compounded-interface-intersect-after-union', async () => {
         // `a.union(b).intersect(c)` — `intersect` on the compounded interface.
-        // INTERSECT binds tighter than UNION in SQL, so the data is chosen so the
-        // result is the SAME under either grouping (a ⊆ c, so the intersect only
-        // removes a b-element): a (id<=2) = {open, in_progress}; b (id=4) =
-        // {closed}; c (id<=3) = {open, in_progress}. Both `(a∪b)∩c` and `a∪(b∩c)`
-        // equal {open, in_progress} (the intersect drops the unmatched 'closed').
+        // a (id<=2) = {open, in_progress}; b (id=4) = {closed}; c (id<=3) = {open,
+        // in_progress}: the intersect drops the unmatched 'closed'.
         const expected = [{ status: 'in_progress' }, { status: 'open' }]
         ctx.mockNext(expected)
         const a = ctx.conn.selectFrom(tIssue).where(tIssue.id.lessOrEqual(2)).select({ status: tIssue.status })
@@ -189,7 +186,7 @@ describe(ctx.label, () => {
         const c = ctx.conn.selectFrom(tIssue).where(tIssue.id.lessOrEqual(3)).select({ status: tIssue.status })
         const result = await a.union(b).intersect(c).executeSelectMany()
         assertType<Exact<typeof result, Array<{ status: string }>>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue where id <= ? union select status as status from issue where id = ? intersect select status as status from issue where id <= ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select status as status from issue where id <= ? union select status as status from issue where id = ?) as _t_1_ intersect select status as status from issue where id <= ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -275,4 +272,68 @@ describe(ctx.label, () => {
         expect(result.map(r => r.status).sort()).toEqual(['closed', 'in_progress'])
     })
 
+    test('chained-operators-compose-as-written-union-then-intersect', async () => {
+        // a.union(b).intersect(c) is (a union b) intersect c on every database:
+        // a (id=1) = {open}; b (id=2) = {in_progress}; c (id=2) = {in_progress}.
+        // Grouped as a union (b intersect c), it would also return 'open'.
+        const expected = [{ status: 'in_progress' }]
+        ctx.mockNext(expected)
+        const a = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ status: tIssue.status })
+        const b = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ status: tIssue.status })
+        const c = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ status: tIssue.status })
+        const result = await a.union(b).intersect(c).executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select status as status from issue where id = ? union select status as status from issue where id = ?) as _t_1_ intersect select status as status from issue where id = ?"`)
+        expect(result).toEqual(expected)
+    })
+
+    test('chained-operators-compose-as-written-except-of-a-union', async () => {
+        // a.except(b.union(c)) is a except (b union c) on every database:
+        // a (id in 1, 2, 4) = {open, in_progress, closed}; b (id=1) = {open}; c (id=2) = {in_progress}.
+        // Grouped as (a except b) union c, it would also return 'in_progress'.
+        const expected = [{ status: 'closed' }]
+        ctx.mockNext(expected)
+        const a = ctx.conn.selectFrom(tIssue).where(tIssue.id.in([1, 2, 4])).select({ status: tIssue.status })
+        const b = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ status: tIssue.status })
+        const c = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ status: tIssue.status })
+        const result = await a.except(b.union(c)).executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue where id in (?, ?, ?) except select * from (select status as status from issue where id = ? union select status as status from issue where id = ?) as _t_1_"`)
+        expect(result).toEqual(expected)
+    })
+
+    test('chained-operators-compose-as-written-intersect-of-a-union', async () => {
+        // a.intersect(b.union(c)) is a intersect (b union c) on every database:
+        // a (id=2) = {in_progress}; b (id=4) = {closed}; c (id=1) = {open}: nothing in common.
+        // Grouped as (a intersect b) union c, it would return 'open'.
+        ctx.mockNext([])
+        const a = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ status: tIssue.status })
+        const b = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(4)).select({ status: tIssue.status })
+        const c = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ status: tIssue.status })
+        const result = await a.intersect(b.union(c)).executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue where id = ? intersect select * from (select status as status from issue where id = ? union select status as status from issue where id = ?) as _t_1_"`)
+        expect(result).toEqual([])
+    })
+
+    test('chained-operators-without-intersect-read-from-left-to-right', async () => {
+        // a.union(b).except(c) needs no grouping: the database reads it from left to right.
+        const expected = [{ status: 'open' }]
+        ctx.mockNext(expected)
+        const a = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ status: tIssue.status })
+        const b = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ status: tIssue.status })
+        const c = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ status: tIssue.status })
+        const result = await a.union(b).except(c).executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue where id = ? union select status as status from issue where id = ? except select status as status from issue where id = ?"`)
+        expect(result).toEqual(expected)
+    })
+
+    test('chained-operators-compose-as-written-union-of-a-union', async () => {
+        // a.union(b.union(c)) groups the second operand, the same as any other compound.
+        const expected = [{ status: 'closed' }, { status: 'in_progress' }, { status: 'open' }]
+        ctx.mockNext(expected)
+        const a = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ status: tIssue.status })
+        const b = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ status: tIssue.status })
+        const c = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(4)).select({ status: tIssue.status })
+        const result = await a.union(b.union(c)).orderBy('status').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue where id = ? union select * from (select status as status from issue where id = ? union select status as status from issue where id = ?) as _t_1_ order by status"`)
+        expect(result).toEqual(expected)
+    })
 })

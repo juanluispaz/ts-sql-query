@@ -27,6 +27,10 @@ import { getContainsInsertReturningClause, setContainsInsertReturningClause, set
 // `name`: the alias of the column; `paramsStart` / `paramsEnd`: the range of the params the column's SQL consumed
 export type SelectColumnSql = { sql: string, name: string, position: number, paramsStart: number, paramsEnd: number, shadowedByGroupByColumn?: boolean | undefined }
 
+function isIntersectOperator(operator: CompoundOperator): boolean {
+    return operator === 'intersect' || operator === 'intersectAll'
+}
+
 export class AbstractSqlBuilder implements SqlBuilder {
     // @ts-ignore
     _defaultTypeAdapter: DefaultTypeAdapter
@@ -785,9 +789,26 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid compound operator', operator: compoundOperator }, 'Invalid compound operator: ' + compoundOperator)
         }
     }
-    _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean): string {
+    /*
+     * The operators compose as they are written in the code: a.union(b).intersect(c) is (a union b) intersect c, and
+     * a.except(b.union(c)) is a except (b union c). The SQL must say the same, because the database doesn't read a chain
+     * that way: most of them do intersect first, and all of them read it from left to right after that.
+     */
+    _compoundOperandNeedsGrouping(operand: SelectData, position: 'first' | 'second', operator: CompoundOperator): boolean {
+        if (operand.__type !== 'compound') {
+            return false
+        }
+        if (position === 'second') {
+            return true
+        }
+        return this._compoundIntersectHasPrecedence() && isIntersectOperator(operator) && !isIntersectOperator(operand.__compoundOperator)
+    }
+    _compoundIntersectHasPrecedence(): boolean {
+        return true
+    }
+    _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean, needsGrouping: boolean): string {
         const result = this._buildSelectWithColumnsInfo(query, params, columnsForInsert, isOutermostQuery)
-        if (query.__limit !== undefined || query.__offset !== undefined || query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems) {
+        if (needsGrouping || query.__limit !== undefined || query.__offset !== undefined || query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems) {
             return '(' + result + ')'
         }
         return result
@@ -939,9 +960,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
             const wrapCompoundOrderBy = emitOrderBy && this._needsCompoundOrderByWrap(query)
 
             let compoundCore = ''
-            compoundCore += this._buildSelectWithColumnsInfoForCompound(query.__firstQuery, params, columnsForInsert, isOutermostQuery)
+            compoundCore += this._buildSelectWithColumnsInfoForCompound(query.__firstQuery, params, columnsForInsert, isOutermostQuery, this._compoundOperandNeedsGrouping(query.__firstQuery, 'first', query.__compoundOperator))
             compoundCore += this._appendCompoundOperator(query.__compoundOperator, params)
-            compoundCore += this._buildSelectWithColumnsInfoForCompound(query.__secondQuery, params, columnsForInsert, isOutermostQuery)
+            compoundCore += this._buildSelectWithColumnsInfoForCompound(query.__secondQuery, params, columnsForInsert, isOutermostQuery, this._compoundOperandNeedsGrouping(query.__secondQuery, 'second', query.__compoundOperator))
 
             if (wrapCompoundOrderBy) {
                 selectQuery += 'select * from (' + compoundCore + ')'

@@ -768,9 +768,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid compound operator', operator: compoundOperator }, 'Invalid compound operator: ' + compoundOperator)
         }
     }
-    override _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean): string {
+    override _compoundIntersectHasPrecedence(): boolean {
+        // Reads a chain of compound operators from left to right
+        return false
+    }
+    override _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean, needsGrouping: boolean): string {
         const result = this._buildSelectWithColumnsInfo(query, params, columnsForInsert, isOutermostQuery)
-        if (query.__limit !== undefined || query.__offset !== undefined || query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems) {
+        if (needsGrouping || query.__limit !== undefined || query.__offset !== undefined || query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems) {
             return 'select * from (' + result + ')'
         }
         return result

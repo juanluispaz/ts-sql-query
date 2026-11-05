@@ -270,9 +270,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
 
         return result
     }
-    override _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean): string {
+    override _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean, needsGrouping: boolean): string {
         const result = this._buildSelectWithColumnsInfo(query, params, columnsForInsert, isOutermostQuery)
-        if (query.__limit !== undefined || query.__offset !== undefined || query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems) {
+        if (needsGrouping || query.__limit !== undefined || query.__offset !== undefined || query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems) {
             return 'select * from (' + result + ') _t_' + this._generateUnique() + '_'
         }
         return result

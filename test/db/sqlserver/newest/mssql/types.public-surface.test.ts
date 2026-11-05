@@ -288,6 +288,27 @@ describe(ctx.label, () => {
         expect(next.calls).toEqual([['from', 1, 'int'], ['to', 2, 'int'], ['placeholder', '$1', 'int', true, 3]].map((call) => JSON.stringify(call)))
     })
 
+    test('error-wrapping-one-of-the-library-repeats-no-reason', async () => {
+        const failure = (query: Promise<number | { id: number } | undefined>) => query.then(() => undefined, (e: Error) => e)
+        const select = () => ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(9999))
+
+        ctx.mockNext(undefined)
+        const noRow = await failure(select().select({ id: tIssue.id }).executeSelectOne())
+        expect(noRow?.message).toBe('NO_RESULT: No result returned by the database')
+
+        ctx.mockNext(undefined)
+        const noRowOfOneColumn = await failure(select().selectOneColumn(tIssue.id).executeSelectOne())
+        expect(noRowOfOneColumn?.message).toBe('NO_RESULT: No result returned by the database')
+
+        const direct = new TsSqlProcessingError({ reason: 'NO_RESULT' }, 'msg')
+        const wrappedWithTheSameReason = new TsSqlQueryExecutionError(new Error('where'), { reason: 'NO_RESULT' }, direct)
+        expect(wrappedWithTheSameReason.message).toBe('NO_RESULT: msg')
+        expect(wrappedWithTheSameReason.cause).toBe(direct)
+
+        const wrappedWithAnotherReason = new TsSqlQueryExecutionError(new Error('where'), { reason: 'UNKNOWN' }, direct)
+        expect(wrappedWithAnotherReason.message).toBe('UNKNOWN: NO_RESULT: msg')
+    })
+
     test('isolation-level-type-is-the-one-of-the-connection', () => {
         type Db = typeof ctx.conn extends Connection<infer DB> ? DB : false
         assertType<Exact<ReturnType<typeof ctx.conn.isolationLevel>, TransactionIsolationLevel<Db>>>()

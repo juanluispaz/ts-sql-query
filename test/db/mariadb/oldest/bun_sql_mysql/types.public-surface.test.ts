@@ -18,7 +18,7 @@ import { QueryExecutionSource, TsSqlError, TsSqlProcessingError, TsSqlQueryExecu
 import { CustomBooleanTypeAdapter, ForceTypeCast, type DefaultTypeAdapter, type TypeAdapter } from '../../../../../src/TypeAdapter.js'
 import { Values, type OpaqueValues } from '../../../../../src/Values.js'
 import { View } from '../../../../../src/View.js'
-import { type DBConnection, tCountry, tOrganization } from '../../domain/connection.js'
+import { type DBConnection, tCountry, tOrganization, tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import * as root from '../../../../../src/index.js'
 import * as compat from '../../../../../src/dynamicCondition.js'
@@ -286,6 +286,27 @@ describe(ctx.label, () => {
         expect(adapter.transformValueToDB(2, 'int', next)).toBe('to-result')
         expect(adapter.transformPlaceholder('$1', 'int', false, 3, next)).toBe('placeholder-result')
         expect(next.calls).toEqual([['from', 1, 'int'], ['to', 2, 'int'], ['placeholder', '$1', 'int', true, 3]].map((call) => JSON.stringify(call)))
+    })
+
+    test('error-wrapping-one-of-the-library-repeats-no-reason', async () => {
+        const failure = (query: Promise<number | { id: number } | undefined>) => query.then(() => undefined, (e: Error) => e)
+        const select = () => ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(9999))
+
+        ctx.mockNext(undefined)
+        const noRow = await failure(select().select({ id: tIssue.id }).executeSelectOne())
+        expect(noRow?.message).toBe('NO_RESULT: No result returned by the database')
+
+        ctx.mockNext(undefined)
+        const noRowOfOneColumn = await failure(select().selectOneColumn(tIssue.id).executeSelectOne())
+        expect(noRowOfOneColumn?.message).toBe('NO_RESULT: No result returned by the database')
+
+        const direct = new TsSqlProcessingError({ reason: 'NO_RESULT' }, 'msg')
+        const wrappedWithTheSameReason = new TsSqlQueryExecutionError(new Error('where'), { reason: 'NO_RESULT' }, direct)
+        expect(wrappedWithTheSameReason.message).toBe('NO_RESULT: msg')
+        expect(wrappedWithTheSameReason.cause).toBe(direct)
+
+        const wrappedWithAnotherReason = new TsSqlQueryExecutionError(new Error('where'), { reason: 'UNKNOWN' }, direct)
+        expect(wrappedWithAnotherReason.message).toBe('UNKNOWN: NO_RESULT: msg')
     })
 
     test('isolation-level-type-is-the-one-of-the-connection', () => {

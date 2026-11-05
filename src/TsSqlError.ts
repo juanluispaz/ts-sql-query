@@ -401,7 +401,10 @@ export class TsSqlError extends Error {
     constructor(errorReason: TsSqlErrorReason, message: string | unknown, cause?: unknown) {
         const errorCause = cause !== undefined ? cause : typeof message === 'string' ? undefined : message
 
-        if (message instanceof Error) {
+        if (message instanceof TsSqlError && message.errorReason.reason === errorReason.reason) {
+            // Wrapping an error of the library: its message already starts with the reason
+            super(message.message, { cause: errorCause })
+        } else if (message instanceof Error) {
             super(errorReason.reason + ': ' + message.message, { cause: errorCause })
         }   else if (typeof message === 'string') {
             super(errorReason.reason + ': ' + message, { cause: errorCause })

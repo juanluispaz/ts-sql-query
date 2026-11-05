@@ -46,15 +46,15 @@ Start with the file of the area of your task. These files are written for you: o
 
 | To | Read | Tokens |
 |---|---|---|
-| Write queries: start here | [`llms-queries-<database>.txt`](https://ts-sql-query.readthedocs.io/llms-queries-postgresql.txt), with `<database>` being `mariadb`, `mysql`, `oracle`, `postgresql`, `sqlite` or `sqlserver` | 67k |
-| Let the caller choose columns, filters and order | [`llms-extreme-dynamic-<database>.txt`](https://ts-sql-query.readthedocs.io/llms-extreme-dynamic-postgresql.txt) | 22k |
-| Type a row of a table | [`llms-types.txt`](https://ts-sql-query.readthedocs.io/llms-types.txt) | 5k |
-| Declare the tables and the connection | [`llms-configuration.txt`](https://ts-sql-query.readthedocs.io/llms-configuration.txt) | 48k |
-| Connect a driver | [`llms-query-runners.txt`](https://ts-sql-query.readthedocs.io/llms-query-runners.txt) | 31k |
-| Look up a method | [`llms-api.txt`](https://ts-sql-query.readthedocs.io/llms-api.txt) | 42k |
-| Understand an error | [`llms-errors.txt`](https://ts-sql-query.readthedocs.io/llms-errors.txt) | 21k |
+| Write queries: start here | [`llms-queries-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-queries-postgresql.txt), with `<database>` being `mariadb`, `mysql`, `oracle`, `postgresql`, `sqlite` or `sqlserver` | 67k |
+| Let the caller choose columns, filters and order | [`llms-extreme-dynamic-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-extreme-dynamic-postgresql.txt) | 22k |
+| Type a row of a table | [`llms-types.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-types.txt) | 5k |
+| Declare the tables and the connection | [`llms-configuration.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-configuration.txt) | 49k |
+| Connect a driver | [`llms-query-runners.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-query-runners.txt) | 31k |
+| Look up a method | [`llms-api.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-api.txt) | 42k |
+| Understand an error | [`llms-errors.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-errors.txt) | 17k |
 
-[`llms.txt`](https://ts-sql-query.readthedocs.io/llms.txt) is the index of all of them, and of what isn't in any: the changelog and how the native errors of each database map to a reason.
+[`llms.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms.txt) is the index of all of them, and of what isn't in any: the changelog and how the native errors of each database map to a reason.
 
 To move a project from v1 to v2, read [Migrating from v1](about/migrating-from-v1.md): some changes don't stop compiling, and change results.
 

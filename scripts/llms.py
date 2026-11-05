@@ -5,8 +5,9 @@ Writing queries comes in one file per database: a query shown for six databases 
 reads, and it only needs one. Used by the website (scripts/mkdocs-llms.py, which adds them to the site) and by the
 package (`python3 scripts/llms.py --package dist`, which writes the pages to docs/ and the files to llms/).
 
-A page that belongs to no area stops the build, and so does a link of docs/AGENTS.md to a page that doesn't exist,
-or an area that docs/AGENTS.md or docs/about/ai-agents.md doesn't name.
+A page that belongs to no area stops the build, and so does a page with a code fence or an HTML comment left open,
+a link of docs/AGENTS.md to a page that doesn't exist, or an area that docs/AGENTS.md or docs/about/ai-agents.md
+doesn't name.
 """
 import glob
 import os
@@ -62,7 +63,9 @@ OPTIONAL = [
 
 TAB = re.compile(r'^( *)===\+? "(.+)"\s*$')
 FRONT_MATTER = re.compile(r'\A---\n.*?\n---\n+', re.S)
-DOC_CODE_COMMENT = re.compile(r'^<!-- doc-code-snippet-template:.*?-->\n', re.M)
+FENCE = re.compile(r'^ *(`{3,}|~{3,})(.*)$')
+CODE_SPAN_OR_COMMENT = re.compile(r'(?<!`)(`+)(?!`).+?(?<!`)\1(?!`)|<!--')
+WIDTH_SPAN = re.compile(r'<span class="min-width-[^"]*">(.*?)</span>')
 LINK = re.compile(r'(\]\()(?!https?:|#|mailto:)([^)\s]+?\.md)(#[^)\s]*)?(\))')
 
 
@@ -72,8 +75,97 @@ def _matches(page, pattern):
     return re.fullmatch(regex, page) is not None
 
 
-def _clean(text):
-    return DOC_CODE_COMMENT.sub('', FRONT_MATTER.sub('', text))
+def _fence_line(line, fence):
+    """What a line does to the open fence: (the marker of the fence open after it, whether it is a fence line of its own).
+
+    As in Markdown, a fence is closed by a line with only as many of its character or more, so anything else is code.
+    """
+    match = FENCE.match(line)
+    if not match or (fence is None and match.group(1)[0] == '`' and '`' in match.group(2)):
+        return fence, False
+    marker, rest = match.groups()
+    if fence is None:
+        return marker, True
+    if marker[0] == fence[0] and len(marker) >= len(fence) and not rest.strip():
+        return None, True
+    return fence, False
+
+
+def _prose_line(line, in_comment):
+    """A line out of a fence without its comments and width helpers: (the line, whether a comment stays open after it).
+
+    A code span keeps what it shows.
+    """
+    out = ''
+    position = 0
+    while True:
+        if in_comment:
+            end = line.find('-->', position)
+            if end < 0:
+                return out, True
+            position = end + len('-->')
+            in_comment = False
+        match = CODE_SPAN_OR_COMMENT.search(line, position)
+        if not match:
+            return out + WIDTH_SPAN.sub(r'\1', line[position:]), False
+        out += WIDTH_SPAN.sub(r'\1', line[position:match.start()])
+        position = match.end()
+        if match.group(0) == '<!--':
+            in_comment = True
+        else:
+            out += match.group(0)
+
+
+def _clean(text, page):
+    """The page without what only the website or its maintainers need: front matter, HTML comments and width helpers.
+
+    What a fence holds is never touched.
+    """
+    out = []
+    fence = None
+    in_comment = False
+    after_comment = False  # a comment alone on its lines goes, and a blank line next to it goes with it
+    for line in FRONT_MATTER.sub('', text).split('\n'):
+        if not in_comment:
+            was_open = fence is not None
+            fence, is_fence = _fence_line(line, fence)
+            if was_open or is_fence:
+                out.append(line)
+                after_comment = False
+                continue
+        had_comment = in_comment or '<!--' in line
+        prose, in_comment = _prose_line(line, in_comment)
+        if had_comment and not prose.strip():
+            after_comment = True
+            continue
+        if after_comment and not prose.strip() and (not out or not out[-1].strip()):
+            after_comment = False
+            continue
+        after_comment = False
+        out.append(prose)
+    if in_comment:
+        raise ValueError(f'scripts/llms.py: docs/{page} has an HTML comment that is never closed')
+    return '\n'.join(out)
+
+
+def _check_fences(text, page):
+    """A fence left open turns the rest of the page into code and, in a bundle, inverts every page after it."""
+    lines = text.split('\n')
+    fence = None
+    opened = 0
+    for number, line in enumerate(lines):
+        match = FENCE.match(line)
+        if match and match.group(1) == fence and match.group(2).strip():
+            break  # a new fence starts where the open one should have ended
+        was_open = fence is not None
+        fence, is_fence = _fence_line(line, fence)
+        if is_fence and not was_open:
+            opened = number
+    else:
+        if fence is None:
+            return
+    code = next((line.strip() for line in lines[opened + 1:] if line.strip()), '')
+    raise ValueError(f'scripts/llms.py: docs/{page} has a code fence that is never closed: the {lines[opened].strip()} before "{code}"')
 
 
 def _rebased_links(text, page, base):
@@ -111,6 +203,7 @@ def _bundle(title, summary, pages, read, base, database=None):
         text = _rebased_links(read(page), page, base)
         if database:
             text = _only_database(text, database)
+        _check_fences(text, page)
         parts += ['---', '', f'Source: {base}{page}', '', text.strip(), '']
     return '\n'.join(parts)
 
@@ -142,7 +235,9 @@ def generate(root, llms_dir, pages_dir, base, files_prefix, intro):
 
     def read(page):
         with open(os.path.join(docs_dir, page), encoding='utf-8') as file:
-            return _clean(file.read())
+            text = _clean(file.read(), page)
+        _check_fences(text, page)
+        return text
 
     def write(folder, name, text):
         path = os.path.join(folder, name)
@@ -224,7 +319,7 @@ def generate(root, llms_dir, pages_dir, base, files_prefix, intro):
 
 def _agents_for_the_package(text):
     """docs/AGENTS.md links its folder and the website; in the package it sits next to docs/ and llms/."""
-    text = re.sub(r'\]\(https://ts-sql-query\.readthedocs\.io/(llms[\w.-]*\.txt)\)', r'](llms/\1)', text)
+    text = re.sub(r'\]\(https://ts-sql-query\.readthedocs\.io/(?:en/latest/)?(llms[\w.-]*\.txt)\)', r'](llms/\1)', text)
     return re.sub(r'\]\((?!https?:|#|mailto:|llms/)([^)\s]+)\)', r'](docs/\1)', text)
 
 
@@ -234,8 +329,7 @@ def main():
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     dist = sys.argv[2]
     with open(os.path.join(root, 'docs', 'AGENTS.md'), encoding='utf-8') as file:
-        agents = file.read()
-    agents = _agents_for_the_package(agents)
+        agents = _agents_for_the_package(_clean(file.read(), 'AGENTS.md'))
     with open(os.path.join(dist, 'AGENTS.md'), 'w', encoding='utf-8') as file:
         file.write(agents)
     generate(

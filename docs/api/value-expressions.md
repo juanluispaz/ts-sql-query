@@ -460,3 +460,4 @@ interface AggregatedArrayValueSourceProjectableAsNullable<T> extends AggregatedA
     /** Returns the optional values as null instead of optional undefined values */
     projectingOptionalValuesAsNullable(): AggregatedArrayValueSource<T>
 }
+```

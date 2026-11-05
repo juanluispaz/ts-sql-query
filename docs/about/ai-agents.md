@@ -23,6 +23,8 @@ The package includes the documentation of the version you installed, so an agent
 
 [`llms.txt`](https://ts-sql-query.readthedocs.io/llms.txt) is the index, following the [llms.txt proposal](https://llmstxt.org/), and each page of this site is also available in Markdown, by replacing the end of its address with `.md`.
 
+The files below are at `https://ts-sql-query.readthedocs.io/en/latest/<file>`:
+
 | File | For |
 |---|---|
 | `llms-queries-<database>.txt` | Writing queries: select, insert, update, delete, transactions, projections, fragments and dynamic queries. Start here |

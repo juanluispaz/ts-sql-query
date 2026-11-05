@@ -50,6 +50,9 @@ const fieldsToPick = {
 const pickedFields = dynamicPick(availableFields, fieldsToPick, ['id']);
 ```
 
+!!! note "Picking nothing"
+    With no field picked and no mandatory field, the query has no columns: the SQL is `select  from …`, which the database rejects. Keep at least one mandatory field, usually the id.
+
 !!! note "Including mandatory fields"
 
     The third argument (`alwaysIncluded`) is optional. It ensures that certain fields are always included, regardless of what the user picks.  
@@ -83,7 +86,7 @@ These utility types help ensure proper typing when defining dynamic picks or ret
 Use this type to define the shape of a `fieldsToPick` object, where the user sets `true` to include each field.
 
 ```ts
-import { DynamicPick } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
+import type { DynamicPick } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
 
 type FieldsToPick = DynamicPick<typeof availableFields, 'id'>
 ```
@@ -95,7 +98,7 @@ type FieldsToPick = DynamicPick<typeof availableFields, 'id'>
 Use this type when your fields are selected by path strings (e.g. `'name.firstName'`).
 
 ```ts
-import { DynamicPickPaths } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
+import type { DynamicPickPaths } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
 
 type FieldsToPickList = DynamicPickPaths<typeof availableFields, 'id'>
 ```
@@ -107,7 +110,7 @@ type FieldsToPickList = DynamicPickPaths<typeof availableFields, 'id'>
 Use this type to infer the result of a query that dynamically selects a subset of fields. The output will include **only** the selected fields.
 
 ```ts
-import { PickValuesPath } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
+import type { PickValuesPath } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
 
 type ResultType = PickValuesPath<typeof availableFields, 'firstName' | 'birthday'>
 ```
@@ -119,10 +122,10 @@ type ResultType = PickValuesPath<typeof availableFields, 'firstName' | 'birthday
 
 **Type**: `PickValuesPathWitAllProperties<Type, PickedPaths>`
 
-Similar to `PickValuesPath`, but includes **all** properties from the original object: selected ones as required, and unselected ones as optional.
+Similar to `PickValuesPath`, but includes **all** properties from the original object: selected ones as their column says (required, unless the column is optional), and unselected ones as optional.
 
 ```ts
-import { PickValuesPathWitAllProperties } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
+import type { PickValuesPathWitAllProperties } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
 
 type ResultType = PickValuesPathWitAllProperties<typeof availableFields, 'firstName' | 'birthday'>
 ```
@@ -143,6 +146,9 @@ To achieve that, use the function `expandTypeFromDynamicPickPaths` from `ts-sql-
 
 !!! note "When projecting optional fields as required"
     If your query projects optional fields in objects as always-required properties, use `expandTypeProjectedAsNullableFromDynamicPickPaths` instead of `expandTypeFromDynamicPickPaths`.
+
+!!! warning "Objects with a required property that wasn't picked"
+    The type of a dynamic pick can't know everything decided at runtime. When an object has required properties and you pick only its optional ones, the object can be absent from a row with no value in them: `PickValuesPath` says so, but the result of `expandTypeFromDynamicPickPaths` declares it present, and it has to, to be assignable to `DeepPick<Model, FIELDS>` over a generic `FIELDS`. The same happens when a mandatory property sits next to a picked `asRequiredInOptionalObject` one, or a mandatory property from a left join sits next to a picked one from another table. Check for the object when your pick can leave it out.
 
 **Arguments**:
 

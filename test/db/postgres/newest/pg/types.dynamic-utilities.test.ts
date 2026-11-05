@@ -279,7 +279,7 @@ describe(ctx.label, () => {
         expect(fromMap.a.b.c).toBe(tIssue.title)
     })
 
-    // TODO[BUG]: expandTypeFromDynamicPickPaths types the object as required (the rule of all its leaves) when the picked leaves make it optional; the row doesn't have it.
+    // TODO[LIMITATION]: see LIMITATIONS.md § What a dynamic pick's type can't know — the bridge to DeepPick<Model, FIELDS> over a generic FIELDS keeps the object required.
     /*
     test('dynamic-utilities/expand-type-object-is-optional-when-its-picked-leaves-are', async () => {
         const fields = { id: tIssue.id, info: { priority: tIssue.priority, body: tIssue.body } }
@@ -292,14 +292,18 @@ describe(ctx.label, () => {
             .executeSelectMany()
         const typed = expandTypeFromDynamicPickPaths(fields, paths, rows, ['id'])
 
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, body as "info.body" from issue where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
         assertType<Exact<typeof typed, Array<PickValuesPath<typeof fields, 'id' | 'info.body'>>>>()
         expect(typed).toEqual([{ id: 1 }])
     })
     */
 
-    // TODO[BUG]: a picked required-in-optional leaf drops the object at runtime when it has no value, but picked leaves don't count for the type, which keeps the object required.
+    // TODO[LIMITATION]: see LIMITATIONS.md § What a dynamic pick's type can't know — a picked required-in-optional leaf can make the object absent.
     /*
     test('dynamic-utilities/picked-required-in-optional-leaf-makes-the-object-optional', async () => {
         const fields = { id: tIssue.id, info: { priority: tIssue.priority, gate: tIssue.body.asRequiredInOptionalObject() } }
@@ -317,7 +321,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[BUG]: a picked leaf from another table turns rule 2 off at runtime, so the mandatory left-join leaf can be missing while the object exists; the type keeps it required.
+    // TODO[LIMITATION]: see LIMITATIONS.md § What a dynamic pick's type can't know — a picked leaf from another table turns rule 2 off, so a mandatory left-join leaf can be missing.
     /*
     test('dynamic-utilities/picked-leaf-from-another-table-leaves-the-left-join-leaf-optional', async () => {
         const fields = { id: tIssue.id, project: { id: tProjectLeft.id, title: tIssue.title } }

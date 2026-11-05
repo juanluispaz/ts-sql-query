@@ -2,6 +2,25 @@ import type { TerminalValueObject, NonValueObject } from '../utils/objectUtils.j
 import type { DynamicCondition, DinamicConditionExtension } from '../expressions/dynamicConditionUsingFilters.js'
 
 export type { DynamicCondition }
+export type {
+    Filter,
+    NullableFilter,
+    EqualableFilter,
+    ComparableFilter,
+    BooleanFilter,
+    NumberFilter,
+    BigintFilter,
+    CustomIntFilter,
+    CustomDoubleFilter,
+    StringFilter,
+    DateFilter,
+    TimeFilter,
+    DateTimeFilter,
+    CustomLocalDateFilter,
+    CustomLocalTimeFilter,
+    CustomLocalDateTimeFilter,
+    CustomUuidFilter
+} from '../expressions/dynamicConditionUsingFilters.js'
 
 /*
  * Building a dynamic condition from a business model (instead of from the value-source

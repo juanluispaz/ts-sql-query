@@ -49,6 +49,9 @@ export type DeepPickPaths<MODEL> =
             : K | `${K}.${DeepPickPaths<NonNullable<NonNullable<MODEL>[K]>> & string}`
     }[keyof NonNullable<MODEL> & string]
 
+// What a nested path can't narrow: the null a property may hold
+type DeepNullOf<MODEL, K extends keyof MODEL> = Extract<MODEL[K], null>
+
 type DeepPickHead<PATH extends string> = PATH extends `${infer HEAD}.${string}` ? HEAD : PATH
 type DeepPickTail<PATH extends string, KEY extends string> = PATH extends `${KEY}.${infer REST}` ? REST : never
 
@@ -64,7 +67,7 @@ export type DeepPick<MODEL, PATHS extends string> = {
             ? MODEL[K]
             : Extract<K, string> extends PATHS
             ? MODEL[K]
-            : DeepPick<NonNullable<MODEL[K]>, DeepPickTail<PATHS, Extract<K, string>>>
+            : DeepPick<NonNullable<MODEL[K]>, DeepPickTail<PATHS, Extract<K, string>>> | DeepNullOf<MODEL, K>
 }
 
 // Bare (non-dotted) paths — the top-level keys to drop entirely.
@@ -80,13 +83,14 @@ export type DeepOmit<MODEL, PATHS extends string> = {
     [K in keyof MODEL as Extract<K, string> extends DeepOmitWholeKeys<PATHS> ? never : K]:
         [DeepPickTail<PATHS, Extract<K, string>>] extends [never]
             ? MODEL[K]
-            : DeepOmit<NonNullable<MODEL[K]>, DeepPickTail<PATHS, Extract<K, string>>>
+            : DeepOmit<NonNullable<MODEL[K]>, DeepPickTail<PATHS, Extract<K, string>>> | DeepNullOf<MODEL, K>
 }
 
 /**
  * Returns a new object keeping only the properties of `obj` selected by `paths` (dotted
  * paths into nested objects, e.g. `'org.name'`). Intermediate objects are created as
- * needed; a path whose intermediate value is `null`/`undefined` is skipped.
+ * needed; an intermediate value that is `null` is kept, and a path through an `undefined`
+ * or absent one is skipped.
  */
 export function deepPick<TYPE extends object, PATHS extends DeepPickPaths<TYPE>>(obj: TYPE, paths: PATHS[]): DeepPick<TYPE, PATHS> {
     const result: any = {}
@@ -107,6 +111,9 @@ export function deepPick<TYPE extends object, PATHS extends DeepPickPaths<TYPE>>
             const segment = segments[s]!
             src = src[segment]
             if (src === undefined || src === null) {
+                if (src === null) {
+                    dst[segment] = null
+                }
                 reachable = false
                 break
             }

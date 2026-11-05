@@ -4,9 +4,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import type { DynamicCondition, DynamicConditionForModel, DynamicDefinitionForModel } from '../../../../../src/dynamic/condition.js'
-// tests-audit-disable-next-line non-public-api -- the page names these filter types and no public path exports them
-import type { ComparableFilter, EqualableFilter, StringFilter } from '../../../../../src/expressions/dynamicConditionUsingFilters.js'
+import type { DynamicCondition, DynamicConditionForModel, DynamicDefinitionForModel, ComparableFilter, EqualableFilter, StringFilter } from '../../../../../src/dynamic/condition.js'
 import { tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'

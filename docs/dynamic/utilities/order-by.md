@@ -15,7 +15,7 @@ These only type the **value** you build — `orderByFromString(...)` and `orderB
 
 ## OrderByForModel
 
-`OrderByForModel<Model>` is a **single** order-by clause: a model field path optionally followed by an ordering mode. Mirroring `orderByFromString`'s runtime, the orderable targets are the model's scalar **leaves**, addressed by their dotted path — so in a complex projection `'customer.name'` is orderable, while `'customer'` (the object itself) is not, and array fields (aggregated arrays) are excluded.
+`OrderByForModel<Model>` is a **single** order-by clause: a model field path optionally followed by an ordering mode. Like `orderByFromString`, the orderable targets are the model's scalar **leaves**, addressed by their dotted path — so in a complex projection `'customer.name'` is orderable, while `'customer'` (the object itself) is not, and array fields (aggregated arrays) are excluded.
 
 ```ts
 import type { OrderByForModel } from "ts-sql-query" // or "ts-sql-query/dynamic/orderBy"

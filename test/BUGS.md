@@ -77,6 +77,23 @@ regression either.
 
 *(none)*
 
+## A `Values` class with a nested object of columns compiles and fails on the database
+
+```ts
+class VN extends Values<DBConnection, 'vn'> { a = this.column('int'); inner = { x: this.column('int') }; after = this.column('string') }
+```
+
+`SelectedRow<VN>` has `inner: { x }`, but `Values.create` rows leave `inner` out, and the query is
+`with vn("a", "inner.after") as (values ...) select "inner.x" ...`: PostgreSQL answers `column "inner.x" does not exist`.
+`__setColumnsName` in `src/Values.ts` also reassigns `prefix` inside its loop, which renames the sibling after the object.
+Decision pending between rejecting it at compile time and supporting it.
+Test: `values-with-a-nested-object-of-columns` in `types.public-surface`.
+
+## The pick types stop one level before what a select projects
+
+`DynamicPickPaths<{ a: { b: { c: { d: { e: ... } } } } }>` is `'a' | 'a.b' | 'a.b.c'`, and `DynamicPick` gives `d?: never`. The runtime picks them all.
+Test: `dynamic-utilities/pick-types-reach-the-fifth-level` in `types.dynamic-utilities`.
+
 ## Coverage gaps carried over (not bugs — no entry to fix)
 
 These are **not** defects and there is nothing in `src/` to change. They are the

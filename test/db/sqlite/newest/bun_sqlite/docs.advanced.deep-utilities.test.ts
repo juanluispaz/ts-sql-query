@@ -79,11 +79,10 @@ describe(ctx.label, () => {
     })
 
     test('docs-extra:deep-utilities/deep-pick-runtime-absent-inner', () => {
-        // When an intermediate value is null/undefined the path is skipped, so
-        // the nested key is simply absent (matching the optional model shape).
+        // An intermediate value that is null is kept.
         const customer: { id: number; firstName: string; lastName: string; company: null | { id: number; name: string } } = { id: 1, firstName: 'John', lastName: 'Doe', company: null }
         const picked = deepPick(customer, ['id', 'company.name'])
-        expect(picked).toEqual({ id: 1 })
+        expect(picked).toEqual({ id: 1, company: null })
     })
 
     test('docs:deep-utilities/deep-omit-type', () => {
@@ -335,25 +334,19 @@ describe(ctx.label, () => {
         expect(deepOmit(absent, ['a.b.c'])).toEqual({ id: 1 })
     })
 
-    // TODO[BUG]: DeepPick of a path into a required property holding null removes the null and keeps the property required: the type is { company: { name: string } }, the function returns {} without the property, as the page says for a null intermediate.
-    /*
     test('docs-extra:deep-utilities/deep-pick-path-into-a-nullable-required-object', () => {
         const customer: { id: number; company: { name: string; plan: string } | null } = { id: 1, company: null }
         const picked = deepPick(customer, ['id', 'company.name'])
-        assertType<Exact<typeof picked, { id: number; company?: { name: string } }>>()
-        expect(picked).toEqual({ id: 1 })
+        assertType<Exact<typeof picked, { id: number; company: { name: string } | null }>>()
+        expect(picked).toEqual({ id: 1, company: null })
     })
-    */
 
-    // TODO[BUG]: DeepOmit of a path into a property holding null removes the null: the type is { company: { name: string } }, the function keeps company: null.
-    /*
     test('docs-extra:deep-utilities/deep-omit-path-into-a-nullable-object', () => {
         const customer: { id: number; company: { id: number; name: string } | null } = { id: 1, company: null }
         const trimmed = deepOmit(customer, ['company.id'])
         assertType<Exact<typeof trimmed, { id: number; company: { name: string } | null }>>()
         expect(trimmed).toEqual({ id: 1, company: null })
     })
-    */
 
     test('docs-extra:deep-utilities/deep-omit-keeps-a-key-named-like-an-object-member', () => {
         const source: { id: number; toString: string; valueOf: string } = { id: 1, toString: 'a', valueOf: 'b' }

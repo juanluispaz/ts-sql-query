@@ -117,8 +117,6 @@ describe(ctx.label, () => {
         expect(sorted(names)).toEqual(['id', 'name'])
     })
 
-    // TODO[BUG]: ColumnKeys ignores a value source in an optional property of a column bag, while the extractors return it: the type is 'id', the function returns ['id', 'name'].
-    /*
     test('column-bag-with-an-optional-value-source', () => {
         const bag: { id: typeof tProject.id; name?: typeof tProject.name } = { id: tProject.id, name: tProject.name }
         assertType<Exact<ColumnKeys<typeof bag>, 'id' | 'name'>>()
@@ -126,7 +124,6 @@ describe(ctx.label, () => {
         assertType<Exact<typeof names, ('id' | 'name')[]>>()
         expect(sorted(names)).toEqual(['id', 'name'])
     })
-    */
 
     test('column-keys-of-an-aliased-table-and-a-left-join-table', () => {
         type All = 'id' | 'name' | 'plan' | 'verified' | 'createdAt'
@@ -143,8 +140,6 @@ describe(ctx.label, () => {
         expect(sorted(leftJoinNames)).toEqual(['createdAt', 'id', 'name', 'plan', 'verified'])
     })
 
-    // TODO[BUG]: on an aliased table the writable and id key types are never, so extractWritableColumnsFrom(alias) is typed {} and a select with it yields rows typed {}; the functions return every writable column and the id.
-    /*
     test('writable-and-id-keys-of-an-aliased-table', () => {
         type Writable = 'id' | 'name' | 'plan' | 'verified' | 'createdAt'
         const aliased = tOrganization.as('org')
@@ -164,10 +159,7 @@ describe(ctx.label, () => {
         assertType<Exact<keyof typeof shape, Writable>>()
         expect(sorted(Object.keys(shape))).toEqual(['createdAt', 'id', 'name', 'plan', 'verified'])
     })
-    */
 
-    // TODO[BUG]: on a left join table the writable and id key types are never, like on an aliased table; the functions return every writable column and the id.
-    /*
     test('writable-and-id-keys-of-a-left-join-table', () => {
         type Writable = 'id' | 'name' | 'plan' | 'verified' | 'createdAt'
         const leftJoin = tOrganization.forUseInLeftJoin()
@@ -182,7 +174,6 @@ describe(ctx.label, () => {
         assertType<Exact<typeof ids, 'id'[]>>()
         expect(ids).toEqual(['id'])
     })
-    */
 
     test('selected-values-of-a-table-is-the-select-of-all-its-columns', async () => {
         ctx.mockNext({ id: 2, version: '1.3.0-beta.1', publishedAt: new Date('2024-02-21T10:00:00Z'), notes: 'release-1.3.0-beta.1', versionTag: 'BETA', channel: 'beta' })

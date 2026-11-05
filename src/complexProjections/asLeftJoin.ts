@@ -1,6 +1,7 @@
 import type { AnyValueSource, IValueSource, RemapValueSourceTypeWithOptionalType } from '../expressions/values.js'
 import type { UsableKeyOf } from '../utils/objectUtils.js'
 import type { NSource } from '../utils/sourceName.js'
+import type { WritableColumnBrandsOf } from '../utils/Column.js'
 
 /*
  * Reasign all columns to in a with view
@@ -9,7 +10,7 @@ import type { NSource } from '../utils/sourceName.js'
 export type ColumnsForLeftJoin<SOURCE extends NSource, COLUMNS> =
     { [K in UsableKeyOf<COLUMNS>]: 
         COLUMNS[K] extends AnyValueSource | undefined
-        ? RemapValueSourceTypeWithOptionalType<SOURCE, COLUMNS[K], OptionalTypeForLeftJoin<COLUMNS[K]>> 
+        ? RemapValueSourceTypeWithOptionalType<SOURCE, COLUMNS[K], OptionalTypeForLeftJoin<COLUMNS[K]>> & WritableColumnBrandsOf<COLUMNS[K]>
         : ColumnsForLeftJoin2<SOURCE, COLUMNS[K]> 
     }
 

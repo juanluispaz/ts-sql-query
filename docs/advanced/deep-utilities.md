@@ -97,7 +97,7 @@ type TrimmedCustomer = DeepOmit<CustomerWithCompany, 'lastName' | 'company.id'>;
 
 Returns a new object keeping only the properties of `obj` selected by `paths` (dotted paths into nested objects). It is the runtime companion of the `DeepPick` type — the deep analogue of how [`dynamicPickPaths`](../dynamic/utilities/picks.md#dynamicpickpaths) relates to `PickValuesPath`.
 
-Intermediate objects are created as needed; a path whose intermediate value is `null`/`undefined` is skipped.
+Intermediate objects are created as needed; an intermediate value that is `null` is kept, and a path through an `undefined` or absent one is skipped.
 
 ```ts
 import { deepPick } from 'ts-sql-query' // or 'ts-sql-query/extras/deepUtilities';

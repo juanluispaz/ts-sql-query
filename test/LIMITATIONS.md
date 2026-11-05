@@ -651,3 +651,24 @@ transaction, each one committed at once:
 A future driver version that gives the transaction state (a flag of the
 connection, the server status of the answer) closes each of them with the hook
 the other query runners use (`isTransactionOpenInTheDatabase`).
+
+## What a dynamic pick's type can't know
+
+Which properties a dynamic pick brings is decided at runtime, and the rules that
+make a nested object optional (rules 1 and 2 of the
+[complex projections](../docs/queries/complex-projections.md#rules-for-nested-object-projections))
+depend on them, so the declared type can miss these cases:
+
+- **`expandTypeFromDynamicPickPaths`**: it declares the object as present when the
+  picked leaves make it optional, because the type has a `DeepPick` of the whole
+  model. That part is what lets a generic helper return
+  `DeepPick<Model, FIELDS>[]` over a generic `FIELDS`; narrowing it to the picked
+  leaves breaks those helpers. `PickValuesPath` says it right.
+- **A picked `asRequiredInOptionalObject` leaf** next to a mandatory one: with no
+  value it drops the object, while the type, where picked properties don't count,
+  keeps it required.
+- **A picked leaf from another table** next to a mandatory left-join leaf: it turns
+  rule 2 off, so the left-join leaf can be missing while the object exists.
+
+The [docs](../docs/dynamic/utilities/picks.md#expanding-result-types-from-dynamic-picks)
+say it. The tests are commented out in `types.dynamic-utilities`.

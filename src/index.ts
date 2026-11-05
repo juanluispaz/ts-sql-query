@@ -34,7 +34,24 @@ export type {
 export type {
     DynamicCondition,
     DynamicConditionForModel,
-    DynamicDefinitionForModel
+    DynamicDefinitionForModel,
+    Filter,
+    NullableFilter,
+    EqualableFilter,
+    ComparableFilter,
+    BooleanFilter,
+    NumberFilter,
+    BigintFilter,
+    CustomIntFilter,
+    CustomDoubleFilter,
+    StringFilter,
+    DateFilter,
+    TimeFilter,
+    DateTimeFilter,
+    CustomLocalDateFilter,
+    CustomLocalTimeFilter,
+    CustomLocalDateTimeFilter,
+    CustomUuidFilter
 } from './dynamic/condition.js'
 export type {
     OrderByForModel,

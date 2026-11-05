@@ -1,6 +1,7 @@
 import type { AnyValueSource, RemapValueSourceType } from '../expressions/values.js'
 import type { UsableKeyOf } from '../utils/objectUtils.js'
 import type { NSource } from '../utils/sourceName.js'
+import type { WritableColumnBrandsOf } from '../utils/Column.js'
 
 /*
  * Reasign all columns to a new table/view alias
@@ -9,7 +10,7 @@ import type { NSource } from '../utils/sourceName.js'
 export type ColumnsForAlias<SOURCE extends NSource, COLUMNS> =
     { [K in UsableKeyOf<COLUMNS>]: 
         COLUMNS[K] extends AnyValueSource | undefined
-        ? RemapValueSourceType<SOURCE, COLUMNS[K]> 
+        ? RemapValueSourceType<SOURCE, COLUMNS[K]> & WritableColumnBrandsOf<COLUMNS[K]>
         : ColumnsForAlias2<SOURCE, COLUMNS[K]> 
     }
 

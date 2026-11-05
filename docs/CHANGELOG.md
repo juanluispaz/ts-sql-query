@@ -6,6 +6,26 @@ search:
 
 ## v2.0.0-beta.4 (Unreleased)
 
+**Groups of columns**:
+
+The nested objects that a select and the `with` queries already accepted now work in the definition of a table, view or values, for reading and for writing.
+
+**New features**:
+
+- A table, view or `Values` can group its columns in plain objects, like the two columns of a coordinate. Insert, update, on conflict, `Values.create`, insert from a select and the result of a select use the shape of the definition (see [the docs](configuration/mapping.md#grouping-columns)).
+- The methods that receive column names (`ignoreIfSet`, `keepOnly`, `disallowIfSet`…) accept the path of a column in a group and the name of a group; a shape accepts paths and can have its own groups.
+- `asRequiredInOptionalObject()` on a column returns a column, so it can be used in the definition of a table, view or values. In a group, that column is required when the group is provided.
+
+**Behavior changes**:
+
+- The `extract*` functions, `ColumnKeys` and the other key types of `extras/types` now take the groups of columns into account: an object with columns inside another object used to be left out, and now it's kept with only its columns; the names of those columns are their paths (`'group.column'`).
+- `SelectedRow` and the other selected types of a table only have its columns: an object in the class that is not a column used to appear in them.
+- SQL Server, Oracle: `column.asRequiredInOptionalObject()` on a custom boolean column is written as any other selection of that column, so a null stays null, instead of being read as false.
+
+**Bug fixes**:
+
+- A `Values` class with a nested object of columns compiled and failed on the database, and renamed the columns after the object.
+
 ## v2.0.0-beta.3 (5 Nov 2026)
 
 **Query runners, transactions and errors**:

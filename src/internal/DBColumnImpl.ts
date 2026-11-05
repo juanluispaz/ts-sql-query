@@ -38,6 +38,14 @@ export class DBColumnImpl extends ValueSourceImpl implements DBColumn, WritableD
         return sqlBuilder._appendColumnNameForCondition(this, params)
     }
 
+    // A column in the definition of a table, view or values can be marked: it must remain a column
+    override asRequiredInOptionalObject(): any {
+        const result = Object.create(Object.getPrototypeOf(this))
+        Object.assign(result, this)
+        result.__optionalType = 'requiredInOptionalObject'
+        return result
+    }
+
     __asColumn(): this & Column {
         this.__writable = true
         return (this as this & Column)

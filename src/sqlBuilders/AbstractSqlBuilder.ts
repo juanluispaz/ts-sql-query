@@ -6,6 +6,7 @@ import type { AnyValueSource, BooleanValueSource, EqualableValueSource, IAggrega
 import { isValueSource, __getValueSourceOfObject, __isStringValueSource, __isBooleanValueSource } from '../expressions/values.js'
 import { isDefault } from '../expressions/Default.js'
 import type { __ColumnPrivate, DBColumn } from '../utils/Column.js'
+import { __columnPathsOf } from '../utils/columnPaths.js'
 import { isColumn } from '../utils/Column.js'
 import type { DefaultTypeAdapter, TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
@@ -683,7 +684,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _buildWithValues(withValues: WithValuesData, params: any[]) {
         let result = withValues.__name
         let columns = ''
-        for (var columnName in withValues) {
+        for (const columnName of __columnPathsOf(withValues.__getTableOrView())) {
             const column = __getColumnOfObject(withValues.__getTableOrView(), columnName)
             if (!column) {
                 continue
@@ -705,7 +706,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
             const value = values[i]!
             let valueSql = ''
-            for (var columnName in withValues) {
+            for (const columnName of __columnPathsOf(withValues.__getTableOrView())) {
                 const column = __getColumnOfObject(withValues.__getTableOrView(), columnName)
                 if (!column) {
                     continue
@@ -1713,7 +1714,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         let columns = ''
         const nextSequenceValues: Array<{ name: string, valueType: ValueType }> = []
-        for (var columnName in table) {
+        for (const columnName of __columnPathsOf(table)) {
             if (columnName in usedColumns) {
                 // Set in at least one row: emitted with the used columns, a row that doesn't set it gets the next
                 // value of the sequence there
@@ -1914,7 +1915,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         let columns = ''
         const sequences: Array<{ name: string, valueType: ValueType }> = []
-        for (var columnName in table) {
+        for (const columnName of __columnPathsOf(table)) {
             const column = __getColumnOfObject(table, columnName)
             if (!column) {
                 continue
@@ -2004,7 +2005,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         let columns = ''
         const sequences: Array<{ name: string, valueType: ValueType }> = []
-        for (var columnName in table) {
+        for (const columnName of __columnPathsOf(table)) {
             if (columnsInShape) {
                 if (columnName in columnsInShape) {
                     continue
@@ -2175,8 +2176,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         let columns = ''
         const addedColumns: string[] = []
-        for (var columnName in table) {
-            if (columnName in selectColumns) {
+        const flatSelectColumns: FlatQueryColumns = {}
+        flattenQueryColumns(selectColumns, flatSelectColumns, '')
+        for (const columnName of __columnPathsOf(table)) {
+            if (columnName in flatSelectColumns) {
                 continue
             }
             const column = __getColumnOfObject(table, columnName)
@@ -2190,9 +2193,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
             addedColumns.push(columnName)
             columnsForInsert[columnName] = column
-            selectColumns[columnName] = new SequenceValueSource('_nextSequenceValue', columnPrivate.__sequenceName, columnPrivate.__valueType, columnPrivate.__valueTypeName, 'required', columnPrivate.__typeAdapter)
+            const sequenceValue = new SequenceValueSource('_nextSequenceValue', columnPrivate.__sequenceName, columnPrivate.__valueType, columnPrivate.__valueTypeName, 'required', columnPrivate.__typeAdapter)
+            selectColumns[columnName] = sequenceValue
+            flatSelectColumns[columnName] = sequenceValue
         }
-        const properties = Object.getOwnPropertyNames(selectColumns)
+        const properties = Object.getOwnPropertyNames(flatSelectColumns)
         for (let i = 0, length = properties.length; i < length; i++) {
             if (columns) {
                 columns += ', '
@@ -2549,7 +2554,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         if (oldValues && this._useUpdateOldValueInFrom()) {
             let where: BooleanValueSource<any, any> | undefined
-            for (let property in table) {
+            for (const property of __columnPathsOf(table)) {
                 const column = __getColumnOfObject(table, property)
                 if (!column) {
                     continue

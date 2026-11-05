@@ -110,11 +110,11 @@ describe(ctx.label, () => {
 
     test('column-bag-keeps-only-the-value-sources-in-the-type-and-in-the-result', () => {
         const bag = { id: tProject.id, name: tProject.name, total: 3, nested: { slug: tProject.slug } }
-        assertType<Exact<ColumnKeys<typeof bag>, 'id' | 'name'>>()
+        assertType<Exact<ColumnKeys<typeof bag>, 'id' | 'name' | 'nested.slug'>>()
 
         const names = extractColumnNamesFrom(bag)
-        assertType<Exact<typeof names, ('id' | 'name')[]>>()
-        expect(sorted(names)).toEqual(['id', 'name'])
+        assertType<Exact<typeof names, ('id' | 'name' | 'nested.slug')[]>>()
+        expect(sorted(names)).toEqual(['id', 'name', 'nested.slug'])
     })
 
     test('column-bag-with-an-optional-value-source', () => {

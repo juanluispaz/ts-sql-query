@@ -17,28 +17,28 @@ export type ColumnsForLeftJoin<SOURCE extends NSource, COLUMNS> =
 type ColumnsForLeftJoin2<SOURCE extends NSource, COLUMNS> =
     { [K in UsableKeyOf<COLUMNS>]: 
         COLUMNS[K] extends AnyValueSource | undefined
-        ? RemapValueSourceTypeWithOptionalType<SOURCE, COLUMNS[K], OptionalTypeForLeftJoin<COLUMNS[K]>> 
+        ? RemapValueSourceTypeWithOptionalType<SOURCE, COLUMNS[K], OptionalTypeForLeftJoin<COLUMNS[K]>> & WritableColumnBrandsOf<COLUMNS[K]>
         : ColumnsForLeftJoin3<SOURCE, COLUMNS[K]> 
     }
     
 type ColumnsForLeftJoin3<SOURCE extends NSource, COLUMNS> =
     { [K in UsableKeyOf<COLUMNS>]: 
         COLUMNS[K] extends AnyValueSource | undefined
-        ? RemapValueSourceTypeWithOptionalType<SOURCE, COLUMNS[K], OptionalTypeForLeftJoin<COLUMNS[K]>> 
+        ? RemapValueSourceTypeWithOptionalType<SOURCE, COLUMNS[K], OptionalTypeForLeftJoin<COLUMNS[K]>> & WritableColumnBrandsOf<COLUMNS[K]>
         : ColumnsForLeftJoin4<SOURCE, COLUMNS[K]> 
     }
     
 type ColumnsForLeftJoin4<SOURCE extends NSource, COLUMNS> =
     { [K in UsableKeyOf<COLUMNS>]: 
         COLUMNS[K] extends AnyValueSource | undefined
-        ? RemapValueSourceTypeWithOptionalType<SOURCE, COLUMNS[K], OptionalTypeForLeftJoin<COLUMNS[K]>> 
+        ? RemapValueSourceTypeWithOptionalType<SOURCE, COLUMNS[K], OptionalTypeForLeftJoin<COLUMNS[K]>> & WritableColumnBrandsOf<COLUMNS[K]>
         : ColumnsForLeftJoin5<SOURCE, COLUMNS[K]> 
     }
     
 type ColumnsForLeftJoin5<SOURCE extends NSource, COLUMNS> =
     { [K in UsableKeyOf<COLUMNS>]: 
         COLUMNS[K] extends AnyValueSource | undefined
-        ? RemapValueSourceTypeWithOptionalType<SOURCE, COLUMNS[K], OptionalTypeForLeftJoin<COLUMNS[K]>> 
+        ? RemapValueSourceTypeWithOptionalType<SOURCE, COLUMNS[K], OptionalTypeForLeftJoin<COLUMNS[K]>> & WritableColumnBrandsOf<COLUMNS[K]>
         : COLUMNS[K] // Stop recursion
     }
 

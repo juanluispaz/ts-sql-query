@@ -4,6 +4,7 @@ import type { TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
+import { __columnPathsOf } from '../utils/columnPaths.js'
 import { isColumn, __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
 import type { AnyValueSource, ValueType, __AggregatedArrayColumns } from '../expressions/values.js'
 import { __getValueSourcePrivate, __isBooleanValueSource, isValueSource } from '../expressions/values.js'
@@ -186,7 +187,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     override _buildWithValues(withValues: WithValuesData, params: any[]) {
         let result = withValues.__name
         let columns = ''
-        for (var columnName in withValues) {
+        for (const columnName of __columnPathsOf(withValues.__getTableOrView())) {
             const column = __getColumnOfObject(withValues.__getTableOrView(), columnName)
             if (!column) {
                 continue
@@ -208,7 +209,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
             }
             const value = values[i]!
             let valueSql = ''
-            for (var columnName in withValues) {
+            for (const columnName of __columnPathsOf(withValues.__getTableOrView())) {
                 const column = __getColumnOfObject(withValues.__getTableOrView(), columnName)
                 if (!column) {
                     continue

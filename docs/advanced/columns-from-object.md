@@ -6,6 +6,10 @@ search:
 
 These utility functions allow you to dynamically extract the structure of tables or views in a flexible and type-safe way. They are particularly helpful when building generic data manipulation logic, scaffolding operations, or ensuring consistency across large schemas.
 
+## Groups of columns
+
+When the object has [groups of columns](../configuration/mapping.md#grouping-columns), every function on this page keeps them: the functions that return columns or a shape return the group with only the columns that apply, and leave it out if it has none; the functions that return names give the path of each column, like `'ubication.latitude'`. In the list of columns to exclude, `'ubication.latitude'` leaves out that column and `'ubication'` the whole group. Anything else in the object that is not a column is left out, also an object that has no columns.
+
 ## Extract columns
 
 It is sometimes useful to extract all columns available in an object, like a table or view; this allows to use in a select, ensuring the select uses all columns defined in the provided object. For this purpose you can find the function `extractColumnsFrom` in the file `ts-sql-query/extras/utils`. This function receives the object that contains the columns as its first argument and optionally, as its second argument, an array with the name of the properties to exclude.

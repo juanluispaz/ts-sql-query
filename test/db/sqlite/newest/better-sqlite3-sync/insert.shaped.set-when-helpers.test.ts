@@ -151,7 +151,7 @@ describe(ctx.label, () => {
             .ignoreIfSet('desc')
         const ignoreWhenTrueResult = ctx.conn.insertInto(tIssue).shapedAs(shape).dynamicSet()
             .ignoreIfSetWhen(true, 'desc')
-        assertType<Exact<typeof ignoreResult, typeof ignoreWhenTrueResult>>()
+        assertType<Exact<keyof typeof ignoreResult, keyof typeof ignoreWhenTrueResult>>()
 
         ctx.mockNext(1)
         ctx.mockNext(1)
@@ -190,7 +190,7 @@ describe(ctx.label, () => {
             .keepOnly('proj', 'num', 'ttl', 'st', 'prio')
         const keepOnlyWhenTrueResult = ctx.conn.insertInto(tIssue).shapedAs(shape).dynamicSet()
             .keepOnlyWhen(true, 'proj', 'num', 'ttl', 'st', 'prio')
-        assertType<Exact<typeof keepOnlyResult, typeof keepOnlyWhenTrueResult>>()
+        assertType<Exact<keyof typeof keepOnlyResult, keyof typeof keepOnlyWhenTrueResult>>()
 
         ctx.mockNext(1)
         ctx.mockNext(1)

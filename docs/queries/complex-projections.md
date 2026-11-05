@@ -127,6 +127,10 @@ const customersOfCompany: Promise<{
 }[]>
 ```
 
+!!! tip
+
+    You can also [group the columns in the definition of the table](../configuration/mapping.md#grouping-columns), and read and write them with that shape.
+
 ## Rules for nested object projections
 
 When projecting nested objects, it's important to determine when those objects and their fields should be required or optional. `ts-sql-query` applies a set of rules to infer these types based on the source tables and the way fields are selected or joined.

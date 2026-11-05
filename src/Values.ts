@@ -6,6 +6,7 @@ import type { TypeAdapter } from './TypeAdapter.js'
 import type { AliasedTableOrView, AsAliasedForUseInLeftJoin, AsForUseInLeftJoin } from './utils/tableOrViewUtils.js'
 import type { Column } from './utils/Column.js'
 import { __getColumnPrivate, isColumn } from './utils/Column.js'
+import { __flattenSets } from './utils/columnPaths.js'
 import { DBColumnImpl } from './internal/DBColumnImpl.js'
 import { connection, dontCallConstructor, isTableOrViewObject, source, type } from './utils/symbols.js'
 import type { IConnection } from './utils/IConnection.js'
@@ -265,8 +266,7 @@ class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> implements IValues<S
             } else if (isValueSource(column)) {
                 continue // Computed value
             } else {
-                prefix = prefix + prop + '.'
-                this.__setColumnsName(column, prefix)
+                this.__setColumnsName(column, prefix + prop + '.')
             }
         }
     }
@@ -287,7 +287,8 @@ export class Values</*in|out*/ CONNECTION extends IConnection<NDBWithType<'postg
             throw new TsSqlProcessingError({ reason: 'CONSTANT_VALUES_VIEW_CANNOT_BE_EMPTY' }, 'Values requires at least one element in the list')
         }
         const result = new type(name, values as any);
-        (result as any).__setColumnsName(result as any, '')
+        (result as any).__setColumnsName(result as any, '');
+        (result as any).__values = (values as any[]).map(row => __flattenSets(result, undefined, row))
         return result
     }
 }

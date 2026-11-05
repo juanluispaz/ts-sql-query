@@ -1,9 +1,9 @@
-import type { AnyValueSource, IExecutableUpdateQuery, IAnyBooleanValueSource, RemapIValueSourceType, RemapIValueSourceTypeWithOptionalType, ValueSourceOf, ValueSourceValueType, ValueSourceValueTypeForResult } from './values.js'
+import type { AnyValueSource, IExecutableUpdateQuery, IAnyBooleanValueSource, ValueSourceOf, ValueSourceValueType, ValueSourceValueTypeForResult } from './values.js'
 import type { ForUseInLeftJoin, HasSource, IRawFragment, ITableOrView, OfDB, OfSameDB, ResolvedShape } from '../utils/ITableOrView.js'
 import type { from, source, using } from '../utils/symbols.js'
-import type { ColumnsForSetOf, ColumnsForSetOfWithShape, ColumnsKeyOf, OptionalColumnsForSetOf, RequiredColumnsForSetOf, ResolveShape } from '../utils/tableOrViewUtils.js'
-import type { WritableDBColumn, WritableDBColumnWithDefaultValue } from '../utils/Column.js'
-import type { Default } from './Default.js'
+import type { InputOfColumn, InputOfOptionalColumn, PartialInputOfGroup, ShapeOfColumns, UpdateValuesOfGroup } from '../complexProjections/columnGroups.js'
+import type { ColumnPathsOf, ColumnsForSetOf, ColumnsForSetOfWithShape, ColumnsKeyOf, OptionalColumnsForSetOf, RequiredColumnsForSetOf, ResolveShape } from '../utils/tableOrViewUtils.js'
+import type { WritableDBColumn } from '../utils/Column.js'
 import type { NNoTableOrViewRequiredFrom, NOldValuesFrom, NSource } from '../utils/sourceName.js'
 import type { DataToProject } from '../complexProjections/dataToProject.js'
 import type { ResultObjectValuesProjectedAsNullable } from '../complexProjections/resultWithOptionalsAsNull.js'
@@ -348,64 +348,55 @@ export type UpdateSetsContent<CONTAINER, ALLOWING extends NSource, SHAPE> =
         }
     )
 
+type UpdateValueOf<COLUMN> = COLUMN extends AnyValueSource ? ValueSourceValueType<COLUMN> : UpdateValuesOfGroup<COLUMN>
+
 export type UpdateValues<CONTAINER, SHAPE> = 
     SHAPE extends ResolvedShape<any> 
     ? (
         {
-            [P in RequiredColumnsForSetOf<SHAPE>]?: ValueSourceValueType<SHAPE[P]>
+            [P in RequiredColumnsForSetOf<SHAPE>]?: UpdateValueOf<SHAPE[P]>
         } & {
-            [P in OptionalColumnsForSetOf<SHAPE>]?: ValueSourceValueType<SHAPE[P]>
+            [P in OptionalColumnsForSetOf<SHAPE>]?: UpdateValueOf<SHAPE[P]>
         }
     ): (
         {
-            [P in RequiredColumnsForSetOf<CONTAINER>]?: ValueSourceValueType<CONTAINER[P]>
+            [P in RequiredColumnsForSetOf<CONTAINER>]?: UpdateValueOf<CONTAINER[P]>
         } & {
-            [P in OptionalColumnsForSetOf<CONTAINER>]?: ValueSourceValueType<CONTAINER[P]>
+            [P in OptionalColumnsForSetOf<CONTAINER>]?: UpdateValueOf<CONTAINER[P]>
         }
     )
 
 export type UpdateShape<TABLE extends HasSource<any>, USING extends HasSource<any>> = 
     TABLE extends OfDB<'noopDB' | 'mariaDB' | 'mySql'>
-    ? {
-        [key: string]: ValueSourceOf<USING[typeof source]> & WritableDBColumn | ColumnsForSetOf<TABLE>
-    } : {
-        [key: string]: ValueSourceOf<TABLE[typeof source]> & WritableDBColumn | ColumnsForSetOf<TABLE>
-    }
+    ? ShapeOfColumns<ValueSourceOf<USING[typeof source]> & WritableDBColumn | ColumnPathsOf<TABLE>>
+    : ShapeOfColumns<ValueSourceOf<TABLE[typeof source]> & WritableDBColumn | ColumnPathsOf<TABLE>>
 
 export type OptionalUpdateSets<TABLE extends HasSource<any>, USING extends HasSource<any>, SHAPE> = OptionalUpdateSetsContent<TABLE, USING[typeof source], SHAPE>
-type OptionalUpdateSetsContent<TABLE extends HasSource<any>, ALLOWING extends NSource, SHAPE> = 
+type OptionalUpdateSetsContent<TABLE, ALLOWING extends NSource, SHAPE> = 
     SHAPE extends ResolvedShape<any>
     ? (
         {
-            [P in RequiredColumnsForSetOf<SHAPE>]?: InputTypeOfColumnAllowing<SHAPE, P, ALLOWING> | null | undefined
+            [P in RequiredColumnsForSetOf<SHAPE>]?: InputTypeOfColumnAllowing<SHAPE, P, ALLOWING, 'ifValue'> | null | undefined
         } & {
-            [P in OptionalColumnsForSetOf<SHAPE>]?: InputTypeOfOptionalColumnAllowing<SHAPE, P, ALLOWING> | null | undefined
+            [P in OptionalColumnsForSetOf<SHAPE>]?: InputTypeOfOptionalColumnAllowing<SHAPE, P, ALLOWING, 'ifValue'> | null | undefined
         }
     ) : (
         {
-            [P in RequiredColumnsForSetOf<TABLE>]?: InputTypeOfColumnAllowing<TABLE, P, ALLOWING> | null | undefined
+            [P in RequiredColumnsForSetOf<TABLE>]?: InputTypeOfColumnAllowing<TABLE, P, ALLOWING, 'ifValue'> | null | undefined
         } & {
-            [P in OptionalColumnsForSetOf<TABLE>]?: InputTypeOfOptionalColumnAllowing<TABLE, P, ALLOWING> | null | undefined
+            [P in OptionalColumnsForSetOf<TABLE>]?: InputTypeOfOptionalColumnAllowing<TABLE, P, ALLOWING, 'ifValue'> | null | undefined
         }
     )
 
-type InputTypeOfColumnAllowing<CONTAINER, K extends ColumnsKeyOf<CONTAINER>, ALLOWING extends NSource> =
-    CONTAINER[K] extends AnyValueSource ?
-    (CONTAINER[K] extends WritableDBColumnWithDefaultValue ? (
-        ValueSourceValueType<CONTAINER[K]> | RemapIValueSourceType<ALLOWING, CONTAINER[K]> | Default
-    ) : (
-        ValueSourceValueType<CONTAINER[K]> | RemapIValueSourceType<ALLOWING, CONTAINER[K]>
-    ))
-    : never
+type InputTypeOfColumnAllowing<CONTAINER, K extends ColumnsKeyOf<CONTAINER>, ALLOWING extends NSource, MODE = 'value'> =
+    CONTAINER[K] extends AnyValueSource
+    ? InputOfColumn<CONTAINER[K], ALLOWING>
+    : PartialInputOfGroup<CONTAINER[K], ALLOWING, MODE extends 'ifValue' ? null | undefined : never>
 
-type InputTypeOfOptionalColumnAllowing<CONTAINER, K extends ColumnsKeyOf<CONTAINER>, ALLOWING extends NSource> =
-    CONTAINER[K] extends AnyValueSource ?
-    (CONTAINER[K] extends WritableDBColumnWithDefaultValue ? (
-        ValueSourceValueType<CONTAINER[K]> | RemapIValueSourceTypeWithOptionalType<ALLOWING, CONTAINER[K], any> | Default
-    ) : (
-        ValueSourceValueType<CONTAINER[K]> | RemapIValueSourceTypeWithOptionalType<ALLOWING, CONTAINER[K], any>
-    ))
-    : never
+type InputTypeOfOptionalColumnAllowing<CONTAINER, K extends ColumnsKeyOf<CONTAINER>, ALLOWING extends NSource, MODE = 'value'> =
+    CONTAINER[K] extends AnyValueSource
+    ? InputOfOptionalColumn<CONTAINER[K], ALLOWING>
+    : PartialInputOfGroup<CONTAINER[K], ALLOWING, MODE extends 'ifValue' ? null | undefined : never> | null | undefined
 
 
 export interface UpdateSetJoinExpression</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends UpdateSetExpression<TABLE, USING> {

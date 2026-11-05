@@ -1300,7 +1300,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", case when published = 't' then 1 else 0 end as "req", null as "own", null as "ign" from project where id = :0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", case published when 't' then 1 when 'f' then 0 else null end as "req", null as "own", null as "ign" from project where id = :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1777,7 +1777,7 @@ describe(ctx.label, () => {
                 ign: tOrganization.verified.ignoreWhenAsNull(true),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", case when verified = 'Y' then 1 else 0 end as "req", null as "own", null as "ign" from "organization" where id = :0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", case verified when 'Y' then 1 when 'N' then 0 else null end as "req", null as "own", null as "ign" from "organization" where id = :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1829,7 +1829,7 @@ describe(ctx.label, () => {
                 ign: tIssueWorklog.invoiced.ignoreWhenAsNull(true),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", case when invoiced = 1 then 1 else 0 end as "req", null as "own", null as "ign" from issue_worklog where id = :0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", case invoiced when 1 then 1 when 0 then 0 else null end as "req", null as "own", null as "ign" from issue_worklog where id = :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

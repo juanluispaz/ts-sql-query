@@ -127,7 +127,14 @@ export function __getColumnPrivate(column: DBColumn): __ColumnPrivate {
 }
 
 export function __getColumnOfObject(obj: AnyTableOrView | { [property: string] : DBColumn}, column: string): (DBColumn & ToSql) | undefined {
-    const result = (obj as any)[column]
+    let result = (obj as any)[column]
+    if (!result && typeof column === 'string' && column.includes('.')) {
+        // A column in a group is named by its path
+        result = obj
+        for (const part of column.split('.')) {
+            result = result?.[part]
+        }
+    }
     if (!result) {
         return undefined
     }

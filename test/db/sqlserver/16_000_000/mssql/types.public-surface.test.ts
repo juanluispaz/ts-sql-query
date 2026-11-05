@@ -438,19 +438,4 @@ describe(ctx.label, () => {
         expect(omitted).toEqual({ constructor: 'kept' })
         assertType<Exact<typeof omitted, { constructor: string }>>()
     })
-
-    // TODO[BUG]: the columns of a nested object of a Values class compile and are selected by name, but the WITH list leaves them out and the column after the object takes the object's name as a prefix
-    /*
-    test('values-with-a-nested-object-of-columns', () => {
-        class VNested extends Values<DBConnection, 'vNested'> {
-            before = this.column('int')
-            nested = { inner: this.column('int') }
-            after = this.column('string')
-        }
-        const nested = Values.create(VNested, 'vNested', [{ before: 1, nested: { inner: 2 }, after: 'a' }])
-        const query = ctx.conn.selectFrom(nested).select({ inner: nested.nested.inner, after: nested.after })
-        expect(query.query()).toBe('with vNested("before", "nested.inner", "after") as (values ($1::int4, $2::int4, $3::text)) select "nested.inner" as "inner", "after" as after from vNested')
-        expect(query.params()).toEqual([1, 2, 'a'])
-    })
-    */
 })

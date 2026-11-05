@@ -7,6 +7,7 @@ import { isValueSource, __isUuidValueSource, __isBooleanValueSource, __isBoolean
 import { isDefault } from '../expressions/Default.js'
 import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
+import { __columnPathsOf } from '../utils/columnPaths.js'
 import { isColumn, __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
@@ -589,7 +590,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // emulate as `select … from dual union all select … from dual`.
         const tableOrView = withValues.__getTableOrView()
         let columns = ''
-        for (var columnName in withValues) {
+        for (const columnName of __columnPathsOf(withValues.__getTableOrView())) {
             const column = __getColumnOfObject(tableOrView, columnName)
             if (!column) {
                 continue
@@ -609,7 +610,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             }
             const value = values[i]!
             let valueSql = ''
-            for (var columnName in withValues) {
+            for (const columnName of __columnPathsOf(withValues.__getTableOrView())) {
                 const column = __getColumnOfObject(tableOrView, columnName)
                 if (!column) {
                     continue
@@ -977,7 +978,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             const sets = multiple[i]!
             let columns = ''
             const sequences: Array<{ name: string, valueType: ValueType }> = []
-            for (var columnName in table) {
+            for (const columnName of __columnPathsOf(table)) {
                 if (columnsInShape) {
                     if (columnName in columnsInShape) {
                         continue
@@ -1153,7 +1154,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         insertQuery += this._appendTableOrViewName(table, params)
 
         let columns = ''
-        for (var columnName in table) {
+        for (const columnName of __columnPathsOf(table)) {
             const column = __getColumnOfObject(table, columnName)
             if (!column) {
                 continue
@@ -1170,7 +1171,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         insertQuery += this._buildInsertOutput(query, params)
 
         let values = ''
-        for (var columnName in table) {
+        for (const columnName of __columnPathsOf(table)) {
             const column = __getColumnOfObject(table, columnName)
             if (!column) {
                 continue

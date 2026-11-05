@@ -6,6 +6,7 @@ import type { AnyValueSource, IExecutableSelectQuery, __AggregatedArrayColumns, 
 import { isValueSource, __isUuidValueSource, __isBooleanValueSource, __isBooleanValueType } from '../expressions/values.js'
 import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
+import { __columnPathsOf } from '../utils/columnPaths.js'
 import { isColumn, __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { ITable } from '../utils/ITableOrView.js'
@@ -236,7 +237,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             }
             const value = values[i]!
             let valueSql = ''
-            for (var columnName in withValues) {
+            for (const columnName of __columnPathsOf(withValues.__getTableOrView())) {
                 const column = __getColumnOfObject(withValues.__getTableOrView(), columnName)
                 if (!column) {
                     continue
@@ -253,7 +254,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         result += withValues.__name
 
         let columns = ''
-        for (var columnName in withValues) {
+        for (const columnName of __columnPathsOf(withValues.__getTableOrView())) {
             const column = __getColumnOfObject(withValues.__getTableOrView(), columnName)
             if (!column) {
                 continue

@@ -123,55 +123,46 @@ type RequiredInGroupOf<GROUP> = { [K in OptionalColumnsForSetOf<GROUP>]-?:
 // A group in an insert: what is required in it must be there
 export type InsertInputOfGroup<GROUP, ALLOWING extends NSource> = InsertInputOfGroupAt1<GROUP, ALLOWING>
 type InsertInputOfGroupAt1<GROUP, ALLOWING extends NSource> = {
-    [P in RequiredColumnsForSetOf<GROUP>]: GROUP[P] extends AnyValueSource ? InputOfColumn<GROUP[P], ALLOWING> : InsertInputOfGroupAt2<GROUP[P], ALLOWING>
-} & {
-    [P in RequiredInGroupOf<GROUP>]: InputOfOptionalColumn<GROUP[P], ALLOWING>
+    [P in RequiredColumnsForSetOf<GROUP> | RequiredInGroupOf<GROUP>]: GROUP[P] extends AnyValueSource ? PartialInputOfColumn<GROUP[P], ALLOWING> : InsertInputOfGroupAt2<GROUP[P], ALLOWING>
 } & {
     [P in Exclude<OptionalColumnsForSetOf<GROUP>, RequiredInGroupOf<GROUP>>]?: GROUP[P] extends AnyValueSource ? InputOfOptionalColumn<GROUP[P], ALLOWING> : InsertInputOfGroupAt2<GROUP[P], ALLOWING> | null | undefined
 }
 type InsertInputOfGroupAt2<GROUP, ALLOWING extends NSource> = {
-    [P in RequiredColumnsForSetOf<GROUP>]: GROUP[P] extends AnyValueSource ? InputOfColumn<GROUP[P], ALLOWING> : InsertInputOfGroupAt3<GROUP[P], ALLOWING>
-} & {
-    [P in RequiredInGroupOf<GROUP>]: InputOfOptionalColumn<GROUP[P], ALLOWING>
+    [P in RequiredColumnsForSetOf<GROUP> | RequiredInGroupOf<GROUP>]: GROUP[P] extends AnyValueSource ? PartialInputOfColumn<GROUP[P], ALLOWING> : InsertInputOfGroupAt3<GROUP[P], ALLOWING>
 } & {
     [P in Exclude<OptionalColumnsForSetOf<GROUP>, RequiredInGroupOf<GROUP>>]?: GROUP[P] extends AnyValueSource ? InputOfOptionalColumn<GROUP[P], ALLOWING> : InsertInputOfGroupAt3<GROUP[P], ALLOWING> | null | undefined
 }
 type InsertInputOfGroupAt3<GROUP, ALLOWING extends NSource> = {
-    [P in RequiredColumnsForSetOf<GROUP>]: GROUP[P] extends AnyValueSource ? InputOfColumn<GROUP[P], ALLOWING> : InsertInputOfGroupAt4<GROUP[P], ALLOWING>
-} & {
-    [P in RequiredInGroupOf<GROUP>]: InputOfOptionalColumn<GROUP[P], ALLOWING>
+    [P in RequiredColumnsForSetOf<GROUP> | RequiredInGroupOf<GROUP>]: GROUP[P] extends AnyValueSource ? PartialInputOfColumn<GROUP[P], ALLOWING> : InsertInputOfGroupAt4<GROUP[P], ALLOWING>
 } & {
     [P in Exclude<OptionalColumnsForSetOf<GROUP>, RequiredInGroupOf<GROUP>>]?: GROUP[P] extends AnyValueSource ? InputOfOptionalColumn<GROUP[P], ALLOWING> : InsertInputOfGroupAt4<GROUP[P], ALLOWING> | null | undefined
 }
 type InsertInputOfGroupAt4<GROUP, ALLOWING extends NSource> = {
-    [P in RequiredColumnsForSetOf<GROUP>]: GROUP[P] extends AnyValueSource ? InputOfColumn<GROUP[P], ALLOWING> : never
-} & {
-    [P in RequiredInGroupOf<GROUP>]: InputOfOptionalColumn<GROUP[P], ALLOWING>
+    [P in RequiredColumnsForSetOf<GROUP> | RequiredInGroupOf<GROUP>]: GROUP[P] extends AnyValueSource ? PartialInputOfColumn<GROUP[P], ALLOWING> : never
 } & {
     [P in Exclude<OptionalColumnsForSetOf<GROUP>, RequiredInGroupOf<GROUP>>]?: GROUP[P] extends AnyValueSource ? InputOfOptionalColumn<GROUP[P], ALLOWING> : never | null | undefined
 }
 
 // A group in an update or in the sets with if value: nothing is required in it. NO_VALUE is what its columns also accept
 export type PartialInputOfGroup<GROUP, ALLOWING extends NSource, NO_VALUE> = PartialInputOfGroupAt1<GROUP, ALLOWING, NO_VALUE>
+// The input of one member of a group: a required column doesn't accept null, as in the rest of the sets
+type PartialInputOfColumn<COLUMN, ALLOWING extends NSource> =
+    COLUMN extends IValueSource<any, any, any, 'required'> & WritableDBColumnWithoutDefaultValue
+    ? InputOfColumn<COLUMN, ALLOWING>
+    : InputOfOptionalColumn<COLUMN, ALLOWING>
+type NoValueOfGroup<GROUP> = [HasRequiredColumn<GROUP>] extends [never] ? null | undefined : never
+
 type PartialInputOfGroupAt1<GROUP, ALLOWING extends NSource, NO_VALUE> = {
-    [P in RequiredColumnsForSetOf<GROUP>]?: (GROUP[P] extends AnyValueSource ? InputOfColumn<GROUP[P], ALLOWING> : PartialInputOfGroupAt2<GROUP[P], ALLOWING, NO_VALUE>) | NO_VALUE
-} & {
-    [P in OptionalColumnsForSetOf<GROUP>]?: (GROUP[P] extends AnyValueSource ? InputOfOptionalColumn<GROUP[P], ALLOWING> : PartialInputOfGroupAt2<GROUP[P], ALLOWING, NO_VALUE> | null | undefined) | NO_VALUE
+    [P in ColumnsKeyOf<GROUP>]?: (GROUP[P] extends AnyValueSource ? PartialInputOfColumn<GROUP[P], ALLOWING> : PartialInputOfGroupAt2<GROUP[P], ALLOWING, NO_VALUE> | NoValueOfGroup<GROUP[P]>) | NO_VALUE
 }
 type PartialInputOfGroupAt2<GROUP, ALLOWING extends NSource, NO_VALUE> = {
-    [P in RequiredColumnsForSetOf<GROUP>]?: (GROUP[P] extends AnyValueSource ? InputOfColumn<GROUP[P], ALLOWING> : PartialInputOfGroupAt3<GROUP[P], ALLOWING, NO_VALUE>) | NO_VALUE
-} & {
-    [P in OptionalColumnsForSetOf<GROUP>]?: (GROUP[P] extends AnyValueSource ? InputOfOptionalColumn<GROUP[P], ALLOWING> : PartialInputOfGroupAt3<GROUP[P], ALLOWING, NO_VALUE> | null | undefined) | NO_VALUE
+    [P in ColumnsKeyOf<GROUP>]?: (GROUP[P] extends AnyValueSource ? PartialInputOfColumn<GROUP[P], ALLOWING> : PartialInputOfGroupAt3<GROUP[P], ALLOWING, NO_VALUE> | NoValueOfGroup<GROUP[P]>) | NO_VALUE
 }
 type PartialInputOfGroupAt3<GROUP, ALLOWING extends NSource, NO_VALUE> = {
-    [P in RequiredColumnsForSetOf<GROUP>]?: (GROUP[P] extends AnyValueSource ? InputOfColumn<GROUP[P], ALLOWING> : PartialInputOfGroupAt4<GROUP[P], ALLOWING, NO_VALUE>) | NO_VALUE
-} & {
-    [P in OptionalColumnsForSetOf<GROUP>]?: (GROUP[P] extends AnyValueSource ? InputOfOptionalColumn<GROUP[P], ALLOWING> : PartialInputOfGroupAt4<GROUP[P], ALLOWING, NO_VALUE> | null | undefined) | NO_VALUE
+    [P in ColumnsKeyOf<GROUP>]?: (GROUP[P] extends AnyValueSource ? PartialInputOfColumn<GROUP[P], ALLOWING> : PartialInputOfGroupAt4<GROUP[P], ALLOWING, NO_VALUE> | NoValueOfGroup<GROUP[P]>) | NO_VALUE
 }
 type PartialInputOfGroupAt4<GROUP, ALLOWING extends NSource, NO_VALUE> = {
-    [P in RequiredColumnsForSetOf<GROUP>]?: (GROUP[P] extends AnyValueSource ? InputOfColumn<GROUP[P], ALLOWING> : never) | NO_VALUE
-} & {
-    [P in OptionalColumnsForSetOf<GROUP>]?: (GROUP[P] extends AnyValueSource ? InputOfOptionalColumn<GROUP[P], ALLOWING> : never | null | undefined) | NO_VALUE
+    [P in ColumnsKeyOf<GROUP>]?: (GROUP[P] extends AnyValueSource ? PartialInputOfColumn<GROUP[P], ALLOWING> : never) | NO_VALUE
 }
 
 // The plain values of a group

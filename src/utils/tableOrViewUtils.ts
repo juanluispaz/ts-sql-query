@@ -19,6 +19,16 @@ export type RequiredKeysCoveredByNames<T, NAMES> = NAMES | { [K in RequiredColum
     [Exclude<`${K}.${RequiredColumnPathsOf<T[K]>}`, NAMES>] extends [never] ? K : never
 }[RequiredColumnsForSetOf<T> & ColumnsGroupKeyOf<T>]
 
+export type RequiredKeysCoveredByNamesWithShape<TABLE, SHAPE, NAMES> =
+    SHAPE extends ResolvedShape<any>
+    ? RequiredKeysCoveredByNames<SHAPE, NAMES>
+    : RequiredKeysCoveredByNames<TABLE, NAMES>
+
+export type RequiredKeysOfNamesWithShape<TABLE, SHAPE, NAMES> =
+    SHAPE extends ResolvedShape<any>
+    ? RequiredKeysOfNames<SHAPE, NAMES>
+    : RequiredKeysOfNames<TABLE, NAMES>
+
 export type RequiredKeysCoveredByShape<TABLE, SHAPE> = RequiredKeysCoveredByNames<TABLE, ShapeValuesOf<SHAPE>>
 
 type ValueSourcesKeyOf<T> = ({ [K in keyof T]-?: T[K] extends AnyValueSource ? K : never })[keyof T]

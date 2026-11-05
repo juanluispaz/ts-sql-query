@@ -132,6 +132,8 @@ nav:
   - Queries:
     - Basic query structure: queries/basic-query-structure.md
     - Select: queries/select.md
+    - CTE (with clause) & subqueries: queries/cte-subqueries.md
+    - Compound select: queries/compound-select.md
     - Aggregate functions, group by and having: queries/aggregate-and-group-by.md
     - Select page: queries/select-page.md
     - Recursive select: queries/recursive-select.md

@@ -46,7 +46,7 @@ const customizedSelect = connection.selectFrom(tCustomer)
 
 ## Does ts-sql-query support common table expressions (CTE)?
 
-Yes, you can read how to use it here: [Using a select as a view in another select query (SQL with clause)](../queries/select.md#using-a-select-as-a-view-in-another-select-query-sql-with-clause).
+Yes, you can read how to use it here: [Using a select as a view in another select query (SQL with clause)](../queries/cte-subqueries.md#using-a-select-as-a-view-in-another-select-query-sql-with-clause).
 
 ## How to do a left join?
 

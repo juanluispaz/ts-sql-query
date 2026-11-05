@@ -67,6 +67,7 @@ Once you know the area, go straight to the part you need, in those files or in i
 | Write a query | [Basic structure](queries/basic-query-structure.md), then [select](queries/select.md), [insert](queries/insert.md), [update](queries/update.md) or [delete](queries/delete.md) |
 | Aggregate and group | [Aggregate and group by](queries/aggregate-and-group-by.md) |
 | Return nested objects or arrays | [Complex projections](queries/complex-projections.md), [aggregate as an array](queries/aggregate-as-object-array.md) |
+| Use a select inside another, or combine several | [CTE (with clause) & subqueries](queries/cte-subqueries.md), [compound select](queries/compound-select.md) |
 | Page, or walk a hierarchy | [Select page](queries/select-page.md), [recursive select](queries/recursive-select.md) |
 | Upsert | [Insert on conflict](queries/insert-on-conflict.md) |
 | Use a transaction | [Transaction](queries/transaction.md) |

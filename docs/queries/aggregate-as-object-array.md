@@ -261,7 +261,7 @@ const acmeCompanyWithCustomers: Promise<{
 
 !!! warning "Limitation"
 
-    [MySQL](../configuration/supported-databases/mysql.md), [Oracle](../configuration/supported-databases/oracle.md), and [SQL Server](../configuration/supported-databases/sqlserver.md) don't accept the `DISTINCT` quantifier inside their JSON-array aggregation function. If you try to use `aggregateAsArrayDistinct` or `aggregateAsArrayOfOneColumnDistinct` on any of these databases, you will get a compilation error. A workaround is to remove the duplicates inside a subquery created with `subSelectDistinctUsing`, as shown in [Inline subquery with distinct values referencing outer query](select.md#inline-subquery-with-distinct-values-referencing-outer-query).
+    [MySQL](../configuration/supported-databases/mysql.md), [Oracle](../configuration/supported-databases/oracle.md), and [SQL Server](../configuration/supported-databases/sqlserver.md) don't accept the `DISTINCT` quantifier inside their JSON-array aggregation function. If you try to use `aggregateAsArrayDistinct` or `aggregateAsArrayOfOneColumnDistinct` on any of these databases, you will get a compilation error. A workaround is to remove the duplicates inside a subquery created with `subSelectDistinctUsing`, as shown in [Inline subquery with distinct values referencing outer query](cte-subqueries.md#inline-subquery-with-distinct-values-referencing-outer-query).
 
 ## Query as an inline array of objects
 

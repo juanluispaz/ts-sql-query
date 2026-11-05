@@ -3,7 +3,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { fromRef, type ColumnKeys, type InsertableRow, type InsertableValues, type SelectedRow, type TableOrViewOf, type UpdatableRow, type UpdatableValues, type WritableColumnKeys } from '../../../../../src/extras/types.js'
+import { fromRef, type ColumnKeys, type InsertableRow, type InsertableValues, type SelectedRow, type TableOrViewOf, type UpdatableRow, type UpdatableValues, type WritableColumnKeys, type TableOrViewLeftJoinOf } from '../../../../../src/extras/types.js'
 import { extractColumnNamesFrom, extractColumnsFrom, extractIdColumnNamesFrom, extractWritableColumnNamesFrom, extractWritableColumnsFrom, extractWritableShapeFrom } from '../../../../../src/extras/utils.js'
 import { dynamicPickPaths, type DynamicPickPaths } from '../../../../../src/dynamic/pick.js'
 import { Table } from '../../../../../src/Table.js'
@@ -520,6 +520,87 @@ describe(ctx.label, () => {
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"with valuesGrouped as (select * from (values (@0, @1, @2, @3)) as valuesGrouped(id, [location.projectId], [location.number], [after])) select [v].[location.number] as number from valuesGrouped as [v]"`)
         expect(row).toEqual({ number: 7 })
+    })
+
+    test('group-in-values-in-a-left-join', async () => {
+        const values = Values.create(ValuesGrouped, 'valuesGrouped', [{ id: 1, location: { projectId: 10, number: 20 }, after: 'x' }])
+        const joined = values.forUseInLeftJoin()
+        const expected = [{ id: 1, location: { projectId: 10, number: 20 } }, { id: 2 }]
+        ctx.mockNext([{ id: 1, 'location.projectId': 10, 'location.number': 20 }, { id: 2, 'location.projectId': null, 'location.number': null }])
+        const rows = await ctx.conn.selectFrom(tGrouped)
+            .leftJoin(joined).on(joined.id.equals(tGrouped.id))
+            .where(tGrouped.id.in([1, 2]))
+            .select({ id: tGrouped.id, location: joined.location })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with valuesGrouped as (select * from (values (@0, @1, @2, @3)) as valuesGrouped(id, [location.projectId], [location.number], [after])) select issue.id as id, valuesGrouped.[location.projectId] as [location.projectId], valuesGrouped.[location.number] as [location.number] from issue left join valuesGrouped on valuesGrouped.id = issue.id where issue.id in (@4, @5) order by id"`)
+        expect(rows).toEqual(expected)
+        assertType<Exact<typeof rows, { id: number; location?: { projectId: number; number: number } }[]>>()
+    })
+
+    test('update-from-values-with-groups', async () => {
+        const values = Values.create(ValuesGrouped, 'valuesGrouped', [{ id: 1, location: { projectId: 2, number: 50 }, after: 'Changed' }])
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.update(tGrouped)
+                .from(values)
+                .set({ location: { number: values.location.number }, text: { title: values.after } })
+                .where(tGrouped.id.equals(values.id))
+                .executeUpdate()
+            expect(affected).toBe(1)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with valuesGrouped as (select * from (values (@0, @1, @2, @3)) as valuesGrouped(id, [location.projectId], [location.number], [after])) update issue set number = valuesGrouped.[location.number], title = valuesGrouped.[after] from valuesGrouped where issue.id = valuesGrouped.id"`)
+        })
+    })
+
+    test('from-ref-with-values', async () => {
+        const aliased = Values.create(ValuesGrouped, 'valuesGrouped', [{ id: 1, location: { projectId: 1, number: 7 }, after: 'x' }]).as('v')
+        function fromInstance<REF extends TableOrViewOf<ValuesGrouped, 'v'>>(ref: REF) {
+            const values = fromRef(ValuesGrouped, ref)
+            return { after: values.after, number: values.location.number }
+        }
+        ctx.mockNext({ after: 'x', number: 7 })
+        const row = await ctx.conn.selectFrom(aliased)
+            .select(fromInstance(aliased))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with valuesGrouped as (select * from (values (@0, @1, @2, @3)) as valuesGrouped(id, [location.projectId], [location.number], [after])) select [v].[after] as [after], [v].[location.number] as number from valuesGrouped as [v]"`)
+        expect(row).toEqual({ after: 'x', number: 7 })
+        assertType<Exact<typeof row, { after: string; number: number }>>()
+    })
+
+    test('from-ref-with-a-values-instance', async () => {
+        const values = Values.create(ValuesGrouped, 'valuesGrouped', [{ id: 1, location: { projectId: 1, number: 7 }, after: 'x' }])
+        const aliased = values.as('v')
+        function fromInstance<REF extends TableOrViewOf<typeof values, 'v'>>(ref: REF) {
+            const refValues = fromRef(values, ref)
+            return { after: refValues.after, number: refValues.location.number }
+        }
+        ctx.mockNext({ after: 'x', number: 7 })
+        const row = await ctx.conn.selectFrom(aliased)
+            .select(fromInstance(aliased))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with valuesGrouped as (select * from (values (@0, @1, @2, @3)) as valuesGrouped(id, [location.projectId], [location.number], [after])) select [v].[after] as [after], [v].[location.number] as number from valuesGrouped as [v]"`)
+        expect(row).toEqual({ after: 'x', number: 7 })
+        assertType<Exact<typeof row, { after: string; number: number }>>()
+    })
+
+    test('from-ref-with-values-in-a-left-join', async () => {
+        const values = Values.create(ValuesGrouped, 'valuesGrouped', [{ id: 1, location: { projectId: 10, number: 20 }, after: 'x' }])
+        const joined = values.forUseInLeftJoinAs('v')
+        function columnsOf<REF extends TableOrViewLeftJoinOf<typeof values, 'v'>>(ref: REF) {
+            const refValues = fromRef(values, ref)
+            return { id: refValues.id, location: refValues.location }
+        }
+        const columns = columnsOf(joined)
+        const expected = { id: 1, values: { id: 1, location: { projectId: 10, number: 20 } } }
+        ctx.mockNext({ id: 1, 'values.id': 1, 'values.location.projectId': 10, 'values.location.number': 20 })
+        const row = await ctx.conn.selectFrom(tGrouped)
+            .leftJoin(joined).on(columns.id.equals(tGrouped.id))
+            .where(tGrouped.id.equals(1))
+            .select({ id: tGrouped.id, values: columns })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with valuesGrouped as (select * from (values (@0, @1, @2, @3)) as valuesGrouped(id, [location.projectId], [location.number], [after])) select issue.id as id, [v].id as [values.id], [v].[location.projectId] as [values.location.projectId], [v].[location.number] as [values.location.number] from issue left join valuesGrouped as [v] on [v].id = issue.id where issue.id = @4"`)
+        expect(row).toEqual(expected)
+        assertType<Exact<typeof row, { id: number; values?: { id: number; location?: { projectId: number; number: number } } }>>()
     })
 
     test('extract-keeps-the-groups-and-leaves-out-what-is-not-a-column', () => {

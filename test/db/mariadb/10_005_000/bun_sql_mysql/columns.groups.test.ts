@@ -530,6 +530,102 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB discards the parameter values inside a VALUES (...) table constructor of a server-side prepared statement (MDEV-33477), and Bun SQL always sends a prepared statement; runs on the mariadb connector.
+    /*
+    test('group-in-values-in-a-left-join', async () => {
+        const values = Values.create(ValuesGrouped, 'valuesGrouped', [{ id: 1, location: { projectId: 10, number: 20 }, after: 'x' }])
+        const joined = values.forUseInLeftJoin()
+        const expected = [{ id: 1, location: { projectId: 10, number: 20 } }, { id: 2 }]
+        ctx.mockNext([{ id: 1, 'location.projectId': 10, 'location.number': 20 }, { id: 2, 'location.projectId': null, 'location.number': null }])
+        const rows = await ctx.conn.selectFrom(tGrouped)
+            .leftJoin(joined).on(joined.id.equals(tGrouped.id))
+            .where(tGrouped.id.in([1, 2]))
+            .select({ id: tGrouped.id, location: joined.location })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(rows).toEqual(expected)
+        assertType<Exact<typeof rows, { id: number; location?: { projectId: number; number: number } }[]>>()
+    })
+    */
+
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB discards the parameter values inside a VALUES (...) table constructor of a server-side prepared statement (MDEV-33477), and Bun SQL always sends a prepared statement; runs on the mariadb connector.
+    /*
+    test('update-from-values-with-groups', async () => {
+        const values = Values.create(ValuesGrouped, 'valuesGrouped', [{ id: 1, location: { projectId: 2, number: 50 }, after: 'Changed' }])
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.update(tGrouped)
+                .from(values)
+                .set({ location: { number: values.location.number }, text: { title: values.after } })
+                .where(tGrouped.id.equals(values.id))
+                .executeUpdate()
+            expect(affected).toBe(1)
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+        })
+    })
+    */
+
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB discards the parameter values inside a VALUES (...) table constructor of a server-side prepared statement (MDEV-33477), and Bun SQL always sends a prepared statement; runs on the mariadb connector.
+    /*
+    test('from-ref-with-values', async () => {
+        const aliased = Values.create(ValuesGrouped, 'valuesGrouped', [{ id: 1, location: { projectId: 1, number: 7 }, after: 'x' }]).as('v')
+        function fromInstance<REF extends TableOrViewOf<ValuesGrouped, 'v'>>(ref: REF) {
+            const values = fromRef(ValuesGrouped, ref)
+            return { after: values.after, number: values.location.number }
+        }
+        ctx.mockNext({ after: 'x', number: 7 })
+        const row = await ctx.conn.selectFrom(aliased)
+            .select(fromInstance(aliased))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(row).toEqual({ after: 'x', number: 7 })
+        assertType<Exact<typeof row, { after: string; number: number }>>()
+    })
+    */
+
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB discards the parameter values inside a VALUES (...) table constructor of a server-side prepared statement (MDEV-33477), and Bun SQL always sends a prepared statement; runs on the mariadb connector.
+    /*
+    test('from-ref-with-a-values-instance', async () => {
+        const values = Values.create(ValuesGrouped, 'valuesGrouped', [{ id: 1, location: { projectId: 1, number: 7 }, after: 'x' }])
+        const aliased = values.as('v')
+        function fromInstance<REF extends TableOrViewOf<typeof values, 'v'>>(ref: REF) {
+            const refValues = fromRef(values, ref)
+            return { after: refValues.after, number: refValues.location.number }
+        }
+        ctx.mockNext({ after: 'x', number: 7 })
+        const row = await ctx.conn.selectFrom(aliased)
+            .select(fromInstance(aliased))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(row).toEqual({ after: 'x', number: 7 })
+        assertType<Exact<typeof row, { after: string; number: number }>>()
+    })
+    */
+
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB discards the parameter values inside a VALUES (...) table constructor of a server-side prepared statement (MDEV-33477), and Bun SQL always sends a prepared statement; runs on the mariadb connector.
+    /*
+    test('from-ref-with-values-in-a-left-join', async () => {
+        const values = Values.create(ValuesGrouped, 'valuesGrouped', [{ id: 1, location: { projectId: 10, number: 20 }, after: 'x' }])
+        const joined = values.forUseInLeftJoinAs('v')
+        function columnsOf<REF extends TableOrViewLeftJoinOf<typeof values, 'v'>>(ref: REF) {
+            const refValues = fromRef(values, ref)
+            return { id: refValues.id, location: refValues.location }
+        }
+        const columns = columnsOf(joined)
+        const expected = { id: 1, values: { id: 1, location: { projectId: 10, number: 20 } } }
+        ctx.mockNext({ id: 1, 'values.id': 1, 'values.location.projectId': 10, 'values.location.number': 20 })
+        const row = await ctx.conn.selectFrom(tGrouped)
+            .leftJoin(joined).on(columns.id.equals(tGrouped.id))
+            .where(tGrouped.id.equals(1))
+            .select({ id: tGrouped.id, values: columns })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(row).toEqual(expected)
+        assertType<Exact<typeof row, { id: number; values?: { id: number; location?: { projectId: number; number: number } } }>>()
+    })
+    */
+
     test('extract-keeps-the-groups-and-leaves-out-what-is-not-a-column', () => {
         const columns = extractColumnsFrom(tGrouped, ['priority'])
         expect(Object.keys(columns).sort()).toEqual(['body', 'id', 'location', 'text', 'tracking'])

@@ -144,6 +144,7 @@ nav:
     - Transaction: queries/transaction.md
     - Dynamic queries: queries/dynamic-queries.md
     - Extreme dynamic queries: queries/extreme-dynamic-queries.md
+    - Insert and update with a shape: queries/shapes.md
     - SQL Fragments: queries/sql-fragments.md
   - Configuration:
     - Connection: configuration/connection.md

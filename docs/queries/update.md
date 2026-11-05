@@ -4,7 +4,7 @@ search:
 ---
 # Update
 
-This page explains how to construct SQL `UPDATE` statements using `ts-sql-query`. It covers conditional updates, shape-based value mappings, updating with data from other tables, returning updated or previous values, and manipulating sets of columns dynamically during the update process.
+This page explains how to construct SQL `UPDATE` statements using `ts-sql-query`. It covers conditional updates, updating with data from other tables, returning updated or previous values, and manipulating sets of columns dynamically during the update process.
 
 ## General update
 
@@ -438,196 +438,13 @@ The result type is a promise with the information of the updated rows:
 const updateCustomer: Promise<number>
 ```
 
-## Update with value's shape
+## Update with a shape
 
-You can specify the object's shape that contains the values to update. This shape allows you to map each property in the values to update with the columns in the table; in that way, the property in the value doesn't need to have the same name. The only values to be updated are the ones included in the shape. Additionally, you can extend the shape later to allow set additional properties in future set over this query.
-
-```ts
-const customerId = 10
-const customerData = {
-    newFirstName: 'John',
-    newLastName: 'Smith',
-    // You can include customerId here if you want, because it is not part of the shape it will be ignored
-}
-const currentCompanyId = 23
-
-const updateCustomer = connection.update(tCustomer)
-    .shapedAs({
-        newFirstName: 'firstName',
-        newLastName: 'lastName'
-        // Any property in the values not included here will be ignored
-    }) // Only these properties are allowed
-    .set(customerData)
-    .extendShape({
-        newCompanyId: 'companyId'
-    }) // Exend the shape to allow use in next sets 
-    .set({
-        newCompanyId: currentCompanyId
-    })
-    // If you included the customerId in the data, then you should be able to do:
-    // .where(tCustomer.id.equals(customerData.customerId))
-    .where(tCustomer.id.equals(customerId))
-    .executeUpdate()
-```
-
-The executed query is:
-
-=== "MariaDB"
-    ```mariadb
-    update customer 
-    set 
-        first_name = ?, 
-        last_name = ?, 
-        company_id = ? 
-    where id = ?
-    ```
-=== "MySQL"
-    ```mysql
-    update customer 
-    set 
-        first_name = ?, 
-        last_name = ?, 
-        company_id = ? 
-    where id = ?
-    ```
-=== "Oracle"
-    ```oracle
-    update customer 
-    set 
-        first_name = :0, 
-        last_name = :1, 
-        company_id = :2 
-    where id = :3
-    ```
-===+ "PostgreSQL"
-    ```postgresql
-    update customer 
-    set 
-        first_name = $1, 
-        last_name = $2, 
-        company_id = $3 
-    where id = $4
-    ```
-=== "SQLite"
-    ```sqlite
-    update customer 
-    set 
-        first_name = ?1, 
-        last_name = ?2, 
-        company_id = ?3 
-    where id = ?4
-    ```
-=== "SQL Server"
-    ```sqlserver
-    update customer 
-    set 
-        first_name = @0, 
-        last_name = @1, 
-        company_id = @2 
-    where id = @3
-    ```
-
-The parameters are: `[ "John", "Smith", 23, 10 ]`
-
-The result type is a promise with the information of the updated rows:
-```tsx
-const updateCustomer: Promise<number>
-```
+The values to update can have other property names than the columns of the table, using a shape: see [Insert and update with a shape](shapes.md).
 
 ## Update multiple tables in a single query
 
-If you are using [MariaDB](../configuration/supported-databases/mariadb.md) or [MySQL](../configuration/supported-databases/mysql.md) you can update multiples tables in a single query. To do this you will need to join the tables to update, and then specify the value's shape.
-
-<!-- doc-code-snippet-template: mariadb -->
-```ts
-const shapedUpdateCustomerNameAndCompanyName = {
-    id: 12,
-    customerFirstName: 'John',
-    customerLastName: 'Smith',
-    companyName: 'ACME Inc.'
-}
-
-const shapedUpdateCustomerNameAndCompanyNameResult = connection.update(tCustomer)
-    .innerJoin(tCompany).on(tCustomer.companyId.equals(tCompany.id))
-    .shapedAs({
-        customerFirstName: tCustomer.firstName,
-        customerLastName: tCustomer.lastName,
-        companyName: tCompany.name
-    })
-    .set(shapedUpdateCustomerNameAndCompanyName)
-    .where(tCustomer.id.equals(shapedUpdateCustomerNameAndCompanyName.id))
-    .executeUpdate()
-```
-
-The executed query is:
-
-=== "MariaDB"
-    ```mariadb
-    update customer 
-    inner join company on customer.company_id = company.id 
-    set 
-        customer.first_name = ?, 
-        customer.last_name = ?, 
-        company.name = ? 
-    where customer.id = ?
-    ```
-=== "MySQL"
-    ```mysql
-    update customer 
-    inner join company on customer.company_id = company.id 
-    set 
-        customer.first_name = ?, 
-        customer.last_name = ?, 
-        company.`name` = ? 
-    where customer.id = ?
-    ```
-=== "Oracle"
-    ```oracle
-    --
-    --
-    --
-    -- Oracle doesn't support update multiple tables in a single query
-    --
-    --
-    --
-    ```
-===+ "PostgreSQL"
-    ```postgresql
-    --
-    --
-    --
-    -- PostgreSQL doesn't support update multiple tables in a single query
-    --
-    --
-    --
-    ```
-=== "SQLite"
-    ```sqlite
-    --
-    --
-    --
-    -- SQLite doesn't support update multiple tables in a single query
-    --
-    --
-    --
-    ```
-=== "SQL Server"
-    ```sqlserver
-    --
-    --
-    --
-    -- SQL Server doesn't support update multiple tables in a single query
-    --
-    --
-    --
-    ```
-
-The parameters are: `[ "John", "Smith", "ACME Inc.", 12 ]`
-
-The result type is a promise with the information of the updated rows:
-```tsx
-const shapedUpdateCustomerNameAndCompanyNameResult: Promise<number>
-```
+If you are using [MariaDB](../configuration/supported-databases/mariadb.md) or [MySQL](../configuration/supported-databases/mysql.md) you can update multiple tables in a single query, using a shape: see [Update multiple tables in a single query](shapes.md#update-multiple-tables-in-a-single-query).
 
 ## Manipulating values to update
 

@@ -295,14 +295,7 @@ const query = connection.update(tCompany)
     .where(tCompany.id.equals(10));
 ```
 
-A shape names a column in a group by its path too, and it can have its own groups:
-
-```ts
-const query = connection.update(tCompany)
-    .shapedAs({ title: 'name', position: { lat: 'ubication.latitude', lng: 'ubication.longitude' } })
-    .set({ position: { lat: '40.4' } })
-    .where(tCompany.id.equals(10));
-```
+A [shape](../queries/shapes.md#columns-in-a-group) names a column in a group by its path too.
 
 !!! note
 

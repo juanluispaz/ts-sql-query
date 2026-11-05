@@ -29,8 +29,8 @@ AREAS = [
     ('queries', 'Writing queries', 'select, insert, update, delete, transactions, projections, fragments and dynamic queries: start here', [
         'queries/*.md', 'dynamic/building-blocks.md', 'dynamic/three-valued-booleans.md', 'about/limitations.md', 'about/faqs.md',
     ], True),
-    ('extreme-dynamic', 'Extreme dynamic queries', 'queries whose columns, filters and order come from the caller, typed from the database or from a business model', [
-        'queries/extreme-dynamic-queries.md', 'dynamic/from-*.md', 'dynamic/utilities/*.md', 'advanced/deep-utilities.md', 'advanced/tables-views-as-parameter.md',
+    ('extreme-dynamic', 'Extreme dynamic queries', 'queries whose columns, filters and order come from the caller, typed from the database or from a business model, and writing values with a shape', [
+        'queries/extreme-dynamic-queries.md', 'queries/shapes.md', 'dynamic/from-*.md', 'dynamic/utilities/*.md', 'advanced/deep-utilities.md', 'advanced/tables-views-as-parameter.md',
     ], True),
     ('types', 'Types of tables and rows', 'the types of a row of a table and the columns extracted from an object', [
         'advanced/utility-types.md', 'advanced/columns-from-object.md',
@@ -253,7 +253,7 @@ def generate(root, llms_dir, pages_dir, base, files_prefix, intro):
 
     area_of = {area[0]: [] for area in AREAS}
     for page in ordered:
-        # The extreme page is the only one of queries/ that leaves that area
+        # The extreme pages are the only ones of queries/ that leave that area
         matches = [area[0] for area in AREAS if any(_matches(page, pattern) for pattern in area[3])]
         if 'extreme-dynamic' in matches:
             matches = ['extreme-dynamic']

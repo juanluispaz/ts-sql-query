@@ -13,7 +13,7 @@ The nested objects that a select and the `with` queries already accepted now wor
 **New features**:
 
 - A table, view or `Values` can group its columns in plain objects, like the two columns of a coordinate. Insert, update, on conflict, `Values.create`, insert from a select and the result of a select use the shape of the definition (see [the docs](configuration/mapping.md#grouping-columns)).
-- The methods that receive column names (`ignoreIfSet`, `keepOnly`, `disallowIfSet`…) accept the path of a column in a group and the name of a group; a shape accepts paths and can have its own groups.
+- The methods that receive column names (`ignoreIfSet`, `keepOnly`, `disallowIfSet`…) accept the path of a column in a group and the name of a group; a shape accepts paths and can have its own groups (see [the docs](queries/shapes.md#columns-in-a-group)).
 - `asRequiredInOptionalObject()` on a column returns a column, so it can be used in the definition of a table, view or values. In a group, that column is required when the group is provided.
 
 **Behavior changes**:

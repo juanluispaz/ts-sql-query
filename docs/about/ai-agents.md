@@ -28,7 +28,7 @@ The files below are at `https://ts-sql-query.readthedocs.io/en/latest/<file>`:
 | File | For |
 |---|---|
 | `llms-queries-<database>.txt` | Writing queries: select, insert, update, delete, transactions, projections, fragments and dynamic queries. Start here |
-| `llms-extreme-dynamic-<database>.txt` | Queries whose columns, filters and order come from the caller |
+| `llms-extreme-dynamic-<database>.txt` | Queries whose columns, filters and order come from the caller, and writing values with a shape |
 | `llms-types.txt` | The types of a row of a table, and extracting columns from an object |
 | `llms-configuration.txt` | The connection, mapping, column types, time zones, collations and each database |
 | `llms-query-runners.txt` | Connecting each driver, and wrapping the query runner |

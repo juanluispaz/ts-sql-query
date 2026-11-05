@@ -46,8 +46,8 @@ Start with the file of the area of your task. These files are written for you: o
 
 | To | Read | Tokens |
 |---|---|---|
-| Write queries: start here | [`llms-queries-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-queries-postgresql.txt), with `<database>` being `mariadb`, `mysql`, `oracle`, `postgresql`, `sqlite` or `sqlserver` | 67k |
-| Let the caller choose columns, filters and order | [`llms-extreme-dynamic-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-extreme-dynamic-postgresql.txt) | 22k |
+| Write queries: start here | [`llms-queries-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-queries-postgresql.txt), with `<database>` being `mariadb`, `mysql`, `oracle`, `postgresql`, `sqlite` or `sqlserver` | 66k |
+| Let the caller choose columns, filters and order, or write values with a shape | [`llms-extreme-dynamic-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-extreme-dynamic-postgresql.txt) | 24k |
 | Type a row of a table | [`llms-types.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-types.txt) | 5k |
 | Declare the tables and the connection | [`llms-configuration.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-configuration.txt) | 49k |
 | Connect a driver | [`llms-query-runners.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-query-runners.txt) | 31k |
@@ -73,6 +73,7 @@ Once you know the area, go straight to the part you need, in those files or in i
 | Filter by optional values | [Dynamic queries](queries/dynamic-queries.md), [building blocks](dynamic/building-blocks.md), [booleans and null](dynamic/three-valued-booleans.md) |
 | Write SQL the library doesn't offer | [SQL fragments](queries/sql-fragments.md) |
 | Let the caller choose columns, filters and order | [Extreme dynamic queries](queries/extreme-dynamic-queries.md), and [from a business model](dynamic/from-business-model.md) or [from the database types](dynamic/from-database-types.md) |
+| Write values whose properties aren't named as the columns | [Insert and update with a shape](queries/shapes.md) |
 | Type a row of a table | [Utility types](advanced/utility-types.md), [columns from an object](advanced/columns-from-object.md) |
 | Declare tables and the connection | [Connection](configuration/connection.md), [mapping](configuration/mapping.md), [column types](configuration/column-types.md) |
 | Connect a driver | [Query runners](configuration/query-runners/): one page per driver |

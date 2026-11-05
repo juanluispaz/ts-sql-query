@@ -14,10 +14,13 @@ export type RequiredKeysOfNames<T, NAMES> =
     (NAMES extends `${infer GROUP}.${string}` ? (NAMES extends RequiredColumnPathsOf<T> ? GROUP : never) : NAMES) & RequiredColumnsForSetOf<T>
 
 
-// The required keys of the table with a value in the shape; a group is covered when all its required columns are
-export type RequiredKeysCoveredByShape<TABLE, SHAPE> = ShapeValuesOf<SHAPE> | { [K in RequiredColumnsForSetOf<TABLE> & ColumnsGroupKeyOf<TABLE>]-?:
-    [Exclude<`${K}.${RequiredColumnPathsOf<TABLE[K]>}`, ShapeValuesOf<SHAPE>>] extends [never] ? K : never
-}[RequiredColumnsForSetOf<TABLE> & ColumnsGroupKeyOf<TABLE>]
+// The required keys with a value when these names have it; a group has it when all its required columns do
+export type RequiredKeysCoveredByNames<T, NAMES> = NAMES | { [K in RequiredColumnsForSetOf<T> & ColumnsGroupKeyOf<T>]-?:
+    [Exclude<`${K}.${RequiredColumnPathsOf<T[K]>}`, NAMES>] extends [never] ? K : never
+}[RequiredColumnsForSetOf<T> & ColumnsGroupKeyOf<T>]
+
+export type RequiredKeysCoveredByShape<TABLE, SHAPE> = RequiredKeysCoveredByNames<TABLE, ShapeValuesOf<SHAPE>>
+
 type ValueSourcesKeyOf<T> = ({ [K in keyof T]-?: T[K] extends AnyValueSource ? K : never })[keyof T]
 
 export type AsOldValues<T extends ITableOrView<any>> = ColumnsForAlias<NOldValues<NGetDBFrom<T[typeof source]>, NGetNameFrom<T[typeof source]>>, T> & OldValues<NOldValues<NGetDBFrom<T[typeof source]>, NGetNameFrom<T[typeof source]>>>

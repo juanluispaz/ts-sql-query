@@ -90,6 +90,8 @@ function _typeNegatives() {
 
     // A group left without value keeps the insert from being executed
     {
+        // @ts-expect-error location.number is required and it's not kept, the group is missing
+        conn.insertInto(tGrouped).dynamicSet().set({ title: 'a', location: { projectId: 1, number: 1 } }).keepOnly('title', 'location.projectId').executeInsert()
         // @ts-expect-error the group is missing
         conn.insertInto(tGrouped).dynamicSet().set({ title: 'a' }).executeInsert()
         // @ts-expect-error a required column of the group was ignored, the group is missing

@@ -296,6 +296,15 @@ describe(ctx.label, () => {
         expect(query.query()).toMatchInlineSnapshot(`"update issue set title = @0, status = @1, number = @2 where id = @3"`)
     })
 
+    test('keep-only-naming-every-required-column-of-a-group-leaves-the-insert-executable', () => {
+        const query = ctx.conn.insertInto(tGrouped)
+            .dynamicSet()
+            .set({ location: { projectId: 1, number: 100 }, text: { title: 'a', status: 'open' }, priority: 1, body: 'gone' })
+            .keepOnly('location.projectId', 'location.number', 'text.title', 'text.status', 'priority')
+        assertType<Exact<'executeInsert' extends keyof typeof query ? true : false, true>>()
+        expect(query.params()).toEqual([1, 100, 'a', 'open', 1])
+    })
+
     test('disallow-any-other-set-sees-the-columns-in-a-group', () => {
         const allowed = ctx.conn.update(tGrouped)
             .dynamicSet()

@@ -63,9 +63,10 @@ Checks:
                    non-admitted test/lib file. [error]
   commented-test-reason  a commented-out test with no reason marker saying why
                    it is disabled — one of `// TODO[BUG]: …` (defect in src/),
-                   `// TODO[LIMITATION]: …` (not covered yet / env), or
-                   `// NOT-APPLICABLE: …` (a permanent dialect boundary; runs in
-                   the dialects that support it). [error]
+                   `// TODO[LIMITATION]: …` (not covered yet / env),
+                   `// NOT-SUPPORTED: …` (the engine / version / build / driver
+                   can't run it), or `// NOT-APPLICABLE: …` (a permanent dialect
+                   boundary; runs in the dialects that support it). [error]
   grouped-commented-tests  several commented-out tests crammed into ONE `/* … */`
                    comment block, sharing a single reason marker — the individual
                    reasons are lost. Split it: one commented-out test per block,
@@ -93,13 +94,13 @@ Checks:
                    tracked separately so the type bucket stays clean. [error]
   skipped-test-reason   `test.skip` / `it.skip` / `describe.skip` / `test.todo`
                    with no reason marker (`// TODO[BUG]: …` / `// TODO[LIMITATION]: …`
-                   / `// NOT-APPLICABLE: …`) — the `.skip` twin of
+                   / `// NOT-SUPPORTED: …` / `// NOT-APPLICABLE: …`) — the `.skip` twin of
                    commented-test-reason. [error]
   skip-real-db     `test.skipIf(ctx.realDbEnabled)` / `runIf(!realDbEnabled)` —
                    a mock-only evasion at the registration level (the test never
                    runs against the real engine). [error]
-  misplaced-marker a `// TODO[BUG]:` / `// TODO[LIMITATION]:` / `// NOT-APPLICABLE:`
-                   marker NOT at a test (file scope, a helper, floating prose).
+  misplaced-marker a `// TODO[BUG]:` / `// TODO[LIMITATION]:` / `// NOT-SUPPORTED:` /
+                   `// NOT-APPLICABLE:` marker NOT at a test (file scope, a helper, floating prose).
                    Must sit in the comment block above a test (live or commented)
                    or inside a test body. [error]
   tautology        a provably-constant assertion that validates nothing —
@@ -168,8 +169,11 @@ Flags:
 
 A test marked `// TODO[BUG]: <reason>` is exempt from mock-only / skip-real-db
 (like `// NOT-APPLICABLE:`) AND from as-any / any-type / as-unknown-as /
-meaningless-cast / meaningless-type, so a reproducible-bug test can use whatever
+meaningless-cast / meaningless-type / type-cast, so a reproducible-bug test can use whatever
 bypass it needs to compile while the bug is open.
+
+`// MOCK-ONLY: <reason>` is not one of the four: it marks a LIVE test that calls
+`ctx.mockOnlyConnection()` because the mock is its input device.
 
 Design doc: test/lib/audit/AUDIT.md.
 EOF

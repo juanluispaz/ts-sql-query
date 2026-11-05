@@ -29,10 +29,11 @@
 //                                  shapes: the test is COMMENTED OUT (kept only for
 //                                  symmetry), OR it stays LIVE but mock-only — the SQL
 //                                  is still worth asserting via the mock here. Because
-//                                  it is permanent (not pending work), NOT-APPLICABLE
-//                                  is the ONLY marker that licenses a live mock-only
-//                                  test (`mock-only` / `skip-real-db` carve-out in
-//                                  ast.ts `isNotApplicableTest`); a TODO does not.
+//                                  it is permanent (not pending work), it licenses a
+//                                  live mock-only test (`mock-only` / `skip-real-db`
+//                                  carve-out in ast.ts `isNotApplicableTest`); of the
+//                                  TODOs only TODO[BUG] does too, as
+//                                  checks/mockOnlyConnection.ts explains.
 //
 // NOT-SUPPORTED vs NOT-APPLICABLE — both are permanent, but they differ in WHO
 // draws the boundary, and only NOT-APPLICABLE keeps a live test:

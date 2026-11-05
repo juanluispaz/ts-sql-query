@@ -1,4 +1,4 @@
-// Schema-v4 extra dimensions, kept out of extractSrc.ts to keep that file focused:
+// The extra dimensions of the index, kept out of extractSrc.ts to keep that file focused:
 //
 //   - version_gate : compatibility-version comparisons in the SqlBuilders (case E).
 //   - sql_emit     : SQL string literals emitted by the SqlBuilders (the build-side

@@ -39,9 +39,9 @@ Usage:
   Run `tests:index:verify` for a fast structural smoke test of the extractors.
 
 RUNTIME — this build is MEMORY-BOUND, so the launcher is not a free choice. It holds ONE
-TypeScript program over `src/` + the whole `test/` matrix (~4.1k files); the checker alone
-is ~70% of the peak and grows with the matrix (`--no-resolve`, which skips it, peaks at
-~3.6 GB against the same ~3.6M rows). Measured on this tree:
+TypeScript program over `src/` + the whole `test/` matrix (tens of thousands of files); the
+checker alone is ~70% of the peak and grows with the matrix (`--no-resolve`, which skips it,
+peaks at ~3.6 GB against the same rows). Measured on this tree:
 
   | runtime            | peak RSS | wall   | ceiling                                |
   |--------------------|----------|--------|----------------------------------------|
@@ -51,7 +51,8 @@ is ~70% of the peak and grows with the matrix (`--no-resolve`, which skips it, p
   | bun (JSC),         | ~12 GB   | ~3.5m  | none: grows into available RAM         |
   | --use-bun          |          |        |                                        |
 
-Node is the default: same peak, ~1.8x faster. This script raises its heap for it
+`npm run` runs it on node; `bun run`, or running the script directly, runs it on bun. Prefer
+`npm run`: same peak, ~1.8x faster. This script raises node's heap for it
 (`--max-old-space-size`, override with TESTS_INDEX_HEAP_MB) — WITHOUT that it dies with a
 bare V8 OOM stack trace that says nothing about why, which is the trap this note exists to
 prevent. V8 also needs headroom well above its live set to GC effectively, hence >=16 GB for
@@ -59,9 +60,7 @@ a ~12 GB peak.
 
 So reach for `--use-bun` when the box cannot give node that headroom: bun has no preset
 ceiling and degrades instead of dying. If even that OOMs, `--no-resolve` (~3.6 GB) still
-gives you every name-based search. To flip the default for everyone, pin the engine in
-package.json the way `coverage` does:
-`npm_config_user_agent=bun/tests-index bash scripts/tests-index.sh`.
+gives you every name-based search.
 
 CAVEAT on the bun row: on a 24 GB box these numbers are NOT reproducible. Two identical runs
 came out 219 s / 12.0 GB and 402 s / 13.6 GB, with `sys` at 417 s and 716 s — at this peak it
@@ -70,9 +69,9 @@ is paging, and the variance swamps whatever is being measured. Node's numbers ar
 under a high ceiling). So: treat the bun row and the bun `--sink false` default as REASONED,
 not measured, and re-measure on a box with real headroom before relying on either.
 
-Same root cause as why the test scope isn't type-checked with tsc (see CLAUDE.md): one tsc
-program over the whole matrix + `src/` exhausts V8's heap. Both grow with the suite —
-re-measure before assuming the numbers above still hold.
+The same memory shape is why `validate:tests` type-checks the test scope one connector at a
+time instead of as a single tsc program over the whole matrix + `src/` (see CLAUDE.md). Both
+grow with the suite — re-measure before assuming the numbers above still hold.
 
 PURPOSE: build the CODE INDEX — a queryable SQLite database that maps the whole
 project (src + tests + docs + legacy examples) so tooling can ask precise questions
@@ -89,7 +88,6 @@ still valid. Pass --out to write elsewhere. The run prints which SQLite backend 
 the build (bun:sqlite under Bun; node:sqlite or better-sqlite3 under Node).
 
 Reference (build, schema, consume, how to extend): test/lib/codeIndexer/CODE_INDEXER.md.
-Deep design rationale, roadmap and searcher design: test/lib/symbolIndex/DESIGN.md.
 
 Dispatches to `bun` when invoked via `bun run`, else to `tsx`.
 EOF
@@ -105,9 +103,7 @@ source "$(dirname "$0")/_test-common.sh"
 # `--use-bun` forces the bun runtime whichever way the script was invoked — the runtime
 # choice is a memory-vs-speed trade here, not a preference (see the RUNTIME note in --help),
 # so it has to be reachable without changing the entry point. Mirrors `tests --use-vitest`.
-# It is NOT the default: node is ~2.4x faster and the trade only pays off on a machine that
-# can't spare the RAM. To flip the default for everyone, pin the engine in package.json the
-# way `coverage` does: `npm_config_user_agent=bun/tests-index bash scripts/tests-index.sh`.
+# Node is faster, so the trade only pays off on a machine that can't spare the RAM.
 use_bun=0
 args=()
 for a in "$@"; do
@@ -121,8 +117,8 @@ if [ "$use_bun" = 1 ] || [ "$(detect_runtime)" = "bun" ]; then
     echo "tests:index: bun requested but not installed — falling back to node/tsx." >&2
 fi
 
-# Node needs its heap raised well past the 4 GB default: the resolved build peaks ~15 GB
-# under V8 and would otherwise die with a bare OOM stack trace that says nothing about why.
-# Override with TESTS_INDEX_HEAP_MB; if it still OOMs, use --use-bun (~10 GB) or --no-resolve.
+# Node needs its heap raised well past the 4 GB default: the resolved build would otherwise
+# die with a bare OOM stack trace that says nothing about why (figures in the RUNTIME note).
+# Override with TESTS_INDEX_HEAP_MB; if it still OOMs, use --use-bun or --no-resolve.
 NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=${TESTS_INDEX_HEAP_MB:-20480}" \
     exec tsx test/lib/codeIndexer/build.ts "${args[@]}"

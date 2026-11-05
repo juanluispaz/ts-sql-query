@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# Sourced by test.sh, focus-test.sh and wasm-test.sh. Not executable on
+# Sourced by tests.sh and the other scripts under scripts/. Not executable on
 # its own. Defines:
 #
 #   detect_runtime              echoes "bun" or "npm"
@@ -117,7 +117,7 @@ run_phase() {
         # makes --timeout authoritative (and is a no-op at the default).
         #
         # The main vitest process collects every file's results; on the
-        # full matrix (~22.5k files) it sits right at V8's ~4 GB default
+        # full matrix (over 20k files) it sits right at V8's ~4 GB default
         # old-space and dies with "FATAL … heap out of memory" (or crawls
         # in GC just under it). The flag is passed to the main process
         # only — forks don't inherit it, so the per-worker ceiling (and
@@ -266,7 +266,7 @@ unset _wp
 # Shard partition (--shard). Splits the no-docker matrix into 4 mutually-
 # exclusive groups so each fits well under the 16 GB CI runner — the single-
 # process main pass peaks ~15.9 GB on Node 26 and OOMs at the final
-# aggregation. Every test file lands in EXACTLY one shard.
+# aggregation. No test runs in more than one shard.
 #
 #   1 · wasm     : the wasm-kind connectors (pglite, sqlite-wasm-OO1(+sync)),
 #                  ALL versions, REAL. Runs sequential — the per-worker WASM
@@ -277,10 +277,12 @@ unset _wp
 #   3 · sqlite-B : sqlite3, bun_sqlite(+sync), bun_sql_sqlite.
 #   4 · rest     : everything else — the COMPLEMENT: every connector cell not
 #                  claimed by shards 1-3 (docker engines + documentation) PLUS
-#                  the types.negative folders, so no file is dropped.
+#                  the types.negative folders and the query-runner tests, so no
+#                  file is dropped. The tests of the WASM runners run in shard 1,
+#                  where the WASM engines are real, and skip here.
 #
-# Groups 2/3 are hand-balanced by file count (~5.1 k / ~3.8 k) so each parallel
-# shard stays ~8 GB peak; shard 1 is ~3 k files (sequential); shard 4 ~5.1 k.
+# Groups 2/3 are hand-balanced by file count so each parallel shard stays
+# memory-bounded; shard 1 runs sequential. Current figures: test/BENCHMARKS.md.
 SHARD2_CONNECTOR_NAMES=(better-sqlite3 better-sqlite3-sync node_sqlite node_sqlite-sync)
 SHARD3_CONNECTOR_NAMES=(sqlite3 bun_sqlite bun_sqlite-sync bun_sql_sqlite)
 
@@ -290,7 +292,9 @@ SHARD3_CONNECTOR_NAMES=(sqlite3 bun_sqlite bun_sqlite-sync bun_sql_sqlite)
 shard_paths() {
     local n="$1" cell cn
     case "$n" in
-        1) list_wasm_connector_paths ;;
+        1)
+            list_wasm_connector_paths
+            wasm_runner_test_files ;;
         2)
             while IFS= read -r cell; do
                 cn="${cell%/}"; cn="${cn##*/}"
@@ -449,6 +453,13 @@ cell_mode() {
     local r2="${rest#*/}"; local version="${r2%%/*}"
     local connector="${rest##*/}"
 
+    # The tests generated from the documentation never reach an engine, whatever
+    # the selection of its kind (they don't call isRealDbEnabled).
+    if [ "$connector" = "documentation" ]; then
+        printf 'mock\t(documentation; always mock)\n'
+        return
+    fi
+
     local kind mode cells flag
     if _connector_matches_kind "$connector" wasm; then
         kind=wasm; mode="${WASM_MODE_SEL:-none}"; cells="$WASM_CELLS"; flag=--wasm
@@ -501,16 +512,13 @@ real_docker_rep_cells() {
         # a real docker cell (wasm / native reals carry their own kind tag).
         case "$ann" in *'(docker'*) ;; *) continue ;; esac
         connector="${cell##*/}"
-        # Two connector kinds are unfit to DRIVE the warmup, even though
-        # cell_mode tags them docker:
-        #   · `documentation` — self-contained mock cells, no real container;
-        #     picking one would leave the engine's real container unwarmed.
-        #   · `bun_*` (e.g. bun_sql_postgres) — Bun-only drivers that import
-        #     `bun:sql`; under the tsx/node warmup path the import fails.
-        # Both share their cell's container with a node-safe sibling
-        # (pg / mariadb / mysql2 / …), so skipping them as reps loses no
-        # coverage — the container is still reached through that sibling.
-        case "$connector" in documentation|bun_*) continue ;; esac
+        # `bun_*` cells (e.g. bun_sql_postgres) are unfit to DRIVE the warmup,
+        # even though cell_mode tags them docker: these Bun-only drivers import
+        # `bun:sql`, and under the tsx/node warmup path the import fails. They
+        # share their cell's container with a node-safe sibling (pg / mariadb /
+        # mysql2 / …), so skipping them as reps loses no coverage — the
+        # container is still reached through that sibling.
+        case "$connector" in bun_*) continue ;; esac
         rest="${cell#test/db/}"; db="${rest%%/*}"
         r2="${rest#*/}"; version="${r2%%/*}"
         case "$seen" in *" $db/$version "*) continue ;; esac
@@ -851,6 +859,14 @@ expand_newest_paths() {
     done
 }
 
+# The query-runner tests with a WASM engine. They are outside the cells, so the
+# sequential WASM unit has to name them; a pass with WASM off skips them, so
+# nothing runs twice. Run them with docker and native off: these files also hold
+# tests of other runners, which the main pass runs.
+wasm_runner_test_files() {
+    grep -rlE "isRealDbEnabled\('[a-z]+', 'wasm'" test/runners | sort
+}
+
 # Keep only WASM_PATHS entries that pass through a `newest/` segment.
 # Used by the `--run-versions newest` filter so the WASM phase
 # skips e.g. `postgres/oldest/pglite/`.
@@ -941,7 +957,7 @@ coverage_runner_flags() {
             done
             if [ "$has_monocart" = "on" ]; then
                 if [ "$#" -gt 1 ]; then
-                    echo "coverage_runner_flags: --coverage-format=monocart under vitest replaces the coverage provider — it can't be combined with other --coverage-format values. Pass monocart on its own; configure additional MCR reports in mcr.config.ts." >&2
+                    echo "coverage_runner_flags: --coverage-format=monocart under vitest replaces the coverage provider — it can't be combined with other --coverage-format values. Pass monocart on its own; configure additional MCR reports in mcr.config.mjs." >&2
                     return 1
                 fi
                 printf -- '--coverage.provider=custom\n'
@@ -1331,6 +1347,16 @@ resolve_main_paths() {
                     echo "Error: --run-versions newest is incompatible with a coord pointing at oldest: $coord" >&2
                     return 2 ;;
             esac
+            # A version folder named literally (a glob or brace is filtered below)
+            if [ "$shape" != "bare-db" ] && [ "$base" = "test/db/" ]; then
+                local coord_version="${coord#*/}"; coord_version="${coord_version%%/*}"
+                case "$coord_version" in
+                    newest|types.negative|*[*?[{},]*) ;;
+                    *)
+                        echo "Error: --run-versions newest is incompatible with a coord pointing at the version $coord_version: $coord" >&2
+                        return 2 ;;
+                esac
+            fi
         fi
         case "$shape" in
             expand)
@@ -1381,13 +1407,22 @@ resolve_main_paths() {
         esac
     done
 
-    # Final --run-versions newest pass: drop `*/oldest/*` matches that a glob
-    # may have pulled in (bare-db was already scope-expanded above).
+    # Final --run-versions newest pass: keep only newest + types.negative of what
+    # a glob may have pulled in (bare-db was already scope-expanded above). The
+    # query-runner tests have no version tiers.
     if [ "$RUN_VERSIONS" = "newest" ]; then
-        local filtered=()
+        local filtered=() rel sub
         for t in "${MAIN_PATHS[@]}"; do
             case "$t" in
-                */oldest|*/oldest/*) ;;
+                test/db/*/*)
+                    rel="${t#test/db/*/}"
+                    case "${rel%%/*}" in
+                        newest|types.negative) filtered+=("$t") ;;
+                    esac ;;
+                test/db/*)
+                    for sub in newest types.negative; do
+                        [ -d "$t/$sub" ] && filtered+=("$t/$sub/")
+                    done ;;
                 *) filtered+=("$t") ;;
             esac
         done

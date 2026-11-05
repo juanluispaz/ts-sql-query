@@ -47,14 +47,14 @@ export function readMeta(db: QueryDb): MetaInfo {
     if (!Number.isFinite(sv)) {
         warnings.push('index has no recorded schema_version — provenance unknown')
     } else if (sv !== SCHEMA_VERSION) {
-        fatal = `index schema_version ${sv} ≠ tool schema_version ${SCHEMA_VERSION} — rebuild with \`tests:index\``
+        fatal = `index schema_version ${sv} ≠ tool schema_version ${SCHEMA_VERSION} — rebuild with \`tests:index:newest\` (or \`tests:index\` for every version tier)`
     }
 
     // Staleness: the index is a snapshot of the tree at build time.
     const head = gitHead()
     const builtRev = map['git_rev']
     if (head.rev && builtRev && head.rev !== builtRev) {
-        warnings.push(`index built at ${short(builtRev)}, working tree is at ${short(head.rev)} — likely STALE; rebuild with \`tests:index\``)
+        warnings.push(`index built at ${short(builtRev)}, working tree is at ${short(head.rev)} — likely STALE; rebuild with \`tests:index:newest\` (or \`tests:index\` for every version tier)`)
     }
     if (head.rev && head.dirty) {
         warnings.push('working tree is dirty — the index may not reflect uncommitted edits')

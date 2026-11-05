@@ -1,6 +1,5 @@
 // The query layer of the code searcher: one function per question the searcher
-// answers, mapping the validated recipes in DESIGN.md §10 (R1–R8) to typed reads
-// over the index. Nothing here renders — callers in render.ts shape the output.
+// answers, as typed reads over the index. Nothing here renders — callers in render.ts shape the output.
 //
 // All reads go through QueryDb (read-only). Parameters are bound, never
 // interpolated, so a symbol name with odd characters is safe.

@@ -335,7 +335,7 @@ CREATE INDEX idx_neg_type_ref_rmem ON neg_type_ref(resolved_member_id);
 -- One row per comparison against a per-db compatibility-version field (e.g.
 -- this._connectionConfiguration.compatibilityVersion < 18_000_000). The navigation
 -- target for version/matrix work: which methods branch on which breakpoint. Answers
--- "how does this codebase gate by version, and at which breakpoints" (see REPORT_MODEL_V2 E).
+-- "how does this codebase gate by version, and at which breakpoints".
 CREATE TABLE version_gate (
     id               INTEGER PRIMARY KEY,
     module_id        INTEGER NOT NULL REFERENCES module(id),
@@ -355,8 +355,8 @@ CREATE INDEX idx_version_gate_bp     ON version_gate(breakpoint);
 -- ── sql_emit (schema v4): SQL string literals emitted by the SqlBuilders ──────
 -- One row per string literal that looks like emitted SQL inside an _append*/_build*
 -- (or any sqlBuilders-area) method. The build-side bridge for an emission bug: from a
--- bad SQL token ('returning old.', 'collate') to the code that emits it (REPORT_MODEL_V2
--- D). Searched by --emits-keyword <fragment> via a substring match on literal.
+-- bad SQL token ('returning old.', 'collate') to the code that emits it.
+-- Searched by --emits-keyword <fragment> via a substring match on literal.
 CREATE TABLE sql_emit (
     id               INTEGER PRIMARY KEY,
     module_id        INTEGER NOT NULL REFERENCES module(id),
@@ -383,7 +383,7 @@ CREATE INDEX idx_sql_emit_module ON sql_emit(module_id);
 -- TODO[BUG] is the channel the test-generator uses to flag a real-DB divergence to the
 -- bug-fixer (test/BUGS.md itself is read directly; it's tiny) and is surfaced by --bugs
 -- (tag='BUG'); the remaining TODO tags are indexed for completeness even though nothing
--- consumes them yet. "Is this already a known divergence?" (REPORT_MODEL_V2 C/D).
+-- consumes them yet. "Is this already a known divergence?"
 CREATE TABLE todo_marker (
     id    INTEGER PRIMARY KEY,
     file  TEXT NOT NULL,                   -- the file carrying the marker

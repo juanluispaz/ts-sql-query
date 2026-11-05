@@ -1,5 +1,5 @@
 #!/bin/bash
-# Standalone unit checks for the code SEARCHER (the `tests:where-is` tool). Kept OUT of the
+# Standalone checks for the code SEARCHER (the `tests:where-is` tool). Kept OUT of the
 # test/ matrix on purpose — see test/lib/codeSearcher/verify.ts.
 
 print_help() {
@@ -7,10 +7,11 @@ print_help() {
 Usage:
   tests:where-is:check [--help]
 
-PURPOSE: fast, DB-free unit checks for the code SEARCHER — the --coord matrix matching and the
-door/section/level/preset arg model (parseArgs/buildOptions). It needs no index and no DB, so it
-is deterministic and instant. Deliberately NOT a *.test.ts, so the test/ matrix never collects it;
-run it on demand here. Exits non-zero on the first failing check.
+PURPOSE: regression checks for the code SEARCHER, in two phases. (1) Pure logic, no index and no
+DB, always runs: the --coord matrix matching and the door/section/level/preset arg model
+(parseArgs/buildOptions). (2) Output regression against the built index: a golden set of
+query + render checks, SKIPPED when the index isn't built. Deliberately NOT a *.test.ts, so the
+test/ matrix never collects it; run it on demand here. Exits non-zero if any check failed.
 
 The SEARCHER itself is `tests:where-is`; the index it reads is built by `tests:index`.
 Reference: test/lib/codeSearcher/CODE_SEARCHER.md. Dispatches to `bun` via `bun run`, else `tsx`.

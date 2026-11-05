@@ -44,7 +44,7 @@ export const RULE_SEVERITY: Record<string, Severity> = {
     'no-assertion-runtime':   'error',   // a test that runs a query (execute*) but asserts nothing — always green
     'empty-catch':            'error',   // an empty `catch { }` (no deliberate throw in the try) — swallows a real failure
     'weak-boolean':           'error',   // `expect(x).toBeTruthy()` / `toBeFalsy()` — pins truthiness, not the value
-    'weak-matcher':           'error',   // asymmetric matcher / `.toContain`/`.toMatch` on a value — approximate reserved for diagnostic + real-DB branch
+    'weak-matcher':           'error',   // asymmetric matcher / `.toContain`/`.toMatch` on a value — approximate reserved for a diagnostic blob (error/stack) only
     'close-to':               'error',   // `toBeCloseTo` outside a real-DB branch — its own (lenient) rule, kept separate from the rigid weak-matcher
     'no-op-expect':           'error',   // an `expect(...)` chain with no matcher invoked — a no-op that always passes
     'non-deterministic-input': 'error',  // `new Date()` / `Date.now()` / `Math.random()` as a query input (mock data is carved out)
@@ -111,7 +111,7 @@ export const RULE_HINT: Record<string, string> = {
     'weak-boolean':
         '`expect(x).toBeTruthy()` / `toBeFalsy()` pins only truthiness — a truthy/falsy check passes for many different results. Assert the exact value (`toBe(true)`, or the real computed result), the way the suite validates SQL/params/value.',
     'weak-matcher':
-        'This assertion pins shape/membership, not the exact value. `expect.arrayContaining` / `objectContaining` / `any` / `anything` accept extras / any / a partial structure; `.toContain` / `.toMatch` check only membership/substring. Approximate matching is reserved for the two places exact pinning is impossible — a diagnostic blob (error message / stack trace) and a real-DB branch (`if (ctx.realDbEnabled)`, where the real engine produces a non-deterministic value pinned exactly in the mock branch). Elsewhere a test has no reason not to be precise: pin the value (`expect(rows.slice().sort()).toEqual([...])`); for SQL use the full `toMatchInlineSnapshot`.',
+        'This assertion pins shape/membership, not the exact value. `expect.arrayContaining` / `objectContaining` / `any` / `anything` accept extras / any / a partial structure; `.toContain` / `.toMatch` check only membership/substring. Approximate matching is reserved for the one place exact pinning is impossible — a diagnostic blob (error message / stack trace). Elsewhere, a real-DB branch included, a test has no reason not to be precise: pin the value (`expect(rows.slice().sort()).toEqual([...])`, normalising a non-deterministic `id` / timestamp); for SQL use the full `toMatchInlineSnapshot`.',
     'close-to':
         '`toBeCloseTo` is an approximate float comparison, warranted only against the real engine (inside a real-DB branch) where floating-point rounding can yield `1.999999…`. Outside a real-DB branch the value comes from the mock (exactly what `mockNext` set) — pin it with `toBe`. If a real float needs approximating, guard the assertion behind `if (ctx.realDbEnabled)`.',
     'no-op-expect':

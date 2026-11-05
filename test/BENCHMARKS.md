@@ -29,17 +29,17 @@ it's on).
 
 ## Latest measurements
 
-Measured 2026-11-04 under Bun, on the full matrix including the query-runner tests
-(**383,327 tests, 23,690 files**). The other tables of this file are dated runs at
+Measured 2026-11-05 under Bun, on the full matrix including the query-runner tests
+(**398,901 tests, 24,857 files**). The other tables of this file are dated runs at
 the matrix size each one states: use them to compare regimes and runtimes, and
 this one for the current cost.
 
 | Invocation | Selection | Wall |
 |---|---|---|
-| `bun run tests` (mocked main pass) | 383,327 tests / 23,690 files | **10.1 s** |
-| `bun run tests --wasm`, the sequential WASM unit | 56,619 tests / 3,496 files | **31 s** |
-| `bun run tests --docker` (warm containers) | the full matrix | **~898 s (~15 min)** |
-| `npm run tests -- --run-connectors native` (Node) | 185,230 tests pass | — |
+| `bun run tests` (mocked main pass) | 398,901 tests / 24,857 files | **11 s** |
+| `bun run tests --wasm`, the sequential WASM unit | 58,932 tests / 3,664 files | **34 s** |
+| `bun run tests --docker --wasm`, its main pass (cold containers) | the full matrix | **788 s (~13 min)** |
+| `npm run tests -- --run-connectors native` (Node) | 192,925 tests pass | **51 s** |
 
 ## The one lever that matters: no per-file isolation
 

@@ -17,13 +17,10 @@
 //     version. Opt-in and narrow (see the guardrails in `scripts/tests.sh`) —
 //     the older images are separate containers.
 //
-// The entries are PRE-POPULATED from the documented breakpoints per engine
-// (`docs/configuration/supported-databases/<db>.md`), so the agent that
-// implements a version folder does NOT have to research which image it needs —
-// the folder name is the map key, and its image is already here. They are
-// UNVERIFIED until each folder + its tests exist and run (today only
-// `postgres/oldest` has an actual cell). The highest breakpoint of an engine has
-// no folder of its own: `compatibilityVersion` at that value emits SQL identical
+// There is one entry per version folder, taken from the documented breakpoints
+// per engine (`docs/configuration/supported-databases/<db>.md`): the folder name
+// is the map key. The highest breakpoint of an engine has no folder
+// of its own: `compatibilityVersion` at that value emits SQL identical
 // to `newest` (nothing is documented above it), so `newest` covers it.
 //
 // Each image is a deliberate, hand-maintained choice — no arithmetic, no

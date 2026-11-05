@@ -2,9 +2,9 @@
 // coverage agent pastes into a wave plan. Orchestrates the query layer
 // (queries.ts) and emits only the sections asked for, each at its own LEVEL.
 //
-// v2 model (see test/lib/symbolIndex/REPORT_MODEL_V2.md): one levelled flag per
+// One levelled flag per
 // section (`none` hides it), plus cross-section result filters. The defaults
-// reproduce the v1 report (everything `summary`, chain `strict`, name-search off).
+// are everything `summary`, chain `strict`, name-search off.
 
 import type { QueryDb } from '../codeIndexer/db.js'
 import type { MetaInfo } from './meta.js'

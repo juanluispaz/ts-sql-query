@@ -21,7 +21,7 @@ Usage:
                    #   · engine / runtime controls:
                    [--docker-mode <reuse|no-reuse>]
                    [--docker-version <latest|closest>]
-                   [--use-vitest] [--use-node | --use-bun] [--ui]
+                   [--use-vitest] [--use-node | --use-bun] [--isolate] [--ui]
                    #   · no-docker CI split (memory-bounded):
                    [--shard [<1|2|3|4>]]
                    # Reports & coverage:
@@ -74,7 +74,7 @@ Coords
                  `newest` (the library default — pinned to
                  Number.POSITIVE_INFINITY), `oldest` (the
                  `< lowest-breakpoint` zone), or the literal numeric
-                 breakpoint when one exists (e.g. `13_000_001`,
+                 breakpoint when one exists (e.g. `8_000_017`,
                  `10_005_000`). `<db>/types.negative/` is a sibling
                  used for compile-time negatives — not a version
                  folder — and is included only under --run-connectors=all.
@@ -117,9 +117,11 @@ Coords
   expansion runs — anything outside that vocabulary is rejected. An
   unmatched glob is an error, not a silent zero-test run.
 
-  Under --run-versions newest a coord that literally names oldest
-  (`postgres/oldest`, `*/oldest/*`) is rejected as a contradiction;
-  globs are expanded and any `*/oldest/*` matches are filtered out.
+  Under --run-versions newest a coord that literally names another version
+  folder (`postgres/oldest`, `mysql/8_000_000/mysql2`) is rejected as a
+  contradiction; globs and braces are expanded and only their newest +
+  types.negative matches are kept. Coords under `runners` have no version
+  folders, so the flag does not narrow them.
 
 Runner trade-off
   Bun is fast and is the default for the daily test loop. Vitest is
@@ -218,13 +220,14 @@ Sharding (--shard) — the no-docker CI split
     --shard          run all four shards in sequence (one invocation).
     --shard <n>      run only shard n (1..4). CI uses one step per shard.
 
-  The four shards (every test file lands in EXACTLY one — no double-run):
-    1 · wasm      pglite + sqlite-wasm-OO1(+sync), all versions, REAL.
+  The four shards (no test runs twice):
+    1 · wasm      pglite + sqlite-wasm-OO1(+sync), all versions, REAL, plus
+                  the query-runner tests of those engines.
                   Sequential (the per-worker WASM bootstrap is CPU-bound).
     2 · sqlite-A  better-sqlite3(+sync), node_sqlite(+sync).            parallel
     3 · sqlite-B  sqlite3, bun_sqlite(+sync), bun_sql_sqlite.           parallel
     4 · rest      everything else (docker engines mocked + documentation
-                  + types.negative).                                   parallel
+                  + types.negative + query-runner tests).              parallel
 
   Full-matrix / no-docker only: --shard rejects positional coords, --coverage,
   --docker, --run-connectors and --run-versions (it defines its own partition
@@ -284,7 +287,7 @@ Runner flags
   --docker-mode <reuse|no-reuse>
         reuse:    sets TESTCONTAINERS_REUSE_ENABLE=true. Containers
                   persist across invocations — preferred for local dev.
-        no-reuse: fresh containers every run. Hermetic; CI baseline.
+        no-reuse: fresh containers every run. Hermetic.
   --docker-version <latest|closest>       (default: latest)
         latest:   every real docker cell runs against the engine's latest
                   pinned image (the normal behaviour).
@@ -418,7 +421,7 @@ Narrowing flags (runtime-agnostic — translated for you)
         its single `--` before the script flags):
           bun run tests postgres/newest/pg/select.basic.test.ts \
                         --test-name-pattern inner-join --update-snapshots
-          bun run tests postgres/newest/pg/select.basic.test.ts \
+          npm run tests -- postgres/newest/pg/select.basic.test.ts \
                            --test-name-pattern inner-join --update-snapshots
   --bail [<N>]
         Stop the run after N test failures (default 1 when no count is
@@ -565,7 +568,7 @@ Examples
   bun run tests                                            -- # fast loop
   bun run tests --docker                                   # + docker
   bun run tests --docker --wasm                            # full matrix
-  bun run tests --run-versions newest                             # skip oldest cells
+  bun run tests --run-versions newest                             # skip the older version cells
   bun run tests --coverage --run-versions newest --open           # shorter coverage
   bun run tests --run-connectors wasm --wasm                  # only WASM cells (real)
   bun run tests --run-connectors docker --docker              # only docker-backed cells
@@ -1197,8 +1200,8 @@ RUNNER_TAIL+=("${NARROWING_FLAGS[@]}")
 # of the wasm cells. Full-matrix / no-docker only (guarded above); exits when
 # done, before the normal two-phase flow below.
 if [ "$SHARD_MODE" = "on" ]; then
-    # docker + native env apply to every shard (docker is `none` here — guarded
-    # above); wasm is set per-shard inside the loop.
+    # docker env applies to every shard (it is `none` here — guarded above);
+    # wasm and native are set per-shard inside the loop.
     export TS_SQL_QUERY_DOCKER="$DOCKER_ENV"
     export TS_SQL_QUERY_NATIVE="$NATIVE_ENV"
 
@@ -1225,6 +1228,7 @@ if [ "$SHARD_MODE" = "on" ]; then
             shard_mode=sequential
             shard_wasm_env=all
             export TS_SQL_QUERY_WASM=all
+            export TS_SQL_QUERY_NATIVE=none
             export TSSQLQUERY_PARALLEL_DBS=false
             # The wasm shard is one sequential worker holding ~3 k files' module
             # graph at once (isolate:false). Give it heap headroom over the
@@ -1239,6 +1243,7 @@ if [ "$SHARD_MODE" = "on" ]; then
             shard_mode=parallel
             shard_wasm_env=none
             export TS_SQL_QUERY_WASM=none
+            export TS_SQL_QUERY_NATIVE="$NATIVE_ENV"
             unset TSSQLQUERY_PARALLEL_DBS
         fi
 
@@ -1313,7 +1318,12 @@ if [ "$FOCUSED" = "off" ] && [ "$RUN_CONNECTORS" = "all" ] && [ "$WASM_REAL" = "
         exit 2
     fi
     WASM_LOG="$(mktemp)"
+    if [ "$RUN_VERSIONS" != "newest" ]; then
+        while IFS= read -r wasm_runner_test; do WASM_LIST+=("$wasm_runner_test"); done < <(wasm_runner_test_files)
+    fi
     export TS_SQL_QUERY_WASM="$WASM_ENV"
+    export TS_SQL_QUERY_DOCKER=none
+    export TS_SQL_QUERY_NATIVE=none
     export TSSQLQUERY_PARALLEL_DBS=false
     if [ -t 1 ] && [ "$NO_COLOR_FLAG" = "off" ]; then
         export FORCE_COLOR=1
@@ -1326,6 +1336,8 @@ if [ "$FOCUSED" = "off" ] && [ "$RUN_CONNECTORS" = "all" ] && [ "$WASM_REAL" = "
     fi
     emit_phase_legend "WASM phase" sequential "$runtime" none "$WASM_ENV" none "$RUN_VERSIONS" "$RUN_CONNECTORS"
     if [ "$ec" -ne 0 ]; then exit "$ec"; fi
+    export TS_SQL_QUERY_DOCKER="$DOCKER_ENV"
+    export TS_SQL_QUERY_NATIVE="$NATIVE_ENV"
 fi
 
 # Main pass. TS_SQL_QUERY_WASM for this pass:

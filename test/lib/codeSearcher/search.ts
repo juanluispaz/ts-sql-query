@@ -9,7 +9,7 @@
 //
 // It is a SEPARATE tool from the indexer: it never writes the index, only reads it.
 //
-// Usage:  bun run tests:where-is <door> [<section> <level>]… [<filter>]… [--db <path>]
+// Usage:  bun run tests:where-is <door> [<section> <level>]… [<filter>]… [--index <path>]
 //         (or run the file directly: tsx/bun test/lib/codeSearcher/search.ts …).
 
 import { existsSync } from 'node:fs'
@@ -186,7 +186,7 @@ export function parseArgs(argv: string[]): Args {
     return a
 }
 
-const HELP = `tests:where-is  <WHAT door>  [<section> <level>]…  [<filter>]…  [--for <intent>]  [--db <path>]
+const HELP = `tests:where-is  <WHAT door>  [<section> <level>]…  [<filter>]…  [--for <intent>]  [--index <path>]
 
 Pick exactly ONE door (what to search for); the report shows a default set of sections —
 raise, lower or silence each with its own flag ("none" hides it) — and narrow the test/doc

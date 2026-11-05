@@ -1,6 +1,6 @@
-// A flashback version query read through a table customization. The row was
-// inserted once and never changed, so it has exactly one version however long the
-// undo of the table is kept.
+// A flashback version query read through a table customization. How many versions a
+// row has depends on the reseeds the undo still holds, all with the same values, so
+// the select is distinct.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -12,13 +12,16 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    test('versions-between-returns-the-only-version-of-a-row-never-updated', async () => {
+    test('versions-between-reads-a-row-across-reseeds', async () => {
         const expected = [{ id: 1, name: 'Enterprise' }]
         ctx.mockNext(expected)
 
+        await ctx.reseed()
+        await ctx.reseed()
+
         const planVersions = ctx.conn.allVersions(tServicePlan, 'planVersions')
 
-        const result = await ctx.conn.selectFrom(planVersions)
+        const result = await ctx.conn.selectDistinctFrom(planVersions)
             .where(planVersions.id.equals(1))
             .select({
                 id:          planVersions.id,
@@ -27,7 +30,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", name as "name", description as "description" from service_plan versions between timestamp minvalue and maxvalue  where id = :0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select distinct id as "id", name as "name", description as "description" from service_plan versions between timestamp minvalue and maxvalue  where id = :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

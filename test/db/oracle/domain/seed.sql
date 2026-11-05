@@ -85,6 +85,4 @@ INSERT INTO col_matrix (id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m
 -- express. getSeconds() reads 59, getMilliseconds() reads 999.
 INSERT INTO temporal_precision (id, micro_stamp) VALUES
     (1, TIMESTAMP '2024-01-15 12:30:59.999600');
--- service_plan: inserted once, never updated nor deleted (see schema.sql).
-INSERT INTO service_plan (id, name, description)
-    SELECT 1, 'Enterprise', NULL FROM dual WHERE NOT EXISTS (SELECT 1 FROM service_plan WHERE id = 1);
+INSERT INTO service_plan (id, name, description) VALUES (1, 'Enterprise', NULL);

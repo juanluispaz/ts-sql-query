@@ -18,8 +18,7 @@
 -- counters a full schema.sql + seed.sql would. Lists mirror schema.sql; keep
 -- them in sync when a table/sequence is added. (`organization` is quoted to
 -- match its case-sensitive schema declaration; the rest are unquoted.)
--- service_plan is left out on purpose: deleting and inserting its row again would
--- add versions to the flashback version query that reads it.
+DELETE FROM service_plan;
 DELETE FROM project_review;
 DELETE FROM release_draft;
 DELETE FROM project_release;

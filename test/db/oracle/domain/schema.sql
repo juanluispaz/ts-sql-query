@@ -382,9 +382,9 @@ CREATE OR REPLACE FUNCTION cm_datetime RETURN TIMESTAMP AS v TIMESTAMP; BEGIN SE
 
 CREATE OR REPLACE FUNCTION cm_str RETURN VARCHAR2 AS v VARCHAR2(64); BEGIN SELECT m_str INTO v FROM col_matrix WHERE id = 1; RETURN v; END;
 
--- service_plan: read through a flashback version query, which sees every change
--- the undo still holds. reset.sql leaves this table alone and seed.sql inserts its
--- row only once, so the row has exactly one version for the life of the table.
+-- service_plan: read through a flashback version query, which sees every change the
+-- undo still holds, the delete and insert of each reseed included: how many versions
+-- a row has depends on the run.
 CREATE TABLE service_plan (
     id NUMBER PRIMARY KEY,
     name VARCHAR2(64) NOT NULL,

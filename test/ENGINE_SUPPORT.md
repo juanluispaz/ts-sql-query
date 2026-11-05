@@ -844,6 +844,10 @@ MySQL 5.7 behaves the same way (verified against `mysql:5.7`, which also returns
 fragment and `temporal/*-null-if-value*` tests are commented out in
 `mysql/oldest/bun_sql_mysql` and run live on `mysql2` and on the MySQL 8.0+ tiers.
 
+### Oracle rejects a cycle in a recursive `with` even with a limit on the depth
+
+When the rows of a recursive `with` form a cycle, Oracle answers `ORA-32044: cycle detected while executing recursive WITH query`, also when a condition on a level column would end the walk (verified on the `newest` and `oldest` images). PostgreSQL, MySQL, MariaDB, SQLite and SQL Server follow the cycle until the condition stops it. On Oracle, `connectByNoCycle` is the way to walk data with a cycle. The test `docs:recursive-select/depth-limit` is commented out with `// NOT-SUPPORTED:` on the Oracle cells.
+
 ### `replaceAllInsensitiveFunction`'s UDF cannot be registered on Bun SQL / `sqlite3`
 
 `replaceAllInsensitiveFunction` lets a SQLite connection route

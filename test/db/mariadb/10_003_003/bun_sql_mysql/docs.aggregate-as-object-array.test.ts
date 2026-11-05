@@ -284,6 +284,272 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
+    test('docs:aggregate-as-object-array/ordering-and-limiting-the-array', async () => {
+        // Section "Ordering and limiting the array": only the inline form takes an order
+        // by and a limit, and they apply to the array of each row. Project 1 has issues 1
+        // and 2, so the last one is issue 2.
+        const expected = {
+            id: 1, name: 'Marketing site',
+            lastIssues: [{ id: 2, title: 'Redesign navbar' }],
+        }
+        ctx.mockNext({
+            id: 1, name: 'Marketing site',
+            lastIssues: JSON.stringify([{ id: 2, title: 'Redesign navbar' }]),
+        })
+        const connection = ctx.conn
+
+        // doc-start
+        const lastIssues = connection.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .select({
+                id:    tIssue.id,
+                title: tIssue.title,
+            })
+            .orderBy('id', 'desc')
+            .limit(1)
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({
+                id:   tProject.id,
+                name: tProject.name,
+                lastIssues,
+            })
+            .executeSelectOne()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, cast((select json_arrayagg(json_object('id', id, 'title', title) order by id desc limit ?) from issue where project_id = project.id) as char) as lastIssues from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id:         number
+            name:       string
+            lastIssues: Array<{ id: number; title: string }>
+        }>>()
+        expect(row).toEqual(expected)
+    })
+    */
+
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
+    test('docs:aggregate-as-object-array/arrays-inside-an-array', async () => {
+        // Section "Arrays inside an array": an inline array as a property of the elements
+        // of another inline array. Organization 1 has projects 1 (issues 1, 2) and 2
+        // (issue 3).
+        ctx.mockNext({
+            id: 1, name: 'Acme Corp',
+            projects: JSON.stringify([
+                { id: 1, name: 'Marketing site', issues: [{ id: 1 }, { id: 2 }] },
+                { id: 2, name: 'Internal tools', issues: [{ id: 3 }] },
+            ]),
+        })
+        const connection = ctx.conn
+
+        // doc-start
+        const issuesOfTheProject = connection.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .select({ id: tIssue.id })
+            .forUseAsInlineAggregatedArrayValue()
+
+        const projectsOfTheOrganization = connection.subSelectUsing(tOrganization).from(tProject)
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .select({
+                id:     tProject.id,
+                name:   tProject.name,
+                issues: issuesOfTheProject,
+            })
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await connection.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({
+                id:       tOrganization.id,
+                name:     tOrganization.name,
+                projects: projectsOfTheOrganization,
+            })
+            .executeSelectOne()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, cast((select json_arrayagg(json_object('id', id, 'name', name, 'issues', (select json_arrayagg(json_object('id', id)) from issue where project_id = project.id))) from project where organization_id = organization.id) as char) as projects from organization where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id:       number
+            name:     string
+            projects: Array<{ id: number; name: string; issues: Array<{ id: number }> }>
+        }>>()
+        // No order by: the order of each array is not defined, so they are sorted to compare.
+        const sorted = {
+            ...row,
+            projects: [...row.projects]
+                .map(p => ({ ...p, issues: [...p.issues].sort((a, b) => a.id - b.id) }))
+                .sort((a, b) => a.id - b.id),
+        }
+        expect(sorted).toEqual({
+            id: 1, name: 'Acme Corp',
+            projects: [
+                { id: 1, name: 'Marketing site', issues: [{ id: 1 }, { id: 2 }] },
+                { id: 2, name: 'Internal tools', issues: [{ id: 3 }] },
+            ],
+        })
+    })
+    */
+
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
+    test('docs:aggregate-as-object-array/array-only-when-required', async () => {
+        // Section "When there are no values": `onlyWhenOrNull(false)` writes a null in the
+        // place of the subquery, so the property is absent from the result.
+        ctx.mockNext({ id: 1, name: 'Acme Corp', projects: null })
+        const connection = ctx.conn
+        const includeProjects: boolean = false
+
+        // doc-start
+        const projectsOfTheOrganization = connection.subSelectUsing(tOrganization).from(tProject)
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .select({
+                id:   tProject.id,
+                name: tProject.name,
+            })
+            .forUseAsInlineAggregatedArrayValue()
+            .onlyWhenOrNull(includeProjects)
+
+        const row = await connection.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({
+                id:       tOrganization.id,
+                name:     tOrganization.name,
+                projects: projectsOfTheOrganization,
+            })
+            .executeSelectOne()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, cast(null as char) as projects from organization where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id:        number
+            name:      string
+            projects?: Array<{ id: number; name: string }>
+        }>>()
+        expect(row).toEqual({ id: 1, name: 'Acme Corp' })
+    })
+    */
+
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
+    test('docs:aggregate-as-object-array/optional-values-of-an-aggregate', async () => {
+        // Section "Optional values in the elements": `projectingOptionalValuesAsNullable()`
+        // right after `aggregateAsArray(...)`. Project 1 has issue 1 (body null) and
+        // issue 2 (body set).
+        ctx.mockNext({
+            id: 1,
+            issues: JSON.stringify([
+                { id: 1, body: null },
+                { id: 2, body: 'Use new tokens' },
+            ]),
+        })
+        const connection = ctx.conn
+
+        // doc-start
+        const tIssueLeftJoin = tIssue.forUseInLeftJoin()
+
+        const row = await connection.selectFrom(tProject)
+            .leftJoin(tIssueLeftJoin).on(tIssueLeftJoin.projectId.equals(tProject.id))
+            .where(tProject.id.equals(1))
+            .select({
+                id: tProject.id,
+                issues: connection.aggregateAsArray({
+                    id:   tIssueLeftJoin.id,
+                    body: tIssueLeftJoin.body,
+                }).projectingOptionalValuesAsNullable(),
+            })
+            .groupBy('id')
+            .executeSelectOne()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, cast(json_arrayagg(json_object('id', issue.id, 'body', issue.\`body\`)) as char) as issues from project left join issue on issue.project_id = project.id where project.id = ? group by project.id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id:     number
+            issues: Array<{ id: number; body: string | null }>
+        }>>()
+        // No order by: the order of the array is not defined, so it is sorted to compare.
+        expect([...row.issues].sort((a, b) => a.id - b.id)).toEqual([
+            { id: 1, body: null },
+            { id: 2, body: 'Use new tokens' },
+        ])
+    })
+    */
+
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
+    test('docs:aggregate-as-object-array/optional-values-of-an-inline-query', async () => {
+        // Section "Optional values in the elements": in the inline form the method goes
+        // right after `select(...)`.
+        ctx.mockNext({
+            id: 1,
+            issues: JSON.stringify([
+                { id: 1, body: null },
+                { id: 2, body: 'Use new tokens' },
+            ]),
+        })
+        const connection = ctx.conn
+
+        // doc-start
+        const issuesOfTheProject = connection.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .select({
+                id:   tIssue.id,
+                body: tIssue.body,
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('id')
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({
+                id:     tProject.id,
+                issues: issuesOfTheProject,
+            })
+            .executeSelectOne()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(json_object('id', id, 'body', \`body\`) order by id) from issue where project_id = project.id) as char) as issues from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id:     number
+            issues: Array<{ id: number; body: string | null }>
+        }>>()
+        expect(row.issues).toEqual([
+            { id: 1, body: null },
+            { id: 2, body: 'Use new tokens' },
+        ])
+    })
+    */
+
     // Tests referencing these are commented out above with NOT-SUPPORTED
     // markers; keep the bindings referenced so noUnusedLocals stays green.
     void assertType; void expect; void tIssue; void tOrganization; void tProject; void test

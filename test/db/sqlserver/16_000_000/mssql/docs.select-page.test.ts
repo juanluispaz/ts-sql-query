@@ -5,7 +5,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tProject } from '../../domain/connection.js'
+import { tIssue, tProject, tOrganization } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -62,6 +62,279 @@ describe(ctx.label, () => {
             count: number
         }>>()
         expect(projectPageWithName).toEqual({ data: [], count: 1 })
+    })
+
+    test('docs:select-page/page-number-to-offset', async () => {
+        // Section "Limit and offset": page 2 of 3 rows of the 4 seeded projects.
+        ctx.mockNext([{ id: 4, name: 'Legacy app' }])
+        ctx.mockNext(4)
+        const connection = ctx.conn
+
+        // doc-start
+        const pageNumber = 2
+        const pageSize = 3
+
+        const projectPage = await connection.selectFrom(tProject)
+            .select({
+                id:   tProject.id,
+                name: tProject.name,
+            })
+            .orderBy('id')
+            .limit(pageSize)
+            .offset((pageNumber - 1) * pageSize)
+            .executeSelectPage()
+
+        const totalPages = Math.ceil(projectPage.count / pageSize)
+        // doc-end
+
+        expect(ctx.history.length).toBe(2)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select id as id, name as name from project order by id offset @0 rows fetch next @1 rows only"`)
+        expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
+          [
+            3,
+            3,
+          ]
+        `)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"select count(*) from project"`)
+        expect(ctx.history[1]!.params).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof projectPage, {
+            data:  Array<{ id: number; name: string }>
+            count: number
+        }>>()
+        expect(projectPage).toEqual({ data: [{ id: 4, name: 'Legacy app' }], count: 4 })
+        expect(totalPages).toBe(2)
+    })
+
+    test('docs:select-page/limit-and-offset-if-value', async () => {
+        // Section "Limit and offset": the offset has no value, so only the limit is applied.
+        const expected = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expected)
+        ctx.mockNext(4)
+        const connection = ctx.conn
+
+        // doc-start
+        const paging: { limit?: number, offset?: number } = { limit: 2 }
+
+        const projectPage = await connection.selectFrom(tProject)
+            .select({
+                id: tProject.id,
+            })
+            .orderBy('id')
+            .limitIfValue(paging.limit)
+            .offsetIfValue(paging.offset)
+            .executeSelectPage()
+        // doc-end
+
+        expect(ctx.history.length).toBe(2)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select id as id from project order by id offset 0 rows fetch next @0 rows only"`)
+        expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"select count(*) from project"`)
+        assertType<Exact<typeof projectPage, {
+            data:  Array<{ id: number }>
+            count: number
+        }>>()
+        expect(projectPage).toEqual({ data: expected, count: 4 })
+    })
+
+    test('docs:select-page/only-the-rows', async () => {
+        // Section "You don't need the total": `executeSelectMany` sends one query.
+        const expected = [{ id: 2, name: 'Internal tools' }, { id: 3, name: 'Public API' }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const projects = await connection.selectFrom(tProject)
+            .select({
+                id:   tProject.id,
+                name: tProject.name,
+            })
+            .orderBy('id')
+            .limit(2)
+            .offset(1)
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.history.length).toBe(1)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project order by id offset @0 rows fetch next @1 rows only"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof projects, Array<{ id: number; name: string }>>>()
+        expect(projects).toEqual(expected)
+    })
+
+    test('docs:select-page/known-count', async () => {
+        // Section "You already know the total": the count given is returned as it is.
+        const expected = [{ id: 3, name: 'Public API' }, { id: 4, name: 'Legacy app' }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const knownCount = 4
+
+        const projectPage = await connection.selectFrom(tProject)
+            .select({
+                id:   tProject.id,
+                name: tProject.name,
+            })
+            .orderBy('id')
+            .limit(2)
+            .offset(2)
+            .executeSelectPage({ count: knownCount })
+        // doc-end
+
+        expect(ctx.history.length).toBe(1)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project order by id offset @0 rows fetch next @1 rows only"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof projectPage, {
+            data:  Array<{ id: number; name: string }>
+            count: number
+        }>>()
+        expect(projectPage).toEqual({ data: expected, count: 4 })
+    })
+
+    test('docs:select-page/only-the-total', async () => {
+        // Section "You only need the total": with `data`, only the count query is sent, and
+        // the order by, the limit and the offset of the same query aren't used.
+        ctx.mockNext(4)
+        const connection = ctx.conn
+
+        // doc-start
+        const projects: { id: number, name: string }[] = [] // Or the rows you already have
+
+        const projectPage = await connection.selectFrom(tProject)
+            .select({
+                id: tProject.id,
+                name: tProject.name,
+            })
+            .orderBy('id')
+            .limit(10)
+            .offset(20)
+            .executeSelectPage({ data: projects })
+        // doc-end
+
+        expect(ctx.history.length).toBe(1)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) from project"`)
+        assertType<Exact<typeof projectPage, { data: { id: number, name: string }[], count: number }>>()
+        expect(projectPage).toEqual({ data: [], count: 4 })
+    })
+
+    test('docs:select-page/extra-properties', async () => {
+        // Section "Extra properties": they arrive in the result next to `data` and `count`.
+        const expected = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expected)
+        ctx.mockNext(4)
+        const connection = ctx.conn
+
+        // doc-start
+        const pageNumber = 1
+        const pageSize = 2
+
+        const projectPage = await connection.selectFrom(tProject)
+            .select({
+                id: tProject.id,
+            })
+            .orderBy('id')
+            .limit(pageSize)
+            .offset((pageNumber - 1) * pageSize)
+            .executeSelectPage({ pageNumber, pageSize })
+        // doc-end
+
+        expect(ctx.history.length).toBe(2)
+        assertType<Exact<typeof projectPage, {
+            data:       Array<{ id: number }>
+            count:      number
+            pageNumber: number
+            pageSize:   number
+        }>>()
+        expect(projectPage).toEqual({ data: expected, count: 4, pageNumber: 1, pageSize: 2 })
+    })
+
+    test('docs:select-page/group-by', async () => {
+        // Section "What the total counts": the count is the number of groups. The 4 seeded
+        // issues have 3 different statuses.
+        const expected = [{ status: 'closed', issues: 1 }, { status: 'in_progress', issues: 1 }]
+        ctx.mockNext(expected)
+        ctx.mockNext(3)
+        const connection = ctx.conn
+
+        // doc-start
+        const issuesByStatus = await connection.selectFrom(tIssue)
+            .select({
+                status: tIssue.status,
+                issues: connection.countAll(),
+            })
+            .groupBy('status')
+            .orderBy('status')
+            .limit(2)
+            .executeSelectPage()
+        // doc-end
+
+        expect(ctx.history.length).toBe(2)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select status as status, count(*) as issues from issue group by status order by status offset 0 rows fetch next @0 rows only"`)
+        expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (select status as status, count(*) as issues from issue group by status) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.params).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof issuesByStatus, {
+            data:  Array<{ status: string; issues: number }>
+            count: number
+        }>>()
+        expect(issuesByStatus).toEqual({ data: expected, count: 3 })
+    })
+
+    test('docs:select-page/compound-select', async () => {
+        // Section "What the total counts": the limit applies to the combined result and
+        // the count is the number of combined rows: 2 organizations + 4 projects.
+        const expected = [{ name: 'Acme Corp' }, { name: 'Globex Ltd' }, { name: 'Internal tools' }]
+        ctx.mockNext(expected)
+        ctx.mockNext(6)
+        const connection = ctx.conn
+
+        // doc-start
+        const namesPage = await connection.selectFrom(tOrganization)
+            .select({
+                name: tOrganization.name,
+            }).union(
+                connection.selectFrom(tProject)
+                .select({
+                    name: tProject.name,
+                }),
+            )
+            .orderBy('name')
+            .limit(3)
+            .executeSelectPage()
+        // doc-end
+
+        expect(ctx.history.length).toBe(2)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select name as name from organization union select name as name from project order by name offset 0 rows fetch next @0 rows only"`)
+        expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (select name as name from organization union select name as name from project) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.params).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof namesPage, {
+            data:  Array<{ name: string }>
+            count: number
+        }>>()
+        expect(namesPage).toEqual({ data: expected, count: 6 })
     })
 
     test('docs-extra:select-page/plain-filtered-count-retains-where-drops-paging', async () => {

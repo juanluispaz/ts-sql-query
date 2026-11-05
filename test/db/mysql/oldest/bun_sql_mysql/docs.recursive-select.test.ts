@@ -178,6 +178,103 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
+    /*
+    test('docs:recursive-select/union-stops-at-cycle', async () => {
+        // Issues 1 and 2 are the parent of each other, inside the rollback.
+        const expected = [
+            { id: 1, title: 'Update hero copy', parentId: 2 },
+            { id: 2, title: 'Redesign navbar',  parentId: 1 },
+        ]
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        await ctx.withRollback(async () => {
+            await connection.update(tIssue).set({ parentId: 1 }).where(tIssue.id.equals(2)).executeUpdate()
+            await connection.update(tIssue).set({ parentId: 2 }).where(tIssue.id.equals(1)).executeUpdate()
+
+            // doc-start
+            const issues = await connection.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({
+                    id:       tIssue.id,
+                    title:    tIssue.title,
+                    parentId: tIssue.parentId,
+                })
+                .recursiveUnionOn((parent) => {
+                    return parent.id.equals(tIssue.parentId)
+                })
+                .orderBy('id')
+                .executeSelectMany()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof issues, Array<{
+                id:        number
+                title:     string
+                parentId?: number
+            }>>>()
+            expect(issues).toEqual(expected)
+        })
+    })
+    */
+
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
+    /*
+    test('docs:recursive-select/depth-limit', async () => {
+        // Issues 1 and 2 are the parent of each other, inside the rollback: the
+        // limit on the level is what ends the query.
+        const expected = [
+            { id: 1, title: 'Update hero copy', level: 1 },
+            { id: 2, title: 'Redesign navbar',  level: 2 },
+            { id: 1, title: 'Update hero copy', level: 3 },
+        ]
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        await ctx.withRollback(async () => {
+            await connection.update(tIssue).set({ parentId: 1 }).where(tIssue.id.equals(2)).executeUpdate()
+            await connection.update(tIssue).set({ parentId: 2 }).where(tIssue.id.equals(1)).executeUpdate()
+
+            // doc-start
+            const issues = await connection.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({
+                    id:    tIssue.id,
+                    title: tIssue.title,
+                    level: connection.const(1, 'int'),
+                })
+                .recursiveUnionAll((parent) => {
+                    return connection.selectFrom(tIssue)
+                        .join(parent).on(parent.id.equals(tIssue.parentId))
+                        .where(parent.level.lessThan(3))
+                        .select({
+                            id:    tIssue.id,
+                            title: tIssue.title,
+                            level: parent.level.add(1),
+                        })
+                })
+                .orderBy('level')
+                .executeSelectMany()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof issues, Array<{
+                id:    number
+                title: string
+                level: number
+            }>>>()
+            expect(issues).toEqual(expected)
+        })
+    })
+    */
+
     // NOT-APPLICABLE: `.startWith` / `.connectBy` are typed `never` on this connection; the hierarchical query clauses exist only on Oracle.
     /*
     test('docs:recursive-select/connect-by', async () => {

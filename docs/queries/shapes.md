@@ -371,8 +371,8 @@ const shapedUpdateCustomerNameAndCompanyNameResult: Promise<number>
 When the table has [groups of columns](../configuration/mapping.md#grouping-columns), a shape names a column in a group by its path, and it can have its own groups, which don't need to follow the ones of the table:
 
 ```ts
-const query = connection.update(tCompany)
+const query = connection.update(tGroupedCompany)
     .shapedAs({ title: 'name', position: { lat: 'ubication.latitude', lng: 'ubication.longitude' } })
     .set({ position: { lat: '40.4' } })
-    .where(tCompany.id.equals(10));
+    .where(tGroupedCompany.id.equals(10));
 ```

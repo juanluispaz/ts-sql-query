@@ -104,6 +104,8 @@ Anything imported through `__UNSUPPORTED__/` may change, break or disappear in a
 
 See the documentation at: https://ts-sql-query.readthedocs.io/
 
+For AI agents, the package includes the documentation of its version (`AGENTS.md`, `llms/` and `docs/`), and the website offers [`llms.txt`](https://ts-sql-query.readthedocs.io/llms.txt), with one file per area and per database.
+
 ## Examples
 
 You can find a complete example using ts-sql-query with PostgreSQL in the file [PgExample.ts](https://github.com/juanluispaz/ts-sql-query/blob/master/src/examples/PgExample.ts). You can browse the [examples folder](https://github.com/juanluispaz/ts-sql-query/tree/master/src/examples) to see an example for each supported database using different ways to connect to it.

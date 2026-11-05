@@ -11,6 +11,7 @@ repo_name: juanluispaz/ts-sql-query
 exclude_docs: |
   overrides/
   /README.md
+  /AGENTS.md
 # A link to an anchor that doesn't exist is a warning, so the strict build (docs:check) fails on it.
 validation:
   anchors: warn
@@ -53,6 +54,9 @@ extra:
       - accept
       - reject
       - manage
+# The documentation for AI agents: llms.txt, llms-*.txt and a Markdown copy of each page
+hooks:
+  - scripts/mkdocs-llms.py
 plugins:
   # https://squidfunk.github.io/mkdocs-material/setup/setting-up-site-search/#+search.separator + ' (escaped as '') + \- moved at the end of group, added +*<>@{}
   - search:
@@ -233,6 +237,7 @@ nav:
     - Transaction Keywords: keywords/transaction.md
   - About:
     - Philosophy and Design Goals: about/philosophy.md
+    - For AI agents: about/ai-agents.md
     - FAQs: about/faqs.md
     - Limitations: about/limitations.md
     - Examples: about/examples.md

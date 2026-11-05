@@ -10,7 +10,10 @@
         "**/*.js",
         "**/*.d.ts",
         "LICENSE.md",
-        "README.md"
+        "README.md",
+        "AGENTS.md",
+        "docs/**/*.md",
+        "llms/*.txt"
     ],
     "exports": {
         ".": {
@@ -291,12 +294,11 @@
         "coverage:mappers:with-matrix": "bash scripts/tests.sh --use-vitest --use-bun --coverage --coverage-scope mappers --coverage-format json --coverage-format json-summary --coverage-format text-summary runners '*/newest' --docker --wasm",
         "coverage:reopen": "bash scripts/tests-reopen.sh",
         "build": "rm -rf dist/*; tsc --version && tsc -p tsconfig.build.json",
-        "dist": "npm run build && cp LICENSE.md package.json README.md dist && cd dist && npm stage publish",
-        "dist-alpha": "npm run build && cp LICENSE.md package.json README.md dist && cd dist && npm stage publish --tag alpha",
-        "dist-beta": "npm run build && cp LICENSE.md package.json README.md dist && cd dist && npm stage publish --tag beta",
+        "dist": "npm run build && cp LICENSE.md package.json README.md dist && python3 -B scripts/llms.py --package dist && cd dist && npm stage publish",
+        "dist-alpha": "npm run build && cp LICENSE.md package.json README.md dist && python3 -B scripts/llms.py --package dist && cd dist && npm stage publish --tag alpha",
+        "dist-beta": "npm run build && cp LICENSE.md package.json README.md dist && python3 -B scripts/llms.py --package dist && cd dist && npm stage publish --tag beta",
         "docs": "mkdocs serve",
-        "docs:check": "mkdocs build --strict --site-dir \"$(mktemp -d)\"",
-        "create-single-doc-file": "sh ./scripts/create-single-doc-file.sh"
+        "docs:check": "mkdocs build --strict --site-dir \"$(mktemp -d)\""
     },
     "repository": {
         "type": "git",

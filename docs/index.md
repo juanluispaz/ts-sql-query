@@ -100,6 +100,10 @@ The complete enumerated list of public subpaths lives in the [`exports` field of
 
     Anything not listed in the public API can still be imported through the `ts-sql-query/__UNSUPPORTED__/<original/path>` prefix as an explicit, opt-in escape hatch (for custom dialects, plugins or debugging). Paths under `__UNSUPPORTED__/` carry **no stability guarantees** and may change, break or disappear in any release, including patch releases.
 
+## For AI agents
+
+The package includes its documentation for the agent working on your project, and this site offers [`llms.txt`](https://ts-sql-query.readthedocs.io/llms.txt): see [For AI agents](about/ai-agents.md).
+
 ## Related projects
 
 - [ts-sql-codegen](https://github.com/lorefnon/ts-sql-codegen): Utility that generates table mapper classes for `ts-sql-query` by inspecting a database through [tbls](https://github.com/k1LoW/tbls).

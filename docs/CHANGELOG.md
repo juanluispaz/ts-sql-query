@@ -18,6 +18,7 @@ Since the previous beta, the work moved from the SQL the library generates to wh
 
 **New features**:
 
+- For AI agents: the package includes `AGENTS.md`, the documentation of its version in `docs/`, and in `llms/` one file per area and, for writing queries, per database; the website publishes the same from `llms.txt` ([docs](about/ai-agents.md)).
 - Export the filter types of dynamic conditions (`StringFilter`, `ComparableFilter`, `EqualableFilter`, …) from `ts-sql-query/dynamic/condition` and the root entry.
 - Allow a query runner to run in a transaction managed by something else: new `forUseInTransaction` option in the query runners over a single connection; `PgLiteQueryRunner` and `MssqlPoolQueryRunner` also accept the transaction object of their driver ([docs](configuration/query-runners/combining-with-another-library.md#the-other-library-gives-its-connection)).
 - Add `having(columns => …)` after the select, which receives the columns of the select, so a grouped expression with a parameter can be filtered (see [the docs](queries/aggregate-and-group-by.md#filtering-the-groups-by-the-columns-of-the-select)).

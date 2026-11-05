@@ -2,4 +2,8 @@
 
 {% block extrahead %}
   <meta name="google-site-verification" content="ruivXg5wqtO4xIU_IijxnP-Tkk87YYdstc7EtMi8iA8" />
+  {% if page and page.file %}
+    <link rel="alternate" type="text/markdown" href="{{ page.file.src_uri | url }}" />
+  {% endif %}
+  <link rel="describedby" type="text/plain" href="{{ 'llms.txt' | url }}" />
 {% endblock %}

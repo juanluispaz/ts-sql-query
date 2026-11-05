@@ -48,10 +48,11 @@ AREAS = [
 PAGES = [
     ('Synchronous query runners', 'advanced/synchronous-query-runners.md', 'running queries without promises'),
     ('ID manipulation', 'advanced/id-manipulation.md', 'encrypting the ids that leave the backend'),
+    ('Migrating from v1', 'about/migrating-from-v1.md', 'what to change in an application on ts-sql-query v1'),
 ]
 OPTIONAL = [
     ('native-mappings', 'api/error-management/native-mappings/*.md', 'how a native error of each database maps to a reason, one page per database'),
-    ('Changelog', 'CHANGELOG.md', 'what changed in each version; its breaking changes are the migration guide from v1'),
+    ('Changelog', 'CHANGELOG.md', 'what changed in each version'),
     ('keywords', 'keywords/*.md', 'the SQL keywords, and what writes each one'),
     ('Philosophy', 'about/philosophy.md', 'why the library is the way it is'),
     ('For AI agents', 'about/ai-agents.md', 'which of these files to use'),

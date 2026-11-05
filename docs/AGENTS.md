@@ -2,11 +2,11 @@
 
 A type-safe SQL query builder for TypeScript: not an ORM. The SQL it sends is the query you wrote, and a query that doesn't make sense doesn't compile. It works with MariaDB, MySQL, Oracle, PostgreSQL, SQLite and SQL Server, on Node.js and Bun.
 
-This documentation is the one of the installed version. Prefer it to what you remember or to what is published for other versions: v2 differs a lot from v1. Read only what the task needs: a page, or the file of an area.
+This documentation is the one of the installed version. Prefer it to what you remember or to what is published for other versions: v2 differs a lot from v1. The files of each area, below, are the way to read it.
 
 ## Write SQL, declaratively
 
-This is the [philosophy](about/philosophy.md) of the library, and what agents get wrong most often. A query is described, not programmed, as in SQL itself, and that includes dynamic queries. The shape of the query is written once, and the values decide what applies.
+This is the [philosophy](about/philosophy.md) of the library, and the first thing to get right. A query is described, not programmed, as in SQL itself, and that includes dynamic queries. The shape of the query is written once, and the values decide what applies.
 
 Don't do this:
 
@@ -38,13 +38,11 @@ const customers = await connection.selectFrom(tCustomer)
 ```
 
 - **Reach for what declares it:** the `*IfValue` methods, `setIfValue`, `onlyWhen` / `ignoreWhen`, `orderByFromString`, the optional joins (`optionalInnerJoin`, `optionalLeftOuterJoin`), `dynamicConditionFor` and `dynamicPick`. Each page of "Filter by optional values" below shows them. Control flow around a query (`if`, `for`) is the last resort: `dynamicBooleanExpressionUsing` exists for the condition these can't express, not as the way to start.
-- **Stay in SQL.** The library maps no objects and hides no statement: a join, a subquery or an aggregate is written where it happens. Put the work in the query (a join, `aggregateAsArray`) rather than running queries in a loop and merging their rows in JavaScript, and don't wrap the library in a model layer of your own.
+- **Stay in SQL.** The library maps no objects and hides no statement: a join, a subquery or an aggregate is written where it happens. Put the work in the query (a join, `aggregateAsArray`) rather than running queries in a loop and merging their rows in JavaScript.
 
 ## Where to look
 
-### A whole area
-
-For writing queries, the file of your database has each query only with its SQL, so it costs a third less than the pages. Tokens are approximate.
+Start with the file of the area of your task. These files are written for you: one per area, so you read what the task needs, and the ones with queries carry only the SQL of your database, which is the one of the `Connection` class the project extends. Tokens are approximate.
 
 | To | Read | Tokens |
 |---|---|---|
@@ -56,11 +54,13 @@ For writing queries, the file of your database has each query only with its SQL,
 | Look up a method | [`llms-api.txt`](https://ts-sql-query.readthedocs.io/llms-api.txt) | 42k |
 | Understand an error | [`llms-errors.txt`](https://ts-sql-query.readthedocs.io/llms-errors.txt) | 21k |
 
-[`llms.txt`](https://ts-sql-query.readthedocs.io/llms.txt) is the index of all of them.
+[`llms.txt`](https://ts-sql-query.readthedocs.io/llms.txt) is the index of all of them, and of what isn't in any: the changelog and how the native errors of each database map to a reason.
 
-### One page
+To move a project from v1 to v2, read [Migrating from v1](about/migrating-from-v1.md): some changes don't stop compiling, and change results.
 
-Usually enough, and much cheaper than a whole area.
+### Coming back to a topic
+
+Once you know the area, go straight to the part you need, in those files or in its page. A page shows the SQL of a query in one tab per database, marked `=== "PostgreSQL"`: read the one of your database.
 
 | To | Read |
 |---|---|
@@ -79,32 +79,14 @@ Usually enough, and much cheaper than a whole area.
 | Understand an error | [Overview](api/error-management/overview.md), [library errors](api/error-management/library-raised-errors.md); [native mappings](api/error-management/native-mappings/) for a native error of your database |
 | Look up a method | [API](api/) |
 | See what can't be done | [Limitations](about/limitations.md) |
-| Migrate from v1 | The breaking changes of [the changelog](CHANGELOG.md), which is long: search it rather than reading it |
-
-The pages show the SQL of a query in one tab per database, marked `=== "PostgreSQL"`: read the one of your database.
-
-## A query
-
-```ts
-const customerId = 10;
-
-const customerWithId = await connection.selectFrom(tCustomer)
-    .where(tCustomer.id.equals(customerId))
-    .select({
-        id: tCustomer.id,
-        firstName: tCustomer.firstName,
-        birthday: tCustomer.birthday
-    })
-    .executeSelectOne();
-```
 
 ## Before you write code
 
-- **Let the types work.** The result type is inferred: an optional column is an optional property, and a type error usually means the query is wrong. Don't cast to get past it, and don't annotate the result by hand: to name it, use the [utility types](advanced/utility-types.md).
+- **Let the types work.** The result type is inferred, an optional column being an optional property, so you don't need to write it yourself. A type error usually means the query is wrong: don't cast to get past it. To name a type, use the [utility types](advanced/utility-types.md).
 - **Import from public paths only:** the root `ts-sql-query`, or a subpath listed in the `exports` of `package.json`. Never from `__UNSUPPORTED__/`.
 - **Choose the `execute*` method by the rows you expect:** `executeSelectOne` throws when there is no row, `executeSelectNoneOrOne` returns `null`, and both throw with more than one.
 - **"No value" has an exact meaning in `*IfValue`:** `null`, `undefined` or an empty string, unless the connection allows empty strings: see [dynamic queries](queries/dynamic-queries.md).
 - **`equals(null)` doesn't compile, on purpose.** Use `is(...)` for a comparison in which null can equal null, or `isNull()`: see [booleans and null](dynamic/three-valued-booleans.md).
-- **An update or delete whose `where` ends up empty is rejected at runtime** (`MISSING_WHERE`): don't work around it unless every row is really meant.
+- **An update or delete whose `where` ends up empty is rejected at runtime** (`MISSING_WHERE`). When every row is really meant, say it with `updateAllowingNoWhere` or `deleteAllowingNoWhereFrom`.
 - **Handle failures by reason:** the errors are typed, and `error.errorReason.reason` says what happened.
 - **Use the query builder before a fragment:** the methods are portable between databases, and a [fragment](queries/sql-fragments.md) is yours to keep valid on each one. Values go in as `${...}`, so they are parameters.

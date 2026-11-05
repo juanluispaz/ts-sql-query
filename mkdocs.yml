@@ -238,6 +238,7 @@ nav:
   - About:
     - Philosophy and Design Goals: about/philosophy.md
     - For AI agents: about/ai-agents.md
+    - Migrating from v1: about/migrating-from-v1.md
     - FAQs: about/faqs.md
     - Limitations: about/limitations.md
     - Examples: about/examples.md

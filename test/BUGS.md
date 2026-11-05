@@ -77,11 +77,6 @@ regression either.
 
 *(none)*
 
-## The pick types stop one level before what a select projects
-
-`DynamicPickPaths<{ a: { b: { c: { d: { e: ... } } } } }>` is `'a' | 'a.b' | 'a.b.c'`, and `DynamicPick` gives `d?: never`. The runtime picks them all.
-Test: `dynamic-utilities/pick-types-reach-the-fifth-level` in `types.dynamic-utilities`.
-
 ## Coverage gaps carried over (not bugs — no entry to fix)
 
 These are **not** defects and there is nothing in `src/` to change. They are the

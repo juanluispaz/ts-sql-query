@@ -340,8 +340,6 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[BUG]: a select projects 5 levels of objects, but the pick types stop before the fifth; the runtime picks them all the same.
-    /*
     test('dynamic-utilities/pick-types-reach-the-fifth-level', () => {
         const fields = { a: { b: { c: { d: { e: tIssue.id } } } } }
 
@@ -350,5 +348,4 @@ describe(ctx.label, () => {
         const picked = dynamicPickPaths(fields, ['a.b.c.d.e'])
         expect(picked.a!.b!.c!.d!.e).toBe(tIssue.id)
     })
-    */
 })

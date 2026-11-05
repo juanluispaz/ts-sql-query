@@ -25,6 +25,7 @@ The nested objects that a select and the `with` queries already accepted now wor
 **Bug fixes**:
 
 - A `Values` class with a nested object of columns compiled and failed on the database, and renamed the columns after the object.
+- `DynamicPick`, `DynamicPickPaths` and the functions that use them stopped one level before what a select projects: the columns of an object at the fifth level couldn't be picked.
 
 ## v2.0.0-beta.3 (5 Nov 2026)
 

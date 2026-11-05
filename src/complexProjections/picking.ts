@@ -39,7 +39,7 @@ type PickablePaths5<TYPE, PREFIX extends string> =
     ? never
     : TYPE extends AnyValueSource
     ? `${PREFIX}`
-    : never
+    : { [KEY in RequiredKeys<TYPE>] : undefined extends TYPE[KEY] ? never : TYPE[KEY] extends AnyValueSource ? `${PREFIX}.${KEY}` : never }[RequiredKeys<TYPE>] | `${PREFIX}` // Stop recursion here
     
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -69,14 +69,14 @@ type PickingAsBooleanObjectMap4<TYPE, EXCLUDE extends string> =
     ? never
     : TYPE extends AnyValueSource
     ? boolean
-    : Expand<{ [KEY in Exclude<RequiredKeys<TYPE>, EXCLUDE>]? : PickingAsBooleanObjectMap5<TYPE[KEY]> }>
+    : Expand<{ [KEY in Exclude<RequiredKeys<TYPE>, EXCLUDE>]? : PickingAsBooleanObjectMap5<TYPE[KEY], UnprefixPath<EXCLUDE, KEY>> }>
 
-type PickingAsBooleanObjectMap5<TYPE> =
+type PickingAsBooleanObjectMap5<TYPE, EXCLUDE extends string> =
     undefined extends TYPE
     ? never
     : TYPE extends AnyValueSource
     ? boolean
-    : never
+    : Expand<{ [KEY in Exclude<RequiredKeys<TYPE>, EXCLUDE>]? : undefined extends TYPE[KEY] ? never : TYPE[KEY] extends AnyValueSource ? boolean : never }> // Stop recursion here
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

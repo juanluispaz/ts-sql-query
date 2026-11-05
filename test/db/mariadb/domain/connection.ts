@@ -985,6 +985,13 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
         return this.rawFragment`(select * from ${table} where ${this.const(a, 'int')} >= 0 and ${this.const(b, 'int')} >= 0 and ${this.const(c, 'int')} >= 0 and ${this.const(d, 'int')} >= 0 and ${this.const(e, 'int')} >= 0) ${alias}`
     })
 
+    // The versions of a row valid at some moment between two instants.
+    forSystemTimeBetween = this.createTableOrViewCustomization<Date, Date>((table, alias, fromDate, toDate) => {
+        const from = this.const(fromDate, 'localDateTime')
+        const to = this.const(toDate, 'localDateTime')
+        return this.rawFragment`${table} for system_time between ${from} and ${to} ${alias}`
+    })
+
     // A sequence whose drawn value carries a CUSTOM data type (customInt /
     // 'ReleaseTag') together with the `scaledByTypeName` adapter, so a derivation
     // applied to `nextValue()` / `currentValue()` records the data type the
@@ -2211,4 +2218,12 @@ export const vDerivedColumn = new class VDerivedColumn extends View<DBConnection
     centsVirtualOptional = this.optionalVirtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (fragment) => fragment.sql`${this.bInt}`, scaledByTypeName)
     moneyVirtualOptional = this.optionalVirtualColumnFromFragment<number, 'Money'>('customDouble', 'Money', (fragment) => fragment.sql`${this.bDouble}`, scaledByTypeName)
     constructor() { super('col_matrix_view') }
+}()
+
+// A plan of the service. Its versions are read through a table customization.
+export const tServicePlan = new class TServicePlan extends Table<DBConnection, 'TServicePlan'> {
+    id          = this.primaryKey('id', 'int')
+    name        = this.column('name', 'string')
+    description = this.optionalColumn('description', 'string')
+    constructor() { super('service_plan') }
 }()

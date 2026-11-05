@@ -22,6 +22,7 @@ DROP TABLE IF EXISTS app_user;
 DROP TABLE IF EXISTS organization;
 
 DROP TABLE IF EXISTS release_draft;
+DROP TABLE IF EXISTS service_plan;
 CREATE TABLE organization (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
@@ -343,3 +344,10 @@ CREATE FUNCTION cm_date() RETURNS DATE DETERMINISTIC RETURN (SELECT m_date FROM 
 CREATE FUNCTION cm_time() RETURNS TIME DETERMINISTIC RETURN (SELECT m_time FROM col_matrix WHERE id = 1);
 CREATE FUNCTION cm_datetime() RETURNS DATETIME DETERMINISTIC RETURN (SELECT m_datetime FROM col_matrix WHERE id = 1);
 CREATE FUNCTION cm_str() RETURNS VARCHAR(64) DETERMINISTIC RETURN (SELECT m_str FROM col_matrix WHERE id = 1);
+-- service_plan: a system-versioned table, every change of a row leaves its
+-- previous version in the same table, visible only through FOR SYSTEM_TIME.
+CREATE TABLE service_plan (
+    id INT NOT NULL PRIMARY KEY,
+    name VARCHAR(64) NOT NULL,
+    description VARCHAR(255) NULL
+) WITH SYSTEM VERSIONING;

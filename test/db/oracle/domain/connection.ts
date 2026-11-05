@@ -989,6 +989,12 @@ export class DBConnection extends OracleConnection<'DBConnection'> {
         return this.rawFragment`(select * from ${table} where ${this.const(a, 'int')} >= 0 and ${this.const(b, 'int')} >= 0 and ${this.const(c, 'int')} >= 0 and ${this.const(d, 'int')} >= 0 and ${this.const(e, 'int')} >= 0) ${alias}`
     })
 
+    // Every version of a row the undo still holds, whatever its age. MINVALUE and
+    // MAXVALUE are keywords, which can't be bound.
+    allVersions = this.createTableOrViewCustomization((table, alias) => {
+        return this.rawFragment`${table} versions between timestamp minvalue and maxvalue ${alias}`
+    })
+
     // A sequence whose drawn value carries a CUSTOM data type (customInt /
     // 'ReleaseTag') together with the `scaledByTypeName` adapter, so a derivation
     // applied to `nextValue()` / `currentValue()` records the data type the
@@ -2215,4 +2221,12 @@ export const vDerivedColumn = new class VDerivedColumn extends View<DBConnection
     centsVirtualOptional = this.optionalVirtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (fragment) => fragment.sql`${this.bInt}`, scaledByTypeName)
     moneyVirtualOptional = this.optionalVirtualColumnFromFragment<number, 'Money'>('customDouble', 'Money', (fragment) => fragment.sql`${this.bDouble}`, scaledByTypeName)
     constructor() { super('col_matrix_view') }
+}()
+
+// A plan of the service. Its versions are read through a table customization.
+export const tServicePlan = new class TServicePlan extends Table<DBConnection, 'TServicePlan'> {
+    id          = this.primaryKey('id', 'int')
+    name        = this.column('name', 'string')
+    description = this.optionalColumn('description', 'string')
+    constructor() { super('service_plan') }
 }()

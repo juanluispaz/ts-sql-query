@@ -6,7 +6,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tAppUser, tProject, tOrganization } from '../../domain/connection.js'
+import { tAppUser, tProject, tOrganization, tServicePlan } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -217,41 +217,39 @@ describe(ctx.label, () => {
     })
 
     test('docs:sql-fragments/table-customization', async () => {
-        // The customization is a derived table here, which needs the alias.
-        // Project 1 has no archived_at: the optional property isn't set.
-        const expected = [{ id: 1, name: 'Marketing site', slug: 'mktg-site' }]
+        // Bounds wide enough to hold every version whenever the seed ran. Plan 2 was
+        // never updated and has no description: the optional property isn't set.
+        const expected = [{ id: 2, name: 'Enterprise' }]
         ctx.mockNext(expected)
         const connection = ctx.conn
 
         // doc-start
-        const customizedProject = connection.withTwoParams(tProject.as('proj'), 'customizedProject', 0, 0)
+        const planInSystemTime = connection.forSystemTimeBetween(tServicePlan, 'planInSystemTime', new Date('2000-01-01'), new Date('2100-01-01'))
 
-        const projectsInCustomization = await connection.selectFrom(customizedProject)
-            .where(customizedProject.id.equals(1))
+        const plansInSystemTime = await connection.selectFrom(planInSystemTime)
+            .where(planInSystemTime.id.equals(2))
             .select({
-                id:         customizedProject.id,
-                name:       customizedProject.name,
-                slug:       customizedProject.slug,
-                archivedAt: customizedProject.archivedAt,
+                id:          planInSystemTime.id,
+                name:        planInSystemTime.name,
+                description: planInSystemTime.description,
             })
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select proj.id as id, proj.name as name, proj.slug as slug, proj.archived_at as archivedAt from (select * from project where @0 >= 0 and @1 >= 0) as proj where proj.id = @2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, description as description from service_plan for system_time between @0 and @1  where id = @2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            0,
-            0,
-            1,
+            2000-01-01T00:00:00.000Z,
+            2100-01-01T00:00:00.000Z,
+            2,
           ]
         `)
-        assertType<Exact<typeof projectsInCustomization, Array<{
-            id:          number
-            name:        string
-            slug:        string
-            archivedAt?: Date
+        assertType<Exact<typeof plansInSystemTime, Array<{
+            id:           number
+            name:         string
+            description?: string
         }>>>()
-        expect(projectsInCustomization).toEqual(expected)
+        expect(plansInSystemTime).toEqual(expected)
     })
 
     test('docs:sql-fragments/customize-query-select', async () => {

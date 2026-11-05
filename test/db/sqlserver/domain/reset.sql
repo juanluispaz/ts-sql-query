@@ -39,3 +39,12 @@ DBCC CHECKIDENT('ledger_entry',   RESEED, 0);
 ALTER SEQUENCE issue_id_seq   RESTART;
 ALTER SEQUENCE audit_tag_seq  RESTART;
 ALTER SEQUENCE release_tag_seq RESTART;
+GO
+-- A history table can't be written while versioning is on, and the DELETE of a
+-- versioned row would add a version: with versioning off both tables end empty.
+ALTER TABLE service_plan SET (SYSTEM_VERSIONING = OFF);
+GO
+DELETE FROM service_plan;
+DELETE FROM service_plan_history;
+GO
+ALTER TABLE service_plan SET (SYSTEM_VERSIONING = ON (HISTORY_TABLE = dbo.service_plan_history));

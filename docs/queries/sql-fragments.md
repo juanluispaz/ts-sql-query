@@ -524,43 +524,43 @@ The executed query is:
     ```
 === "MySQL"
     ```mysql
-    select 
-        id as id, 
-        first_name as firstName, 
-        last_name as lastName, 
-        birthday as birthday 
-    from customer for system_time between ? and ?  
-    where id = ?
+    --
+    --
+    --
+    -- MySQL doesn't support temporal tables
+    --
+    --
+    --
     ```
 === "Oracle"
     ```oracle
-    select 
-        id as "id", 
-        first_name as "firstName", 
-        last_name as "lastName", 
-        birthday as "birthday" 
-    from customer for system_time between :0 and :1  
-    where id = :2
+    --
+    --
+    --
+    -- Oracle doesn't support for system_time, see the flashback version query below
+    --
+    --
+    --
     ```
 ===+ "PostgreSQL"
     ```postgresql
-    select 
-        id as id, 
-        first_name as "firstName", 
-        last_name as "lastName", 
-        birthday as birthday 
-    from customer for system_time between $1 and $2  
-    where id = $3
+    --
+    --
+    --
+    -- PostgreSQL doesn't support temporal tables
+    --
+    --
+    --
     ```
 === "SQLite"
     ```sqlite
-    select 
-        id as id, 
-        first_name as firstName, 
-        last_name as lastName, 
-        birthday as birthday 
-    from customer for system_time between ?1 and ?2  
-    where id = ?3
+    --
+    --
+    --
+    -- SQLite doesn't support temporal tables
+    --
+    --
+    --
     ```
 === "SQL Server"
     ```sqlserver
@@ -584,6 +584,8 @@ const customerInSystemTime: Promise<{
     birthday?: Date;
 }[]>
 ```
+
+On [Oracle](../configuration/supported-databases/oracle.md), use a flashback version query instead, for example `${table} versions between timestamp minvalue and maxvalue ${alias}`; explicit bounds older than the last DDL of the table fail with `ORA-01466`.
 
 ## Customizing queries with raw SQL
 

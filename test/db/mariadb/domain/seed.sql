@@ -71,3 +71,9 @@ INSERT INTO col_matrix (id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m
 -- express. getSeconds() reads 59, getMilliseconds() reads 999.
 INSERT INTO temporal_precision (id, micro_stamp) VALUES
     (1, '2024-01-15 12:30:59.999600');
+-- service_plan: plan 1 has two versions, plan 2 only one. Each statement commits
+-- on its own, which is what gives the update a version to leave behind.
+INSERT INTO service_plan (id, name, description) VALUES
+    (1, 'Basic', 'Entry plan'),
+    (2, 'Enterprise', NULL);
+UPDATE service_plan SET name = 'Standard' WHERE id = 1;

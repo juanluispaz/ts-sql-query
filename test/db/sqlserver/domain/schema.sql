@@ -22,6 +22,11 @@ IF OBJECT_ID('app_user', 'U') IS NOT NULL DROP TABLE app_user;
 IF OBJECT_ID('organization', 'U') IS NOT NULL DROP TABLE organization;
 
 IF OBJECT_ID('release_draft', 'U') IS NOT NULL DROP TABLE release_draft;
+-- A system-versioned table can't be dropped, nor its history table, until
+-- versioning is off.
+IF OBJECTPROPERTY(OBJECT_ID('service_plan', 'U'), 'TableTemporalType') = 2 ALTER TABLE service_plan SET (SYSTEM_VERSIONING = OFF);
+IF OBJECT_ID('service_plan', 'U') IS NOT NULL DROP TABLE service_plan;
+IF OBJECT_ID('service_plan_history', 'U') IS NOT NULL DROP TABLE service_plan_history;
 CREATE TABLE organization (
     id INT IDENTITY(1,1) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
@@ -431,4 +436,16 @@ GO
 CREATE FUNCTION cm_datetime() RETURNS DATETIME AS BEGIN RETURN (SELECT m_datetime FROM col_matrix WHERE id = 1) END;
 GO
 CREATE FUNCTION cm_str() RETURNS VARCHAR(64) AS BEGIN RETURN (SELECT m_str FROM col_matrix WHERE id = 1) END;
+GO
+GO
+-- service_plan: a system-versioned temporal table, every change of a row leaves
+-- its previous version in service_plan_history.
+CREATE TABLE service_plan (
+    id INT NOT NULL PRIMARY KEY,
+    name VARCHAR(64) NOT NULL,
+    description VARCHAR(255) NULL,
+    valid_from DATETIME2 GENERATED ALWAYS AS ROW START HIDDEN NOT NULL,
+    valid_to DATETIME2 GENERATED ALWAYS AS ROW END HIDDEN NOT NULL,
+    PERIOD FOR SYSTEM_TIME (valid_from, valid_to)
+) WITH (SYSTEM_VERSIONING = ON (HISTORY_TABLE = dbo.service_plan_history));
 GO

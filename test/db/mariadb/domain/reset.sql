@@ -29,6 +29,10 @@ TRUNCATE TABLE project;
 TRUNCATE TABLE app_user;
 TRUNCATE TABLE organization;
 SET FOREIGN_KEY_CHECKS = 1;
+-- A system-versioned table rejects TRUNCATE. The DELETE turns every row into
+-- history, which DELETE HISTORY then removes.
+DELETE FROM service_plan;
+DELETE HISTORY FROM service_plan;
 ALTER SEQUENCE issue_id_seq RESTART;
 ALTER SEQUENCE audit_tag_seq RESTART;
 ALTER SEQUENCE release_tag_seq RESTART;

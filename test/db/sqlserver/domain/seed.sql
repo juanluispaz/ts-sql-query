@@ -85,3 +85,11 @@ INSERT INTO col_matrix (id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m
 -- express. getSeconds() reads 59, getMilliseconds() reads 999.
 INSERT INTO temporal_precision (id, micro_stamp) VALUES
     (1, '2024-01-15 12:30:59.999600');
+-- service_plan: plan 1 has two versions, plan 2 only one. Each statement commits
+-- on its own and the wait keeps their instants apart: FOR SYSTEM_TIME ignores a
+-- version whose validity period has zero duration.
+INSERT INTO service_plan (id, name, description) VALUES
+    (1, 'Basic', 'Entry plan'),
+    (2, 'Enterprise', NULL);
+WAITFOR DELAY '00:00:00.020';
+UPDATE service_plan SET name = 'Standard' WHERE id = 1;

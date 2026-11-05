@@ -11,8 +11,7 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('docs:compound-select/compound-operator', async () => {
-        // Section "Select with a compound operator (union, intersect,
-        // except)" — `unionAll` glues two compatible selects into one.
+        // Section "Combining two selects" — `unionAll` glues two compatible selects into one.
         // Real seed: 2 organizations + 4 projects = 6 rows.
         const expected = [
             { id: 1, name: 'Acme Corp',         kind: 'organization' as const },
@@ -54,5 +53,32 @@ describe(ctx.label, () => {
             kind: 'organization' | 'project'
         }>>>()
         expect(allNamed).toEqual(expected)
+    })
+
+    test('docs:compound-select/ordering-the-combined-result', async () => {
+        // Section "Ordering the combined result": the order by and the limit apply to
+        // the rows of both selects.
+        const expected = [
+            { id: 1, name: 'Acme Corp' },
+            { id: 2, name: 'Globex Ltd' },
+            { id: 2, name: 'Internal tools' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const firstNames = await connection.selectFrom(tOrganization)
+            .select({ id: tOrganization.id, name: tOrganization.name })
+            .unionAll(
+                connection.selectFrom(tProject)
+                    .select({ id: tProject.id, name: tProject.name })
+            ).orderBy('name')
+            .limit(3)
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", name as "name" from "organization" union all select id as "id", name as "name" from project order by 2 fetch next :0 rows only"`)
+        expect(firstNames).toEqual(expected)
+        assertType<Exact<typeof firstNames, Array<{ id: number; name: string }>>>()
     })
 })

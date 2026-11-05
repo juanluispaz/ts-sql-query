@@ -4,7 +4,7 @@ search:
 ---
 # Change Log
 
-## v2.0.0-beta.3 (Unreleased)
+## v2.0.0-beta.3 (5 Nov 2026)
 
 **Query runners, transactions and errors**:
 

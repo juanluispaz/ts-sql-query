@@ -6,13 +6,12 @@ reads, and it only needs one. Used by the website (scripts/mkdocs-llms.py, which
 package (`python3 scripts/llms.py --package dist`, which writes the pages to docs/ and the files to llms/).
 
 A page that belongs to no area stops the build, and so does a link of docs/AGENTS.md to a page that doesn't exist,
-or an area docs/about/ai-agents.md doesn't name.
+or an area that docs/AGENTS.md or docs/about/ai-agents.md doesn't name.
 """
 import glob
 import os
 import posixpath
 import re
-import shutil
 import sys
 
 DATABASES = {
@@ -175,7 +174,8 @@ def generate(root, llms_dir, pages_dir, base, files_prefix, intro):
 
     with open(os.path.join(docs_dir, 'AGENTS.md'), encoding='utf-8') as file:
         agents = file.read()
-    broken = [link for link in re.findall(r'\]\(docs/([^)#\s]+)', agents) if not os.path.exists(os.path.join(docs_dir, link))]
+    relative = [link for link in re.findall(r'\]\(([^)#\s]+)', agents) if not link.startswith('http')]
+    broken = [link for link in relative if not os.path.exists(os.path.join(docs_dir, link))]
     if broken:
         raise ValueError(f'docs/AGENTS.md links to pages that do not exist: {broken}')
 
@@ -183,6 +183,9 @@ def generate(root, llms_dir, pages_dir, base, files_prefix, intro):
     unnamed = [area[0] for area in AREAS if f'llms-{area[0]}' not in guide]
     if unnamed:
         raise ValueError(f'docs/about/ai-agents.md does not name the areas: {unnamed}')
+    unnamed = [area[0] for area in AREAS if f'llms-{area[0]}' not in agents]
+    if unnamed:
+        raise ValueError(f'docs/AGENTS.md does not name the areas: {unnamed}')
 
     index = [
         '# ts-sql-query',
@@ -218,12 +221,22 @@ def generate(root, llms_dir, pages_dir, base, files_prefix, intro):
     write(llms_dir, 'llms.txt', '\n'.join(index) + '\n')
 
 
+def _agents_for_the_package(text):
+    """docs/AGENTS.md links its folder and the website; in the package it sits next to docs/ and llms/."""
+    text = re.sub(r'\]\(https://ts-sql-query\.readthedocs\.io/(llms[\w.-]*\.txt)\)', r'](llms/\1)', text)
+    return re.sub(r'\]\((?!https?:|#|mailto:|llms/)([^)\s]+)\)', r'](docs/\1)', text)
+
+
 def main():
     if len(sys.argv) != 3 or sys.argv[1] != '--package':
         sys.exit('usage: llms.py --package <dist folder>')
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     dist = sys.argv[2]
-    shutil.copy(os.path.join(root, 'docs', 'AGENTS.md'), os.path.join(dist, 'AGENTS.md'))
+    with open(os.path.join(root, 'docs', 'AGENTS.md'), encoding='utf-8') as file:
+        agents = file.read()
+    agents = _agents_for_the_package(agents)
+    with open(os.path.join(dist, 'AGENTS.md'), 'w', encoding='utf-8') as file:
+        file.write(agents)
     generate(
         root,
         os.path.join(dist, 'llms'),
@@ -232,6 +245,10 @@ def main():
         '',
         'Read only the area of the task, and for writing queries only the file of your database. This is the documentation of the installed version.',
     )
+    links = re.findall(r'\]\(([^)#\s]+)', agents)
+    broken = [link for link in links if link.startswith('http') or not os.path.exists(os.path.join(dist, link))]
+    if broken:
+        sys.exit(f'AGENTS.md of the package has links out of it, or broken: {broken}')
 
 
 if __name__ == '__main__':

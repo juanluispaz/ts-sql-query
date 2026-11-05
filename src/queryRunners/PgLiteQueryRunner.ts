@@ -5,7 +5,7 @@ import { PostgresTransactionOutcome } from '../utils/postgresTransactionOutcome.
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getPgLiteErrorReason, isPgLiteError } from './connectorErrorMappers/PgLiteErrorMapper.js'
 
-export interface PgQueryRunnerConfig {
+export interface PgLiteQueryRunnerConfig {
     allowNestedTransactions?: boolean | undefined
     /** The connection is in a transaction that something else began, and that something else ends: none begins on it */
     forUseInTransaction?: boolean | undefined
@@ -15,10 +15,10 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
     readonly database: DatabaseType
     protected override readonly transactionOutcome = new PostgresTransactionOutcome()
     readonly connection: PGlite
-    private config?: PgQueryRunnerConfig | undefined
+    private config?: PgLiteQueryRunnerConfig | undefined
 
     /** connection: the database, or the transaction of db.transaction(...), the only one that can run a statement inside it */
-    constructor(connection: PGlite | Transaction, config?: PgQueryRunnerConfig) {
+    constructor(connection: PGlite | Transaction, config?: PgLiteQueryRunnerConfig) {
         super()
         // Only a database is asked to begin (see executeBeginTransaction)
         this.connection = connection as PGlite

@@ -58,6 +58,7 @@ These are the changes to look at when coming from v1.
 
 These only affect what was new in v2: they are not breaking when coming from v1.
 
+- The configuration of `PgLiteQueryRunner` is exported as `PgLiteQueryRunnerConfig`; it had the name of the one of `PgQueryRunner`, `PgQueryRunnerConfig`.
 - Transaction isolation levels now use the SQL standard names plus `'snapshot'`, and each database offers only the levels it delivers; the others are a TypeScript error ([docs](queries/transaction.md#transaction-isolation)). The SQL sent to the database stays the same after renaming. To migrate:
     - PostgreSQL, MySQL, MariaDB: `'repeatable read'` is now `'snapshot'`.
     - Oracle: `'serializable'` is now `'snapshot'`.

@@ -105,7 +105,7 @@ class RgbColorTypeAdapter implements TypeAdapter {
 
     // Optional
     transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string {
-        // You can force a type cast in the query if you want. With this code, the parameter in the SQL will looks like %1::bytea
+        // You can force a type cast in the query if you want. With this code, the parameter in the SQL will look like $1::bytea
         // By default, in PostgreSQL only, a type cast is generated when forceTypeCast is true
         if (type === 'RgbColor') {
             return placeholder + '::bytea'
@@ -172,7 +172,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     }   
     protected override transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown): string {
         // You can force a type cast in the query if you want. With this code, the parameter in the SQL will looks like %1::bytea
-        // By thefault, in PostgreSql only, a type cast is generated when forceTypeCast is true
+        // By default, in PostgreSql only, a type cast is generated when forceTypeCast is true
         if (type === 'RgbColor') {
             return placeholder + '::bytea'
         }

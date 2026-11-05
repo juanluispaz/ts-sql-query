@@ -987,7 +987,8 @@ The parameters are: `[ 1 ]`
 
     Each group is one company, so the parent of the company has a single value in each group. PostgreSQL accepts the query, because the group by has the primary key of the company, and so does SQLite, which takes the value of one of the rows of the group. The other databases reject it:
 
-    - MySQL and MariaDB: *Unknown column 'company.parent_id' in HAVING*.
+    - MySQL: *Unknown column 'company.parent_id' in 'having clause'*.
+    - MariaDB: *Unknown column 'company.parent_id' in 'HAVING'*.
     - SQL Server: *Column 'company.parent_id' is invalid in the HAVING clause because it is not contained in either an aggregate function or the GROUP BY clause*.
     - Oracle: *ORA-00979: must appear in the GROUP BY clause or be used in an aggregate function*.
 

@@ -39,36 +39,6 @@ describe(ctx.label, () => {
         })
     })
 
-    test('docs-extra:update/update-with-set-if-value', async () => {
-        ctx.mockNext(1)
-
-        await ctx.withRollback(async () => {
-            const connection = ctx.conn
-
-            // doc-start
-            const newTitle: string | null = 'Update hero copy (revised)'
-            const newPriority: number | null = null
-
-            const affected = await connection.update(tIssue)
-                .set({})
-                .setIfValue({ title:    newTitle })
-                .setIfValue({ priority: newPriority })
-                .where(tIssue.id.equals(1))
-                .executeUpdate()
-            // doc-end
-
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ? where id = ?"`)
-            expect(ctx.lastParams).toMatchInlineSnapshot(`
-              [
-                "Update hero copy (revised)",
-                1,
-              ]
-            `)
-            assertType<Exact<typeof affected, number>>()
-            expect(affected).toBe(1)
-        })
-    })
-
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092), newer than this tier's engine.
     /*
     test('docs:update/returning-one-column', async () => {

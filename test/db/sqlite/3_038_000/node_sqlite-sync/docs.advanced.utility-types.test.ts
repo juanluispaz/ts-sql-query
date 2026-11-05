@@ -440,7 +440,7 @@ describe(ctx.label, () => {
         await ctx.withRollback(async () => {
             ctx.mockNext(1)
             const row: InsertableRow<typeof tCountry> = { code: 'ES', name: ctx.conn.const('Spain', 'string'), region: 'Europe' }
-            await ctx.conn.insertInto(tCountry).set(row).executeInsert()
+            sync(ctx.conn.insertInto(tCountry).set(row).executeInsert())
             expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into country (code, name, region) values (?1, ?2, ?3)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
@@ -451,10 +451,10 @@ describe(ctx.label, () => {
             `)
 
             ctx.mockNext({ name: 'Spain' })
-            const read = await ctx.conn.selectFrom(tCountry)
+            const read = sync(ctx.conn.selectFrom(tCountry)
                 .where(tCountry.code.equals('ES'))
                 .select({ name: tCountry.name })
-                .executeSelectOne()
+                .executeSelectOne())
             expect(read).toEqual({ name: 'Spain' })
         })
     })
@@ -464,7 +464,7 @@ describe(ctx.label, () => {
             ctx.mockNext(1)
             const shape = { countryCode: 'code', countryName: 'name', countryRegion: 'region' } as const
             const row: InsertableRowShapedAs<typeof tCountry, typeof shape> = { countryCode: 'ES', countryName: ctx.conn.const('Spain', 'string'), countryRegion: 'Europe' }
-            await ctx.conn.insertInto(tCountry).shapedAs(shape).set(row).executeInsert()
+            sync(ctx.conn.insertInto(tCountry).shapedAs(shape).set(row).executeInsert())
             expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into country (code, name, region) values (?1, ?2, ?3)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
@@ -606,11 +606,11 @@ describe(ctx.label, () => {
             const row: UpdatableOnInsertConflictRow<typeof tCountry> = { name: tCountry.valuesForInsert().name }
 
             ctx.mockNext(1)
-            await ctx.conn.insertInto(tCountry)
+            sync(ctx.conn.insertInto(tCountry)
                 .set({ code: 'JP', name: 'Japan again', region: 'Asia' })
                 .onConflictOn(tCountry.code)
                 .doUpdateSet(row)
-                .executeInsert()
+                .executeInsert())
 
             expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into country (code, name, region) values (?1, ?2, ?3) on conflict (code) do update set name = excluded.name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`

@@ -156,6 +156,7 @@ export function getSqlServerEngineErrorReason(error: SqlServerEngineError): TsSq
         case 4104:
             return getInvalidSqlStatement(context, 'invalid reference')
         case 8120:
+        case 8121:
             return getInvalidSqlStatement(context, 'invalid grouping')
         case 8134:
             return { reason: 'SQL_DIVISION_BY_ZERO', ...getMetadata(context) }

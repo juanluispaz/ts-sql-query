@@ -353,10 +353,10 @@ describe(ctx.label, () => {
 
     test('docs-extra:query-execution-metadata/function-executing-query-with-the-caller-in-the-last-frame', async () => {
         ctx.mockNext({ id: 1, name: 'Marketing site' })
-        await ctx.conn.selectFrom(tProject)
+        sync(ctx.conn.selectFrom(tProject)
             .where(tProject.id.equals(1))
             .select({ id: tProject.id, name: tProject.name })
-            .executeSelectOne()
+            .executeSelectOne())
 
         const info = getFunctionExecutingQuery(ctx.lastSql, ctx.lastParams)
         expect(info?.fileName?.split('/').at(-1)).toBe('docs.advanced.query-execution-metadata.test.ts')

@@ -60,7 +60,7 @@ The place this surprises people most is **comparing two values that may both be 
 | `a.is(b)` | `a is not distinct from b` | `true` | boolean (never `null`) |
 | `a.isNot(b)` | `a is distinct from b` | `false` | boolean (never `null`) |
 
-The table shows the standard SQL for `is` / `isNot`, the one PostgreSQL receives. MySQL and MariaDB get `a <=> b` and `not (a <=> b)`, SQLite gets `a is b` and `a is not b`, Oracle gets a `decode`, and SQL Server gets `a = b` and `a <> b` when neither side can be null, or a `case` expression otherwise.
+The table shows the standard SQL for `is` / `isNot`, the one PostgreSQL receives. MySQL and MariaDB get `a <=> b` and `not (a <=> b)`, SQLite gets `a is b` and `a is not b`, Oracle gets a `decode`, and SQL Server gets `a = b` and `a <> b` when neither side can be null, or a `case` expression otherwise. SQL Server also gets `a is null` or `a is not null` when the argument is a `null` known while the query is built.
 
 - `equals` / `notEquals` follow **SQL**'s `=` / `<>`: three-valued, the result is an **optional** boolean (it may be `null`), and they take a present value — you cannot pass `null` / `undefined` to them.
 - `is` / `isNot` follow **JavaScript**'s `===` / `!==`: a **null-safe** comparison that treats `null` as equal to `null`, accepts `null` / `undefined` as the argument, and always returns a **definite** boolean — never `null`.
@@ -124,7 +124,7 @@ const companies = await connection.selectFrom(tCustomCompany)
 
 ## Three-valued logic still happens with database values
 
-The restriction above is about **values you inject from the backend**. A `null` produced by the **database itself** is legitimate and fully modelled: reading a nullable boolean column (declared with `optionalColumn('...', 'boolean')`) gives an **optional** boolean value source, and its result is typed as `boolean | null | undefined`. Comparisons between database expressions keep SQL's three-valued semantics on the server side.
+The restriction above is about **values you inject from the backend**. A `null` produced by the **database itself** is legitimate and fully modelled: reading a nullable boolean column (declared with `optionalColumn('...', 'boolean')`) gives an **optional** boolean value source, and its result is an optional property (`billable?: boolean`). Comparisons between database expressions keep SQL's three-valued semantics on the server side.
 
 If you genuinely need SQL's three-valued behaviour for a comparison — for example to compare two optional database expressions and let the result be `null` — write a custom [SQL fragment](../queries/sql-fragments.md) that returns an `optional` boolean. The FAQ entry [How to compare against a null or undefined value?](../about/limitations.md#how-to-compare-against-a-null-or-undefined-value) shows exactly this pattern.
 

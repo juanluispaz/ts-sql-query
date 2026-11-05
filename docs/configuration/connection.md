@@ -68,6 +68,10 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
 A select of the id and the first name of a customer is then written `select "id" as "id", "first_name" as "firstName" from "customer" where "id" = $1` instead of `select id as id, first_name as "firstName" from customer where id = $1`.
 
+!!! warning "Oracle"
+
+    Oracle stores an unquoted name in upper case, so a quoted lower-case one doesn't find it (`ORA-00942`, `ORA-00904`). If your schema was created with unquoted names, upper-case the identifier in the override: `this.forceAsIdentifier(identifier.toUpperCase())`.
+
 ## Instantiating the connection with the database connection
 
 ```ts

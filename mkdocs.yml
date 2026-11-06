@@ -67,6 +67,8 @@ plugins:
         'CHANGELOG.md': 'about/changelog/v2.md'
         'about/migrating-from-v1.md': 'about/changelog/migrating-from-v1.md'
         'about/limimitations.md': 'about/limitations.md'
+        'api/type-adpaters.md': 'api/type-adapters.md'
+        'keywords/functions-oprators.md': 'keywords/functions-operators.md'
         'about/examples.md': 'queries/basic-query-structure.md'
         'advanced/utility-dynamic-picks.md': 'dynamic/helper-types/picks.md'
         'advanced-usage.md': 'advanced/custom-booleans-values.md'
@@ -229,7 +231,7 @@ nav:
     - Insert API: api/insert.md
     - Update API: api/update.md
     - Delete API: api/delete.md
-    - Type adpaters API: api/type-adpaters.md
+    - Type adapters API: api/type-adapters.md
     - Dynamic conditions API: api/dynamic-conditions.md
     - Error Management:
       - Overview: api/error-management/overview.md
@@ -278,7 +280,7 @@ nav:
     - Insert Keywords: keywords/insert.md
     - Update Keywords: keywords/update.md
     - Delete Keywords: keywords/delete.md
-    - Function and Operator Keywords: keywords/functions-oprators.md
+    - Function and Operator Keywords: keywords/functions-operators.md
     - Transaction Keywords: keywords/transaction.md
   - About:
     - Philosophy and Design Goals: about/philosophy.md

@@ -12,12 +12,14 @@ interface ValueSource<T, TYPE_NAME> {
      */
     getConstValue(): any
     /**
-     * Throw an error if the value source is used in the generated sql query when the boolean value provided as argument is false
+     * Makes the query fail if the value source is used in it and the boolean value provided as argument is false.
+     * execute* rejects the promise with the error. query() and params() throw it.
      */
     allowWhen(when: boolean, errorMessage: string): this
     allowWhen(when: boolean, error: Error): this
     /**
-     * Throw an error if the value source is used in the generated sql query when the boolean value provided as argument is true
+     * Makes the query fail if the value source is used in it and the boolean value provided as argument is true.
+     * execute* rejects the promise with the error. query() and params() throw it.
      */
     disallowWhen(when: boolean, errorMessage: string): this
     disallowWhen(when: boolean, error: Error): this
@@ -26,43 +28,52 @@ interface ValueSource<T, TYPE_NAME> {
 interface NullableValueSource<T, TYPE_NAME> extends ValueSource<T, TYPE_NAME> {
     isNull(): BooleanValueSource
     isNotNull(): BooleanValueSource
+    /** The result is required if the provided value is required */
     valueWhenNull(value: T | this): this
+    /** The result is optional */
     nullIfValue(value: T | this): this
+    /** The result is optional */
     asOptional(): this
+    /** The value is required when the object that contains it has a value */
     asRequiredInOptionalObject(): this
+    /** The value when the argument is true, and null otherwise. The result is optional */
     onlyWhenOrNull(when: boolean): this
+    /** Null when the argument is true, and the value otherwise. The result is optional */
     ignoreWhenAsNull(when: boolean): this
 }
 
 interface EqualableValueSource<T, TYPE_NAME> extends NullableValueSource<T, TYPE_NAME> {
-    equalsIfValue(value: T | null | undefined): BooleanValueSource
+    equalsIfValue(value: T | null | undefined): IfValueSource
     equals(value: T | this): BooleanValueSource
-    notEqualsIfValue(value: T | null | undefined): BooleanValueSource
+    notEqualsIfValue(value: T | null | undefined): IfValueSource
     notEquals(value: T | this): BooleanValueSource
-    isIfValue(value: T | null | undefined): BooleanValueSource
-    /** 'is' is the same that equals, but returns true when both are null */
-    is(value: T | this): BooleanValueSource
-    isNotIfValue(value: T | null | undefined): BooleanValueSource
-    isNot(value: T | this): BooleanValueSource
+    isIfValue(value: T | null | undefined): IfValueSource
+    /** 'is' is the same as equals, but returns true when both are null. The result is required */
+    is(value: T | null | undefined | this): BooleanValueSource
+    isNotIfValue(value: T | null | undefined): IfValueSource
+    /** The result is required */
+    isNot(value: T | null | undefined | this): BooleanValueSource
 
-    inIfValue(values: T[] | null | undefined): BooleanValueSource
-    in(values: T[] | this[]): BooleanValueSource
+    inIfValue(values: T[] | null | undefined): IfValueSource
+    in(values: T[] | this): BooleanValueSource
+    /** The result is optional if the column of the subquery is optional */
     in(select: Subquery): BooleanValueSource
-    notInIfValue(values: T[] | null | undefined): BooleanValueSource
-    notIn(values: T[] | this[]): BooleanValueSource
+    notInIfValue(values: T[] | null | undefined): IfValueSource
+    notIn(values: T[] | this): BooleanValueSource
+    /** The result is optional if the column of the subquery is optional */
     notIn(select: Subquery): BooleanValueSource
-    inN(...value: T[] | this[]): BooleanValueSource
-    notInN(...value: T[] | this[]): BooleanValueSource
+    inN(...value: Array<T | this>): BooleanValueSource
+    notInN(...value: Array<T | this>): BooleanValueSource
 }
 
 interface ComparableValueSource<T, TYPE_NAME> extends EqualableValueSource<T, TYPE_NAME> {
-    lessThanIfValue(value: T | null | undefined): BooleanValueSource
+    lessThanIfValue(value: T | null | undefined): IfValueSource
     lessThan(value: T | this): BooleanValueSource
-    greaterThanIfValue(value: T | null | undefined): BooleanValueSource
+    greaterThanIfValue(value: T | null | undefined): IfValueSource
     greaterThan(value: T | this): BooleanValueSource
-    lessOrEqualIfValue(value: T | null | undefined): BooleanValueSource
+    lessOrEqualIfValue(value: T | null | undefined): IfValueSource
     lessOrEqual(value: T | this): BooleanValueSource
-    greaterOrEqualIfValue(value: T | null | undefined): BooleanValueSource
+    greaterOrEqualIfValue(value: T | null | undefined): IfValueSource
     greaterOrEqual(value: T | this): BooleanValueSource
     between(value: T | this, value2: T | this): BooleanValueSource
     notBetween(value: T | this, value2: T | this): BooleanValueSource
@@ -73,26 +84,64 @@ interface ComparableValueSource<T, TYPE_NAME> extends EqualableValueSource<T, TY
  */
 interface BooleanValueSource extends EqualableValueSource<boolean, 'boolean'> {
     negate(): this
-    and(value: boolean): this
-    or(value: boolean): this
-    /** This function returns a boolean expression that only applies if the argument is true */
+    and(value: boolean | BooleanValueSource | IfValueSource | AlwaysIfValueSource): this
+    or(value: boolean | BooleanValueSource | IfValueSource | AlwaysIfValueSource): this
+    /** Returns a boolean expression that only applies if the argument is true */
+    onlyWhen(condition: boolean): IfValueSource
+    /** Returns a boolean expression that only applies if the argument is false, it is ignored when true */
+    ignoreWhen(condition: boolean): IfValueSource
+}
+
+/**
+ * Represents a boolean that may have no value: the result of an *IfValue function, onlyWhen, ignoreWhen or noValueBoolean.
+ * When it has no value it is neutral: an and or an or with it gives the other operand, and a where with it is left out.
+ */
+interface IfValueSource {
+    /** A neutral boolean stays neutral */
+    negate(): IfValueSource
+    /** The result is a BooleanValueSource if the argument is a boolean or a BooleanValueSource */
+    and(value: boolean | BooleanValueSource | IfValueSource | AlwaysIfValueSource): BooleanValueSource | IfValueSource
+    /** The result is a BooleanValueSource if the argument is a boolean or a BooleanValueSource */
+    or(value: boolean | BooleanValueSource | IfValueSource | AlwaysIfValueSource): BooleanValueSource | IfValueSource
+    /** Returns a boolean expression that only applies if the argument is true */
+    onlyWhen(condition: boolean): IfValueSource
+    /** Returns a boolean expression that only applies if the argument is false, it is ignored when true */
+    ignoreWhen(condition: boolean): IfValueSource
+    /**
+     * Returns true when it has no value: null, undefined, an empty string (unless allowEmptyString is true) or an empty array
+     * was provided to the *IfValue function, or the condition was discarded by onlyWhen or ignoreWhen.
+     */
+    trueWhenNoValue(): BooleanValueSource
+    /** Same as trueWhenNoValue, but it returns false */
+    falseWhenNoValue(): BooleanValueSource
+    /** Same as trueWhenNoValue, but it returns the provided value. The result is an IfValueSource if the argument is one */
+    valueWhenNoValue(value: boolean | BooleanValueSource): BooleanValueSource
+    valueWhenNoValue(value: IfValueSource | AlwaysIfValueSource): IfValueSource
+}
+
+/**
+ * The same as IfValueSource, but every method returns this same type. It is the result of dynamicBooleanExpressionUsing,
+ * and allows to reassign a variable while a boolean expression is built.
+ */
+interface AlwaysIfValueSource {
+    negate(): this
+    and(value: boolean | BooleanValueSource | IfValueSource | AlwaysIfValueSource): this
+    or(value: boolean | BooleanValueSource | IfValueSource | AlwaysIfValueSource): this
     onlyWhen(condition: boolean): this
-    /** This function returns a boolean expression that only applies if the argument is false, it is ignored when true */
     ignoreWhen(condition: boolean): this
-    /** This function allows to return a true value when null or undefined were provided to the *IfValue function */
     trueWhenNoValue(): this
-    /** This function allows to return a false value when null or undefined were provided to the *IfValue function */
     falseWhenNoValue(): this
-    /** This function allows to return a value when null or undefined were provided to the *IfValue function */
-    valueWhenNoValue(value: boolean | this): this
+    valueWhenNoValue(value: boolean | BooleanValueSource | IfValueSource | AlwaysIfValueSource): this
 }
 
 /**
  * Represents an int or a double
  */
 interface NumberValueSource extends ComparableValueSource<number, 'number'> {
+    /** It may lose the decimals: the value is rounded when necessary */
     asInt(): NumberValueSource
     asDouble(): NumberValueSource
+    /** It may lose the decimals: the value is rounded when necessary */
     asBigint(): BigintValueSource
     abs(): this
     ceil(): this
@@ -149,7 +198,6 @@ interface BigintValueSource extends ComparableValueSource<bigint, 'bigint'> {
     maxValue(value: bigint | this): this
     add(value: bigint | this): this
     subtract(value: bigint | this): this
-    multiply(value: bigint | this): this
     modulo(value: bigint | this): this
 }
 
@@ -157,41 +205,41 @@ interface BigintValueSource extends ComparableValueSource<bigint, 'bigint'> {
  * Represents a string
  */
 interface StringValueSource extends ComparableValueSource<string, 'string'> {
-    equalsInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    equalsInsensitiveIfValue(value: string | null | undefined): IfValueSource
     equalsInsensitive(value: string | this): BooleanValueSource
-    notEqualsInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    notEqualsInsensitiveIfValue(value: string | null | undefined): IfValueSource
     notEqualsInsensitive(value: string | this): BooleanValueSource
-    likeIfValue(value: string | null | undefined): BooleanValueSource
+    likeIfValue(value: string | null | undefined): IfValueSource
     like(value: string | this): BooleanValueSource
-    notLikeIfValue(value: string | null | undefined): BooleanValueSource
+    notLikeIfValue(value: string | null | undefined): IfValueSource
     notLike(value: string | this): BooleanValueSource
-    likeInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    likeInsensitiveIfValue(value: string | null | undefined): IfValueSource
     likeInsensitive(value: string | this): BooleanValueSource
-    notLikeInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    notLikeInsensitiveIfValue(value: string | null | undefined): IfValueSource
     notLikeInsensitive(value: string | this): BooleanValueSource
-    startsWithIfValue(value: string | null | undefined): BooleanValueSource
+    startsWithIfValue(value: string | null | undefined): IfValueSource
     startsWith(value: string | this): BooleanValueSource
-    notStartsWithIfValue(value: string | null | undefined): BooleanValueSource
+    notStartsWithIfValue(value: string | null | undefined): IfValueSource
     notStartsWith(value: string | this): BooleanValueSource
-    endsWithIfValue(value: string | null | undefined): BooleanValueSource
+    endsWithIfValue(value: string | null | undefined): IfValueSource
     endsWith(value: string | this): BooleanValueSource
-    notEndsWithIfValue(value: string | null | undefined): BooleanValueSource
+    notEndsWithIfValue(value: string | null | undefined): IfValueSource
     notEndsWith(value: string | this): BooleanValueSource
-    startsWithInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    startsWithInsensitiveIfValue(value: string | null | undefined): IfValueSource
     startsWithInsensitive(value: string | this): BooleanValueSource
-    notStartsWithInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    notStartsWithInsensitiveIfValue(value: string | null | undefined): IfValueSource
     notStartsWithInsensitive(value: string | this): BooleanValueSource
-    endsWithInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    endsWithInsensitiveIfValue(value: string | null | undefined): IfValueSource
     endsWithInsensitive(value: string | this): BooleanValueSource
-    notEndsWithInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    notEndsWithInsensitiveIfValue(value: string | null | undefined): IfValueSource
     notEndsWithInsensitive(value: string | this): BooleanValueSource
-    containsIfValue(value: string | null | undefined): BooleanValueSource
+    containsIfValue(value: string | null | undefined): IfValueSource
     contains(value: string | this): BooleanValueSource
-    notContainsIfValue(value: string | null | undefined): BooleanValueSource
+    notContainsIfValue(value: string | null | undefined): IfValueSource
     notContains(value: string | this): BooleanValueSource
-    containsInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    containsInsensitiveIfValue(value: string | null | undefined): IfValueSource
     containsInsensitive(value: string | this): BooleanValueSource
-    notContainsInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    notContainsInsensitiveIfValue(value: string | null | undefined): IfValueSource
     notContainsInsensitive(value: string | this): BooleanValueSource
     toLowerCase(): StringValueSource
     toUpperCase(): StringValueSource
@@ -200,27 +248,32 @@ interface StringValueSource extends ComparableValueSource<string, 'string'> {
     trimLeft(): StringValueSource
     trimRight(): StringValueSource
     reverse(): StringValueSource
+    /** Forces a collation on this expression. The name is the one of the database, so it isn't portable */
     collate(collation: string): StringValueSource
     concatIfValue(value: string | null | undefined): StringValueSource
     concat(value: string | this): StringValueSource
+    /** The same as concatIgnoringNull, and the operand is dropped when it has no value. The result is optional if this value is optional */
     concatIgnoringNullIfValue(value: string | null | undefined): StringValueSource
+    /** A concatenation that reads null as an empty string. The result is optional only if both operands are optional */
     concatIgnoringNull(value: string | this): StringValueSource
     substrToEnd(start: number | NumberValueSource): StringValueSource
     substringToEnd(start: number | NumberValueSource): StringValueSource
     substr(start: number | NumberValueSource, count: number | NumberValueSource): StringValueSource
     substring(start: number | NumberValueSource, end: number | NumberValueSource): StringValueSource
-    replaceAllIfValue(findString: string | null | undefined, replaceWith: string | null | undefined): StringValueSource
+    /** At most one of the arguments can be a value source */
+    replaceAllIfValue(findString: string | null | undefined | this, replaceWith: string | null | undefined | this): StringValueSource
     replaceAll(findString: string | this, replaceWith: string | this): StringValueSource
-    replaceAllInsensitiveIfValue(findString: string | null | undefined, replaceWith: string | null | undefined): StringValueSource
+    /** At most one of the arguments can be a value source */
+    replaceAllInsensitiveIfValue(findString: string | null | undefined | this, replaceWith: string | null | undefined | this): StringValueSource
     replaceAllInsensitive(findString: string | this, replaceWith: string | this): StringValueSource
 }
 
 /**
  * Represents an UUID
  */
- interface UuidValueSource extends ComparableValueSource<string, 'uuid'> {
+interface UuidValueSource extends ComparableValueSource<string, 'uuid'> {
     asString(): StringValueSource
- }
+}
 
 /**
  * Represents a local date without time (using a Date object)
@@ -320,7 +373,8 @@ interface CustomDoubleValueSource<T, TYPE_NAME> extends ComparableValueSource<T,
     tan(): this
     power(value: T | this): this
     logn(value: T | this): this
-    roundn(value: T | this): this
+    /** The number of decimals can be a value of the custom type or a number, or a value source of either */
+    roundn(value: T | number | this | NumberValueSource): this
     /**
      * This function establishes a minimum value for the current value, that means the biggest value must be returned
      */
@@ -342,7 +396,7 @@ interface CustomDoubleValueSource<T, TYPE_NAME> extends ComparableValueSource<T,
  */
 interface CustomUuidValueSource<T, TYPE_NAME> extends ComparableValueSource<T, TYPE_NAME> {
     asString(): StringValueSource
- }
+}
 
 /**
  * Represents a custom local date without time (using a Date object)
@@ -400,7 +454,9 @@ interface CustomLocalDateTimeValueSource<T, TYPE_NAME> extends ComparableValueSo
  * Represents the result of an aggregate as object array
  */
 interface AggregatedArrayValueSource<T> extends ValueSource<T, 'aggregated'> {
+    /** Returns an empty array when there is no value, which is the default. The result is required */
     useEmptyArrayForNoValue(): AggregatedArrayValueSource<T>
+    /** The result is optional, an array with at least one element when it has a value */
     asOptionalNonEmptyArray(): AggregatedArrayValueSource<T>
     asRequiredInOptionalObject(): AggregatedArrayValueSource<T>
     onlyWhenOrNull(when: boolean): AggregatedArrayValueSource<T>
@@ -420,22 +476,32 @@ interface AggregatedArrayValueSourceProjectableAsNullable<T> extends AggregatedA
 interface Connection {
     /** Query runner used to create the connection */
     readonly queryRunner: QueryRunner
+    /** The transformations of the connection, without any type adapter */
+    readonly defaultTypeAdapter: DefaultTypeAdapter
 
-    // Transaction management
+    // Transaction management. A failure of beginTransaction, commit, rollback or transaction rejects the promise
     beginTransaction(isolationLevel?: TransactionIsolationLevel): Promise<void>
     commit(): Promise<void>
     rollback(): Promise<void>
     isTransactionActive(): boolean
-    transaction<T>(fn: () => Promise<T>, isolationLevel?: TransactionIsolationLevel): Promise<T>
+    transaction<T>(fn: () => T | Promise<T>, isolationLevel?: TransactionIsolationLevel): Promise<T>
+    /**
+     * Not available on SQLite. What each database accepts:
+     * - MariaDB, MySQL: 'read uncommitted', 'read committed', 'snapshot', 'serializable', with an optional access mode, or only the access mode
+     * - PostgreSQL: 'read committed', 'snapshot', 'serializable', with an optional access mode, or only the access mode
+     * - Oracle: 'read committed', 'snapshot', or only the access mode
+     * - SQL Server: 'read uncommitted', 'read committed', 'repeatable read', 'snapshot', 'serializable', without access mode
+     */
     isolationLevel(level: 'read uncommitted' | 'read committed' | 'repeatable read' | 'snapshot' | 'serializable', accessMode?: 'read write' | 'read only'): TransactionIsolationLevel
     isolationLevel(accessMode: 'read write' | 'read only'): TransactionIsolationLevel
-    // Fuctions that allow to defer a code execution till the end of the transaction
+    // Functions that defer code to the end of the transaction. They throw if there is no open transaction
     executeBeforeNextCommit(fn: ()=> void): void
     executeBeforeNextCommit(fn: ()=> Promise<void>): void
     executeAfterNextCommit(fn: ()=> void): void
     executeAfterNextCommit(fn: ()=> Promise<void>): void
     executeAfterNextRollback(fn: ()=> void): void
     executeAfterNextRollback(fn: ()=> Promise<void>): void
+    /** Throws if there is no open transaction */
     getTransactionMetadata(): Map<unknown, unknown>
 
     // Querying
@@ -448,15 +514,19 @@ interface Connection {
     selectDistinctFrom(table: Table | View): SelectExpression
     selectFromNoTable(): SelectExpression
 
-    // These methods allows to create a subquery that depends of a outer table defined in the main query 
-    subSelectUsing(table: Table | View): SelectExpression
-    subSelectUsing(table1: Table | View, table2: Table | View): SelectExpression
-    subSelectUsing(table1: Table | View, table2: Table | View, table3: Table | View): SelectExpression
-    subSelectDistinctUsing(table: Table | View): SelectExpression
-    subSelectDistinctUsing(table1: Table | View, table2: Table | View): SelectExpression
-    subSelectDistinctUsing(table1: Table | View, table2: Table | View, table3: Table | View): SelectExpression
+    // These methods create a subquery that depends on an outer table defined in the main query
+    subSelectUsing(table: Table | View | OuterJoinSource): SelectExpression
+    subSelectUsing(table1: Table | View | OuterJoinSource, table2: Table | View | OuterJoinSource): SelectExpression
+    subSelectUsing(table1: Table | View | OuterJoinSource, table2: Table | View | OuterJoinSource, table3: Table | View | OuterJoinSource): SelectExpression
+    subSelectUsing(table1: Table | View | OuterJoinSource, table2: Table | View | OuterJoinSource, table3: Table | View | OuterJoinSource, table4: Table | View | OuterJoinSource): SelectExpression
+    subSelectUsing(table1: Table | View | OuterJoinSource, table2: Table | View | OuterJoinSource, table3: Table | View | OuterJoinSource, table4: Table | View | OuterJoinSource, table5: Table | View | OuterJoinSource): SelectExpression
+    subSelectDistinctUsing(table: Table | View | OuterJoinSource): SelectExpression
+    subSelectDistinctUsing(table1: Table | View | OuterJoinSource, table2: Table | View | OuterJoinSource): SelectExpression
+    subSelectDistinctUsing(table1: Table | View | OuterJoinSource, table2: Table | View | OuterJoinSource, table3: Table | View | OuterJoinSource): SelectExpression
+    subSelectDistinctUsing(table1: Table | View | OuterJoinSource, table2: Table | View | OuterJoinSource, table3: Table | View | OuterJoinSource, table4: Table | View | OuterJoinSource): SelectExpression
+    subSelectDistinctUsing(table1: Table | View | OuterJoinSource, table2: Table | View | OuterJoinSource, table3: Table | View | OuterJoinSource, table4: Table | View | OuterJoinSource, table5: Table | View | OuterJoinSource): SelectExpression
     
-    // default value for use in insert queries
+    // Default value of a column, for inserts and updates. Not available on SQLite
     default(): Default
 
     // values that can be returned by the database
@@ -469,10 +539,10 @@ interface Connection {
     true(): BooleanValueSource
     false(): BooleanValueSource
 
-    // methods that allows to create a value source with a constant value
+    // Methods that create a value source with a constant value
     const(value: boolean, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     const(value: number, type: 'int', adapter?: TypeAdapter): NumberValueSource
-    const(value: number, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
+    const(value: bigint, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
     const(value: number, type: 'double', adapter?: TypeAdapter): NumberValueSource
     const(value: string, type: 'string', adapter?: TypeAdapter): StringValueSource
     const(value: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
@@ -489,31 +559,31 @@ interface Connection {
     const<T, TYPE_NAME = T>(value: T, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
     const<T, TYPE_NAME = T>(value: T, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
 
-    // methods that allows to create a value source with an optional constant value
+    // Methods that create a value source with an optional constant value
     optionalConst(value: boolean | null | undefined, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     optionalConst(value: number | null | undefined, type: 'int', adapter?: TypeAdapter): NumberValueSource
-    optionalConst(value: number | null | undefined, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
+    optionalConst(value: bigint | null | undefined, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
     optionalConst(value: number | null | undefined, type: 'double', adapter?: TypeAdapter): NumberValueSource
     optionalConst(value: string | null | undefined, type: 'string', adapter?: TypeAdapter): StringValueSource
     optionalConst(value: string | null | undefined, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
     optionalConst(value: Date | null | undefined, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
     optionalConst(value: Date | null | undefined, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
     optionalConst(value: Date | null | undefined, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
-    optionalConst<T, TYPE_NAME = T>(value: T, type: 'customInt', typeName: string, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
-    optionalConst<T, TYPE_NAME = T>(value: T, type: 'customDouble', typeName: string, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
-    optionalConst<T, TYPE_NAME = T>(value: T, type: 'customUuid', typeName: string, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
-    optionalConst<T, TYPE_NAME = T>(value: T, type: 'customLocalDate', typeName: string, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
-    optionalConst<T, TYPE_NAME = T>(value: T, type: 'customLocalTime', typeName: string, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
-    optionalConst<T, TYPE_NAME = T>(value: T, type: 'customLocalDateTime', typeName: string, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
+    optionalConst<T, TYPE_NAME = T>(value: T | null | undefined, type: 'customInt', typeName: string, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
+    optionalConst<T, TYPE_NAME = T>(value: T | null | undefined, type: 'customDouble', typeName: string, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
+    optionalConst<T, TYPE_NAME = T>(value: T | null | undefined, type: 'customUuid', typeName: string, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
+    optionalConst<T, TYPE_NAME = T>(value: T | null | undefined, type: 'customLocalDate', typeName: string, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
+    optionalConst<T, TYPE_NAME = T>(value: T | null | undefined, type: 'customLocalTime', typeName: string, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
+    optionalConst<T, TYPE_NAME = T>(value: T | null | undefined, type: 'customLocalDateTime', typeName: string, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
     optionalConst<T, TYPE_NAME = T>(value: T | null | undefined, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
     optionalConst<T, TYPE_NAME = T>(value: T | null | undefined, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
     optionalConst<T, TYPE_NAME = T>(value: T | null | undefined, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
     
-    // allows to use the exits function on a subquery
+    // The exists and not exists of a subquery
     exists(select: Subquery): BooleanValueSource
     notExists(select: Subquery): BooleanValueSource
 
-    // aggregate functions
+    // Aggregate functions. max, min, sum, average, stringConcat and anyValue return an optional value, whatever the type of the argument
     /** count(*) */
     countAll(): NumberValueSource
     /** count(value) */
@@ -526,33 +596,36 @@ interface Connection {
     min<TYPE extends ComparableValueSource<any, any>>(value: TYPE): TYPE
     /** sum(value) */
     sum(value: NumberValueSource): NumberValueSource
+    sum(value: BigintValueSource): BigintValueSource
     sum<T, TYPE_NAME>(value: CustomIntValueSource<T, TYPE_NAME>): CustomIntValueSource<T, TYPE_NAME>
     sum<T, TYPE_NAME>(value: CustomDoubleValueSource<T, TYPE_NAME>): CustomDoubleValueSource<T, TYPE_NAME>
     /** sum(distinct value) */
     sumDistinct(value: NumberValueSource): NumberValueSource
+    sumDistinct(value: BigintValueSource): BigintValueSource
     sumDistinct<T, TYPE_NAME>(value: CustomIntValueSource<T, TYPE_NAME>): CustomIntValueSource<T, TYPE_NAME>
     sumDistinct<T, TYPE_NAME>(value: CustomDoubleValueSource<T, TYPE_NAME>): CustomDoubleValueSource<T, TYPE_NAME>
-    /** avg(value) */
-    average(value: NumberValueSource): NumberValueSource
-    average<T, TYPE_NAME>(value: CustomIntValueSource<T, TYPE_NAME>): CustomIntValueSource<T, TYPE_NAME>
-    average<T, TYPE_NAME>(value: CustomDoubleValueSource<T, TYPE_NAME>): CustomDoubleValueSource<T, TYPE_NAME>
-    /** avg(disctinct value) */
-    averageDistinct(value: NumberValueSource): NumberValueSource
-    averageDistinct<T, TYPE_NAME>(value: CustomIntValueSource<T, TYPE_NAME>): CustomIntValueSource<T, TYPE_NAME>
-    averageDistinct<T, TYPE_NAME>(value: CustomDoubleValueSource<T, TYPE_NAME>): CustomDoubleValueSource<T, TYPE_NAME>
+    /** avg(value). It always returns a number, a double, also for a bigint or a custom type */
+    average(value: NumberValueSource | BigintValueSource | CustomIntValueSource<any, any> | CustomDoubleValueSource<any, any>): NumberValueSource
+    /** avg(distinct value). It always returns a number, a double, also for a bigint or a custom type */
+    averageDistinct(value: NumberValueSource | BigintValueSource | CustomIntValueSource<any, any> | CustomDoubleValueSource<any, any>): NumberValueSource
     /** group_concat(value, separator) sometimes called string_agg or listagg. The default separator is ',' */
     stringConcat(value: StringValueSource, separator?: string): StringValueSource
-    /** group_concat(distinct value, separator) sometimes called string_agg or listagg. The default separator is ',' */
+    /**
+     * group_concat(distinct value, separator) sometimes called string_agg or listagg. The default separator is ','
+     * Not available on SQL Server. On SQLite it doesn't accept a separator
+     */
     stringConcatDistinct(value: StringValueSource, separator?: string): StringValueSource
     /** any_value(value): any value of the group (SQL:2023); not available on MariaDB and SQL Server. On SQLite the value is written as is (a bare column) */
     anyValue<TYPE extends AnyValueSource>(value: TYPE): TYPE
     /** Aggregate as object array */
     aggregateAsArray<T extends SelectValues>(columns: T): AggregatedArrayValueSourceProjectableAsNullable<T>
+    /** Only available on MariaDB, PostgreSQL and SQLite */
     aggregateAsArrayDistinct<T extends SelectValues>(columns: T): AggregatedArrayValueSourceProjectableAsNullable<T>
     aggregateAsArrayOfOneColumn<T, TYPE_NAME>(value: ValueSource<T, TYPE_NAME>): AggregatedArrayValueSource<T>
+    /** Only available on MariaDB, PostgreSQL and SQLite */
     aggregateAsArrayOfOneColumnDistinct<T, TYPE_NAME>(value: ValueSource<T, TYPE_NAME>): AggregatedArrayValueSource<T>
 
-    // Methods that allows create SQL fragments
+    // Methods that create SQL fragments
     fragmentWithType(type: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType(type: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType(type: 'bigint', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
@@ -592,15 +665,16 @@ interface Connection {
     aggregateFragmentWithType<T, _TYPE_NAME = T>(type: 'custom', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     aggregateFragmentWithType<T, _TYPE_NAME = T>(type: 'customComparable', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
 
-    /**
+    /** 
      * This is a template, you can call as: .rawFragment`sql text with ${valueSourceParam}` 
      */
     rawFragment(sql: TemplateStringsArray, ...p: Array<AnyValueSource | Subquery>): RawFragment
 
-    // Protected methods that allows call a stored procedure
+    // Protected method that calls a stored procedure. Any failure rejects the promise
     executeProcedure(procedureName: string, params: AnyValueSource[]): Promise<void>
 
-    // Protected methods that allows call a function
+    // Protected methods that call a function. Any failure rejects the promise.
+    // With 'optional' the promise also resolves to null; to simplify, that isn't written in the signatures below.
     executeFunction(functionName: string, params: AnyValueSource[], returnType: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<boolean>
     executeFunction(functionName: string, params: AnyValueSource[], returnType: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<number>
     executeFunction(functionName: string, params: AnyValueSource[], returnType: 'bigint', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<bigint>
@@ -620,7 +694,7 @@ interface Connection {
     executeFunction<T, _TYPE_NAME = T>(functionName: string, params: AnyValueSource[], returnType: 'custom', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
     executeFunction<T, _TYPE_NAME = T>(functionName: string, params: AnyValueSource[], returnType: 'customComparable', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
 
-    // Protected methods to define a sequence (only available in mariaDB, oracle, postgreSql and sqlServer)
+    // Protected methods to define a sequence (only available on MariaDB, Oracle, PostgreSQL and SQL Server)
     sequence(name: string, type: 'boolean', adapter?: TypeAdapter): Sequence<BooleanValueSource>
     sequence(name: string, type: 'int', adapter?: TypeAdapter): Sequence<NumberValueSource>
     sequence(name: string, type: 'bigint', adapter?: TypeAdapter): Sequence<BigintValueSource>
@@ -642,7 +716,7 @@ interface Connection {
 
     // Protected methods to define reusable fragments
     /**
-     * Allows to define arguments that acept the value or a value source of the type specified
+     * Defines an argument that accepts a value or a value source of the specified type
      */
     arg(type: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<boolean, 'boolean'>
     arg(type: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<number, 'number'>
@@ -664,7 +738,7 @@ interface Connection {
     arg<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T, TYPE_NAME>
 
     /**
-     * Allows to define arguments that acept the value (but no a value source) of the type specified
+     * Defines an argument that accepts a value of the specified type, but not a value source
      */
     valueArg(type: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<boolean, 'boolean'>
     valueArg(type: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<number, 'number'>
@@ -686,8 +760,8 @@ interface Connection {
     valueArg<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T, TYPE_NAME>
 
     /*
-     * This functions receive the argument definition that you can create calling the arg function or the valueArg function.
-     * You can specify up to 5 argument definitions
+     * These protected methods receive the argument definitions that you create with arg or valueArg.
+     * You can specify up to 5 argument definitions.
      */
     buildFragmentWithArgs(...argumentDefinitions: Argument<any, any>[]): FragmentBuilder
     buildFragmentWithArgsIfValue(...argumentDefinitions: Argument<any, any>[]): FragmentBuilderIfValue
@@ -698,28 +772,28 @@ interface Connection {
     buildAggregateFragmentWithMaybeOptionalArgs(...argumentDefinitions: Argument<any, any>[]): FragmentBuilderMaybeOptional
 
     /**
-     * Return the same special neutral boolean mark returned by the IfValue functions when there is no value
+     * Returns the same neutral boolean that the IfValue functions return when there is no value
      */
-    noValueBoolean(): BooleanValueSource
+    noValueBoolean(): IfValueSource
 
     /**
-     * Return the same special neutral boolean mark returned by the IfValue functions when there is no value in a way it can be used
-     * to create dynamic boolean expression where the variable is reasigned (it have a stable type)
+     * Returns the same neutral boolean, with a type that stays the same after each and, or, onlyWhen...
+     * In this way, you can build a boolean expression in a variable that you reassign.
      */
-    dynamicBooleanExpressionUsing(table: Table | View): BooleanValueSource
-    dynamicBooleanExpressionUsing(table1: Table | View, table2: Table | View): BooleanValueSource
-    dynamicBooleanExpressionUsing(table1: Table | View, table2: Table | View, table3: Table | View): BooleanValueSource
-    dynamicBooleanExpressionUsing(table1: Table | View, table2: Table | View, table3: Table | View,  table4: Table | View): BooleanValueSource
-    dynamicBooleanExpressionUsing(table1: Table | View, table2: Table | View, table3: Table | View,  table4: Table | View,  table5: Table | View): BooleanValueSource
+    dynamicBooleanExpressionUsing(table: Table | View): AlwaysIfValueSource
+    dynamicBooleanExpressionUsing(table1: Table | View, table2: Table | View): AlwaysIfValueSource
+    dynamicBooleanExpressionUsing(table1: Table | View, table2: Table | View, table3: Table | View): AlwaysIfValueSource
+    dynamicBooleanExpressionUsing(table1: Table | View, table2: Table | View, table3: Table | View,  table4: Table | View): AlwaysIfValueSource
+    dynamicBooleanExpressionUsing(table1: Table | View, table2: Table | View, table3: Table | View,  table4: Table | View,  table5: Table | View): AlwaysIfValueSource
 
     /**
-     * Allows to create a condition where the criteria is provided by an external system
+     * Creates a condition whose criteria is provided by an external system
      */
     dynamicConditionFor(definition: Filterable, extension?: DynamicConditionExtension): DynamicConditionExpression
 
     /*
-     * The fn function will receive as first argument the table name as ValueSource,
-     * as the second argument is the alias of the table as ValueSource
+     * Protected method. The fn function receives the table name as its first argument, and the alias of the table
+     * as its second argument, both as ValueSource.
      * The number of additional arguments in the fn function is the same in the resulting function (up to 5 arguments).
      * The first argument of the returned function is the table or view, the second argument
      * is a name for the customization; the additional arguments are the same defined in the fn function.
@@ -731,27 +805,37 @@ interface Connection {
      */
 
     /** 
-     * Protected property that allows changing the behaviour of empty string treatment.
-     * By default empty string as treated as null, if you want to allow to send and receive empty string to the database set this property to true
+     * Protected property that changes how an empty string is treated.
+     * By default an empty string is treated as null. To send and receive empty strings, set this property to true.
      * Default value: false
      */
     allowEmptyString: boolean
+    /**
+     * Protected property with the collation of the insensitive operations. When it's not set, they use the function lower.
+     * With an empty string, they use neither a collation nor lower.
+     */
+    insensitiveCollation?: string | undefined
+    /**
+     * Protected property with the minimum version of the database the SQL must support: major * 1_000_000 + minor * 1_000 + patch.
+     * For example, 10_005_000 for MariaDB 10.5. By default, the latest version.
+     */
+    compatibilityVersion: number
 
-    /** Protected method that allows to transform the values received from the database */
+    /** Protected method that transforms the values received from the database */
     transformValueFromDB(value: unknown, type: string): unknown
-    /** Protected method that allows to transform the values that will be send to the database */
+    /** Protected method that transforms the values sent to the database */
     transformValueToDB(value: unknown, type: string): unknown
-    /** Protected method that allows to customize the value placeholder in the query */
+    /** Protected method that customizes the value placeholder in the query */
     transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown): string
 
-    /** Protected method that returns true if the provided string is a reserved keyword, otherwise return false */
+    /** Protected method that returns true if the provided string is a reserved keyword */
     isReservedKeyword(word: string): boolean
-    /** Protected method that returns the provided string as a indefier quoting it all the time */
+    /** Protected method that returns the provided string as an identifier, always quoted */
     forceAsIdentifier(identifier: string): string
     /** 
      * Protected method that returns the provided identifier escaped.
-     * The default implementation quote the identifier only if it is a reserved keyword.
-     * If you want all identifiers quoted, you must reimplement this function returning the result of the forceAsIdentifier function.
+     * The default implementation quotes the identifier only if it is a reserved keyword.
+     * To quote all identifiers, reimplement this function returning the result of forceAsIdentifier.
      */
     escape(identifier: string, strict: boolean): string
 }
@@ -767,7 +851,7 @@ interface FragmentExpression {
 interface FragmentBuilder {
     /*
      * The impl function will receive the proper ValueSource type according to the argument definition.
-     * The nunber of arguments is the same specified in the function buildFragmentWithArgs (up to 5 arguments).
+     * The number of arguments is the same specified in the function buildFragmentWithArgs (up to 5 arguments).
      * The arguments of the returned function will have the proper parameters type.
      */
     as(impl: (...args: AnyValueSource[]) => AnyValueSource): (...args: any) => AnyValueSource
@@ -776,18 +860,19 @@ interface FragmentBuilder {
 interface FragmentBuilderIfValue {
     /*
      * The impl function will receive the proper ValueSource type according to the argument definition.
-     * The nunber of arguments is the same specified in the function buildFragmentWithArgsIfValue (up to 5 arguments).
-     * Any optional valueArg will be treated as required, the function received as argument will be not called if
-     * that argument receives null or undefined.
+     * The number of arguments is the same specified in the function buildFragmentWithArgsIfValue (up to 5 arguments).
+     * The impl function must return a boolean. An optional valueArg is received in impl as required.
+     * If an optional valueArg has no value (null, undefined, an empty array, or an empty string unless allowEmptyString is true),
+     * the returned function gives the neutral boolean, and the fragment isn't used in the query.
      * The arguments of the returned function will have the proper parameters type.
      */
-    as(impl: (...args: AnyValueSource[]) => AnyValueSource): (...args: any) => BooleanValueSource
+    as(impl: (...args: AnyValueSource[]) => BooleanValueSource | IfValueSource | AlwaysIfValueSource): (...args: any) => IfValueSource
 }
 
 interface FragmentBuilderMaybeOptional {
     /*
      * The impl function will receive the proper ValueSource type according to the argument definition.
-     * The nunber of arguments is the same specified in the function buildFragmentWithArgs (up to 5 arguments).
+     * The number of arguments is the same specified in the function buildFragmentWithMaybeOptionalArgs (up to 5 arguments).
      * The arguments of the returned function will have the proper parameters type.
      * The function will return an optional value if any of the provided arguments when invoked is optional; 
      * otherwise, the return type will be marked as required.
@@ -802,7 +887,206 @@ interface Sequence<T> {
 }
 
 interface DynamicConditionExpression {
+    /** The result is an optional boolean. The filter accepts the rules of the extension provided to dynamicConditionFor */
     withValues(filter: DynamicFilter): BooleanValueSource
+}
+
+/** The fields of a dynamic condition: a value source, or an object with more fields inside */
+type Filterable = { [fieldName: string]: AnyValueSource | Filterable }
+
+/**
+ * The rules of your own of a dynamic condition. A rule is a function that receives its configuration and returns
+ * a boolean. They can be grouped in inner objects.
+ */
+type DynamicConditionExtension = { [ruleName: string]: ((rule: any) => BooleanValueSource | IfValueSource | AlwaysIfValueSource) | DynamicConditionExtension }
+
+/**
+ * The criteria of a dynamic condition. Every property is optional:
+ * - not, and, or: the logical operations. Several properties in a filter are joined using and.
+ * - One property per field of the definition provided to dynamicConditionFor, with the filter of its type.
+ *   A field that is an object has a filter of this same type.
+ * - One property per rule of the extension provided to dynamicConditionFor, with the configuration its function
+ *   receives; a rule is also accepted inside the filter of a field.
+ * An operator with an empty value (null, an empty string, an empty array) adds no condition.
+ */
+type DynamicFilter = {
+    not?: DynamicFilter
+    and?: Array<DynamicFilter | undefined>
+    or?: Array<DynamicFilter | undefined>
+    [fieldOrRuleName: string]: FieldFilter | DynamicFilter | any
+}
+
+/**
+ * The filter of a field, according to its type: BooleanFilter for boolean, NumberFilter for int and double, BigintFilter for bigint,
+ * StringFilter for string and uuid, DateFilter for localDate, TimeFilter for localTime, DateTimeFilter for localDateTime,
+ * EqualableFilter for enum and custom, ComparableFilter for customComparable, and for the other custom types the filter of its name.
+ * The uuid and customUuid types accept the text operators, and they apply asString before them.
+ */
+type FieldFilter = BooleanFilter | NumberFilter | BigintFilter | StringFilter | DateFilter | TimeFilter | DateTimeFilter | EqualableFilter<any> | ComparableFilter<any> | CustomIntFilter<any> | CustomDoubleFilter<any> | CustomUuidFilter<any> | CustomLocalDateFilter<any> | CustomLocalTimeFilter<any> | CustomLocalDateTimeFilter<any>
+
+interface NullableFilter {
+    isNull?: boolean
+    isNotNull?: boolean
+}
+
+interface EqualableFilter<TYPE> extends NullableFilter {
+    equalsIfValue?: TYPE | null | undefined
+    equals?: TYPE
+    notEqualsIfValue?: TYPE | null | undefined
+    notEquals?: TYPE
+    isIfValue?: TYPE | null | undefined
+    is?: TYPE | null | undefined
+    isNotIfValue?: TYPE | null | undefined
+    isNot?: TYPE | null | undefined
+    inIfValue?: TYPE[] | null | undefined
+    in?: TYPE[]
+    notInIfValue?: TYPE[] | null | undefined
+    notIn?: TYPE[]
+}
+
+interface ComparableFilter<TYPE> extends EqualableFilter<TYPE> {
+    lessThanIfValue?: TYPE | null | undefined
+    lessThan?: TYPE
+    greaterThanIfValue?: TYPE | null | undefined
+    greaterThan?: TYPE
+    lessOrEqualIfValue?: TYPE | null | undefined
+    lessOrEqual?: TYPE
+    greaterOrEqualIfValue?: TYPE | null | undefined
+    greaterOrEqual?: TYPE
+}
+
+interface StringFilter extends ComparableFilter<string> {
+    equalsInsensitiveIfValue?: string | null | undefined
+    equalsInsensitive?: string
+    notEqualsInsensitiveIfValue?: string | null | undefined
+    notEqualsInsensitive?: string
+    likeIfValue?: string | null | undefined
+    like?: string
+    notLikeIfValue?: string | null | undefined
+    notLike?: string
+    likeInsensitiveIfValue?: string | null | undefined
+    likeInsensitive?: string
+    notLikeInsensitiveIfValue?: string | null | undefined
+    notLikeInsensitive?: string
+    startsWithIfValue?: string | null | undefined
+    startsWith?: string
+    notStartsWithIfValue?: string | null | undefined
+    notStartsWith?: string
+    endsWithIfValue?: string | null | undefined
+    endsWith?: string
+    notEndsWithIfValue?: string | null | undefined
+    notEndsWith?: string
+    startsWithInsensitiveIfValue?: string | null | undefined
+    startsWithInsensitive?: string
+    notStartsWithInsensitiveIfValue?: string | null | undefined
+    notStartsWithInsensitive?: string
+    endsWithInsensitiveIfValue?: string | null | undefined
+    endsWithInsensitive?: string
+    notEndsWithInsensitiveIfValue?: string | null | undefined
+    notEndsWithInsensitive?: string
+    containsIfValue?: string | null | undefined
+    contains?: string
+    notContainsIfValue?: string | null | undefined
+    notContains?: string
+    containsInsensitiveIfValue?: string | null | undefined
+    containsInsensitive?: string
+    notContainsInsensitiveIfValue?: string | null | undefined
+    notContainsInsensitive?: string
+}
+
+interface CustomUuidFilter<TYPE> extends ComparableFilter<TYPE> {
+    equalsInsensitiveIfValue?: TYPE | null | undefined
+    equalsInsensitive?: TYPE
+    notEqualsInsensitiveIfValue?: TYPE | null | undefined
+    notEqualsInsensitive?: TYPE
+    likeIfValue?: TYPE | null | undefined
+    like?: TYPE
+    notLikeIfValue?: TYPE | null | undefined
+    notLike?: TYPE
+    likeInsensitiveIfValue?: TYPE | null | undefined
+    likeInsensitive?: TYPE
+    notLikeInsensitiveIfValue?: TYPE | null | undefined
+    notLikeInsensitive?: TYPE
+    startsWithIfValue?: TYPE | null | undefined
+    startsWith?: TYPE
+    notStartsWithIfValue?: TYPE | null | undefined
+    notStartsWith?: TYPE
+    endsWithIfValue?: TYPE | null | undefined
+    endsWith?: TYPE
+    notEndsWithIfValue?: TYPE | null | undefined
+    notEndsWith?: TYPE
+    startsWithInsensitiveIfValue?: TYPE | null | undefined
+    startsWithInsensitive?: TYPE
+    notStartsWithInsensitiveIfValue?: TYPE | null | undefined
+    notStartsWithInsensitive?: TYPE
+    endsWithInsensitiveIfValue?: TYPE | null | undefined
+    endsWithInsensitive?: TYPE
+    notEndsWithInsensitiveIfValue?: TYPE | null | undefined
+    notEndsWithInsensitive?: TYPE
+    containsIfValue?: TYPE | null | undefined
+    contains?: TYPE
+    notContainsIfValue?: TYPE | null | undefined
+    notContains?: TYPE
+    containsInsensitiveIfValue?: TYPE | null | undefined
+    containsInsensitive?: TYPE
+    notContainsInsensitiveIfValue?: TYPE | null | undefined
+    notContainsInsensitive?: TYPE
+}
+
+interface BooleanFilter extends EqualableFilter<boolean> { }
+interface NumberFilter extends ComparableFilter<number> { }
+interface BigintFilter extends ComparableFilter<bigint> { }
+interface DateFilter extends ComparableFilter<Date> { }
+interface TimeFilter extends ComparableFilter<Date> { }
+interface DateTimeFilter extends ComparableFilter<Date> { }
+interface CustomIntFilter<TYPE> extends ComparableFilter<TYPE> { }
+interface CustomDoubleFilter<TYPE> extends ComparableFilter<TYPE> { }
+interface CustomLocalDateFilter<TYPE> extends ComparableFilter<TYPE> { }
+interface CustomLocalTimeFilter<TYPE> extends ComparableFilter<TYPE> { }
+interface CustomLocalDateTimeFilter<TYPE> extends ComparableFilter<TYPE> { }
+
+// Protected configuration properties that each connection adds
+interface MariaDBConnectionConfiguration {
+    uuidStrategy: 'string' | 'uuid' // Default: 'uuid'
+    usePlatformDependentRound: boolean // Default: false
+}
+
+interface MySqlConnectionConfiguration {
+    uuidStrategy: 'string' | 'binary' // Default: 'binary'
+    usePlatformDependentRound: boolean // Default: false
+}
+
+interface OracleConnectionConfiguration {
+    uuidStrategy: 'string' | 'custom-functions' | 'built-in' // Default: 'built-in'
+    ignoreNullInConcat: boolean // Default: false
+    concatFunction?: string
+    replaceCollation: string // Default: 'BINARY'
+    replaceInsensitiveCollation: string // Default: 'BINARY_CI'
+}
+
+interface PostgreSqlConnectionConfiguration {
+    usePlatformDependentRound: boolean // Default: false
+    ignoreNullInMinAndMaxValue: boolean // Default: false
+    minValueFunction?: string
+    maxValueFunction?: string
+}
+
+interface SqliteConnectionConfiguration {
+    uuidStrategy: 'string' | 'uuid-extension' // Default: 'uuid-extension'
+    replaceAllInsensitiveFunction?: string
+    /** Protected method with the format of a date, a time or a date time. By default, 'localdate as text' */
+    getDateTimeFormat(type: 'date' | 'time' | 'dateTime'): 'localdate as text' | 'localdate as text using T separator' | 'UTC as text' | 'UTC as text using T separator' | 'UTC as text using Z timezone' | 'UTC as text using T separator and Z timezone' | 'Julian day as real number' | 'Unix time seconds as integer' | 'Unix time milliseconds as integer'
+    treatUnexpectedIntegerDateTimeAsJulian: boolean // Default: false
+    treatUnexpectedStringDateTimeAsUTC: boolean // Default: false
+    unexpectedUnixDateTimeAreMilliseconds: boolean // Default: false
+}
+
+interface SqlServerConnectionConfiguration {
+    excludeTrailingBlanksInLength: boolean // Default: false
+    ignoreNullInMinAndMaxValue: boolean // Default: false
+    minValueFunction?: string
+    maxValueFunction?: string
+    replaceCollation: string // Default: 'Latin1_General_BIN2'
 }
 
 
@@ -818,8 +1102,18 @@ interface Table {
     forUseInLeftJoin(): this & OuterJoinSource
     /** Enables the table to be used in a left join with an alias */
     forUseInLeftJoinAs(as: string): this & OuterJoinSource
+    /**
+     * Returns a reference to the values the row had before an update, to use in its returning clause.
+     * Only available on MariaDB, PostgreSQL and SQL Server.
+     */
+    oldValues(): this
+    /**
+     * Returns a reference to the values of the new row of an insert with an on conflict clause, to use in its do update.
+     * Only available on MariaDB, MySQL, PostgreSQL and SQLite.
+     */
+    valuesForInsert(): this
 
-    // Protected methods that allow to create a required column that doesn't admits null
+    // Protected methods that create a required column that doesn't admit null
     column(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     column(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
     column(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
@@ -839,7 +1133,7 @@ interface Table {
     column<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
     column<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
 
-    // Protected methods that allow to create an optional column that admits null
+    // Protected methods that create an optional column that admits null
     optionalColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     optionalColumn(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
     optionalColumn(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
@@ -859,7 +1153,7 @@ interface Table {
     optionalColumn<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
     optionalColumn<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
     
-    // Protected methods that allow to create a required column that doesn't admits null but have a default value when insert
+    // Protected methods that create a required column that doesn't admit null and has a default value on insert
     columnWithDefaultValue(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     columnWithDefaultValue(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
     columnWithDefaultValue(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
@@ -879,7 +1173,7 @@ interface Table {
     columnWithDefaultValue<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
     columnWithDefaultValue<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
     
-    // Protected methods that allow to create an optional column that admits null and have a default value when insert
+    // Protected methods that create an optional column that admits null and has a default value on insert
     optionalColumnWithDefaultValue(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     optionalColumnWithDefaultValue(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
     optionalColumnWithDefaultValue(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
@@ -899,8 +1193,8 @@ interface Table {
     optionalColumnWithDefaultValue<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
     optionalColumnWithDefaultValue<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
     
-    // Protected methods that allow to create a primary key column autogenerated in the database
-    // When you insert you don't need specify this column
+    // Protected methods that create a primary key column autogenerated in the database
+    // When you insert you don't need to specify this column
     autogeneratedPrimaryKey(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     autogeneratedPrimaryKey(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
     autogeneratedPrimaryKey(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
@@ -920,7 +1214,7 @@ interface Table {
     autogeneratedPrimaryKey<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
     autogeneratedPrimaryKey<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
 
-    // Protected methods that allow to create a primary key column not automatically generated
+    // Protected methods that create a primary key column not automatically generated
     // When you insert you must specify this column
     primaryKey(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     primaryKey(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
@@ -941,9 +1235,9 @@ interface Table {
     primaryKey<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
     primaryKey<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
       
-    // Protected methods that allow to create a primary key column generated by a sequence
-    // When you insert you don't need specify this column, it will be added automatically by ts-sql-query
-    // This method is only supported by mariaDB, oracle, postgreSql and sqlServer
+    // Protected methods that create a primary key column generated by a sequence
+    // When you insert you don't need to specify this column, it will be added automatically by ts-sql-query
+    // Only available on MariaDB, Oracle, PostgreSQL and SQL Server
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
@@ -953,17 +1247,17 @@ interface Table {
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
-    autogeneratedPrimaryKeyBySequence<T, TYPE_NAME = T>(name: string, type: 'customInt', typeName: string, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
-    autogeneratedPrimaryKeyBySequence<T, TYPE_NAME = T>(name: string, type: 'customDouble', typeName: string, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
-    autogeneratedPrimaryKeyBySequence<T, TYPE_NAME = T>(name: string, type: 'customUuid', typeName: string, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
-    autogeneratedPrimaryKeyBySequence<T, TYPE_NAME = T>(name: string, type: 'customLocalDate', typeName: string, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
-    autogeneratedPrimaryKeyBySequence<T, TYPE_NAME = T>(name: string, type: 'customLocalTime', typeName: string, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
+    autogeneratedPrimaryKeyBySequence<T, TYPE_NAME = T>(name: string, sequenceName: string, type: 'customInt', typeName: string, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
+    autogeneratedPrimaryKeyBySequence<T, TYPE_NAME = T>(name: string, sequenceName: string, type: 'customDouble', typeName: string, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
+    autogeneratedPrimaryKeyBySequence<T, TYPE_NAME = T>(name: string, sequenceName: string, type: 'customUuid', typeName: string, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
+    autogeneratedPrimaryKeyBySequence<T, TYPE_NAME = T>(name: string, sequenceName: string, type: 'customLocalDate', typeName: string, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
+    autogeneratedPrimaryKeyBySequence<T, TYPE_NAME = T>(name: string, sequenceName: string, type: 'customLocalTime', typeName: string, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
     autogeneratedPrimaryKeyBySequence<T, TYPE_NAME = T>(name: string, sequenceName: string, type: 'customLocalDateTime', typeName: string, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
     autogeneratedPrimaryKeyBySequence<T, TYPE_NAME = T>(name: string, sequenceName: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
     autogeneratedPrimaryKeyBySequence<T, TYPE_NAME = T>(name: string, sequenceName: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
     autogeneratedPrimaryKeyBySequence<T, TYPE_NAME = T>(name: string, sequenceName: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
 
-    // Protected methods that allow to create a computed column that doesn't admits null
+    // Protected methods that create a computed column that doesn't admit null
     computedColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     computedColumn(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
     computedColumn(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
@@ -983,7 +1277,7 @@ interface Table {
     computedColumn<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
     computedColumn<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
 
-    // Protected methods that allow to create an optional computed column that admits null
+    // Protected methods that create an optional computed column that admits null
     optionalComputedColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     optionalComputedColumn(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
     optionalComputedColumn(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
@@ -1003,7 +1297,7 @@ interface Table {
     optionalComputedColumn<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
     optionalComputedColumn<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
 
-    // Protected methods that allows to create a sql fragment in the table
+    // Protected methods that create a column from a sql fragment in the table
     virtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
     virtualColumnFromFragment(type: 'int', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
     virtualColumnFromFragment(type: 'bigint', fn: (fragment: FragmentExpression) => BigintValueSource, adapter?: TypeAdapter): BigintValueSource
@@ -1023,7 +1317,7 @@ interface Table {
     virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'custom', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
     virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, fn: (fragment: FragmentExpression) => ComparableValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
 
-    // Protected methods that allows to create an optional sql fragment in the table
+    // Protected methods that create an optional column from a sql fragment in the table
     optionalVirtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
     optionalVirtualColumnFromFragment(type: 'int', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
     optionalVirtualColumnFromFragment(type: 'bigint', fn: (fragment: FragmentExpression) => BigintValueSource, adapter?: TypeAdapter): BigintValueSource
@@ -1049,14 +1343,14 @@ interface Table {
 
 
 interface View {
-    /** Allows to define an alias for the view to be used in the selects queries */
+    /** Defines an alias for the view to be used in select queries */
     as(as: string): this
-    /** Allows  to use the view in a left join */
+    /** Enables the view to be used in a left join */
     forUseInLeftJoin(): this & OuterJoinSource
-    /** Allows  to use the view in a left join with an alias */
+    /** Enables the view to be used in a left join with an alias */
     forUseInLeftJoinAs(as: string): this & OuterJoinSource
 
-    // Protected methods that allow to create a required column that doesn't admits null
+    // Protected methods that create a required column that doesn't admit null
     column(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     column(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
     column(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
@@ -1076,7 +1370,7 @@ interface View {
     column<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
     column<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
 
-    // Protected methods that allow to create an optional column that admits null
+    // Protected methods that create an optional column that admits null
     optionalColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     optionalColumn(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
     optionalColumn(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
@@ -1096,7 +1390,7 @@ interface View {
     optionalColumn<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
     optionalColumn<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
 
-    // Protected methods that allows to create a sql fragment in the view
+    // Protected methods that create a column from a sql fragment in the view
     virtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
     virtualColumnFromFragment(type: 'int', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
     virtualColumnFromFragment(type: 'bigint', fn: (fragment: FragmentExpression) => BigintValueSource, adapter?: TypeAdapter): BigintValueSource
@@ -1116,7 +1410,7 @@ interface View {
     virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'custom', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
     virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, fn: (fragment: FragmentExpression) => ComparableValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
 
-    // Protected methods that allows to create an optional sql fragment in the view
+    // Protected methods that create an optional column from a sql fragment in the view
     optionalVirtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
     optionalVirtualColumnFromFragment(type: 'int', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
     optionalVirtualColumnFromFragment(type: 'bigint', fn: (fragment: FragmentExpression) => BigintValueSource, adapter?: TypeAdapter): BigintValueSource
@@ -1143,14 +1437,22 @@ interface View {
 
 
 interface Values {
-    /** Allows to define an alias for the view to be used in the selects queries */
+    /** Defines an alias for the view to be used in select queries */
     as(as: string): this
-    /** Allows  to use the view in a left join */
+    /** Enables the view to be used in a left join */
     forUseInLeftJoin(): this & OuterJoinSource
-    /** Allows  to use the view in a left join with an alias */
+    /** Enables the view to be used in a left join with an alias */
     forUseInLeftJoinAs(as: string): this & OuterJoinSource
 
-    // Protected methods that allow to create a required column that doesn't admits null
+    /**
+     * Static method, called as Values.create(MyValuesClass, 'name', rows). It is the way to create an instance.
+     * The class must not implement a constructor.
+     * Each row has one property per column, with the required ones mandatory.
+     * It throws an error if the list of rows is empty.
+     */
+    create<T extends Values>(type: new (name: string, values: any) => T, name: string, values: { [columnName: string]: any }[]): T
+
+    // Protected methods that create a required column that doesn't admit null
     column(type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     column(type: 'int', adapter?: TypeAdapter): NumberValueSource
     column(type: 'bigint', adapter?: TypeAdapter): BigintValueSource
@@ -1160,17 +1462,17 @@ interface Values {
     column(type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
     column(type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
     column(type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
-    column<T, TYPE_NAME = T>(name: string, type: 'customInt', typeName: string, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME = T>(name: string, type: 'customDouble', typeName: string, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME = T>(name: string, type: 'customUuid', typeName: string, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME = T>(name: string, type: 'customLocalDate', typeName: string, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME = T>(name: string, type: 'customLocalTime', typeName: string, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME = T>(name: string, type: 'customLocalDateTime', typeName: string, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
+    column<T, TYPE_NAME = T>(type: 'customInt', typeName: string, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
+    column<T, TYPE_NAME = T>(type: 'customDouble', typeName: string, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
+    column<T, TYPE_NAME = T>(type: 'customUuid', typeName: string, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
+    column<T, TYPE_NAME = T>(type: 'customLocalDate', typeName: string, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
+    column<T, TYPE_NAME = T>(type: 'customLocalTime', typeName: string, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
+    column<T, TYPE_NAME = T>(type: 'customLocalDateTime', typeName: string, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
     column<T, TYPE_NAME = T>(type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
     column<T, TYPE_NAME = T>(type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
     column<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
 
-    // Protected methods that allow to create an optional column that admits null
+    // Protected methods that create an optional column that admits null
     optionalColumn(type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     optionalColumn(type: 'int', adapter?: TypeAdapter): NumberValueSource
     optionalColumn(type: 'bigint', adapter?: TypeAdapter): BigintValueSource
@@ -1180,17 +1482,17 @@ interface Values {
     optionalColumn(type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
     optionalColumn(type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
     optionalColumn(type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
-    optionalColumn<T, TYPE_NAME = T>(name: string, type: 'customInt', typeName: string, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME = T>(name: string, type: 'customDouble', typeName: string, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME = T>(name: string, type: 'customUuid', typeName: string, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME = T>(name: string, type: 'customLocalDate', typeName: string, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME = T>(name: string, type: 'customLocalTime', typeName: string, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME = T>(name: string, type: 'customLocalDateTime', typeName: string, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
+    optionalColumn<T, TYPE_NAME = T>(type: 'customInt', typeName: string, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
+    optionalColumn<T, TYPE_NAME = T>(type: 'customDouble', typeName: string, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
+    optionalColumn<T, TYPE_NAME = T>(type: 'customUuid', typeName: string, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
+    optionalColumn<T, TYPE_NAME = T>(type: 'customLocalDate', typeName: string, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
+    optionalColumn<T, TYPE_NAME = T>(type: 'customLocalTime', typeName: string, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
+    optionalColumn<T, TYPE_NAME = T>(type: 'customLocalDateTime', typeName: string, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
     optionalColumn<T, TYPE_NAME = T>(type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
     optionalColumn<T, TYPE_NAME = T>(type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
     optionalColumn<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
 
-    // Protected methods that allows to create a sql fragment in the view
+    // Protected methods that create a column from a sql fragment in the view
     virtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
     virtualColumnFromFragment(type: 'int', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
     virtualColumnFromFragment(type: 'bigint', fn: (fragment: FragmentExpression) => BigintValueSource, adapter?: TypeAdapter): BigintValueSource
@@ -1210,7 +1512,7 @@ interface Values {
     virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'custom', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
     virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, fn: (fragment: FragmentExpression) => ComparableValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
 
-    // Protected methods that allows to create an optional sql fragment in the view
+    // Protected methods that create an optional column from a sql fragment in the view
     optionalVirtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
     optionalVirtualColumnFromFragment(type: 'int', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
     optionalVirtualColumnFromFragment(type: 'bigint', fn: (fragment: FragmentExpression) => BigintValueSource, adapter?: TypeAdapter): BigintValueSource
@@ -1238,72 +1540,71 @@ interface Values {
 
 interface InsertExpression {
     /**
-     * Allow setting the shape of the values to insert. This shape allows you to map
+     * Sets the shape of the values to insert. This shape allows you to map
      * each property in the values to insert with the column's name in the table, in that
      * way, the property in the value doesn't need to have the same name.
-     * The only values to be insert are the ones included in the shape.
+     * The only values to be inserted are the ones included in the shape.
      */
     shapedAs(shape: InsertShape): this
     /** 
-     * Allow you to extend the previous set shape.
+     * Extends the previously set shape.
      * The values set after extending the shape will allow you to include the new properties in the extended shape.
      */
     extendShape(shape: InsertShape): this
 
-    /** Alias to set method: Set the values for insert */
+    /** Alias to set method: sets the values for insert */
     values(columns: InsertSets): this
-    /** Allow to insert multiple registers in the database */
+    /** Inserts multiple rows in the database */
     values(columns: InsertSets[]): this
     /** 
-     * Set the values for insert.
+     * Sets the values for insert. An undefined value writes a null.
      * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     set(columns: InsertSets): this
     /** 
-     * Set a value only if the provided value is not null, undefined, empty string 
+     * Sets a value only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array.
      * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfValue(columns: OptionalInsertSets): this
     /** 
-     * Set a previous set value only.
+     * Sets a value only if the column was previously set.
      * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfSet(columns: InsertSets): this
     /** 
-     * Set a previous set value only if the provided value is not null, undefined, empty string 
+     * Sets a value only if the column was previously set and the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array.
      * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfSetIfValue(columns: OptionalInsertSets): this
     /** 
-     * Set a unset value (only if the value was not previously set).
+     * Sets a value only if the column was not previously set.
      * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfNotSet(columns: InsertSets): this
     /** 
-     * Set a unset value only if the provided value is not null, undefined, empty string 
+     * Sets a value only if the column was not previously set and the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
-     * that is the default behaviour) or an empty array
-     * (only if the value was not previously set).
+     * that is the default behaviour) or an empty array.
      * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfNotSetIfValue(columns: OptionalInsertSets): this
     /** 
-     * Unset the listed columns previous set.
+     * Unsets the listed columns previously set.
      * It can be used in an insert of multiple values.
-     * */
+     */
     ignoreIfSet(...columns: string[]): this
     /** 
-     * Keep only the listed columns previous set.
+     * Keeps only the listed columns previously set.
      * It can be used in an insert of multiple values.
      */
     keepOnly(...columns: string[]): this
 
     /** 
-     * Set a value for the specified columns that was previously indicated a value for set.
+     * Sets a value for the specified columns that were previously given a value.
      * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array.
@@ -1311,8 +1612,8 @@ interface InsertExpression {
      */
     setIfHasValue(columns: InsertSets): this
     /** 
-     * Set a value for the specified columns that was previously indicated a value for 
-     * set only if the provided value is not null, undefined, empty string 
+     * Sets a value for the specified columns that were previously given a value, 
+     * only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array.
      * It is considered that the column has a value if it was set with a value that is not null, 
@@ -1322,7 +1623,7 @@ interface InsertExpression {
      */
     setIfHasValueIfValue(columns: OptionalInsertSets): this
     /** 
-     * Set a value for the specified columns that has not value to set.
+     * Sets a value for the specified columns that have no value to set.
      * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array.
@@ -1330,7 +1631,7 @@ interface InsertExpression {
      */
     setIfHasNoValue(columns: InsertSets): this
     /** 
-     * Set a value for the specified columns that has no value to set 
+     * Sets a value for the specified columns that have no value to set 
      * only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array.
@@ -1341,7 +1642,7 @@ interface InsertExpression {
      */
     setIfHasNoValueIfValue(columns: OptionalInsertSets): this
     /** 
-     * Unset the listed columns if them has value to set.
+     * Unsets the listed columns if they have a value to set.
      * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array.
@@ -1349,7 +1650,7 @@ interface InsertExpression {
      */
     ignoreIfHasValue(...columns: string[]): this
     /** 
-     * Unset the listed columns if them has no value to set.
+     * Unsets the listed columns if they have no value to set.
      * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array.
@@ -1357,7 +1658,7 @@ interface InsertExpression {
      */
     ignoreIfHasNoValue(...columns: string[]): this
     /** 
-     * Unset all columns that was set with no value.
+     * Unsets all columns that were set with no value.
      * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array.
@@ -1366,55 +1667,54 @@ interface InsertExpression {
     ignoreAnySetWithNoValue(): this
 
     /** 
-     * This only apply in an insert of multiple values.
-     * Set the values for insert 
+     * This only applies in an insert of multiple values.
+     * Sets the values for insert 
      */
     setForAll(columns: InsertSets): this
     /** 
-     * This only apply in an insert of multiple values.
-     * Set a value only if the provided value is not null, undefined, empty string 
+     * This only applies in an insert of multiple values.
+     * Sets a value only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array 
      */
     setForAllIfValue(columns: OptionalInsertSets): this
     /** 
-     * This only apply in an insert of multiple values.
-     * Set a previous set value only 
+     * This only applies in an insert of multiple values.
+     * Sets a value only if the column was previously set 
      */
     setForAllIfSet(columns: InsertSets): this
     /** 
-     * This only apply in an insert of multiple values.
-     * Set a previous set value only if the provided value is not null, undefined, empty string 
+     * This only applies in an insert of multiple values.
+     * Sets a value only if the column was previously set and the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array 
      */
     setForAllIfSetIfValue(columns: OptionalInsertSets): this
     /** 
-     * This only apply in an insert of multiple values.
-     * Set a unset value (only if the value was not previously set) 
+     * This only applies in an insert of multiple values.
+     * Sets a value only if the column was not previously set 
      */
     setForAllIfNotSet(columns: InsertSets): this
     /** 
-     * This only apply in an insert of multiple values.
-     * Set a unset value only if the provided value is not null, undefined, empty string 
+     * This only applies in an insert of multiple values.
+     * Sets a value only if the column was not previously set and the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
-     * that is the default behaviour) or an empty array
-     * (only if the value was not previously set) 
+     * that is the default behaviour) or an empty array 
      */
     setForAllIfNotSetIfValue(columns: OptionalInsertSets): this
 
     /** 
-     * This only apply in an insert of multiple values.
-     * Set a value for the specified columns that was previously indicated a value for set.
+     * This only applies in an insert of multiple values.
+     * Sets a value for the specified columns that were previously given a value.
      * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
      */
     setForAllIfHasValue(columns: InsertSets): this
     /** 
-     * This only apply in an insert of multiple values.
-     * Set a value for the specified columns that was previously indicated a value for 
-     * set only if the provided value is not null, undefined, empty string 
+     * This only applies in an insert of multiple values.
+     * Sets a value for the specified columns that were previously given a value, 
+     * only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array.
      * It is considered that the column has a value if it was set with a value that is not null, 
@@ -1423,16 +1723,16 @@ interface InsertExpression {
      */
     setForAllIfHasValueIfValue(columns: OptionalInsertSets): this
     /** 
-     * This only apply in an insert of multiple values.
-     * Set a value for the specified columns that has not value to set.
+     * This only applies in an insert of multiple values.
+     * Sets a value for the specified columns that have no value to set.
      * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
      */
     setForAllIfHasNoValue(columns: InsertSets): this
     /** 
-     * This only apply in an insert of multiple values.
-     * Set a value for the specified columns that has no value to set 
+     * This only applies in an insert of multiple values.
+     * Sets a value for the specified columns that have no value to set 
      * only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array.
@@ -1443,17 +1743,17 @@ interface InsertExpression {
     setForAllIfHasNoValueIfValue(columns: OptionalInsertSets): this
 
     /**
-     * Throw an error if the indicated properties are set
+     * Throws an error, when it is called, if the indicated properties are set
      */
     disallowIfSet(errorMessage: string, ...columns: string[]): this
     disallowIfSet(error: Error, ...columns: string[]): this
     /**
-     * Throw an error if the indicated properties are not set
+     * Throws an error, when it is called, if the indicated properties are not set
      */
     disallowIfNotSet(errorMessage: string, ...columns: string[]): this
     disallowIfNotSet(error: Error, ...columns: string[]): this
     /**
-     * Throw an error if the indicated properties was set with a value.
+     * Throws an error, when it is called, if the indicated properties were set with a value.
      * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
@@ -1461,7 +1761,7 @@ interface InsertExpression {
     disallowIfValue(errorMessage: string, ...columns: string[]): this
     disallowIfValue(error: Error, ...columns: string[]): this
     /**
-     * Throw an error if the indicated properties was set not set or has no value.
+     * Throws an error, when it is called, if the indicated properties were not set or have no value.
      * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
@@ -1469,13 +1769,13 @@ interface InsertExpression {
     disallowIfNoValue(errorMessage: string, ...columns: string[]): this
     disallowIfNoValue(error: Error, ...columns: string[]): this
     /**
-     * Throw an error if the any other set except the provided column list
+     * Throws an error, when it is called, if any column other than the listed ones is set.
      */
     disallowAnyOtherSet(errorMessage: string, ...columns: string[]): this
     disallowAnyOtherSet(error: Error, ...columns: string[]): this
 
     //
-    // When variants, that are only executed if the first param is true
+    // When variants, that only apply if the first param is true
     //
 
     setWhen(when: boolean, columns: InsertSets): this
@@ -1514,80 +1814,82 @@ interface InsertExpression {
     disallowAnyOtherSetWhen(when: boolean, errorMessage: string, ...columns: string[]): this
     disallowAnyOtherSetWhen(when: boolean, error: Error, ...columns: string[]): this
 
-    /** Allows to set the values dynamically */
+    /** Sets the values dynamically */
     dynamicSet(): this
     dynamicSet(columns: OptionalInsertSets): this
 
-    /** Alias to dynamicSet method: Allows to set the values dynamically */
+    /** Alias to dynamicSet method: sets the values dynamically */
     dynamicValues(columns: OptionalInsertSets): this
-    /** Allow to insert multiple registers in the database dynamically */
+    /** Inserts multiple rows in the database dynamically */
     dynamicValues(columns: OptionalInsertSets[]): this
 
-    /** Insert the default values in the table */
+    /** Inserts the default values in the table. Only available when the table has no required column without a default */
     defaultValues(): this
 
     /** Insert from a select */
     from(select: Subquery): this
 
     /** 
-     * Indicate that the query must return the last inserted id 
-     * Note: If you are inserting multiple rows, only PostgreSql, SqlServer and Oracle support it
+     * Indicates that the query must return the last inserted id. Only available when the table has an autogenerated primary key.
+     * Note: inserting multiple rows, or with an on conflict clause, it is not available on MySQL.
+     * Inserting from a select, it is not available on MySQL and Oracle.
      */
     returningLastInsertedId(): this
 
-    // Methos to specify the on conflict clause
-    /** Allows to specify the "on conflict do nothing" clause */
+    // Methods to specify the on conflict clause, only available on MariaDB, MySQL, PostgreSQL and SQLite
+    /** Specifies the "on conflict do nothing" clause */
     onConflictDoNothing(): this
-    /** Allows to specify the "on conflict do update" clause and next specify the sets */
+    // Without indicating the conflict, only available on MariaDB, MySQL and SQLite
+    /** Specifies the "on conflict do update" clause and next specify the sets */
     onConflictDoUpdateDynamicSet(): this
     onConflictDoUpdateDynamicSet(columns: UpdateSets): this
-    /** Allows to specify the "on conflict do update set" clause, setting the columns provided as argument */
+    /** Specifies the "on conflict do update set" clause, setting the columns provided as argument */
     onConflictDoUpdateSet(columns: UpdateSets): this
     /** 
-     * Allows to specify the "on conflict do update set" clause, setting the columns provided as argument.
-     * Set a value only if the provided value is not null, undefined, empty string 
+     * Specifies the "on conflict do update set" clause, setting the columns provided as argument.
+     * Sets a value only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array 
      */
     onConflictDoUpdateSetIfValue(columns: OptionalUpdateSets): this
-    /**Allow to specify the "on conflict" clasue indicating the index column expected by this clause */
+    /** Specifies the "on conflict" clause indicating the index columns expected by this clause. Only available on PostgreSQL and SQLite */
     onConflictOn(column: AnyValueSource, ...columns: AnyValueSource[]): this
-    /**Allow to specify the "on conflict on constraint" clasue indicating the index name expected by this clause */
+    /** Specifies the "on conflict on constraint" clause indicating the constraint expected by this clause. Only available on PostgreSQL */
     onConflictOnConstraint(constraint: RawFragment): this
 
     // Methods available when previously is called onConflictOn or onConflictOnConstraint
-    /** Allows to specify the "do nothing" clause */
+    /** Specifies the "do nothing" clause */
     doNothing(): this
-    /** Allows to specify the "do update" clause and next specify the sets */
+    /** Specifies the "do update" clause and next specify the sets */
     doUpdateDynamicSet(): this
     doUpdateDynamicSet(columns: UpdateSets): this
-    /** Allows to specify the do update set" clause, setting the columns provided as argument */
+    /** Specifies the "do update set" clause, setting the columns provided as argument */
     doUpdateSet(columns: UpdateSets): this
     /** 
-     * Allows to specify the "do update set" clause, setting the columns provided as argument.
-     * Set a value only if the provided value is not null, undefined, empty string 
+     * Specifies the "do update set" clause, setting the columns provided as argument.
+     * Sets a value only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array 
      */
     doUpdateSetIfValue(columns: OptionalUpdateSets): this
 
-    // Methods available to specify a where clause inmediatelly after call onConflictOn or any do update method
-    /** Allows to create the where dynamically */
+    // Methods to specify a where clause immediately after onConflictOn or any do update method
+    // (after a do update method the condition can use the values to insert, see valuesForInsert).
+    // Only available on PostgreSQL and SQLite
+    /** Creates the where dynamically */
     dynamicWhere(): this
-    /** Allows to specify the where */
+    /** Specifies the where */
     where(condition: BooleanValueSource): this
-    /** Allows to extends the where using an and */
+    /** Extends the where using an and */
     and(condition: BooleanValueSource): this
-    /** Allows to extends the where using an or */
+    /** Extends the where using an or */
     or(condition: BooleanValueSource): this
 
     /**
-     * Execute the insert, by default returns the number of inserted rows
+     * Executes the insert. By default it returns the number of inserted rows
      * 
-     * @param min Indicate the minimum of rows that must be updated, 
-     *           if the minimum is not reached an exception will be thrown
-     * @param max Indicate the maximum of rows that must be updated, 
-     *           if the maximum is exceeded an exception will be thrown
+     * @param min Minimum number of rows that must be inserted. If it isn't reached, the promise is rejected
+     * @param max Maximum number of rows that can be inserted. If it is exceeded, the promise is rejected
      */
     executeInsert(min?: number, max?: number): Promise<RESULT>
     /** Returns the sql query to be executed in the database */
@@ -1595,39 +1897,38 @@ interface InsertExpression {
     /** Returns the required parameters by the sql query */
     params(): any[]
 
-    // Returning methods
+    // Returning methods, not available on MySQL. Inserting from a select, not available on Oracle either
     /** 
-     * Allows to specify the returning clause.
+     * Specifies the returning clause.
      * It must be an object where the name of the property is the name of the resulting property
      * and the value is the ValueSource where the value will be obtained.
      */
     returning(columns: InsertReturningValues): this
-    /** Returns the optional values as null instead of optional undefined values, can only used immediately after returning(...) */
+    /** Returns the optional values as null instead of optional undefined values. It can only be used immediately after returning(...) */
     projectingOptionalValuesAsNullable(): this
     /** 
-     * Allows to specify the returning clause of a query that returns only one column.
+     * Specifies the returning clause of a query that returns only one column.
      * It receives as argument the ValueSource where the value will be obtained.
      */
     returningOneColumn(column: AnyValueSource): this
-    /** Execute the insert query that returns one o no result from the database */
+    /** Executes the insert query that returns one or no result from the database */
     executeInsertNoneOrOne(): Promise<RESULT | null>
     /** 
-     * Execute the insert query that returns one result from the database.
-     * If no result is returned by the database an exception will be thrown.
+     * Executes the insert query that returns one result from the database.
+     * If the database returns no result, the promise is rejected.
      */
     executeInsertOne(): Promise<RESULT>
     /** 
-     * Execute the insert query that returns zero or many results from the database 
+     * Executes the insert query that returns zero or many results from the database 
      * 
-     * @param min Indicate the minimum of rows that must be deleted, 
-     *           if the minimum is not reached an exception will be thrown
-     * @param max Indicate the maximum of rows that must be deleted, 
-     *           if the maximum is exceeded an exception will be thrown
+     * @param min Minimum number of rows that must be inserted. If it isn't reached, the promise is rejected
+     * @param max Maximum number of rows that can be inserted. If it is exceeded, the promise is rejected
      */
     executeInsertMany(min?: number, max?: number): Promise<RESULT[]>
 
     customizeQuery(customization: {
         afterInsertKeyword?: RawFragment
+        beforeQuery?: RawFragment
         afterQuery?: RawFragment
         queryExecutionName?: string
         queryExecutionMetadata?: any
@@ -1660,32 +1961,33 @@ interface UpdateExpression {
      */
     shapedAs(shape: UpdateShape): this
     /** 
-     * Allows you to extend the previously set shape.
+     * Extends the previously set shape.
      * The values set after extending the shape will allow you to include the new properties in the extended shape.
      */
     extendShape(shape: UpdateShape): this
     
-    /** Set the values for update */
+    /** Sets the values for update. An undefined value writes a null */
     set(columns: UpdateSets): this
-    /** Set a value only if the provided value is not null, undefined, empty string 
+    /**
+     * Sets a value only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array 
      */
     setIfValue(columns: OptionalUpdateSets): this
-    /** Set a previous set value only */
+    /** Sets a value only if the column was previously set */
     setIfSet(columns: UpdateSets): this
-    /** Set a previous set value only if the provided value is not null, undefined, empty string 
+    /**
+     * Sets a value only if the column was previously set and the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array
      */
     setIfSetIfValue(columns: OptionalUpdateSets): this
-    /** Set a unset value (only if the value was not previously set) */
+    /** Sets a value only if the column was not previously set */
     setIfNotSet(columns: UpdateSets): this
     /** 
-     * Set a unset value only if the provided value is not null, undefined, empty string 
+     * Sets a value only if the column was not previously set and the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array
-     * (only if the value was not previously set) 
      */
     setIfNotSetIfValue(columns: OptionalUpdateSets): this
     /** Unsets the previously set columns listed. */
@@ -1750,17 +2052,17 @@ interface UpdateExpression {
     ignoreAnySetWithNoValue(): this
 
     /**
-     * Throws an error if the indicated properties are set
+     * Throws an error, when it is called, if the indicated properties are set
      */
     disallowIfSet(errorMessage: string, ...columns: string[]): this
     disallowIfSet(error: Error, ...columns: string[]): this
     /**
-     * Throws an error if the indicated properties are not set
+     * Throws an error, when it is called, if the indicated properties are not set
      */
     disallowIfNotSet(errorMessage: string, ...columns: string[]): this
     disallowIfNotSet(error: Error, ...columns: string[]): this
     /**
-     * Throws an error if the indicated properties were set with a value.
+     * Throws an error, when it is called, if the indicated properties were set with a value.
      * It is considered the column has value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
@@ -1768,7 +2070,7 @@ interface UpdateExpression {
     disallowIfValue(errorMessage: string, ...columns: string[]): this
     disallowIfValue(error: Error, ...columns: string[]): this
     /**
-     * Throws an error if the indicated properties were not set or have no value.
+     * Throws an error, when it is called, if the indicated properties were not set or have no value.
      * It is considered the column has value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
@@ -1776,13 +2078,13 @@ interface UpdateExpression {
     disallowIfNoValue(errorMessage: string, ...columns: string[]): this
     disallowIfNoValue(error: Error, ...columns: string[]): this
     /**
-     * Throws an error if any column other than the listed ones is set.
+     * Throws an error, when it is called, if any column other than the listed ones is set.
      */
     disallowAnyOtherSet(errorMessage: string, ...columns: string[]): this
     disallowAnyOtherSet(error: Error, ...columns: string[]): this
 
     //
-    // When variants, that are only executed if the first param is true
+    // When variants, that only apply if the first param is true
     //
 
     setWhen(when: boolean, columns: UpdateSets): this
@@ -1811,27 +2113,25 @@ interface UpdateExpression {
     disallowAnyOtherSetWhen(when: boolean, errorMessage: string, ...columns: string[]): this
     disallowAnyOtherSetWhen(when: boolean, error: Error, ...columns: string[]): this
 
-    /** Allows to set the values dynamically */
+    /** Sets the values dynamically */
     dynamicSet(): this
     dynamicSet(columns: UpdateSets): this
 
-    /** Allows to create the where dynamically */
+    /** Creates the where dynamically */
     dynamicWhere(): this
-    /** Allows to specify the where */
+    /** Specifies the where */
     where(condition: BooleanValueSource): this
 
-    /** Allows to extends the where or the on clause of a join using an and */
+    /** Extends the where or the on clause of a join using an and */
     and(condition: BooleanValueSource): this
-    /** Allows to extends the where or the on clause of a join using an or */
+    /** Extends the where or the on clause of a join using an or */
     or(condition: BooleanValueSource): this
 
     /**
-     * Execute the update returning the number of updated rows
+     * Executes the update returning the number of updated rows
      * 
-     * @param min Indicate the minimum of rows that must be updated, 
-     *           if the minimum is not reached an exception will be thrown
-     * @param max Indicate the maximum of rows that must be updated, 
-     *           if the maximum is exceeded an exception will be thrown
+     * @param min Minimum number of rows that must be updated. If it isn't reached, the promise is rejected
+     * @param max Maximum number of rows that can be updated. If it is exceeded, the promise is rejected
      */
     executeUpdate(min?: number, max?: number): Promise<number>
     /** Returns the sql query to be executed in the database */
@@ -1839,65 +2139,65 @@ interface UpdateExpression {
     /** Returns the required parameters by the sql query */
     params(): any[]
 
-    // Returning methods
+    // Returning methods, not available on MySQL
     /** 
-     * Allows to specify the returning clause.
+     * Specifies the returning clause.
      * It must be an object where the name of the property is the name of the resulting property
      * and the value is the ValueSource where the value will be obtained.
      */
     returning(columns: UpdateReturningValues): this
     /** 
-     * Returns the optional values as null instead of optional undefined values, can only used 
-     * immediately after returning(...) 
-     * */
+     * Returns the optional values as null instead of optional undefined values.
+     * It can only be used immediately after returning(...) 
+     */
     projectingOptionalValuesAsNullable(): this
     /** 
-     * Allows to specify the returning clause of a query that returns only one column.
+     * Specifies the returning clause of a query that returns only one column.
      * It receives as argument the ValueSource where the value will be obtained.
      */
     returningOneColumn(column: AnyValueSource): this
-    /** Execute the update query that returns one o no result from the database */
+    /** Executes the update query that returns one or no result from the database */
     executeUpdateNoneOrOne(): Promise<RESULT | null>
     /** 
-     * Execute the update query that returns one result from the database.
-     * If no result is returned by the database an exception will be thrown.
+     * Executes the update query that returns one result from the database.
+     * If the database returns no result, the promise is rejected.
      */
     executeUpdateOne(): Promise<RESULT>
     /** 
-     * Execute the update query that returns zero or many results from the database 
+     * Executes the update query that returns zero or many results from the database 
      * 
-     * @param min Indicate the minimum of rows that must be deleted, 
-     *           if the minimum is not reached an exception will be thrown
-     * @param max Indicate the maximum of rows that must be deleted, 
-     *           if the maximum is exceeded an exception will be thrown
+     * @param min Minimum number of rows that must be updated. If it isn't reached, the promise is rejected
+     * @param max Maximum number of rows that can be updated. If it is exceeded, the promise is rejected
      */
     executeUpdateMany(min?: number, max?: number): Promise<RESULT[]>
 
-    /** Allows to add a from to the update query */
+    /** Adds a from to the update query */
     from(table: Table | View): this
 
-    /** Allows to add a join to the update query */
+    // Joins right after the update, only available on MariaDB and MySQL. On the other databases they go after a from
+    /** Adds a join to the update query */
     join(table: Table | View): this
-    /** Allows to add a inner join to the update query */
+    /** Adds an inner join to the update query */
     innerJoin(table: Table | View): this
     /** 
-     * Allows to add a left join to the update query. 
-     * Note: to use a table or view here you must call first forUseInLeftJoin methods on it
+     * Adds a left join to the update query. 
+     * Note: to use a table or view here you must first call forUseInLeftJoin on it
      */
     leftJoin(source: OuterJoinSource): this
     /** 
-     * Allows to add a left outer join to the update query. 
-     * Note: to use a table or view here you must call first forUseInLeftJoin methods on it
+     * Adds a left outer join to the update query. 
+     * Note: to use a table or view here you must first call forUseInLeftJoin on it
      */
     leftOuterJoin(source: OuterJoinSource): this
 
-    /** Allows to create the on clause of a join dynamically */
+    /** Creates the on clause of a join dynamically */
     dynamicOn(): this
-    /** Allows to specify the on clause of a join */
+    /** Specifies the on clause of a join */
     on(condition: BooleanValueSource): this
 
     customizeQuery(customization: {
         afterUpdateKeyword?: RawFragment
+        beforeQuery?: RawFragment
         afterQuery?: RawFragment
         queryExecutionName?: string
         queryExecutionMetadata?: any
@@ -1909,7 +2209,7 @@ type UpdateSets = { [columnName: string]: any }
 /** Columns required by the update, but marked as optional */
 type OptionalUpdateSets = { [columnName: string]: any }
 /**
- * Returning projection of the value that vill be retreived from the database.
+ * Returning projection of the value that will be retrieved from the database.
  * 
  * It must be an object where the name of the property is the name of the resulting property
  * and the value is the ValueSource where the value will be obtained.
@@ -1921,83 +2221,83 @@ type UpdateShape = { [propertyNameInValues: string]: string /* column name in th
 
 
 interface DeleteExpression {
-    /** Allows to create the where dynamically */
+    /** Creates the where dynamically */
     dynamicWhere(): this
-    /** Allows to specify the where */
+    /** Specifies the where */
     where(condition: BooleanValueSource): this
 
-    /** Allows extending the WHERE or ON clause of a join using AND */
+    /** Extends the where or the on clause of a join using an and */
     and(condition: BooleanValueSource): this
-    /** Allows extending the WHERE or ON clause of a join using OR */
+    /** Extends the where or the on clause of a join using an or */
     or(condition: BooleanValueSource): this
 
     /**
-    * Execute the delete returning the number of deleted rows
-    * 
-    * @param min Minimum number of rows that must be deleted. An exception is thrown if not reached
-    * @param max Maximum number of rows that can be deleted. An exception is thrown if exceeded
-    */
+     * Executes the delete returning the number of deleted rows
+     * 
+     * @param min Minimum number of rows that must be deleted. If it isn't reached, the promise is rejected
+     * @param max Maximum number of rows that can be deleted. If it is exceeded, the promise is rejected
+     */
     executeDelete(min?: number, max?: number): Promise<number>
     /** Returns the sql query to be executed in the database */
     query(): string
     /** Returns the required parameters by the sql query */
     params(): any[]
 
-    // Returning methods
+    // Returning methods, not available on MySQL
     /** 
-     * Allows to specify the returning clause.
+     * Specifies the returning clause.
      * The object keys define the names of the resulting properties, and the values specify the ValueSource to retrieve from.
      */
     returning(columns: DeleteReturningValues): this
-    /** Returns the optional values as null instead of optional undefined values, can only used immediately after returning(...) */
+    /** Returns the optional values as null instead of optional undefined values. It can only be used immediately after returning(...) */
     projectingOptionalValuesAsNullable(): this
     /** 
-     * Allows to specify the returning clause of a query that returns only one column.
+     * Specifies the returning clause of a query that returns only one column.
      * It receives as argument the ValueSource where the value will be obtained.
      */
     returningOneColumn(column: AnyValueSource): this
     /** Executes the delete query and returns one or no result */
     executeDeleteNoneOrOne(): Promise<RESULT | null>
     /** 
-     * Execute the delete query that returns one result from the database.
-     * If no result is returned by the database an exception will be thrown.
+     * Executes the delete query that returns one result from the database.
+     * If the database returns no result, the promise is rejected.
      */
     executeDeleteOne(): Promise<RESULT>
     /** 
-     * Execute the delete query that returns zero or many results from the database 
+     * Executes the delete query that returns zero or many results from the database 
      * 
-     * @param min Indicate the minimum of rows that must be deleted, 
-     *           if the minimum is not reached an exception will be thrown
-     * @param max Indicate the maximum of rows that must be deleted, 
-     *           if the maximum is exceeded an exception will be thrown
+     * @param min Minimum number of rows that must be deleted. If it isn't reached, the promise is rejected
+     * @param max Maximum number of rows that can be deleted. If it is exceeded, the promise is rejected
      */
     executeDeleteMany(min?: number, max?: number): Promise<RESULT[]>
 
-    /** Allows to add a using (like a from that doesn't delete) to the delete query */
+    /** Adds a using (like a from that doesn't delete) to the delete query. Not available on SQLite */
     using(table: Table | View): this
 
-    /** Allows to add a join to the delete query */
+    // Joins right after deleteFrom, only available on MariaDB and MySQL. On the other databases they go after a using
+    /** Adds a join to the delete query */
     join(table: Table | View): this
-    /** Allows to add a inner join to the delete query */
+    /** Adds an inner join to the delete query */
     innerJoin(table: Table | View): this
     /** 
-     * Allows to add a left join to the delete query. 
+     * Adds a left join to the delete query. 
      * Note: You must call forUseInLeftJoin on a table or view before using it in a left join
      */
     leftJoin(source: OuterJoinSource): this
     /** 
-     * Allows to add a left outer join to the delete query. 
+     * Adds a left outer join to the delete query. 
      * Note: You must call forUseInLeftJoin on a table or view before using it in a left join
      */
     leftOuterJoin(source: OuterJoinSource): this
 
-    /** Allows to create the on clause of a join dynamically */
+    /** Creates the on clause of a join dynamically */
     dynamicOn(): this
-    /** Allows to specify the on clause of a join */
+    /** Specifies the on clause of a join */
     on(condition: BooleanValueSource): this
 
     customizeQuery(customization: {
         afterDeleteKeyword?: RawFragment
+        beforeQuery?: RawFragment
         afterQuery?: RawFragment
         queryExecutionName?: string
         queryExecutionMetadata?: any
@@ -2017,44 +2317,44 @@ type DeleteReturningValues = { [columnName: string]: AnyValueSource }
 
 
 interface SelectExpression {
-    /** Allows to add a from to the select query */
+    /** Adds a from to the select query */
     from(table: Table | View): this
 
-    /** Allows to add a join to the select query */
+    /** Adds a join to the select query */
     join(table: Table | View): this
-    /** Allows to add a inner join to the select query */
+    /** Adds an inner join to the select query */
     innerJoin(table: Table | View): this
     /** 
-     * Allows to add a left join to the select query. 
-     * Note: to use a table or view here you must call first forUseInLeftJoin methods on it
+     * Adds a left join to the select query. 
+     * Note: to use a table or view here you must first call forUseInLeftJoin on it
      */
     leftJoin(source: OuterJoinSource): this
     /** 
-     * Allows to add a left outer join to the select query. 
-     * Note: to use a table or view here you must call first forUseInLeftJoin methods on it
+     * Adds a left outer join to the select query. 
+     * Note: to use a table or view here you must first call forUseInLeftJoin on it
      */
     leftOuterJoin(source: OuterJoinSource): this
 
-    // Optional variants for joins, to be used in select picking columns
+    // Optional variants of the joins: the join is left out of the query when no column of it is used
     optionalJoin(table: Table | View): this
     optionalInnerJoin(table: Table | View): this
     optionalLeftJoin(source: OuterJoinSource): this
     optionalLeftOuterJoin(source: OuterJoinSource): this
 
-    /** Allows to create the on clause of a join dynamically */
+    /** Creates the on clause of a join dynamically */
     dynamicOn(): this
-    /** Allows to specify the on clause of a join */
+    /** Specifies the on clause of a join */
     on(condition: BooleanValueSource): this
 
-    /** Allows to create the where dynamically */
+    /** Creates the where dynamically */
     dynamicWhere(): this
-    /** Allows to specify the where */
+    /** Specifies the where */
     where(condition: BooleanValueSource): this
     
-    /** Allows to specify the group by of the select query */
+    /** Specifies the group by of the select query */
     groupBy(...columns: AnyValueSource[]): this
     /** 
-     * Allows to specify the group by of the select query.
+     * Specifies the group by of the select query.
      * 
      * If you already defined the select clause, you can use the name of
      * the properties returned by the select instead of its definition: the
@@ -2071,12 +2371,12 @@ interface SelectExpression {
      * Note: only available if you define the select clause first.
      */
     groupByNonAggregatedColumns(): this
-    /** Allows to create the having clause of the group by dynamically */
+    /** Creates the having clause of the group by dynamically */
     dynamicHaving(): this
-    /** Allows to specify the having clause of the group by */
+    /** Specifies the having clause of the group by */
     having(condition: BooleanValueSource): this
     /**
-     * Allows to create the having clause using the columns of the select: the
+     * Creates the having clause using the columns of the select: the
      * function receives them (with the same shape as the select) and each one is
      * written as the same expression the select list computes, with the same
      * parameters (by its alias on MySQL and MariaDB).
@@ -2086,57 +2386,56 @@ interface SelectExpression {
     having(condition: (columns: SelectValues) => BooleanValueSource): this
 
     /** 
-     * Allows to specify the select clause.
+     * Specifies the select clause.
      * It must be an object where the name of the property is the name of the resulting property
      * and the value is the ValueSource where the value will be obtained.
      */
     select(columns: SelectValues): this
-    /** Returns the optional values as null instead of optional undefined values, can only used immediately after select(...) */
+    /** Returns the optional values as null instead of optional undefined values. It can only be used immediately after select(...) */
     projectingOptionalValuesAsNullable(): this
     /** 
-     * Allows to specify the select clause of a query that returns only one column.
+     * Specifies the select clause of a query that returns only one column.
      * It receives as argument the ValueSource where the value will be obtained.
      */
     selectOneColumn(column: AnyValueSource): this
     /** 
-     * Allows to specify the select clause of a query that returns only one column with count(*).
+     * Specifies the select clause of a query that returns only one column with count(*).
      */
     selectCountAll(): this
 
     /** 
-     * Allows to specify an order by used by the query, you must indicate the name of the column
-     * returned by the query.
-     * If you select one column the name of the column is 'result'.
+     * Specifies an order by. It receives the name of a column returned by the query
+     * (if you select one column, its name is 'result'), a value source or a raw fragment.
      */
     orderBy(column: string, mode?: OrderByMode): this
     orderBy(column: AnyValueSource, mode?: OrderByMode): this
     orderBy(column: RawFragment, mode?: OrderByMode): this
-    /** Allows to specify an order by dynamically, it is parsed from the provided string */
+    /** Specifies an order by dynamically, parsed from the provided string */
     orderByFromString(orderBy: string): this
     orderByFromStringIfValue(orderBy: string | null | undefined): this
-    /** Allows to specify an order by dynamically, it is parsed from the provided array of clauses joined with commas */
+    /** Specifies an order by dynamically, parsed from the provided array of clauses (each element is one order by clause) */
     orderByFromStringArray(orderBy: readonly string[]): this
     orderByFromStringArrayIfValue(orderBy: ReadonlyArray<string | null | undefined> | null | undefined): this
 
-    /** Allows to specify the maximum number of rows that will be returned by the query */
+    /** Specifies the maximum number of rows returned by the query */
     limit(limit: number): this
     limitIfValue(limit: number | null | undefined): this
-     /** Allows to specify the number of first rows ignored by the query */
+    /** Specifies the number of first rows ignored by the query */
     offset(offset: number): this
     offsetIfValue(offset: number | null | undefined): this
 
-    // Oracle's connect by syntax
+    // Oracle's connect by syntax, only available on Oracle
     startWith(condition: BooleanValueSource): this
     connectBy(condition: (prior: (column: AnyValueSource) => AnyValueSource) => BooleanValueSource): this
     connectByNoCycle(condition: (prior: (column: AnyValueSource) => AnyValueSource) => BooleanValueSource): this
     orderingSiblingsOnly(): this
 
-    /** Allows to extends the where, or the on clause of a join, or the having clause using an and */
+    /** Extends the where, the on clause of a join, or the having clause using an and */
     and(condition: BooleanValueSource): this
-    /** Allows to extends the where, or the on clause of a join, or the having clause using an or */
+    /** Extends the where, the on clause of a join, or the having clause using an or */
     or(condition: BooleanValueSource): this
 
-    // Query compound operators
+    // Query compound operators. intersectAll, exceptAll and minusAll are not available on SQLite and SQL Server
     union(select: CompoundableSubquery): this
     unionAll(select: CompoundableSubquery): this
     intersect(select: CompoundableSubquery): this
@@ -2152,45 +2451,44 @@ interface SelectExpression {
     recursiveUnionOn(fn: (view: View) => BooleanValueSource): this
     recursiveUnionAllOn(fn: (view: View) => BooleanValueSource): this
 
-    /** Execute the select query that returns one o no result from the database */
+    /** Executes the select query that returns one or no result from the database */
     executeSelectNoneOrOne(): Promise<RESULT | null>
     /** 
-     * Execute the select query that returns one result from the database.
-     * If no result is returned by the database an exception will be thrown.
+     * Executes the select query that returns one result from the database.
+     * If the database returns no result, the promise is rejected.
      */
     executeSelectOne(): Promise<RESULT>
-    /** Execute the select query that returns zero or many results from the database */
+    /** Executes the select query that returns zero or many results from the database */
     executeSelectMany(): Promise<RESULT[]>
     /** 
-     * Execute the select query that returns zero or many results from the database.
-     * Select page execute the query twice, the first one to get the data from the database 
-     * and the second one to get the count of all data without the limit and the offset. 
-     * Note: select page is only available if you don't define a group by clause.
+     * Executes the select query that returns zero or many results from the database.
+     * It sends two queries: one to get the data from the database, 
+     * and another one to get the count of all data without the limit and the offset. 
      */
     executeSelectPage(): Promise<{ data: RESULT[], count: number }>
     /** 
-     * Execute the select query as a select page, but allows to include extra properties to will be resulting object.
-     * If the object provided by argument includes the property count, the query that count the data will be omitted and
-     * this value will be used. If the object provided by argument includes the property data, the query that extract 
-     * the data will be omitted and this value will be used.
+     * Executes the select query as a select page, including extra properties in the resulting object.
+     * If the object provided by argument includes the property count, the query that counts the data is omitted and
+     * this value is used. If the object provided by argument includes the property data, the query that extracts 
+     * the data is omitted and this value is used.
      */
     executeSelectPage<EXTRAS extends {}>(extras: EXTRAS): Promise<{ data: RESULT[], count: number } & EXTRAS>
     
     /**
-     * Allows to use a select query as a view in another select. 
-     * This select will be included as a clause with in the final sql.
+     * Uses a select query as a view in another select. 
+     * This select is included as a with clause in the final sql.
      * 
-     * @param as name of the clause with in the final query (must be unique per final query)
+     * @param as name of the with clause in the final query (must be unique per final query)
      */
     forUseInQueryAs(as: string): View
 
     /**
-     * Allows to use a select query as an inline query value in another select. 
+     * Uses a select query as an inline query value in another select. 
      */
     forUseAsInlineQueryValue(): AnyValueSource
 
     /**
-     * Allows to use a select query as an inline object array value in another select. 
+     * Uses a select query as an inline object array value in another select. 
      */
     forUseAsInlineAggregatedArrayValue(): AggregatedArrayValueSource<this>
     
@@ -2199,10 +2497,14 @@ interface SelectExpression {
     /** Returns the required parameters by the sql query */
     params(): any[]
 
+    /** After a compound operator it only accepts beforeQuery, afterQuery, beforeWithQuery, afterWithQuery, queryExecutionName and queryExecutionMetadata */
     customizeQuery(customization: {
         afterSelectKeyword?: RawFragment
         beforeColumns?: RawFragment
         customWindow?: RawFragment
+        beforeOrderByItems?: RawFragment
+        afterOrderByItems?: RawFragment
+        beforeQuery?: RawFragment
         afterQuery?: RawFragment
         beforeWithQuery?: RawFragment
         afterWithQuery?: RawFragment
@@ -2213,13 +2515,13 @@ interface SelectExpression {
 
 /**
  * Modes of sorting in an order by.
- * If the database don't support one of then it will be emulated.
+ * If the database doesn't support one of them, it is emulated.
  */
 type OrderByMode = 'asc' | 'desc' | 'asc nulls first' | 'asc nulls last' | 'desc nulls first' | 'desc nulls last' | 'insensitive' |
                    'asc insensitive' | 'desc insensitive' | 'asc nulls first insensitive' | 'asc nulls last insensitive' | 
                    'desc nulls first insensitive' | 'desc nulls last insensitive'
 /**
- * Select projection of the value that vill be retreived from the database.
+ * Select projection of the value that will be retrieved from the database.
  * 
  * It must be an object where the name of the property is the name of the resulting property
  * and the value is the ValueSource where the value will be obtained.
@@ -2231,7 +2533,7 @@ type SelectValues = { [columnName: string]: AnyValueSource }
 type Subquery = SelectExpression
 
 /**
- * Here we use the CompoundablQuery type to indicate that you can use a select with a compound operator (union, intesect)
+ * Here we use the CompoundableSubquery type to indicate that you can use a select with a compound operator (union, intersect)
  */
 type CompoundableSubquery = SelectExpression
 
@@ -2259,15 +2561,24 @@ declare class CustomBooleanTypeAdapter implements TypeAdapter {
 
     constructor(trueValue: number, falseValue: number)
     constructor(trueValue: string, falseValue: string)
+    // CustomBooleanTypeAdapter's constructor implementation ...
 
     transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
+    // CustomBooleanTypeAdapter's transformValueFromDB implementation ...
+
     transformValueToDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
+    // CustomBooleanTypeAdapter's transformValueToDB implementation ...
 }
 
 declare class ForceTypeCast implements TypeAdapter {
     transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
+    // ForceTypeCast's transformValueFromDB implementation ...
+
     transformValueToDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
-    transformPlaceholder(placeholder: string, type: string, _forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string
+    // ForceTypeCast's transformValueToDB implementation ...
+
+    transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string
+    // ForceTypeCast's transformPlaceholder implementation ...
 }
 
 // END
@@ -2281,15 +2592,12 @@ type Default = any
 type QueryRunner = any
 type OuterJoinSource = any
 type Argument<_T, _TYPE_NAME> = any
-type DynamicFilter = any
-type Filterable = any
-type DynamicConditionExtension = any
 type RawFragment = any
 type CustomizedTableOrView = any
 type AnyValueSource = ValueSource<any, any>
 type TransactionIsolationLevel = any
 
-void function (_c: Connection, _v: Values) { return null}
+void function (_c: Connection, _v: Values, _config: MariaDBConnectionConfiguration | MySqlConnectionConfiguration | OracleConnectionConfiguration | PostgreSqlConnectionConfiguration | SqliteConnectionConfiguration | SqlServerConnectionConfiguration) { return null}
 interface ValueSource<T, TYPE_NAME> {
     makeCompilerHappy_type: T
     makeCompilerHappy_typeName: TYPE_NAME

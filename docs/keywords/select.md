@@ -4,7 +4,7 @@ search:
 ---
 # Select Keywords
 
-Look for an SQL keyword of a `SELECT` to find the method that writes it. For the keywords inside a value, like `LIKE` or `COUNT`, see [function and operator keywords](functions-oprators.md).
+Look for an SQL keyword of a `SELECT` to find the method that writes it. For the keywords inside a value, like `LIKE` or `COUNT`, see [function and operator keywords](functions-operators.md).
 
 | SQL Keyword | ts-sql-query Equivalent | Notes | Link |
 |:---|:---|:---|:---|

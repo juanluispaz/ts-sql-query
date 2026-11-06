@@ -265,7 +265,7 @@ type tCustomerProvidedIdColumns = ProvidedIdColumnKeys<typeof tCustomer>;
 
 ### Types of the extract functions
 
-These appear in the signature of the [extract functions](columns-from-object.md), and you only need them to write a function of your own around one of those. They are in `ts-sql-query/extras/types`, not in the root `ts-sql-query`.
+These appear in the signature of the [extract functions](columns-from-object.md), and you only need them to write a function of your own around one of those. They are in `ts-sql-query/extras/types`, and also in the root `ts-sql-query`.
 
 | Type | What it is |
 |---|---|

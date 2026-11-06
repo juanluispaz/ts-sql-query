@@ -315,7 +315,7 @@ describe(ctx.label, () => {
             .select({ id: tIssueWorklog.id, v: tIssueWorklog.booleanVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billable as "v" from issue_worklog where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billable as v from issue_worklog where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -333,7 +333,7 @@ describe(ctx.label, () => {
             .select({ id: tIssueWorklog.id, v: tIssueWorklog.booleanVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billable as "v" from issue_worklog where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billable as v from issue_worklog where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -351,7 +351,7 @@ describe(ctx.label, () => {
             .select({ id: tIssueWorklog.id, v: tIssueWorklog.bigintVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, id as "v" from issue_worklog where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, id as v from issue_worklog where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -369,7 +369,7 @@ describe(ctx.label, () => {
             .select({ id: tIssueWorklog.id, v: tIssueWorklog.bigintVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, duration_ms as "v" from issue_worklog where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, duration_ms as v from issue_worklog where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -387,7 +387,7 @@ describe(ctx.label, () => {
             .select({ id: tIssueWorklog.id, v: tIssueWorklog.doubleVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billed_amount as "v" from issue_worklog where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billed_amount as v from issue_worklog where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -405,7 +405,7 @@ describe(ctx.label, () => {
             .select({ id: tIssueWorklog.id, v: tIssueWorklog.doubleVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, duration_ms as "v" from issue_worklog where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, duration_ms as v from issue_worklog where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -423,7 +423,7 @@ describe(ctx.label, () => {
             .select({ id: tIssueWorklog.id, v: tIssueWorklog.localDateVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, work_date as "v" from issue_worklog where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, work_date as v from issue_worklog where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -441,7 +441,7 @@ describe(ctx.label, () => {
             .select({ id: tIssueWorklog.id, v: tIssueWorklog.localDateVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, work_date as "v" from issue_worklog where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, work_date as v from issue_worklog where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -459,7 +459,7 @@ describe(ctx.label, () => {
             .select({ id: tIssueWorklog.id, v: tIssueWorklog.localTimeVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, started_at as "v" from issue_worklog where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, started_at as v from issue_worklog where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -477,7 +477,7 @@ describe(ctx.label, () => {
             .select({ id: tIssueWorklog.id, v: tIssueWorklog.localTimeVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, started_at as "v" from issue_worklog where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, started_at as v from issue_worklog where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -495,7 +495,7 @@ describe(ctx.label, () => {
             .select({ id: tIssueWorklog.id, v: tIssueWorklog.intVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, id + 1 as "v" from issue_worklog where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, id + 1 as v from issue_worklog where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -513,7 +513,7 @@ describe(ctx.label, () => {
             .select({ id: tIssueWorklog.id, v: tIssueWorklog.intVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, minutes as "v" from issue_worklog where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, minutes as v from issue_worklog where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -531,7 +531,7 @@ describe(ctx.label, () => {
             .select({ id: tIssueWorklog.id, v: tIssueWorklog.customDoubleVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billed_amount as "v" from issue_worklog where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billed_amount as v from issue_worklog where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -549,7 +549,7 @@ describe(ctx.label, () => {
             .select({ id: tIssueWorklog.id, v: tIssueWorklog.customDoubleVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billed_amount as "v" from issue_worklog where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billed_amount as v from issue_worklog where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -567,7 +567,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id, v: tProjectRelease.customComparableVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as "v" from project_release where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as v from project_release where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -585,7 +585,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id, v: tProjectRelease.customComparableVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as "v" from project_release where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as v from project_release where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -603,7 +603,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id, v: tProjectRelease.customVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, channel as "v" from project_release where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, channel as v from project_release where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -621,7 +621,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id, v: tProjectRelease.customVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, channel as "v" from project_release where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, channel as v from project_release where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -639,7 +639,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id, v: tProjectRelease.customUuidVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signing_key as "v" from project_release where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signing_key as v from project_release where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -657,7 +657,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id, v: tProjectRelease.customUuidVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signing_key as "v" from project_release where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signing_key as v from project_release where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -675,7 +675,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id, v: tProjectRelease.customLocalDateVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, released_on as "v" from project_release where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, released_on as v from project_release where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -693,7 +693,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id, v: tProjectRelease.customLocalDateVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, released_on as "v" from project_release where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, released_on as v from project_release where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -711,7 +711,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id, v: tProjectRelease.customLocalTimeVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cutoff_time as "v" from project_release where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cutoff_time as v from project_release where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -729,7 +729,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id, v: tProjectRelease.customLocalTimeVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cutoff_time as "v" from project_release where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cutoff_time as v from project_release where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -747,7 +747,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id, v: tProjectRelease.customLocalDateTimeVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, published_at as "v" from project_release where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, published_at as v from project_release where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -765,7 +765,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id, v: tProjectRelease.customLocalDateTimeVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signed_off_at as "v" from project_release where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signed_off_at as v from project_release where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -783,7 +783,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id, v: tProjectRelease.uuidVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signing_key as "v" from project_release where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signing_key as v from project_release where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -801,7 +801,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id, v: tProjectRelease.uuidVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signing_key as "v" from project_release where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signing_key as v from project_release where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -819,7 +819,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id, v: tProjectRelease.localDateTimeVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, published_at as "v" from project_release where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, published_at as v from project_release where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -837,7 +837,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id, v: tProjectRelease.localDateTimeVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signed_off_at as "v" from project_release where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signed_off_at as v from project_release where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -855,7 +855,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, v: vReleaseOverview.booleanVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, is_signed as "v" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, is_signed as v from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -873,7 +873,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, v: vReleaseOverview.booleanVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, is_signed as "v" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, is_signed as v from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -891,7 +891,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, v: vReleaseOverview.bigintVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, id as "v" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, id as v from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -909,7 +909,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, v: vReleaseOverview.bigintVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, download_count as "v" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, download_count as v from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -927,7 +927,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, v: vReleaseOverview.doubleVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, avg_rating as "v" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, avg_rating as v from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -945,7 +945,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, v: vReleaseOverview.doubleVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, avg_rating as "v" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, avg_rating as v from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -963,7 +963,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, v: vReleaseOverview.uuidVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signing_uuid as "v" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signing_uuid as v from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -981,7 +981,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, v: vReleaseOverview.uuidVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signing_uuid as "v" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signing_uuid as v from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -999,7 +999,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, v: vReleaseOverview.localDateVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, release_day_plain as "v" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, release_day_plain as v from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1017,7 +1017,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, v: vReleaseOverview.localDateVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, release_day_plain as "v" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, release_day_plain as v from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1035,7 +1035,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, v: vReleaseOverview.localTimeVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cutoff_plain as "v" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cutoff_plain as v from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1053,7 +1053,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, v: vReleaseOverview.localTimeVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cutoff_plain as "v" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cutoff_plain as v from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1071,7 +1071,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, v: vReleaseOverview.localDateTimeVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, published_stamp_plain as "v" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, published_stamp_plain as v from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1089,7 +1089,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, v: vReleaseOverview.localDateTimeVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signed_off_at as "v" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signed_off_at as v from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1107,7 +1107,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, v: vReleaseOverview.intVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, id + 1 as "v" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, id + 1 as v from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1125,7 +1125,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, v: vReleaseOverview.intVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, id as "v" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, id as v from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1143,7 +1143,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, v: vReleaseOverview.customComparableVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as "v" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as v from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1161,7 +1161,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, v: vReleaseOverview.customComparableVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as "v" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as v from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1179,7 +1179,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, v: vReleaseOverview.customUuidVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signing_uuid as "v" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signing_uuid as v from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1197,7 +1197,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, v: vReleaseOverview.customUuidVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signing_uuid as "v" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signing_uuid as v from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1215,7 +1215,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, v: vReleaseOverview.customLocalDateVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, release_day_plain as "v" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, release_day_plain as v from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1233,7 +1233,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, v: vReleaseOverview.customLocalDateVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, release_day_plain as "v" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, release_day_plain as v from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1251,7 +1251,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, v: vReleaseOverview.customLocalTimeVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cutoff_plain as "v" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cutoff_plain as v from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1269,7 +1269,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, v: vReleaseOverview.customLocalTimeVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cutoff_plain as "v" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cutoff_plain as v from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1287,7 +1287,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, v: vReleaseOverview.customLocalDateTimeVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, published_stamp_plain as "v" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, published_stamp_plain as v from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1305,7 +1305,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, v: vReleaseOverview.customLocalDateTimeVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signed_off_at as "v" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signed_off_at as v from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1323,7 +1323,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, v: vReleaseOverview.customDoubleVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, avg_rating as "v" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, avg_rating as v from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1341,7 +1341,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, v: vReleaseOverview.customDoubleVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, avg_rating as "v" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, avg_rating as v from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

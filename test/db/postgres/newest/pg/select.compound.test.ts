@@ -290,7 +290,7 @@ describe(ctx.label, () => {
             .select({ a: tProject.archivedAt })
         const result = await optSeed.union(other).executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select archived_at as "a" from project where archived_at is null union select archived_at as "a" from project where archived_at is null"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select archived_at as a from project where archived_at is null union select archived_at as a from project where archived_at is null"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ a?: Date }>>>()
         expect(result).toEqual(expected)

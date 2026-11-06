@@ -26,7 +26,7 @@ describe(ctx.label, () => {
             .where(tReleaseDraft.id.equals(1))
             .select({ id: tReleaseDraft.id, v: tReleaseDraft.scaledCost })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, scaled_cost as "v" from release_draft where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, scaled_cost as v from release_draft where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -52,7 +52,7 @@ describe(ctx.label, () => {
             .where(tReleaseDraft.id.equals(1))
             .select({ id: tReleaseDraft.id, v: tReleaseDraft.shiftedAmount })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, shifted_amount as "v" from release_draft where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, shifted_amount as v from release_draft where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -78,7 +78,7 @@ describe(ctx.label, () => {
             .where(tReleaseDraft.id.equals(1))
             .select({ id: tReleaseDraft.id, v: tReleaseDraft.bracketVersion })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, bracket_version as "v" from release_draft where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, bracket_version as v from release_draft where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -104,7 +104,7 @@ describe(ctx.label, () => {
             .where(tReleaseDraft.id.equals(1))
             .select({ id: tReleaseDraft.id, v: tReleaseDraft.bracketChannel })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, bracket_channel as "v" from release_draft where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, bracket_channel as v from release_draft where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -130,7 +130,7 @@ describe(ctx.label, () => {
             .where(tReleaseDraft.id.equals(1))
             .select({ id: tReleaseDraft.id, v: tReleaseDraft.bracketActivity })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, bracket_activity as "v" from release_draft where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, bracket_activity as v from release_draft where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -157,7 +157,7 @@ describe(ctx.label, () => {
             .where(tReleaseDraft.id.equals(1))
             .select({ id: tReleaseDraft.id, v: tReleaseDraft.shiftedStamp })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, shifted_stamp as "v" from release_draft where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, shifted_stamp as v from release_draft where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -183,7 +183,7 @@ describe(ctx.label, () => {
             .where(tReleaseDraft.id.equals(1))
             .select({ id: tReleaseDraft.id, v: tReleaseDraft.shiftedCount })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, shifted_count as "v" from release_draft where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, shifted_count as v from release_draft where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -209,7 +209,7 @@ describe(ctx.label, () => {
             .where(tReleaseDraft.id.equals(1))
             .select({ id: tReleaseDraft.id, v: tReleaseDraft.shiftedRating })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, shifted_rating as "v" from release_draft where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, shifted_rating as v from release_draft where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -238,7 +238,7 @@ describe(ctx.label, () => {
             .where(tReleaseDraft.id.equals(1))
             .select({ id: tReleaseDraft.id, v: tReleaseDraft.bracketSigningKey })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, bracket_signing_key as "v" from release_draft where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, bracket_signing_key as v from release_draft where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -265,7 +265,7 @@ describe(ctx.label, () => {
             .where(tReleaseDraft.id.equals(1))
             .select({ id: tReleaseDraft.id, v: tReleaseDraft.shiftedReleaseDay })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, shifted_release_day as "v" from release_draft where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, shifted_release_day as v from release_draft where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -292,7 +292,7 @@ describe(ctx.label, () => {
             .where(tReleaseDraft.id.equals(1))
             .select({ id: tReleaseDraft.id, v: tReleaseDraft.shiftedCutoff })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, shifted_cutoff as "v" from release_draft where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, shifted_cutoff as v from release_draft where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

@@ -358,7 +358,7 @@ describe(ctx.label, () => {
             .orderBy('grp')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with groupRows(\`n\`, grp) as (values (?, ?), (?, ?), (?, ?)) select grp as grp, count(\`n\`) as total from groupRows group by grp order by grp"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with groupRows(n, grp) as (values (?, ?), (?, ?), (?, ?)) select grp as grp, count(n) as total from groupRows group by grp order by grp"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -507,7 +507,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with treeNode(id, parentId, name) as (values (?, ?, ?), (?, ?, ?)) select \`a\`.id as id, \`b\`.name as ancName from treeNode as \`a\` inner join treeNode as \`b\` on \`b\`.id = \`a\`.parentId order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with treeNode(id, parentId, name) as (values (?, ?, ?), (?, ?, ?)) select a.id as id, b.name as ancName from treeNode as a inner join treeNode as b on b.id = a.parentId order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

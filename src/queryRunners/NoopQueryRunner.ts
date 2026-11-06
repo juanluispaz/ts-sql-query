@@ -1,3 +1,4 @@
+import { isSelectPageCountQuery } from './QueryRunner.js'
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, PromiseProvider, QueryRunner, RollbackOpts } from './QueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js';
 
@@ -45,8 +46,9 @@ export class NoopQueryRunner implements QueryRunner {
     executeSelectManyRows(_query: string, _params: any[] = []): Promise<any[]> {
         return this.promise.resolve([])
     }
-    executeSelectOneColumnOneRow(_query: string, _params: any[] = []): Promise<any> {
-        return this.promise.resolve(undefined)
+    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
+        // The count of a page of no rows: the query can't find out by other means
+        return this.promise.resolve(isSelectPageCountQuery(query, params) ? 0 : undefined)
     }
     executeSelectOneColumnManyRows(_query: string, _params: any[] = []): Promise<any[]> {
         return this.promise.resolve([])

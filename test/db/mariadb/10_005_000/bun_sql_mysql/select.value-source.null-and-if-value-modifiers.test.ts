@@ -92,7 +92,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(assignee_id, cast(priority as double) / ?) as \`w\` from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(assignee_id, cast(priority as double) / ?) as w from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -125,7 +125,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(assignee_id, ?) as \`w\` from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(assignee_id, ?) as w from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0.5,
@@ -331,7 +331,7 @@ describe(ctx.label, () => {
             .select({ x: tIssue.title.valueWhenNull(tIssue.body) })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ifnull(title, \`body\`) as \`x\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ifnull(title, \`body\`) as x from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -356,7 +356,7 @@ describe(ctx.label, () => {
             .select({ id: tIssueWorklog.id, d: tIssueWorklog.workDate.nullIfValue(new Date(Date.UTC(2024, 2, 4, 0, 0, 0))) })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(work_date, ?) as \`d\` from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(work_date, ?) as d from issue_worklog where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-03-04T00:00:00.000Z,
@@ -377,7 +377,7 @@ describe(ctx.label, () => {
             .select({ id: tIssueWorklog.id, t: tIssueWorklog.startedAt.valueWhenNull(new Date(Date.UTC(1970, 0, 1, 8, 0, 0))) })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(started_at, ?) as \`t\` from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(started_at, ?) as t from issue_worklog where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "08:00:00",
@@ -400,7 +400,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id, d: tIssue.createdAt.nullIfValue(tIssue.createdAt) })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(created_at, created_at) as \`d\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(created_at, created_at) as d from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -421,7 +421,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id, d: tProjectRelease.releasedOn.nullIfValue(new Date(Date.UTC(2024, 0, 15, 0, 0, 0))) })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(released_on, ?) as \`d\` from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(released_on, ?) as d from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-15T00:00:00.000Z,
@@ -444,7 +444,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id, x: tProjectRelease.signedOffAt.valueWhenNull(new Date(Date.UTC(2099, 0, 1, 0, 0, 0))) })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(signed_off_at, ?) as \`x\` from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(signed_off_at, ?) as x from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2099-01-01T00:00:00.000Z,
@@ -466,7 +466,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id, x: tProjectRelease.cutoffTime.valueWhenNull(tProjectRelease.cutoffTime) })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(cutoff_time, cutoff_time) as \`x\` from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(cutoff_time, cutoff_time) as x from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -497,7 +497,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(work_date, ?) as \`d\`, ifnull(work_date, work_date) as d2 from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(work_date, ?) as d, ifnull(work_date, work_date) as d2 from issue_worklog where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-01T00:00:00.000Z,
@@ -529,7 +529,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(created_at, ?) as \`d\`, ifnull(created_at, created_at) as d2 from organization where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(created_at, ?) as d, ifnull(created_at, created_at) as d2 from organization where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2099-01-01T00:00:00.000Z,
@@ -560,7 +560,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(released_on, ?) as \`d\`, ifnull(released_on, released_on) as d2 from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(released_on, ?) as d, ifnull(released_on, released_on) as d2 from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2099-01-01T00:00:00.000Z,
@@ -588,7 +588,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(started_at, ?) as \`t\`, nullif(started_at, started_at) as t2 from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(started_at, ?) as t, nullif(started_at, started_at) as t2 from issue_worklog where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "08:00:00",
@@ -616,7 +616,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(cutoff_time, ?) as \`t\`, nullif(cutoff_time, cutoff_time) as t2 from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(cutoff_time, ?) as t, nullif(cutoff_time, cutoff_time) as t2 from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "16:00:00",
@@ -645,7 +645,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(signed_off_at, ?) as \`x\`, nullif(signed_off_at, signed_off_at) as x2 from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(signed_off_at, ?) as x, nullif(signed_off_at, signed_off_at) as x2 from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2099-01-01T00:00:00.000Z,
@@ -839,7 +839,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(version, ?) as \`v\`, nullif(version, ?) as vni, version as vopt from project_release where version is not null order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(version, ?) as v, nullif(version, ?) as vni, version as vopt from project_release where version is not null order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0.0.0",
@@ -878,7 +878,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(channel, ?) as \`c\`, nullif(channel, ?) as cni, channel as copt from project_release where channel is not null order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(channel, ?) as c, nullif(channel, ?) as cni, channel as copt from project_release where channel is not null order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "stable",
@@ -916,7 +916,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(activity, ?) as \`a\`, nullif(activity, ?) as ani, activity as aopt from issue_worklog where activity is not null order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(activity, ?) as a, nullif(activity, ?) as ani, activity as aopt from issue_worklog where activity is not null order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "coding",
@@ -1076,7 +1076,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, budget is null as \`n\`, budget is not null as nn from release_draft order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, budget is null as n, budget is not null as nn from release_draft order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; n: boolean; nn: boolean }>>>()
         expect(rows).toEqual(expected)
@@ -1099,7 +1099,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, target_day is null as \`n\`, target_day is not null as nn from release_draft order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, target_day is null as n, target_day is not null as nn from release_draft order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; n: boolean; nn: boolean }>>>()
         expect(rows).toEqual(expected)
@@ -1122,7 +1122,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cutoff is null as \`n\`, cutoff is not null as nn from release_draft order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cutoff is null as n, cutoff is not null as nn from release_draft order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; n: boolean; nn: boolean }>>>()
         expect(rows).toEqual(expected)
@@ -1473,7 +1473,7 @@ describe(ctx.label, () => {
             .where(tIssueWorklog.id.equals(1))
             .select({ id: tIssueWorklog.id, d: tIssueWorklog.workDate.nullIfValue(tIssueWorklog.workDate) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(work_date, work_date) as \`d\` from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(work_date, work_date) as d from issue_worklog where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1493,7 +1493,7 @@ describe(ctx.label, () => {
             .where(tIssueWorklog.id.equals(1))
             .select({ id: tIssueWorklog.id, t: tIssueWorklog.startedAt.valueWhenNull(tIssueWorklog.startedAt) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(started_at, started_at) as \`t\` from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(started_at, started_at) as t from issue_worklog where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1513,7 +1513,7 @@ describe(ctx.label, () => {
             .where(tProjectRelease.id.equals(1))
             .select({ id: tProjectRelease.id, d: tProjectRelease.releasedOn.nullIfValue(tProjectRelease.releasedOn) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(released_on, released_on) as \`d\` from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(released_on, released_on) as d from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1533,7 +1533,7 @@ describe(ctx.label, () => {
             .where(tProjectRelease.id.equals(1))
             .select({ id: tProjectRelease.id, x: tProjectRelease.cutoffTime.valueWhenNull(new Date(Date.UTC(1970, 0, 1, 8, 0, 0))) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(cutoff_time, ?) as \`x\` from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(cutoff_time, ?) as x from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "08:00:00",
@@ -1554,7 +1554,7 @@ describe(ctx.label, () => {
             .where(tOrganization.id.equals(1))
             .select({ id: tOrganization.id, d: tOrganization.createdAt.nullIfValue(new Date(Date.UTC(2000, 0, 1, 0, 0, 0))) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(created_at, ?) as \`d\` from organization where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(created_at, ?) as d from organization where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2000-01-01T00:00:00.000Z,
@@ -1578,7 +1578,7 @@ describe(ctx.label, () => {
                 nn: tProjectReview.reviewDate.isNotNull(),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, review_date is null as \`n\`, review_date is not null as nn from project_review where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, review_date is null as n, review_date is not null as nn from project_review where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1603,7 +1603,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id, p: tIssue.priority.nullIfValue(tIssue.id) })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(priority, id) as \`p\` from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(priority, id) as p from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; p?: number }>>>()
         expect(rows).toEqual(expected)
@@ -1631,7 +1631,7 @@ describe(ctx.label, () => {
                 t: tIssueWorklog.startedAt.asOptional(),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billable as \`b\`, work_date as \`d\`, started_at as \`t\` from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billable as b, work_date as d, started_at as t from issue_worklog where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -1646,7 +1646,7 @@ describe(ctx.label, () => {
             .where(tOrganization.id.equals(1))
             .select({ id: tOrganization.id, c: tOrganization.createdAt.asOptional() })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, created_at as \`c\` from organization where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, created_at as c from organization where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

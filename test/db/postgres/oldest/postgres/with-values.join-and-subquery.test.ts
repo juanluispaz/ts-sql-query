@@ -251,7 +251,7 @@ describe(ctx.label, () => {
             .select({ x: vReleaseOverview.publishStampPlain })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select published_stamp_plain as "x" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select published_stamp_plain as x from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -274,7 +274,7 @@ describe(ctx.label, () => {
             .select({ x: vReleaseOverview.publishStamp })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select published_stamp as "x" from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select published_stamp as x from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

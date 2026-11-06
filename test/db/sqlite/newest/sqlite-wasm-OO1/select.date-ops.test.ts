@@ -101,7 +101,7 @@ describe(ctx.label, () => {
                 s:  tIssue.createdAt.getSeconds(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(strftime('%H', created_at) as integer) as "h", cast(strftime('%M', created_at) as integer) as "m", cast(strftime('%S', created_at) as integer) as "s" from issue where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(strftime('%H', created_at) as integer) as h, cast(strftime('%M', created_at) as integer) as m, cast(strftime('%S', created_at) as integer) as s from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -154,7 +154,7 @@ describe(ctx.label, () => {
                 t:  tOrganization.createdAt.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(unixepoch(created_at, 'subsec') * 1000) as "t" from organization where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(unixepoch(created_at, 'subsec') * 1000) as t from organization where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -222,7 +222,7 @@ describe(ctx.label, () => {
                 dow: tIssueWorklog.workDate.getDay(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', work_date) as integer) as "y", cast(strftime('%m', work_date) as integer) - 1 as mo, cast(strftime('%d', work_date) as integer) as "d", cast(strftime('%w',work_date) as integer) as dow from issue_worklog where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', work_date) as integer) as y, cast(strftime('%m', work_date) as integer) - 1 as mo, cast(strftime('%d', work_date) as integer) as d, cast(strftime('%w',work_date) as integer) as dow from issue_worklog where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -248,7 +248,7 @@ describe(ctx.label, () => {
                 ms: tIssueWorklog.startedAt.getMilliseconds(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%H', started_at) as integer) as "h", cast(strftime('%M', started_at) as integer) as "m", cast(strftime('%S', started_at) as integer) as "s", cast(round(strftime('%f', started_at) * 1000) as integer) % 1000 as ms from issue_worklog where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%H', started_at) as integer) as h, cast(strftime('%M', started_at) as integer) as m, cast(strftime('%S', started_at) as integer) as s, cast(round(strftime('%f', started_at) * 1000) as integer) % 1000 as ms from issue_worklog where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -278,7 +278,7 @@ describe(ctx.label, () => {
                 before: tProjectRelease.releasedOn.lessThan(new Date(Date.UTC(2024, 1, 1, 10, 0, 0))),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', released_on) as integer) as "y", cast(strftime('%H', cutoff_time) as integer) as "h", round(unixepoch(signed_off_at, 'subsec') * 1000) as "t", released_on < ?1 as "before" from project_release where id = ?2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', released_on) as integer) as y, cast(strftime('%H', cutoff_time) as integer) as h, round(unixepoch(signed_off_at, 'subsec') * 1000) as t, released_on < ?1 as "before" from project_release where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "2024-02-01",
@@ -305,7 +305,7 @@ describe(ctx.label, () => {
                 dow: tProjectReview.reviewDate.getDay(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', review_date) as integer) as "y", cast(strftime('%m', review_date) as integer) - 1 as mo, cast(strftime('%d', review_date) as integer) as "d", cast(strftime('%w',review_date) as integer) as dow from project_review where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', review_date) as integer) as y, cast(strftime('%m', review_date) as integer) - 1 as mo, cast(strftime('%d', review_date) as integer) as d, cast(strftime('%w',review_date) as integer) as dow from project_review where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -331,7 +331,7 @@ describe(ctx.label, () => {
                 ms: tProjectReview.reviewTime.getMilliseconds(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%H', review_time) as integer) as "h", cast(strftime('%M', review_time) as integer) as "m", cast(strftime('%S', review_time) as integer) as "s", cast(round(strftime('%f', review_time) * 1000) as integer) % 1000 as ms from project_review where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%H', review_time) as integer) as h, cast(strftime('%M', review_time) as integer) as m, cast(strftime('%S', review_time) as integer) as s, cast(round(strftime('%f', review_time) * 1000) as integer) % 1000 as ms from project_review where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -356,7 +356,7 @@ describe(ctx.label, () => {
                 dow: tProjectRelease.releasedOn.getDay(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%m', released_on) as integer) - 1 as mo, cast(strftime('%d', released_on) as integer) as "d", cast(strftime('%w',released_on) as integer) as dow from project_release where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%m', released_on) as integer) - 1 as mo, cast(strftime('%d', released_on) as integer) as d, cast(strftime('%w',released_on) as integer) as dow from project_release where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -380,7 +380,7 @@ describe(ctx.label, () => {
                 ms: tProjectRelease.cutoffTime.getMilliseconds(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%M', cutoff_time) as integer) as "m", cast(strftime('%S', cutoff_time) as integer) as "s", cast(round(strftime('%f', cutoff_time) * 1000) as integer) % 1000 as ms from project_release where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%M', cutoff_time) as integer) as m, cast(strftime('%S', cutoff_time) as integer) as s, cast(round(strftime('%f', cutoff_time) * 1000) as integer) % 1000 as ms from project_release where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -412,7 +412,7 @@ describe(ctx.label, () => {
                 ms:  tProjectRelease.signedOffAt.getMilliseconds(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', signed_off_at) as integer) as "y", cast(strftime('%m', signed_off_at) as integer) - 1 as mo, cast(strftime('%d', signed_off_at) as integer) as "d", cast(strftime('%w',signed_off_at) as integer) as dow, cast(strftime('%H', signed_off_at) as integer) as "h", cast(strftime('%M', signed_off_at) as integer) as "m", cast(strftime('%S', signed_off_at) as integer) as "s", cast(round(strftime('%f', signed_off_at) * 1000) as integer) % 1000 as ms from project_release where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', signed_off_at) as integer) as y, cast(strftime('%m', signed_off_at) as integer) - 1 as mo, cast(strftime('%d', signed_off_at) as integer) as d, cast(strftime('%w',signed_off_at) as integer) as dow, cast(strftime('%H', signed_off_at) as integer) as h, cast(strftime('%M', signed_off_at) as integer) as m, cast(strftime('%S', signed_off_at) as integer) as s, cast(round(strftime('%f', signed_off_at) * 1000) as integer) % 1000 as ms from project_release where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -596,7 +596,7 @@ describe(ctx.label, () => {
                 b:  tProjectRelease.releasedOn.between(tProjectRelease.releasedOn.asOptional(), tProjectRelease.releasedOn),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, released_on between released_on and released_on as "b" from project_release where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, released_on between released_on and released_on as b from project_release where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -623,7 +623,7 @@ describe(ctx.label, () => {
                 ni: tProjectRelease.releasedOn.isNot(tProjectRelease.releasedOn),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, released_on = released_on as eq, released_on <> released_on as ne, released_on is released_on as "i", released_on is not released_on as ni from project_release where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, released_on = released_on as eq, released_on <> released_on as ne, released_on is released_on as i, released_on is not released_on as ni from project_release where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -689,7 +689,7 @@ describe(ctx.label, () => {
                     t:   tProject.archivedAt.getTime(),
                 })
                 .executeSelectMany()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', archived_at) as integer) as "y", cast(strftime('%m', archived_at) as integer) - 1 as mo, cast(strftime('%d', archived_at) as integer) as "d", cast(strftime('%w',archived_at) as integer) as dow, cast(strftime('%H', archived_at) as integer) as "h", cast(strftime('%M', archived_at) as integer) as "m", cast(strftime('%S', archived_at) as integer) as "s", cast(round(strftime('%f', archived_at) * 1000) as integer) % 1000 as ms, round(unixepoch(archived_at, 'subsec') * 1000) as "t" from project where id = ?1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', archived_at) as integer) as y, cast(strftime('%m', archived_at) as integer) - 1 as mo, cast(strftime('%d', archived_at) as integer) as d, cast(strftime('%w',archived_at) as integer) as dow, cast(strftime('%H', archived_at) as integer) as h, cast(strftime('%M', archived_at) as integer) as m, cast(strftime('%S', archived_at) as integer) as s, cast(round(strftime('%f', archived_at) * 1000) as integer) % 1000 as ms, round(unixepoch(archived_at, 'subsec') * 1000) as t from project where id = ?1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -722,7 +722,7 @@ describe(ctx.label, () => {
                 dow: vReleaseOverview.releasedOn.getDay(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', released_on) as integer) as "y", cast(strftime('%m', released_on) as integer) - 1 as mo, cast(strftime('%d', released_on) as integer) as "d", cast(strftime('%w',released_on) as integer) as dow from release_overview where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', released_on) as integer) as y, cast(strftime('%m', released_on) as integer) - 1 as mo, cast(strftime('%d', released_on) as integer) as d, cast(strftime('%w',released_on) as integer) as dow from release_overview where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -760,7 +760,7 @@ describe(ctx.label, () => {
                 t:   vReleaseOverview.signedOffAt.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', signed_off_at) as integer) as "y", cast(strftime('%m', signed_off_at) as integer) - 1 as mo, cast(strftime('%d', signed_off_at) as integer) as "d", cast(strftime('%w',signed_off_at) as integer) as dow, cast(strftime('%H', signed_off_at) as integer) as "h", cast(strftime('%M', signed_off_at) as integer) as "m", cast(strftime('%S', signed_off_at) as integer) as "s", cast(round(strftime('%f', signed_off_at) * 1000) as integer) % 1000 as ms, round(unixepoch(signed_off_at, 'subsec') * 1000) as "t" from release_overview where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', signed_off_at) as integer) as y, cast(strftime('%m', signed_off_at) as integer) - 1 as mo, cast(strftime('%d', signed_off_at) as integer) as d, cast(strftime('%w',signed_off_at) as integer) as dow, cast(strftime('%H', signed_off_at) as integer) as h, cast(strftime('%M', signed_off_at) as integer) as m, cast(strftime('%S', signed_off_at) as integer) as s, cast(round(strftime('%f', signed_off_at) * 1000) as integer) % 1000 as ms, round(unixepoch(signed_off_at, 'subsec') * 1000) as t from release_overview where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -806,7 +806,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(strftime('%Y', target_day) as integer) as "y", cast(strftime('%m', target_day) as integer) - 1 as mo, cast(strftime('%d', target_day) as integer) as "d", cast(strftime('%w',target_day) as integer) as dow, cast(strftime('%H', cutoff) as integer) as "h", cast(strftime('%M', cutoff) as integer) as mi, cast(strftime('%S', cutoff) as integer) as "s", cast(round(strftime('%f', cutoff) * 1000) as integer) % 1000 as ms from release_draft order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(strftime('%Y', target_day) as integer) as y, cast(strftime('%m', target_day) as integer) - 1 as mo, cast(strftime('%d', target_day) as integer) as d, cast(strftime('%w',target_day) as integer) as dow, cast(strftime('%H', cutoff) as integer) as h, cast(strftime('%M', cutoff) as integer) as mi, cast(strftime('%S', cutoff) as integer) as s, cast(round(strftime('%f', cutoff) * 1000) as integer) % 1000 as ms from release_draft order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             id: number

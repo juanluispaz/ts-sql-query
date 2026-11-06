@@ -1617,7 +1617,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         return this.__sqlBuilder._forceAsIdentifier(identifier)
     }
     protected escape(identifier: string, strict: boolean): string {
-        if (strict && !/^[a-zA-Z_][a-zA-Z0-9_]+$/.test(identifier)) {
+        if (strict && !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(identifier)) {
             return this.forceAsIdentifier(identifier)
         }
         if (this.isReservedKeyword(identifier) || identifier.indexOf(' ') >= 0) {

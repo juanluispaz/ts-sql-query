@@ -990,7 +990,7 @@ describe(ctx.label, () => {
             .where(tProject.id.equals(1))
             .select({ id: tProject.id, n: scalar })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (/* head */  select count(*) as result from issue where project_id = project.id  /* tail */) as "n" from project where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (/* head */  select count(*) as result from issue where project_id = project.id  /* tail */) as n from project where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

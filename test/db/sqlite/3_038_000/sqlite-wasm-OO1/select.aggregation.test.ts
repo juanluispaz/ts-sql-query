@@ -145,7 +145,7 @@ describe(ctx.label, () => {
                 sd: ctx.conn.sumDistinct(tIssue.viewCount),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(view_count) as "s", sum(distinct view_count) as sd from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(view_count) as s, sum(distinct view_count) as sd from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, { s?: bigint; sd?: bigint }>>()
         expect(result).toEqual({ s: 0n, sd: 0n })
@@ -163,7 +163,7 @@ describe(ctx.label, () => {
                 v: ctx.conn.max(tProjectRelease.version),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(version) as "v" from project_release"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(version) as v from project_release"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, { v?: string }>>()
         expect(result.v).toBe('1.3.0-beta.1')
@@ -180,7 +180,7 @@ describe(ctx.label, () => {
                 d: ctx.conn.min(tIssueWorklog.workDate),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select min(work_date) as "d" from issue_worklog"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select min(work_date) as d from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, { d?: Date }>>()
         expect(result.d).toEqual(minDate)
@@ -219,7 +219,7 @@ describe(ctx.label, () => {
                 av: ctx.conn.average(tIssueWorklog.billedAmount),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(billed_amount) as "s", sum(distinct billed_amount) as sd, avg(billed_amount) as av from issue_worklog"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(billed_amount) as s, sum(distinct billed_amount) as sd, avg(billed_amount) as av from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, { s?: number; sd?: number; av?: number }>>()
         expect(result).toEqual({ s: 450, sd: 250, av: 150 })
@@ -522,7 +522,7 @@ describe(ctx.label, () => {
                 av: ctx.conn.average(tIssueWorklog.doubleVirtual),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(billed_amount) as "s", avg(billed_amount) as av from issue_worklog"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(billed_amount) as s, avg(billed_amount) as av from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, { s?: number; av?: number }>>()
         expect(result).toEqual({ s: 450, av: 150 })
@@ -555,7 +555,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFrom(tIssue)
             .select({ x: ctx.conn.sum(tIssue.priority).add(1) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(priority) + ?1 as "x" from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(priority) + ?1 as x from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

@@ -80,7 +80,7 @@ describe(ctx.label, () => {
             .select({ orgName: tOrgCustom.name })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`o\`.name as orgName from /*+ hint */ organization as \`o\` where \`o\`.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select o.name as orgName from /*+ hint */ organization as o where o.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

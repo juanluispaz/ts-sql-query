@@ -221,7 +221,7 @@ describe(ctx.label, () => {
             .select({ b: tIssue.priority.between(tIssue.assigneeId, tIssue.number) })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority between assignee_id and number as "b" from issue where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority between assignee_id and number as b from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -243,7 +243,7 @@ describe(ctx.label, () => {
             .select({ b: tIssue.priority.between(tIssue.number, tIssue.assigneeId) })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority between number and assignee_id as "b" from issue where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority between number and assignee_id as b from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -263,7 +263,7 @@ describe(ctx.label, () => {
             .select({ b: tIssue.priority.notBetween(tIssue.number, tIssue.assigneeId) })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority not between number and assignee_id as "b" from issue where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority not between number and assignee_id as b from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,

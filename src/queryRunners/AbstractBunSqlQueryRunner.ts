@@ -154,6 +154,11 @@ export abstract class AbstractBunSqlQueryRunner extends SqlTransactionQueryRunne
         params.push(value)
         return '$' + params.length
     }
+    // transaction(fn) is begun and committed by the driver, so a wrapper can't see those statements and must emit them
+    // itself.
+    override lowLevelTransactionManagementSupported(): boolean {
+        return false
+    }
     override executeInTransaction<T>(fn: () => Promise<T>, _outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
         if (this.transaction || this.lowLevelTransaction) {
             return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, 'Nested transactions are not supported by ' + this.constructor.name))

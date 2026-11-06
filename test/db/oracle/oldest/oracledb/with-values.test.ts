@@ -358,7 +358,7 @@ describe(ctx.label, () => {
             .orderBy('grp')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with groupRows("n", grp) as (select :0, :1 from dual union all select :2, :3 from dual union all select :4, :5 from dual) select grp as "grp", count("n") as "total" from groupRows group by grp order by "grp""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with groupRows(n, grp) as (select :0, :1 from dual union all select :2, :3 from dual union all select :4, :5 from dual) select grp as "grp", count(n) as "total" from groupRows group by grp order by "grp""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -507,7 +507,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with treeNode(id, parentId, name) as (select :0, :1, :2 from dual union all select :3, :4, :5 from dual) select "a".id as "id", "b".name as "ancName" from treeNode "a" inner join treeNode "b" on "b".id = "a".parentId order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with treeNode(id, parentId, name) as (select :0, :1, :2 from dual union all select :3, :4, :5 from dual) select a.id as "id", b.name as "ancName" from treeNode a inner join treeNode b on b.id = a.parentId order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

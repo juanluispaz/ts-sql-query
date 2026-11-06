@@ -1422,7 +1422,7 @@ describe(ctx.label, () => {
                     .add(9),
             })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (cost_cents) + ?1 as "v" from issue_worklog where id = ?2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (cost_cents) + ?1 as v from issue_worklog where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             900,
@@ -1447,7 +1447,7 @@ describe(ctx.label, () => {
                     .minValue(3),
             })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(billed_amount, ?1) as "v" from issue_worklog where id = ?2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(billed_amount, ?1) as v from issue_worklog where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             300,
@@ -1675,7 +1675,7 @@ describe(ctx.label, () => {
                     .add(9),
             })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (sum(cost_cents)) + ?1 as "v" from issue_worklog"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (sum(cost_cents)) + ?1 as v from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             900,
@@ -1854,7 +1854,7 @@ describe(ctx.label, () => {
                     .add(tIssueWorklog.costCents),
             })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 + cost_cents as "v" from issue_worklog where id = ?2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 + cost_cents as v from issue_worklog where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             60,
@@ -1876,7 +1876,7 @@ describe(ctx.label, () => {
                     .sqrt(),
             })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sqrt(?1) as "v" from issue_worklog where id = ?2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sqrt(?1) as v from issue_worklog where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             400,
@@ -1900,7 +1900,7 @@ describe(ctx.label, () => {
                     .maxValue(tIssueWorklog.billedAmount),
             })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select min(?1, billed_amount) as "v" from issue_worklog where id = ?2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select min(?1, billed_amount) as v from issue_worklog where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             500,

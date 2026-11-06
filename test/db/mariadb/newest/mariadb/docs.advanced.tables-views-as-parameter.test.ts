@@ -175,7 +175,7 @@ describe(ctx.label, () => {
             .select({ id: project.id, name: project.name, archivedAt: archivedOrName(project) })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`p\`.id as id, \`p\`.name as name, \`p\`.archived_at as archivedAt from project as \`p\` where \`p\`.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select p.id as id, p.name as name, p.archived_at as archivedAt from project as p where p.id = ?"`)
         assertType<Exact<typeof row, { id: number; name: string; archivedAt?: Date }>>()
         expect(row).toEqual({ id: 1, name: 'Marketing site' })
     })

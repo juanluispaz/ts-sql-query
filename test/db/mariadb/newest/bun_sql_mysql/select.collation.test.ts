@@ -25,7 +25,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABC', 'string').collate('utf8mb4_bin').equals('abc') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (? collate utf8mb4_bin) = ? as \`v\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (? collate utf8mb4_bin) = ? as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABC",
@@ -44,7 +44,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABC', 'string').collate('utf8mb4_general_ci').equals('abc') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (? collate utf8mb4_general_ci) = ? as \`v\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (? collate utf8mb4_general_ci) = ? as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABC",
@@ -61,7 +61,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABCabc', 'string').collate('utf8mb4_bin') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? collate utf8mb4_bin as \`v\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? collate utf8mb4_bin as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",
@@ -80,7 +80,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABCabc', 'string').replaceAll('abc', 'X') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(?, ?, ?) as \`v\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(?, ?, ?) as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",
@@ -115,7 +115,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({ id: tIssue.id, v: s.replaceAll(s, 'X') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(external_ref, external_ref, ?) as \`v\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(external_ref, external_ref, ?) as v from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "X",
@@ -133,7 +133,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({ id: tIssue.id, v: s.replaceAllInsensitive(s, 'X') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, regexp_replace(external_ref, replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(external_ref, '\\\\', '\\\\\\\\'), '.', '\\\\.'), '*', '\\\\*'), '+', '\\\\+'), '?', '\\\\?'), '^', '\\\\^'), '$', '\\\\$'), '{', '\\\\{'), '}', '\\\\}'), '(', '\\\\('), ')', '\\\\)'), '|', '\\\\|'), '[', '\\\\['), ']', '\\\\]'), ?) as \`v\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, regexp_replace(external_ref, replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(external_ref, '\\\\', '\\\\\\\\'), '.', '\\\\.'), '*', '\\\\*'), '+', '\\\\+'), '?', '\\\\?'), '^', '\\\\^'), '$', '\\\\$'), '{', '\\\\{'), '}', '\\\\}'), '(', '\\\\('), ')', '\\\\)'), '|', '\\\\|'), '[', '\\\\['), ']', '\\\\]'), ?) as v from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "X",
@@ -156,7 +156,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({ id: tIssue.id, v: s.replaceAll(s, s) })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(external_ref, external_ref, external_ref) as \`v\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(external_ref, external_ref, external_ref) as v from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -175,7 +175,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABCabc', 'string').replaceAllInsensitive('abc', 'X') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace(?, ?, ?) as \`v\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace(?, ?, ?) as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",
@@ -196,7 +196,7 @@ describe(ctx.label, () => {
         const result = await collated.selectFromNoTable()
             .select({ v: collated.const('ABCabc', 'string').replaceAllInsensitive('abc', 'X') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace(? collate utf8mb4_bin, ? collate utf8mb4_bin, ?) as \`v\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace(? collate utf8mb4_bin, ? collate utf8mb4_bin, ?) as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",
@@ -216,7 +216,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('a.caXc', 'string').replaceAllInsensitive('a.c', 'Z') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace(?, ?, ?) as \`v\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace(?, ?, ?) as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "a.caXc",
@@ -238,7 +238,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('XmasXmas', 'string').replaceAllInsensitive('mas', 'a\\1$0b') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace(?, ?, ?) as \`v\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace(?, ?, ?) as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "XmasXmas",
@@ -257,7 +257,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABCabc', 'string').replaceAllInsensitiveIfValue(missing, 'X') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as \`v\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",
@@ -278,7 +278,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABCabc', 'string').replaceAll('abc', 'X').replaceAll('AB', 'Y') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(replace(?, ?, ?), ?, ?) as \`v\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(replace(?, ?, ?), ?, ?) as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",
@@ -298,7 +298,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABCabc', 'string').replaceAll('abc', 'X').collate('utf8mb4_bin') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(?, ?, ?) collate utf8mb4_bin as \`v\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(?, ?, ?) collate utf8mb4_bin as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",
@@ -316,7 +316,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABCabc', 'string').replaceAll('abc', 'X').replaceAllInsensitive('qz', 'Y') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace(replace(?, ?, ?), ?, ?) as \`v\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace(replace(?, ?, ?), ?, ?) as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",
@@ -336,7 +336,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABCabc', 'string').replaceAllInsensitive('qz', 'X').collate('utf8mb4_bin') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace(?, ?, ?) collate utf8mb4_bin as \`v\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace(?, ?, ?) collate utf8mb4_bin as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",
@@ -354,7 +354,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('abc', 'string').equals(ctx.conn.const('ABC', 'string').collate('utf8mb4_bin')) })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? = (? collate utf8mb4_bin) as \`v\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? = (? collate utf8mb4_bin) as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "abc",
@@ -384,7 +384,7 @@ describe(ctx.label, () => {
                 ino:   lhs().isNot(rhs()),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? <> (? collate utf8mb4_bin) as ne, ? < (? collate utf8mb4_bin) as lt, ? > (? collate utf8mb4_bin) as gt, ? <= (? collate utf8mb4_bin) as le, ? >= (? collate utf8mb4_bin) as ge, ? between (? collate utf8mb4_bin) and ? as bt, ? <=> (? collate utf8mb4_bin) as \`i\`, not (? <=> (? collate utf8mb4_bin)) as ino"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? <> (? collate utf8mb4_bin) as ne, ? < (? collate utf8mb4_bin) as lt, ? > (? collate utf8mb4_bin) as gt, ? <= (? collate utf8mb4_bin) as le, ? >= (? collate utf8mb4_bin) as ge, ? between (? collate utf8mb4_bin) and ? as bt, ? <=> (? collate utf8mb4_bin) as i, not (? <=> (? collate utf8mb4_bin)) as ino"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "abc",
@@ -424,7 +424,7 @@ describe(ctx.label, () => {
             .groupBy(tAppUser.fullName.collate('utf8mb4_bin'))
             .orderBy('name')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select full_name collate utf8mb4_bin as name, count(id) as \`n\` from app_user group by full_name collate utf8mb4_bin order by name"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select full_name collate utf8mb4_bin as name, count(id) as n from app_user group by full_name collate utf8mb4_bin order by name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ name: string; n: number }>>>()
         expect(result).toEqual(expected)
@@ -456,7 +456,7 @@ describe(ctx.label, () => {
             .select({ id: tAppUser.id, v: tAppUser.email.replaceAll(tAppUser.fullName.collate('utf8mb4_bin'), 'X') })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(email, full_name collate utf8mb4_bin, ?) as \`v\` from app_user order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(email, full_name collate utf8mb4_bin, ?) as v from app_user order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "X",
@@ -476,7 +476,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id, v: tIssue.body.collate('utf8mb4_bin') })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`body\` collate utf8mb4_bin as \`v\` from issue where project_id = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`body\` collate utf8mb4_bin as v from issue where project_id = ? order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -492,7 +492,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ZabcZabc', 'string').replaceAllInsensitive(ctx.conn.const('abc', 'string'), 'X') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace(?, replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(?, '\\\\', '\\\\\\\\'), '.', '\\\\.'), '*', '\\\\*'), '+', '\\\\+'), '?', '\\\\?'), '^', '\\\\^'), '$', '\\\\$'), '{', '\\\\{'), '}', '\\\\}'), '(', '\\\\('), ')', '\\\\)'), '|', '\\\\|'), '[', '\\\\['), ']', '\\\\]'), ?) as \`v\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace(?, replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(?, '\\\\', '\\\\\\\\'), '.', '\\\\.'), '*', '\\\\*'), '+', '\\\\+'), '?', '\\\\?'), '^', '\\\\^'), '$', '\\\\$'), '{', '\\\\{'), '}', '\\\\}'), '(', '\\\\('), ')', '\\\\)'), '|', '\\\\|'), '[', '\\\\['), ']', '\\\\]'), ?) as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ZabcZabc",
@@ -509,7 +509,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ZabcZabc', 'string').replaceAllInsensitive('abc', ctx.conn.const('Y', 'string')) })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace(?, ?, replace(?, '\\\\', '\\\\\\\\')) as \`v\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace(?, ?, replace(?, '\\\\', '\\\\\\\\')) as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ZabcZabc",
@@ -526,7 +526,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ZabcZabc', 'string').replaceAllInsensitive(ctx.conn.const('abc', 'string'), ctx.conn.const('W', 'string')) })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace(?, replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(?, '\\\\', '\\\\\\\\'), '.', '\\\\.'), '*', '\\\\*'), '+', '\\\\+'), '?', '\\\\?'), '^', '\\\\^'), '$', '\\\\$'), '{', '\\\\{'), '}', '\\\\}'), '(', '\\\\('), ')', '\\\\)'), '|', '\\\\|'), '[', '\\\\['), ']', '\\\\]'), replace(?, '\\\\', '\\\\\\\\')) as \`v\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace(?, replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(?, '\\\\', '\\\\\\\\'), '.', '\\\\.'), '*', '\\\\*'), '+', '\\\\+'), '?', '\\\\?'), '^', '\\\\^'), '$', '\\\\$'), '{', '\\\\{'), '}', '\\\\}'), '(', '\\\\('), ')', '\\\\)'), '|', '\\\\|'), '[', '\\\\['), ']', '\\\\]'), replace(?, '\\\\', '\\\\\\\\')) as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ZabcZabc",
@@ -566,7 +566,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABC', 'string').collate('utf8mb4_bin').like('abc%') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (? collate utf8mb4_bin) like ? as \`v\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (? collate utf8mb4_bin) like ? as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABC",
@@ -589,7 +589,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({ id: tIssue.id, v: tIssue.externalRef.asString().collate('utf8mb4_bin') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, external_ref collate utf8mb4_bin as \`v\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, external_ref collate utf8mb4_bin as v from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

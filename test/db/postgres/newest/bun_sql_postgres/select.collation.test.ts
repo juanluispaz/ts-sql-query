@@ -26,7 +26,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABC', 'string').collate('C').equals('abc') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ($1 collate "C") = $2 as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ($1 collate "C") = $2 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABC",
@@ -47,7 +47,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABC', 'string').collate('case_insensitive').equals('abc') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ($1 collate "case_insensitive") = $2 as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ($1 collate "case_insensitive") = $2 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABC",
@@ -64,7 +64,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABCabc', 'string').collate('C') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 collate "C" as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 collate "C" as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",
@@ -83,7 +83,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABCabc', 'string').replaceAll('abc', 'X') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace($1, $2, $3) as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace($1, $2, $3) as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",
@@ -118,7 +118,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({ id: tIssue.id, v: s.replaceAll(s, 'X') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(external_ref::text, external_ref::text, $1) as "v" from issue where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(external_ref::text, external_ref::text, $1) as v from issue where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "X",
@@ -136,7 +136,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({ id: tIssue.id, v: s.replaceAllInsensitive(s, 'X') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, regexp_replace(external_ref::text, replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(external_ref::text, '\\', '\\\\'), '.', '\\.'), '*', '\\*'), '+', '\\+'), '?', '\\?'), '^', '\\^'), '$', '\\$'), '{', '\\{'), '}', '\\}'), '(', '\\('), ')', '\\)'), '|', '\\|'), '[', '\\['), ']', '\\]'), $1, 'gi') as "v" from issue where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, regexp_replace(external_ref::text, replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(external_ref::text, '\\', '\\\\'), '.', '\\.'), '*', '\\*'), '+', '\\+'), '?', '\\?'), '^', '\\^'), '$', '\\$'), '{', '\\{'), '}', '\\}'), '(', '\\('), ')', '\\)'), '|', '\\|'), '[', '\\['), ']', '\\]'), $1, 'gi') as v from issue where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "X",
@@ -159,7 +159,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({ id: tIssue.id, v: s.replaceAll(s, s) })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(external_ref::text, external_ref::text, external_ref::text) as "v" from issue where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(external_ref::text, external_ref::text, external_ref::text) as v from issue where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -178,7 +178,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABCabc', 'string').replaceAllInsensitive('abc', 'X') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace($1, $2, $3, 'gi') as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace($1, $2, $3, 'gi') as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",
@@ -209,7 +209,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('a.caXc', 'string').replaceAllInsensitive('a.c', 'Z') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace($1, $2, $3, 'gi') as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace($1, $2, $3, 'gi') as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "a.caXc",
@@ -231,7 +231,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('XmasXmas', 'string').replaceAllInsensitive('mas', 'a\\1$0b') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace($1, $2, $3, 'gi') as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace($1, $2, $3, 'gi') as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "XmasXmas",
@@ -250,7 +250,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABCabc', 'string').replaceAllInsensitiveIfValue(missing, 'X') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",
@@ -271,7 +271,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABCabc', 'string').replaceAll('abc', 'X').replaceAll('AB', 'Y') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(replace($1, $2, $3), $4, $5) as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(replace($1, $2, $3), $4, $5) as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",
@@ -291,7 +291,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABCabc', 'string').replaceAll('abc', 'X').collate('C') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace($1, $2, $3) collate "C" as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace($1, $2, $3) collate "C" as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",
@@ -309,7 +309,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABCabc', 'string').replaceAll('abc', 'X').replaceAllInsensitive('qz', 'Y') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace(replace($1, $2, $3), $4, $5, 'gi') as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace(replace($1, $2, $3), $4, $5, 'gi') as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",
@@ -329,7 +329,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABCabc', 'string').replaceAllInsensitive('qz', 'X').collate('C') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace($1, $2, $3, 'gi') collate "C" as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace($1, $2, $3, 'gi') collate "C" as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",
@@ -347,7 +347,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('abc', 'string').equals(ctx.conn.const('ABC', 'string').collate('C')) })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 = ($2 collate "C") as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 = ($2 collate "C") as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "abc",
@@ -377,7 +377,7 @@ describe(ctx.label, () => {
                 ino:   lhs().isNot(rhs()),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 <> ($2 collate "C") as ne, $3 < ($4 collate "C") as lt, $5 > ($6 collate "C") as gt, $7 <= ($8 collate "C") as le, $9 >= ($10 collate "C") as ge, $11 between ($12 collate "C") and $13 as bt, $14 is not distinct from ($15 collate "C") as "i", $16 is distinct from ($17 collate "C") as ino"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 <> ($2 collate "C") as ne, $3 < ($4 collate "C") as lt, $5 > ($6 collate "C") as gt, $7 <= ($8 collate "C") as le, $9 >= ($10 collate "C") as ge, $11 between ($12 collate "C") and $13 as bt, $14 is not distinct from ($15 collate "C") as i, $16 is distinct from ($17 collate "C") as ino"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "abc",
@@ -417,7 +417,7 @@ describe(ctx.label, () => {
             .groupBy(tAppUser.fullName.collate('C'))
             .orderBy('name')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select full_name collate "C" as name, count(id) as "n" from app_user group by full_name collate "C" order by name"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select full_name collate "C" as name, count(id) as n from app_user group by full_name collate "C" order by name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ name: string; n: number }>>>()
         expect(result).toEqual(expected)
@@ -449,7 +449,7 @@ describe(ctx.label, () => {
             .select({ id: tAppUser.id, v: tAppUser.email.replaceAll(tAppUser.fullName.collate('C'), 'X') })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(email, full_name collate "C", $1) as "v" from app_user order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(email, full_name collate "C", $1) as v from app_user order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "X",
@@ -469,7 +469,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id, v: tIssue.body.collate('C') })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, body collate "C" as "v" from issue where project_id = $1 order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, body collate "C" as v from issue where project_id = $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -485,7 +485,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ZabcZabc', 'string').replaceAllInsensitive(ctx.conn.const('abc', 'string'), 'X') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace($1, replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace($2, '\\', '\\\\'), '.', '\\.'), '*', '\\*'), '+', '\\+'), '?', '\\?'), '^', '\\^'), '$', '\\$'), '{', '\\{'), '}', '\\}'), '(', '\\('), ')', '\\)'), '|', '\\|'), '[', '\\['), ']', '\\]'), $3, 'gi') as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace($1, replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace($2, '\\', '\\\\'), '.', '\\.'), '*', '\\*'), '+', '\\+'), '?', '\\?'), '^', '\\^'), '$', '\\$'), '{', '\\{'), '}', '\\}'), '(', '\\('), ')', '\\)'), '|', '\\|'), '[', '\\['), ']', '\\]'), $3, 'gi') as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ZabcZabc",
@@ -502,7 +502,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ZabcZabc', 'string').replaceAllInsensitive('abc', ctx.conn.const('Y', 'string')) })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace($1, $2, replace($3, '\\', '\\\\'), 'gi') as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace($1, $2, replace($3, '\\', '\\\\'), 'gi') as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ZabcZabc",
@@ -519,7 +519,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ZabcZabc', 'string').replaceAllInsensitive(ctx.conn.const('abc', 'string'), ctx.conn.const('W', 'string')) })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace($1, replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace($2, '\\', '\\\\'), '.', '\\.'), '*', '\\*'), '+', '\\+'), '?', '\\?'), '^', '\\^'), '$', '\\$'), '{', '\\{'), '}', '\\}'), '(', '\\('), ')', '\\)'), '|', '\\|'), '[', '\\['), ']', '\\]'), replace($3, '\\', '\\\\'), 'gi') as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace($1, replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace($2, '\\', '\\\\'), '.', '\\.'), '*', '\\*'), '+', '\\+'), '?', '\\?'), '^', '\\^'), '$', '\\$'), '{', '\\{'), '}', '\\}'), '(', '\\('), ')', '\\)'), '|', '\\|'), '[', '\\['), ']', '\\]'), replace($3, '\\', '\\\\'), 'gi') as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ZabcZabc",
@@ -559,7 +559,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABC', 'string').collate('C').like('abc%') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ($1 collate "C") like $2 as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ($1 collate "C") like $2 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABC",
@@ -582,7 +582,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({ id: tIssue.id, v: tIssue.externalRef.asString().collate('C') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, external_ref::text collate "C" as "v" from issue where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, external_ref::text collate "C" as v from issue where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -621,7 +621,7 @@ describe(ctx.label, () => {
                 nl: collated.const('x', 'string').notLikeInsensitive(tIssue.externalRef.asString()),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 = external_ref::text collate "C" as eq, $2 <> external_ref::text collate "C" as ne, $3 ilike external_ref::text collate "C" as lk, $4 not ilike external_ref::text collate "C" as nl from issue where id = $5"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 = external_ref::text collate "C" as eq, $2 <> external_ref::text collate "C" as ne, $3 like external_ref::text collate "C" as lk, $4 not like external_ref::text collate "C" as nl from issue where id = $5"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "x",
@@ -657,7 +657,7 @@ describe(ctx.label, () => {
                 notContains: collated.const('x', 'string').notContainsInsensitive(tIssue.externalRef.asString()),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 ilike (replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') collate "C" as starts, $2 not ilike (replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') collate "C" as "notStarts", $3 ilike ('%' || replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_')) collate "C" as ends, $4 not ilike ('%' || replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_')) collate "C" as "notEnds", $5 ilike ('%' || replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') collate "C" as contains, $6 not ilike ('%' || replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') collate "C" as "notContains" from issue where id = $7"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 like (replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') collate "C" as starts, $2 not like (replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') collate "C" as "notStarts", $3 like ('%' || replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_')) collate "C" as ends, $4 not like ('%' || replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_')) collate "C" as "notEnds", $5 like ('%' || replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') collate "C" as contains, $6 not like ('%' || replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') collate "C" as "notContains" from issue where id = $7"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "x",

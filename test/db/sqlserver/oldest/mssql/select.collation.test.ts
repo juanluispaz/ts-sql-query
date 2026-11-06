@@ -25,7 +25,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABC', 'string').collate('Latin1_General_BIN2').equals('abc') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(case when (@0 collate Latin1_General_BIN2) = @1 then 1 else 0 end as bit) as [v]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(case when (@0 collate Latin1_General_BIN2) = @1 then 1 else 0 end as bit) as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABC",
@@ -44,7 +44,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABC', 'string').collate('Latin1_General_CI_AS').equals('abc') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(case when (@0 collate Latin1_General_CI_AS) = @1 then 1 else 0 end as bit) as [v]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(case when (@0 collate Latin1_General_CI_AS) = @1 then 1 else 0 end as bit) as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABC",
@@ -61,7 +61,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABCabc', 'string').collate('Latin1_General_BIN2') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 collate Latin1_General_BIN2 as [v]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 collate Latin1_General_BIN2 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",
@@ -81,7 +81,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABCabc', 'string').replaceAll('abc', 'X') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(@0 collate Latin1_General_BIN2, @1 collate Latin1_General_BIN2, @2) collate DATABASE_DEFAULT as [v]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(@0 collate Latin1_General_BIN2, @1 collate Latin1_General_BIN2, @2) collate DATABASE_DEFAULT as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",
@@ -103,7 +103,7 @@ describe(ctx.label, () => {
         const result = await opted.selectFromNoTable()
             .select({ v: opted.const('ABCabc', 'string').replaceAll('abc', 'X') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(@0, @1, @2) as [v]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(@0, @1, @2) as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",
@@ -131,7 +131,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({ id: tIssue.id, v: s.replaceAll(s, 'X') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(convert(nvarchar(36), external_ref) collate Latin1_General_BIN2, convert(nvarchar(36), external_ref) collate Latin1_General_BIN2, @0) collate DATABASE_DEFAULT as [v] from issue where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(convert(nvarchar(36), external_ref) collate Latin1_General_BIN2, convert(nvarchar(36), external_ref) collate Latin1_General_BIN2, @0) collate DATABASE_DEFAULT as v from issue where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "X",
@@ -150,7 +150,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({ id: tIssue.id, v: s.replaceAllInsensitive(s, 'X') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(convert(nvarchar(36), external_ref) collate Latin1_General_CI_AI, convert(nvarchar(36), external_ref) collate Latin1_General_CI_AI, @0) collate DATABASE_DEFAULT as [v] from issue where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(convert(nvarchar(36), external_ref) collate Latin1_General_CI_AI, convert(nvarchar(36), external_ref) collate Latin1_General_CI_AI, @0) collate DATABASE_DEFAULT as v from issue where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "X",
@@ -173,7 +173,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({ id: tIssue.id, v: s.replaceAll(s, s) })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(convert(nvarchar(36), external_ref) collate Latin1_General_BIN2, convert(nvarchar(36), external_ref) collate Latin1_General_BIN2, external_ref) collate DATABASE_DEFAULT as [v] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(convert(nvarchar(36), external_ref) collate Latin1_General_BIN2, convert(nvarchar(36), external_ref) collate Latin1_General_BIN2, external_ref) collate DATABASE_DEFAULT as v from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -192,7 +192,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABCabc', 'string').replaceAllInsensitive('abc', 'X') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(@0, @1, @2) as [v]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(@0, @1, @2) as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",
@@ -214,7 +214,7 @@ describe(ctx.label, () => {
         const result = await collated.selectFromNoTable()
             .select({ v: collated.const('ABCabc', 'string').replaceAllInsensitive('abc', 'X') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(@0 collate Latin1_General_CI_AI, @1 collate Latin1_General_CI_AI, @2) collate DATABASE_DEFAULT as [v]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(@0 collate Latin1_General_CI_AI, @1 collate Latin1_General_CI_AI, @2) collate DATABASE_DEFAULT as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",
@@ -234,7 +234,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('a.caXc', 'string').replaceAllInsensitive('a.c', 'Z') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(@0, @1, @2) as [v]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(@0, @1, @2) as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "a.caXc",
@@ -256,7 +256,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('XmasXmas', 'string').replaceAllInsensitive('mas', 'a\\1$0b') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(@0, @1, @2) as [v]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(@0, @1, @2) as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "XmasXmas",
@@ -275,7 +275,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABCabc', 'string').replaceAllInsensitiveIfValue(missing, 'X') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [v]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",
@@ -298,7 +298,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABCabc', 'string').replaceAll('abc', 'X').replaceAll('AB', 'Y') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace((replace(@0 collate Latin1_General_BIN2, @1 collate Latin1_General_BIN2, @2) collate DATABASE_DEFAULT) collate Latin1_General_BIN2, @3 collate Latin1_General_BIN2, @4) collate DATABASE_DEFAULT as [v]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace((replace(@0 collate Latin1_General_BIN2, @1 collate Latin1_General_BIN2, @2) collate DATABASE_DEFAULT) collate Latin1_General_BIN2, @3 collate Latin1_General_BIN2, @4) collate DATABASE_DEFAULT as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",
@@ -318,7 +318,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABCabc', 'string').replaceAll('abc', 'X').collate('Latin1_General_BIN2') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (replace(@0 collate Latin1_General_BIN2, @1 collate Latin1_General_BIN2, @2) collate DATABASE_DEFAULT) collate Latin1_General_BIN2 as [v]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (replace(@0 collate Latin1_General_BIN2, @1 collate Latin1_General_BIN2, @2) collate DATABASE_DEFAULT) collate Latin1_General_BIN2 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",
@@ -336,7 +336,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABCabc', 'string').replaceAll('abc', 'X').replaceAllInsensitive('qz', 'Y') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(replace(@0 collate Latin1_General_BIN2, @1 collate Latin1_General_BIN2, @2) collate DATABASE_DEFAULT, @3, @4) as [v]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(replace(@0 collate Latin1_General_BIN2, @1 collate Latin1_General_BIN2, @2) collate DATABASE_DEFAULT, @3, @4) as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",
@@ -356,7 +356,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABCabc', 'string').replaceAllInsensitive('qz', 'X').collate('Latin1_General_BIN2') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (replace(@0, @1, @2)) collate Latin1_General_BIN2 as [v]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (replace(@0, @1, @2)) collate Latin1_General_BIN2 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",
@@ -374,7 +374,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('abc', 'string').equals(ctx.conn.const('ABC', 'string').collate('Latin1_General_BIN2')) })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(case when @0 = (@1 collate Latin1_General_BIN2) then 1 else 0 end as bit) as [v]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(case when @0 = (@1 collate Latin1_General_BIN2) then 1 else 0 end as bit) as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "abc",
@@ -404,7 +404,7 @@ describe(ctx.label, () => {
                 ino:   lhs().isNot(rhs()),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(case when @0 <> (@1 collate Latin1_General_BIN2) then 1 else 0 end as bit) as ne, cast(case when @2 < (@3 collate Latin1_General_BIN2) then 1 else 0 end as bit) as lt, cast(case when @4 > (@5 collate Latin1_General_BIN2) then 1 else 0 end as bit) as gt, cast(case when @6 <= (@7 collate Latin1_General_BIN2) then 1 else 0 end as bit) as le, cast(case when @8 >= (@9 collate Latin1_General_BIN2) then 1 else 0 end as bit) as ge, cast(case when @10 between (@11 collate Latin1_General_BIN2) and @12 then 1 else 0 end as bit) as bt, cast(case when @13 = (@14 collate Latin1_General_BIN2) then 1 else 0 end as bit) as [i], cast(case when @15 <> (@16 collate Latin1_General_BIN2) then 1 else 0 end as bit) as ino"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(case when @0 <> (@1 collate Latin1_General_BIN2) then 1 else 0 end as bit) as ne, cast(case when @2 < (@3 collate Latin1_General_BIN2) then 1 else 0 end as bit) as lt, cast(case when @4 > (@5 collate Latin1_General_BIN2) then 1 else 0 end as bit) as gt, cast(case when @6 <= (@7 collate Latin1_General_BIN2) then 1 else 0 end as bit) as le, cast(case when @8 >= (@9 collate Latin1_General_BIN2) then 1 else 0 end as bit) as ge, cast(case when @10 between (@11 collate Latin1_General_BIN2) and @12 then 1 else 0 end as bit) as bt, cast(case when @13 = (@14 collate Latin1_General_BIN2) then 1 else 0 end as bit) as i, cast(case when @15 <> (@16 collate Latin1_General_BIN2) then 1 else 0 end as bit) as ino"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "abc",
@@ -444,7 +444,7 @@ describe(ctx.label, () => {
             .groupBy(tAppUser.fullName.collate('Latin1_General_BIN2'))
             .orderBy('name')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select full_name collate Latin1_General_BIN2 as name, count(id) as [n] from app_user group by full_name collate Latin1_General_BIN2 order by name"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select full_name collate Latin1_General_BIN2 as name, count(id) as n from app_user group by full_name collate Latin1_General_BIN2 order by name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ name: string; n: number }>>>()
         expect(result).toEqual(expected)
@@ -476,7 +476,7 @@ describe(ctx.label, () => {
             .select({ id: tAppUser.id, v: tAppUser.email.replaceAll(tAppUser.fullName.collate('Latin1_General_BIN2'), 'X') })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(email collate Latin1_General_BIN2, (full_name collate Latin1_General_BIN2) collate Latin1_General_BIN2, @0) collate DATABASE_DEFAULT as [v] from app_user order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(email collate Latin1_General_BIN2, (full_name collate Latin1_General_BIN2) collate Latin1_General_BIN2, @0) collate DATABASE_DEFAULT as v from app_user order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "X",
@@ -496,7 +496,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id, v: tIssue.body.collate('Latin1_General_BIN2') })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, body collate Latin1_General_BIN2 as [v] from issue where project_id = @0 order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, body collate Latin1_General_BIN2 as v from issue where project_id = @0 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -512,7 +512,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ZabcZabc', 'string').replaceAllInsensitive(ctx.conn.const('abc', 'string'), 'X') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(@0, @1, @2) as [v]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(@0, @1, @2) as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ZabcZabc",
@@ -529,7 +529,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ZabcZabc', 'string').replaceAllInsensitive('abc', ctx.conn.const('Y', 'string')) })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(@0, @1, @2) as [v]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(@0, @1, @2) as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ZabcZabc",
@@ -546,7 +546,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ZabcZabc', 'string').replaceAllInsensitive(ctx.conn.const('abc', 'string'), ctx.conn.const('W', 'string')) })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(@0, @1, @2) as [v]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(@0, @1, @2) as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ZabcZabc",
@@ -586,7 +586,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFromNoTable()
             .select({ v: ctx.conn.const('ABC', 'string').collate('Latin1_General_BIN2').like('abc%') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(case when (@0 collate Latin1_General_BIN2) like @1 then 1 else 0 end as bit) as [v]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(case when (@0 collate Latin1_General_BIN2) like @1 then 1 else 0 end as bit) as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABC",
@@ -609,7 +609,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({ id: tIssue.id, v: tIssue.externalRef.asString().collate('Latin1_General_BIN2') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, convert(nvarchar(36), external_ref) collate Latin1_General_BIN2 as [v] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, convert(nvarchar(36), external_ref) collate Latin1_General_BIN2 as v from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

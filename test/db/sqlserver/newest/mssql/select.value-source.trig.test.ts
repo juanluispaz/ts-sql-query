@@ -27,7 +27,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; v: number }>>>()
         if (ctx.realDbEnabled) expect(result[0]!.v).toBeCloseTo(Math.acos(0.2), 5)
         else expect(result).toEqual(expected)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(cast(priority as float) / @0) as [v] from issue where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(cast(priority as float) / @0) as v from issue where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,
@@ -48,7 +48,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         assertType<Exact<typeof result, Array<{ id: number; v: number }>>>()
         expect(result).toEqual(expected)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, asin(cast(priority as float) / @0) as [v] from issue where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, asin(cast(priority as float) / @0) as v from issue where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,
@@ -70,7 +70,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; v: number }>>>()
         if (ctx.realDbEnabled) expect(result[0]!.v).toBeCloseTo(Math.atan(2), 5)
         else expect(result).toEqual(expected)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, atan(priority) as [v] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, atan(priority) as v from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -90,7 +90,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         assertType<Exact<typeof result, Array<{ id: number; v: number }>>>()
         expect(result).toEqual(expected)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cos(priority) as [v] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cos(priority) as v from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -110,7 +110,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         assertType<Exact<typeof result, Array<{ id: number; v: number }>>>()
         expect(result).toEqual(expected)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cot(priority) as [v] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cot(priority) as v from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -130,7 +130,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         assertType<Exact<typeof result, Array<{ id: number; v: number }>>>()
         expect(result).toEqual(expected)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, sin(priority) as [v] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, sin(priority) as v from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -150,7 +150,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         assertType<Exact<typeof result, Array<{ id: number; v: number }>>>()
         expect(result).toEqual(expected)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, tan(priority) as [v] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, tan(priority) as v from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

@@ -244,7 +244,7 @@ describe(ctx.label, () => {
                 ob: connection.fragmentWithType('bigint', 'optional').sql`abs(${tIssue.viewCount})`,
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(view_count) as "b", abs(view_count) as ob from issue where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(view_count) as b, abs(view_count) as ob from issue where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -272,7 +272,7 @@ describe(ctx.label, () => {
                     .sql`${tProjectRelease.version}`,
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(signing_key, signing_key) as "u", version as "v" from project_release where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(signing_key, signing_key) as u, version as v from project_release where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -334,7 +334,7 @@ describe(ctx.label, () => {
                         .sql`${tIssue.priority}`.add(1),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (priority) + $1 as "n" from issue where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (priority) + $1 as n from issue where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

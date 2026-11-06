@@ -57,7 +57,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority * id as [p] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority * id as p from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -157,7 +157,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(body, title) as [b] from issue where id in (@0, @1) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(body, title) as b from issue where id in (@0, @1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -181,7 +181,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority % id as [m] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority % id as m from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -207,7 +207,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority + assignee_id as [x], cast(case when priority = assignee_id then 1 when not (priority = assignee_id) then 0 else null end as bit) as [y], assignee_id + priority as [z] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority + assignee_id as x, cast(case when priority = assignee_id then 1 when not (priority = assignee_id) then 0 else null end as bit) as y, assignee_id + priority as z from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -270,7 +270,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(body, title) as [b] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(body, title) as b from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -353,7 +353,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(case when priority >= assignee_id then 1 when not (priority >= assignee_id) then 0 else null end as bit) as [x] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(case when priority >= assignee_id then 1 when not (priority >= assignee_id) then 0 else null end as bit) as x from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

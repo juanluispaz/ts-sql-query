@@ -265,7 +265,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ d: v.d, t: v.t, ts: v.ts })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with temporalSampler(\`d\`, \`t\`, ts) as (values (?, ?, ?)) select \`d\` as \`d\`, \`t\` as \`t\`, ts as ts from temporalSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with temporalSampler(d, t, ts) as (values (?, ?, ?)) select d as d, t as t, ts as ts from temporalSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,
@@ -328,7 +328,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ d: v.d, t: v.t, ts: v.ts })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with customTemporalSampler(\`d\`, \`t\`, ts) as (values (?, ?, ?)) select \`d\` as \`d\`, \`t\` as \`t\`, ts as ts from customTemporalSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with customTemporalSampler(d, t, ts) as (values (?, ?, ?)) select d as d, t as t, ts as ts from customTemporalSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,

@@ -48,7 +48,7 @@ describe(ctx.label, () => {
                 r:  tIssue.viewCount.round(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceiling(view_count) as [c], floor(view_count) as [f], round(view_count, 0) as [r] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceiling(view_count) as c, floor(view_count) as f, round(view_count, 0) as r from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -76,7 +76,7 @@ describe(ctx.label, () => {
                 a:  score.abs(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceiling(@0) as [c], floor(@1) as [f], round(@2, 0) as [r], abs(@3) as [a] from issue where id = @4"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceiling(@0) as c, floor(@1) as f, round(@2, 0) as r, abs(@3) as a from issue where id = @4"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             7,
@@ -147,7 +147,7 @@ describe(ctx.label, () => {
                 l10: m.log10(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, sqrt(@0) as sq, sign(@1) * power(cast(abs(@2) as float), 1.0e0 / 3.0e0) as cb, exp(@3) as [e], log(@4) as [l], log10(@5) as l10 from issue where id = @6"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, sqrt(@0) as sq, sign(@1) * power(cast(abs(@2) as float), 1.0e0 / 3.0e0) as cb, exp(@3) as e, log(@4) as l, log10(@5) as l10 from issue where id = @6"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             4,
@@ -246,7 +246,7 @@ describe(ctx.label, () => {
             id: number; p: number; ln: number; rn: number; di: number; at2: number
         }>>>()
         expect(result).toEqual(expected)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, power(@0, @1) as [p], log(@2, @3) as [ln], round(@4, @5) as rn, cast(@6 as float) / @7 as di, atn2(@8, @9) as at2 from issue where id = @10"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, power(@0, @1) as p, log(@2, @3) as [ln], round(@4, @5) as rn, cast(@6 as float) / @7 as di, atn2(@8, @9) as at2 from issue where id = @10"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             8,
@@ -311,7 +311,7 @@ describe(ctx.label, () => {
                 sg: tIssue.viewCount.sign(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, view_count + @0 as [a], view_count - @1 as [s], view_count % @2 as [m], iif(view_count > @3, view_count, @4) as mn, iif(view_count < @5, view_count, @6) as mx, abs(view_count) as ab, sign(view_count) as sg from issue where id = @7"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, view_count + @0 as a, view_count - @1 as s, view_count % @2 as m, iif(view_count > @3, view_count, @4) as mn, iif(view_count < @5, view_count, @6) as mx, abs(view_count) as ab, sign(view_count) as sg from issue where id = @7"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1n,
@@ -344,7 +344,7 @@ describe(ctx.label, () => {
                 d:  tIssueWorklog.durationMs.add(1n),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, duration_ms + @0 as [d] from issue_worklog where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, duration_ms + @0 as d from issue_worklog where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1n,
@@ -407,7 +407,7 @@ describe(ctx.label, () => {
                 sg: tIssueWorklog.costCents.sign(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cost_cents + @0 as [a], cost_cents - @1 as [s], cost_cents * @2 as mu, cost_cents % cost_cents as mo, iif(cost_cents > @3, cost_cents, @4) as mn, iif(cost_cents < @5, cost_cents, @6) as mx, sign(cost_cents) as sg from issue_worklog where id = @7"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cost_cents + @0 as a, cost_cents - @1 as s, cost_cents * @2 as mu, cost_cents % cost_cents as mo, iif(cost_cents > @3, cost_cents, @4) as mn, iif(cost_cents < @5, cost_cents, @6) as mx, sign(cost_cents) as sg from issue_worklog where id = @7"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -447,7 +447,7 @@ describe(ctx.label, () => {
                 sg: tIssueWorklog.billedAmount.sign(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billed_amount + billed_amount as [a], billed_amount - @0 as [s], billed_amount * @1 as mu, iif(billed_amount > @2, billed_amount, @3) as mn, iif(billed_amount < @4, billed_amount, @5) as mx, abs(billed_amount) as ab, sign(billed_amount) as sg from issue_worklog where id = @6"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billed_amount + billed_amount as a, billed_amount - @0 as s, billed_amount * @1 as mu, iif(billed_amount > @2, billed_amount, @3) as mn, iif(billed_amount < @4, billed_amount, @5) as mx, abs(billed_amount) as ab, sign(billed_amount) as sg from issue_worklog where id = @6"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -510,7 +510,7 @@ describe(ctx.label, () => {
                 o:  tIssue.viewCount.add(tIssue.viewCount.asOptional()),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, view_count + view_count as [a], view_count - view_count as [s], view_count + view_count as [o] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, view_count + view_count as a, view_count - view_count as s, view_count + view_count as o from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -612,7 +612,7 @@ describe(ctx.label, () => {
                 m:  tIssueWorklog.billedAmount.modulo(tIssueWorklog.billedAmount),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(billed_amount as numeric(38, 16)) % cast(billed_amount as numeric(38, 16)) as [m] from issue_worklog where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(billed_amount as numeric(38, 16)) % cast(billed_amount as numeric(38, 16)) as m from issue_worklog where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -635,7 +635,7 @@ describe(ctx.label, () => {
                 m:  tIssueWorklog.costCents.modulo(2),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cost_cents % @0 as [m] from issue_worklog where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cost_cents % @0 as m from issue_worklog where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -756,7 +756,7 @@ describe(ctx.label, () => {
                 r:  tag.round(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceiling(@0) as [c], floor(@1) as [f], round(@2, 0) as [r] from issue where id = @3"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceiling(@0) as c, floor(@1) as f, round(@2, 0) as r from issue where id = @3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             6,
@@ -828,7 +828,7 @@ describe(ctx.label, () => {
                 mo: tag.round().modulo(4 as ReleaseTag),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(@0, 0) + @1 as [a], round(@2, 0) - @3 as [s], round(@4, 0) * @5 as mu, round(@6, 0) % @7 as mo from issue where id = @8"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(@0, 0) + @1 as a, round(@2, 0) - @3 as s, round(@4, 0) * @5 as mu, round(@6, 0) % @7 as mo from issue where id = @8"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             6,
@@ -904,7 +904,7 @@ describe(ctx.label, () => {
                 cb: money.cbrt(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(@0) as ab, ceiling(@1) as ce, floor(@2) as fl, round(@3, 0) as ro, exp(@4) as ex, log(@5) as [l], log10(@6) as l10, sign(@7) * power(cast(abs(@8) as float), 1.0e0 / 3.0e0) as cb from issue where id = @9"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(@0) as ab, ceiling(@1) as ce, floor(@2) as fl, round(@3, 0) as ro, exp(@4) as ex, log(@5) as l, log10(@6) as l10, sign(@7) * power(cast(abs(@8) as float), 1.0e0 / 3.0e0) as cb from issue where id = @9"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             4,
@@ -957,7 +957,7 @@ describe(ctx.label, () => {
                 at2: money.atan2(base),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, power(@0, @1) as [p], log(@2, @3) as lg, atn2(@4, @5) as at2 from issue where id = @6"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, power(@0, @1) as p, log(@2, @3) as lg, atn2(@4, @5) as at2 from issue where id = @6"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             8,
@@ -1040,7 +1040,7 @@ describe(ctx.label, () => {
                 mu: money.round().multiply(base),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(@0, 0) + @1 as [a], round(@2, 0) - @3 as [s], round(@4, 0) * @5 as mu from issue where id = @6"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(@0, 0) + @1 as a, round(@2, 0) - @3 as s, round(@4, 0) * @5 as mu from issue where id = @6"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             8,
@@ -1313,7 +1313,7 @@ describe(ctx.label, () => {
                 v:  tReleaseDraft.shiftedAmount.multiply(2),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, shifted_amount * @0 as [v] from release_draft where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, shifted_amount * @0 as v from release_draft where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             -998,
@@ -1343,7 +1343,7 @@ describe(ctx.label, () => {
                 v:  tReleaseDraft.budget.multiply(2),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, budget * @0 as [v] from release_draft where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, budget * @0 as v from release_draft where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

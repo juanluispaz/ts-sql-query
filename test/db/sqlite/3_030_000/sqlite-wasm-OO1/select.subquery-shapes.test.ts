@@ -271,7 +271,7 @@ describe(ctx.label, () => {
             .select({ s: statuses.s })
             .orderBy('s')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with statuses as (select status as "s" from issue where status = ?1 union select status as "s" from issue where status = ?2) select "s" as "s" from statuses order by "s""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with statuses as (select status as s from issue where status = ?1 union select status as s from issue where status = ?2) select s as s from statuses order by s"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -298,7 +298,7 @@ describe(ctx.label, () => {
             .select({ s: statuses.s })
             .orderBy('s')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with statuses as (select status as "s" from issue where status = ?1 union select status as "s" from issue where status = ?2 order by "s" desc) select "s" as "s" from statuses order by "s""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with statuses as (select status as s from issue where status = ?1 union select status as s from issue where status = ?2 order by s desc) select s as s from statuses order by s"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -361,7 +361,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select minutes as result from issue_worklog where issue_id = issue.id and activity = ?1) as "m" from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select minutes as result from issue_worklog where issue_id = issue.id and activity = ?1) as m from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "coding",
@@ -399,7 +399,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select minutes as result from issue_worklog where issue_id = issue.id and activity = ?1) as "m" from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select minutes as result from issue_worklog where issue_id = issue.id and activity = ?1) as m from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "coding",

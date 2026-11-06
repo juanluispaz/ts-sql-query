@@ -96,7 +96,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ n: v.n, big: v.big, dbl: v.dbl, flag: v.flag })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with kindSampler as (select * from (values (@0, @1, @2, @3)) as kindSampler([n], big, dbl, flag)) select [n] as [n], big as big, dbl as dbl, flag as flag from kindSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with kindSampler as (select * from (values (@0, @1, @2, @3)) as kindSampler(n, big, dbl, flag)) select n as n, big as big, dbl as dbl, flag as flag from kindSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             7,
@@ -260,7 +260,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ d: v.d, t: v.t, ts: v.ts })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with temporalSampler as (select * from (values (@0, @1, @2)) as temporalSampler([d], [t], ts)) select [d] as [d], [t] as [t], ts as ts from temporalSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with temporalSampler as (select * from (values (@0, @1, @2)) as temporalSampler(d, t, ts)) select d as d, t as t, ts as ts from temporalSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,
@@ -322,7 +322,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ d: v.d, t: v.t, ts: v.ts })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with customTemporalSampler as (select * from (values (@0, @1, @2)) as customTemporalSampler([d], [t], ts)) select [d] as [d], [t] as [t], ts as ts from customTemporalSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with customTemporalSampler as (select * from (values (@0, @1, @2)) as customTemporalSampler(d, t, ts)) select d as d, t as t, ts as ts from customTemporalSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,
@@ -353,7 +353,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ n: v.n, vbig: v.vbig, vdbl: v.vdbl, vopt: v.vopt })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with virtualSampler as (select * from (values (@0)) as virtualSampler([n])) select [n] as [n], @1 as vbig, @2 as vdbl, @3 as vopt from virtualSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with virtualSampler as (select * from (values (@0)) as virtualSampler(n)) select n as n, @1 as vbig, @2 as vdbl, @3 as vopt from virtualSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             7,
@@ -422,7 +422,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ n: v.n, vtag: v.vtag, vtagO: v.vtagO })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with bracketSampler as (select * from (values (@0)) as bracketSampler([n])) select [n] as [n], upper('led') as vtag, upper('led') as vtagO from bracketSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with bracketSampler as (select * from (values (@0)) as bracketSampler(n)) select n as n, upper('led') as vtag, upper('led') as vtagO from bracketSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             7,
@@ -565,7 +565,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ flag: v.flag, n: v.n, big: v.big, dbl: v.dbl, str: v.str, cents: v.cents, money: v.money, ver: v.ver, chan: v.chan, act: v.act })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with optSampler as (select * from (values (@0, @1, @2, @3, @4, @5, @6, @7, @8, @9)) as optSampler(flag, [n], big, dbl, str, cents, money, ver, chan, act)) select flag as flag, [n] as [n], big as big, dbl as dbl, str as str, cents as cents, money as money, ver as ver, chan as chan, act as act from optSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with optSampler as (select * from (values (@0, @1, @2, @3, @4, @5, @6, @7, @8, @9)) as optSampler(flag, n, big, dbl, str, cents, money, ver, chan, act)) select flag as flag, n as n, big as big, dbl as dbl, str as str, cents as cents, money as money, ver as ver, chan as chan, act as act from optSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             true,
@@ -696,7 +696,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ n: v.n, vint: v.vint, vcents: v.vcents, vmoney: v.vmoney, vver: v.vver, vchan: v.vchan, vact: v.vact })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvReqSampler as (select * from (values (@0)) as vvReqSampler([n])) select [n] as [n], @1 as vint, @2 as vcents, @3 as vmoney, @4 as vver, @5 as vchan, @6 as vact from vvReqSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvReqSampler as (select * from (values (@0)) as vvReqSampler(n)) select n as n, @1 as vint, @2 as vcents, @3 as vmoney, @4 as vver, @5 as vchan, @6 as vact from vvReqSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             7,
@@ -727,7 +727,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ n: v.n, vref: v.vref, vsigning: v.vsigning })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvReqUuidSampler as (select * from (values (@0)) as vvReqUuidSampler([n])) select [n] as [n], @1 as vref, @2 as vsigning from vvReqUuidSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvReqUuidSampler as (select * from (values (@0)) as vvReqUuidSampler(n)) select n as n, @1 as vref, @2 as vsigning from vvReqUuidSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             7,
@@ -761,7 +761,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ n: v.n, vint: v.vint, vbig: v.vbig, vcents: v.vcents, vmoney: v.vmoney, vver: v.vver, vchan: v.vchan, vact: v.vact })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvOptSampler as (select * from (values (@0)) as vvOptSampler([n])) select [n] as [n], @1 as vint, @2 as vbig, @3 as vcents, @4 as vmoney, @5 as vver, @6 as vchan, @7 as vact from vvOptSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvOptSampler as (select * from (values (@0)) as vvOptSampler(n)) select n as n, @1 as vint, @2 as vbig, @3 as vcents, @4 as vmoney, @5 as vver, @6 as vchan, @7 as vact from vvOptSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             7,
@@ -793,7 +793,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ n: v.n, vref: v.vref, vsigning: v.vsigning })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvOptUuidSampler as (select * from (values (@0)) as vvOptUuidSampler([n])) select [n] as [n], @1 as vref, @2 as vsigning from vvOptUuidSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvOptUuidSampler as (select * from (values (@0)) as vvOptUuidSampler(n)) select n as n, @1 as vref, @2 as vsigning from vvOptUuidSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             7,
@@ -823,7 +823,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ n: v.n, vd: v.vd, vt: v.vt, vts: v.vts })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvTemporalSampler as (select * from (values (@0)) as vvTemporalSampler([n])) select [n] as [n], @1 as vd, @2 as vt, @3 as vts from vvTemporalSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvTemporalSampler as (select * from (values (@0)) as vvTemporalSampler(n)) select n as n, @1 as vd, @2 as vt, @3 as vts from vvTemporalSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             7,
@@ -856,7 +856,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ n: v.n, vint: v.vint, vcents: v.vcents, vmoney: v.vmoney, vver: v.vver, vchan: v.vchan, vact: v.vact })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvReqAdapterSampler as (select * from (values (@0)) as vvReqAdapterSampler([n])) select [n] as [n], @1 as vint, @2 as vcents, @3 as vmoney, @4 as vver, @5 as vchan, @6 as vact from vvReqAdapterSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvReqAdapterSampler as (select * from (values (@0)) as vvReqAdapterSampler(n)) select n as n, @1 as vint, @2 as vcents, @3 as vmoney, @4 as vver, @5 as vchan, @6 as vact from vvReqAdapterSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             7,
@@ -886,7 +886,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ n: v.n, vref: v.vref, vsigning: v.vsigning })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvReqAdapterUuidSampler as (select * from (values (@0)) as vvReqAdapterUuidSampler([n])) select [n] as [n], @1 as vref, @2 as vsigning from vvReqAdapterUuidSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvReqAdapterUuidSampler as (select * from (values (@0)) as vvReqAdapterUuidSampler(n)) select n as n, @1 as vref, @2 as vsigning from vvReqAdapterUuidSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             7,
@@ -918,7 +918,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ n: v.n, vint: v.vint, vbig: v.vbig, vcents: v.vcents, vmoney: v.vmoney, vver: v.vver, vchan: v.vchan, vact: v.vact })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvOptAdapterSampler as (select * from (values (@0)) as vvOptAdapterSampler([n])) select [n] as [n], @1 as vint, @2 as vbig, @3 as vcents, @4 as vmoney, @5 as vver, @6 as vchan, @7 as vact from vvOptAdapterSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvOptAdapterSampler as (select * from (values (@0)) as vvOptAdapterSampler(n)) select n as n, @1 as vint, @2 as vbig, @3 as vcents, @4 as vmoney, @5 as vver, @6 as vchan, @7 as vact from vvOptAdapterSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             7,
@@ -949,7 +949,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ n: v.n, vref: v.vref, vsigning: v.vsigning })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvOptAdapterUuidSampler as (select * from (values (@0)) as vvOptAdapterUuidSampler([n])) select [n] as [n], @1 as vref, @2 as vsigning from vvOptAdapterUuidSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvOptAdapterUuidSampler as (select * from (values (@0)) as vvOptAdapterUuidSampler(n)) select n as n, @1 as vref, @2 as vsigning from vvOptAdapterUuidSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             7,
@@ -976,7 +976,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ n: v.n, vd: v.vd, vt: v.vt, vts: v.vts })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvTemporalAdapterSampler as (select * from (values (@0)) as vvTemporalAdapterSampler([n])) select [n] as [n], @1 as vd, @2 as vt, @3 as vts from vvTemporalAdapterSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvTemporalAdapterSampler as (select * from (values (@0)) as vvTemporalAdapterSampler(n)) select n as n, @1 as vd, @2 as vt, @3 as vts from vvTemporalAdapterSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             7,

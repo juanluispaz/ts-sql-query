@@ -36,7 +36,7 @@ describe(ctx.label, () => {
                 dow: d.getDay(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from $1::date) as "y", extract(month from $2::date) - 1 as mo, extract(day from $3::date) as "d", extract(dow from $4::date) as dow"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from $1::date) as y, extract(month from $2::date) - 1 as mo, extract(day from $3::date) as d, extract(dow from $4::date) as dow"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-15T00:00:00.000Z,
@@ -63,7 +63,7 @@ describe(ctx.label, () => {
                 s: t.getSeconds(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(hour from $1::time) as "h", extract(minute from $2::time) as "m", trunc(extract(second from $3::time))::integer as "s""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(hour from $1::time) as h, extract(minute from $2::time) as m, trunc(extract(second from $3::time))::integer as s"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "12:34:56",
@@ -90,7 +90,7 @@ describe(ctx.label, () => {
                 t:  ts.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from $1::timestamp) as "y", extract(month from $2::timestamp) - 1 as mo, extract(hour from $3::timestamp) as "h", round(extract(epoch from $4::timestamp) * 1000) as "t""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from $1::timestamp) as y, extract(month from $2::timestamp) - 1 as mo, extract(hour from $3::timestamp) as h, round(extract(epoch from $4::timestamp) * 1000) as t"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-15T12:34:56.000Z,
@@ -177,7 +177,7 @@ describe(ctx.label, () => {
                 ms:  ts.getMilliseconds(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(day from $1::timestamp) as "d", extract(dow from $2::timestamp) as dow, extract(minute from $3::timestamp) as "m", trunc(extract(second from $4::timestamp))::integer as "s", trunc(extract(millisecond from $5::timestamp))::integer % 1000 as ms"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(day from $1::timestamp) as d, extract(dow from $2::timestamp) as dow, extract(minute from $3::timestamp) as m, trunc(extract(second from $4::timestamp))::integer as s, trunc(extract(millisecond from $5::timestamp))::integer % 1000 as ms"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-15T12:34:56.000Z,
@@ -283,7 +283,7 @@ describe(ctx.label, () => {
                 h: tIssueWorklog.startedAt.onlyWhenOrNull(true).getHours(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(hour from started_at) as "h" from issue_worklog where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(hour from started_at) as h from issue_worklog where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -306,7 +306,7 @@ describe(ctx.label, () => {
                 h: tIssueWorklog.startedAt.ignoreWhenAsNull(false).getHours(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(hour from started_at) as "h" from issue_worklog where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(hour from started_at) as h from issue_worklog where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -379,7 +379,7 @@ describe(ctx.label, () => {
                 dow: d.getDay(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from $1::date) as "y", extract(month from $2::date) - 1 as mo, extract(day from $3::date) as "d", extract(dow from $4::date) as dow"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from $1::date) as y, extract(month from $2::date) - 1 as mo, extract(day from $3::date) as d, extract(dow from $4::date) as dow"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-15T00:00:00.000Z,
@@ -408,7 +408,7 @@ describe(ctx.label, () => {
                 ms: t.getMilliseconds(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(hour from $1::time) as "h", extract(minute from $2::time) as "m", trunc(extract(second from $3::time))::integer as "s", trunc(extract(millisecond from $4::time))::integer % 1000 as ms"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(hour from $1::time) as h, extract(minute from $2::time) as m, trunc(extract(second from $3::time))::integer as s, trunc(extract(millisecond from $4::time))::integer % 1000 as ms"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "12:34:56",
@@ -447,7 +447,7 @@ describe(ctx.label, () => {
                 t:   ts.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from $1::timestamp) as "y", extract(month from $2::timestamp) - 1 as mo, extract(day from $3::timestamp) as "d", extract(dow from $4::timestamp) as dow, extract(hour from $5::timestamp) as "h", extract(minute from $6::timestamp) as "m", trunc(extract(second from $7::timestamp))::integer as "s", trunc(extract(millisecond from $8::timestamp))::integer % 1000 as ms, round(extract(epoch from $9::timestamp) * 1000) as "t""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from $1::timestamp) as y, extract(month from $2::timestamp) - 1 as mo, extract(day from $3::timestamp) as d, extract(dow from $4::timestamp) as dow, extract(hour from $5::timestamp) as h, extract(minute from $6::timestamp) as m, trunc(extract(second from $7::timestamp))::integer as s, trunc(extract(millisecond from $8::timestamp))::integer % 1000 as ms, round(extract(epoch from $9::timestamp) * 1000) as t"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-15T12:34:56.000Z,
@@ -482,7 +482,7 @@ describe(ctx.label, () => {
                 p: tProjectRelease.publishedAt.asOptional(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select published_at as "p" from project_release where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select published_at as p from project_release where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

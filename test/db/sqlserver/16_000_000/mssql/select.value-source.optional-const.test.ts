@@ -54,7 +54,7 @@ describe(ctx.label, () => {
                 b:  ctx.conn.optionalConst(true, 'boolean'),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [i], @1 as [d], @2 as bi, @3 as [b]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as i, @1 as d, @2 as bi, @3 as b"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             7,
@@ -81,7 +81,7 @@ describe(ctx.label, () => {
                 cc: ctx.conn.optionalConst<string, 'Semver'>('1.2.0', 'customComparable', 'Semver'),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [u], @1 as [e], @2 as [c], @3 as cc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as u, @1 as e, @2 as c, @3 as cc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556666",

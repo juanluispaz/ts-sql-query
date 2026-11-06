@@ -178,6 +178,12 @@ describe('MockQueryRunner', () => {
         expect(custom.isSqlError(library)).toBe(true)
     })
 
+    test('a-null-in-the-rows-is-an-invalid-mocked-value', async () => {
+        const runner = new MockQueryRunner(() => [null])
+
+        expect(reasonOf(await rejectionOf(runner.executeSelectManyRows('q', [])))).toBe('INVALID_MOCKED_VALUE')
+    })
+
     test('the-rest-of-the-interface', async () => {
         const runner = new MockQueryRunner(() => undefined)
         expect(runner.getNativeRunner()).toBeNull()

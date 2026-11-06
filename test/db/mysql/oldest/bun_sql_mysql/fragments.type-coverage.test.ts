@@ -150,7 +150,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as \`v\`, 1.5 as \`avg\`, bin_to_uuid(signing_key) as \`key\`, \`channel\` as ch from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as v, 1.5 as \`avg\`, bin_to_uuid(signing_key) as \`key\`, \`channel\` as ch from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -433,7 +433,7 @@ describe(ctx.label, () => {
                 v: ctx.conn.fragmentWithType<string, 'Semver'>('customComparable', 'Semver', 'required', bracketAdapter).sql`${tProjectRelease.version}`,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as \`v\` from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as v from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -456,7 +456,7 @@ describe(ctx.label, () => {
                 v: ctx.conn.aggregateFragmentWithType<string, 'Semver'>('customComparable', 'Semver', 'required', bracketAdapter).sql`max(${tProjectRelease.version})`,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(version) as \`v\` from project_release"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(version) as v from project_release"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof row, { v: string }>>()
         expect(row).toEqual(expected)
@@ -656,7 +656,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select bin_to_uuid(signing_key) as \`key\`, released_on as rOn, cutoff_time as cut, signed_off_at as soff, version as \`v\` from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select bin_to_uuid(signing_key) as \`key\`, released_on as rOn, cutoff_time as cut, signed_off_at as soff, version as v from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

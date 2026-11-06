@@ -229,7 +229,7 @@ const conn = ctx.withReplaceAllInsensitiveFunction('ci_replace')
         const rows = sync(conn.selectFromNoTable()
             .select({ v: conn.const('ABCabc', 'string').replaceAllInsensitive('abc', 'X') })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ci_replace(?1, ?2, ?3) as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ci_replace(?1, ?2, ?3) as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",

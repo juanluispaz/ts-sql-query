@@ -36,7 +36,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(priority as float) as [d] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(priority as float) as d from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -60,7 +60,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority as [p] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority as p from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -83,7 +83,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority as [p] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority as p from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -155,7 +155,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(round(cast(priority as float), 0) as bigint) as [p] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(round(cast(priority as float), 0) as bigint) as p from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -179,7 +179,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(assignee_id as float) as [a] from issue where id in (@0, @1) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(assignee_id as float) as a from issue where id in (@0, @1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -210,7 +210,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(round(cast(priority as float), 0) as bigint) + @0 as [a], cast(round(cast(priority as float), 0) as bigint) % @1 as [m] from issue where id = @2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(round(cast(priority as float), 0) as bigint) + @0 as a, cast(round(cast(priority as float), 0) as bigint) % @1 as m from issue where id = @2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2n,

@@ -45,7 +45,7 @@ describe(ctx.label, () => {
         } else {
             expect(result).toEqual(expected)
         }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(cast(priority as real) / ?1) as "v" from issue where id = ?2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(cast(priority as real) / ?1) as v from issue where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,
@@ -71,7 +71,7 @@ describe(ctx.label, () => {
         } else {
             expect(result).toEqual(expected)
         }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, asin(cast(priority as real) / ?1) as "v" from issue where id = ?2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, asin(cast(priority as real) / ?1) as v from issue where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,
@@ -97,7 +97,7 @@ describe(ctx.label, () => {
         } else {
             expect(result).toEqual(expected)
         }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, atan(priority) as "v" from issue where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, atan(priority) as v from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -122,7 +122,7 @@ describe(ctx.label, () => {
         } else {
             expect(result).toEqual(expected)
         }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cos(priority) as "v" from issue where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cos(priority) as v from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -177,7 +177,7 @@ describe(ctx.label, () => {
         } else {
             expect(result).toEqual(expected)
         }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, sin(priority) as "v" from issue where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, sin(priority) as v from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -202,7 +202,7 @@ describe(ctx.label, () => {
         } else {
             expect(result).toEqual(expected)
         }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, tan(priority) as "v" from issue where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, tan(priority) as v from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

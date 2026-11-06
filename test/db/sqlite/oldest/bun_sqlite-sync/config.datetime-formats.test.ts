@@ -33,7 +33,7 @@ describe(ctx.label, () => {
         sync(conn.selectFromNoTable()
             .select({ d: conn.currentDate(), t: conn.currentTime(), ts: conn.currentTimestamp() })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date('now', 'localtime') as "d", time('now', 'localtime') as "t", datetime('now', 'localtime') as ts"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date('now', 'localtime') as d, time('now', 'localtime') as t, datetime('now', 'localtime') as ts"`)
     })
 
     test('format: localdate as text using T separator', async () => {
@@ -41,7 +41,7 @@ describe(ctx.label, () => {
         sync(conn.selectFromNoTable()
             .select({ d: conn.currentDate(), t: conn.currentTime(), ts: conn.currentTimestamp() })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date('now', 'localtime') as "d", time('now', 'localtime') as "t", strftime('%Y-%m-%dT%H:%M:%S', 'now', 'localtime') as ts"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date('now', 'localtime') as d, time('now', 'localtime') as t, strftime('%Y-%m-%dT%H:%M:%S', 'now', 'localtime') as ts"`)
     })
 
     test('format: UTC as text', async () => {
@@ -49,7 +49,7 @@ describe(ctx.label, () => {
         sync(conn.selectFromNoTable()
             .select({ d: conn.currentDate(), t: conn.currentTime(), ts: conn.currentTimestamp() })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date('now') as "d", time('now') as "t", datetime('now') as ts"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date('now') as d, time('now') as t, datetime('now') as ts"`)
     })
 
     test('format: UTC as text using T separator', async () => {
@@ -57,7 +57,7 @@ describe(ctx.label, () => {
         sync(conn.selectFromNoTable()
             .select({ d: conn.currentDate(), t: conn.currentTime(), ts: conn.currentTimestamp() })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date('now') as "d", time('now') as "t", strftime('%Y-%m-%dT%H:%M:%S', 'now') as ts"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date('now') as d, time('now') as t, strftime('%Y-%m-%dT%H:%M:%S', 'now') as ts"`)
     })
 
     test('format: UTC as text using Z timezone', async () => {
@@ -65,7 +65,7 @@ describe(ctx.label, () => {
         sync(conn.selectFromNoTable()
             .select({ d: conn.currentDate(), t: conn.currentTime(), ts: conn.currentTimestamp() })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date('now') as "d", (time('now') || 'Z') as "t", strftime('%Y-%m-%d %H:%M:%SZ', 'now') as ts"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date('now') as d, (time('now') || 'Z') as t, strftime('%Y-%m-%d %H:%M:%SZ', 'now') as ts"`)
     })
 
     test('format: UTC as text using T separator and Z timezone', async () => {
@@ -73,7 +73,7 @@ describe(ctx.label, () => {
         sync(conn.selectFromNoTable()
             .select({ d: conn.currentDate(), t: conn.currentTime(), ts: conn.currentTimestamp() })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date('now') as "d", (time('now') || 'Z') as "t", strftime('%Y-%m-%dT%H:%M:%SZ', 'now') as ts"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date('now') as d, (time('now') || 'Z') as t, strftime('%Y-%m-%dT%H:%M:%SZ', 'now') as ts"`)
     })
 
     test('format: Julian day as real number', async () => {
@@ -81,7 +81,7 @@ describe(ctx.label, () => {
         sync(conn.selectFromNoTable()
             .select({ d: conn.currentDate(), t: conn.currentTime(), ts: conn.currentTimestamp() })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select julianday(date('now')) as "d", (julianday(strftime('1970-01-01 %H:%M:%f', 'now')) - julianday('1970-01-01')) as "t", julianday('now') as ts"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select julianday(date('now')) as d, (julianday(strftime('1970-01-01 %H:%M:%f', 'now')) - julianday('1970-01-01')) as t, julianday('now') as ts"`)
     })
 
     test('format: Unix time seconds as integer', async () => {
@@ -89,7 +89,7 @@ describe(ctx.label, () => {
         sync(conn.selectFromNoTable()
             .select({ d: conn.currentDate(), t: conn.currentTime(), ts: conn.currentTimestamp() })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%s', date('now')) as integer) as "d", cast(strftime('%s', strftime('1970-01-01 %H:%M:%S', 'now')) as integer) as "t", cast(strftime('%s', 'now') as integer) as ts"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%s', date('now')) as integer) as d, cast(strftime('%s', strftime('1970-01-01 %H:%M:%S', 'now')) as integer) as t, cast(strftime('%s', 'now') as integer) as ts"`)
     })
 
     test('format: Unix time milliseconds as integer', async () => {
@@ -97,7 +97,7 @@ describe(ctx.label, () => {
         sync(conn.selectFromNoTable()
             .select({ d: conn.currentDate(), t: conn.currentTime(), ts: conn.currentTimestamp() })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (cast(strftime('%s', date('now')) as integer) * 1000) as "d", cast(round((julianday(strftime('1970-01-01 %H:%M:%f', 'now')) - 2440587.5) * 86400000.0) as integer) as "t", cast(round((julianday('now') - 2440587.5) * 86400000.0) as integer) as ts"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (cast(strftime('%s', date('now')) as integer) * 1000) as d, cast(round((julianday(strftime('1970-01-01 %H:%M:%f', 'now')) - 2440587.5) * 86400000.0) as integer) as t, cast(round((julianday('now') - 2440587.5) * 86400000.0) as integer) as ts"`)
     })
 
     test('invalid dateTimeFormat throws INVALID_CONFIGURATION', async () => {

@@ -209,7 +209,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(activity, lower(activity)) as "a" from issue_worklog order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(activity, lower(activity)) as a from issue_worklog order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; a: WorklogActivity }>>>()
         expect(rows).toEqual(expected)
@@ -234,7 +234,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(activity, lower(activity)) as "a" from issue_worklog order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(activity, lower(activity)) as a from issue_worklog order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; a?: WorklogActivity }>>>()
         expect(rows).toEqual(expected)

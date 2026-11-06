@@ -220,7 +220,7 @@ describe(ctx.label, () => {
             .select({ b: tIssue.priority.between(tIssue.assigneeId, tIssue.number) })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(case when priority between assignee_id and number then 1 when not priority between assignee_id and number then 0 else null end as bit) as [b] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(case when priority between assignee_id and number then 1 when not priority between assignee_id and number then 0 else null end as bit) as b from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -242,7 +242,7 @@ describe(ctx.label, () => {
             .select({ b: tIssue.priority.between(tIssue.number, tIssue.assigneeId) })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(case when priority between number and assignee_id then 1 when not priority between number and assignee_id then 0 else null end as bit) as [b] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(case when priority between number and assignee_id then 1 when not priority between number and assignee_id then 0 else null end as bit) as b from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -262,7 +262,7 @@ describe(ctx.label, () => {
             .select({ b: tIssue.priority.notBetween(tIssue.number, tIssue.assigneeId) })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(case when priority not between number and assignee_id then 1 when not priority not between number and assignee_id then 0 else null end as bit) as [b] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(case when priority not between number and assignee_id then 1 when not priority not between number and assignee_id then 0 else null end as bit) as b from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,

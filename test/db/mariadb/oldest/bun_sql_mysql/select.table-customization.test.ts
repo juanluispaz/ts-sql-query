@@ -46,7 +46,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // `${alias}` resolves to `as "o"` — the dialect-specific
         // alias emitter on `_rawFragmentTableAlias`.
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`o\`.id as id from /*+ hint */ organization as \`o\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select o.id as id from /*+ hint */ organization as o"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
     test('table-customization: customized table joined with a plain table keeps the hint on the customized side only', async () => {
@@ -60,7 +60,7 @@ describe(ctx.label, () => {
             .select({ orgId: tOrgCustom.id, projectId: tProject.id })
             .orderBy('projectId')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`o\`.id as orgId, project.id as projectId from /*+ hint */ organization as \`o\` inner join project on project.organization_id = \`o\`.id order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select o.id as orgId, project.id as projectId from /*+ hint */ organization as o inner join project on project.organization_id = o.id order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
@@ -82,7 +82,7 @@ describe(ctx.label, () => {
             .select({ id: tOrgFiltered.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`o\`.id as id from (select * from organization where ? >= 0) as \`o\` order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select o.id as id from (select * from organization where ? >= 0) as o order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -110,7 +110,7 @@ describe(ctx.label, () => {
             .select({ projectId: tProject.id, orgName: tOrgFiltered.name })
             .orderBy('projectId')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as projectId, \`o\`.name as orgName from project inner join (select * from organization where ? >= 0) as \`o\` on \`o\`.id = project.organization_id where project.organization_id = ? order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as projectId, o.name as orgName from project inner join (select * from organization where ? >= 0) as o on o.id = project.organization_id where project.organization_id = ? order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -133,7 +133,7 @@ describe(ctx.label, () => {
             .select({ id: vProjCustom.id, name: vProjCustom.name })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`v\`.id as id, \`v\`.name as name from /*+ hint */ project_overview as \`v\` where \`v\`.id = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select v.id as id, v.name as name from /*+ hint */ project_overview as v where v.id = ? order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -156,7 +156,7 @@ describe(ctx.label, () => {
             .select({ id: tOrgFiltered.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`o\`.id as id from (select * from organization where ? >= 0 and ? >= 0) as \`o\` order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select o.id as id from (select * from organization where ? >= 0 and ? >= 0) as o order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -180,7 +180,7 @@ describe(ctx.label, () => {
             .select({ id: tOrgFiltered.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`o\`.id as id from (select * from organization where ? >= 0 and ? >= 0 and ? >= 0) as \`o\` order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select o.id as id from (select * from organization where ? >= 0 and ? >= 0 and ? >= 0) as o order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -201,7 +201,7 @@ describe(ctx.label, () => {
             .select({ id: tOrgFiltered.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`o\`.id as id from (select * from organization where ? >= 0 and ? >= 0 and ? >= 0 and ? >= 0) as \`o\` order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select o.id as id from (select * from organization where ? >= 0 and ? >= 0 and ? >= 0 and ? >= 0) as o order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -223,7 +223,7 @@ describe(ctx.label, () => {
             .select({ id: tOrgFiltered.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`o\`.id as id from (select * from organization where ? >= 0 and ? >= 0 and ? >= 0 and ? >= 0 and ? >= 0) as \`o\` order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select o.id as id from (select * from organization where ? >= 0 and ? >= 0 and ? >= 0 and ? >= 0 and ? >= 0) as o order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,

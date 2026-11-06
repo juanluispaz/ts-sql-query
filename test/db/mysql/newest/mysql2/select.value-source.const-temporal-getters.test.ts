@@ -36,7 +36,7 @@ describe(ctx.label, () => {
                 dow: d.getDay(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(?) as \`y\`, month(?) - 1 as mo, dayofmonth(?) as \`d\`, dayofweek(?) - 1 as dow"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(?) as y, month(?) - 1 as mo, dayofmonth(?) as d, dayofweek(?) - 1 as dow"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-15T00:00:00.000Z,
@@ -63,7 +63,7 @@ describe(ctx.label, () => {
                 s: t.getSeconds(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select hour(?) as \`h\`, minute(?) as \`m\`, second(?) as \`s\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select hour(?) as h, minute(?) as m, second(?) as s"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "12:34:56",
@@ -90,7 +90,7 @@ describe(ctx.label, () => {
                 t:  ts.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(?) as \`y\`, month(?) - 1 as mo, hour(?) as \`h\`, round(timestampdiff(microsecond, '1970-01-01 00:00:00', ?) / 1000) as \`t\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(?) as y, month(?) - 1 as mo, hour(?) as h, round(timestampdiff(microsecond, '1970-01-01 00:00:00', ?) / 1000) as t"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-15T12:34:56.000Z,
@@ -177,7 +177,7 @@ describe(ctx.label, () => {
                 ms:  ts.getMilliseconds(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select dayofmonth(?) as \`d\`, dayofweek(?) - 1 as dow, minute(?) as \`m\`, second(?) as \`s\`, floor(microsecond(?) / 1000) as ms"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select dayofmonth(?) as d, dayofweek(?) - 1 as dow, minute(?) as m, second(?) as s, floor(microsecond(?) / 1000) as ms"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-15T12:34:56.000Z,
@@ -283,7 +283,7 @@ describe(ctx.label, () => {
                 h: tIssueWorklog.startedAt.onlyWhenOrNull(true).getHours(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select hour(started_at) as \`h\` from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select hour(started_at) as h from issue_worklog where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -306,7 +306,7 @@ describe(ctx.label, () => {
                 h: tIssueWorklog.startedAt.ignoreWhenAsNull(false).getHours(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select hour(started_at) as \`h\` from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select hour(started_at) as h from issue_worklog where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -378,7 +378,7 @@ describe(ctx.label, () => {
                 dow: d.getDay(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(?) as \`y\`, month(?) - 1 as mo, dayofmonth(?) as \`d\`, dayofweek(?) - 1 as dow"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(?) as y, month(?) - 1 as mo, dayofmonth(?) as d, dayofweek(?) - 1 as dow"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-15T00:00:00.000Z,
@@ -407,7 +407,7 @@ describe(ctx.label, () => {
                 ms: t.getMilliseconds(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select hour(?) as \`h\`, minute(?) as \`m\`, second(?) as \`s\`, floor(microsecond(?) / 1000) as ms"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select hour(?) as h, minute(?) as m, second(?) as s, floor(microsecond(?) / 1000) as ms"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "12:34:56",
@@ -446,7 +446,7 @@ describe(ctx.label, () => {
                 t:   ts.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(?) as \`y\`, month(?) - 1 as mo, dayofmonth(?) as \`d\`, dayofweek(?) - 1 as dow, hour(?) as \`h\`, minute(?) as \`m\`, second(?) as \`s\`, floor(microsecond(?) / 1000) as ms, round(timestampdiff(microsecond, '1970-01-01 00:00:00', ?) / 1000) as \`t\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(?) as y, month(?) - 1 as mo, dayofmonth(?) as d, dayofweek(?) - 1 as dow, hour(?) as h, minute(?) as m, second(?) as s, floor(microsecond(?) / 1000) as ms, round(timestampdiff(microsecond, '1970-01-01 00:00:00', ?) / 1000) as t"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-15T12:34:56.000Z,
@@ -481,7 +481,7 @@ describe(ctx.label, () => {
                 p: tProjectRelease.publishedAt.asOptional(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select published_at as \`p\` from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select published_at as p from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

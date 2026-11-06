@@ -497,7 +497,7 @@ describe(ctx.label, () => {
                 t:  tAppUser.fullName.trim(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, trim(full_name) as \`t\` from app_user where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, trim(full_name) as t from app_user where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -519,7 +519,7 @@ describe(ctx.label, () => {
                 r: tAppUser.fullName.trimRight(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ltrim(full_name) as \`l\`, rtrim(full_name) as \`r\` from app_user where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ltrim(full_name) as l, rtrim(full_name) as r from app_user where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -541,7 +541,7 @@ describe(ctx.label, () => {
                 t:  tAppUser.email.replaceAll('@', '-'),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(email, ?, ?) as \`t\` from app_user where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(email, ?, ?) as t from app_user where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "@",
@@ -563,7 +563,7 @@ describe(ctx.label, () => {
                 t:  tAppUser.email.reverse(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, reverse(email) as \`t\` from app_user where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, reverse(email) as t from app_user where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -865,7 +865,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(2))
             .select({ id: tIssue.id, t: tIssue.title.replaceAll(tIssue.body, tIssue.title) })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(title, \`body\`, title) as \`t\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(title, \`body\`, title) as t from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -886,7 +886,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({ id: tIssue.id, t: tIssue.title.replaceAll(tIssue.body, tIssue.title) })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(title, \`body\`, title) as \`t\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(title, \`body\`, title) as t from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1017,7 +1017,7 @@ describe(ctx.label, () => {
                 r:  tIssue.body.concat('!'),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, concat(title, \`body\`) as \`j\`, concat(\`body\`, ?) as \`r\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, concat(title, \`body\`) as j, concat(\`body\`, ?) as r from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "!",
@@ -1285,7 +1285,7 @@ describe(ctx.label, () => {
             .where(vReleaseOverview.id.equals(1))
             .select({ id: vReleaseOverview.id, t: vReleaseOverview.versionTagged.toUpperCase() })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, upper(upper(version)) as \`t\` from release_overview where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, upper(upper(version)) as t from release_overview where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1304,7 +1304,7 @@ describe(ctx.label, () => {
             .where(tIssueWorklog.id.equals(1))
             .select({ id: tIssueWorklog.id, t: tIssueWorklog.activityTagged.toUpperCase() })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, upper(upper(activity)) as \`t\` from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, upper(upper(activity)) as t from issue_worklog where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

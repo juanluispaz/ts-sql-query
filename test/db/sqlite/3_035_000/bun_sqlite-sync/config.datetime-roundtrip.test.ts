@@ -47,7 +47,7 @@ describe(ctx.label, () => {
         const row = sync(conn.selectFromNoTable()
             .select({ v: conn.const(REF, 'localDateTime') })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "2024-01-15 10:30:45.123",
@@ -64,7 +64,7 @@ describe(ctx.label, () => {
         const row = sync(conn.selectFromNoTable()
             .select({ v: conn.const(REF, 'localDateTime') })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "2024-01-15T10:30:45.123",
@@ -81,7 +81,7 @@ describe(ctx.label, () => {
         const row = sync(conn.selectFromNoTable()
             .select({ v: conn.const(REF, 'localDateTime') })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "2024-01-15 10:30:45.123",
@@ -98,7 +98,7 @@ describe(ctx.label, () => {
         const row = sync(conn.selectFromNoTable()
             .select({ v: conn.const(REF, 'localDateTime') })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "2024-01-15T10:30:45.123",
@@ -115,7 +115,7 @@ describe(ctx.label, () => {
         const row = sync(conn.selectFromNoTable()
             .select({ v: conn.const(REF, 'localDateTime') })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "2024-01-15 10:30:45.123Z",
@@ -132,7 +132,7 @@ describe(ctx.label, () => {
         const row = sync(conn.selectFromNoTable()
             .select({ v: conn.const(REF, 'localDateTime') })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "2024-01-15T10:30:45.123Z",
@@ -150,7 +150,7 @@ describe(ctx.label, () => {
         const row = sync(conn.selectFromNoTable()
             .select({ v: conn.const(REF, 'localDateTime') })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2460324.938022257,
@@ -168,7 +168,7 @@ describe(ctx.label, () => {
         const row = sync(conn.selectFromNoTable()
             .select({ v: conn.const(REF, 'localDateTime') })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1705314645,
@@ -185,7 +185,7 @@ describe(ctx.label, () => {
         const row = sync(conn.selectFromNoTable()
             .select({ v: conn.const(REF, 'localDateTime') })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1705314645123,
@@ -207,7 +207,7 @@ describe(ctx.label, () => {
         const row = sync(conn.selectFromNoTable()
             .select({ v: conn.const(REF, 'localDate') })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "2024-01-15",
@@ -224,7 +224,7 @@ describe(ctx.label, () => {
         const row = sync(conn.selectFromNoTable()
             .select({ v: conn.const(REF, 'localDate') })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "2024-01-15",
@@ -241,7 +241,7 @@ describe(ctx.label, () => {
         const row = sync(conn.selectFromNoTable()
             .select({ v: conn.const(REF, 'localDate') })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2460324.5,
@@ -258,7 +258,7 @@ describe(ctx.label, () => {
         const row = sync(conn.selectFromNoTable()
             .select({ v: conn.const(REF, 'localDate') })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1705276800,
@@ -275,7 +275,7 @@ describe(ctx.label, () => {
         const row = sync(conn.selectFromNoTable()
             .select({ v: conn.const(REF, 'localDate') })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1705276800000,
@@ -296,7 +296,7 @@ describe(ctx.label, () => {
         const row = sync(conn.selectFromNoTable()
             .select({ v: conn.const(REF, 'localTime') })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "10:30:45.123",
@@ -313,7 +313,7 @@ describe(ctx.label, () => {
         const row = sync(conn.selectFromNoTable()
             .select({ v: conn.const(REF, 'localTime') })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "10:30:45.123Z",
@@ -330,7 +330,7 @@ describe(ctx.label, () => {
         const row = sync(conn.selectFromNoTable()
             .select({ v: conn.const(REF, 'localTime') })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0.43802225682884455,
@@ -347,7 +347,7 @@ describe(ctx.label, () => {
         const row = sync(conn.selectFromNoTable()
             .select({ v: conn.const(REF, 'localTime') })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             37845,
@@ -364,7 +364,7 @@ describe(ctx.label, () => {
         const row = sync(conn.selectFromNoTable()
             .select({ v: conn.const(REF, 'localTime') })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             37845123,
@@ -536,7 +536,7 @@ describe(ctx.label, () => {
         const row = await conn.selectFromNoTable()
             .select({ v: conn.const(REF, 'localTime') })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "10:30:45.123",
@@ -556,7 +556,7 @@ describe(ctx.label, () => {
         const row = await conn.selectFromNoTable()
             .select({ v: conn.const(new Date(Date.UTC(2024, 0, 15, 10, 30, 45, 45)), 'localTime') })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as "v""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "10:30:45.045",
@@ -584,7 +584,7 @@ describe(ctx.label, () => {
             .where(tIssueWorklog.id.equals(1))
             .select({ v: tIssueWorklog.startedAt })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select started_at as "v" from issue_worklog where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select started_at as v from issue_worklog where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -601,7 +601,7 @@ describe(ctx.label, () => {
             .where(tIssueWorklog.id.equals(1))
             .select({ v: tIssueWorklog.startedAt })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select started_at as "v" from issue_worklog where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select started_at as v from issue_worklog where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -618,7 +618,7 @@ describe(ctx.label, () => {
             .where(tIssueWorklog.id.equals(1))
             .select({ v: tIssueWorklog.startedAt })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select started_at as "v" from issue_worklog where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select started_at as v from issue_worklog where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -635,7 +635,7 @@ describe(ctx.label, () => {
             .where(tIssueWorklog.id.equals(1))
             .select({ v: tIssueWorklog.startedAt })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select started_at as "v" from issue_worklog where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select started_at as v from issue_worklog where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -760,7 +760,7 @@ describe(ctx.label, () => {
             : type === 'localTime' ? conn.fragmentWithType('localTime', 'required').sql`${raw}`
             : conn.fragmentWithType('localDateTime', 'required').sql`${raw}`
         const row = await conn.selectFromNoTable().select({ v: col }).executeSelectOne()
-        expect(ctx.lastSql).toBe('select ?1 as "v"')
+        expect(ctx.lastSql).toBe('select ?1 as v')
         expect(ctx.lastParams).toEqual([text])
         return row.v
     }

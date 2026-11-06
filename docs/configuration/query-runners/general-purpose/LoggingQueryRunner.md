@@ -44,6 +44,10 @@ async function main() {
 
 ## The functions of the logger
 
+!!! warning "A logger shouldn't throw"
+
+    The statement has already run when `onQueryResult` is called. If it throws, the promise of the query rejects with the reason `UNKNOWN`, although the statement went through and an insert has written its row. Handle your errors inside the logger.
+
 The first argument of the constructor is an object that can define these functions, all of them optional:
 
 - **`onQuery`**: Executed before the query.
@@ -73,4 +77,4 @@ type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | '
 
 !!! info
 
-    In case the provided query runner doesn't support low-level transaction management, fake `beginTransaction`, `commit`, and `rollback` operations will be emitted to allow you to see them in the log, with `startedAt` and `endedAt` at `0n`.
+    When the driver begins and commits the transaction by itself, as `postgres` and Bun SQL do in `connection.transaction(...)`, fake `beginTransaction`, `commit`, and `rollback` operations will be emitted to allow you to see them in the log, with `startedAt` and `endedAt` at `0n`.

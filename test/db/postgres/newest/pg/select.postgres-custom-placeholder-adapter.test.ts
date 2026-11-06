@@ -152,7 +152,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(tProjectCustomPlaceholder)
             .select({ id: tProjectCustomPlaceholder.id, n: tProjectCustomPlaceholder.name.onlyWhenOrNull(false) })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, null::varchar(64) as "n" from project"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, null::varchar(64) as n from project"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(rows).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }])
     })

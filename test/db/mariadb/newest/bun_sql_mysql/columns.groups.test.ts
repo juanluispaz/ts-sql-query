@@ -120,7 +120,7 @@ describe(ctx.label, () => {
             .where(aliased.id.equals(1))
             .select({ id: aliased.id, title: aliased.text.title, other: joined.location })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`i\`.id as id, \`i\`.title as title, \`j\`.project_id as \`other.projectId\`, \`j\`.number as \`other.number\` from issue as \`i\` left join issue as \`j\` on \`j\`.id = \`i\`.id where \`i\`.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select i.id as id, i.title as title, j.project_id as \`other.projectId\`, j.number as \`other.number\` from issue as i left join issue as j on j.id = i.id where i.id = ?"`)
         expect(row).toEqual(expected)
         assertType<Exact<typeof row, { id: number; title: string; other?: { projectId: number; number: number } }>>()
     })
@@ -474,7 +474,7 @@ describe(ctx.label, () => {
             .where(aliased.id.equals(1))
             .select({ number: selectNumber(aliased) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`r\`.number as number from issue as \`r\` where \`r\`.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select r.number as number from issue as r where r.id = ?"`)
         expect(row).toEqual({ number: 1 })
     })
 

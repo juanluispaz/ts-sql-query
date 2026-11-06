@@ -52,6 +52,10 @@ async function main() {
 
 ## The functions you implement
 
+!!! warning "These functions shouldn't throw"
+
+    The statement has already run when `onQueryResult` is called. If it throws, the promise of the query rejects with the reason `UNKNOWN`, although the statement went through and an insert has written its row. Handle your errors inside them.
+
 The `InterceptorQueryRunner` is an abstract class where you must implement the following functions:
 
 - **`onQuery`**: Executed before the query. This function returns the payload data that will be received by the next functions.
@@ -83,4 +87,4 @@ type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | '
 
 !!! info
 
-    In case the provided query runner doesn't support low-level transaction management, fake `beginTransaction`, `commit`, and `rollback` will be emitted to allow you to identify them.
+    When the driver begins and commits the transaction by itself, as `postgres` and Bun SQL do in `connection.transaction(...)`, fake `beginTransaction`, `commit`, and `rollback` will be emitted to allow you to identify them.

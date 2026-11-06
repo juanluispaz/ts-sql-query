@@ -37,7 +37,7 @@ describe(ctx.label, () => {
                 ms: tTemporalPrecision.microStamp.getMilliseconds(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select trunc(extract(second from micro_stamp))::integer as "s", trunc(extract(millisecond from micro_stamp))::integer % 1000 as ms from temporal_precision where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select trunc(extract(second from micro_stamp))::integer as s, trunc(extract(millisecond from micro_stamp))::integer % 1000 as ms from temporal_precision where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -62,7 +62,7 @@ describe(ctx.label, () => {
                 t: tTemporalPrecision.microStamp.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select round(extract(epoch from micro_stamp) * 1000) as "t" from temporal_precision where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select round(extract(epoch from micro_stamp) * 1000) as t from temporal_precision where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -108,7 +108,7 @@ describe(ctx.label, () => {
                 t:   tReleaseDraft.shiftedStamp.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from shifted_stamp) as "y", extract(month from shifted_stamp) - 1 as mo, extract(day from shifted_stamp) as "d", extract(dow from shifted_stamp) as dow, extract(hour from shifted_stamp) as "h", extract(minute from shifted_stamp) as "m", trunc(extract(second from shifted_stamp))::integer as "s", trunc(extract(millisecond from shifted_stamp))::integer % 1000 as ms, round(extract(epoch from shifted_stamp) * 1000) as "t" from release_draft where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from shifted_stamp) as y, extract(month from shifted_stamp) - 1 as mo, extract(day from shifted_stamp) as d, extract(dow from shifted_stamp) as dow, extract(hour from shifted_stamp) as h, extract(minute from shifted_stamp) as m, trunc(extract(second from shifted_stamp))::integer as s, trunc(extract(millisecond from shifted_stamp))::integer % 1000 as ms, round(extract(epoch from shifted_stamp) * 1000) as t from release_draft where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -135,7 +135,7 @@ describe(ctx.label, () => {
                 dow: tReleaseDraft.shiftedReleaseDay.getDay(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from shifted_release_day) as "y", extract(month from shifted_release_day) - 1 as mo, extract(day from shifted_release_day) as "d", extract(dow from shifted_release_day) as dow from release_draft where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from shifted_release_day) as y, extract(month from shifted_release_day) - 1 as mo, extract(day from shifted_release_day) as d, extract(dow from shifted_release_day) as dow from release_draft where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -162,7 +162,7 @@ describe(ctx.label, () => {
                 ms: tReleaseDraft.shiftedCutoff.getMilliseconds(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(hour from shifted_cutoff) as "h", extract(minute from shifted_cutoff) as "m", trunc(extract(second from shifted_cutoff))::integer as "s", trunc(extract(millisecond from shifted_cutoff))::integer % 1000 as ms from release_draft where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(hour from shifted_cutoff) as h, extract(minute from shifted_cutoff) as m, trunc(extract(second from shifted_cutoff))::integer as s, trunc(extract(millisecond from shifted_cutoff))::integer % 1000 as ms from release_draft where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

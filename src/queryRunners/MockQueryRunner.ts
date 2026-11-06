@@ -577,7 +577,7 @@ export class MockQueryRunner implements QueryRunner {
 }
 
 function isPlainObject(value: any): boolean {
-	if (!value && typeof value !== 'object') {
+	if (!value || typeof value !== 'object') {
 		return false
 	}
 

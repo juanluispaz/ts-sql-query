@@ -27,7 +27,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(priority + ?1) as "s", count(ifnull(assignee_id, ?2)) as "c", max(priority + ?3) as "m" from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(priority + ?1) as s, count(ifnull(assignee_id, ?2)) as c, max(priority + ?3) as m from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -86,7 +86,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority as "p" from issue where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority as p from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -110,7 +110,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(ifnull(priority, ?1), ?2) as "q" from issue where id = ?3"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(ifnull(priority, ?1), ?2) as q from issue where id = ?3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,

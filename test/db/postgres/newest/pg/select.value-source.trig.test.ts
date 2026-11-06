@@ -24,7 +24,7 @@ describe(ctx.label, () => {
                 v:  tIssue.priority.divide(10).acos(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(priority::float / $1) as "v" from issue where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(priority::float / $1) as v from issue where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,
@@ -50,7 +50,7 @@ describe(ctx.label, () => {
                 v:  tIssue.priority.divide(10).asin(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, asin(priority::float / $1) as "v" from issue where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, asin(priority::float / $1) as v from issue where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,
@@ -76,7 +76,7 @@ describe(ctx.label, () => {
                 v:  tIssue.priority.atan(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, atan(priority) as "v" from issue where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, atan(priority) as v from issue where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -101,7 +101,7 @@ describe(ctx.label, () => {
                 v:  tIssue.priority.cos(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cos(priority) as "v" from issue where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cos(priority) as v from issue where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -126,7 +126,7 @@ describe(ctx.label, () => {
                 v:  tIssue.priority.cot(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cot(priority) as "v" from issue where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cot(priority) as v from issue where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -151,7 +151,7 @@ describe(ctx.label, () => {
                 v:  tIssue.priority.sin(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, sin(priority) as "v" from issue where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, sin(priority) as v from issue where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -176,7 +176,7 @@ describe(ctx.label, () => {
                 v:  tIssue.priority.tan(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, tan(priority) as "v" from issue where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, tan(priority) as v from issue where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

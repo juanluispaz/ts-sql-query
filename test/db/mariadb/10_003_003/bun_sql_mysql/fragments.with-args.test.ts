@@ -44,7 +44,7 @@ describe(ctx.label, () => {
             .select({ r: ctx.conn.intLeftShift(5, 2) })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? << ? as \`r\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? << ? as r"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             5,
@@ -64,7 +64,7 @@ describe(ctx.label, () => {
             .select({ r: ctx.conn.intLeftShift(ctx.conn.const(4, 'int'), ctx.conn.const(2, 'int')) })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? << ? as \`r\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? << ? as r"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             4,
@@ -113,7 +113,7 @@ describe(ctx.label, () => {
             .where(ctx.conn.intEqualsIfValue(1, undefined))
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as \`x\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as x"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -132,7 +132,7 @@ describe(ctx.label, () => {
         // both args present → MergeOptionalUnion collapses to required.
         assertType<Exact<typeof rows, Array<{ r: number }>>>()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? + ? as \`r\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? + ? as r"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -154,7 +154,7 @@ describe(ctx.label, () => {
         // one arg undefined → MergeOptionalUnion degrades to optional.
         assertType<Exact<typeof rows, Array<{ r?: number }>>>()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? + ? as \`r\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? + ? as r"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,
@@ -180,7 +180,7 @@ describe(ctx.label, () => {
             .select({ r: ctx.conn.intPlus(ctx.conn.const(3, 'int'), tIssue.assigneeId) })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? + assignee_id as \`r\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? + assignee_id as r from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -203,7 +203,7 @@ describe(ctx.label, () => {
             .select({ r: ctx.conn.coalesce3(ctx.conn.const('x', 'string'), 'b', tIssue.body) })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(?, ?, \`body\`) as \`r\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(?, ?, \`body\`) as r from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "x",
@@ -226,7 +226,7 @@ describe(ctx.label, () => {
             .select({ r: ctx.conn.coalesce3(ctx.conn.const('x', 'string'), 'b', tIssue.title) })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(?, ?, title) as \`r\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(?, ?, title) as r from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "x",
@@ -245,7 +245,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFromNoTable()
             .select({ r: ctx.conn.bigintAbs(-5n) })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select abs(?) as \`r\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select abs(?) as r"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             -5n,
@@ -283,7 +283,7 @@ describe(ctx.label, () => {
             .select({ x: ctx.conn.const(1, 'int') })
             .where(ctx.conn.intIsPositiveIfValue(undefined))
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as \`x\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as x"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -320,7 +320,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFromNoTable()
             .select({ r: ctx.conn.frag3Args('a', 'b', 'c') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(?, ?, ?) as \`r\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(?, ?, ?) as r"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "a",
@@ -337,7 +337,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFromNoTable()
             .select({ r: ctx.conn.frag5Args('a', 'b', 'c', 'd', 'e') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(?, ?, ?, ?, ?) as \`r\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(?, ?, ?, ?, ?) as r"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "a",
@@ -434,7 +434,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFromNoTable()
             .select({ r: ctx.conn.frag0MaybeOptional() })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select 42 as \`r\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select 42 as r"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ r: number }>>>()
         expect(rows).toEqual([{ r: 42 }])
@@ -904,7 +904,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFromNoTable()
             .select({ r: ctx.conn.scaledArgThresholdFragment(1) })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as \`r\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as r"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,
@@ -924,7 +924,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFromNoTable()
             .select({ r: ctx.conn.scaledCustomArgFragment(1) })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as \`r\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as r"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,
@@ -967,7 +967,7 @@ describe(ctx.label, () => {
             .select({ r: ctx.conn.frag4MaybeOptional(ctx.conn.const('x', 'string'), 'b', tIssue.body, 'd') })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(?, ?, \`body\`, ?) as \`r\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(?, ?, \`body\`, ?) as r from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "x",
@@ -990,7 +990,7 @@ describe(ctx.label, () => {
             .select({ r: ctx.conn.frag4MaybeOptional(ctx.conn.const('x', 'string'), 'b', tIssue.title, 'd') })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(?, ?, title, ?) as \`r\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(?, ?, title, ?) as r from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "x",
@@ -1013,7 +1013,7 @@ describe(ctx.label, () => {
             .select({ r: ctx.conn.frag5MaybeOptional(ctx.conn.const('x', 'string'), 'b', tIssue.body, 'd', 'e') })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(?, ?, \`body\`, ?, ?) as \`r\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(?, ?, \`body\`, ?, ?) as r from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "x",
@@ -1037,7 +1037,7 @@ describe(ctx.label, () => {
             .select({ r: ctx.conn.frag5MaybeOptional(ctx.conn.const('x', 'string'), 'b', tIssue.title, 'd', 'e') })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(?, ?, title, ?, ?) as \`r\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(?, ?, title, ?, ?) as r from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "x",
@@ -1061,7 +1061,7 @@ describe(ctx.label, () => {
             .select({ r: ctx.conn.intPlus(ctx.conn.const(3, 'int'), tIssue.assigneeId) })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? + assignee_id as \`r\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? + assignee_id as r from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -1084,7 +1084,7 @@ describe(ctx.label, () => {
             .select({ r: ctx.conn.sum3MaybeOptional(ctx.conn.const(3, 'int'), 4, tIssue.assigneeId) })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? + ? + assignee_id as \`r\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? + ? + assignee_id as r from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,

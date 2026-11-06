@@ -279,11 +279,13 @@ export interface EqualableValueSource</*in|out*/ SOURCE extends NSource, /*in|ou
     inIfValue(values: TYPE[] | null | undefined): IfValueSource<SOURCE, OPTIONAL_TYPE>
     in(values: TYPE[]): BooleanValueSource<SOURCE, OPTIONAL_TYPE>
     in<VALUE extends IEqualableValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): BooleanValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    in<SOURCE2 extends NSource>(select: IExecutableSelectQuery<SOURCE2, IEqualableValueSource<any, TYPE, TYPE_NAME, any>, TYPE | null | undefined>): BooleanValueSource<SOURCE | SOURCE2, OPTIONAL_TYPE>
+    in<SOURCE2 extends NSource>(select: IExecutableSelectQuery<SOURCE2, IEqualableValueSource<any, TYPE, TYPE_NAME, any>, TYPE>): BooleanValueSource<SOURCE | SOURCE2, OPTIONAL_TYPE>
+    in<SOURCE2 extends NSource>(select: IExecutableSelectQuery<SOURCE2, IEqualableValueSource<any, TYPE, TYPE_NAME, any>, TYPE | null | undefined>): BooleanValueSource<SOURCE | SOURCE2, 'optional'>
     notInIfValue(values: TYPE[] | null | undefined): IfValueSource<SOURCE, OPTIONAL_TYPE>
     notIn(values: TYPE[]): BooleanValueSource<SOURCE, OPTIONAL_TYPE>
     notIn<VALUE extends IEqualableValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): BooleanValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    notIn<SOURCE2 extends NSource>(select: IExecutableSelectQuery<SOURCE2, IEqualableValueSource<any, TYPE, TYPE_NAME, any>, TYPE | null | undefined>): BooleanValueSource<SOURCE | SOURCE2, OPTIONAL_TYPE>
+    notIn<SOURCE2 extends NSource>(select: IExecutableSelectQuery<SOURCE2, IEqualableValueSource<any, TYPE, TYPE_NAME, any>, TYPE>): BooleanValueSource<SOURCE | SOURCE2, OPTIONAL_TYPE>
+    notIn<SOURCE2 extends NSource>(select: IExecutableSelectQuery<SOURCE2, IEqualableValueSource<any, TYPE, TYPE_NAME, any>, TYPE | null | undefined>): BooleanValueSource<SOURCE | SOURCE2, 'optional'>
     inN(...value: TYPE[]): BooleanValueSource<SOURCE, OPTIONAL_TYPE>
     inN<SOURCE2 extends NSource, OPTIONAL_TYPE2 extends OptionalType>(...value: Array<TYPE | IEqualableValueSource<SOURCE2, TYPE, TYPE_NAME, OPTIONAL_TYPE2>>): BooleanValueSource<SOURCE | SOURCE2, MergeOptional<OPTIONAL_TYPE, MergeOptionalUnion<OPTIONAL_TYPE2>>>
     notInN(...value: TYPE[]): BooleanValueSource<SOURCE, OPTIONAL_TYPE>

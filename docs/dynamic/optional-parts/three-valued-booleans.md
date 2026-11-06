@@ -661,6 +661,8 @@ The parameters are: `[]`
 
 `in` with the same subquery returns the rows that match: the rest are `false` or `null`, and both are discarded.
 
+Used as a value of the select, `in` and `notIn` with a subquery on an optional column are optional in the result type, because the answer can be `null`: with the assignees `1`, `2` and `null`, `tIssue.id.in(assignees)` is `true` for the issue `1` and `null` for the issue `4`. A subquery on a required column keeps the type of the left side.
+
 ## See also
 
 - [Optional conditions: the IfValue methods](../../queries/dynamic-queries.md#optional-conditions-the-ifvalue-methods): the `*IfValue` methods and the neutral boolean in depth.

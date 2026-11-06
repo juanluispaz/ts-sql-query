@@ -267,13 +267,13 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
         return condition(new SqlOperationInValueSourceIfValueOrNoop('_in', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     in(value: any): any {
-        return condition(new SqlOperationInValueSource('_in', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperationInValueSource('_in', this, value, 'boolean', 'boolean', getOptionalTypeOfIn(this, value), getTypeAdapter2(this, value)))
     }
     notInIfValue(value: any): any {
         return condition(new SqlOperationInValueSourceIfValueOrNoop('_notIn', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notIn(value: any): any {
-        return condition(new SqlOperationInValueSource('_notIn', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperationInValueSource('_notIn', this, value, 'boolean', 'boolean', getOptionalTypeOfIn(this, value), getTypeAdapter2(this, value)))
     }
     inN(...value: any[]): any {
         return condition(new SqlOperationInValueSource('_in', this, value, 'boolean', 'boolean', getOptionalTypeN(this, value), getTypeAdapter2(this, value)))
@@ -2152,6 +2152,22 @@ function getOptionalType2(a: ValueSourceImpl, b: any): OptionalType {
     return a.__optionalType
 }
 
+
+function getOptionalTypeOfIn(a: ValueSourceImpl, b: any): OptionalType {
+    // A subquery on an optional column can return a NULL, and `<x> in (1, NULL)` is NULL, not false, when no
+    // element matches, as the declared type says.
+    if (isSelectQuery(b)) {
+        let select: any = b
+        while (select.__type === 'compound') {
+            select = select.__firstQuery
+        }
+        const column = select.__columns?.['result']
+        if (isValueSource(column)) {
+            return mergeOptional(a.__optionalType, __getValueSourcePrivate(column).__optionalType)
+        }
+    }
+    return getOptionalType2(a, b)
+}
 
 function getOptionalTypeN(a: ValueSourceImpl, values: any[]): OptionalType {
     // The varargs counterpart of `getOptionalType2`, for `inN` / `notInN`. Their operand is the

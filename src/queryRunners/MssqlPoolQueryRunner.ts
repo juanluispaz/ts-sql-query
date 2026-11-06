@@ -290,8 +290,18 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
             if (type) {
                 return type
             }
+            // Any other declared type is a custom one: what it holds is only known by the user. A text goes as
+            // text, whatever it looks like: '1.2' on a text column can't be sent as a number.
+            return this.inferCustomType(params[index])
         }
         return this.inferType(params[index])
+    }
+
+    protected inferCustomType(value: any): ISqlTypeFactory {
+        if (typeof value === 'string' || (value instanceof Array && typeof value[0] === 'string')) {
+            return TYPES.NVarChar
+        }
+        return this.inferType(value)
     }
 
     protected inferType(value: any): ISqlTypeFactory {

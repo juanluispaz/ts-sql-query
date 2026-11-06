@@ -63,4 +63,50 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('in-and-not-in-of-a-subquery-on-an-optional-column-can-be-null', async () => {
+        // The assignees are 1, 2, null and 3: an issue id that is none of them has an unknown answer.
+        const expected = [
+            { id: 1, isAssignee: true, isNotAssignee: false },
+            { id: 2, isAssignee: true, isNotAssignee: false },
+            { id: 3, isAssignee: true, isNotAssignee: false },
+            { id: 4 },
+        ]
+        ctx.mockNext(expected)
+
+        const assignees = ctx.conn.selectFrom(tIssue).selectOneColumn(tIssue.assigneeId)
+
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .select({
+                id: tIssue.id,
+                isAssignee: tIssue.id.in(assignees),
+                isNotAssignee: tIssue.id.notIn(assignees),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", case when id in (select assignee_id as "result" from issue) then 1 when not id in (select assignee_id as "result" from issue) then 0 else null end as "isAssignee", case when id not in (select assignee_id as "result" from issue) then 1 when not id not in (select assignee_id as "result" from issue) then 0 else null end as "isNotAssignee" from issue order by "id""`)
+        assertType<Exact<typeof rows, Array<{ id: number, isAssignee?: boolean, isNotAssignee?: boolean }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('in-and-not-in-of-a-subquery-on-a-required-column-stay-required', async () => {
+        const expected = [{ id: 1, isProject: true, isNotProject: false }]
+        ctx.mockNext(expected)
+
+        const projects = ctx.conn.selectFrom(tProject).selectOneColumn(tProject.id)
+
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                isProject: tIssue.id.in(projects),
+                isNotProject: tIssue.id.notIn(projects),
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", case when id in (select id as "result" from project) then 1 else 0 end as "isProject", case when id not in (select id as "result" from project) then 1 else 0 end as "isNotProject" from issue where id = :0"`)
+        assertType<Exact<typeof rows, Array<{ id: number, isProject: boolean, isNotProject: boolean }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

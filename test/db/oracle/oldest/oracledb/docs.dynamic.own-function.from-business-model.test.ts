@@ -351,12 +351,12 @@ describe(ctx.label, () => {
 
         ctx.mockNext([{ id: 1 }])
 
-        const result = await filterReleases({ version: { contains: '1.2.0' } })
+        const result = await filterReleases({ version: { contains: '1.2' } })
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where version like ('%' || :0 || '%') escape '\\' order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "1.2.0",
+            "1.2",
           ]
         `)
         expect(result).toEqual([{ id: 1 }])

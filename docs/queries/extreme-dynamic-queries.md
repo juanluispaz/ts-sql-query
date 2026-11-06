@@ -20,7 +20,7 @@ Start from what you need, and take the first row that solves it:
 | Give everyone the same columns, without the value of those a user can't see | [`onlyWhenOrNull`, `ignoreWhenAsNull`](#hide-a-value-keeping-the-column) | The caller can't tell a hidden value from a null |
 | Decide with `if`s how the conditions combine | [`dynamicBooleanExpressionUsing`](#complex-dynamic-boolean-expressions) | The condition isn't in the text of the query any more |
 | Share a condition or some columns between queries | [A function that receives the table](#bringing-a-condition-from-outside-the-query) | Generic types in the signature of the function |
-| Receive the filter as an object, from a search screen or an API | [`dynamicConditionFor`](#select-using-a-dynamic-filter) | The caller can filter by every field you list, and a wrong filter throws |
+| Receive the filter as an object, from a search screen or an API ([applied here](queries-from-requests.md)) | [`dynamicConditionFor`](#select-using-a-dynamic-filter) | The caller can filter by every field you list, and a wrong filter throws |
 | Let the caller choose the columns | [`dynamicPick`, `dynamicPickPaths`](#select-dynamically-picking-columns) | The columns can disappear, so the properties are optional in the result type, and ordering depends on what was picked |
 | Return the columns the client asks for with `?fields=` | [`dynamicPickPaths`](#the-columns-the-client-asks-for) | The names are only known at run time, and the compiler can't check them |
 | Refuse a query that uses a value the user can't see | [`allowWhen`, `disallowWhen`](#restrict-access-to-values) | You have to handle the error |
@@ -187,6 +187,8 @@ A table used in a left join is received with `TableOrViewLeftJoinOf`, as in [a f
 ## Select using a dynamic filter
 
 A dynamic filter is a condition that arrives as data: a search screen or another system sends an object that says which fields to compare and how, and the library turns it into SQL. The values go as parameters, and the names must be the ones you list, so the object can't add SQL of its own.
+
+It's the condition of a table in a user interface, or of a query API for other systems: see [Queries from a request](queries-from-requests.md) for those two cases applied, with the order and the page.
 
 `connection.dynamicConditionFor(fields)` receives a map: each key is the name the filter uses, and each value is the column or expression it refers to. Its method `withValues(filter)` returns the condition, which goes wherever a boolean is accepted, like a `where`.
 
@@ -396,6 +398,26 @@ const customersWithDynamicCondition: Promise<{
 `DynamicCondition`, from `ts-sql-query/dynamic/condition`, is the type of the filter. It's built from type names, as in the example, or from the map of fields. See [Dynamic conditions](../api/dynamic-conditions.md), the [types of a dynamic condition](../dynamic/utilities/conditions.md), and [from a business model](../dynamic/from-business-model.md) to build it from your own types.
 
 With an empty filter there is no condition: a select returns all the rows, and an update or delete with no other condition is rejected with `MISSING_WHERE`.
+
+### Empty values in a filter
+
+The types of a filter are strict, and its execution is tolerant. The types keep your own TypeScript code from writing something by mistake: `equals` doesn't accept `null`, and `equalsIfValue` does. But a filter that arrives as data has no types, and while it runs an operator with an empty value restricts nothing:
+
+| Filter | Condition |
+|---|---|
+| `{ id: { equals: null } }`, or any operator without `IfValue` | No condition |
+| `{ name: { contains: '' } }`, unless the connection has [`allowEmptyString`](../configuration/connection.md#allowing-empty-string) | No condition |
+| `{ id: { in: [] } }`, `{ id: { notIn: [] } }` | No condition |
+| `{ id: null }` | No condition on `id` |
+| `{ id: { isNull: true } }`, `{ id: { is: null } }` | The value is null |
+
+This is what [the uses of a filter](queries-from-requests.md) need. A table sends empty the filters nobody filled in. And a system written in Java or C# usually can't leave out a property: it sends all the fields of its class, with `null` in those it doesn't use, so `{ id: { equals: 1, notEquals: null, in: null } }` means `id = 1`.
+
+Mind the difference with the same methods in your code, which compare with what they receive: `tCustomer.id.in([])` returns no rows, and `tCustomer.id.notIn([])` returns them all.
+
+The same tolerance applies to a value of another shape, as long as the database can receive it: `{ id: { in: 5 } }` is `id in (5)`.
+
+If your API needs to be stricter, for example to tell the caller that `equals: null` isn't accepted, validate the filter before passing it to `withValues`, with a library like Zod.
 
 The caller can use every field of the map, with every operator of its type, so list only what they may use. A field restricted with [`allowWhen`](#restrict-access-to-values) can stay in the map: the query is refused only if the filter uses it.
 

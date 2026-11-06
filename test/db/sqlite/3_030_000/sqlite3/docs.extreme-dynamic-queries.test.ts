@@ -294,6 +294,73 @@ describe(ctx.label, () => {
         expect(projectsWithDynamicCondition).toEqual(expected)
     })
 
+    test('docs-extra:extreme-dynamic-queries/empty-values-in-a-filter-add-no-condition', () => {
+        const connection = ctx.conn
+        const sql = (json: string) => connection.selectFrom(tIssue)
+            .where(connection.dynamicConditionFor({ id: tIssue.id, title: tIssue.title }).withValues(JSON.parse(json)))
+            .select({ id: tIssue.id })
+            .query()
+        const noCondition = connection.selectFrom(tIssue).select({ id: tIssue.id }).query()
+
+        expect(sql('{"id":{"equals":null}}')).toBe(noCondition)
+        expect(sql('{"id":{"in":[]}}')).toBe(noCondition)
+        expect(sql('{"id":{"notIn":[]}}')).toBe(noCondition)
+        expect(sql('{"id":{"in":null}}')).toBe(noCondition)
+        expect(sql('{"id":null}')).toBe(noCondition)
+        expect(sql('{"title":{"contains":""}}')).toBe(noCondition)
+        expect(sql('{"id":{"equalsIfValue":null}}')).toBe(noCondition)
+    })
+
+    test('docs-extra:extreme-dynamic-queries/a-dto-with-nulls-keeps-its-value', () => {
+        const connection = ctx.conn
+        const query = connection.selectFrom(tIssue)
+            .where(connection.dynamicConditionFor({ id: tIssue.id }).withValues(JSON.parse('{"id":{"equals":1,"notEquals":null,"in":null}}')))
+            .select({ id: tIssue.id })
+        expect(query.query()).toMatchInlineSnapshot(`"select id as id from issue where id = ?1"`)
+        expect(query.params()).toEqual([1])
+    })
+
+    test('docs-extra:extreme-dynamic-queries/asking-for-null-in-a-filter', () => {
+        const connection = ctx.conn
+        const sql = (json: string) => connection.selectFrom(tIssue)
+            .where(connection.dynamicConditionFor({ body: tIssue.body }).withValues(JSON.parse(json)))
+            .select({ id: tIssue.id })
+            .query()
+        expect(sql('{"body":{"isNull":true}}')).toMatchInlineSnapshot(`"select id as id from issue where body is null"`)
+        expect(sql('{"body":{"is":null}}')).toMatchInlineSnapshot(`"select id as id from issue where body is ?1"`)
+    })
+
+    test('docs-extra:extreme-dynamic-queries/a-value-of-another-shape-is-tolerated', () => {
+        const connection = ctx.conn
+        const query = connection.selectFrom(tIssue)
+            .where(connection.dynamicConditionFor({ id: tIssue.id }).withValues(JSON.parse('{"id":{"in":5}}')))
+            .select({ id: tIssue.id })
+        expect(query.query()).toMatchInlineSnapshot(`"select id as id from issue where id in (?1)"`)
+        expect(query.params()).toEqual([5])
+    })
+
+    test('docs-extra:extreme-dynamic-queries/an-empty-filter-can-not-remove-your-conditions', () => {
+        const connection = ctx.conn
+        const empty = () => connection.dynamicConditionFor({ id: tIssue.id }).withValues(JSON.parse('{"id":{"equals":null}}'))
+
+        expect(connection.deleteFrom(tIssue).where(empty()).and(tIssue.projectId.equals(1)).query())
+            .toMatchInlineSnapshot(`"delete from issue where project_id = ?1"`)
+        expect(connection.update(tIssue).set({ title: 'x' }).where(empty()).and(tIssue.projectId.equals(1)).query())
+            .toMatchInlineSnapshot(`"update issue set title = ?1 where project_id = ?2"`)
+    })
+
+    test('docs-extra:extreme-dynamic-queries/a-delete-with-only-an-empty-filter-is-rejected', async () => {
+        const connection = ctx.conn
+        const empty = connection.dynamicConditionFor({ id: tIssue.id }).withValues(JSON.parse('{"id":{"equals":null}}'))
+        let caught: unknown
+        try {
+            await connection.deleteFrom(tIssue).where(empty).executeDelete()
+        } catch (e) {
+            caught = e
+        }
+        expect(caught instanceof TsSqlError ? caught.errorReason.reason : undefined).toBe('MISSING_WHERE')
+    })
+
     test('docs-extra:extreme-dynamic-queries/dynamic-condition-nested-and-or', async () => {
         // Page sections "Complex dynamic boolean expressions" + "Select
         // using a dynamic filter" — the filter object accepts nested

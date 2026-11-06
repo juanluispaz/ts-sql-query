@@ -146,6 +146,7 @@ nav:
     - Transaction: queries/transaction.md
     - Dynamic queries: queries/dynamic-queries.md
     - Extreme dynamic queries: queries/extreme-dynamic-queries.md
+    - Queries from a request: queries/queries-from-requests.md
     - Functions that return a dynamic select: queries/dynamic-select-functions.md
     - Insert and update with a shape: queries/shapes.md
     - SQL Fragments: queries/sql-fragments.md

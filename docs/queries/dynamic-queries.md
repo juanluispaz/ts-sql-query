@@ -30,6 +30,8 @@ When the caller also chooses which columns the select returns, or sends the filt
 
 For a short tour of these methods, with one example each, see [Dynamic query building blocks](../dynamic/building-blocks.md).
 
+When the conditions, the order and the page come from a request, like in a table of a user interface or an API for other systems, see [Queries from a request](queries-from-requests.md).
+
 ## Declarative dynamic queries
 
 Write the query as a single expression, with the optional parts inside it. In many query builders, a dynamic query is built by adding conditions with `if`s or by filling an array of conditions. Here there is no method that receives a list of conditions, and most of the time you don't need the `if`: `equalsIfValue` already says "only if there is a value", in the place where the condition is, and the query reads the same way whichever values arrive.

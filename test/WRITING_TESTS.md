@@ -606,7 +606,7 @@ real signal.
 | `docs/queries/<slug>.md` | `test/db/<db>/<version>/<connector>/docs.<slug>.test.ts` |
 | `docs/advanced/<slug>.md` | `test/db/<db>/<version>/<connector>/docs.advanced.<slug>.test.ts` |
 | `docs/dynamic/<slug>.md` | `test/db/<db>/<version>/<connector>/docs.dynamic.<slug>.test.ts` |
-| `docs/dynamic/utilities/<slug>.md` | `test/db/<db>/<version>/<connector>/docs.dynamic.utilities.<slug>.test.ts` |
+| `docs/dynamic/<group>/<slug>.md` | `test/db/<db>/<version>/<connector>/docs.dynamic.<group>.<slug>.test.ts` |
 | `docs/configuration/<slug>.md` | `test/db/<db>/<version>/<connector>/docs.configuration.<slug>.test.ts` |
 
 **One file per page** — the snippet-backed `docs:` tests and the

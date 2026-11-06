@@ -8,9 +8,9 @@ This page describes the API for building dynamic conditions in `ts-sql-query`, e
 
 !!! tip
 
-    See [Select using a dynamic filter](../dynamic/filters.md) for related information.
+    See [Select using a dynamic filter](../dynamic/caller-decides/filters.md) for related information.
 
-These types are strict, and the execution is tolerant: in a filter that arrives as data, an operator with an empty value (`null`, an empty string, an empty array) adds no condition. See [Empty values in a filter](../dynamic/filters.md#empty-values-in-a-filter).
+These types are strict, and the execution is tolerant: in a filter that arrives as data, an operator with an empty value (`null`, an empty string, an empty array) adds no condition. See [Empty values in a filter](../dynamic/caller-decides/filters.md#empty-values-in-a-filter).
 
 A dynamic condition allows you to create a condition whose structure is defined at runtime. To create a dynamic condition, you must call the method `dynamicConditionFor` from the connection. This method receives a map where the key is the name with which is going to be referred the field, and the value is the corresponding value source to be used in the query. The `dynamicConditionFor` method returns an object that contains the method `withValues` that receives the dynamic criteria and returns a boolean value source that you can use in any place where a boolean can be used in the query (like the where).
 
@@ -67,7 +67,7 @@ type FilterType = {
 
 !!! tip "Deriving the filter type from a business model"
 
-    Besides a value-source map or a descriptor map, you can derive the filter type directly from a plain **business model** with `DynamicConditionForModel<Model>` — keeping the model as the single source of truth and not leaking any value-source type into your public signatures. See [Typing dynamic queries from a business model](../dynamic/from-business-model.md) for the full reference, including the model-to-filter mapping, the limitations, and the matching `OrderByForModel` order-by type.
+    Besides a value-source map or a descriptor map, you can derive the filter type directly from a plain **business model** with `DynamicConditionForModel<Model>` — keeping the model as the single source of truth and not leaking any value-source type into your public signatures. See [Typing dynamic queries from a business model](../dynamic/own-function/from-business-model.md) for the full reference, including the model-to-filter mapping, the limitations, and the matching `OrderByForModel` order-by type.
 
 You can use the properties `and`, `or` and `not` to perform the logical operations. If you specify multiple elements to the `FilterType`, all of them will be joined using the and operator. The same happens with the elements specified in the **`and`** array. In contrast, elements in the **`or`** array will be joined using the OR operator.
 

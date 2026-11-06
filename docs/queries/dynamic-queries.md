@@ -19,10 +19,10 @@ Each part of a query has its own way of being optional:
 | A condition applies only if a flag is set, like a role | `onlyWhen`, `ignoreWhen` | [Ignorable conditions: onlyWhen and ignoreWhen](#ignorable-conditions-onlywhen-and-ignorewhen) |
 | A selected value is returned only if a flag is set | `onlyWhenOrNull`, `ignoreWhenAsNull` | [Ignorable values: onlyWhenOrNull](#ignorable-values-onlywhenornull) |
 | The order comes as text, from a request | `orderByFromString`, `orderByFromStringArray` and their `IfValue` variants | [Order by from a string](#order-by-from-a-string) |
-| The limit and the offset may be absent | `limitIfValue`, `offsetIfValue` | [Optional limit and offset](../dynamic/order-and-page.md#optional-limit-and-offset) |
-| A table is joined only if the query uses it | `optionalJoin`, `optionalInnerJoin`, `optionalLeftJoin`, `optionalLeftOuterJoin` | [Optional joins](../dynamic/optional-joins.md) |
-| Your code decides which conditions to add, when nothing above can express them | `dynamicWhere`, `dynamicBooleanExpressionUsing` | [Building a condition step by step](../dynamic/building-conditions.md) |
-| The same, in the `on` of a join or in the `having` | `dynamicOn`, `dynamicHaving` | [Dynamic join conditions and having](../dynamic/building-conditions.md#dynamic-join-conditions-and-having) |
+| The limit and the offset may be absent | `limitIfValue`, `offsetIfValue` | [Optional limit and offset](../dynamic/optional-parts/order-and-page.md#optional-limit-and-offset) |
+| A table is joined only if the query uses it | `optionalJoin`, `optionalInnerJoin`, `optionalLeftJoin`, `optionalLeftOuterJoin` | [Optional joins](../dynamic/optional-parts/optional-joins.md) |
+| Your code decides which conditions to add, when nothing above can express them | `dynamicWhere`, `dynamicBooleanExpressionUsing` | [Building a condition step by step](../dynamic/going-further/building-conditions.md) |
+| The same, in the `on` of a join or in the `having` | `dynamicOn`, `dynamicHaving` | [Dynamic join conditions and having](../dynamic/going-further/building-conditions.md#dynamic-join-conditions-and-having) |
 
 Inserts and updates have their own family, to set a column only if there is a value (`setIfValue`, `setIfSet`, `setIfNotSet`, `ignoreIfSet`...): see [Manipulating values to insert](insert.md#manipulating-values-to-insert) and [Manipulating values to update](update.md#manipulating-values-to-update).
 
@@ -30,7 +30,7 @@ When the caller also chooses which columns the select returns, or sends the filt
 
 To see how far the dynamism of the library goes, and everything it offers, see [What a dynamic query can do](../dynamic/building-blocks.md).
 
-When the conditions, the order and the page come from a request, like in a table of a user interface or an API for other systems, see [Queries from a request](../dynamic/queries-from-requests.md).
+When the conditions, the order and the page come from a request, like in a table of a user interface or an API for other systems, see [Queries from a request](../dynamic/caller-decides/queries-from-requests.md).
 
 ## Declarative dynamic queries
 
@@ -95,13 +95,13 @@ The executed query is:
 
 The parameters are: `[]`
 
-When what to add can't be said with these methods, because it depends on the logic of your code, you can use `if`s by [building the condition step by step](../dynamic/building-conditions.md).
+When what to add can't be said with these methods, because it depends on the logic of your code, you can use `if`s by [building the condition step by step](../dynamic/going-further/building-conditions.md).
 
 ## Optional conditions: the IfValue methods
 
-The methods ending in `IfValue` compare with a value that may be absent. When they have no value, they return a special [**neutral boolean**](#the-neutral-boolean), which means "there is no condition here": the library removes it from the `and`s, `or`s, `on`s and `where`s it's part of. It isn't the `null` of SQL: [Booleans and three-valued logic](../dynamic/three-valued-booleans.md) explains the difference.
+The methods ending in `IfValue` compare with a value that may be absent. When they have no value, they return a special [**neutral boolean**](#the-neutral-boolean), which means "there is no condition here": the library removes it from the `and`s, `or`s, `on`s and `where`s it's part of. It isn't the `null` of SQL: [Booleans and three-valued logic](../dynamic/optional-parts/three-valued-booleans.md) explains the difference.
 
-Use them when an absent value means "don't filter by this". `equals` and the other methods without `IfValue` don't accept `null` or `undefined`: see [why an optional value is a dynamic filter](../dynamic/three-valued-booleans.md#why-an-optional-value-means-a-dynamic-condition-the-ifvalue-methods) and not a comparison with null.
+Use them when an absent value means "don't filter by this". `equals` and the other methods without `IfValue` don't accept `null` or `undefined`: see [why an optional value is a dynamic filter](../dynamic/optional-parts/three-valued-booleans.md#why-an-optional-value-means-a-dynamic-condition-the-ifvalue-methods) and not a comparison with null.
 
 In this example, only the first of the three conditions has a value. The order comes as text from the request, and it's explained in [Order by from a string](#order-by-from-a-string):
 
@@ -263,7 +263,7 @@ For example, in the query above:
 | `null` | `null` | a date | `birthday = ...` |
 | `null` | `null` | `null` | There is no `where`, all the rows are returned |
 
-The last row is what happens when nothing arrives in a select. In a delete or an update, it's an error: see [A condition that ends up empty](#a-condition-that-ends-up-empty). If what you need is to add conditions with your own `if`s, see [`dynamicWhere`](../dynamic/building-conditions.md).
+The last row is what happens when nothing arrives in a select. In a delete or an update, it's an error: see [A condition that ends up empty](#a-condition-that-ends-up-empty). If what you need is to add conditions with your own `if`s, see [`dynamicWhere`](../dynamic/going-further/building-conditions.md).
 
 ### All the IfValue methods
 
@@ -726,7 +726,7 @@ Here the query has no `where`. An `onlyWhen` that leaves a delete or an update w
 
 ### The neutral boolean
 
-`connection.noValueBoolean()` returns that neutral boolean directly: a condition that is ignored in `and`s, `or`s, `on`s and `where`s. It is useful to choose between a condition and no condition at all. It belongs to your code and it isn't one of the three values of a boolean in SQL (`true`, `false`, `null`), which [Booleans and three-valued logic](../dynamic/three-valued-booleans.md) explains:
+`connection.noValueBoolean()` returns that neutral boolean directly: a condition that is ignored in `and`s, `or`s, `on`s and `where`s. It is useful to choose between a condition and no condition at all. It belongs to your code and it isn't one of the three values of a boolean in SQL (`true`, `false`, `null`), which [Booleans and three-valued logic](../dynamic/optional-parts/three-valued-booleans.md) explains:
 
 ```ts
 const canSeeEveryCompany: boolean = true;
@@ -1104,11 +1104,11 @@ The executed query is:
 
 The parameters are: `[]`
 
-A clause is a property followed by a mode, like `'name desc nulls last insensitive'`, and a name that isn't a property of the select is an error, so the request can't reach anything else. [Order and page from a request](../dynamic/order-and-page.md) has every form it accepts, its variants for a list of clauses and for a value that may be missing, and how to answer a wrong order.
+A clause is a property followed by a mode, like `'name desc nulls last insensitive'`, and a name that isn't a property of the select is an error, so the request can't reach anything else. [Order and page from a request](../dynamic/optional-parts/order-and-page.md) has every form it accepts, its variants for a list of clauses and for a value that may be missing, and how to answer a wrong order.
 
 ## Optional limit and offset
 
-`limitIfValue` and `offsetIfValue` are `limit` and `offset` for a value that may be absent: without a value they do nothing, and `0` is a value. See [Optional limit and offset](../dynamic/order-and-page.md#optional-limit-and-offset), and [Select page](select-page.md) to also get the total of rows.
+`limitIfValue` and `offsetIfValue` are `limit` and `offset` for a value that may be absent: without a value they do nothing, and `0` is a value. See [Optional limit and offset](../dynamic/optional-parts/order-and-page.md#optional-limit-and-offset), and [Select page](select-page.md) to also get the total of rows.
 
 ## Optional joins
 
@@ -1180,22 +1180,22 @@ Here `companyName` has no value, so the query has no condition and no join.
 
     Leaving out a join can change the number of rows: an inner join removes the rows without a match, and any join repeats the rows with several matches.
 
-[Optional joins](../dynamic/optional-joins.md) says when a join is kept and when each join changes the rows.
+[Optional joins](../dynamic/optional-parts/optional-joins.md) says when a join is kept and when each join changes the rows.
 
 ## Building a condition step by step
 
-The methods above cover the usual cases, and they keep the query readable: prefer them. Only when what to add depends on logic they can't express, `dynamicWhere()` and `connection.dynamicBooleanExpressionUsing(...)` let you add conditions with your own `if`s, at the price of a condition that is no longer in the text of the query. See [Building a condition step by step](../dynamic/building-conditions.md).
+The methods above cover the usual cases, and they keep the query readable: prefer them. Only when what to add depends on logic they can't express, `dynamicWhere()` and `connection.dynamicBooleanExpressionUsing(...)` let you add conditions with your own `if`s, at the price of a condition that is no longer in the text of the query. See [Building a condition step by step](../dynamic/going-further/building-conditions.md).
 
 ## Dynamic join conditions and having
 
-`dynamicOn()` and `dynamicHaving()` do the same for the `on` of a join and the `having`, with the same price: see [Dynamic join conditions and having](../dynamic/building-conditions.md#dynamic-join-conditions-and-having).
+`dynamicOn()` and `dynamicHaving()` do the same for the `on` of a join and the `having`, with the same price: see [Dynamic join conditions and having](../dynamic/going-further/building-conditions.md#dynamic-join-conditions-and-having).
 
 ## When the query takes its shape at run time
 
 Everything on this page is written in the query. The dynamism of the library goes much further than that, and [Dynamic queries](../dynamic/building-blocks.md) goes through all of it:
 
-- The filter arrives as an object, from a search screen or another system, and it becomes a condition: [dynamic filters](../dynamic/filters.md).
-- The caller chooses which columns come back, and the join goes away if nothing needs it: [picking columns](../dynamic/picks.md).
-- A value the user can't see is hidden, or the query that uses it is refused: [restricting values](../dynamic/restricting-values.md).
-- A table of a user interface, or an API for other systems, gets everything from one request: [queries from a request](../dynamic/queries-from-requests.md).
-- A function of your own receives all of that, and the type of its result has only the columns asked for: [functions that return a dynamic select](../dynamic/dynamic-select-functions.md).
+- The filter arrives as an object, from a search screen or another system, and it becomes a condition: [dynamic filters](../dynamic/caller-decides/filters.md).
+- The caller chooses which columns come back, and the join goes away if nothing needs it: [picking columns](../dynamic/caller-decides/picks.md).
+- A value the user can't see is hidden, or the query that uses it is refused: [restricting values](../dynamic/caller-decides/restricting-values.md).
+- A table of a user interface, or an API for other systems, gets everything from one request: [queries from a request](../dynamic/caller-decides/queries-from-requests.md).
+- A function of your own receives all of that, and the type of its result has only the columns asked for: [functions that return a dynamic select](../dynamic/own-function/dynamic-select-functions.md).

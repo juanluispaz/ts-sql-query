@@ -1377,7 +1377,7 @@ The parameters are: `[ 2 ]`
 ### Where else a view can be used
 
 - **In a subquery:** a view can be the table of a subquery of the outer query. The `with` clause still goes at the beginning of the whole query, and the outer query can read the same view.
-- **In an optional join:** if an [optional join](../dynamic/optional-joins.md) isn't needed and is dropped from the query, its view is dropped from the `with` clause too.
+- **In an optional join:** if an [optional join](../dynamic/optional-parts/optional-joins.md) isn't needed and is dropped from the query, its view is dropped from the `with` clause too.
 - **In the other statements:** a view can be read by an [insert from select](insert.md#insert-from-select), an [update](update.md#update-using-other-tables-or-views) and a [delete](delete.md#delete-using-other-tables-or-views) using other tables or views.
 
 ### A view that refers to the outer query

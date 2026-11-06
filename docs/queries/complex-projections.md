@@ -723,7 +723,7 @@ Each object follows the rules on its own, and these are the relations between an
 - When a container is absent because of rule 1 or rule 2, its inner objects are absent too, even if they have values.
 - A container in which nothing has a value is absent.
 
-[Nested objects with left joins](#nested-objects-with-left-joins) has an example. When the properties are chosen at runtime, the type can't know everything about an object: see [dynamic picks](../dynamic/utilities/picks.md#expanding-result-types-from-dynamic-picks).
+[Nested objects with left joins](#nested-objects-with-left-joins) has an example. When the properties are chosen at runtime, the type can't know everything about an object: see [dynamic picks](../dynamic/helper-types/picks.md#expanding-result-types-from-dynamic-picks).
 
 ## Optional nested objects with required fields
 

@@ -10,7 +10,7 @@ A select page returns one page of rows together with the total number of rows th
 
 You may need only one of the two: `executeSelectMany()` with `limit` and `offset` returns the rows of the page without the total, and `selectCountAll()` with `executeSelectOne()` returns the total without the rows.
 
-For a table in a user interface, whose filters, order and page come from a request, see [Queries from a request](../dynamic/queries-from-requests.md).
+For a table in a user interface, whose filters, order and page come from a request, see [Queries from a request](../dynamic/caller-decides/queries-from-requests.md).
 
 ## Limit and offset
 
@@ -159,7 +159,7 @@ Both are optional:
 
 A page after the last row isn't an error: `data` is empty and `count` is still the total.
 
-When the values are optional, for example because they come from a request, use [`limitIfValue` and `offsetIfValue`](../dynamic/order-and-page.md#optional-limit-and-offset). They ignore `null` and `undefined`. A `0` is a value: `limitIfValue(0)` asks for no rows.
+When the values are optional, for example because they come from a request, use [`limitIfValue` and `offsetIfValue`](../dynamic/optional-parts/order-and-page.md#optional-limit-and-offset). They ignore `null` and `undefined`. A `0` is a value: `limitIfValue(0)` asks for no rows.
 
 ```ts
 const paging: { limit?: number, offset?: number } = { limit: 10 }

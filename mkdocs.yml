@@ -216,24 +216,24 @@ nav:
   - Dynamic:
     - What a dynamic query can do: dynamic/building-blocks.md
     - Optional parts of a query:
-      - Order and page from a request: dynamic/order-and-page.md
-      - Optional joins: dynamic/optional-joins.md
-      - Booleans and three-valued logic: dynamic/three-valued-booleans.md
+      - Order and page from a request: dynamic/optional-parts/order-and-page.md
+      - Optional joins: dynamic/optional-parts/optional-joins.md
+      - Booleans and three-valued logic: dynamic/optional-parts/three-valued-booleans.md
     - The caller decides:
-      - Queries from a request: dynamic/queries-from-requests.md
-      - Dynamic filters: dynamic/filters.md
-      - Picking columns dynamically: dynamic/picks.md
-      - Restricting values: dynamic/restricting-values.md
+      - Queries from a request: dynamic/caller-decides/queries-from-requests.md
+      - Dynamic filters: dynamic/caller-decides/filters.md
+      - Picking columns dynamically: dynamic/caller-decides/picks.md
+      - Restricting values: dynamic/caller-decides/restricting-values.md
     - A function of your own:
-      - Functions that return a dynamic select: dynamic/dynamic-select-functions.md
-      - Typing from the database types: dynamic/from-database-types.md
-      - Typing from a business model: dynamic/from-business-model.md
+      - Functions that return a dynamic select: dynamic/own-function/dynamic-select-functions.md
+      - Typing from the database types: dynamic/own-function/from-database-types.md
+      - Typing from a business model: dynamic/own-function/from-business-model.md
     - Helper types:
-      - Dynamic conditions: dynamic/utilities/conditions.md
-      - Dynamic picks: dynamic/utilities/picks.md
-      - Dynamic order by: dynamic/utilities/order-by.md
+      - Dynamic conditions: dynamic/helper-types/conditions.md
+      - Dynamic picks: dynamic/helper-types/picks.md
+      - Dynamic order by: dynamic/helper-types/order-by.md
     - Going further:
-      - Building a condition step by step: dynamic/building-conditions.md
+      - Building a condition step by step: dynamic/going-further/building-conditions.md
   - Advanced:
     - Custom booleans values: advanced/custom-booleans-values.md
     - Synchronous query runners: advanced/synchronous-query-runners.md

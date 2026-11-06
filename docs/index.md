@@ -46,7 +46,7 @@ There are many libraries available in JavaScript/TypeScript that allows querying
 
 `ts-sql-query` addresses these issues by providing a type-safe, SQL-centric API, with rich support for building dynamic queries in a declarative style.
 
-For more details on the principles behind the library, see [Philosophy and Design Goals](./about/philosophy.md).
+For more details on the principles behind the library, see [Philosophy and Design Goals](about/philosophy.md).
 
 ## Supported runtimes
 
@@ -54,14 +54,14 @@ For more details on the principles behind the library, see [Philosophy and Desig
 
 ## Supported Databases
 
-- [MariaDB](./configuration/supported-databases/mariadb.md)
-- [MySQL](./configuration/supported-databases/mysql.md)
-- [Oracle](./configuration/supported-databases/oracle.md)
-- [PostgreSQL](./configuration/supported-databases/postgresql.md)
-- [SQLite](./configuration/supported-databases/sqlite.md)
-- [SQL Server](./configuration/supported-databases/sqlserver.md)
+- [MariaDB](configuration/supported-databases/mariadb.md)
+- [MySQL](configuration/supported-databases/mysql.md)
+- [Oracle](configuration/supported-databases/oracle.md)
+- [PostgreSQL](configuration/supported-databases/postgresql.md)
+- [SQLite](configuration/supported-databases/sqlite.md)
+- [SQL Server](configuration/supported-databases/sqlserver.md)
 
-`ts-sql-query` uses a unified dialect inspired by [SQLite](./configuration/supported-databases/sqlite.md) and [PostgreSQL](./configuration/supported-databases/postgresql.md), with naming conventions adapted to JavaScript. It automatically generates the correct SQL for your target database.
+`ts-sql-query` uses a unified dialect inspired by [SQLite](configuration/supported-databases/sqlite.md) and [PostgreSQL](configuration/supported-databases/postgresql.md), with naming conventions adapted to JavaScript. It automatically generates the correct SQL for your target database.
 
 ## Install
 

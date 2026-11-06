@@ -236,7 +236,7 @@ With the `where`, Eve and Frank are removed before counting, so company 2 has on
 
 Use the `where` for a condition on the rows, and the `having` for a condition on the aggregates. A condition on a column of the group by gives the same result in both places, but in the `where` the database has fewer rows to group.
 
-The `having` can be continued with `and` and `or`, like the `where`: `.having(a).and(b)`. To build it step by step, see [`dynamicHaving()`](../dynamic/building-conditions.md#dynamic-join-conditions-and-having).
+The `having` can be continued with `and` and `or`, like the `where`: `.having(a).and(b)`. To build it step by step, see [`dynamicHaving()`](../dynamic/going-further/building-conditions.md#dynamic-join-conditions-and-having).
 
 ## Aggregate functions
 

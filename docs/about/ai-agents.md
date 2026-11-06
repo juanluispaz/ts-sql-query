@@ -34,8 +34,9 @@ The files below are at `https://ts-sql-query.readthedocs.io/en/latest/<file>`:
 | `llms-mutations-<database>.txt` | Writing data: insert, insert on conflict, update and delete |
 | `llms-transactions.txt` | Transactions, what happens on an error, isolation levels and work deferred to the end of a transaction |
 | `llms-extending-<database>.txt` | Going beyond what the library offers: your own SQL with fragments, and your own column types |
-| `llms-extreme-dynamic-<database>.txt` | Queries whose columns, filters and order come from the caller, a table or a query API driven by a request, functions that return a dynamic select, and writing values with a shape |
-| `llms-dynamic.txt` | Dynamic queries in more detail: a tour of the building blocks, booleans and null, typing them from the database or a business model, and the helper types |
+| `llms-dynamic-<database>.txt` | The detail of dynamic queries: the order and the page from a request, optional joins, booleans and null, and conditions built with your own `if`s |
+| `llms-extreme-dynamic-<database>.txt` | Queries whose columns, filters and order come from the caller, a table or a query API driven by a request, values the user can't see, and writing values with a shape |
+| `llms-dynamic-functions-<database>.txt` | A function of your own that returns a dynamic select, typed from the database or a business model, and the helper types |
 | `llms-types.txt` | The types of a row of a table, and extracting columns from an object |
 | `llms-configuration-<database>.txt` | The connection, mapping, column types, time zones, collations and each database |
 | `llms-query-runners.txt` | Connecting each driver, and wrapping the query runner. The index also links the page of each driver |

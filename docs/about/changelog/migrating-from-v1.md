@@ -56,7 +56,7 @@ The compiler finds all of these. This section is what to write instead.
 | `QueryExecutor` from `MockQueryRunner` | `MockQueryExecutor`, same path |
 | `QueryType` from `MockQueryRunner`, `InterceptorQueryRunner` or `LoggingQueryRunner` | `QueryType` from `ts-sql-query/queryRunners/QueryRunner` |
 
-The rules of a [dynamic condition](../../dynamic/utilities/conditions.md) were renamed in the same way, but [they may not stop compiling](#dynamic-conditions-coming-from-outside).
+The rules of a [dynamic condition](../../dynamic/helper-types/conditions.md) were renamed in the same way, but [they may not stop compiling](#dynamic-conditions-coming-from-outside).
 
 ### Removed connections and query runners
 
@@ -385,7 +385,7 @@ These returned a wrong value in v1, or depended on something they shouldn't. If 
 **Other:**
 
 - SQL Server, Oracle: a projected `between` whose upper bound is optional is `NULL` when that bound is `NULL`. It was `false`.
-- [`dynamicPickPaths`](../../dynamic/utilities/picks.md) with a path of 3 or more levels dropped it.
+- [`dynamicPickPaths`](../../dynamic/helper-types/picks.md) with a path of 3 or more levels dropped it.
 
 ### Dynamic conditions coming from outside
 

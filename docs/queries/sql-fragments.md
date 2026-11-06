@@ -973,7 +973,7 @@ What it means for the rest of the query:
 
 - The fragment doesn't change the columns: the rows have only what you selected.
 - The [order mode](select.md#the-order-modes) goes as the second argument: `` .orderBy(connection.rawFragment`...`, 'desc nulls last') ``. The `insensitive` modes only apply to a fragment typed as a string: a `rawFragment` has no type, so `insensitive` isn't applied to it, and you write the conversion in the fragment.
-- A table used in the fragment counts as used, so an [optional join](../dynamic/optional-joins.md) of that table stays in the query, and in the count of a page, where it can change the number of rows.
+- A table used in the fragment counts as used, so an [optional join](../dynamic/optional-parts/optional-joins.md) of that table stays in the query, and in the count of a page, where it can change the number of rows.
 - [`executeSelectPage`](select-page.md#getting-the-page-and-the-total) leaves the `order by` out of its count, and with it the fragment and its parameters.
 - With `groupBy`, the `orderBy` can have an aggregate: an [aggregate fragment](#aggregate-fragments), or `` connection.rawFragment`count(*)` ``.
 - In a [compound select](compound-select.md#ordering-the-combined-result), the fragment can't use tables, because the order applies to the combined result, so it refers to the name of a column of the result: `` .orderBy(connection.rawFragment`name desc`) ``.

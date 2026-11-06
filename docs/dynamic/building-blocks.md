@@ -160,7 +160,7 @@ The executed query is:
 
 The parameters are: `[ 'ohn', 10 ]`
 
-See [Order and page from a request](order-and-page.md).
+See [Order and page from a request](optional-parts/order-and-page.md).
 
 ### The filter comes from the request too
 
@@ -257,7 +257,7 @@ The executed query is:
 
 The parameters are: `[ 16, 'John', 'Smi' ]`
 
-See [Dynamic filters](filters.md).
+See [Dynamic filters](caller-decides/filters.md).
 
 ### The caller chooses the columns, and the joins follow
 
@@ -326,7 +326,7 @@ The executed query is:
 
 The parameters are: `[]`
 
-With `['firstName']`, the query reads only the id and the first name of `customer`. With `['companyName']`, the same code joins `company`. See [Picking columns dynamically](picks.md) and [Optional joins](optional-joins.md).
+With `['firstName']`, the query reads only the id and the first name of `customer`. With `['companyName']`, the same code joins `company`. See [Picking columns dynamically](caller-decides/picks.md) and [Optional joins](optional-parts/optional-joins.md).
 
 ### A function whose result is what was asked for
 
@@ -422,7 +422,7 @@ const customers: {
 }[]
 ```
 
-It can be typed from the database, as here, or from an interface of your own. See [Functions that return a dynamic select](dynamic-select-functions.md).
+It can be typed from the database, as here, or from an interface of your own. See [Functions that return a dynamic select](own-function/dynamic-select-functions.md).
 
 ## Writing is dynamic too
 
@@ -498,28 +498,28 @@ Here only `firstName` is set. See [Manipulating values to insert](../queries/ins
 | What a condition means without a value | `trueWhenNoValue`, `falseWhenNoValue`, `valueWhenNoValue` | [When there is no value](../queries/dynamic-queries.md#when-there-is-no-value) |
 | A condition, if a flag of your code says so | `onlyWhen`, `ignoreWhen` | [Ignorable conditions: onlyWhen and ignoreWhen](../queries/dynamic-queries.md#ignorable-conditions-onlywhen-and-ignorewhen) |
 | The choice between a condition and none | `connection.noValueBoolean()` | [The neutral boolean](../queries/dynamic-queries.md#the-neutral-boolean) |
-| The whole condition, as data | `connection.dynamicConditionFor` | [Dynamic filters](filters.md) |
+| The whole condition, as data | `connection.dynamicConditionFor` | [Dynamic filters](caller-decides/filters.md) |
 | A text, if there is a value | `concatIfValue`, `concatIgnoringNullIfValue`, `replaceAllIfValue`, `replaceAllInsensitiveIfValue` | [All the IfValue methods](../queries/dynamic-queries.md#all-the-ifvalue-methods) |
-| The order | `orderByFromString`, `orderByFromStringArray` and their `IfValue` variants | [Order and page from a request](order-and-page.md) |
-| The page | `limitIfValue`, `offsetIfValue` | [Optional limit and offset](order-and-page.md#optional-limit-and-offset) |
-| The joins | `optionalJoin`, `optionalInnerJoin`, `optionalLeftJoin`, `optionalLeftOuterJoin` | [Optional joins](optional-joins.md) |
-| The columns | `dynamicPick`, `dynamicPickPaths` | [Picking columns dynamically](picks.md) |
-| The value of a column, depending on the user | `onlyWhenOrNull`, `ignoreWhenAsNull` | [Hide a value keeping the column](restricting-values.md#hide-a-value-keeping-the-column) |
-| Whether a value can be used at all | `allowWhen`, `disallowWhen` | [Refuse a query that uses a value](restricting-values.md#refuse-a-query-that-uses-a-value) |
+| The order | `orderByFromString`, `orderByFromStringArray` and their `IfValue` variants | [Order and page from a request](optional-parts/order-and-page.md) |
+| The page | `limitIfValue`, `offsetIfValue` | [Optional limit and offset](optional-parts/order-and-page.md#optional-limit-and-offset) |
+| The joins | `optionalJoin`, `optionalInnerJoin`, `optionalLeftJoin`, `optionalLeftOuterJoin` | [Optional joins](optional-parts/optional-joins.md) |
+| The columns | `dynamicPick`, `dynamicPickPaths` | [Picking columns dynamically](caller-decides/picks.md) |
+| The value of a column, depending on the user | `onlyWhenOrNull`, `ignoreWhenAsNull` | [Hide a value keeping the column](caller-decides/restricting-values.md#hide-a-value-keeping-the-column) |
+| Whether a value can be used at all | `allowWhen`, `disallowWhen` | [Refuse a query that uses a value](caller-decides/restricting-values.md#refuse-a-query-that-uses-a-value) |
 | What an insert or an update writes | `setIfValue`, `setIfSet`, `setIfNotSet`, `setIfHasValue`, `setIfHasNoValue`, each with `IfValue` and `When` variants, `setWhen`, `dynamicSet`, `dynamicValues` | [Manipulating values to insert](../queries/insert.md#manipulating-values-to-insert), [to update](../queries/update.md#manipulating-values-to-update) |
 | Which columns stay in an insert or an update | `ignoreIfSet`, `ignoreIfHasValue`, `ignoreIfHasNoValue`, `ignoreAnySetWithNoValueWhen`, `keepOnly`, with their `When` variants | The same |
 | Which writes are refused | `disallowIfSet`, `disallowIfNotSet`, `disallowIfValue`, `disallowIfNoValue`, `disallowAnyOtherSet`, with their `When` variants | The same |
 | The columns an insert or update can write | `shapedAs` | [Insert and update with a shape](../queries/shapes.md) |
 | A fragment of SQL of your own, if there is a value | `buildFragmentWithArgsIfValue`, `buildAggregateFragmentWithArgsIfValue` | [Conditional fragments](../queries/sql-fragments.md#conditional-fragments) |
-| The type of a filter | `DynamicCondition`, `DynamicConditionForModel`, `DynamicDefinitionForModel` | [Dynamic conditions](utilities/conditions.md) |
-| The type of what is picked and of its result | `DynamicPick`, `DynamicPickPaths`, `PickValuesPath`, `PickValuesPathWithAllProperties`, `expandTypeFromDynamicPickPaths`, and their `ProjectedAsNullable` variants | [Dynamic picks](utilities/picks.md) |
+| The type of a filter | `DynamicCondition`, `DynamicConditionForModel`, `DynamicDefinitionForModel` | [Dynamic conditions](helper-types/conditions.md) |
+| The type of what is picked and of its result | `DynamicPick`, `DynamicPickPaths`, `PickValuesPath`, `PickValuesPathWithAllProperties`, `expandTypeFromDynamicPickPaths`, and their `ProjectedAsNullable` variants | [Dynamic picks](helper-types/picks.md) |
 | The same, from an interface of your own | `DeepPick`, `DeepPickPaths`, `DeepOmit` | [Deep utilities](../advanced/deep-utilities.md) |
-| The type of the order | `OrderByForModel`, `OrderByMode` | [Dynamic order by](utilities/order-by.md) |
-| Conditions added by your own `if`s, when nothing above can express them | `dynamicWhere`, `connection.dynamicBooleanExpressionUsing` | [Building a condition step by step](building-conditions.md) |
-| The same, in the `on` of a join or the `having` | `dynamicOn`, `dynamicHaving` | [Dynamic join conditions and having](building-conditions.md#dynamic-join-conditions-and-having) |
+| The type of the order | `OrderByForModel`, `OrderByMode` | [Dynamic order by](helper-types/order-by.md) |
+| Conditions added by your own `if`s, when nothing above can express them | `dynamicWhere`, `connection.dynamicBooleanExpressionUsing` | [Building a condition step by step](going-further/building-conditions.md) |
+| The same, in the `on` of a join or the `having` | `dynamicOn`, `dynamicHaving` | [Dynamic join conditions and having](going-further/building-conditions.md#dynamic-join-conditions-and-having) |
 
 ## Where to go from here
 
-- For the two usual cases put together, a table of a user interface and an API for other systems, see [Queries from a request](queries-from-requests.md).
-- To type a whole function, see [from the database types](from-database-types.md) or [from a business model](from-business-model.md).
-- To understand why an optional value is a dynamic filter and not a comparison with null, see [Booleans and three-valued logic](three-valued-booleans.md).
+- For the two usual cases put together, a table of a user interface and an API for other systems, see [Queries from a request](caller-decides/queries-from-requests.md).
+- To type a whole function, see [from the database types](own-function/from-database-types.md) or [from a business model](own-function/from-business-model.md).
+- To understand why an optional value is a dynamic filter and not a comparison with null, see [Booleans and three-valued logic](optional-parts/three-valued-booleans.md).

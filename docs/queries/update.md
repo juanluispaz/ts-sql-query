@@ -948,7 +948,7 @@ const updateCustomer: Promise<number>
 
 ## Other options
 
-- `where` can be called once: add more conditions with `and` and `or`, or build them step by step with [`dynamicWhere`](../dynamic/building-conditions.md). A condition can use a [subquery](cte-subqueries.md).
+- `where` can be called once: add more conditions with `and` and `or`, or build them step by step with [`dynamicWhere`](../dynamic/going-further/building-conditions.md). A condition can use a [subquery](cte-subqueries.md).
 - `customizeQuery` adds raw SQL to the query and names its execution: see [Customizing an update](sql-fragments.md#customizing-an-update).
 - `query()` and `params()` return the SQL and the parameters without executing the query.
 

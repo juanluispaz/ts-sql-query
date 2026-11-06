@@ -674,5 +674,5 @@ depend on them, so the declared type can miss these cases:
 - **A picked leaf from another table** next to a mandatory left-join leaf: it turns
   rule 2 off, so the left-join leaf can be missing while the object exists.
 
-The [docs](../docs/dynamic/utilities/picks.md#expanding-result-types-from-dynamic-picks)
+The [docs](../docs/dynamic/helper-types/picks.md#expanding-result-types-from-dynamic-picks)
 say it. The tests are commented out in `types.dynamic-utilities`.

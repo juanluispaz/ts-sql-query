@@ -34,8 +34,7 @@ AREAS = [
     ], False),
     ('queries', 'Queries', 'reading data: select, joins, pages, projections and dynamic queries: start here', [
         'queries/basic-query-structure.md', 'queries/select.md', 'queries/select-page.md', 'queries/complex-projections.md',
-        'queries/aggregate-as-object-array.md', 'queries/dynamic-queries.md',
-        'dynamic/building-conditions.md', 'dynamic/order-and-page.md', 'dynamic/optional-joins.md',
+        'queries/aggregate-as-object-array.md', 'queries/dynamic-queries.md', 'dynamic/building-blocks.md',
     ], True),
     ('queries-advanced', 'Queries combining selects', 'common table expressions (with) and subqueries, compound selects (union, intersect, except) and recursive selects', [
         'queries/cte-subqueries.md', 'queries/compound-select.md', 'queries/recursive-select.md',
@@ -52,13 +51,15 @@ AREAS = [
     ('extending', 'Extending the library', 'going beyond what it offers: your own SQL with fragments, and your own column types', [
         'queries/sql-fragments.md', 'configuration/column-types.md',
     ], True),
-    ('extreme-dynamic', 'Extreme dynamic queries', 'queries whose columns, filters and order come from the caller, typed from the database or from a business model, and writing values with a shape', [
-        'queries/extreme-dynamic-queries.md', 'dynamic/filters.md', 'dynamic/picks.md', 'dynamic/restricting-values.md', 'dynamic/queries-from-requests.md', 'dynamic/dynamic-select-functions.md', 'queries/shapes.md',
-        'advanced/deep-utilities.md', 'advanced/tables-views-as-parameter.md',
+    ('dynamic', 'Optional parts of a query', 'the detail of dynamic queries: the order and the page from a request, optional joins, booleans and null, and conditions built with your own ifs', [
+        'dynamic/optional-parts/*.md', 'dynamic/going-further/*.md',
     ], True),
-    ('dynamic', 'Dynamic queries in more detail', 'a tour of the building blocks, booleans and null, typing a dynamic query from the database or from a business model, and its helper types: it adds detail, and the main cases do not depend on it', [
-        'dynamic/building-blocks.md', 'dynamic/three-valued-booleans.md', 'dynamic/from-*.md', 'dynamic/utilities/*.md',
-    ], False),
+    ('extreme-dynamic', 'Extreme dynamic queries', 'queries whose columns, filters and order come from the caller, a table or a query API driven by a request, values the user can not see, and writing values with a shape', [
+        'queries/extreme-dynamic-queries.md', 'dynamic/caller-decides/*.md', 'queries/shapes.md',
+    ], True),
+    ('dynamic-functions', 'Functions that return a dynamic select', 'a function of your own where the caller chooses the columns, the filter and the order, typed from the database or from a business model, and the helper types', [
+        'dynamic/own-function/*.md', 'dynamic/helper-types/*.md', 'advanced/deep-utilities.md', 'advanced/tables-views-as-parameter.md',
+    ], True),
     ('types', 'Types of tables and rows', 'the types of a row of a table and the columns extracted from an object', [
         'advanced/utility-types.md', 'advanced/columns-from-object.md',
     ], False),
@@ -84,8 +85,9 @@ ELSEWHERE = {
     'mutations': 'insert, update, delete',
     'transactions': 'transactions',
     'extending': 'your own SQL and column types',
-    'extreme-dynamic': 'columns and filters from the caller, a table or an API driven by a request, functions that return a dynamic select, shapes',
-    'dynamic': 'more detail on dynamic queries: null, helper types',
+    'dynamic': 'optional parts of a query in detail: order and page, optional joins, null, conditions built with ifs',
+    'extreme-dynamic': 'columns and filters from the caller, a table or an API driven by a request, restricted values, shapes',
+    'dynamic-functions': 'functions that return a dynamic select, typing them, helper types',
     'types': 'types of a row',
     'configuration': 'connection, tables',
     'query-runners': 'drivers',

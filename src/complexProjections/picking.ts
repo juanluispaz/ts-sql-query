@@ -55,28 +55,28 @@ type PickingAsBooleanObjectMap2<TYPE, EXCLUDE extends string> =
     ? never
     : TYPE extends AnyValueSource
     ? boolean
-    : Expand<{ [KEY in Exclude<RequiredKeys<TYPE>, EXCLUDE>]? : PickingAsBooleanObjectMap3<TYPE[KEY], UnprefixPath<EXCLUDE, KEY>> }>
+    : boolean | Expand<{ [KEY in Exclude<RequiredKeys<TYPE>, EXCLUDE>]? : PickingAsBooleanObjectMap3<TYPE[KEY], UnprefixPath<EXCLUDE, KEY>> }>
 
 type PickingAsBooleanObjectMap3<TYPE, EXCLUDE extends string> =
     undefined extends TYPE
     ? never
     : TYPE extends AnyValueSource
     ? boolean
-    : Expand<{ [KEY in Exclude<RequiredKeys<TYPE>, EXCLUDE>]? : PickingAsBooleanObjectMap4<TYPE[KEY], UnprefixPath<EXCLUDE, KEY>> }>
+    : boolean | Expand<{ [KEY in Exclude<RequiredKeys<TYPE>, EXCLUDE>]? : PickingAsBooleanObjectMap4<TYPE[KEY], UnprefixPath<EXCLUDE, KEY>> }>
 
 type PickingAsBooleanObjectMap4<TYPE, EXCLUDE extends string> =
     undefined extends TYPE
     ? never
     : TYPE extends AnyValueSource
     ? boolean
-    : Expand<{ [KEY in Exclude<RequiredKeys<TYPE>, EXCLUDE>]? : PickingAsBooleanObjectMap5<TYPE[KEY], UnprefixPath<EXCLUDE, KEY>> }>
+    : boolean | Expand<{ [KEY in Exclude<RequiredKeys<TYPE>, EXCLUDE>]? : PickingAsBooleanObjectMap5<TYPE[KEY], UnprefixPath<EXCLUDE, KEY>> }>
 
 type PickingAsBooleanObjectMap5<TYPE, EXCLUDE extends string> =
     undefined extends TYPE
     ? never
     : TYPE extends AnyValueSource
     ? boolean
-    : Expand<{ [KEY in Exclude<RequiredKeys<TYPE>, EXCLUDE>]? : undefined extends TYPE[KEY] ? never : TYPE[KEY] extends AnyValueSource ? boolean : never }> // Stop recursion here
+    : boolean | Expand<{ [KEY in Exclude<RequiredKeys<TYPE>, EXCLUDE>]? : undefined extends TYPE[KEY] ? never : TYPE[KEY] extends AnyValueSource ? boolean : never }> // Stop recursion here
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

@@ -1083,7 +1083,7 @@ describe(ctx.label, () => {
         expect(caught instanceof TsSqlError && caught.cause).toBe(hookError)
     })
 
-    test('docs-extra:transaction/commit-before-hook-failure-leaves-open', async () => {
+    test('docs-extra:transaction/commit-before-hook-failure-rolls-back', async () => {
         const connection = ctx.conn
         const hookError = new Error('The function failed')
         let caught: unknown
@@ -1099,9 +1099,6 @@ describe(ctx.label, () => {
             } catch (e) {
                 caught = e
             }
-            expect(connection.isTransactionActive()).toBe(true)
-
-            await connection.rollback()
             expect(connection.isTransactionActive()).toBe(false)
         })
 

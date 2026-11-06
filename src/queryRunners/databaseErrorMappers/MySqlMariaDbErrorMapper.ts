@@ -617,6 +617,9 @@ function getMariaDbSpecificSymbolReasonFromNumber(
     message: string
 ): TsSqlErrorReason | undefined {
     switch (upperCode) {
+        case 'ER_CHECKREAD':
+            // The row changed since the snapshot of the transaction was taken (innodb_snapshot_isolation)
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'serialization failure' }
         case 'ER_CONSTRAINT_FAILED':
             return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage, constraintType: 'check', constraintName: extractKeyName(message), tableName: extractCheckTableName(message) }
         case 'ER_INNODB_AUTOEXTEND_SIZE_OUT_OF_RANGE':

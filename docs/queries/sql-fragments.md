@@ -302,9 +302,9 @@ The executed query is:
     select 
         id as "id", 
         name as "name", 
-        id << :0 as "idMultiplyBy2" 
+        id * power(2, :0) as "idMultiplyBy2" 
     from company 
-    where (id * :1) = (id << :2)
+    where (id * :1) = (id * power(2, :2))
     ```
 ===+ "PostgreSQL"
     ```postgresql
@@ -347,7 +347,7 @@ const companiesUsingCustomFunctionFragment: Promise<{
 
 !!! note
 
-    The text isn't translated, so this example only works where the database has that operator: SQL Server has `<<` from 2022, and Oracle doesn't have it, so there you would write `${left} * power(2, ${right})`.
+    The text isn't translated, so this example only works where the database has that operator: SQL Server has `<<` from 2022, and Oracle doesn't have it, so its connection writes `${left} * power(2, ${right})`, as its tab shows.
 
     PostgreSQL has to find out the type of a parameter from the SQL around it. `id << $1` works, but with values on both sides, `$1 << $2`, it rejects the query with `operator is not unique`. Write a cast in the fragment: `${left}::int << ${right}::int`.
 
@@ -525,9 +525,9 @@ The executed query is:
     select 
         id as "id", 
         name as "name", 
-        id << :0 as "idMultiplyBy2" 
+        id * power(2, :0) as "idMultiplyBy2" 
     from company 
-    where (id * :1) = (id << :2)
+    where (id * :1) = (id * power(2, :2))
     ```
 ===+ "PostgreSQL"
     ```postgresql
@@ -766,7 +766,7 @@ const companiesInOrder: Promise<{
 What it means for the rest of the query:
 
 - The fragment doesn't change the columns: the rows have only what you selected.
-- The [order mode](select.md#the-order-modes) goes as the second argument: `` .orderBy(connection.rawFragment`...`, 'desc nulls last') ``.
+- The [order mode](select.md#the-order-modes) goes as the second argument: `` .orderBy(connection.rawFragment`...`, 'desc nulls last') ``. The `insensitive` modes only apply to a fragment typed as a string: a `rawFragment` has no type, so `insensitive` isn't applied to it, and you write the conversion in the fragment.
 - A table used in the fragment counts as used, so an [optional join](dynamic-queries.md#optional-joins) of that table stays in the query, and in the count of a page, where it can change the number of rows.
 - [`executeSelectPage`](select-page.md#getting-the-page-and-the-total) leaves the `order by` out of its count, and with it the fragment and its parameters.
 - With `groupBy`, the `orderBy` can have an aggregate: an [aggregate fragment](#aggregate-fragments), or `` connection.rawFragment`count(*)` ``.

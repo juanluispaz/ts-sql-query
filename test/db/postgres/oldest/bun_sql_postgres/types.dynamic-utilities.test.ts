@@ -202,8 +202,8 @@ describe(ctx.label, () => {
     test('dynamic-utilities/pick-input-types-drop-only-the-always-included-fields', () => {
         const fields = { id: tIssue.id, title: tIssue.title, info: { priority: tIssue.priority, status: tIssue.status } }
 
-        assertType<Exact<DynamicPick<typeof fields>, { id?: boolean; title?: boolean; info?: { priority?: boolean; status?: boolean } }>>()
-        assertType<Exact<DynamicPick<typeof fields, 'id' | 'info.status'>, { title?: boolean; info?: { priority?: boolean } }>>()
+        assertType<Exact<DynamicPick<typeof fields>, { id?: boolean; title?: boolean; info?: boolean | { priority?: boolean; status?: boolean } }>>()
+        assertType<Exact<DynamicPick<typeof fields, 'id' | 'info.status'>, { title?: boolean; info?: boolean | { priority?: boolean } }>>()
         assertType<Exact<DynamicPickPaths<typeof fields>, 'id' | 'title' | 'info' | 'info.priority' | 'info.status'>>()
         assertType<Exact<DynamicPickPaths<typeof fields, 'id' | 'info.status'>, 'title' | 'info' | 'info.priority'>>()
     })
@@ -340,7 +340,7 @@ describe(ctx.label, () => {
         const fields = { a: { b: { c: { d: { e: tIssue.id } } } } }
 
         assertType<Exact<DynamicPickPaths<typeof fields>, 'a' | 'a.b' | 'a.b.c' | 'a.b.c.d' | 'a.b.c.d.e'>>()
-        assertType<Exact<DynamicPick<typeof fields>, { a?: { b?: { c?: { d?: { e?: boolean } } } } }>>()
+        assertType<Exact<DynamicPick<typeof fields>, { a?: boolean | { b?: boolean | { c?: boolean | { d?: boolean | { e?: boolean } } } } }>>()
         const picked = dynamicPickPaths(fields, ['a.b.c.d.e'])
         expect(picked.a!.b!.c!.d!.e).toBe(tIssue.id)
     })

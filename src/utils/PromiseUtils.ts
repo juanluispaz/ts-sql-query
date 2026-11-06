@@ -4,15 +4,15 @@ export function isPromise(value: any): value is Promise<unknown> {
     return value && (typeof value === 'object') && (typeof value.then === 'function')
 }
 
-export function callDeferredFunctions<T>(name: 'before next commit' | 'after next commit' | 'after next rollback', fns: Array<() => void | Promise<void>> | null | undefined, result: T, source: QueryExecutionSource, transactionError?: Error, throwError?: TsSqlQueryExecutionError) : T | Promise<T> {
+export function callDeferredFunctions<T>(name: 'before next commit' | 'after next commit' | 'after next rollback', fns: Array<() => void | Promise<void>> | null | undefined, result: T, source: QueryExecutionSource, transactionError?: Error, throwError?: unknown) : T | Promise<T> {
     return internalCallDeferredFunctions(false, name, fns, result, source, transactionError, throwError)
 }
 
-export function callDeferredFunctionsStoppingOnError<T>(name: 'before next commit' | 'after next commit' | 'after next rollback', fns: Array<() => void | Promise<void>> | null | undefined, result: T, source: QueryExecutionSource, transactionError?: Error, throwError?: TsSqlQueryExecutionError) : T | Promise<T> {
+export function callDeferredFunctionsStoppingOnError<T>(name: 'before next commit' | 'after next commit' | 'after next rollback', fns: Array<() => void | Promise<void>> | null | undefined, result: T, source: QueryExecutionSource, transactionError?: Error, throwError?: unknown) : T | Promise<T> {
     return internalCallDeferredFunctions(true, name, fns, result, source, transactionError, throwError)
 }
 
-function internalCallDeferredFunctions<T>(stopOnFistError: boolean, name: 'before next commit' | 'after next commit' | 'after next rollback', fns: Array<() => void | Promise<void>> | null | undefined, result: T, source: QueryExecutionSource, transactionError?: Error, throwError?: TsSqlQueryExecutionError) : T | Promise<T> {
+function internalCallDeferredFunctions<T>(stopOnFistError: boolean, name: 'before next commit' | 'after next commit' | 'after next rollback', fns: Array<() => void | Promise<void>> | null | undefined, result: T, source: QueryExecutionSource, transactionError?: Error, throwError?: unknown) : T | Promise<T> {
     if (!fns) {
         if (throwError) {
             throw throwError
@@ -23,7 +23,9 @@ function internalCallDeferredFunctions<T>(stopOnFistError: boolean, name: 'befor
     let promise: Promise<void> | undefined
     // A containner is required to allow other functions to modify the value
     const errorContainer: ErrorContainer = { 
-        error: throwError,
+        // An error of the application has no place for more errors: a function that fails
+        // becomes the error, with that one as its transactionError
+        error: throwError instanceof TsSqlQueryExecutionError ? throwError : undefined,
         name,
         source,
         transactionError
@@ -74,6 +76,9 @@ function internalCallDeferredFunctions<T>(stopOnFistError: boolean, name: 'befor
             if (errorContainer.error) {
                 throw errorContainer.error
             }
+            if (throwError) {
+                throw throwError
+            }
             return result
         }, (e) => {
             if (!(e instanceof TsSqlQueryExecutionError && e.errorReason.reason === 'ERROR_EXECUTING_DEFERRED_IN_TRANSACTION')) {
@@ -95,6 +100,9 @@ function internalCallDeferredFunctions<T>(stopOnFistError: boolean, name: 'befor
     }
     if (errorContainer.error) {
         throw errorContainer.error
+    }
+    if (throwError) {
+        throw throwError
     }
     return result
 }

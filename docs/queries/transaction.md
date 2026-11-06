@@ -117,6 +117,7 @@ A `TsSqlQueryExecutionError` raised by `connection.transaction(fn)` can tell you
 - `transactionSource`: where in your code the transaction was asked for, next to `source`, where the failing query was. Both also appear in the stack of the error.
 - `rollbackError`: the rollback failed too. The error you get is still the one that caused the rollback, and this is the error of the rollback.
 - `additionalErrors`: other errors raised while the transaction was ending, like the one of an [`executeAfterNextRollback` function](#errors).
+- `transactionError`: in an error of one of those functions, the error that caused the rollback.
 
 ## When the database rolls back the transaction
 
@@ -509,9 +510,9 @@ If a later step of the transaction fails, the customer isn't saved and the photo
 
 | | Runs | When it fails |
 |---|---|---|
-| `executeBeforeNextCommit` | Inside the transaction | The following `executeBeforeNextCommit` functions don't run, and the transaction isn't committed: `transaction(fn)` rolls it back (the `executeAfterNextRollback` functions run) and rejects with the error. `commit()` rejects with the error and leaves the transaction open: call `rollback()`. |
+| `executeBeforeNextCommit` | Inside the transaction | The following `executeBeforeNextCommit` functions don't run, and the transaction isn't committed: `transaction(fn)` rolls it back (the `executeAfterNextRollback` functions run) and rejects with the error. `commit()` does the same: it rolls back, and rejects with the error. |
 | `executeAfterNextCommit` | After the commit, outside any transaction | The changes stay committed. The following functions still run, and `transaction(fn)` / `commit()` rejects with the error. |
-| `executeAfterNextRollback` | After the rollback, outside any transaction | The following functions still run. `transaction(fn)` rejects with the error that caused the rollback, with this one attached (`additionalErrors`); `rollback()` rejects with this one. |
+| `executeAfterNextRollback` | After the rollback, outside any transaction | The following functions still run. `transaction(fn)` rejects with the error that caused the rollback, with this one attached (`additionalErrors`); when that error is one of your own, which has no place for it, it rejects with this one, which has yours in `transactionError`. `rollback()` rejects with this one. |
 
 The error of a function is wrapped in a `TsSqlQueryExecutionError` with reason `ERROR_EXECUTING_DEFERRED_IN_TRANSACTION`, whose cause is the error the function threw (see [Library raised errors](../api/error-management/library-raised-errors.md)).
 

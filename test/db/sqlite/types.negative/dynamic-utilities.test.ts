@@ -25,9 +25,6 @@ function _typeNegatives() {
     // Rule: a value takes a boolean, not an object.
     // @ts-expect-error title is a value, not an object
     dynamicPick(fields, { title: { x: true } })
-    // Rule: an object takes the map of its fields, not a boolean.
-    // @ts-expect-error info is an object, not a value
-    dynamicPick(fields, { info: true })
     // Rule: an always-included path must exist.
     // @ts-expect-error 'bogus' is not a path of the available fields
     dynamicPick(fields, {}, ['bogus'])

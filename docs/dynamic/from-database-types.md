@@ -170,10 +170,10 @@ const result = listCustomerDirectory(connection, ['name', 'company.name'],
     ['company.name asc nulls last', 'name desc'])
 ```
 
-The same end-to-end function — including a custom-rule extension and an optional join built through a reusable `buildAvailableFields` helper — is shown in full in [Extreme dynamic queries — From the database](../queries/extreme-dynamic-queries.md#from-the-database), next to its model-first twin.
+The same end-to-end function — including a custom-rule extension and an optional join built through a reusable `buildAvailableFields` helper — is shown in full in [Extreme dynamic queries — From the database](../queries/dynamic-select-functions.md#from-the-database), next to its model-first twin.
 
 ## See also
 
 - [Typing dynamic queries from a business model](from-business-model.md) — the model-first counterpart of this page.
 - [Dynamic conditions](utilities/conditions.md), [Dynamic picks](utilities/picks.md) and [Dynamic order by](utilities/order-by.md) — the per-module utility reference.
-- [Extreme dynamic queries](../queries/extreme-dynamic-queries.md) — both approaches side by side in one worked example.
+- [Functions that return a dynamic select](../queries/dynamic-select-functions.md) — both approaches side by side in one worked example.

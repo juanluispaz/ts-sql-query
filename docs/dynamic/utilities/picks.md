@@ -83,7 +83,7 @@ These utility types help ensure proper typing when defining dynamic picks or ret
 
 **Type**: `DynamicPick<Type, MandatoryFields>`
 
-Use this type to define the shape of a `fieldsToPick` object, where the user sets `true` to include each field.
+Use this type to define the shape of a `fieldsToPick` object, where the user sets `true` to include each field. A group of properties accepts `true` to include all of it, or an object with the shape of the group to choose inside it.
 
 ```ts
 import type { DynamicPick } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';

@@ -14,6 +14,7 @@ The nested objects that a select and the `with` queries already accepted now wor
 
 - A table, view or `Values` can group its columns in plain objects, like the two columns of a coordinate. Insert, update, on conflict, `Values.create`, insert from a select and the result of a select use the shape of the definition (see [the docs](configuration/mapping.md#grouping-columns)).
 - The methods that receive column names (`ignoreIfSet`, `keepOnly`, `disallowIfSet`…) accept the path of a column in a group and the name of a group; a shape accepts paths and can have its own groups (see [the docs](queries/shapes.md#columns-in-a-group)).
+- `dynamicPick` accepts `true` for a group of properties in its type, as `dynamicPickPaths` accepts its path.
 - `asRequiredInOptionalObject()` on a column returns a column, so it can be used in the definition of a table, view or values. In a group, that column is required when the group is provided.
 - `INVALID_VALUE_TO_SEND_TO_DATABASE` tells where the value is when it's in a `set` of an insert, an update or the update of a conflict: `columnPath` has the property, with the name used in a shape, and `rowIndex` has the row when several are inserted.
 
@@ -23,6 +24,7 @@ The nested objects that a select and the `with` queries already accepted now wor
 - `SelectedRow` and the other selected types of a table only have its columns: an object in the class that is not a column used to appear in them.
 - SQL Server, Oracle: `column.asRequiredInOptionalObject()` on a custom boolean column is written as any other selection of that column, so a null stays null, instead of being read as false.
 - The `execute*` methods, `executeProcedure`, `executeFunction`, `transaction`, `beginTransaction`, `commit` and `rollback` report all their failures through the promise they return. Before, a query that couldn't be built (`MISSING_WHERE`, `DISALLOWED`, an invalid value to send…), a guard like `NOT_IN_TRANSACTION`, or a function given to `executeBeforeNextCommit` throwing in `commit` threw when the method was called, so a `.catch()` on the result didn't see them. A code using `await` inside `try` doesn't notice the change; a code ignoring the returned promise gets an unhandled rejection instead of an exception. The errors of the library raised while building the query now arrive as `TsSqlQueryExecutionError`, with the same `errorReason` and message, and the original `TsSqlProcessingError` in `cause`, so `instanceof TsSqlProcessingError` is no longer true for them. An error of your own code raised while building the query, like the one given to `allowWhen`, arrives as it is.
+- `commit()` rolls the transaction back when an `executeBeforeNextCommit` function fails, as `transaction(fn)` does. Before it left the transaction open, and a second `commit()` saved what that function had refused.
 
 **Bug fixes**:
 
@@ -41,6 +43,12 @@ The nested objects that a select and the `with` queries already accepted now wor
 - `executeProcedure` and `executeFunction` didn't give the source of the execution to the query runner, so `getQueryExecutionStack` returned `undefined` for them.
 - With a synchronous query runner, an error that made the transaction roll back was reported as its own `rollbackError`, even when the rollback worked.
 - `SqlTransactionQueryRunner` and the other query runners that manage the transaction rejected `NOT_IN_TRANSACTION` with a native promise, which `sync()` refuses with `SYNCHRONOUS_PROMISE_EXPECTED`.
+- `commit()` of a nested transaction, when an `executeAfterNextCommit` function failed, left the inner transaction as the current one: the metadata and the functions of the outer transaction were lost.
+- A function of `executeAfterNextRollback` failing after an error of your own in the body of `transaction` gave a `TypeError`, and both errors were lost: it now rejects with the error of the function, with yours in `transactionError`.
+- A rule of `dynamicConditionFor` returning a `dynamicBooleanExpressionUsing` with no conditions threw `DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE`: it now adds no condition.
+- MariaDB: the rejection of a write in a `snapshot` transaction (`ER_CHECKREAD`, 1020) is `TRANSACTION_ERROR` with `serialization failure`, as on the other databases, instead of `SQL_INTERNAL_ERROR`.
+- PostgreSQL: `equalsIfValue(null).and(true)` and similar conditions in a select, with a value left alone, failed reading the result, because the parameter came back as text.
+- `dynamicPick` without a second argument, as when it comes from a request without that property, threw a `TypeError`: it now picks only the mandatory properties, as `dynamicPickPaths` does.
 - `setIfSet` and `setIfHasValue` no longer count as giving a value to a required column of an insert: they only change what already has one, so `dynamicSet().setIfSet(...)` alone no longer compiles as executable.
 - `DynamicPick`, `DynamicPickPaths` and the functions that use them stopped one level before what a select projects: the columns of an object at the fifth level couldn't be picked.
 

@@ -211,8 +211,8 @@ describe(ctx.label, () => {
         expect(reasonOf(caught)).toBe('NESTED_TRANSACTION_NOT_SUPPORTED')
     })
 
-    test('commit-with-a-before-commit-hook-throwing-rejects', () => {
-        // MOCK-ONLY: the transaction stays open after the failure, and this connection is discarded with it.
+    test('commit-with-a-before-commit-hook-throwing-rolls-back-and-rejects', () => {
+        // MOCK-ONLY: it's a connection of its own, without touching the transaction of the real one.
         ctx.mockOnlyConnection()
         const { conn } = ctx.withFaultInjection()
         sync(conn.beginTransaction())

@@ -3565,7 +3565,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const sql = this._appendConditionSql(valueSource, params, false)
         const op = this._getResultingOperation(params)
         this._setResultingOperation(params, undefined)
-        const sql2 = this._appendConditionValue(value, params, columnType, columnTypeName, typeAdapter, false)
+        // With nothing on the left the value stands alone, and in a select it needs its type as any other value
+        const sql2 = this._appendConditionValue(value, params, columnType, columnTypeName, typeAdapter, !sql)
         const op2 = this._getResultingOperation(params)
         this._setResultingOperation(params, undefined)
         if (!sql || sql === this._trueValueForCondition) {
@@ -3598,7 +3599,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const sql = this._appendConditionSql(valueSource, params, false)
         const op = this._getResultingOperation(params)
         this._setResultingOperation(params, undefined)
-        const sql2 = this._appendConditionValue(value, params, columnType, columnTypeName, typeAdapter, false)
+        // With nothing on the left the value stands alone, and in a select it needs its type as any other value
+        const sql2 = this._appendConditionValue(value, params, columnType, columnTypeName, typeAdapter, !sql)
         const op2 = this._getResultingOperation(params)
         this._setResultingOperation(params, undefined)
         if (!sql || sql === this._falseValueForCondition) {

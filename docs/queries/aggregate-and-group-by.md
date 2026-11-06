@@ -963,7 +963,7 @@ const companiesByTotalAge = await connection.selectFrom(tCustomer)
 
 ## Any value of the group
 
-`anyValue(value)` is the SQL:2023 `any_value` aggregate function: any value of the group, for a column that is not grouped. It's useful when every row of the group has the same value but the column isn't part of the group by, like the name of the company the customers of a group belong to.
+`anyValue(value)` is the SQL:2023 `any_value` aggregate function: any value of the group, for a column that is not grouped. It's useful when every row of the group has the same value but the column isn't part of the group by, like the name of the company the customers of a group belong to. If some rows of the group have null in that column, the result can be null even if others have a value.
 
 ```ts
 const customerCountPerCompany = connection.selectFrom(tCustomer)

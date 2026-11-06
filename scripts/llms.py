@@ -30,7 +30,7 @@ AREAS = [
         'queries/*.md', 'dynamic/building-blocks.md', 'dynamic/three-valued-booleans.md', 'about/limitations.md', 'about/faqs.md',
     ], True),
     ('extreme-dynamic', 'Extreme dynamic queries', 'queries whose columns, filters and order come from the caller, typed from the database or from a business model, and writing values with a shape', [
-        'queries/extreme-dynamic-queries.md', 'queries/shapes.md', 'dynamic/from-*.md', 'dynamic/utilities/*.md', 'advanced/deep-utilities.md', 'advanced/tables-views-as-parameter.md',
+        'queries/extreme-dynamic-queries.md', 'queries/dynamic-select-functions.md', 'queries/shapes.md', 'dynamic/from-*.md', 'dynamic/utilities/*.md', 'advanced/deep-utilities.md', 'advanced/tables-views-as-parameter.md',
     ], True),
     ('types', 'Types of tables and rows', 'the types of a row of a table and the columns extracted from an object', [
         'advanced/utility-types.md', 'advanced/columns-from-object.md',

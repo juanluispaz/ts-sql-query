@@ -323,15 +323,29 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         }
         const opts: any = []
         __setQueryMetadata(source, opts)
+        // A commit that fails leaves the transaction open, but once it's done the transaction has ended, even when a function of after next commit fails
+        let committed = false
+        const popWhenCommitted = (e: unknown) => {
+            if (committed) {
+                this.popTransactionStack()
+            }
+            throw e
+        }
         try {
             const beforeCommit = this.beforeCommit
             if (beforeCommit) {
                 this.beforeCommit = null
-                const result = callDeferredFunctionsStoppingOnError('before next commit', beforeCommit, undefined, source)
+                let result
+                try {
+                    result = callDeferredFunctionsStoppingOnError('before next commit', beforeCommit, undefined, source)
+                } catch (e) {
+                    return this.__rollbackAfterFailedBeforeCommit(e)
+                }
                 if (isPromise(result)) {
-                    return result.then(() => {
+                    return result.catch((e) => this.__rollbackAfterFailedBeforeCommit(e)).then(() => {
                         try {
                             return this.queryRunner.executeCommit(opts).then(() => {
+                                committed = true
                                 const onCommit = this.onCommit
                                 this.onCommit = null
                                 return callDeferredFunctions('after next commit', onCommit, undefined, source)
@@ -357,10 +371,11 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                         }
                     }).then(() => {
                         this.popTransactionStack()
-                    })
+                    }, popWhenCommitted)
                 }
             }
             return this.queryRunner.executeCommit(opts).then(() => {
+                committed = true
                 const onCommit = this.onCommit
                 this.onCommit = null
                 return callDeferredFunctions('after next commit', onCommit, undefined, source)
@@ -376,7 +391,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 }
             }).then(() => {
                 this.popTransactionStack()
-            })
+            }, popWhenCommitted)
         } catch (e) {
             if (e instanceof TsSqlQueryExecutionError) {
                 return this.queryRunner.createRejectedPromise(e)
@@ -386,6 +401,25 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 return this.queryRunner.createRejectedPromise(e)
             }
         }
+    }
+    /**
+     * A function of before next commit is part of the transaction, so when it fails the
+     * transaction is rolled back, as `transaction(fn)` does.
+     */
+    private __rollbackAfterFailedBeforeCommit(error: unknown): Promise<void> {
+        return this.rollback().then(() => {
+            throw error
+        }, (rollbackError) => {
+            // SynchronousPromise also calls this function when the one above throws the error
+            if (rollbackError !== error && error instanceof TsSqlQueryExecutionError) {
+                if (rollbackError instanceof TsSqlQueryExecutionError && rollbackError.errorReason.reason === 'ERROR_EXECUTING_DEFERRED_IN_TRANSACTION') {
+                    error.attachAdditionalError(rollbackError, 'after next rollback')
+                } else {
+                    error.attachRollbackError(rollbackError)
+                }
+            }
+            throw error
+        })
     }
     rollback(): Promise<void> {
         const source = new QueryExecutionSource('Query executed at')

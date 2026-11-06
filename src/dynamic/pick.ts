@@ -44,7 +44,7 @@ export function dynamicPick<TYPE extends Pickable, MANDATORY extends PickablePat
     }
 
     const o: any = obj
-    const p: any = pick
+    const p: any = pick || {}
 
     for (let prop in o) {
         if (!o[prop]) {

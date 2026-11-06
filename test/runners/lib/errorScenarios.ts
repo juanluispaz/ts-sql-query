@@ -941,6 +941,24 @@ const mysqlScenarios: readonly ErrorScenario[] = [
 const mariadbScenarios: readonly ErrorScenario[] = [
     ...mysqlLikeScenarios,
     {
+        // innodb_snapshot_isolation, on by default from MariaDB 11.6.2
+        name: 'serialization-failure',
+        serverOnly: true,
+        run: async (ctx) => {
+            const a = ctx.runner
+            const b = await ctx.otherSession()
+            await a.executeBeginTransaction(['snapshot'])
+            try {
+                await a.executeSelectManyRows('select name from rt_probe where id = 1')
+                await b.executeUpdate(`update rt_probe set name = 'changed' where id = 1`)
+                return await a.executeUpdate(`update rt_probe set name = 'stale' where id = 1`)
+            } finally {
+                await a.executeRollback().catch(() => undefined)
+            }
+        },
+        expected: { reason: 'TRANSACTION_ERROR', transactionErrorType: 'serialization failure' },
+    },
+    {
         // mysql2 and mariadb write the values into the SQL text before sending it
         name: 'more-parameters-than-allowed',
         onlyRunners: ['BunSqlMySqlQueryRunner'],

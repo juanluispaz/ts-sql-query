@@ -52,6 +52,8 @@ async function main() {
 
     If you want to allow to have nested transactions you must create the instance as `new PgPoolQueryRunner(pool, {allowNestedTransactions: true})` 
 
+    PostgreSQL doesn't nest them: see [what this option does](../../../queries/transaction.md#nested-transactions).
+
 ## Using a single connection
 
 Executes queries through a dedicated [pg](https://www.npmjs.com/package/pg) connection.
@@ -83,6 +85,8 @@ async function main() {
 !!! warning
 
     If you want to allow to have nested transactions you must create the instance as `new PgQueryRunner(pgConnection, {allowNestedTransactions: true})` 
+
+    PostgreSQL doesn't nest them: see [what this option does](../../../queries/transaction.md#nested-transactions).
 
 ## Inside a transaction something else manages
 

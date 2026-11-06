@@ -9,72 +9,71 @@ This API provides methods to construct and execute SQL `INSERT` statements using
 ```typescript
 interface InsertExpression {
     /**
-     * Allow setting the shape of the values to insert. This shape allows you to map
+     * Sets the shape of the values to insert. This shape allows you to map
      * each property in the values to insert with the column's name in the table, in that
      * way, the property in the value doesn't need to have the same name.
-     * The only values to be insert are the ones included in the shape.
+     * The only values to be inserted are the ones included in the shape.
      */
     shapedAs(shape: InsertShape): this
     /** 
-     * Allow you to extend the previous set shape.
+     * Extends the previously set shape.
      * The values set after extending the shape will allow you to include the new properties in the extended shape.
      */
     extendShape(shape: InsertShape): this
 
-    /** Alias to set method: Set the values for insert */
+    /** Alias to set method: sets the values for insert */
     values(columns: InsertSets): this
-    /** Allow to insert multiple registers in the database */
+    /** Inserts multiple rows in the database */
     values(columns: InsertSets[]): this
     /** 
-     * Set the values for insert.
+     * Sets the values for insert. An undefined value writes a null.
      * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     set(columns: InsertSets): this
     /** 
-     * Set a value only if the provided value is not null, undefined, empty string 
+     * Sets a value only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array.
      * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfValue(columns: OptionalInsertSets): this
     /** 
-     * Set a previous set value only.
+     * Sets a value only if the column was previously set.
      * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfSet(columns: InsertSets): this
     /** 
-     * Set a previous set value only if the provided value is not null, undefined, empty string 
+     * Sets a value only if the column was previously set and the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array.
      * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfSetIfValue(columns: OptionalInsertSets): this
     /** 
-     * Set a unset value (only if the value was not previously set).
+     * Sets a value only if the column was not previously set.
      * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfNotSet(columns: InsertSets): this
     /** 
-     * Set a unset value only if the provided value is not null, undefined, empty string 
+     * Sets a value only if the column was not previously set and the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
-     * that is the default behaviour) or an empty array
-     * (only if the value was not previously set).
+     * that is the default behaviour) or an empty array.
      * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfNotSetIfValue(columns: OptionalInsertSets): this
     /** 
-     * Unset the listed columns previous set.
+     * Unsets the listed columns previously set.
      * It can be used in an insert of multiple values.
-     * */
+     */
     ignoreIfSet(...columns: string[]): this
     /** 
-     * Keep only the listed columns previous set.
+     * Keeps only the listed columns previously set.
      * It can be used in an insert of multiple values.
      */
     keepOnly(...columns: string[]): this
 
     /** 
-     * Set a value for the specified columns that was previously indicated a value for set.
+     * Sets a value for the specified columns that were previously given a value.
      * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array.
@@ -82,8 +81,8 @@ interface InsertExpression {
      */
     setIfHasValue(columns: InsertSets): this
     /** 
-     * Set a value for the specified columns that was previously indicated a value for 
-     * set only if the provided value is not null, undefined, empty string 
+     * Sets a value for the specified columns that were previously given a value, 
+     * only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array.
      * It is considered that the column has a value if it was set with a value that is not null, 
@@ -93,7 +92,7 @@ interface InsertExpression {
      */
     setIfHasValueIfValue(columns: OptionalInsertSets): this
     /** 
-     * Set a value for the specified columns that has not value to set.
+     * Sets a value for the specified columns that have no value to set.
      * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array.
@@ -101,7 +100,7 @@ interface InsertExpression {
      */
     setIfHasNoValue(columns: InsertSets): this
     /** 
-     * Set a value for the specified columns that has no value to set 
+     * Sets a value for the specified columns that have no value to set 
      * only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array.
@@ -112,7 +111,7 @@ interface InsertExpression {
      */
     setIfHasNoValueIfValue(columns: OptionalInsertSets): this
     /** 
-     * Unset the listed columns if them has value to set.
+     * Unsets the listed columns if they have a value to set.
      * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array.
@@ -120,7 +119,7 @@ interface InsertExpression {
      */
     ignoreIfHasValue(...columns: string[]): this
     /** 
-     * Unset the listed columns if them has no value to set.
+     * Unsets the listed columns if they have no value to set.
      * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array.
@@ -128,7 +127,7 @@ interface InsertExpression {
      */
     ignoreIfHasNoValue(...columns: string[]): this
     /** 
-     * Unset all columns that was set with no value.
+     * Unsets all columns that were set with no value.
      * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array.
@@ -137,55 +136,54 @@ interface InsertExpression {
     ignoreAnySetWithNoValue(): this
 
     /** 
-     * This only apply in an insert of multiple values.
-     * Set the values for insert 
+     * This only applies in an insert of multiple values.
+     * Sets the values for insert 
      */
     setForAll(columns: InsertSets): this
     /** 
-     * This only apply in an insert of multiple values.
-     * Set a value only if the provided value is not null, undefined, empty string 
+     * This only applies in an insert of multiple values.
+     * Sets a value only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array 
      */
     setForAllIfValue(columns: OptionalInsertSets): this
     /** 
-     * This only apply in an insert of multiple values.
-     * Set a previous set value only 
+     * This only applies in an insert of multiple values.
+     * Sets a value only if the column was previously set 
      */
     setForAllIfSet(columns: InsertSets): this
     /** 
-     * This only apply in an insert of multiple values.
-     * Set a previous set value only if the provided value is not null, undefined, empty string 
+     * This only applies in an insert of multiple values.
+     * Sets a value only if the column was previously set and the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array 
      */
     setForAllIfSetIfValue(columns: OptionalInsertSets): this
     /** 
-     * This only apply in an insert of multiple values.
-     * Set a unset value (only if the value was not previously set) 
+     * This only applies in an insert of multiple values.
+     * Sets a value only if the column was not previously set 
      */
     setForAllIfNotSet(columns: InsertSets): this
     /** 
-     * This only apply in an insert of multiple values.
-     * Set a unset value only if the provided value is not null, undefined, empty string 
+     * This only applies in an insert of multiple values.
+     * Sets a value only if the column was not previously set and the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
-     * that is the default behaviour) or an empty array
-     * (only if the value was not previously set) 
+     * that is the default behaviour) or an empty array 
      */
     setForAllIfNotSetIfValue(columns: OptionalInsertSets): this
 
     /** 
-     * This only apply in an insert of multiple values.
-     * Set a value for the specified columns that was previously indicated a value for set.
+     * This only applies in an insert of multiple values.
+     * Sets a value for the specified columns that were previously given a value.
      * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
      */
     setForAllIfHasValue(columns: InsertSets): this
     /** 
-     * This only apply in an insert of multiple values.
-     * Set a value for the specified columns that was previously indicated a value for 
-     * set only if the provided value is not null, undefined, empty string 
+     * This only applies in an insert of multiple values.
+     * Sets a value for the specified columns that were previously given a value, 
+     * only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array.
      * It is considered that the column has a value if it was set with a value that is not null, 
@@ -194,16 +192,16 @@ interface InsertExpression {
      */
     setForAllIfHasValueIfValue(columns: OptionalInsertSets): this
     /** 
-     * This only apply in an insert of multiple values.
-     * Set a value for the specified columns that has not value to set.
+     * This only applies in an insert of multiple values.
+     * Sets a value for the specified columns that have no value to set.
      * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
      */
     setForAllIfHasNoValue(columns: InsertSets): this
     /** 
-     * This only apply in an insert of multiple values.
-     * Set a value for the specified columns that has no value to set 
+     * This only applies in an insert of multiple values.
+     * Sets a value for the specified columns that have no value to set 
      * only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array.
@@ -214,17 +212,17 @@ interface InsertExpression {
     setForAllIfHasNoValueIfValue(columns: OptionalInsertSets): this
 
     /**
-     * Throw an error if the indicated properties are set
+     * Throws an error, when it is called, if the indicated properties are set
      */
     disallowIfSet(errorMessage: string, ...columns: string[]): this
     disallowIfSet(error: Error, ...columns: string[]): this
     /**
-     * Throw an error if the indicated properties are not set
+     * Throws an error, when it is called, if the indicated properties are not set
      */
     disallowIfNotSet(errorMessage: string, ...columns: string[]): this
     disallowIfNotSet(error: Error, ...columns: string[]): this
     /**
-     * Throw an error if the indicated properties was set with a value.
+     * Throws an error, when it is called, if the indicated properties were set with a value.
      * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
@@ -232,7 +230,7 @@ interface InsertExpression {
     disallowIfValue(errorMessage: string, ...columns: string[]): this
     disallowIfValue(error: Error, ...columns: string[]): this
     /**
-     * Throw an error if the indicated properties was set not set or has no value.
+     * Throws an error, when it is called, if the indicated properties were not set or have no value.
      * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
@@ -240,13 +238,13 @@ interface InsertExpression {
     disallowIfNoValue(errorMessage: string, ...columns: string[]): this
     disallowIfNoValue(error: Error, ...columns: string[]): this
     /**
-     * Throw an error if the any other set except the provided column list
+     * Throws an error, when it is called, if any column other than the listed ones is set.
      */
     disallowAnyOtherSet(errorMessage: string, ...columns: string[]): this
     disallowAnyOtherSet(error: Error, ...columns: string[]): this
 
     //
-    // When variants, that are only executed if the first param is true
+    // When variants, that only apply if the first param is true
     //
 
     setWhen(when: boolean, columns: InsertSets): this
@@ -285,81 +283,82 @@ interface InsertExpression {
     disallowAnyOtherSetWhen(when: boolean, errorMessage: string, ...columns: string[]): this
     disallowAnyOtherSetWhen(when: boolean, error: Error, ...columns: string[]): this
 
-    /** Allows to set the values dynamically */
+    /** Sets the values dynamically */
     dynamicSet(): this
     dynamicSet(columns: OptionalInsertSets): this
 
-    /** Alias to dynamicSet method: Allows to set the values dynamically */
+    /** Alias to dynamicSet method: sets the values dynamically */
     dynamicValues(columns: OptionalInsertSets): this
-    /** Allow to insert multiple registers in the database dynamically */
+    /** Inserts multiple rows in the database dynamically */
     dynamicValues(columns: OptionalInsertSets[]): this
 
-    /** Insert the default values in the table */
+    /** Inserts the default values in the table. Only available when the table has no required column without a default */
     defaultValues(): this
 
     /** Insert from a select */
     from(select: Subquery): this
 
     /** 
-     * Indicate that the query must return the last inserted id 
-     * Note: If you are inserting multiple rows, only PostgreSql, SqlServer and Oracle support it
+     * Indicates that the query must return the last inserted id. Only available when the table has an autogenerated primary key.
+     * Note: inserting multiple rows, or with an on conflict clause, it is not available on MySQL.
+     * Inserting from a select, it is not available on MySQL and Oracle.
      */
     returningLastInsertedId(): this
 
-    // Methos to specify the on conflict clause
-    /** Allows to specify the "on conflict do nothing" clause */
+    // Methods to specify the on conflict clause, only available on MariaDB, MySQL, PostgreSQL and SQLite
+    /** Specifies the "on conflict do nothing" clause */
     onConflictDoNothing(): this
-    /** Allows to specify the "on conflict do update" clause and next specify the sets */
+    // Without indicating the conflict, only available on MariaDB, MySQL and SQLite
+    /** Specifies the "on conflict do update" clause and next specify the sets */
     onConflictDoUpdateDynamicSet(): this
     onConflictDoUpdateDynamicSet(columns: UpdateSets): this
-    /** Allows to specify the "on conflict do update set" clause, setting the columns provided as argument */
+    /** Specifies the "on conflict do update set" clause, setting the columns provided as argument */
     onConflictDoUpdateSet(columns: UpdateSets): this
     /** 
-     * Allows to specify the "on conflict do update set" clause, setting the columns provided as argument.
-     * Set a value only if the provided value is not null, undefined, empty string 
+     * Specifies the "on conflict do update set" clause, setting the columns provided as argument.
+     * Sets a value only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array 
      */
     onConflictDoUpdateSetIfValue(columns: OptionalUpdateSets): this
-    /**Allow to specify the "on conflict" clasue indicating the index column expected by this clause */
+    /** Specifies the "on conflict" clause indicating the index columns expected by this clause. Only available on PostgreSQL and SQLite */
     onConflictOn(column: AnyValueSource, ...columns: AnyValueSource[]): this
-    /**Allow to specify the "on conflict on constraint" clasue indicating the index name expected by this clause */
+    /** Specifies the "on conflict on constraint" clause indicating the constraint expected by this clause. Only available on PostgreSQL */
     onConflictOnConstraint(constraint: RawFragment): this
 
     // Methods available when previously is called onConflictOn or onConflictOnConstraint
-    /** Allows to specify the "do nothing" clause */
+    /** Specifies the "do nothing" clause */
     doNothing(): this
-    /** Allows to specify the "do update" clause and next specify the sets */
+    /** Specifies the "do update" clause and next specify the sets */
     doUpdateDynamicSet(): this
     doUpdateDynamicSet(columns: UpdateSets): this
-    /** Allows to specify the do update set" clause, setting the columns provided as argument */
+    /** Specifies the "do update set" clause, setting the columns provided as argument */
     doUpdateSet(columns: UpdateSets): this
     /** 
-     * Allows to specify the "do update set" clause, setting the columns provided as argument.
-     * Set a value only if the provided value is not null, undefined, empty string 
+     * Specifies the "do update set" clause, setting the columns provided as argument.
+     * Sets a value only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array 
      */
     doUpdateSetIfValue(columns: OptionalUpdateSets): this
 
-    // Methods available to specify a where clause inmediatelly after call onConflictOn or any do update method
-    // (after a do update method the condition can use the values to insert, see valuesForInsert)
-    /** Allows to create the where dynamically */
+    // Methods to specify a where clause immediately after onConflictOn or any do update method
+    // (after a do update method the condition can use the values to insert, see valuesForInsert).
+    // Only available on PostgreSQL and SQLite
+    /** Creates the where dynamically */
     dynamicWhere(): this
-    /** Allows to specify the where */
+    /** Specifies the where */
     where(condition: BooleanValueSource): this
-    /** Allows to extends the where using an and */
+    /** Extends the where using an and */
     and(condition: BooleanValueSource): this
-    /** Allows to extends the where using an or */
+    /** Extends the where using an or */
     or(condition: BooleanValueSource): this
 
     /**
-     * Execute the insert, by default returns the number of inserted rows
+     * Executes the insert. By default it returns the number of inserted rows
      * 
-     * @param min Indicate the minimum of rows that must be updated, 
-     *           if the minimum is not reached an exception will be thrown
-     * @param max Indicate the maximum of rows that must be updated, 
-     *           if the maximum is exceeded an exception will be thrown
+     * @param min Minimum number of rows that must be inserted. If it isn't reached, the promise is rejected
+     * @param max Maximum number of rows that can be inserted. If it is exceeded, the promise is rejected
      */
     executeInsert(min?: number, max?: number): Promise<RESULT>
     /** Returns the sql query to be executed in the database */
@@ -367,39 +366,38 @@ interface InsertExpression {
     /** Returns the required parameters by the sql query */
     params(): any[]
 
-    // Returning methods
+    // Returning methods, not available on MySQL. Inserting from a select, not available on Oracle either
     /** 
-     * Allows to specify the returning clause.
+     * Specifies the returning clause.
      * It must be an object where the name of the property is the name of the resulting property
      * and the value is the ValueSource where the value will be obtained.
      */
     returning(columns: InsertReturningValues): this
-    /** Returns the optional values as null instead of optional undefined values, can only used immediately after returning(...) */
+    /** Returns the optional values as null instead of optional undefined values. It can only be used immediately after returning(...) */
     projectingOptionalValuesAsNullable(): this
     /** 
-     * Allows to specify the returning clause of a query that returns only one column.
+     * Specifies the returning clause of a query that returns only one column.
      * It receives as argument the ValueSource where the value will be obtained.
      */
     returningOneColumn(column: AnyValueSource): this
-    /** Execute the insert query that returns one o no result from the database */
+    /** Executes the insert query that returns one or no result from the database */
     executeInsertNoneOrOne(): Promise<RESULT | null>
     /** 
-     * Execute the insert query that returns one result from the database.
-     * If no result is returned by the database an exception will be thrown.
+     * Executes the insert query that returns one result from the database.
+     * If the database returns no result, the promise is rejected.
      */
     executeInsertOne(): Promise<RESULT>
     /** 
-     * Execute the insert query that returns zero or many results from the database 
+     * Executes the insert query that returns zero or many results from the database 
      * 
-     * @param min Indicate the minimum of rows that must be deleted, 
-     *           if the minimum is not reached an exception will be thrown
-     * @param max Indicate the maximum of rows that must be deleted, 
-     *           if the maximum is exceeded an exception will be thrown
+     * @param min Minimum number of rows that must be inserted. If it isn't reached, the promise is rejected
+     * @param max Maximum number of rows that can be inserted. If it is exceeded, the promise is rejected
      */
     executeInsertMany(min?: number, max?: number): Promise<RESULT[]>
 
     customizeQuery(customization: {
         afterInsertKeyword?: RawFragment
+        beforeQuery?: RawFragment
         afterQuery?: RawFragment
         queryExecutionName?: string
         queryExecutionMetadata?: any

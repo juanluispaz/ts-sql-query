@@ -4,13 +4,11 @@ search:
 ---
 # Column types
 
-This page describes how to define and configure the types of columns used in your tables when building a schema with `ts-sql-query`. It covers the predefined types, how to use custom types, and how to adapt values when interacting with the database.
+Each column you [map](mapping.md) has a type, which decides two things: the TypeScript type of its values, and the operations a query offers for it. This page has the types, which one to choose, and how to convert values on their way to and from the database.
 
-## Typing
+## The types of a column
 
-The following table lists the available column types you can assign, along with their corresponding TypeScript representation and general purpose.
-
-`ts-sql-query` allows you to define the columns with the following types:
+The same types are used for a [constant](../queries/basic-query-structure.md) and a [SQL fragment](../queries/sql-fragments.md).
 
 | Column type                     | TypeScript Type      | Description                                                       |
 |---------------------------------|----------------------|-------------------------------------------------------------------|
@@ -23,17 +21,17 @@ The following table lists the available column types you can assign, along with 
 | `localDate`                     | `Date`               | Date without time                                                 |
 | `localTime`                     | `Date`               | Time without date                                                 |
 | `localDateTime`                 | `Date`               | Date with time                                                    |
-| `customInt`                     | *custom*             | Int value using a custom type                                     |
-| `customDouble`                  | *custom*             | Double value using a custom type                                  |
-| `customUuid`                    | *custom*             | UUID value using a custom type                                    |
-| `customLocalDate`               | *custom*             | Date value using a custom type                                    |
-| `customLocalTime`               | *custom*             | Time value using a custom type                                    |
-| `customLocalDateTime`           | *custom*             | Date with time value using a custom type                          |
-| `enum`                          | *custom*             | Enum value using a custom type                                    |
-| `custom`                        | *custom*             | Custom equalable value                                            |
-| `customComparable`              | *custom*             | Custom comparable value                                           |
+| `customInt`                     | *custom*             | Your type, with the operations of `int`                           |
+| `customDouble`                  | *custom*             | Your type, with the operations of `double`                        |
+| `customUuid`                    | *custom*             | Your type, with the operations of `uuid`                          |
+| `customLocalDate`               | *custom*             | Your type, with the operations of `localDate`                     |
+| `customLocalTime`               | *custom*             | Your type, with the operations of `localTime`                     |
+| `customLocalDateTime`           | *custom*             | Your type, with the operations of `localDateTime`                 |
+| `enum`                          | *custom*             | Your type: can be compared for equality, like `equals` and `in`   |
+| `custom`                        | *custom*             | Your type: can be compared for equality, like `equals` and `in`   |
+| `customComparable`              | *custom*             | Your type: also can be ordered, like `lessThan` and `between`     |
 
-You can define a column with these types as indicated next:
+A column is defined with these types as follows, and each method of [Kinds of columns](mapping.md#kinds-of-columns) takes them in the same way:
 
 ```typescriptreact
 this.column('ColumnName', 'boolean')
@@ -62,7 +60,27 @@ this.column<MyCustomComparableType>('ColumnName', 'customComparable', 'MyCustomC
 
     **Where to generate it**: whichever UUID version you choose, prefer letting the database produce the value as a column `DEFAULT` over generating it in application code. The database is a single authoritative source (which also fixes the timestamp authority for v7), removes the application's runtime dependency on a UUID library, and produces the same shape regardless of which caller issues the `INSERT`. Generate it in the application only when the value must be known before the `INSERT` — for example to reference it in related records inserted in the same transaction or to return it eagerly to a caller. With the `uuid` package the application-side path for v7 is `import { v7 as uuidv7 } from 'uuid'`.
 
-    Per-database considerations apply; see the supported databases section for the server-side generators available on your engine.
+    The generators of each database are on its page: [MariaDB](supported-databases/mariadb.md#uuid-strategies), [MySQL](supported-databases/mysql.md#uuid-strategies), [Oracle](supported-databases/oracle.md#uuid-strategies), [PostgreSQL](supported-databases/postgresql.md#uuid-handling), [SQLite](supported-databases/sqlite.md#uuid-strategies) and [SQL Server](supported-databases/sqlserver.md#uuid-management).
+
+## Which type to choose
+
+Choose by the values your code handles, not only by the type of the column in the database:
+
+| You have | Use | What to know |
+|---|---|---|
+| A whole number that fits in a JavaScript `number` | `int` | Reading a number past `Number.MAX_SAFE_INTEGER` is rejected with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`, instead of giving you a rounded value. Sending a number with decimals is rejected too. |
+| A whole number that can be larger, like a 64-bit counter | `bigint` | The value in your code is a `bigint`. Some drivers round large integers unless you configure them: see the [query runner](query-runners/index.md#which-one-for-your-database) of your driver. The query is rejected rather than giving you a rounded value. |
+| A number with decimals, when a JavaScript `number` is enough | `double` | The value becomes a `number`, whatever the column is. A `decimal` column with more digits than a `number` holds loses them. |
+| A decimal number that must stay exact, like money | `customDouble` | With your own type for it, and the [conversion registered](#custom-types). The library doesn't convert it, so you receive what the driver gives. |
+| Text | `string` | An empty string [has no value](connection.md#allowing-empty-string) by default. |
+| True or false | `boolean` | Oracle and SQL Server store it as a number or a bit, with `0` and `1`. For other representations, like `'Y'` and `'N'`, see [Custom booleans values](../advanced/custom-booleans-values.md). |
+| A UUID | `uuid` | It's a `string` in your code, and how it's stored depends on the database, as in the tip above. |
+| A date with no time, like a birthday | `localDate` | A `Date`: read it with `getFullYear`, `getMonth` and `getDate`. See [`localDate` and `localTime`](time-zones.md#localdate-and-localtime-are-not-affected). |
+| A time with no date, like an opening time | `localTime` | A `Date`: read it with `getHours`, `getMinutes` and `getSeconds`. |
+| A date with time, like the moment something happened | `localDateTime` | A `Date`. This is the type for a column that stores an instant too, like `timestamptz` on PostgreSQL. Which zone it's read in is in [Time zones](time-zones.md). |
+| One of a fixed list of values | `enum` | With a union of your values as its TypeScript type. |
+| A value your code gives a type of its own, like an id with a TypeScript brand | The `custom...` type with the operations it needs | With the [conversion registered](#custom-types). |
+| A value that only your code understands, like a JSON document | `custom`, or `customComparable` if the database can order it | With the [conversion registered](#custom-types). |
 
 ## Custom types
 
@@ -107,9 +125,9 @@ When the value needs a conversion of its own, write it there: see [Global type a
 
 ## Type adapters
 
-You can control how a value is sent and received from the database. For that purpose, you can add a type adapter at the end of the column definition.
+A type adapter controls how the value of one column is sent to the database and received from it. It goes as the last argument of the column definition.
 
-**Example**: Imagine you want to store an RGB colour as a single number in the database, but in your application, you want to handle it as an object with R, G & B properties as a number. You can define a type adapter as:
+For example, to store an RGB colour as three bytes in the database and handle it in your application as an object with the properties `r`, `g` and `b`:
 
 ```ts
 import { type DefaultTypeAdapter, type TypeAdapter } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
@@ -164,9 +182,10 @@ this.column<RgbColor>('ColumnName', 'custom', 'RgbColor', new RgbColorTypeAdapte
 
 !!! important
 
-    - The type adapter handles all the values sending or coming from the database, including null/undefined values; you must handle it.
-    - The `type` param tells you what the expected type is; you must verify it and only process the value if it is the one you are applying the rule.
-    - The `next` gives you access to the default implementation; you must call if you cannot handle the type.
+    - The type adapter receives every value sent to or coming from the database, also `null` and `undefined`, so it has to handle them.
+    - The `type` parameter says what type is expected: process the value only if it's the one your rule applies to.
+    - `next` is the default implementation: call it for what your rule doesn't handle.
+    - An error thrown here arrives through the promise of the query, as it is.
 
 !!! tip
 
@@ -176,11 +195,7 @@ this.column<RgbColor>('ColumnName', 'custom', 'RgbColor', new RgbColorTypeAdapte
 
 ## Global type adapter
 
-When a type adapter should apply globally across all uses of a type, the logic can be embedded in the connection object:
-
-!!! tip
-
-    This is the recommended approach when the same logic should apply across multiple columns or tables, ensuring consistency and avoiding duplication of logic in each column definition.
+When the same conversion applies to every column of a type, write it in the connection object, so it isn't repeated in each column definition:
 
 ```ts
 interface RgbColor {r: number, g: number, b: number}
@@ -212,7 +227,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
         return super.transformValueToDB(value, type);
     }   
     protected override transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown): string {
-        // You can force a type cast in the query if you want. With this code, the parameter in the SQL will looks like %1::bytea
+        // You can force a type cast in the query if you want. With this code, the parameter in the SQL will look like $1::bytea
         // By default, in PostgreSql only, a type cast is generated when forceTypeCast is true
         if (type === 'RgbColor') {
             return placeholder + '::bytea'

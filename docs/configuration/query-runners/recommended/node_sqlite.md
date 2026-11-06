@@ -19,26 +19,26 @@ This runner provides integration with Node.js' built-in [`node:sqlite`](https://
 
 !!! warning "Runtime requirements"
 
-    - **Node.js 24 or newer** is recommended. `node:sqlite` is stable from Node 24 onward and is the only version where `DatabaseSync` exposes the `function()` API used to register custom SQL functions (e.g. for UUID handling) — which `ts-sql-query` relies on.
-    - On **Node 22**, `node:sqlite` is available but only as an experimental feature, and the `DatabaseSync.function()` API is not yet present. This runner can still be used for queries that do not require registering custom functions, but you must launch Node with `--experimental-sqlite` (e.g. `node --experimental-sqlite app.js` or `NODE_OPTIONS=--experimental-sqlite tsx app.ts`).
-    - On **Node 26** the experimental warning is gone and no flag is needed.
-    - On **Bun**, `node:sqlite` is available from Bun 1.4 onward (Bun's own implementation, `function()` included), with no flag.
+    | Runtime | What it needs |
+    |---|---|
+    | **Node 26** | Nothing |
+    | **Node 24** | Launch Node with `--experimental-sqlite` |
+    | **Node 22** | Launch Node with `--experimental-sqlite`. `DatabaseSync.function()` isn't there, so you can't [register the functions for UUIDs](#nodesqlite-and-uuids); the rest of the queries work |
+    | **Bun 1.4 or newer** | Nothing: it has its own implementation, with `function()` |
+
+    To launch with the flag: `node --experimental-sqlite app.js`, or `NODE_OPTIONS=--experimental-sqlite tsx app.ts`.
 
 !!! tip
 
     node:sqlite `DatabaseSync` supports synchronous query execution. See the [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.
 
-!!! warning "Do not share connections between requests"
+!!! warning "A `DatabaseSync` is a single connection"
 
-    A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
-
-    Therefore, **you must not share the same connection object between concurrent HTTP requests**. Instead, create a new connection object for each request, along with its own query runners.
-
-    Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
+    A `DatabaseSync` is one connection to SQLite: every query runner created over the same object shares it, and shares its transaction. Two connection objects over one `DatabaseSync` are not isolated from each other: a rollback in one undoes what the other did meanwhile, and while one has a transaction open, a transaction can't begin in the other. Don't use one object for requests that run at the same time with transactions: open a `DatabaseSync` for each one, which is another connection to the same file.
 
 ## Using a single connection
 
-Enables executing queries through a dedicated [`node:sqlite`](https://nodejs.org/api/sqlite.html) `DatabaseSync` connection.
+Every statement runs on the database object you give the query runner.
 
 ```ts
 import { DatabaseSync } from "node:sqlite";
@@ -53,9 +53,9 @@ async function main() {
 }
 ```
 
-!!! note "Safe Integers"
+## Large integers
 
-    By default, node:sqlite reads SQLite integers as JavaScript numbers and throws when a returned integer is outside JavaScript's safe integer range. If your queries may return larger integers, consider enabling `readBigInts` in the database configuration when your Node.js version supports it.
+By default, `node:sqlite` reads integers as JavaScript numbers and fails when one is outside JavaScript's safe integer range: the query rejects with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`. If your queries may return larger integers, create the database with `new DatabaseSync('foobar.db', { readBigInts: true })`, where your runtime has that option (Node 24.4 or newer). Every integer then arrives as a `BigInt`, and `ts-sql-query` converts it to the type the column declares: an `int` column still gives a `number`.
 
 ## node:sqlite and UUIDs
 

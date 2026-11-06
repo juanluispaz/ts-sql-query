@@ -5,27 +5,99 @@ search:
 <!-- doc-code-template: mysql -->
 # MySQL
 
-This page describes how `ts-sql-query` integrates with **[MySQL](https://www.mysql.com)**, including dialect-specific behavior, configuration options, and available features. It covers the proper setup of a MySQL connection, guidelines for connection management, and advanced behaviors such as UUID handling.
+This page has what is particular to MySQL: what it offers and what it doesn't, how to declare its version, the UUID strategies, the limit of `stringConcat`, what `snapshot` doesn't protect, and rounding. To define the connection and map your tables, the pages to read are [Connection](../connection.md) and [Mapping](../mapping.md).
 
-!!! info
-
-    To configure the database dialect, extend the appropriate database connection class when defining your connection. You must choose the correct database type to ensure that the generated SQL queries follow the dialect expected by that database.
-
-!!! warning "Do not share connections between requests"
-
-    A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
-
-    Therefore, **you must not share the same connection object between concurrent HTTP requests**. Instead, create a new connection object for each request, along with its own query runners.
-
-    Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
-
-## Usage Example
+## Defining the connection
 
 ```ts
 import { MySqlConnection } from "ts-sql-query/connections/MySqlConnection";
 
 class DBConnection extends MySqlConnection<'DBConnection'> { }
 ```
+
+Create a connection object for each request, and don't share it between concurrent requests: see [Instantiating the connection](../connection.md#instantiating-the-connection-with-the-database-connection).
+
+## What it offers and what it doesn't
+
+What isn't offered doesn't compile on this connection. On a version older than the one shown, the database rejects the query. Each link goes to the page that explains the feature, with all the databases side by side.
+
+| What | On this database |
+|---|---|
+| [`returning` in an insert](../../queries/insert.md#availability-per-database) | Not offered. `returningLastInsertedId()` is, for one row |
+| [`returning` in an update](../../queries/update.md#availability-in-each-database) | Not offered |
+| [`returning` in a delete](../../queries/delete.md#availability-in-each-database) | Not offered |
+| [`oldValues()` in an update](../../queries/update.md#availability-in-each-database) | Not offered |
+| [Insert on conflict](../../queries/insert-on-conflict.md#what-each-database-offers) | `onConflictDoNothing` and `onConflictDoUpdateSet`. `onConflictOn` and `onConflictOnConstraint` aren't offered |
+| Other tables in an [update](../../queries/update.md#availability-in-each-database) or a [delete](../../queries/delete.md#availability-in-each-database) | `from`, `using`, and a join right after `update` or `deleteFrom` |
+| [Compound queries](../../queries/compound-select.md#availability-in-each-database) | `union`, `unionAll`; the others from MySQL 8.0.31 |
+| [Recursive queries](../../queries/recursive-select.md#availability-in-each-database) | From MySQL 8.0.1; `startWith` and `connectBy` aren't offered |
+| [Arrays of objects from an aggregate](../../queries/aggregate-as-object-array.md#availability-in-each-database) | From MySQL 8.0.14. The `Distinct` versions aren't offered |
+| [`stringConcatDistinct`, `anyValue`](../../queries/aggregate-and-group-by.md#how-each-function-is-written-in-each-database) | Yes |
+| [Sequences](../mapping.md#using-a-sequence) | Not offered: MySQL doesn't have them |
+| [Stored procedures](../mapping.md#calling-a-stored-procedure) and [functions](../mapping.md#calling-a-function-of-the-database) | Yes |
+| [Isolation levels](../../queries/transaction.md#what-each-database-offers) | `read uncommitted`, `read committed`, `snapshot` ([with a limitation](#snapshot-isolation-doesnt-protect-writes)), `serializable` |
+
+## Compatibility version
+
+The `compatibilityVersion` property says which MySQL version the SQL must work on, encoded as the integer `major * 1_000_000 + minor * 1_000 + patch` — e.g. `8_000_019` for MySQL 8.0.19, `5_007_000` for MySQL 5.7. The numeric separator `_` is for readability only (`8_000_019 === 8000019`). The default is `Number.POSITIVE_INFINITY` (latest), so every supported feature is emitted.
+
+Patch precision matters here because MySQL 8.0 has a continuous-delivery history: from 8.0.0 (April 2018) through 8.0.34 (July 2023), patch releases added new dialect features (CTE, `LATERAL`, the row alias for `ON DUPLICATE KEY UPDATE`, `INTERSECT`/`EXCEPT`, etc.). The Innovation Release model that started with 8.1.0 is cumulative with these features.
+
+You can set this to your real database version (whatever it is) regardless of whether ts-sql-query currently uses it — extra granularity is harmless and future-proof.
+
+Recognised breakpoints (with the default `Number.POSITIVE_INFINITY` every breakpoint below is enabled — the list reads as the bar you need to clear to keep each feature):
+
+- `>= 8_000_019`: target MySQL 8.0.19+. The row alias syntax `INSERT ... AS _new_ ON DUPLICATE KEY UPDATE col = _new_.col` is emitted to reference values being inserted (added in 8.0.19; the legacy `VALUES(col)` function reference was deprecated in 8.0.20).
+- `>= 8_000_017`: target MySQL 8.0.17+. `DOUBLE` is used as a cast target (added in 8.0.17) whenever a value must be turned into a floating point number — `.asDouble()`, both operands of `.divide(...)`. Below this breakpoint the value is multiplied by the approximate literal `1.0e0` instead, which promotes it to `DOUBLE` on any version.
+- `>= 8_000_000`: target MySQL 8.0+. The `WITH` clause is used and recursive queries are supported.
+- `< 8_000_000`: target MySQL 5. The `WITH` clause is not emitted — the inner query is inlined in the `FROM` instead — and the legacy `VALUES(col)` reference is used inside `ON DUPLICATE KEY UPDATE`. A recursive query, or one with a [`Values`](../mapping.md#mapping-constant-values-as-view) source, can't be written for that version: its promise is rejected with the error `UNSUPPORTED_QUERY`, and nothing is sent to the database.
+
+```ts
+import { MySqlConnection } from "ts-sql-query/connections/MySqlConnection";
+
+class DBConnection extends MySqlConnection<'DBConnection'> {
+    protected override compatibilityVersion = 5_007_000
+}
+```
+
+## `snapshot` isolation doesn't protect writes
+
+`connection.isolationLevel('snapshot')` runs the transaction at MySQL's `REPEATABLE READ`. Its reads all see the database as of one moment, but an `UPDATE` or a `DELETE` works on the latest committed version of the row and is never refused, so a transaction can write on the strength of something that is no longer true and another transaction's update is lost without any error. Every other database `ts-sql-query` supports refuses that write; `ts-sql-query` treats it as a MySQL defect. The scenario, and what to do instead, is in [Transaction isolation](../../queries/transaction.md#mysql-and-mariadb-snapshot-writes).
+
+Further reading: [MySQL bug #117797](https://bugs.mysql.com/bug.php?id=117797), [Jepsen's analysis of MySQL 8.0.34](https://jepsen.io/analyses/mysql-8.0.34) (lost update, among other anomalies, under `REPEATABLE READ`) and [Jepsen's note on MariaDB's fix](https://jepsen.io/blog/2024-11-07-mariadb-snapshot-isolation).
+
+## `stringConcat` truncates long results
+
+`stringConcat` is emitted as `GROUP_CONCAT()`, which **silently truncates** its result at the session's `group_concat_max_len` — **1024 bytes by default**. It raises a warning, never an error, so the value arrives as a clean but incomplete string:
+
+```
+LENGTH(GROUP_CONCAT(6 x 200 chars)) = 1024      -- expected 1205
+SHOW WARNINGS -> Warning 1260 "Row 6 was cut by GROUP_CONCAT()"
+```
+
+There is no alternative function on this engine (`STRING_AGG` does not exist), so the limit is inherent to the aggregate and the library cannot work around it. It is session configuration your application owns — raise it on the connection if you aggregate long strings:
+
+```js
+pool.on('connection', c => c.query('SET SESSION group_concat_max_len = 1000000'))
+```
+
+## Collations & case sensitivity
+
+MySQL's default collation (`utf8mb4_0900_ai_ci`) is case- **and accent-insensitive** — so `equals` / `contains` / `like` fold both case and accents out of the box, where PostgreSQL, Oracle and SQLite would not. The plain string operations follow that configured collation; the `*Insensitive` operations force case-insensitivity over it. To force the *case-sensitive* direction, use a binary collation (`utf8mb4_bin`) with `.collate('<name>')` per value or on the column — the `SET collation_connection` session variable does **not** retarget a column comparison. `REPLACE` ignores collation on MySQL, so `replaceAll` is byte-wise case-sensitive with nothing to configure; for a case-insensitive replace use [`.replaceAllInsensitive(...)`](../collations.md#replaceallinsensitive-the-insensitive-twin). See the dedicated [Collations & case sensitivity](../collations.md) page and the [MySQL / MariaDB tab](../collations.md#per-database).
+
+!!! warning "Validate the case sensitivity, then configure the connection"
+
+    The case- and accent-insensitive (`_ai_ci`) default is common but **not guaranteed** — a database or column can be created with a binary (`utf8mb4_bin`) or case-sensitive collation, and a deployment you don't control may differ. Confirm it rather than assuming: `SELECT @@collation_database` for the database default, or `SHOW FULL COLUMNS FROM your_table` per column (the `Collation` column).
+
+    If it **is** case-insensitive, tell ts-sql-query so it generates the leanest SQL: set **`insensitiveCollation = ''`** on the connection. The `*Insensitive` operations then trust the column's collation and drop the redundant `lower(a) = lower(b)` — which also defeats indexes — emitting the bare comparison the already-CI column folds correctly:
+
+    ```ts
+    class DBConnection extends MySqlConnection<'DBConnection'> {
+        override insensitiveCollation = '' // the database is already case-insensitive — trust it
+    }
+    ```
+
+    Note too that the **plain** operations already fold case (and accents) here — `.equals(...)` behaves like `.equalsInsensitive(...)`. Where a query needs a case-sensitive comparison, force it with `.collate('utf8mb4_bin')`.
 
 ## UUID strategies
 
@@ -64,68 +136,6 @@ CREATE FUNCTION BIN_TO_UUID(b BINARY(16)) RETURNS CHAR(36) DETERMINISTIC
 ```
 
 They store the 16 bytes as-is (no version-specific reordering), so they accept any UUID version — unlike MySQL's built-in swap form `UUID_TO_BIN(uuid, 1)`, which reorders the time fields of a v1 UUID. The `NULL` guard in `BIN_TO_UUID` returns `NULL` for a `NULL` input, matching the built-in (an unguarded `CONCAT_WS` would return a stray `----` string). `CHAR` results from a stored function take the database's default collation, so keep the connection collation aligned with it (on 5.7 that is `utf8mb4_general_ci`) to avoid an `Illegal mix of collations` error when a UUID string is compared against a literal.
-
-## Compatibility version
-
-The `compatibilityVersion` property declares the minimum MySQL version the generated SQL must support, encoded as the integer `major * 1_000_000 + minor * 1_000 + patch` — e.g. `8_000_019` for MySQL 8.0.19, `5_007_000` for MySQL 5.7. The numeric separator `_` is for readability only (`8_000_019 === 8000019`). The default is `Number.POSITIVE_INFINITY` (latest), so every supported feature is emitted.
-
-Patch precision matters here because MySQL 8.0 has a continuous-delivery history: from 8.0.0 (April 2018) through 8.0.34 (July 2023), patch releases added new dialect features (CTE, `LATERAL`, the row alias for `ON DUPLICATE KEY UPDATE`, `INTERSECT`/`EXCEPT`, etc.). The Innovation Release model that started with 8.1.0 is cumulative with these features.
-
-You can set this to your real database version (whatever it is) regardless of whether ts-sql-query currently uses it — extra granularity is harmless and future-proof.
-
-Recognised breakpoints (with the default `Number.POSITIVE_INFINITY` every breakpoint below is enabled — the list reads as the bar you need to clear to keep each feature):
-
-- `>= 8_000_019`: target MySQL 8.0.19+. The row alias syntax `INSERT ... AS _new_ ON DUPLICATE KEY UPDATE col = _new_.col` is emitted to reference values being inserted (added in 8.0.19; the legacy `VALUES(col)` function reference was deprecated in 8.0.20).
-- `>= 8_000_017`: target MySQL 8.0.17+. `DOUBLE` is used as a cast target (added in 8.0.17) whenever a value must be turned into a floating point number — `.asDouble()`, both operands of `.divide(...)`. Below this breakpoint the value is multiplied by the approximate literal `1.0e0` instead, which promotes it to `DOUBLE` on any version.
-- `>= 8_000_000`: target MySQL 8.0+. The `WITH` clause is used and recursive queries are supported.
-- `< 8_000_000`: target MySQL 5. The `WITH` clause is not emitted — the inner query is inlined in the `FROM` instead — recursive queries throw at query-build time, and the legacy `VALUES(col)` reference is used inside `ON DUPLICATE KEY UPDATE`.
-
-```ts
-import { MySqlConnection } from "ts-sql-query/connections/MySqlConnection";
-
-class DBConnection extends MySqlConnection<'DBConnection'> {
-    protected override compatibilityVersion = 5_007_000
-}
-```
-
-## `stringConcat` truncates long results
-
-`stringConcat` is emitted as `GROUP_CONCAT()`, which **silently truncates** its result at the session's `group_concat_max_len` — **1024 bytes by default**. It raises a warning, never an error, so the value arrives as a clean but incomplete string:
-
-```
-LENGTH(GROUP_CONCAT(6 x 200 chars)) = 1024      -- expected 1205
-SHOW WARNINGS -> Warning 1260 "Row 6 was cut by GROUP_CONCAT()"
-```
-
-There is no alternative function on this engine (`STRING_AGG` does not exist), so the limit is inherent to the aggregate and the library cannot work around it. It is session configuration your application owns — raise it on the connection if you aggregate long strings:
-
-```js
-pool.on('connection', c => c.query('SET SESSION group_concat_max_len = 1000000'))
-```
-
-## `snapshot` isolation doesn't protect writes
-
-`connection.isolationLevel('snapshot')` runs the transaction at MySQL's `REPEATABLE READ`. Its reads all see the database as of one moment, but an `UPDATE` or a `DELETE` works on the latest committed version of the row and is never refused, so a transaction can write on the strength of something that is no longer true and another transaction's update is lost without any error. Every other database `ts-sql-query` supports refuses that write; `ts-sql-query` treats it as a MySQL defect. The scenario, and what to do instead, is in [Transaction isolation](../../queries/transaction.md#mysql-and-mariadb-snapshot-writes).
-
-Further reading: [MySQL bug #117797](https://bugs.mysql.com/bug.php?id=117797), [Jepsen's analysis of MySQL 8.0.34](https://jepsen.io/analyses/mysql-8.0.34) (lost update, among other anomalies, under `REPEATABLE READ`) and [Jepsen's note on MariaDB's fix](https://jepsen.io/blog/2024-11-07-mariadb-snapshot-isolation).
-
-## Collations & case sensitivity
-
-MySQL's default collation (`utf8mb4_0900_ai_ci`) is case- **and accent-insensitive** — so `equals` / `contains` / `like` fold both case and accents out of the box, where PostgreSQL, Oracle and SQLite would not. The plain string operations follow that configured collation; the `*Insensitive` operations force case-insensitivity over it. To force the *case-sensitive* direction, use a binary collation (`utf8mb4_bin`) with `.collate('<name>')` per value or on the column — the `SET collation_connection` session variable does **not** retarget a column comparison. `REPLACE` ignores collation on MySQL, so `replaceAll` is byte-wise case-sensitive with nothing to configure; for a case-insensitive replace use [`.replaceAllInsensitive(...)`](../collations.md#replaceallinsensitive-the-insensitive-twin). See the dedicated [Collations & case sensitivity](../collations.md) page and the [MySQL / MariaDB tab](../collations.md#per-database).
-
-!!! warning "Validate the case sensitivity, then configure the connection"
-
-    The case- and accent-insensitive (`_ai_ci`) default is common but **not guaranteed** — a database or column can be created with a binary (`utf8mb4_bin`) or case-sensitive collation, and a deployment you don't control may differ. Confirm it rather than assuming: `SELECT @@collation_database` for the database default, or `SHOW FULL COLUMNS FROM your_table` per column (the `Collation` column).
-
-    If it **is** case-insensitive, tell ts-sql-query so it generates the leanest SQL: set **`insensitiveCollation = ''`** on the connection. The `*Insensitive` operations then trust the column's collation and drop the redundant `lower(a) = lower(b)` — which also defeats indexes — emitting the bare comparison the already-CI column folds correctly:
-
-    ```ts
-    class DBConnection extends MySqlConnection<'DBConnection'> {
-        override insensitiveCollation = '' // the database is already case-insensitive — trust it
-    }
-    ```
-
-    Note too that the **plain** operations already fold case (and accents) here — `.equals(...)` behaves like `.equalsInsensitive(...)`. Where a query needs a case-sensitive comparison, force it with `.collate('utf8mb4_bin')`.
 
 ## Rounding behavior
 

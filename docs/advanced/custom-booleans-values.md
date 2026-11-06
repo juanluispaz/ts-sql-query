@@ -4,9 +4,7 @@ search:
 ---
 # Custom booleans values
 
-Sometimes, especially when working with [Oracle](../configuration/supported-databases/oracle.md) databases, booleans are stored using custom values rather than standard `true` and `false`. For instance, a field might use the character `'Y'` to represent `true` and `'N'` to represent `false`.
-
-For example:
+Sometimes, especially in [Oracle](../configuration/supported-databases/oracle.md) databases, a boolean is stored with values of your own instead of `true` and `false`, for example a column with `'Y'` for `true` and `'N'` for `false`. Your code still works with a `boolean`: you give the column a `CustomBooleanTypeAdapter` with the true value and the false value, both strings or both numbers, and the library converts them.
 
 ```ts
 import { Table } from "ts-sql-query" // or "ts-sql-query/Table";
@@ -22,9 +20,9 @@ const tCustomCompany = new class TCustomCompany extends Table<DBConnection, 'TCu
 }();
 ```
 
-The table `custom_company` the field `is_big` accepts the values `Y` and `N`. This field represents a boolean type, and on the JavaScript side, it will be mapped as boolean. But, on the database side, the field will be treated with appropriated values. The conversion between values will be performed by `ts-sql-query` automatically; you don't need to be worried about the type mismatching even if you try to assign the value to another field with a different way of representing booleans.
+In the table `custom_company`, the column `is_big` has the values `Y` and `N`. In TypeScript, `isBig` is a `boolean`. The library converts in the SQL itself, so it also works when a query assigns or compares it with another boolean column that represents its values in a different way.
 
-You can perform an insert in this way:
+An insert writes the value that corresponds to the boolean:
 
 ```ts
 const insertCustomCompany = connection.insertInto(tCustomCompany).set({
@@ -82,7 +80,7 @@ The result type is:
 const insertCustomCompany: Promise<number>
 ```
 
-Or a select:
+A select compares the column with the true value, so any other value in the column is read as `false`:
 
 ```ts
 const selectAllBigCompanies = connection.selectFrom(tCustomCompany)

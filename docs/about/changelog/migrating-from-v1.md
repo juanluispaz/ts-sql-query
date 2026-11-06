@@ -426,7 +426,7 @@ A property left in your connection class still compiles and does nothing, unless
 
 ### Tests with MockQueryRunner
 
-`MockQueryRunner` now follows the transactions like a real driver: `commit`, `rollback`, `getTransactionMetadata()` and the deferred functions outside a transaction throw `NOT_IN_TRANSACTION`. Wrap those calls in a transaction ([docs](../../configuration/query-runners/general-purpose/MockQueryRunner.md#transaction-state-guards)). A nested transaction still works there, so a mock doesn't show the rejection a real query runner gives.
+`MockQueryRunner` now follows the transactions like a real driver: `commit`, `rollback`, `getTransactionMetadata()` and the deferred functions outside a transaction throw `NOT_IN_TRANSACTION`. Wrap those calls in a transaction ([docs](../../configuration/query-runners/general-purpose/MockQueryRunner.md#transactions)). A nested transaction still works there, so a mock doesn't show the rejection a real query runner gives.
 
 ## What only changes the SQL text
 

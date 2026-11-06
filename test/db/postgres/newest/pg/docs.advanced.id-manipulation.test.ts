@@ -179,6 +179,22 @@ describe(ctx.label, () => {
         expect(() => enc.decrypt(tampered)).toThrow(/Invalid id/)
     })
 
+    test('docs:id-manipulation/is-valid-encrypted-id', () => {
+        // doc-start
+        const looksValid = isValidEncryptedID('uftSdCUhUTBQ0111')
+        const looksValidWithPrefix = isValidEncryptedID('coFJL3xTJZvP6Kd30d', 'co')
+        // doc-end
+        expect(looksValid).toBe(true)
+        expect(looksValidWithPrefix).toBe(true)
+    })
+
+    test('docs-extra:id-manipulation/same-id-same-text-without-prefix-and-different-with-prefix', () => {
+        const enc = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c')
+        expect(enc.encrypt(1n)).toBe('uftSdCUhUTBQ0111')
+        expect(enc.encrypt(1n, 'co')).toBe('coFJL3xTJZvP6Kd30d')
+        expect(enc.encrypt(1n, 'co')).not.toBe(enc.encrypt(1n, 'cu'))
+    })
+
     test('docs-extra:id-manipulation/is-valid-encrypted-id-true-for-output-of-encrypt', () => {
         // the cheap client-side checksum check
         // that a UI can run before sending the string back to the

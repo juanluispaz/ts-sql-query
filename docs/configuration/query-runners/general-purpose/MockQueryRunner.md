@@ -4,7 +4,7 @@ search:
 ---
 # MockQueryRunner
 
-This general-purpose query runner enables controlled mocking of query execution in a fully predictable environment. It is primarily used in tests and simulations, where you can inspect the queries being issued and manually specify the expected return values.
+A query runner that takes the place of the database in a test: your function receives each statement, can check its SQL and its parameters, and decides its result. If the results don't matter, [`NoopQueryRunner`](NoopQueryRunner.md) needs no function.
 
 !!! success "Supported databases"
 
@@ -19,15 +19,7 @@ This general-purpose query runner enables controlled mocking of query execution 
 
     `MockQueryRunner` supports synchronous query execution. See the [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.
 
-!!! warning "Do not share connections between requests"
-
-    A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
-
-    Therefore, **you must not share the same connection object between concurrent HTTP requests**. Instead, create a new connection object for each request, along with its own query runners.
-
-    Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
-
-## Usage Example
+## Creating it
 
 ```ts
 import { MockQueryRunner } from "ts-sql-query/queryRunners/MockQueryRunner";
@@ -44,9 +36,7 @@ async function main() {
 }
 ```
 
-## API Overview
-
-The `MockQueryRunner` receives a function as argument to the constructor, this function returns the result of the query execution and receives the following arguments:
+The function receives these arguments, and what it returns is the result of the statement:
 
 - **`type: QueryType`**: type of the query to be executed. The `QueryType` is defined as:
 
@@ -62,11 +52,13 @@ type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | '
     'executeDatabaseSchemaModification' | 'executeConnectionConfiguration'
 ```
 
-- **`query: string`**: query required to be executed
-- **`params: any[]`**: parameters received by the query
-- **`index: number`**: this is a counter of queries executed by the connection; that means, when the first query is executed the value is 0, when the second query is executed the value is 1, etc.
+- **`query: string`**: the SQL to be executed.
+- **`params: any[]`**: the parameters of the query.
+- **`index: number`**: how many statements the query runner received before this one: `0` for the first, `1` for the second, and so on.
 
-**Example of usage**
+The statements of a transaction reach your function too, and count in `index`: `beginTransaction`, `commit` and `rollback`, with the SQL `begin transaction`, `commit` and `rollback`. So a query inside `connection.transaction(...)` has index `1` when it's the first one, and `executeSelectPage` calls it twice, for the rows and for the count.
+
+A test with two statements:
 
 ```ts
 test('my test', async () => {
@@ -111,66 +103,42 @@ test('my test', async () => {
 });
 ```
 
-## What the runner validates
+## What your function returns
 
-The value your executor returns goes through two stages before it reaches the calling code.
+Return what the database would give for that type of query:
 
-The first stage is a **shape gate** inside the runner. For each `queryType`, the runner checks that the value matches the rough shape a real driver would produce — a plain object for a single-row select, an array of plain objects for a many-row select, a number for affected-row counts, and so on. A non-conforming value is rejected with a `TsSqlProcessingError` whose `reason` is `INVALID_MOCKED_VALUE` and that carries the offending `queryType` and `index`, so the bad executor branch is easy to locate.
+| Query type | Return | If you return `undefined` or `null` |
+|---|---|---|
+| `selectOneRow`, `insertReturningOneRow`, `updateReturningOneRow`, `deleteReturningOneRow` | A plain object, with a property for each alias of the SQL (`{ id: 12, name: 'ACME' }` for `select id as id, name as name`) | No row |
+| `selectManyRows`, `insertReturningManyRows`, `updateReturningManyRows`, `deleteReturningManyRows` | An array of those objects | An empty array |
+| `selectOneColumnOneRow`, `insertReturningOneColumnOneRow`, `updateReturningOneColumnOneRow`, `deleteReturningOneColumnOneRow`, `insertReturningLastInsertedId`, `executeFunction` | The value | No value |
+| `selectOneColumnManyRows`, `insertReturningOneColumnManyRows`, `updateReturningOneColumnManyRows`, `deleteReturningOneColumnManyRows`, `insertReturningMultipleLastInsertedId` | An array of values | An empty array |
+| `insert` | The number of rows inserted | `1` |
+| `update`, `delete` | The number of rows affected | `0` |
+| `executeProcedure`, `beginTransaction`, `commit`, `rollback`, `executeDatabaseSchemaModification`, `executeConnectionConfiguration` | Nothing | |
 
-Past that gate the value flows through the **same result-projection pipeline** a real driver's response would: type adapters convert each field, mandatory columns are checked for `null`/`undefined`, and aggregated-array JSON is parsed and validated. The mock is impersonating a database response from then on, so projector-level errors fire identically to real-DB mode:
+A value of another shape makes the query reject with reason `INVALID_MOCKED_VALUE`, which says the `queryType` and the `index`, so you can find the branch of your function that returned it.
 
-- A structurally valid row that omits a column the `select({...})` projects as required surfaces `MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE`.
-- A value whose runtime type does not match the declared column type surfaces `INVALID_VALUE_RECEIVED_FROM_DATABASE`.
-- A non-array or unparseable JSON string for a JSON-aggregated column surfaces `INVALID_JSON_RECEIVED_FROM_DATABASE`.
+After that check, the value goes through the same steps as the response of a real driver: type adapters convert each field, mandatory columns are checked, and aggregated-array JSON is parsed. So you get the errors a database response like that would give:
 
-These are the same errors a real driver would trigger against the same payload — that is the documented invariant, not a separate mock-specific error. The fix in test code is to include every projected column in the mocked row (or, when the test only asserts the emitted SQL, to return `[]` or `undefined` so the projector has nothing to walk).
+- A row that omits a column the `select({...})` projects as required gives `MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE`.
+- A value whose runtime type doesn't match the type of the column gives `INVALID_VALUE_RECEIVED_FROM_DATABASE`.
+- A non-array or unparseable JSON string for a JSON-aggregated column gives `INVALID_JSON_RECEIVED_FROM_DATABASE`.
 
-## Configuration options
+Include every projected column in the row you return. When a test only checks the SQL, return `undefined`: `executeSelectMany` gives an empty list and `executeSelectNoneOrOne` gives `null`, while `executeSelectOne` rejects with `NO_RESULT`, as with a database that finds no row.
 
-The second constructor argument accepts either a `DatabaseType` string (shown above) or a configuration object with the following fields:
+## When your function throws
 
-<!-- doc-code-snippet-template: simplifiedDefinition -->
-```ts
-interface MockQueryRunnerConfig {
-    database?: DatabaseType
-    promise?: PromiseProvider
-    isSqlError?: (error: unknown) => boolean
-}
-```
+An error your function throws, a failed `expect` included, makes the `execute` method reject with a `TsSqlQueryExecutionError`, with the error you threw as its `cause`: the same as an error of a real driver. Its reason is `UNKNOWN`, unless what you throw is an error of `ts-sql-query`, which keeps its own.
 
-- **`database`**: dialect name used to format placeholders (`$1`, `?`, `:0`, …). Defaults to `'noopDB'`. Must match the connection class you wrap the runner with.
-- **`promise`**: alternative `Promise` provider, used by [synchronous query runners](../../../advanced/synchronous-query-runners.md) (e.g. `synchronous-promise`). Defaults to the native `Promise`.
-- **`isSqlError`**: customizes how the connection classifies a thrown value as a SQL error. The default classifies everything as a SQL error, which causes the connection's transaction handling to wrap your thrown value inside a `TsSqlQueryExecutionError`. Returning `false` for a thrown value makes the connection propagate it as-is instead — useful when test code uses a sentinel error to roll back a transaction and wants the sentinel to bubble up to the surrounding `try`/`catch` unchanged.
+## Transactions
 
-```ts
-class Rollback extends Error {}
+`MockQueryRunner` follows the transactions like a real query runner: `beginTransaction` opens one, `commit` and `rollback` close it, and `isTransactionActive()` answers from that. Outside a transaction:
 
-const runner = new MockQueryRunner(executor, {
-    database: 'postgreSql',
-    isSqlError: (e) => !(e instanceof Rollback),
-})
+- `commit()` and `rollback()` reject with `NOT_IN_TRANSACTION`.
+- `executeBeforeNextCommit`, `executeAfterNextCommit`, `executeAfterNextRollback` and `getTransactionMetadata()` throw `NOT_IN_TRANSACTION`.
 
-// inside a test:
-try {
-    await connection.transaction(async () => {
-        // ...do the thing under test...
-        throw new Rollback() // propagates as Rollback, not as TsSqlQueryExecutionError
-    })
-} catch (e) {
-    if (!(e instanceof Rollback)) throw e
-}
-```
-
-## Transaction-state guards
-
-`MockQueryRunner` mirrors real-driver transaction semantics. The runner keeps an internal transaction-depth counter that `executeBeginTransaction` increments and `executeCommit` / `executeRollback` decrement, and `isTransactionActive()` is answered from that counter. The transaction-lifecycle runtime guards on the connection therefore engage in mock mode exactly as they do for a real driver:
-
-- `commit()` or `rollback()` outside a transaction throws `NOT_IN_TRANSACTION`.
-- Registering `executeBeforeNextCommit` / `executeAfterNextCommit` / `executeAfterNextRollback` outside a transaction throws `NOT_IN_TRANSACTION`.
-- Calling `getTransactionMetadata()` outside a transaction throws `NOT_IN_TRANSACTION`.
-- A nested `transaction(...)` against a runner that reports `nestedTransactionsSupported(): false` throws `NESTED_TRANSACTION_NOT_SUPPORTED`.
-
-`isMocked()` continues to return `true` on `MockQueryRunner`. It is a diagnostic for external consumer code that needs to discriminate "the connection is a mock" from "the connection is real" at runtime (e.g. to skip integration-only assertions) — it no longer controls any guard.
+A [nested transaction](../../../queries/transaction.md#nested-transactions) is allowed, unlike on the other query runners, so a test with a mock doesn't show its rejection.
 
 ```ts
 const runner = new MockQueryRunner(executor, { database: 'postgreSql' })
@@ -179,8 +147,8 @@ const connection = new DBConnection(runner)
 await connection.beginTransaction()
 await connection.commit()
 
-// The second commit hits the same NOT_IN_TRANSACTION guard the real
-// driver would, because the mock's depth counter is back at zero.
+// The second commit is rejected, as it would be with a real driver:
+// the transaction is already closed
 await expect(connection.commit()).rejects.toThrow(/NOT_IN_TRANSACTION/)
 ```
 
@@ -190,7 +158,7 @@ Code that registers [functions for the end of the transaction](../../../queries/
 
 ### Running it inside a transaction
 
-With `MockQueryRunner`, as with a database, registering those functions or reading the metadata needs a transaction, and throws `NOT_IN_TRANSACTION` without one. (Before v2.0.0-alpha.4 the mock accepted the registration without a transaction, and the function never ran; a test that called such code directly now fails.) The code under test can get its transaction in two ways:
+With `MockQueryRunner`, as with a database, registering those functions or reading the metadata needs a transaction, and throws `NOT_IN_TRANSACTION` without one. The code under test can get its transaction in two ways:
 
 - **The test begins it**, the way the application does around that code (a request handler, a job). This is the closest to what runs in production:
 
@@ -224,7 +192,7 @@ Inside a transaction, the registered functions run when it ends, with the mock a
 
 ## Resetting between test cases
 
-`MockQueryRunner` keeps an internal counter that increments on every executor call and is what gets passed as the `index` argument (`0` for the first query of the runner's lifetime, then `1`, `2`, …). When you reuse a single `MockQueryRunner` instance across many test cases — each priming its own sequence of responses keyed by `index` — call `runner.reset()` between cases to bring the counter back to `0`:
+When you reuse one `MockQueryRunner` across many test cases, each with its own sequence of responses by `index`, call `runner.reset()` between them. It brings `index` back to `0` and closes any transaction the previous case left open:
 
 ```ts
 const runner = new MockQueryRunner(executor, 'postgreSql')
@@ -235,4 +203,40 @@ beforeEach(() => {
 })
 ```
 
-If you create a fresh `MockQueryRunner` per test case (and therefore a fresh connection too), `reset()` is unnecessary — the counter is per-instance.
+If you create a new `MockQueryRunner` for each test case, with a new connection, you don't need `reset()`.
+
+## Options
+
+The second argument of the constructor is the name of a database, or an object with these options:
+
+<!-- doc-code-snippet-template: simplifiedDefinition -->
+```ts
+interface MockQueryRunnerConfig {
+    database?: DatabaseType
+    promise?: PromiseProvider
+    isSqlError?: (error: unknown) => boolean
+}
+```
+
+- **`database`**: the database to write the placeholders for (`$1`, `?`, `:0`, …). A connection sets it to its own database when you create it, so you only need this to use the query runner without a connection.
+- **`promise`**: another `Promise` provider, used by [synchronous query runners](../../../advanced/synchronous-query-runners.md) (e.g. `synchronous-promise`). Defaults to the native `Promise`.
+- **`isSqlError`**: which errors count as errors of the database in `connection.transaction(...)`, `beginTransaction()`, `commit()` and `rollback()`. By default only the errors of `ts-sql-query` do, so an error your code throws in the transaction comes out as it is, as with a real query runner. An error it accepts comes out wrapped in a `TsSqlQueryExecutionError`, as the error of a real driver does. This is how to simulate one thrown in the transaction:
+
+```ts
+class DriverError extends Error {}
+
+const runner = new MockQueryRunner(executor, {
+    database: 'postgreSql',
+    isSqlError: (e) => e instanceof DriverError,
+})
+
+// inside a test:
+try {
+    await connection.transaction(async () => {
+        // ...do the thing under test...
+        throw new DriverError('the connection was lost') // rolls back, and comes out as a TsSqlQueryExecutionError
+    })
+} catch (e) {
+    // e.cause is the DriverError
+}
+```

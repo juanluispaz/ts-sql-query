@@ -4,7 +4,7 @@ search:
 ---
 # ConsoleLogNoopQueryRunner
 
-A query runner that simulates a database connection by logging all queries to the console using `console.log`, and always returns empty results.
+A query runner that takes the place of the database: it writes each statement on the console with `console.log`, sends nothing, and always returns [empty results](NoopQueryRunner.md#what-each-query-returns). Useful to see the SQL your code would run, without a database.
 
 !!! success "Supported databases"
 
@@ -19,15 +19,7 @@ A query runner that simulates a database connection by logging all queries to th
 
     `ConsoleLogNoopQueryRunner` supports synchronous query execution. See the [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.
 
-!!! warning "Do not share connections between requests"
-
-    A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
-
-    Therefore, **you must not share the same connection object between concurrent HTTP requests**. Instead, create a new connection object for each request, along with its own query runners.
-
-    Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
-
-## Usage Example
+## Creating it
 
 ```ts
 import { ConsoleLogNoopQueryRunner } from "ts-sql-query/queryRunners/ConsoleLogNoopQueryRunner";
@@ -38,3 +30,5 @@ async function main() {
     connection // ...
 }
 ```
+
+The constructor receives the name of a database, or an object with `database` and `promise`: see the [options of `NoopQueryRunner`](NoopQueryRunner.md#options).

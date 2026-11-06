@@ -6,11 +6,11 @@ search:
 
 This page documents the API for defining and customizing type adapters in `ts-sql-query`. Type adapters transform values when reading from or writing to the database, supporting use cases such as custom serialization, non-standard boolean mappings, and enforced type casting.
 
-Type adapters control how values are serialized when writing to the database and deserialized when reading from it. They can be applied at the field level (when defining a table or view), or globally by overriding the `transformValueFromDB` and `transformValueToDB` methods.
+Type adapters control how values are serialized when writing to the database and deserialized when reading from it. They can be applied at the field level (when defining a table or view), or globally by overriding the `transformValueFromDB`, `transformValueToDB` and `transformPlaceholder` methods in the connection.
 
 !!! info
 
-    Type adapter definitions are in the file `ts-sql-query/TypeAdapter`.
+    Type adapter definitions are in `ts-sql-query/TypeAdapter`, and they are also exported from `ts-sql-query`.
 
 !!! tip
 

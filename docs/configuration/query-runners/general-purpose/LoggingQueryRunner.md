@@ -4,7 +4,7 @@ search:
 ---
 # LoggingQueryRunner
 
-A general-purpose query runner that intercepts all queries and delegates their execution to another query runner while allowing you to log query details. Useful for debugging, performance monitoring, and auditing executed statements.
+A query runner that calls your logger with each statement and its result or error, and runs the statement with the query runner it wraps. Useful for debugging, measuring and auditing the statements. To carry data of your own between the call before a statement and the call after it, use [`InterceptorQueryRunner`](InterceptorQueryRunner.md).
 
 !!! success "Supported databases"
 
@@ -19,15 +19,7 @@ A general-purpose query runner that intercepts all queries and delegates their e
 
     `LoggingQueryRunner` supports synchronous query execution. See the [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.
 
-!!! warning "Do not share connections between requests"
-
-    A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
-
-    Therefore, **you must not share the same connection object between concurrent HTTP requests**. Instead, create a new connection object for each request, along with its own query runners.
-
-    Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
-
-## Usage Example
+## Creating it
 
 ```ts
 import { LoggingQueryRunner } from "ts-sql-query/queryRunners/LoggingQueryRunner";
@@ -50,17 +42,17 @@ async function main() {
 }
 ```
 
-## API Overview
+## The functions of the logger
 
-The `LoggingQueryRunner` receives an object as first argument of the constructor that can define the following functions:
+The first argument of the constructor is an object that can define these functions, all of them optional:
 
 - **`onQuery`**: Executed before the query.
 - **`onQueryResult`**: Executed after the successful execution of the query.
 - **`onQueryError`**: Executed after the query in case of error.
 
-All these functions receive as argument:
+They receive these arguments:
 
-- **`type: QueryType`**: type of the query to be executed. The `QueryType` is defined as:
+- **`queryType: QueryType`**: type of the query to be executed. The `QueryType` is defined as:
 
 <!-- doc-code-snippet-template: simplifiedDefinition -->
 ```ts
@@ -73,14 +65,12 @@ type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | '
     'executeDatabaseSchemaModification' | 'executeConnectionConfiguration'
 ```
 
-- **`query: string`**: query required to be executed, empty in the case of `beginTransaction`, `commit` or `rollback`
+- **`query: string`**: the SQL to be executed. It's empty for `beginTransaction`, `commit` and `rollback`.
 - **`params: any[]`**: parameters received by the query.
 - **`result: any`**: (only in `onQueryResult`) result of the execution of the query.
-- **`error: any`**: (only in `onQueryError`) error that happens executing the query.
-- **`startedAt`**: elapsed time value in nanoseconds before the query execution.
-- **`endedAt`**: (only in `onQueryResult` or  `onQueryError`) elapsed time value in nanoseconds after the query execution.
+- **`error: any`**: (only in `onQueryError`) error that happened executing the query.
+- **`timestamps`**: an object with `startedAt`, the time before the execution, and in `onQueryResult` and `onQueryError` also `endedAt`, the time after it. Both are a `bigint` in nanoseconds, counted from an arbitrary starting point: `endedAt - startedAt` is the duration.
 
 !!! info
 
-    - `onQuery`, `onQueryResult`, and `onQueryError` are optional; you can define only the methods that you need.
-    - In case the provided query runner doesn't support low-level transaction management, fake `beginTransaction`, `commit`, and `rollback` operations will be emitted to allow you to see them in the log.
+    In case the provided query runner doesn't support low-level transaction management, fake `beginTransaction`, `commit`, and `rollback` operations will be emitted to allow you to see them in the log, with `startedAt` and `endedAt` at `0n`.

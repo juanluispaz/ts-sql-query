@@ -21,17 +21,13 @@ This page explains how to use `ts-sql-query` with the [Bun SQL](https://bun.com/
 
     Bun 1.4.4 or newer.
 
-!!! warning "Do not share connections between requests"
+!!! warning "An `SQL` object is a single connection here"
 
-    A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
-
-    Therefore, **you must not share the same connection object between concurrent HTTP requests**. Instead, create a new connection object for each request, along with its own query runners.
-
-    Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
+    With the SQLite adapter, an `SQL` object is one connection to SQLite: every query runner created over the same object shares it, and shares its transaction. Two connection objects over one `SQL` object are not isolated from each other: a rollback in one undoes what the other did meanwhile, and while one has a transaction open, a transaction can't begin in the other. Don't use one object for requests that run at the same time with transactions: open an `SQL` object for each one, which is another connection to the same file.
 
 ## Using a Bun SQL SQLite connection
 
-Executes queries through a [Bun SQL](https://bun.com/docs/runtime/sql) connection configured with the SQLite adapter.
+Every statement runs on the `SQL` object you give the query runner. It must be created with `adapter: 'sqlite'`: with another one, the constructor of the query runner throws a `TsSqlProcessingError` with reason `INVALID_CONFIGURATION`.
 
 ```ts
 import { SQL } from "bun";
@@ -49,13 +45,19 @@ async function main() {
 }
 ```
 
-!!! note "Safe Integers"
+## Large integers
 
-    If your queries may return integers larger than JavaScript's safe integer range, consider enabling `safeIntegers` in the Bun SQL SQLite configuration.
+If your queries may return integers larger than JavaScript's safe integer range, create the connection with `new SQL({ adapter: 'sqlite', filename: './foobar.db', safeIntegers: true })`. Without it an out-of-range value comes back rounded, and `ts-sql-query` rejects it with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` instead of returning a wrong value. With it, every integer arrives as a `BigInt`, and `ts-sql-query` converts it to the type the column declares: an `int` column still gives a `number`.
+
+## SQLite and UUIDs
+
+To work with [UUIDs in SQLite](../../supported-databases/sqlite.md#uuid-strategies) the default strategy is `uuid-extension`, which needs the SQL functions of the [uuid extension](https://sqlite.org/src/file?name=ext/misc/uuid.c). Bun SQL can't register functions written in JavaScript: use the `string` strategy.
 
 ## Inside a transaction you began with Bun SQL
 
 Created with the transaction object of `sql.begin(...)`, the query runner runs its statements in that transaction, which Bun SQL commits or rolls back when your function ends. A transaction can't begin inside it: `connection.transaction(...)` and `connection.beginTransaction()` are rejected with `NESTED_TRANSACTION_NOT_SUPPORTED`.
+
+For `ts-sql-query` there is no transaction open, so `executeAfterNextCommit`, the other end-of-transaction functions and `getTransactionMetadata()` throw `NOT_IN_TRANSACTION`.
 
 ```ts
 import { SQL, type TransactionSQL } from "bun";

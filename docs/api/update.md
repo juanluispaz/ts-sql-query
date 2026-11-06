@@ -16,32 +16,33 @@ interface UpdateExpression {
      */
     shapedAs(shape: UpdateShape): this
     /** 
-     * Allows you to extend the previously set shape.
+     * Extends the previously set shape.
      * The values set after extending the shape will allow you to include the new properties in the extended shape.
      */
     extendShape(shape: UpdateShape): this
     
-    /** Set the values for update */
+    /** Sets the values for update. An undefined value writes a null */
     set(columns: UpdateSets): this
-    /** Set a value only if the provided value is not null, undefined, empty string 
+    /**
+     * Sets a value only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array 
      */
     setIfValue(columns: OptionalUpdateSets): this
-    /** Set a previous set value only */
+    /** Sets a value only if the column was previously set */
     setIfSet(columns: UpdateSets): this
-    /** Set a previous set value only if the provided value is not null, undefined, empty string 
+    /**
+     * Sets a value only if the column was previously set and the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array
      */
     setIfSetIfValue(columns: OptionalUpdateSets): this
-    /** Set a unset value (only if the value was not previously set) */
+    /** Sets a value only if the column was not previously set */
     setIfNotSet(columns: UpdateSets): this
     /** 
-     * Set a unset value only if the provided value is not null, undefined, empty string 
+     * Sets a value only if the column was not previously set and the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array
-     * (only if the value was not previously set) 
      */
     setIfNotSetIfValue(columns: OptionalUpdateSets): this
     /** Unsets the previously set columns listed. */
@@ -106,17 +107,17 @@ interface UpdateExpression {
     ignoreAnySetWithNoValue(): this
 
     /**
-     * Throws an error if the indicated properties are set
+     * Throws an error, when it is called, if the indicated properties are set
      */
     disallowIfSet(errorMessage: string, ...columns: string[]): this
     disallowIfSet(error: Error, ...columns: string[]): this
     /**
-     * Throws an error if the indicated properties are not set
+     * Throws an error, when it is called, if the indicated properties are not set
      */
     disallowIfNotSet(errorMessage: string, ...columns: string[]): this
     disallowIfNotSet(error: Error, ...columns: string[]): this
     /**
-     * Throws an error if the indicated properties were set with a value.
+     * Throws an error, when it is called, if the indicated properties were set with a value.
      * It is considered the column has value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
@@ -124,7 +125,7 @@ interface UpdateExpression {
     disallowIfValue(errorMessage: string, ...columns: string[]): this
     disallowIfValue(error: Error, ...columns: string[]): this
     /**
-     * Throws an error if the indicated properties were not set or have no value.
+     * Throws an error, when it is called, if the indicated properties were not set or have no value.
      * It is considered the column has value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
@@ -132,13 +133,13 @@ interface UpdateExpression {
     disallowIfNoValue(errorMessage: string, ...columns: string[]): this
     disallowIfNoValue(error: Error, ...columns: string[]): this
     /**
-     * Throws an error if any column other than the listed ones is set.
+     * Throws an error, when it is called, if any column other than the listed ones is set.
      */
     disallowAnyOtherSet(errorMessage: string, ...columns: string[]): this
     disallowAnyOtherSet(error: Error, ...columns: string[]): this
 
     //
-    // When variants, that are only executed if the first param is true
+    // When variants, that only apply if the first param is true
     //
 
     setWhen(when: boolean, columns: UpdateSets): this
@@ -167,27 +168,25 @@ interface UpdateExpression {
     disallowAnyOtherSetWhen(when: boolean, errorMessage: string, ...columns: string[]): this
     disallowAnyOtherSetWhen(when: boolean, error: Error, ...columns: string[]): this
 
-    /** Allows to set the values dynamically */
+    /** Sets the values dynamically */
     dynamicSet(): this
     dynamicSet(columns: UpdateSets): this
 
-    /** Allows to create the where dynamically */
+    /** Creates the where dynamically */
     dynamicWhere(): this
-    /** Allows to specify the where */
+    /** Specifies the where */
     where(condition: BooleanValueSource): this
 
-    /** Allows to extends the where or the on clause of a join using an and */
+    /** Extends the where or the on clause of a join using an and */
     and(condition: BooleanValueSource): this
-    /** Allows to extends the where or the on clause of a join using an or */
+    /** Extends the where or the on clause of a join using an or */
     or(condition: BooleanValueSource): this
 
     /**
-     * Execute the update returning the number of updated rows
+     * Executes the update returning the number of updated rows
      * 
-     * @param min Indicate the minimum of rows that must be updated, 
-     *           if the minimum is not reached an exception will be thrown
-     * @param max Indicate the maximum of rows that must be updated, 
-     *           if the maximum is exceeded an exception will be thrown
+     * @param min Minimum number of rows that must be updated. If it isn't reached, the promise is rejected
+     * @param max Maximum number of rows that can be updated. If it is exceeded, the promise is rejected
      */
     executeUpdate(min?: number, max?: number): Promise<number>
     /** Returns the sql query to be executed in the database */
@@ -195,65 +194,65 @@ interface UpdateExpression {
     /** Returns the required parameters by the sql query */
     params(): any[]
 
-    // Returning methods
+    // Returning methods, not available on MySQL
     /** 
-     * Allows to specify the returning clause.
+     * Specifies the returning clause.
      * It must be an object where the name of the property is the name of the resulting property
      * and the value is the ValueSource where the value will be obtained.
      */
     returning(columns: UpdateReturningValues): this
     /** 
-     * Returns the optional values as null instead of optional undefined values, can only used 
-     * immediately after returning(...) 
-     * */
+     * Returns the optional values as null instead of optional undefined values.
+     * It can only be used immediately after returning(...) 
+     */
     projectingOptionalValuesAsNullable(): this
     /** 
-     * Allows to specify the returning clause of a query that returns only one column.
+     * Specifies the returning clause of a query that returns only one column.
      * It receives as argument the ValueSource where the value will be obtained.
      */
     returningOneColumn(column: AnyValueSource): this
-    /** Execute the update query that returns one o no result from the database */
+    /** Executes the update query that returns one or no result from the database */
     executeUpdateNoneOrOne(): Promise<RESULT | null>
     /** 
-     * Execute the update query that returns one result from the database.
-     * If no result is returned by the database an exception will be thrown.
+     * Executes the update query that returns one result from the database.
+     * If the database returns no result, the promise is rejected.
      */
     executeUpdateOne(): Promise<RESULT>
     /** 
-     * Execute the update query that returns zero or many results from the database 
+     * Executes the update query that returns zero or many results from the database 
      * 
-     * @param min Indicate the minimum of rows that must be deleted, 
-     *           if the minimum is not reached an exception will be thrown
-     * @param max Indicate the maximum of rows that must be deleted, 
-     *           if the maximum is exceeded an exception will be thrown
+     * @param min Minimum number of rows that must be updated. If it isn't reached, the promise is rejected
+     * @param max Maximum number of rows that can be updated. If it is exceeded, the promise is rejected
      */
     executeUpdateMany(min?: number, max?: number): Promise<RESULT[]>
 
-    /** Allows to add a from to the update query */
+    /** Adds a from to the update query */
     from(table: Table | View): this
 
-    /** Allows to add a join to the update query */
+    // Joins right after the update, only available on MariaDB and MySQL. On the other databases they go after a from
+    /** Adds a join to the update query */
     join(table: Table | View): this
-    /** Allows to add a inner join to the update query */
+    /** Adds an inner join to the update query */
     innerJoin(table: Table | View): this
     /** 
-     * Allows to add a left join to the update query. 
-     * Note: to use a table or view here you must call first forUseInLeftJoin methods on it
+     * Adds a left join to the update query. 
+     * Note: to use a table or view here you must first call forUseInLeftJoin on it
      */
     leftJoin(source: OuterJoinSource): this
     /** 
-     * Allows to add a left outer join to the update query. 
-     * Note: to use a table or view here you must call first forUseInLeftJoin methods on it
+     * Adds a left outer join to the update query. 
+     * Note: to use a table or view here you must first call forUseInLeftJoin on it
      */
     leftOuterJoin(source: OuterJoinSource): this
 
-    /** Allows to create the on clause of a join dynamically */
+    /** Creates the on clause of a join dynamically */
     dynamicOn(): this
-    /** Allows to specify the on clause of a join */
+    /** Specifies the on clause of a join */
     on(condition: BooleanValueSource): this
 
     customizeQuery(customization: {
         afterUpdateKeyword?: RawFragment
+        beforeQuery?: RawFragment
         afterQuery?: RawFragment
         queryExecutionName?: string
         queryExecutionMetadata?: any
@@ -267,7 +266,7 @@ type UpdateSets = { [columnName: string]: any }
 /** Columns required by the update, but marked as optional */
 type OptionalUpdateSets = { [columnName: string]: any }
 /**
- * Returning projection of the value that vill be retreived from the database.
+ * Returning projection of the value that will be retrieved from the database.
  * 
  * It must be an object where the name of the property is the name of the resulting property
  * and the value is the ValueSource where the value will be obtained.

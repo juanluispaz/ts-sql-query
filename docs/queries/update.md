@@ -98,7 +98,7 @@ The value of a column can be:
 An update without a `where` changes all the rows of the table, and it's usually a mistake that is hard to undo. The library stops it in two moments:
 
 - **When you compile:** `update(...)` doesn't offer the execute methods until you call `where` or `dynamicWhere`.
-- **When you execute:** a condition can end up empty, for example a `dynamicWhere()` with no conditions added, or a `where` with only conditions that are [ignored because they have no value](dynamic-queries.md#optional-conditions-the-ifvalue-methods). The library then throws an error with the reason `MISSING_WHERE`, and nothing is sent to the database.
+- **When you execute:** a condition can end up empty, for example a `dynamicWhere()` with no conditions added, or a `where` with only conditions that are [ignored because they have no value](dynamic-queries.md#optional-conditions-the-ifvalue-methods). The promise of the execute method then rejects with the reason `MISSING_WHERE`, and nothing is sent to the database.
 
 When changing all the rows is what you want, start the query with `updateAllowingNoWhere` instead of `update`:
 
@@ -664,7 +664,7 @@ const updatedCount: number
 
 ### When no value is left
 
-If no column is set when you execute the query, for example after a `dynamicSet()` with nothing added, there is nothing to update, so the library doesn't send any query. `executeUpdate` returns `0`, `executeUpdateNoneOrOne` returns `null`, `executeUpdateMany` returns an empty array, and `executeUpdateOne` throws an error with the reason `NO_COLUMN_SETS`. A minimum given to `executeUpdate` or `executeUpdateMany` still applies.
+If no column is set when you execute the query, for example after a `dynamicSet()` with nothing added, there is nothing to update, so the library doesn't send any query. `executeUpdate` returns `0`, `executeUpdateNoneOrOne` returns `null`, `executeUpdateMany` returns an empty array, and the promise of `executeUpdateOne` rejects with the reason `NO_COLUMN_SETS`. A minimum given to `executeUpdate` or `executeUpdateMany` still applies.
 
 ## Update with a shape
 

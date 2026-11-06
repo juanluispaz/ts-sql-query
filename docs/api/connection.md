@@ -10,22 +10,32 @@ This interface exposes all the methods required to interact with the database vi
 interface Connection {
     /** Query runner used to create the connection */
     readonly queryRunner: QueryRunner
+    /** The transformations of the connection, without any type adapter */
+    readonly defaultTypeAdapter: DefaultTypeAdapter
 
-    // Transaction management
+    // Transaction management. A failure of beginTransaction, commit, rollback or transaction rejects the promise
     beginTransaction(isolationLevel?: TransactionIsolationLevel): Promise<void>
     commit(): Promise<void>
     rollback(): Promise<void>
     isTransactionActive(): boolean
-    transaction<T>(fn: () => Promise<T>, isolationLevel?: TransactionIsolationLevel): Promise<T>
+    transaction<T>(fn: () => T | Promise<T>, isolationLevel?: TransactionIsolationLevel): Promise<T>
+    /**
+     * Not available on SQLite. What each database accepts:
+     * - MariaDB, MySQL: 'read uncommitted', 'read committed', 'snapshot', 'serializable', with an optional access mode, or only the access mode
+     * - PostgreSQL: 'read committed', 'snapshot', 'serializable', with an optional access mode, or only the access mode
+     * - Oracle: 'read committed', 'snapshot', or only the access mode
+     * - SQL Server: 'read uncommitted', 'read committed', 'repeatable read', 'snapshot', 'serializable', without access mode
+     */
     isolationLevel(level: 'read uncommitted' | 'read committed' | 'repeatable read' | 'snapshot' | 'serializable', accessMode?: 'read write' | 'read only'): TransactionIsolationLevel
     isolationLevel(accessMode: 'read write' | 'read only'): TransactionIsolationLevel
-    // Fuctions that allow to defer a code execution till the end of the transaction
+    // Functions that defer code to the end of the transaction. They throw if there is no open transaction
     executeBeforeNextCommit(fn: ()=> void): void
     executeBeforeNextCommit(fn: ()=> Promise<void>): void
     executeAfterNextCommit(fn: ()=> void): void
     executeAfterNextCommit(fn: ()=> Promise<void>): void
     executeAfterNextRollback(fn: ()=> void): void
     executeAfterNextRollback(fn: ()=> Promise<void>): void
+    /** Throws if there is no open transaction */
     getTransactionMetadata(): Map<unknown, unknown>
 
     // Querying
@@ -38,15 +48,19 @@ interface Connection {
     selectDistinctFrom(table: Table | View): SelectExpression
     selectFromNoTable(): SelectExpression
 
-    // These methods allows to create a subquery that depends of a outer table defined in the main query 
-    subSelectUsing(table: Table | View): SelectExpression
-    subSelectUsing(table1: Table | View, table2: Table | View): SelectExpression
-    subSelectUsing(table1: Table | View, table2: Table | View, table3: Table | View): SelectExpression
-    subSelectDistinctUsing(table: Table | View): SelectExpression
-    subSelectDistinctUsing(table1: Table | View, table2: Table | View): SelectExpression
-    subSelectDistinctUsing(table1: Table | View, table2: Table | View, table3: Table | View): SelectExpression
+    // These methods create a subquery that depends on an outer table defined in the main query
+    subSelectUsing(table: Table | View | OuterJoinSource): SelectExpression
+    subSelectUsing(table1: Table | View | OuterJoinSource, table2: Table | View | OuterJoinSource): SelectExpression
+    subSelectUsing(table1: Table | View | OuterJoinSource, table2: Table | View | OuterJoinSource, table3: Table | View | OuterJoinSource): SelectExpression
+    subSelectUsing(table1: Table | View | OuterJoinSource, table2: Table | View | OuterJoinSource, table3: Table | View | OuterJoinSource, table4: Table | View | OuterJoinSource): SelectExpression
+    subSelectUsing(table1: Table | View | OuterJoinSource, table2: Table | View | OuterJoinSource, table3: Table | View | OuterJoinSource, table4: Table | View | OuterJoinSource, table5: Table | View | OuterJoinSource): SelectExpression
+    subSelectDistinctUsing(table: Table | View | OuterJoinSource): SelectExpression
+    subSelectDistinctUsing(table1: Table | View | OuterJoinSource, table2: Table | View | OuterJoinSource): SelectExpression
+    subSelectDistinctUsing(table1: Table | View | OuterJoinSource, table2: Table | View | OuterJoinSource, table3: Table | View | OuterJoinSource): SelectExpression
+    subSelectDistinctUsing(table1: Table | View | OuterJoinSource, table2: Table | View | OuterJoinSource, table3: Table | View | OuterJoinSource, table4: Table | View | OuterJoinSource): SelectExpression
+    subSelectDistinctUsing(table1: Table | View | OuterJoinSource, table2: Table | View | OuterJoinSource, table3: Table | View | OuterJoinSource, table4: Table | View | OuterJoinSource, table5: Table | View | OuterJoinSource): SelectExpression
     
-    // default value for use in insert queries
+    // Default value of a column, for inserts and updates. Not available on SQLite
     default(): Default
 
     // values that can be returned by the database
@@ -59,10 +73,10 @@ interface Connection {
     true(): BooleanValueSource
     false(): BooleanValueSource
 
-    // methods that allows to create a value source with a constant value
+    // Methods that create a value source with a constant value
     const(value: boolean, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     const(value: number, type: 'int', adapter?: TypeAdapter): NumberValueSource
-    const(value: number, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
+    const(value: bigint, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
     const(value: number, type: 'double', adapter?: TypeAdapter): NumberValueSource
     const(value: string, type: 'string', adapter?: TypeAdapter): StringValueSource
     const(value: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
@@ -79,31 +93,31 @@ interface Connection {
     const<T, TYPE_NAME = T>(value: T, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
     const<T, TYPE_NAME = T>(value: T, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
 
-    // methods that allows to create a value source with an optional constant value
+    // Methods that create a value source with an optional constant value
     optionalConst(value: boolean | null | undefined, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     optionalConst(value: number | null | undefined, type: 'int', adapter?: TypeAdapter): NumberValueSource
-    optionalConst(value: number | null | undefined, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
+    optionalConst(value: bigint | null | undefined, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
     optionalConst(value: number | null | undefined, type: 'double', adapter?: TypeAdapter): NumberValueSource
     optionalConst(value: string | null | undefined, type: 'string', adapter?: TypeAdapter): StringValueSource
     optionalConst(value: string | null | undefined, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
     optionalConst(value: Date | null | undefined, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
     optionalConst(value: Date | null | undefined, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
     optionalConst(value: Date | null | undefined, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
-    optionalConst<T, TYPE_NAME = T>(value: T, type: 'customInt', typeName: string, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
-    optionalConst<T, TYPE_NAME = T>(value: T, type: 'customDouble', typeName: string, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
-    optionalConst<T, TYPE_NAME = T>(value: T, type: 'customUuid', typeName: string, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
-    optionalConst<T, TYPE_NAME = T>(value: T, type: 'customLocalDate', typeName: string, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
-    optionalConst<T, TYPE_NAME = T>(value: T, type: 'customLocalTime', typeName: string, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
-    optionalConst<T, TYPE_NAME = T>(value: T, type: 'customLocalDateTime', typeName: string, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
+    optionalConst<T, TYPE_NAME = T>(value: T | null | undefined, type: 'customInt', typeName: string, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
+    optionalConst<T, TYPE_NAME = T>(value: T | null | undefined, type: 'customDouble', typeName: string, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
+    optionalConst<T, TYPE_NAME = T>(value: T | null | undefined, type: 'customUuid', typeName: string, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
+    optionalConst<T, TYPE_NAME = T>(value: T | null | undefined, type: 'customLocalDate', typeName: string, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
+    optionalConst<T, TYPE_NAME = T>(value: T | null | undefined, type: 'customLocalTime', typeName: string, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
+    optionalConst<T, TYPE_NAME = T>(value: T | null | undefined, type: 'customLocalDateTime', typeName: string, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
     optionalConst<T, TYPE_NAME = T>(value: T | null | undefined, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
     optionalConst<T, TYPE_NAME = T>(value: T | null | undefined, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
     optionalConst<T, TYPE_NAME = T>(value: T | null | undefined, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
     
-    // allows to use the exits function on a subquery
+    // The exists and not exists of a subquery
     exists(select: Subquery): BooleanValueSource
     notExists(select: Subquery): BooleanValueSource
 
-    // aggregate functions
+    // Aggregate functions. max, min, sum, average, stringConcat and anyValue return an optional value, whatever the type of the argument
     /** count(*) */
     countAll(): NumberValueSource
     /** count(value) */
@@ -116,33 +130,36 @@ interface Connection {
     min<TYPE extends ComparableValueSource<any, any>>(value: TYPE): TYPE
     /** sum(value) */
     sum(value: NumberValueSource): NumberValueSource
+    sum(value: BigintValueSource): BigintValueSource
     sum<T, TYPE_NAME>(value: CustomIntValueSource<T, TYPE_NAME>): CustomIntValueSource<T, TYPE_NAME>
     sum<T, TYPE_NAME>(value: CustomDoubleValueSource<T, TYPE_NAME>): CustomDoubleValueSource<T, TYPE_NAME>
     /** sum(distinct value) */
     sumDistinct(value: NumberValueSource): NumberValueSource
+    sumDistinct(value: BigintValueSource): BigintValueSource
     sumDistinct<T, TYPE_NAME>(value: CustomIntValueSource<T, TYPE_NAME>): CustomIntValueSource<T, TYPE_NAME>
     sumDistinct<T, TYPE_NAME>(value: CustomDoubleValueSource<T, TYPE_NAME>): CustomDoubleValueSource<T, TYPE_NAME>
-    /** avg(value) */
-    average(value: NumberValueSource): NumberValueSource
-    average<T, TYPE_NAME>(value: CustomIntValueSource<T, TYPE_NAME>): CustomIntValueSource<T, TYPE_NAME>
-    average<T, TYPE_NAME>(value: CustomDoubleValueSource<T, TYPE_NAME>): CustomDoubleValueSource<T, TYPE_NAME>
-    /** avg(disctinct value) */
-    averageDistinct(value: NumberValueSource): NumberValueSource
-    averageDistinct<T, TYPE_NAME>(value: CustomIntValueSource<T, TYPE_NAME>): CustomIntValueSource<T, TYPE_NAME>
-    averageDistinct<T, TYPE_NAME>(value: CustomDoubleValueSource<T, TYPE_NAME>): CustomDoubleValueSource<T, TYPE_NAME>
+    /** avg(value). It always returns a number, a double, also for a bigint or a custom type */
+    average(value: NumberValueSource | BigintValueSource | CustomIntValueSource<any, any> | CustomDoubleValueSource<any, any>): NumberValueSource
+    /** avg(distinct value). It always returns a number, a double, also for a bigint or a custom type */
+    averageDistinct(value: NumberValueSource | BigintValueSource | CustomIntValueSource<any, any> | CustomDoubleValueSource<any, any>): NumberValueSource
     /** group_concat(value, separator) sometimes called string_agg or listagg. The default separator is ',' */
     stringConcat(value: StringValueSource, separator?: string): StringValueSource
-    /** group_concat(distinct value, separator) sometimes called string_agg or listagg. The default separator is ',' */
+    /**
+     * group_concat(distinct value, separator) sometimes called string_agg or listagg. The default separator is ','
+     * Not available on SQL Server. On SQLite it doesn't accept a separator
+     */
     stringConcatDistinct(value: StringValueSource, separator?: string): StringValueSource
     /** any_value(value): any value of the group (SQL:2023); not available on MariaDB and SQL Server. On SQLite the value is written as is (a bare column) */
     anyValue<TYPE extends AnyValueSource>(value: TYPE): TYPE
     /** Aggregate as object array */
     aggregateAsArray<T extends SelectValues>(columns: T): AggregatedArrayValueSourceProjectableAsNullable<T>
+    /** Only available on MariaDB, PostgreSQL and SQLite */
     aggregateAsArrayDistinct<T extends SelectValues>(columns: T): AggregatedArrayValueSourceProjectableAsNullable<T>
     aggregateAsArrayOfOneColumn<T, TYPE_NAME>(value: ValueSource<T, TYPE_NAME>): AggregatedArrayValueSource<T>
+    /** Only available on MariaDB, PostgreSQL and SQLite */
     aggregateAsArrayOfOneColumnDistinct<T, TYPE_NAME>(value: ValueSource<T, TYPE_NAME>): AggregatedArrayValueSource<T>
 
-    // Methods that allows create SQL fragments
+    // Methods that create SQL fragments
     fragmentWithType(type: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType(type: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType(type: 'bigint', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
@@ -187,10 +204,11 @@ interface Connection {
      */
     rawFragment(sql: TemplateStringsArray, ...p: Array<AnyValueSource | Subquery>): RawFragment
 
-    // Protected methods that allows call a stored procedure
+    // Protected method that calls a stored procedure. Any failure rejects the promise
     executeProcedure(procedureName: string, params: AnyValueSource[]): Promise<void>
 
-    // Protected methods that allows call a function
+    // Protected methods that call a function. Any failure rejects the promise.
+    // With 'optional' the promise also resolves to null; to simplify, that isn't written in the signatures below.
     executeFunction(functionName: string, params: AnyValueSource[], returnType: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<boolean>
     executeFunction(functionName: string, params: AnyValueSource[], returnType: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<number>
     executeFunction(functionName: string, params: AnyValueSource[], returnType: 'bigint', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<bigint>
@@ -210,7 +228,7 @@ interface Connection {
     executeFunction<T, _TYPE_NAME = T>(functionName: string, params: AnyValueSource[], returnType: 'custom', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
     executeFunction<T, _TYPE_NAME = T>(functionName: string, params: AnyValueSource[], returnType: 'customComparable', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
 
-    // Protected methods to define a sequence (only available in mariaDB, oracle, postgreSql and sqlServer)
+    // Protected methods to define a sequence (only available on MariaDB, Oracle, PostgreSQL and SQL Server)
     sequence(name: string, type: 'boolean', adapter?: TypeAdapter): Sequence<BooleanValueSource>
     sequence(name: string, type: 'int', adapter?: TypeAdapter): Sequence<NumberValueSource>
     sequence(name: string, type: 'bigint', adapter?: TypeAdapter): Sequence<BigintValueSource>
@@ -232,7 +250,7 @@ interface Connection {
 
     // Protected methods to define reusable fragments
     /**
-     * Allows to define arguments that acept the value or a value source of the type specified
+     * Defines an argument that accepts a value or a value source of the specified type
      */
     arg(type: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<boolean, 'boolean'>
     arg(type: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<number, 'number'>
@@ -254,7 +272,7 @@ interface Connection {
     arg<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T, TYPE_NAME>
 
     /**
-     * Allows to define arguments that acept the value (but no a value source) of the type specified
+     * Defines an argument that accepts a value of the specified type, but not a value source
      */
     valueArg(type: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<boolean, 'boolean'>
     valueArg(type: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<number, 'number'>
@@ -276,8 +294,8 @@ interface Connection {
     valueArg<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T, TYPE_NAME>
 
     /*
-     * This functions receive the argument definition that you can create calling the arg function or the valueArg function.
-     * You can specify up to 5 argument definitions
+     * These protected methods receive the argument definitions that you create with arg or valueArg.
+     * You can specify up to 5 argument definitions.
      */
     buildFragmentWithArgs(...argumentDefinitions: Argument<any, any>[]): FragmentBuilder
     buildFragmentWithArgsIfValue(...argumentDefinitions: Argument<any, any>[]): FragmentBuilderIfValue
@@ -288,28 +306,28 @@ interface Connection {
     buildAggregateFragmentWithMaybeOptionalArgs(...argumentDefinitions: Argument<any, any>[]): FragmentBuilderMaybeOptional
 
     /**
-     * Return the same special neutral boolean mark returned by the IfValue functions when there is no value
+     * Returns the same neutral boolean that the IfValue functions return when there is no value
      */
-    noValueBoolean(): BooleanValueSource
+    noValueBoolean(): IfValueSource
 
     /**
-     * Return the same special neutral boolean mark returned by the IfValue functions when there is no value in a way it can be used
-     * to create dynamic boolean expression where the variable is reasigned (it have a stable type)
+     * Returns the same neutral boolean, with a type that stays the same after each and, or, onlyWhen...
+     * In this way, you can build a boolean expression in a variable that you reassign.
      */
-    dynamicBooleanExpressionUsing(table: Table | View): BooleanValueSource
-    dynamicBooleanExpressionUsing(table1: Table | View, table2: Table | View): BooleanValueSource
-    dynamicBooleanExpressionUsing(table1: Table | View, table2: Table | View, table3: Table | View): BooleanValueSource
-    dynamicBooleanExpressionUsing(table1: Table | View, table2: Table | View, table3: Table | View,  table4: Table | View): BooleanValueSource
-    dynamicBooleanExpressionUsing(table1: Table | View, table2: Table | View, table3: Table | View,  table4: Table | View,  table5: Table | View): BooleanValueSource
+    dynamicBooleanExpressionUsing(table: Table | View): AlwaysIfValueSource
+    dynamicBooleanExpressionUsing(table1: Table | View, table2: Table | View): AlwaysIfValueSource
+    dynamicBooleanExpressionUsing(table1: Table | View, table2: Table | View, table3: Table | View): AlwaysIfValueSource
+    dynamicBooleanExpressionUsing(table1: Table | View, table2: Table | View, table3: Table | View,  table4: Table | View): AlwaysIfValueSource
+    dynamicBooleanExpressionUsing(table1: Table | View, table2: Table | View, table3: Table | View,  table4: Table | View,  table5: Table | View): AlwaysIfValueSource
 
     /**
-     * Allows to create a condition where the criteria is provided by an external system
+     * Creates a condition whose criteria is provided by an external system
      */
     dynamicConditionFor(definition: Filterable, extension?: DynamicConditionExtension): DynamicConditionExpression
 
     /*
-     * The fn function will receive as first argument the table name as ValueSource,
-     * as the second argument is the alias of the table as ValueSource
+     * Protected method. The fn function receives the table name as its first argument, and the alias of the table
+     * as its second argument, both as ValueSource.
      * The number of additional arguments in the fn function is the same in the resulting function (up to 5 arguments).
      * The first argument of the returned function is the table or view, the second argument
      * is a name for the customization; the additional arguments are the same defined in the fn function.
@@ -321,27 +339,37 @@ interface Connection {
      */
 
     /** 
-     * Protected property that allows changing the behaviour of empty string treatment.
-     * By default empty string as treated as null, if you want to allow to send and receive empty string to the database set this property to true
+     * Protected property that changes how an empty string is treated.
+     * By default an empty string is treated as null. To send and receive empty strings, set this property to true.
      * Default value: false
      */
     allowEmptyString: boolean
+    /**
+     * Protected property with the collation of the insensitive operations. When it's not set, they use the function lower.
+     * With an empty string, they use neither a collation nor lower.
+     */
+    insensitiveCollation?: string | undefined
+    /**
+     * Protected property with the minimum version of the database the SQL must support: major * 1_000_000 + minor * 1_000 + patch.
+     * For example, 10_005_000 for MariaDB 10.5. By default, the latest version.
+     */
+    compatibilityVersion: number
 
-    /** Protected method that allows to transform the values received from the database */
+    /** Protected method that transforms the values received from the database */
     transformValueFromDB(value: unknown, type: string): unknown
-    /** Protected method that allows to transform the values that will be send to the database */
+    /** Protected method that transforms the values sent to the database */
     transformValueToDB(value: unknown, type: string): unknown
-    /** Protected method that allows to customize the value placeholder in the query */
+    /** Protected method that customizes the value placeholder in the query */
     transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown): string
 
-    /** Protected method that returns true if the provided string is a reserved keyword, otherwise return false */
+    /** Protected method that returns true if the provided string is a reserved keyword */
     isReservedKeyword(word: string): boolean
-    /** Protected method that returns the provided string as a indefier quoting it all the time */
+    /** Protected method that returns the provided string as an identifier, always quoted */
     forceAsIdentifier(identifier: string): string
     /** 
      * Protected method that returns the provided identifier escaped.
-     * The default implementation quote the identifier only if it is a reserved keyword.
-     * If you want all identifiers quoted, you must reimplement this function returning the result of the forceAsIdentifier function.
+     * The default implementation quotes the identifier only if it is a reserved keyword.
+     * To quote all identifiers, reimplement this function returning the result of forceAsIdentifier.
      */
     escape(identifier: string, strict: boolean): string
 }
@@ -361,7 +389,7 @@ interface FragmentExpression {
 interface FragmentBuilder {
     /*
      * The impl function will receive the proper ValueSource type according to the argument definition.
-     * The nunber of arguments is the same specified in the function buildFragmentWithArgs (up to 5 arguments).
+     * The number of arguments is the same specified in the function buildFragmentWithArgs (up to 5 arguments).
      * The arguments of the returned function will have the proper parameters type.
      */
     as(impl: (...args: AnyValueSource[]) => AnyValueSource): (...args: any) => AnyValueSource
@@ -372,12 +400,13 @@ interface FragmentBuilder {
 interface FragmentBuilderIfValue {
     /*
      * The impl function will receive the proper ValueSource type according to the argument definition.
-     * The nunber of arguments is the same specified in the function buildFragmentWithArgsIfValue (up to 5 arguments).
-     * Any optional valueArg will be treated as required, the function received as argument will be not called if
-     * that argument receives null or undefined.
+     * The number of arguments is the same specified in the function buildFragmentWithArgsIfValue (up to 5 arguments).
+     * The impl function must return a boolean. An optional valueArg is received in impl as required.
+     * If an optional valueArg has no value (null, undefined, an empty array, or an empty string unless allowEmptyString is true),
+     * the returned function gives the neutral boolean, and the fragment isn't used in the query.
      * The arguments of the returned function will have the proper parameters type.
      */
-    as(impl: (...args: AnyValueSource[]) => AnyValueSource): (...args: any) => BooleanValueSource
+    as(impl: (...args: AnyValueSource[]) => BooleanValueSource | IfValueSource | AlwaysIfValueSource): (...args: any) => IfValueSource
 }
 ```
 
@@ -385,7 +414,7 @@ interface FragmentBuilderIfValue {
 interface FragmentBuilderMaybeOptional {
     /*
      * The impl function will receive the proper ValueSource type according to the argument definition.
-     * The nunber of arguments is the same specified in the function buildFragmentWithArgs (up to 5 arguments).
+     * The number of arguments is the same specified in the function buildFragmentWithMaybeOptionalArgs (up to 5 arguments).
      * The arguments of the returned function will have the proper parameters type.
      * The function will return an optional value if any of the provided arguments when invoked is optional; 
      * otherwise, the return type will be marked as required.
@@ -404,6 +433,54 @@ interface Sequence<T> {
 
 ```typescript
 interface DynamicConditionExpression {
+    /** The result is an optional boolean. The filter accepts the rules of the extension provided to dynamicConditionFor */
     withValues(filter: DynamicFilter): BooleanValueSource
+}
+```
+
+Each connection adds protected configuration properties of its own. The page of each database explains them: [MariaDB](../configuration/supported-databases/mariadb.md), [MySQL](../configuration/supported-databases/mysql.md), [Oracle](../configuration/supported-databases/oracle.md), [PostgreSQL](../configuration/supported-databases/postgresql.md), [SQLite](../configuration/supported-databases/sqlite.md) and [SQL Server](../configuration/supported-databases/sqlserver.md).
+
+```typescript
+interface MariaDBConnectionConfiguration {
+    uuidStrategy: 'string' | 'uuid' // Default: 'uuid'
+    usePlatformDependentRound: boolean // Default: false
+}
+
+interface MySqlConnectionConfiguration {
+    uuidStrategy: 'string' | 'binary' // Default: 'binary'
+    usePlatformDependentRound: boolean // Default: false
+}
+
+interface OracleConnectionConfiguration {
+    uuidStrategy: 'string' | 'custom-functions' | 'built-in' // Default: 'built-in'
+    ignoreNullInConcat: boolean // Default: false
+    concatFunction?: string
+    replaceCollation: string // Default: 'BINARY'
+    replaceInsensitiveCollation: string // Default: 'BINARY_CI'
+}
+
+interface PostgreSqlConnectionConfiguration {
+    usePlatformDependentRound: boolean // Default: false
+    ignoreNullInMinAndMaxValue: boolean // Default: false
+    minValueFunction?: string
+    maxValueFunction?: string
+}
+
+interface SqliteConnectionConfiguration {
+    uuidStrategy: 'string' | 'uuid-extension' // Default: 'uuid-extension'
+    replaceAllInsensitiveFunction?: string
+    /** Protected method with the format of a date, a time or a date time. By default, 'localdate as text' */
+    getDateTimeFormat(type: 'date' | 'time' | 'dateTime'): 'localdate as text' | 'localdate as text using T separator' | 'UTC as text' | 'UTC as text using T separator' | 'UTC as text using Z timezone' | 'UTC as text using T separator and Z timezone' | 'Julian day as real number' | 'Unix time seconds as integer' | 'Unix time milliseconds as integer'
+    treatUnexpectedIntegerDateTimeAsJulian: boolean // Default: false
+    treatUnexpectedStringDateTimeAsUTC: boolean // Default: false
+    unexpectedUnixDateTimeAreMilliseconds: boolean // Default: false
+}
+
+interface SqlServerConnectionConfiguration {
+    excludeTrailingBlanksInLength: boolean // Default: false
+    ignoreNullInMinAndMaxValue: boolean // Default: false
+    minValueFunction?: string
+    maxValueFunction?: string
+    replaceCollation: string // Default: 'Latin1_General_BIN2'
 }
 ```

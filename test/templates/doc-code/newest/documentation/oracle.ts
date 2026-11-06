@@ -24,6 +24,7 @@ import {
     type OrderByMode,
 } from '../../../../../src/dynamic/orderBy.js'
 import { deepPick, deepOmit, type DeepPick, type DeepOmit, type DeepPickPaths } from '../../../../../src/extras/deepUtilities.js'
+import { getQueryExecutionSource } from '../../../../../src/queryRunners/QueryRunner.js'
 import { fromRef, type TableOrViewLeftJoinOf, type TableOrViewOf, type UpdatableValuesShapedAs } from '../../../../../src/extras/types.js'
 
 class DBConnection extends OracleConnection<'DBConnection'> { 
@@ -178,6 +179,7 @@ void MockQueryRunner
 void extractColumnsFrom
 void extractWritableColumnsFrom
 void extractWritableShapeFrom
+void getQueryExecutionSource
 void expandTypeProjectedAsNullableFromDynamicPickPaths
 void (null as unknown as [OrderByMode, StringFilter, DynamicDefinitionForModel<{}>, Pickable, PickValuesPathProjectedAsNullable<{}, never>, PickValuesPathWithAllPropertiesProjectedAsNullable<{}, never>, PickValuesPathWithAllProperties<{}, never>])
 void (null as unknown as UpdatableValuesShapedAs<any, any>)

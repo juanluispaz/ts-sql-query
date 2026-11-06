@@ -4,11 +4,13 @@ search:
 ---
 # SQLite Error Mapping
 
-This page lists how native SQLite database or driver errors are represented as `TsSqlErrorReason` values. The table uses the same row catalog and row order as the other native database pages, so a `-` means this semantic case is not currently mapped for SQLite.
+Search this page for the code, number or message your error has. Its row says the `errorReason` the library gives it, and the fields it fills. How to catch the error, and what to do with it, is in the [overview](../overview.md). The error of the driver is in the `cause` of the error.
 
-`Database error` shows the values exposed through `databaseErrorCode` and `databaseErrorNumber` when both are available. Connector-only signals include the connector inline. `SQL_UNKNOWN` is intentionally the last row.
+The `Database error` column has the values of `databaseErrorCode` and `databaseErrorNumber`, written `code / number` when the two exist. A signal that only one driver gives names that driver. The tables of all the databases have the same rows in the same order, so a `-` means this kind of error has no mapping on SQLite. `SQL_UNKNOWN`, the last row, has what no other row maps.
 
-Exact mapper-known codes are listed individually. Broad class, range, or message-pattern fallbacks are kept when the mapper intentionally handles an open-ended family of errors; if the same native code appears in more than one row, the driver message determines the final mapped reason.
+Each known code has its own entry. An entry can also stand for a whole family: a class of SQLSTATE, a range of numbers, or a pattern of the message. If a code appears in more than one row, the message of the driver decides the reason.
+
+A `TRANSACTION_ERROR` of type `transaction rolled back` with no code isn't in this table: the library reports it itself, see [the database rolled back the transaction](../library-raised-errors.md#the-database-rolled-back-the-transaction).
 
 | Category | <span class="min-width-9rem">Reason</span> | Database error | Filled fields |
 | --- | --- | --- | --- |

@@ -11,7 +11,7 @@
 // receives in `onQuery(...)`).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
-import { getQueryExecutionStack, getFunctionExecutingQuery, isSelectPageCountQuery, getQueryExecutionName, getQueryExecutionMetadata, type FunctionExecutingQueryInformation } from '../../../../../src/queryRunners/QueryRunner.js'
+import { getQueryExecutionStack, getFunctionExecutingQuery, isSelectPageCountQuery, getQueryExecutionName, getQueryExecutionMetadata, type FunctionExecutingQueryInformation, getQueryExecutionSource } from '../../../../../src/queryRunners/QueryRunner.js'
 import { tIssue, tProject, DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { InterceptorQueryRunner } from '../../../../../src/queryRunners/InterceptorQueryRunner.js'
@@ -83,6 +83,20 @@ describe(ctx.label, () => {
         expect(typeof stack).toBe('string')
         // The leading line is hard-coded by __setQueryMetadata.
         expect(stack).toMatch(/Query executed at/)
+    })
+
+    test('docs:query-execution-metadata/get-query-execution-source', async () => {
+        ctx.mockNext({ id: 1, name: 'Marketing site' })
+        sync(ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, name: tProject.name })
+            .executeSelectOne())
+
+        // doc-start
+        const source: Error | undefined = getQueryExecutionSource(ctx.lastSql, ctx.lastParams)
+        // doc-end
+        expect(source).toBeInstanceOf(Error)
+        expect(source?.stack).toBe(getQueryExecutionStack(ctx.lastSql, ctx.lastParams))
     })
 
     test('docs:query-execution-metadata/get-function-executing-query', async () => {

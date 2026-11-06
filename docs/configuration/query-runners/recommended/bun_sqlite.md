@@ -21,17 +21,13 @@ This runner provides integration with the [Bun Sqlite](https://bun.com/docs/runt
 
     bun:sqlite supports synchronous query execution. See the [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.
 
-!!! warning "Do not share connections between requests"
+!!! warning "A `Database` is a single connection"
 
-    A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
-
-    Therefore, **you must not share the same connection object between concurrent HTTP requests**. Instead, create a new connection object for each request, along with its own query runners.
-
-    Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
+    A `Database` is one connection to SQLite: every query runner created over the same object shares it, and shares its transaction. Two connection objects over one `Database` are not isolated from each other: a rollback in one undoes what the other did meanwhile, and while one has a transaction open, a transaction can't begin in the other. Don't use one object for requests that run at the same time with transactions: open a `Database` for each one, which is another connection to the same file.
 
 ## Using a single connection
 
-Enables executing queries through a dedicated [Bun Sqlite](https://bun.com/docs/runtime/sqlite) connection.
+Every statement runs on the database object you give the query runner.
 
 ```ts
 import { BunSqliteQueryRunner } from "ts-sql-query/queryRunners/BunSqliteQueryRunner";
@@ -46,9 +42,9 @@ async function main() {
 }
 ```
 
-!!! note "Safe Integers"
+## Large integers
 
-    If your queries may return integers larger than JavaScript's safe integer range, consider enabling `safeIntegers` in the database configuration.
+If your queries may return integers larger than JavaScript's safe integer range, create the database with `new Database('foobar.db', { safeIntegers: true })`. Without it an out-of-range value comes back rounded, and `ts-sql-query` rejects it with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` instead of returning a wrong value. With it, every integer arrives as a `BigInt`, and `ts-sql-query` converts it to the type the column declares: an `int` column still gives a `number`.
 
 ## bun:sqlite and UUIDs
 

@@ -67,7 +67,7 @@ const deleteCustomer: Promise<number>
 A delete without a `where` removes all the rows of the table, and it's usually a mistake that is hard to undo. The library stops it in two moments:
 
 - **When you compile:** `deleteFrom(...)` doesn't offer the execute methods until you call `where` or `dynamicWhere`.
-- **When you execute:** a condition can end up empty, for example a `dynamicWhere()` with no conditions added, or a `where` with only conditions that are [ignored because they have no value](dynamic-queries.md#optional-conditions-the-ifvalue-methods). The library then throws an error with the reason `MISSING_WHERE`, and nothing is sent to the database.
+- **When you execute:** a condition can end up empty, for example a `dynamicWhere()` with no conditions added, or a `where` with only conditions that are [ignored because they have no value](dynamic-queries.md#optional-conditions-the-ifvalue-methods). The promise of the execute method then rejects with the reason `MISSING_WHERE`, and nothing is sent to the database.
 
 When removing all the rows is what you want, start the query with `deleteAllowingNoWhereFrom` instead of `deleteFrom`:
 

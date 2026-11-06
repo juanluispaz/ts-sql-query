@@ -18,7 +18,7 @@ A dynamic condition allows you to create a condition whose structure is defined 
 const dynamicCondition = connection.dynamicConditionFor(selectFields).withValues(filter)
 ```
 
-The utility type `DynamicCondition` from `ts-sql-query/dynamic/condition` allows you to create a type definition for the dynamic criteria. This object receives a map with the name for the field and as value the name of the type or the value source to extract the type.
+The utility type `DynamicCondition`, from `ts-sql-query` or `ts-sql-query/dynamic/condition`, is the type of the dynamic criteria. It receives a map with the name of each field, and as value the name of its type, a value source to get the type from, or a nested map. [Dynamic conditions](../dynamic/helper-types/conditions.md) shows how to use it and the other helper types.
 
 For the filter definition:
 
@@ -36,47 +36,64 @@ type FilterType = DynamicCondition<{
     myEnum: ['enum', MyEnumType]
     myCustom: ['custom', MyCustomType]
     myCustomComparable: ['customComparable', MyCustomComparableType]
+    myCustomInt: ['customInt', MyCustomType]
+    myCustomDouble: ['customDouble', MyCustomType]
+    myCustomUuid: ['customUuid', MyCustomType]
+    myCustomLocalDate: ['customLocalDate', MyCustomType]
+    myCustomLocalTime: ['customLocalTime', MyCustomType]
+    myCustomLocalDateTime: ['customLocalDateTime', MyCustomType]
 }>
 ```
 
-The `FilterType` definition looks like this:
+The `FilterType` definition looks like this. Every field is optional:
 
 ```tsx
 type FilterType = {
     not?: FilterType
     and?: Array<FilterType | undefined>
     or?: Array<FilterType | undefined>
-    myBoolean: EqualableFilter<boolean>
-    myInt: ComparableFilter<number>
-    myBigint: ComparableFilter<bigint>
-    myDouble: ComparableFilter<number>
-    myString: StringFilter
-    myUuid: StringFilter
-    myLocalDate: ComparableFilter<Date>
-    myLocalTime: ComparableFilter<Date>
-    myLocalDateTime: ComparableFilter<Date>
-    myEnum: EqualableFilter<MyEnumType>
-    myCustom: EqualableFilter<MyCustomType>
-    myCustomComparable: ComparableFilter<MyCustomComparableType>
+    myBoolean?: BooleanFilter
+    myInt?: NumberFilter
+    myBigint?: BigintFilter
+    myDouble?: NumberFilter
+    myString?: StringFilter
+    myUuid?: StringFilter
+    myLocalDate?: DateFilter
+    myLocalTime?: TimeFilter
+    myLocalDateTime?: DateTimeFilter
+    myEnum?: EqualableFilter<MyEnumType>
+    myCustom?: EqualableFilter<MyCustomType>
+    myCustomComparable?: ComparableFilter<MyCustomComparableType>
+    myCustomInt?: CustomIntFilter<MyCustomType>
+    myCustomDouble?: CustomDoubleFilter<MyCustomType>
+    myCustomUuid?: CustomUuidFilter<MyCustomType>
+    myCustomLocalDate?: CustomLocalDateFilter<MyCustomType>
+    myCustomLocalTime?: CustomLocalTimeFilter<MyCustomType>
+    myCustomLocalDateTime?: CustomLocalDateTimeFilter<MyCustomType>
 }
 ```
 
 !!! note
 
-    For convenience, `uuid` type is treated as a string, automatically applying the `asString()` method in all methods defined in the `StringFilter` interface.
+    For convenience, the `uuid` and `customUuid` types accept the text operators of `StringFilter`, and they apply the `asString()` method before them.
 
 !!! tip "Deriving the filter type from a business model"
 
-    Besides a value-source map or a descriptor map, you can derive the filter type directly from a plain **business model** with `DynamicConditionForModel<Model>` — keeping the model as the single source of truth and not leaking any value-source type into your public signatures. See [Typing dynamic queries from a business model](../dynamic/own-function/from-business-model.md) for the full reference, including the model-to-filter mapping, the limitations, and the matching `OrderByForModel` order-by type.
+    `DynamicConditionForModel<Model>` derives the filter type from an interface of yours, with no value source in your public signatures. See [`DynamicConditionForModel`](../dynamic/helper-types/conditions.md#dynamicconditionformodel), and [Typing dynamic queries from a business model](../dynamic/own-function/from-business-model.md) for the model-to-filter mapping and its limitations.
 
-You can use the properties `and`, `or` and `not` to perform the logical operations. If you specify multiple elements to the `FilterType`, all of them will be joined using the and operator. The same happens with the elements specified in the **`and`** array. In contrast, elements in the **`or`** array will be joined using the OR operator.
+You can use the properties `and`, `or` and `not` to perform the logical operations. If you specify several properties in a filter, all of them are joined using the `and` operator. The same happens with the elements of the **`and`** array. Elements of the **`or`** array are joined using the `or` operator.
 
-The definition of the different types are:
+The definitions of the filters of each field are:
 
 ```typescript
-interface EqualableFilter<TYPE> {
+interface NullableFilter {
     isNull?: boolean
     isNotNull?: boolean
+}
+```
+
+```typescript
+interface EqualableFilter<TYPE> extends NullableFilter {
     equalsIfValue?: TYPE | null | undefined
     equals?: TYPE
     notEqualsIfValue?: TYPE | null | undefined
@@ -146,7 +163,62 @@ interface StringFilter extends ComparableFilter<string> {
 }
 ```
 
-You can extend the set of rules defining your own. For this, you will need to construct an object (it can contain inner objects), where the key is the name of the rule, and the value is a function that receives as an argument the configuration of the rule, and it must return a boolean value source. When you create the dynamic condition, you must provide the extension as the second argument; if you use the `DynamicCondition` utility type, you must provide the type of your extension object as a second argument.
+```typescript
+interface CustomUuidFilter<TYPE> extends ComparableFilter<TYPE> {
+    equalsInsensitiveIfValue?: TYPE | null | undefined
+    equalsInsensitive?: TYPE
+    notEqualsInsensitiveIfValue?: TYPE | null | undefined
+    notEqualsInsensitive?: TYPE
+    likeIfValue?: TYPE | null | undefined
+    like?: TYPE
+    notLikeIfValue?: TYPE | null | undefined
+    notLike?: TYPE
+    likeInsensitiveIfValue?: TYPE | null | undefined
+    likeInsensitive?: TYPE
+    notLikeInsensitiveIfValue?: TYPE | null | undefined
+    notLikeInsensitive?: TYPE
+    startsWithIfValue?: TYPE | null | undefined
+    startsWith?: TYPE
+    notStartsWithIfValue?: TYPE | null | undefined
+    notStartsWith?: TYPE
+    endsWithIfValue?: TYPE | null | undefined
+    endsWith?: TYPE
+    notEndsWithIfValue?: TYPE | null | undefined
+    notEndsWith?: TYPE
+    startsWithInsensitiveIfValue?: TYPE | null | undefined
+    startsWithInsensitive?: TYPE
+    notStartsWithInsensitiveIfValue?: TYPE | null | undefined
+    notStartsWithInsensitive?: TYPE
+    endsWithInsensitiveIfValue?: TYPE | null | undefined
+    endsWithInsensitive?: TYPE
+    notEndsWithInsensitiveIfValue?: TYPE | null | undefined
+    notEndsWithInsensitive?: TYPE
+    containsIfValue?: TYPE | null | undefined
+    contains?: TYPE
+    notContainsIfValue?: TYPE | null | undefined
+    notContains?: TYPE
+    containsInsensitiveIfValue?: TYPE | null | undefined
+    containsInsensitive?: TYPE
+    notContainsInsensitiveIfValue?: TYPE | null | undefined
+    notContainsInsensitive?: TYPE
+}
+```
+
+```typescript
+interface BooleanFilter extends EqualableFilter<boolean> { }
+interface NumberFilter extends ComparableFilter<number> { }
+interface BigintFilter extends ComparableFilter<bigint> { }
+interface DateFilter extends ComparableFilter<Date> { }
+interface TimeFilter extends ComparableFilter<Date> { }
+interface DateTimeFilter extends ComparableFilter<Date> { }
+interface CustomIntFilter<TYPE> extends ComparableFilter<TYPE> { }
+interface CustomDoubleFilter<TYPE> extends ComparableFilter<TYPE> { }
+interface CustomLocalDateFilter<TYPE> extends ComparableFilter<TYPE> { }
+interface CustomLocalTimeFilter<TYPE> extends ComparableFilter<TYPE> { }
+interface CustomLocalDateTimeFilter<TYPE> extends ComparableFilter<TYPE> { }
+```
+
+You can extend the set of rules defining your own. For this, you will need to construct an object (it can contain inner objects), where the key is the name of the rule, and the value is a function that receives as an argument the configuration of the rule, and it must return a boolean value source. When you create the dynamic condition, you must provide the extension as the second argument. `withValues` accepts the rules in the filter, written in place or in a variable. If you use the `DynamicCondition` utility type, you must provide the type of your extension object as a second argument. See [Rules of your own](../dynamic/caller-decides/filters.md#rules-of-your-own).
 
 ```typescriptreact
 const extension = {

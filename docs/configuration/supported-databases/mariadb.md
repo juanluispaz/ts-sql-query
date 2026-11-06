@@ -5,21 +5,9 @@ search:
 <!-- doc-code-template: mariadb -->
 # MariaDB
 
-This page describes how `ts-sql-query` integrates with **[MariaDB](https://mariadb.org)**, including dialect-specific behavior, configuration options, and available features. It covers the proper setup of a MariaDB connection, guidelines for connection management, and advanced behaviors such as sequences and UUID handling.
+This page has what is particular to MariaDB: what it offers and what it doesn't, how to declare its version, sequences, the limit of `stringConcat`, what `snapshot` protects, the UUID strategies, and rounding. To define the connection and map your tables, the pages to read are [Connection](../connection.md) and [Mapping](../mapping.md).
 
-!!! info
-
-    To configure the database dialect, extend the appropriate database connection class when defining your connection. You must choose the correct database type to ensure that the generated SQL queries follow the dialect expected by that database.
-
-!!! warning "Do not share connections between requests"
-
-    A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
-
-    Therefore, **you must not share the same connection object between concurrent HTTP requests**. Instead, create a new connection object for each request, along with its own query runners.
-
-    Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
-
-## Usage Example
+## Defining the connection
 
 ```ts
 import { MariaDBConnection } from "ts-sql-query/connections/MariaDBConnection";
@@ -27,9 +15,31 @@ import { MariaDBConnection } from "ts-sql-query/connections/MariaDBConnection";
 class DBConnection extends MariaDBConnection<'DBConnection'> { }
 ```
 
+Create a connection object for each request, and don't share it between concurrent requests: see [Instantiating the connection](../connection.md#instantiating-the-connection-with-the-database-connection).
+
+## What it offers and what it doesn't
+
+What isn't offered doesn't compile on this connection. On a version older than the one shown, the database rejects the query. Each link goes to the page that explains the feature, with all the databases side by side.
+
+| What | On this database |
+|---|---|
+| [`returning` in an insert](../../queries/insert.md#availability-per-database) | From MariaDB 10.5 |
+| [`returning` in an update](../../queries/update.md#availability-in-each-database) | From MariaDB 13.0.1 |
+| [`returning` in a delete](../../queries/delete.md#availability-in-each-database) | From MariaDB 10.0.5 |
+| [`oldValues()` in an update](../../queries/update.md#availability-in-each-database) | From MariaDB 13.0.1 |
+| [Insert on conflict](../../queries/insert-on-conflict.md#what-each-database-offers) | `onConflictDoNothing` and `onConflictDoUpdateSet`. `onConflictOn` and `onConflictOnConstraint` aren't offered |
+| Other tables in an [update](../../queries/update.md#availability-in-each-database) or a [delete](../../queries/delete.md#availability-in-each-database) | `from`, `using`, and a join right after `update` or `deleteFrom` |
+| [Compound queries](../../queries/compound-select.md#availability-in-each-database) | `union`, `unionAll`; `intersect`, `except`, `minus` from MariaDB 10.3; their `All` versions from MariaDB 10.5 |
+| [Recursive queries](../../queries/recursive-select.md#availability-in-each-database) | `recursiveUnionAll`, `recursiveUnion`. `startWith` and `connectBy` aren't offered |
+| [Arrays of objects from an aggregate](../../queries/aggregate-as-object-array.md#availability-in-each-database) | From MariaDB 10.5, also the `Distinct` versions |
+| [`stringConcatDistinct`, `anyValue`](../../queries/aggregate-and-group-by.md#how-each-function-is-written-in-each-database) | `stringConcatDistinct` yes; `anyValue` isn't offered |
+| [Sequences](../mapping.md#using-a-sequence) | From MariaDB 10.3 |
+| [Stored procedures](../mapping.md#calling-a-stored-procedure) and [functions](../mapping.md#calling-a-function-of-the-database) | Yes |
+| [Isolation levels](../../queries/transaction.md#what-each-database-offers) | `read uncommitted`, `read committed`, `snapshot` ([with a limitation](#snapshot-isolation-and-older-versions)), `serializable` |
+
 ## Compatibility version
 
-The `compatibilityVersion` property declares the minimum MariaDB version the generated SQL must support, encoded as the integer `major * 1_000_000 + minor * 1_000 + patch` — e.g. `10_005_000` for MariaDB 10.5.0, `10_003_003` for MariaDB 10.3.3. The numeric separator `_` is for readability only (`10_005_000 === 10005000`). The default is `Number.POSITIVE_INFINITY` (latest), so every supported feature is emitted.
+The `compatibilityVersion` property says which MariaDB version the SQL must work on, encoded as the integer `major * 1_000_000 + minor * 1_000 + patch` — e.g. `10_005_000` for MariaDB 10.5.0, `10_003_003` for MariaDB 10.3.3. The numeric separator `_` is for readability only (`10_005_000 === 10005000`). The default is `Number.POSITIVE_INFINITY` (latest), so every supported feature is emitted.
 
 You can set this to your real database version (whatever it is) regardless of whether ts-sql-query currently uses it — extra granularity is harmless and future-proof.
 
@@ -48,45 +58,6 @@ class DBConnection extends MariaDBConnection<'DBConnection'> {
 }
 ```
 
-## `stringConcat` truncates long results
-
-`stringConcat` is emitted as `GROUP_CONCAT()`, which **silently truncates** its result at the session's `group_concat_max_len` — **1024 bytes by default**. It raises a warning, never an error, so the value arrives as a clean but incomplete string:
-
-```
-LENGTH(GROUP_CONCAT(6 x 200 chars)) = 1024      -- expected 1205
-SHOW WARNINGS -> Warning 1260 "Row 6 was cut by GROUP_CONCAT()"
-```
-
-There is no alternative function on this engine (`STRING_AGG` does not exist), so the limit is inherent to the aggregate and the library cannot work around it. It is session configuration your application owns — raise it on the connection if you aggregate long strings:
-
-```js
-pool.on('connection', c => c.query('SET SESSION group_concat_max_len = 1000000'))
-```
-
-## Rounding behavior
-
-MariaDB's native `ROUND` function applies **different tie-breaking rules** depending on whether its argument is an exact-value or an approximate-value number. Per the [MariaDB knowledge base](https://mariadb.com/kb/en/round/):
-
-> For exact-value numbers (`DECIMAL`), `ROUND()` uses the **"round half away from zero"** rule (so `round(0.5) → 1` and `round(2.5) → 3`).
->
-> For approximate-value numbers (`DOUBLE`), the result depends on the C library, which rounds half to even on the usual platforms (so `round(0.5) → 0` and `round(2.5) → 2`).
-
-ts-sql-query breaks ties away from zero on every dialect, matching JavaScript's `Math.round` for positive `.5` values. Expressions such as `.divide(...)` and `.asDouble()` produce a `DOUBLE`, so without care `.round()` would silently switch tie-breaking rules depending on what came before it in the chain. To keep `.round()` predictable and portable, **the MariaDB connection casts the operand back to an exact type before applying `round`**, so `value.round()` always rounds ties away from zero regardless of the operand's type.
-
-For example, `tIssue.priority.divide(2).round()` (where `priority = 1`) yields `round(0.5) = 1` on every dialect, including MariaDB.
-
-If you prefer MariaDB's native `round(<double>)` semantics — typically because your application is single-dialect and you want the IEEE 754 round-to-even tie-breaking common on modern systems, or because existing queries depend on that result — set `usePlatformDependentRound = true` on your connection:
-
-```ts
-import { MariaDBConnection } from "ts-sql-query/connections/MariaDBConnection";
-
-class DBConnection extends MariaDBConnection<'DBConnection'> {
-    protected override usePlatformDependentRound = true
-}
-```
-
-With the flag on, `value.round()` and `value.roundn(n)` emit `round(x)` directly: when `x` is an exact expression you still get away-from-zero, but when `x` is a `DOUBLE` expression (the type produced by `.divide(...)`, `.asDouble()`, and many other arithmetic chains) the tie-breaking follows the C library's rules.
-
 ## Sequences
 
 MariaDB exposes server-side `SEQUENCE` objects (added in MariaDB 10.3.0 via [MDEV-10139](https://jira.mariadb.org/browse/MDEV-10139)), and `ts-sql-query` lets you reference them from a `MariaDBConnection`. The `sequence(...)` builder and `autogeneratedPrimaryKeyBySequence(...)` emit `NEXTVAL(seq)` / `LASTVAL(seq)`, matching the function form documented in the MariaDB knowledge base. `LASTVAL(seq)` is scoped to the current connection, so it returns the value most recently produced by `NEXTVAL(seq)` within the same session (or `NULL` if none).
@@ -101,12 +72,27 @@ const tCustomer = new class TCustomer extends Table<DBConnection, 'TCustomer'> {
     /* ... */
     
     constructor() {
-        super('company'); // table name in the database
+        super('customer'); // table name in the database
     }
 }()
 ```
 
 Set `compatibilityVersion` to your MariaDB version (or leave the default) so the rest of the SQL is emitted accordingly. There is no fallback below 10.3 — the server simply does not recognise the `SEQUENCE` syntax, so don't expose sequences when targeting older versions.
+
+## `stringConcat` truncates long results
+
+`stringConcat` is emitted as `GROUP_CONCAT()`, which **silently truncates** its result at the session's `group_concat_max_len` — **1024 bytes by default**. It raises a warning, never an error, so the value arrives as a clean but incomplete string:
+
+```
+LENGTH(GROUP_CONCAT(6 x 200 chars)) = 1024      -- expected 1205
+SHOW WARNINGS -> Warning 1260 "Row 6 was cut by GROUP_CONCAT()"
+```
+
+There is no alternative function on this engine (`STRING_AGG` does not exist), so the limit is inherent to the aggregate and the library cannot work around it. It is session configuration your application owns — raise it on the connection if you aggregate long strings:
+
+```js
+pool.on('connection', c => c.query('SET SESSION group_concat_max_len = 1000000'))
+```
 
 ## `snapshot` isolation and older versions
 
@@ -152,3 +138,27 @@ class DBConnection extends MariaDBConnection<'DBConnection'> {
 !!! tip "Generating UUIDs"
 
     Prefer **UUID v7** over UUID v4. MariaDB's native `UUID` type stores UUIDs with version ≥ 6 in canonical byte order ([MDEV-29959](https://jira.mariadb.org/browse/MDEV-29959), since MariaDB 10.10.6 / 10.11.5 — predates the RFC 9562 publication), so v7 keeps its chronological ordering on the primary-key index. MariaDB 11.7+ also exposes a server-side `UUID_v7()` function. As a general rule, generating the UUID in the database as a column `DEFAULT` is preferred over generating it in application code; the latter is the fallback when the value must be known before the `INSERT`. See the [column types](../column-types.md) page for more context.
+
+## Rounding behavior
+
+MariaDB's native `ROUND` function applies **different tie-breaking rules** depending on whether its argument is an exact-value or an approximate-value number. Per the [MariaDB knowledge base](https://mariadb.com/kb/en/round/):
+
+> For exact-value numbers (`DECIMAL`), `ROUND()` uses the **"round half away from zero"** rule (so `round(0.5) → 1` and `round(2.5) → 3`).
+>
+> For approximate-value numbers (`DOUBLE`), the result depends on the C library, which rounds half to even on the usual platforms (so `round(0.5) → 0` and `round(2.5) → 2`).
+
+ts-sql-query breaks ties away from zero on every dialect, matching JavaScript's `Math.round` for positive `.5` values. Expressions such as `.divide(...)` and `.asDouble()` produce a `DOUBLE`, so without care `.round()` would silently switch tie-breaking rules depending on what came before it in the chain. To keep `.round()` predictable and portable, **the MariaDB connection casts the operand back to an exact type before applying `round`**, so `value.round()` always rounds ties away from zero regardless of the operand's type.
+
+For example, `tIssue.priority.divide(2).round()` (where `priority = 1`) yields `round(0.5) = 1` on every dialect, including MariaDB.
+
+If you prefer MariaDB's native `round(<double>)` semantics — typically because your application is single-dialect and you want the IEEE 754 round-to-even tie-breaking common on modern systems, or because existing queries depend on that result — set `usePlatformDependentRound = true` on your connection:
+
+```ts
+import { MariaDBConnection } from "ts-sql-query/connections/MariaDBConnection";
+
+class DBConnection extends MariaDBConnection<'DBConnection'> {
+    protected override usePlatformDependentRound = true
+}
+```
+
+With the flag on, `value.round()` and `value.roundn(n)` emit `round(x)` directly: when `x` is an exact expression you still get away-from-zero, but when `x` is a `DOUBLE` expression (the type produced by `.divide(...)`, `.asDouble()`, and many other arithmetic chains) the tie-breaking follows the C library's rules.

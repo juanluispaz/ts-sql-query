@@ -8,14 +8,22 @@ This API allows you to define and use constant values as if they were a virtual 
 
 ```typescript
 interface Values {
-    /** Allows to define an alias for the view to be used in the selects queries */
+    /** Defines an alias for the view to be used in select queries */
     as(as: string): this
-    /** Allows  to use the view in a left join */
+    /** Enables the view to be used in a left join */
     forUseInLeftJoin(): this & OuterJoinSource
-    /** Allows  to use the view in a left join with an alias */
+    /** Enables the view to be used in a left join with an alias */
     forUseInLeftJoinAs(as: string): this & OuterJoinSource
 
-    // Protected methods that allow to create a required column that doesn't admits null
+    /**
+     * Static method, called as Values.create(MyValuesClass, 'name', rows). It is the way to create an instance.
+     * The class must not implement a constructor.
+     * Each row has one property per column, with the required ones mandatory.
+     * It throws an error if the list of rows is empty.
+     */
+    create<T extends Values>(type: new (name: string, values: any) => T, name: string, values: { [columnName: string]: any }[]): T
+
+    // Protected methods that create a required column that doesn't admit null
     column(type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     column(type: 'int', adapter?: TypeAdapter): NumberValueSource
     column(type: 'bigint', adapter?: TypeAdapter): BigintValueSource
@@ -35,7 +43,7 @@ interface Values {
     column<T, TYPE_NAME = T>(type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
     column<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
 
-    // Protected methods that allow to create an optional column that admits null
+    // Protected methods that create an optional column that admits null
     optionalColumn(type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     optionalColumn(type: 'int', adapter?: TypeAdapter): NumberValueSource
     optionalColumn(type: 'bigint', adapter?: TypeAdapter): BigintValueSource
@@ -55,7 +63,7 @@ interface Values {
     optionalColumn<T, TYPE_NAME = T>(type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
     optionalColumn<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
 
-    // Protected methods that allows to create a sql fragment in the view
+    // Protected methods that create a column from a sql fragment in the view
     virtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
     virtualColumnFromFragment(type: 'int', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
     virtualColumnFromFragment(type: 'bigint', fn: (fragment: FragmentExpression) => BigintValueSource, adapter?: TypeAdapter): BigintValueSource
@@ -75,7 +83,7 @@ interface Values {
     virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'custom', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
     virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, fn: (fragment: FragmentExpression) => ComparableValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
 
-    // Protected methods that allows to create an optional sql fragment in the view
+    // Protected methods that create an optional column from a sql fragment in the view
     optionalVirtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
     optionalVirtualColumnFromFragment(type: 'int', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
     optionalVirtualColumnFromFragment(type: 'bigint', fn: (fragment: FragmentExpression) => BigintValueSource, adapter?: TypeAdapter): BigintValueSource

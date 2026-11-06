@@ -4,11 +4,23 @@ search:
 ---
 # ID manipulation
 
+A sequential id says too much when it leaves your backend: how many rows there are, and which other ids exist. This page shows how to work in your code, and in what leaves your backend, with an encrypted text, while the database keeps the number. The library converts the value each time it crosses to the database, so a query compares the id as usual.
+
+`IDEncrypter`, in `ts-sql-query/extras/IDEncrypter`, encrypts and decrypts a `bigint`:
+
+| Method | What it does |
+|---|---|
+| `new IDEncrypter(password, initializationVector)` | Both are strings of 16 characters of `[A-Za-z0-9]` |
+| `encrypt(id, prefix?)` | Returns a text of 16 characters (plus the prefix, if any) of `[A-Za-z0-9]`, `-`, `_` and `.`, which can go in a URL. An id above the maximum of an int64 gives a longer text |
+| `decrypt(encryptedID, prefix?)` | Returns the `bigint`. It throws an error if the text was changed, or doesn't have that prefix |
+
+The order of the encrypted texts isn't the order of the ids: don't sort them in your code expecting the order of the database.
+
+You can use another way of encrypting: what the library needs is a custom data type and its conversion.
+
 ## Encrypted ID
 
-Sometimes you want to encrypt the ID handled by the database. To do it, you can create a custom data type and define the type conversion using a type adapter or extending the default type adapter. During the type conversion, you can encrypt and decrypt with the strategy you like; for the next example, [IDEncrypter](https://github.com/juanluispaz/ts-sql-query/blob/master/src/extras/IDEncrypter.ts) will be used (included in `ts-sql-query`).
-
-You can create the connection and define the rules to handle a type called `encryptedID`:
+Create a custom data type and define its conversion, using a type adapter or extending the default type adapter. Here the connection defines the rules for a type called `encryptedID`:
 
 ```typescriptreact
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
@@ -16,7 +28,7 @@ import { IDEncrypter } from "ts-sql-query/extras/IDEncrypter";
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> { 
 
-    // IDEncrypter requires two strings of 16 chars of [A-Za-z0-9] working as passwords for the encrypt process
+    // Two strings of 16 chars of [A-Za-z0-9] that work as passwords
     private encrypter = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c');
 
     protected override transformValueFromDB(value: unknown, type: string): unknown {
@@ -48,7 +60,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 }
 ```
 
-You can create the table, specifying the id type as `custom` or `customComparable` with type name `encryptedID` and data type `string` (the type of the encrypted data):
+In the table, the id is a `custom` or `customComparable` column with the type name `encryptedID`, and `string`, the type of the encrypted text, as its TypeScript type:
 
 ```typescriptreact
 import { Table } from "ts-sql-query" // or "ts-sql-query/Table";
@@ -100,13 +112,11 @@ let company = await connection
 
 The id used in the query will be sent to the database decrypted.
 
-See [IDEncrypter](https://github.com/juanluispaz/ts-sql-query/blob/master/src/extras/IDEncrypter.ts) for more information to know how the password is encrypted.
-
 ## Globally Encrypted ID
 
-Sometimes you want to encrypt the ID handled by the database and ensure is globally unique. To do it, you can create a custom data type and define the type conversion using a type adapter or extending the default type adapter. During the type conversion, you can encrypt and decrypt with the strategy you like; for the next example, [IDEncrypter](https://github.com/juanluispaz/ts-sql-query/blob/master/src/extras/IDEncrypter.ts) will be used (included in `ts-sql-query`). You will need to define a prefix per table. In the example the custom data type name follows the pattern `ID_<prefix>`
+In the previous example, the id 1 of a company and the id 1 of a customer have the same encrypted text, and one could be used in place of the other. With a prefix per table, each encrypted id says which table it belongs to: the texts are different, and `decrypt` throws an error if the prefix isn't the one of that column.
 
-You can create the connection and define the rules to handle the ID type:
+Here the name of the custom data type follows the pattern `ID_<prefix>`, and the connection takes the prefix from it:
 
 ```typescriptreact
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
@@ -114,7 +124,7 @@ import { IDEncrypter } from "ts-sql-query/extras/IDEncrypter";
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> { 
 
-    // IDEncrypter requires two strings of 16 chars of [A-Za-z0-9] working as passwords for the encrypt process
+    // Two strings of 16 chars of [A-Za-z0-9] that work as passwords
     private encrypter = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c');
 
     protected override transformValueFromDB(value: unknown, type: string): unknown {
@@ -148,7 +158,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 }
 ```
 
-You can create the table, specifying the id type as `custom` or `customComparable` with type name that starts with `ID_` followed by a prefix and data type `string` (the type of the encrypted data):
+In the table, the id is a `custom` or `customComparable` column whose type name is `ID_` followed by the prefix, and `string` as its TypeScript type:
 
 ```typescriptreact
 import { Table } from "ts-sql-query" // or "ts-sql-query/Table";
@@ -200,8 +210,13 @@ let company = await connection
 
 The id used in the query will be sent to the database decrypted.
 
-!!! note
+## Checking an encrypted ID without decrypting it
 
-    The custom type name must start with `ID_` for the conversion logic to recognize and apply the encryption/decryption rules correctly.
+The last two characters of the encrypted text are a public checksum. `isValidEncryptedID` checks it without the passwords, so it can reject a mistyped id before using it. It returns `false` instead of throwing. It only says that the text looks right: `decrypt` makes the complete check.
 
-See [IDEncrypter](https://github.com/juanluispaz/ts-sql-query/blob/master/src/extras/IDEncrypter.ts) for more information to know how the password is encrypted.
+```typescriptreact
+import { isValidEncryptedID } from "ts-sql-query/extras/IDEncrypter";
+
+const looksValid = isValidEncryptedID('uftSdCUhUTBQ0111');
+const looksValidWithPrefix = isValidEncryptedID('coFJL3xTJZvP6Kd30d', 'co');
+```

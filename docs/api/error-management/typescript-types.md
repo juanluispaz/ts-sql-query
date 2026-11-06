@@ -4,9 +4,7 @@ search:
 ---
 # TypeScript Types
 
-This page collects the TypeScript-facing error declarations that are useful when handling `ts-sql-query` errors in application code. The semantic explanation of each reason lives in [Error types](error-types.md), while native database signals are documented in the per-database mapping pages.
-
-The declarations below are based on `src/TsSqlError.ts`. Keep this page focused on public consumption: error narrowing, reason fields, and the metadata a caller can inspect.
+This page has the declarations to use when you handle an error in your code. What each reason means is in [Error types](error-types.md), [library-raised errors](library-raised-errors.md) and the page of [your database](overview.md#where-to-find-a-reason-or-a-code).
 
 ## Imports
 
@@ -30,7 +28,7 @@ type TsSqlDatabaseErrorCode = string
 type TsSqlDatabaseErrorNumber = string | number
 ```
 
-`databaseErrorCode` stores the symbolic or textual signal when available. `databaseErrorNumber` stores numeric vendor codes and SQLSTATE-like values when available. `databaseErrorMessage` is a string field inside the reason object, not a standalone exported type.
+`databaseErrorCode` has the symbolic code, when there is one. `databaseErrorNumber` has the number or the SQLSTATE, when there is one. `databaseErrorMessage` is a string field of the reason, not an exported type.
 
 ## Reason Types
 
@@ -416,7 +414,7 @@ type TsSqlInternalErrorReason =
 
 ## Error Classes
 
-This is the public shape most consumers need when narrowing errors. The runtime implementation also preserves stack traces and attaches the native error through the standard `cause` mechanism when one is available.
+`TsSqlQueryExecutionError` is what a query rejects with, and `TsSqlProcessingError` what is thrown while a query is written; `TsSqlError` is the base class of both. The `attach*` methods are used by the library: [what an error carries](overview.md#what-an-error-carries) explains the fields they fill, and `cause`, which comes from `Error`.
 
 ```typescript
 /**
@@ -494,7 +492,7 @@ class TsSqlProcessingError extends TsSqlError {
 
 ```typescriptreact
 try {
-  await connection.selectFrom(tCustomer).selectAll().executeSelectMany()
+  await connection.insertInto(tCustomer).set({ firstName: 'John', lastName: 'Smith', companyId: 1 }).executeInsert()
 } catch (error) {
   if (error instanceof TsSqlQueryExecutionError) {
     const reason = error.errorReason

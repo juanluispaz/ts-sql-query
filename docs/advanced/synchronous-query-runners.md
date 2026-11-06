@@ -5,7 +5,7 @@ search:
 <!-- doc-code-template: sqlite -->
 # Synchronous query runners
 
-Some query runners support executing queries synchronously if you provide a Promise implementation that supports it, like [synchronous-promise](https://www.npmjs.com/package/synchronous-promise).
+A query normally returns a `Promise`. Some drivers run the query synchronously, and with them you can get the result without `await`, for example in code that can't be asynchronous. You need a query runner of the following lists, with a `Promise` implementation that resolves synchronously, like [synchronous-promise](https://www.npmjs.com/package/synchronous-promise), and the `sync` function.
 
 !!! success "Supported query runners that connect to a database"
 
@@ -26,45 +26,55 @@ Some query runners support executing queries synchronously if you provide a Prom
 
 ## Unwrapping synchronous promises
 
-`ts-sql-query` ships a `sync` helper that unwraps the result of a synchronous promise in a blocking manner, similar to how `await` unwraps regular promises. When combined with a promise implementation like [`synchronous-promise`](https://www.npmjs.com/package/synchronous-promise) — which resolves synchronously and does not defer `.then` execution — and one of the supported query runners listed above, it lets you interact with `ts-sql-query` in a fully synchronous style.
+`sync` gets the result of a synchronous promise, as `await` does with a regular one.
 
 ```ts
 import { sync } from 'ts-sql-query' // or 'ts-sql-query/extras/sync';
 ```
 
-The promise passed to `sync()` must be truly synchronous — typically a database operation wrapped with `SynchronousPromise`. If `sync()` detects that the operation has not resolved (or rejected) by the time `.then(...)` returns, it throws an error, preventing misuse.
-
-!!! tip "No need to re-implement `sync()`"
-
-    Previously, the recommendation was to copy a `sync()` implementation into your own codebase. That is no longer necessary — import it from `ts-sql-query` (or its `ts-sql-query/extras/sync` subpath) instead.
+The promise must be truly synchronous: it must have been resolved or rejected by the time `.then(...)` returns. If it hasn't, `sync` throws a `TsSqlProcessingError` with the reason `SYNCHRONOUS_PROMISE_EXPECTED`. If the promise is rejected, `sync` throws its error.
 
 ## Usage Example
 
+Give the query runner the `Promise` implementation with its `promise` option. The general purpose query runners that wrap another one use that of the wrapped query runner.
+
 ```ts
 import { BetterSqlite3QueryRunner } from "ts-sql-query/queryRunners/BetterSqlite3QueryRunner";
-import { sync } from "ts-sql-query"; // or "ts-sql-query/extras/sync"
 import Database from "better-sqlite3";
 import { SynchronousPromise } from "synchronous-promise";
 
 const db = new Database('foobar.db', options);
 
-function main() {
-    const connection = new DBConnection(new BetterSqlite3QueryRunner(db, { promise: SynchronousPromise }));
-    // Do your queries here, surrounding each one with the sync function. For example:
-    const selectCompanies = sync(
-        connection.selectFrom(tCompany)
+const connection = new DBConnection(new BetterSqlite3QueryRunner(db, { promise: SynchronousPromise }));
+```
+
+Then surround each query with `sync`:
+
+```ts
+import { sync } from "ts-sql-query"; // or "ts-sql-query/extras/sync"
+
+const selectCompanies = sync(
+    connection.selectFrom(tCompany)
+        .where(tCompany.id.equals(123))
+        .select({
+            id: tCompany.id,
+            name: tCompany.name
+        })
+        .executeSelectMany()
+);
+```
+
+In a transaction, the function you pass to `transaction` doesn't need to be `async`. If it throws, the transaction is rolled back and `sync` throws the error:
+
+```ts
+import { sync } from "ts-sql-query"; // or "ts-sql-query/extras/sync"
+
+const updatedCompanies = sync(connection.transaction(() => {
+    return sync(
+        connection.update(tCompany)
+            .set({ name: 'Acme' })
             .where(tCompany.id.equals(123))
-            .select({
-                id: tCompany.id,
-                name: tCompany.name
-            })
-            .executeSelectMany()
+            .executeUpdate()
     );
-
-    selectCompanies // ...
-
-    // var result = sync(connection.insertInto...)
-    // result = sync(connection.update...)
-    // result = sync(connection.delete...)
-}
+}));
 ```

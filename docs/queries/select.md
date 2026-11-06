@@ -712,7 +712,7 @@ The mode is the second argument of `orderBy`, like `.orderBy('name', 'desc nulls
 
 On the databases that don't have `nulls first` or `nulls last`, the library writes an order by that gives the same result.
 
-`insensitive` orders the text without distinguishing upper and lower case. Whether a text is ordered that way depends on its [collation](../configuration/collations.md): with a case-sensitive one, the usual in PostgreSQL, SQLite and Oracle, the upper case letters can go together before the lower case ones, so you get `Bea, Carla, ana`, while the insensitive order is `ana, Bea, Carla`. It's written `lower(column)`, or `column collate <name>` when the connection has an [`insensitiveCollation`](../configuration/collations.md#the-tools). A database can't use a plain index on the column for an order written that way, so if the column is already case-insensitive you don't need it. In a column that isn't text, `insensitive` is ignored.
+`insensitive` orders the text without distinguishing upper and lower case. Whether a text is ordered that way depends on its [collation](../configuration/collations.md): with a case-sensitive one, the usual in PostgreSQL, SQLite and Oracle, the upper case letters can go together before the lower case ones, so you get `Bea, Carla, ana`, while the insensitive order is `ana, Bea, Carla`. It's written `lower(column)`, or `column collate <name>` when the connection has an [`insensitiveCollation`](../configuration/collations.md#how-to-choose-a-collation). A database can't use a plain index on the column for an order written that way, so if the column is already case-insensitive you don't need it. In a column that isn't text, `insensitive` is ignored.
 
 ## Ordering by a column that isn't returned
 
@@ -833,7 +833,7 @@ To choose between them:
 - Use `executeSelectNoneOrOne` when the row may not exist, like looking for a customer by email.
 - Use `executeSelectMany` for anything else.
 
-`executeSelectOne` and `executeSelectNoneOrOne` don't choose a row when there are several: they throw an error. To get the first row of a list, say which one it is with `orderBy` and `limit(1)`:
+`executeSelectOne` and `executeSelectNoneOrOne` don't choose a row when there are several: their promise rejects. To get the first row of a list, say which one it is with `orderBy` and `limit(1)`:
 
 ```ts
 const lastCustomer = await connection.selectFrom(tCustomer)
@@ -970,6 +970,10 @@ const firstNames: Promise<{
 Order a distinct select by the properties of the select: a column that isn't returned can have several values in the row that remains, and PostgreSQL rejects the query.
 
 To do the same in a subquery that refers to the outer query, use [`subSelectDistinctUsing`](cte-subqueries.md#inline-subquery-with-distinct-values-referencing-the-outer-query).
+
+## Select all the columns of a table
+
+`select(tCustomer)` returns all the columns of the table, each one with the name of its property. See [Select all the columns of a table](../advanced/columns-from-object.md#select-all-the-columns-of-a-table).
 
 ## Select one column
 

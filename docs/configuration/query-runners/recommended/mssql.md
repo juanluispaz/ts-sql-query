@@ -5,7 +5,7 @@ search:
 <!-- doc-code-template: sqlserver -->
 # mssql
 
-This page explains how to use `ts-sql-query` with the [mssql](https://www.npmjs.com/package/mssql) driver. It covers two approaches: using a connection pool promise or using a connection pool.
+This page explains how to use `ts-sql-query` with the [mssql](https://www.npmjs.com/package/mssql) driver. It covers two approaches: using a connection pool promise or using a connection pool. There is no query runner over a single connection: mssql only reserves a connection of its pool for a transaction.
 
 !!! success "Supported databases"
 
@@ -19,15 +19,11 @@ This page explains how to use `ts-sql-query` with the [mssql](https://www.npmjs.
 
 !!! warning "Do not share connections between requests"
 
-    A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
-
-    Therefore, **you must not share the same connection object between concurrent HTTP requests**. Instead, create a new connection object for each request, along with its own query runners.
-
-    Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
+    Create the pool once, and a connection object with its query runner for each request: they hold the state of the transaction of that request. See [Instantiating the connection](../../connection.md#instantiating-the-connection-with-the-database-connection).
 
 ## Using a connection pool promise
 
-Enables executing queries through a [mssql](https://www.npmjs.com/package/mssql) connection obtained from a pool promise.
+Give the query runner the promise that `connect()` returns, without waiting for it: the first statement waits. Each statement runs on a connection of the pool, and in a transaction every statement runs on the same one until the transaction ends.
 
 ```ts
 import mssql from 'mssql'
@@ -51,7 +47,7 @@ async function main() {
 
 ## Using a connection pool
 
-Enables executing queries through a [mssql](https://www.npmjs.com/package/mssql) connection obtained from a pool.
+The same, when you already have the pool connected.
 
 ```ts
 import mssql from 'mssql'

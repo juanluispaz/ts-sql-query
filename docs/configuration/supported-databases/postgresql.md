@@ -5,21 +5,9 @@ search:
 <!-- doc-code-template: postgresql -->
 # PostgreSQL
 
-This page describes how `ts-sql-query` integrates with **[PostgreSQL](https://www.postgresql.org)**, including dialect-specific behavior, configuration options, and available features. It covers the proper setup of a PostgreSQL connection, guidelines for connection management, and advanced behaviors such as explicit typing.
+This page has what is particular to PostgreSQL: what it offers and what it doesn't, how to declare its version, explicit typing, what happens when a statement fails inside a transaction, rounding, and how `minValue` and `maxValue` treat `null`. To define the connection and map your tables, the pages to read are [Connection](../connection.md) and [Mapping](../mapping.md).
 
-!!! info
-
-    To configure the database dialect, extend the appropriate database connection class when defining your connection. You must choose the correct database type to ensure that the generated SQL queries follow the dialect expected by that database.
-
-!!! warning "Do not share connections between requests"
-
-    A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
-
-    Therefore, **you must not share the same connection object between concurrent HTTP requests**. Instead, create a new connection object for each request, along with its own query runners.
-
-    Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
-
-## Usage Example
+## Defining the connection
 
 ```ts
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
@@ -27,9 +15,31 @@ import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnect
 class DBConnection extends PostgreSqlConnection<'DBConnection'> { }
 ```
 
+Create a connection object for each request, and don't share it between concurrent requests: see [Instantiating the connection](../connection.md#instantiating-the-connection-with-the-database-connection).
+
+## What it offers and what it doesn't
+
+What isn't offered doesn't compile on this connection. On a version older than the one shown, the database rejects the query. Each link goes to the page that explains the feature, with all the databases side by side.
+
+| What | On this database |
+|---|---|
+| [`returning` in an insert](../../queries/insert.md#availability-per-database) | Yes |
+| [`returning` in an update](../../queries/update.md#availability-in-each-database) | Yes |
+| [`returning` in a delete](../../queries/delete.md#availability-in-each-database) | Yes |
+| [`oldValues()` in an update](../../queries/update.md#availability-in-each-database) | Yes; native from PostgreSQL 18, emulated in a single query below it |
+| [Insert on conflict](../../queries/insert-on-conflict.md#what-each-database-offers) | `onConflictDoNothing`, `onConflictOn` and `onConflictOnConstraint`. `onConflictDoUpdateSet` isn't offered: an update must say which conflict it handles |
+| Other tables in an [update](../../queries/update.md#availability-in-each-database) or a [delete](../../queries/delete.md#availability-in-each-database) | `from` and `using`. A join right after `update` or `deleteFrom` isn't offered |
+| [Compound queries](../../queries/compound-select.md#availability-in-each-database) | All of them |
+| [Recursive queries](../../queries/recursive-select.md#availability-in-each-database) | `recursiveUnionAll`, `recursiveUnion`. `startWith` and `connectBy` aren't offered |
+| [Arrays of objects from an aggregate](../../queries/aggregate-as-object-array.md#availability-in-each-database) | Yes, also the `Distinct` versions |
+| [`stringConcatDistinct`, `anyValue`](../../queries/aggregate-and-group-by.md#how-each-function-is-written-in-each-database) | Yes |
+| [Sequences](../mapping.md#using-a-sequence) | Yes |
+| [Stored procedures](../mapping.md#calling-a-stored-procedure) and [functions](../mapping.md#calling-a-function-of-the-database) | Yes |
+| [Isolation levels](../../queries/transaction.md#what-each-database-offers) | `read committed`, `snapshot`, `serializable` |
+
 ## Compatibility version
 
-The `compatibilityVersion` property declares the minimum PostgreSQL version the generated SQL must support, encoded as the integer `major * 1_000_000 + minor * 1_000 + patch` — e.g. `18_000_000` for PostgreSQL 18, `17_000_000` for PostgreSQL 17. The numeric separator `_` is for readability only (`18_000_000 === 18000000`). The default is `Number.POSITIVE_INFINITY` (latest), so every supported feature is emitted.
+The `compatibilityVersion` property says which PostgreSQL version the SQL must work on, encoded as the integer `major * 1_000_000 + minor * 1_000 + patch` — e.g. `18_000_000` for PostgreSQL 18, `17_000_000` for PostgreSQL 17. The numeric separator `_` is for readability only (`18_000_000 === 18000000`). The default is `Number.POSITIVE_INFINITY` (latest), so every supported feature is emitted.
 
 You can set this to your real database version (whatever it is) regardless of whether ts-sql-query currently uses it — extra granularity is harmless and future-proof.
 
@@ -45,6 +55,63 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     protected override compatibilityVersion = 17_000_000
 }
 ```
+
+## A statement that fails inside a transaction
+
+On PostgreSQL, a statement that fails inside a transaction leaves the whole transaction failed, even if your code catches the error and goes on: the statements that follow are rejected, and at the commit the database rolls the transaction back. `ts-sql-query` reports the transaction as failed, with the `errorReason` `TRANSACTION_ERROR` (`transactionErrorType: 'transaction rolled back'`) and the error of the statement that failed in `error.cause.cause`, and with `connection.transaction(...)` the after-rollback functions run instead of the after-commit ones. With `PostgresQueryRunner`, `connection.transaction(...)` leaves the transaction to postgres.js, which rolls it back and rejects with the error of the statement that failed:
+
+```ts
+await connection.transaction(async () => {
+    await connection.insertInto(tCompany).set({ name: 'Top Company' }).executeInsert();
+    try {
+        // Fails: there is no company with the id -1
+        await connection.insertInto(tCustomer).set({ firstName: 'John', lastName: 'Smith', companyId: -1 }).executeInsert();
+    } catch (e) {
+        // The error is caught, but the transaction can't be committed anymore
+    }
+}); // Rejected: neither the company nor the customer is saved
+```
+
+!!! failure "The transaction is rejected"
+
+    Neither the company nor the customer is saved. On MariaDB, MySQL, Oracle, SQLite and SQL Server, only the failed statement is undone, and the company is saved (some errors make those databases roll back the whole transaction too: see [when the database rolls back the transaction](../../queries/transaction.md#when-the-database-rolls-back-the-transaction)).
+
+To go on after a statement that may fail, don't run it in the transaction, or find out beforehand whether it would fail (for example, whether the company exists).
+
+## Explicit typing
+
+PostgreSQL may be unable to work out the type of a parameter in a query, which often happens with a `null` value. The library writes a cast, like `$1::int4`, where it knows it's needed, and only for the types it knows. To write it on every parameter of those types, override `transformPlaceholder` in your connection class:
+
+```ts
+import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
+
+class DBConnection extends PostgreSqlConnection<'DBConnection'> {
+    protected override transformPlaceholder(
+        placeholder: string,
+        type: string,
+        _forceTypeCast: boolean,
+        valueSentToDB: unknown
+    ): string {
+        return super.transformPlaceholder(placeholder, type, true, valueSentToDB)
+    }
+}
+```
+
+!!! tip
+
+    You can also enforce type casting using the `ForceTypeCast` adapter provided in `ts-sql-query/TypeAdapter`. For more advanced usage, see the section on [Global type adapter](../column-types.md#global-type-adapter).
+
+## UUID handling
+
+PostgreSQL has a native `uuid` data type (available since PostgreSQL 8.3, present in every supported version), and `ts-sql-query` maps the `uuid` column type to it directly — no extension or conversion function is required. The `uuid` type compares values byte-by-byte, so a UUID v7 stored there keeps its chronological ordering on the primary-key index.
+
+!!! tip "Generating UUIDs"
+
+    Prefer **UUID v7** over UUID v4. PostgreSQL 18 adds the server-side `uuidv7()` SQL function, alongside `gen_random_uuid()` for v4 available since PostgreSQL 13. As a general rule, generating the UUID in the database as a column `DEFAULT` is preferred over generating it in application code; the latter is the fallback when the value must be known before the `INSERT`. See the [column types](../column-types.md) page for more context.
+
+## Collations & case sensitivity
+
+PostgreSQL's default collation is case- and accent-**sensitive** (deterministic) — the JavaScript-sensible default, so no configuration is needed unless you want the insensitive direction. The plain string operations follow the configured collation; the `*Insensitive` operations force case-insensitivity over it. To go insensitive, PostgreSQL uses native `ILIKE` for `LIKE`, and — for equality / `DISTINCT` / `GROUP BY` — a **non-deterministic** ICU collation you create once and name in `insensitiveCollation` or `.collate('<name>')`. PostgreSQL has no session collation, so the column / database collation or a per-expression `COLLATE` (`.collate()`) is how you retarget a comparison. See the dedicated [Collations & case sensitivity](../collations.md) page and the [PostgreSQL tab](../collations.md#per-database) for the `CREATE COLLATION … (deterministic = false)` recipe.
 
 ## Rounding behavior
 
@@ -135,64 +202,3 @@ select greatest_strict(estimated_hours, $1) as floored, least_strict(estimated_h
 !!! tip "Leave all three unset unless you need them"
 
     The default `CASE` matches the declared type on every database and only pays a repeated operand for a value-source receiver. Reach for `ignoreNullInMinAndMaxValue` when you specifically want PostgreSQL's ignore-NULL semantics, or for `minValueFunction` / `maxValueFunction` when the repeated operand is expensive enough to matter. The row aggregate `min(col)` / `max(col)` over rows is a different function — it ignores NULL on every database by standard SQL — and is unaffected by any of these.
-
-## Explicit typing
-
-In some situations, PostgreSQL may be unable to infer the correct type of a parameter in a query. This often happens with untyped `NULL` values or when using generic placeholders. To ensure type safety and proper execution, you can explicitly cast the parameter type in the generated SQL.
-
-You can enforce explicit casting by overriding the `transformPlaceholder` method in your connection class. This method allows you to append a type annotation to the placeholder at the time of SQL generation.
-
-You may define your own cast rules or override the default behavior. For reference, see the default implementation in [`PostgreSqlConnection`](https://github.com/juanluispaz/ts-sql-query/blob/master/src/connections/PostgreSqlConnection.ts), or use the example below:
-
-```ts
-import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
-
-class DBConnection extends PostgreSqlConnection<'DBConnection'> {
-    protected override transformPlaceholder(
-        placeholder: string,
-        type: string,
-        _forceTypeCast: boolean,
-        valueSentToDB: unknown
-    ): string {
-        return super.transformPlaceholder(placeholder, type, true, valueSentToDB)
-    }
-}
-```
-
-!!! tip
-
-    You can also enforce type casting using the `ForceTypeCast` adapter provided in `ts-sql-query/TypeAdapter`. For more advanced usage, see the section on [Global type adapter](../column-types.md#global-type-adapter).
-
-## A statement that fails inside a transaction
-
-On PostgreSQL, a statement that fails inside a transaction leaves the whole transaction failed, even if your code catches the error and goes on: the statements that follow are rejected, and at the commit the database rolls the transaction back. `ts-sql-query` reports the transaction as failed, with the `errorReason` `TRANSACTION_ERROR` (`transactionErrorType: 'transaction rolled back'`) and the error of the statement that failed as its `cause`, and with `connection.transaction(...)` the after-rollback functions run instead of the after-commit ones. With `PostgresQueryRunner`, `connection.transaction(...)` leaves the transaction to postgres.js, which rolls it back and rejects with the error of the statement that failed:
-
-```ts
-await connection.transaction(async () => {
-    await connection.insertInto(tCompany).set({ name: 'Top Company' }).executeInsert();
-    try {
-        // Fails: there is no company with the id -1
-        await connection.insertInto(tCustomer).set({ firstName: 'John', lastName: 'Smith', companyId: -1 }).executeInsert();
-    } catch (e) {
-        // The error is caught, but the transaction can't be committed anymore
-    }
-}); // Rejected: neither the company nor the customer is saved
-```
-
-!!! failure "The transaction is rejected"
-
-    Neither the company nor the customer is saved. On MariaDB, MySQL, Oracle, SQLite and SQL Server, only the failed statement is undone, and the company is saved (some errors make those databases roll back the whole transaction too: see [when the database rolls back the transaction](../../queries/transaction.md#when-the-database-rolls-back-the-transaction)).
-
-To go on after a statement that may fail, don't run it in the transaction, or find out beforehand whether it would fail (for example, whether the company exists).
-
-## Collations & case sensitivity
-
-PostgreSQL's default collation is case- and accent-**sensitive** (deterministic) — the JavaScript-sensible default, so no configuration is needed unless you want the insensitive direction. The plain string operations follow the configured collation; the `*Insensitive` operations force case-insensitivity over it. To go insensitive, PostgreSQL uses native `ILIKE` for `LIKE`, and — for equality / `DISTINCT` / `GROUP BY` — a **non-deterministic** ICU collation you create once and name in `insensitiveCollation` or `.collate('<name>')`. PostgreSQL has no session collation, so the column / database collation or a per-expression `COLLATE` (`.collate()`) is how you retarget a comparison. See the dedicated [Collations & case sensitivity](../collations.md) page and the [PostgreSQL tab](../collations.md#per-database) for the `CREATE COLLATION … (deterministic = false)` recipe.
-
-## UUID handling
-
-PostgreSQL has a native `uuid` data type (available since PostgreSQL 8.3, present in every supported version), and `ts-sql-query` maps the `uuid` column type to it directly — no extension or conversion function is required. The `uuid` type compares values byte-by-byte, so a UUID v7 stored there keeps its chronological ordering on the primary-key index.
-
-!!! tip "Generating UUIDs"
-
-    Prefer **UUID v7** over UUID v4. PostgreSQL 18 adds the server-side `uuidv7()` SQL function, alongside `gen_random_uuid()` for v4 available since PostgreSQL 13. As a general rule, generating the UUID in the database as a column `DEFAULT` is preferred over generating it in application code; the latter is the fallback when the value must be known before the `INSERT`. See the [column types](../column-types.md) page for more context.

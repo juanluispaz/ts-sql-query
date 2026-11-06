@@ -4,36 +4,131 @@ search:
 ---
 # Error Management Overview
 
-`ts-sql-query` wraps execution and processing failures in typed errors. The most important field for callers is `errorReason`, whose `reason` value identifies the semantic category of the failure.
+When a query fails, `ts-sql-query` gives you an error with a `reason` that says what went wrong, on every database: a duplicate key is `SQL_CONSTRAINT_VIOLATED` with `constraintType: 'unique'`, whatever the code of the database is. This page says how to catch an error, how it arrives, what it carries and what to do with it. To find one error by its name or by its code, go to [where to find a reason or a code](#where-to-find-a-reason-or-a-code).
 
-Every `execute*` method, and `transaction`, `beginTransaction`, `commit` and `rollback`, reports its failures through the promise it returns: they never throw when they are called. An error of the library arrives as `TsSqlQueryExecutionError`, including a query that can't be built, like a delete without `where`. An error of your code raised while the query is built arrives as it is, like the error you give to `allowWhen`, or one thrown by your own `transformValueToDB`, `transformPlaceholder` or `escape`.
+## Catching an error
 
-`query()` and `params()` return no promise, so they throw the error directly.
+Catch `TsSqlQueryExecutionError`, and read `errorReason.reason`. TypeScript narrows the rest of the fields of `errorReason` from it:
 
-Database and driver failures are represented with `TsSqlQueryExecutionError`. When the source error exposes native metadata, the mapped reason can include:
+```ts
+import { TsSqlQueryExecutionError } from 'ts-sql-query'; // or 'ts-sql-query/TsSqlError'
 
-| <span class="min-width-7rem">Field</span> | Meaning |
+try {
+    await connection.insertInto(tCustomer).set({ firstName: 'John', lastName: 'Smith', companyId: 10 }).executeInsert();
+} catch (error) {
+    if (error instanceof TsSqlQueryExecutionError
+        && error.errorReason.reason === 'SQL_CONSTRAINT_VIOLATED'
+        && error.errorReason.constraintType === 'unique') {
+        // There is already a row with those values: tell the caller
+        console.log(error.errorReason.constraintName);
+    } else {
+        throw error;
+    }
+}
+```
+
+`TsSqlError` is the base class of the errors of the library. Use it to catch also the errors thrown while the query is written, which are `TsSqlProcessingError`. The two of them have `errorReason`.
+
+## How each error arrives
+
+Every failure of the `execute*` methods, `executeProcedure`, `executeFunction`, `transaction`, `beginTransaction`, `commit` and `rollback` arrives through the promise they return, also a query that can't be built. The call itself doesn't throw, so an `await` inside a `try`, or a `.catch(...)`, sees them all. What the promise rejects with depends on what failed:
+
+| What failed | The promise rejects with |
 | --- | --- |
-| `databaseErrorCode` | The symbolic driver/database code, such as `ER_DUP_ENTRY`, `unique_violation`, `SQLITE_CONSTRAINT_UNIQUE`, `ORA-00001`, or `EREQUEST`. Some drivers use wrapper codes for engine errors; for example, SQL Server through `mssql` commonly reports `EREQUEST`, while the native SQL Server error number used by the mapper is in `databaseErrorNumber`. |
-| `databaseErrorNumber` | The numeric or SQLSTATE value when the driver exposes one, such as `1062`, `23505`, `2067`, `1`, or `2627`. |
-| `databaseErrorMessage` | The original database or driver message when available. |
+| The database or the driver | `TsSqlQueryExecutionError`, with the error of the driver in `cause` |
+| A check of the library, like a delete without `where`, or `executeSelectOne` with no row | `TsSqlQueryExecutionError` |
+| Reading a value, including a `transformValueFromDB` of your own that throws | `TsSqlQueryExecutionError` with `INVALID_VALUE_RECEIVED_FROM_DATABASE` or another reason of the [value conversion](library-raised-errors.md#every-reason-the-library-raises) |
+| Your code, while the query is built: the `Error` you give to `allowWhen` or `disallowWhen`, or an error thrown by your own `transformValueToDB`, `transformPlaceholder` or `escape` | That same error, as it is |
+| Your code, in the function given to `transaction` | That same error, as it is, once the transaction is rolled back |
 
-The native mapping pages are organized for lookup: search for the code, number, SQLSTATE, or connector message you received, then read the corresponding `reason`, subtype, and filled fields.
+Other methods throw at the moment you call them, because they return no promise:
 
-| Native mapping | Page |
+| Method | What it throws |
 | --- | --- |
-| MariaDB | [MariaDB](native-mappings/mariadb.md) |
-| MySQL | [MySQL](native-mappings/mysql.md) |
-| Oracle | [Oracle](native-mappings/oracle.md) |
-| PostgreSQL | [PostgreSQL](native-mappings/postgresql.md) |
-| SQLite | [SQLite](native-mappings/sqlite.md) |
-| SQL Server | [SQL Server](native-mappings/sql-server.md) |
+| The `withValues` of a [dynamic condition](../../dynamic/caller-decides/filters.md) | `TsSqlProcessingError` with a `DYNAMIC_CONDITION_*` reason |
+| `orderByFromString` and its [variants](../../dynamic/optional-parts/order-and-page.md#the-variants-of-orderbyfromstring), and `orderBy` with the name of a column | `TsSqlProcessingError` with `ORDER_BY_COLUMN_NOT_IN_SELECT` or `INVALID_ORDER_BY_ORDERING` |
+| `groupBy` with the name of a column | `TsSqlProcessingError` with `GROUP_BY_COLUMN_NOT_IN_SELECT` |
+| The `disallow*` methods of an insert or an update | `TsSqlProcessingError` with `DISALLOWED_BY_QUERY_RULE`, or the `Error` you gave them, as it is |
+| `extendShape` | `TsSqlProcessingError` with `INVALID_SHAPE_OVERRIDE` |
+| `returningLastInsertedId` | `TsSqlProcessingError` with `NO_AUTOGENERATED_ID_COLUMN_FOUND` |
+| `Values.create` | `TsSqlProcessingError` with `CONSTANT_VALUES_VIEW_CANNOT_BE_EMPTY` |
+| `query()` and `params()` | The same error the `execute*` method would reject with, but as a `TsSqlProcessingError`, or your own error as it is |
+| `executeBeforeNextCommit`, `executeAfterNextCommit`, `executeAfterNextRollback` and `getTransactionMetadata` | `TsSqlProcessingError` with `NOT_IN_TRANSACTION` or `NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED` |
+| `getConstValue` | `TsSqlProcessingError` with `EXPRESSION_IS_NOT_CONST` |
+| Creating the connection or the query runner | `TsSqlProcessingError` with `UNSUPPORTED_DATABASE` or `INVALID_CONFIGURATION` |
 
-A `-` in a native table means that semantic row is not implemented for that database family. The rows are intentionally identical across native pages, and `SQL_UNKNOWN` is always last.
+With [synchronous query runners](../../advanced/synchronous-query-runners.md), `sync(...)` throws the error the promise rejected with.
 
-MySQL and MariaDB reuse numeric ranges with different meanings. Their native mapping pages interpret a bare error number only against the active database family. If a number belongs only to the other family, it is treated as an unmapped numeric error and is not listed as a native mapping for the current page. When a driver provides an explicit symbolic code, that code is preserved in `databaseErrorCode` even if the number is otherwise ambiguous.
+## What an error carries
 
-For non-database failures raised by the library itself, see [Library-raised errors](library-raised-errors.md). For the current reason type catalog, see [Error types](error-types.md). For TypeScript declarations useful in application code, see [TypeScript types](typescript-types.md).
+| Field | What it has |
+| --- | --- |
+| `errorReason` | An object with the `reason`, and the fields of that reason. [Error types](error-types.md) lists them. |
+| `message` | The reason, followed by the message of the error: `SQL_DIVISION_BY_ZERO: division by zero` |
+| `cause` | The error behind this one, see below |
+| `stack` | The stack of the error, followed by the stacks of `source` and `transactionSource` |
+
+Only `TsSqlQueryExecutionError` has these:
+
+| Field | What it has |
+| --- | --- |
+| `source` | Where your code asked to execute the query |
+| `transactionSource` | Where your code asked for the transaction, when the error comes out of `transaction` or `beginTransaction` |
+| `rollbackError` | The error of the rollback, when the rollback failed too. The error you get is still the one that caused the rollback. |
+| `additionalErrors` | Other errors raised while the transaction was ending, like the one of a second `executeAfterNextCommit` function |
+| `transactionError` | In the error of an `executeAfterNextRollback` function, the error that caused the rollback |
+
+[What happens on an error in a transaction](../../queries/transaction.md#what-happens-on-an-error) explains the last four with the functions they belong to.
+
+What `cause` has depends on who found the error:
+
+| The error | `cause` |
+| --- | --- |
+| Of the database or the driver | The error of the driver. Any field of it that the library doesn't copy is there. |
+| Found by the library while building the query, or reading its result | A `TsSqlProcessingError` with the same `errorReason`. If a `transformValueFromDB` of yours threw, its error is one level below, in `error.cause.cause`. |
+| `MINIMUM_ROWS_NOT_REACHED`, `MAXIMUM_ROWS_EXCEEDED`, `NO_COLUMN_SETS`, and `commit` or `rollback` with no transaction open, `transaction` or `beginTransaction` with one open | Nothing |
+| `ERROR_EXECUTING_DEFERRED_IN_TRANSACTION` | The error of your function |
+| `TRANSACTION_ERROR` of type `transaction rolled back`, reported by the library | A `TsSqlError` with the same `errorReason`. The error of the statement that ended the transaction is one level below, in `error.cause.cause`. See [the database rolled back the transaction](library-raised-errors.md#the-database-rolled-back-the-transaction). |
+
+## What to do with each error
+
+| What happened | Reasons | What to do |
+| --- | --- | --- |
+| The data doesn't fit the rules of the database | `SQL_CONSTRAINT_VIOLATED`, `SQL_INVALID_VALUE`, `SQL_DIVISION_BY_ZERO`, `SQL_USER_DEFINED_ERROR` | These are the errors to expect in a normal run. Tell the caller what's wrong, with `constraintType`, `constraintName` or `databaseErrorMessage`. |
+| The number of rows isn't the expected one | `NO_RESULT`, `MORE_THAN_ONE_ROW`, `MINIMUM_ROWS_NOT_REACHED`, `MAXIMUM_ROWS_EXCEEDED` | `NO_RESULT` from `executeSelectOne` usually means "not found"; use `executeSelectNoneOrOne` if that's a normal answer. The statement has already run when these are raised: an insert, update or delete is only undone by rolling back its transaction. |
+| The transaction lost against another one | `TRANSACTION_ERROR` of type `deadlock` or `serialization failure` | [Run the whole transaction again](../../queries/transaction.md#running-the-transaction-again). |
+| The database ended the transaction | `TRANSACTION_ERROR` of type `transaction rolled back` or `aborted` | Nothing of the transaction was saved. See [when the database rolls back the transaction](../../queries/transaction.md#when-the-database-rolls-back-the-transaction). |
+| The transactions are used in the wrong way | `NESTED_TRANSACTION_NOT_SUPPORTED`, `NOT_IN_TRANSACTION`, `NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED`, `TRANSACTION_LEVEL_NOT_SUPPORTED`, `TRANSACTION_ACCESS_MODE_NOT_SUPPORTED`, `FORBIDDEN_CONCURRENT_USAGE`, `ERROR_EXECUTING_DEFERRED_IN_TRANSACTION` | Fix the code. See [transaction](../../queries/transaction.md). |
+| The database, the network or the machine has a problem | `SQL_CONNECTION_ERROR`, `SQL_TIMEOUT`, `SQL_RESOURCE_LIMIT_REACHED`, `SQL_READ_ONLY_VIOLATION`, `SQL_IO_ERROR`, `SQL_DATABASE_CORRUPTED`, `SQL_CONFIGURATION_ERROR`, `SQL_EXTERNAL_DATA_SOURCE_ERROR`, `SQL_AUTHENTICATION_ERROR`, `SQL_AUTHORIZATION_ERROR`, `SQL_PERMISSION_DENIED` | Look at the database and its configuration; the subtype says which part. [A statement too big](error-types.md#a-statement-too-big-for-the-database) is the exception: running it again as it is fails again. |
+| The database doesn't match your tables | `SQL_OBJECT_NOT_FOUND`, `SQL_OBJECT_ALREADY_EXISTS`, `SQL_OBJECT_STATE_ERROR` | Compare the definition of the table, view or routine with the database. A pending migration is a common origin. |
+| The database rejects the statement | `SQL_SYNTAX_ERROR`, `SQL_INVALID_SQL_STATEMENT`, `SQL_INVALID_PARAMETER`, `SQL_AMBIGUOUS_IDENTIFIER`, `SQL_CARDINALITY_VIOLATION`, `SQL_FEATURE_NOT_SUPPORTED`, `SQL_ROUTINE_ERROR` | Read `databaseErrorMessage`, and the SQL in your [fragments](../../queries/sql-fragments.md). If you use neither of them, check that your database has that feature in that version. |
+| A rule of the library refused the query | `MISSING_WHERE`, `DISALLOWED`, `DISALLOWED_BY_QUERY_RULE`, `NO_COLUMN_SETS`, `MISSING_RECURSIVE_CONDITION`, `CONSTANT_VALUES_VIEW_CANNOT_BE_EMPTY`, `DYNAMIC_CONDITION_*`, `ORDER_BY_COLUMN_NOT_IN_SELECT`, `INVALID_ORDER_BY_ORDERING` | See its row in [library-raised errors](library-raised-errors.md#every-reason-the-library-raises). When the input comes from a request, it's an error to report to the caller. |
+| A value couldn't be converted | `INVALID_VALUE_TO_SEND_TO_DATABASE`, `INVALID_VALUE_RECEIVED_FROM_DATABASE`, `MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE`, `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`, `INVALID_JSON_RECEIVED_FROM_DATABASE` | `value`, `typeName`, `columnPath` and `rowIndex` say which one. Check that the type of the column matches the database. |
+| The library doesn't know the error | `SQL_UNKNOWN`, `SQL_INTERNAL_ERROR`, `UNKNOWN` | Read `databaseErrorMessage` and `cause`. |
+| The library found a bug in itself | `INTERNAL` | [Report it](https://github.com/juanluispaz/ts-sql-query/issues). See [internal invariant errors](library-raised-errors.md#internal-invariant-errors). |
+
+The rest of the reasons come from the configuration, from a mock, or from something the types normally prevent: see [library-raised errors](library-raised-errors.md#every-reason-the-library-raises).
+
+## Where to find a reason or a code
+
+| You have | Go to |
+| --- | --- |
+| A reason raised by the library, not by the database | [Library-raised errors](library-raised-errors.md): what it means, what causes it, and what to do |
+| A reason, and you want its fields and its subtypes | [Error types](error-types.md) |
+| The declarations of the classes and the reasons, to narrow them | [TypeScript types](typescript-types.md) |
+| A code, a number, an SQLSTATE or a message of the database or the driver | The page of your database: [MariaDB](native-mappings/mariadb.md), [MySQL](native-mappings/mysql.md), [Oracle](native-mappings/oracle.md), [PostgreSQL](native-mappings/postgresql.md), [SQLite](native-mappings/sqlite.md) or [SQL Server](native-mappings/sql-server.md) |
+
+The error keeps what the database or the driver said in three fields of `errorReason`, when it has them:
+
+| <span class="min-width-7rem">Field</span> | What it has |
+| --- | --- |
+| `databaseErrorCode` | The symbolic code of the driver or the database, such as `ER_DUP_ENTRY`, `unique_violation`, `SQLITE_CONSTRAINT_UNIQUE`, `ORA-00001`, or `EREQUEST`. Some drivers use one code for all the errors of the engine: SQL Server through `mssql` commonly reports `EREQUEST`, and the number that tells them apart is in `databaseErrorNumber`. |
+| `databaseErrorNumber` | The number or the SQLSTATE, when the driver gives one, such as `1062`, `23505`, `2067`, `1`, or `2627`. |
+| `databaseErrorMessage` | The original message of the database or the driver, when there is one. |
+
+The tables of the database pages have the same rows in the same order, with `SQL_UNKNOWN` last. A `-` means that this kind of error has no mapping on that database.
+
+MySQL and MariaDB reuse numbers with different meanings. Each page reads a number with the meaning it has on its database only, so a number that only the other one uses isn't mapped, and is not listed. A symbolic code given by the driver is kept in `databaseErrorCode` in any case.
 
 <!--
 ## Mapping table conventions
@@ -221,7 +316,7 @@ Library-raised errors page rules:
 - The introduction explains that the page covers errors raised directly by `ts-sql-query` outside the native database mapping tables.
 - The introduction also says that some reasons can be produced by query runners, while driver code, number, and message details live in native mapping pages.
 - Keep two sections:
-  - `Library-raised errors`
+  - `Every reason the library raises` (with its subsection `The database rolled back the transaction`)
   - `Internal invariant errors`
 - The non-internal table header is fixed:
   - `| Category | Reason | Diagnosis | <span class="min-width-11rem">Filled fields</span> |`
@@ -229,9 +324,11 @@ Library-raised errors page rules:
 - The internal table header is fixed:
   - `| Category | Reason | Diagnosis | Filled fields |`
   - followed by the standard four-column Markdown separator row
-- `Diagnosis` uses in-cell labels such as `Meaning` and `Typical source`.
+- `Diagnosis` uses in-cell labels: `Meaning`, `Typical source`, and `What to do` when it isn't obvious.
 - `Diagnosis` should use the pattern:
-  - `**Meaning**<br>...<br><br>**Typical source**<br>...`
+  - `**Meaning**<br>...<br><br>**Typical source**<br>...` with `<br><br>**What to do**<br>...` after it when it helps.
+- `Typical source` names the method of the public API that raises it, and says whether it's thrown at the call or arrives through the promise; never an internal class.
+- A native mapping page has a single Markdown table: `test/runners/lib/documentedMappings.ts` reads every line that starts with `| ` as a row.
 - Keep `UNKNOWN` in the non-internal table; it is the fallback for caught values that are not recognized as SQL or library errors.
 - Keep `INTERNAL` only in the internal invariant section.
 - Add one internal row per `internalErrorType` declared in `TsSqlInternalErrorReason`.

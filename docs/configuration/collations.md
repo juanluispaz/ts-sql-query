@@ -4,7 +4,7 @@ search:
 ---
 # Collations & case sensitivity
 
-Two databases running the *same* SQL can disagree on whether `'ADA'` equals `'ada'` or `'café'` equals `'cafe'`. The reason is the **collation** — the rule each engine uses to compare and sort text — and each database ships with a different default one. This page explains what that means, why it makes a portable query behave differently per engine, and the levers ts-sql-query gives you to take control.
+Two databases running the *same* SQL can disagree on whether `'ADA'` equals `'ada'` or `'café'` equals `'cafe'`. The reason is the **collation** — the rule each engine uses to compare and sort text — and each database ships with a different default one. This page explains what that means, why it makes a portable query behave differently per engine, and the options ts-sql-query gives you to take control.
 
 Unlike [time zones](time-zones.md), collation has **no single correct target**. Case-sensitive, case-insensitive, accent-insensitive and language-specific rules are all *valid* — a search box wants case-insensitive, a token or hash wants byte-exact, a person-name dedup might want accent-insensitive, a Spanish-language sort wants a Spanish collation. So this page does **not** prescribe one behaviour; it explains the model and lays out the options so you can pick per situation.
 
@@ -29,7 +29,7 @@ Every text column has a collation. You usually never chose it: it was inherited 
 
 ### Where a collation is set (in SQL)
 
-A collation can be chosen at three levels. **These are plain SQL, not ts-sql-query** — but knowing they exist tells you which lever to reach for.
+A collation can be chosen at three levels. **These are plain SQL, not ts-sql-query** — but knowing they exist tells you which option to reach for.
 
 **On the database or a column** — a `CREATE DATABASE` chooses a default that every text column inherits, and a `CREATE TABLE` can override it per column:
 
@@ -74,7 +74,7 @@ A collation can be chosen at three levels. **These are plain SQL, not ts-sql-que
 
 !!! tip "If you own the schema, prefer the column or database collation"
 
-    Setting the collation on the column or the database is the cleanest fix: no query changes and no per-query cost. The query- and connection-level levers on this page are for when you **can't** change the schema — a legacy database you inherited, or a single query that needs a different collation than the column has.
+    Setting the collation on the column or the database is the cleanest fix: no query changes and no per-query cost. The query- and connection-level options on this page are for when you **can't** change the schema — a legacy database you inherited, or a single query that needs a different collation than the column has.
 
 ## The default collation of each database
 
@@ -110,13 +110,13 @@ So `contains('abc')` matches only lowercase on PostgreSQL / Oracle / SQLite, fol
 
 ## Case folding is language-dependent
 
-Before reaching for a lever, one caution that shapes every choice below: **"case-insensitive" is not one behaviour.** The *same* comparison can flip between two languages, and even two engines disagree on the "same" rule:
+Before choosing an option, one caution that shapes every choice below: **"case-insensitive" is not one behaviour.** The *same* comparison can flip between two languages, and even two engines disagree on the "same" rule:
 
 - **Turkish dotted/dotless I.** `'I' = 'i'` is **true** under a Latin collation and **false** under a Turkish one (Turkish's uppercase of `i` is `İ`, and `I` lowercases to `ı`). A Latin case-insensitive collation on Turkish data silently mismatches.
 - **German ß** (sharp s). `'ß' = 'ss'` is **true** under SQL Server's `Latin1_General_CI_AS` and **false** under a *stock* PostgreSQL ICU collation — but not because the two disagree about German. At primary strength the ICU rules do call them equivalent, which you can see because `'ß' < 'ss'` is false too; the built-in collations are **deterministic**, so equality falls back to a byte tiebreak and by bytes `ß` is greater ([the same tiebreak that makes `.collate('fr-CI-x-icu')` change ordering but not equality](#collate-force-a-collation-per-value)). Create the collation `deterministic = false` and PostgreSQL answers **true**, like SQL Server. So this one needs **two** settings fixed, not one — the strength *and* the determinism.
 - **CJK** (Chinese, Japanese and Korean scripts). No upper/lower case at all, but its own hazards: Unicode normalization (the same character encoded two ways — NFC vs NFD), Han character-variant folding, and sort order (pinyin vs stroke vs code point) — none handled by `lower()` or a generic collation.
 
-This is why ts-sql-query injects a **language-specific collation** rather than leaning on `lower()` (which is ASCII-only and locale-blind), and why the right collation is a property of *your data's language* — which only you know.
+This is why `insensitiveCollation` takes the name of a **language-specific collation**: `lower()` doesn't receive a language, and what it folds depends on the engine (on SQLite, only ASCII). The right collation is a property of *your data's language*, which only you know.
 
 ## Which operations are affected
 
@@ -134,22 +134,22 @@ This is why ts-sql-query injects a **language-specific collation** rather than l
 
     The **same insert** can succeed on a case-sensitive engine and hit a duplicate on a case-insensitive one — `'Ada'` and `'ADA'` are one key on a CI column, two on a CS one. The library cannot own the index collation; keep it in mind when a schema moves between engines.
 
-## The tools
+## How to choose a collation
 
-You can pick the collation at **three conceptually different levels**. This table is the whole picture; the sections below go into each. The **query** levers are the library's API (detailed right after); the **schema** and **connection** levers are plain SQL and a driver hook, covered under [Beyond the query](#beyond-the-query-the-schema-and-the-session).
+You can pick the collation at **three different levels**. This table is the whole picture; the sections below go into each. The **query** options are the library's API (detailed right after); the **schema** and **connection** options are plain SQL and a driver hook, covered under [Beyond the query](#beyond-the-query-the-schema-and-the-session).
 
-| level | lever | set on / called on | direction |
+| level | option | set on / called on | direction |
 |---|---|---|---|
 | **query** | `.collate('<name>')` | method on a string value source | **either** — force case-sensitive or case-insensitive |
 | **query** | `.replaceAllInsensitive(...)` | method on a string value source | insensitive — the twin of `replaceAll` |
-| **query** | `insensitiveCollation` | property on **any `Connection`** | insensitive (`'<name>'` forces it; `''` trusts the column) |
+| **query** | `insensitiveCollation` | property on **any `Connection`** | the `*Insensitive` operations and the `insensitive` order (`'<name>'` forces it; `''` trusts the column) |
 | **query** | `replaceCollation` | property on **`SqlServerConnection` / `OracleConnection`** | case-sensitive by default; `''` opts out |
 | **query** | `replaceInsensitiveCollation` | property on **`OracleConnection`** | insensitive — Oracle's forced collation for `replaceAllInsensitive`; `''` opts out |
 | **query** | `replaceAllInsensitiveFunction` | property on **`SqliteConnection`** | insensitive — names the SQLite user-defined function (UDF) |
 | **schema** | column / database collation | plain SQL (`CREATE TABLE` / `CREATE DATABASE … COLLATE`) | either — the cleanest, if you own the schema |
 | **connection** | session collation | the engine's session statement, on connect | either — Oracle full, SQLite `LIKE`, MySQL/MariaDB partial, SQL Server & PostgreSQL none |
 
-The **query** levers are the library's API. Two of them are **methods on a string value source** (a column, a `const`, any string expression); the rest are **properties you set by subclassing your `Connection`**, exactly like every other connection option:
+Two of the query options are **methods on a string value source** (a column, a `const`, any string expression); the rest are **properties you set by subclassing your `Connection`**, exactly like every other connection option:
 
 ```typescriptreact
 import { SqlServerConnection } from "ts-sql-query/connections/SqlServerConnection";
@@ -161,30 +161,77 @@ class DBConnection extends SqlServerConnection<'DBConnection'> {
 
 ### `insensitiveCollation` — force the insensitive direction connection-wide
 
-By default a `*Insensitive` operation (`startsWithInsensitive`, `equalsInsensitive`, …) is emitted by calling `lower(...)` on both sides. Setting **`insensitiveCollation`** on the connection replaces that with a `… collate <name>` clause instead, which lets you do more than ASCII case folding — accent-insensitive, or language-specific rules — by naming a collation the engine ships. The [Per database](#per-database) tabs list the case- and accent-insensitive collation names for each engine (and, for PostgreSQL, the collation you must create first).
+The `*Insensitive` operations compare without distinguishing upper and lower case, whatever the collation of the column:
+
+- `equalsInsensitive`, `notEqualsInsensitive`
+- `likeInsensitive`, `notLikeInsensitive`
+- `startsWithInsensitive`, `notStartsWithInsensitive`, `endsWithInsensitive`, `notEndsWithInsensitive`
+- `containsInsensitive`, `notContainsInsensitive`
+- The `IfValue` version of each of them, like `containsInsensitiveIfValue`
+- In an order, the [`insensitive` mode](../queries/select.md): `.orderBy('name', 'insensitive')`
+
+By default they are written calling `lower(...)` on both sides. On PostgreSQL, the ones that use `like` are written with `ilike` instead. Setting **`insensitiveCollation`** on the connection adds a `… collate <name>` clause, which lets you do more than case folding — accent-insensitive, or language-specific rules — by naming a collation the engine ships. The [Per database](#per-database) tabs list the case- and accent-insensitive collation names for each engine (and, for PostgreSQL, the collation you must create first).
 
 Three states:
 
 - **a name** (`'Latin1_General_CI_AI'`, a PostgreSQL non-deterministic collation, …) → emit `… collate <name>`.
 - **`''`** (empty string) → emit the bare operation with no `lower()` and no collate. Use this when your **column/database is already case-insensitive**: it produces leaner, index-usable SQL (fewer `lower()` calls) with the same result.
-- **unset** (the default) → the `lower(a) … lower(b)` fallback.
+- **unset** (the default) → `lower(a) … lower(b)`, or `ilike` on PostgreSQL.
 
 ### `.collate()` — force a collation per value
 
 `.collate('<name>')` is a **method on any string value source** — a column, a `const`, or any string expression. It emits `<expr> collate <name>` (parenthesised automatically when embedded in a larger expression) and returns a string value source of the same type, so you can chain it into either operand of a comparison, a projected / grouped / ordered column, or a `replaceAll` argument. It forces a specific collation on **that one expression** — case-sensitive, case-insensitive, or a language-specific one — paying the index cost (below) only there. The name is a static collation identifier (SQL requires it — a collation is not a runtime value), so it is passed as a string.
 
-```typescriptreact
-// Force a binary, case-sensitive comparison on a case-insensitive database (SQL Server):
-connection.selectFrom(tUser)
-    .where(tUser.name.collate('Latin1_General_BIN2').equals(name))
-    .select({ id: tUser.id })
-    .executeSelectMany()
-
-// Force case-insensitive matching on a single query (MySQL):
-tUser.name.collate('utf8mb4_0900_ai_ci').equals(name)
+```ts
+// 'my_collation' stands for a collation of your database
+const customers = await connection.selectFrom(tCustomer)
+    .where(tCustomer.firstName.collate('my_collation').equals('John'))
+    .select({ id: tCustomer.id })
+    .executeSelectMany();
 ```
 
-The name is a **raw dialect collation name** (like `insensitiveCollation`), so `.collate('utf8mb4_bin')` is not portable to SQL Server — for cross-dialect code, prefer the connection-level knobs or the schema collation. The [Per database](#per-database) tabs list the names to use.
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select id as id 
+    from customer 
+    where (first_name collate my_collation) = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select id as id 
+    from customer 
+    where (first_name collate my_collation) = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select id as "id" 
+    from customer 
+    where (first_name collate my_collation) = :0
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select id as id 
+    from customer 
+    where (first_name collate "my_collation") = $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select id as id 
+    from customer 
+    where (first_name collate my_collation) = ?1
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select id as id 
+    from customer 
+    where (first_name collate my_collation) = @0
+    ```
+
+The parameters are: `[ 'John' ]`
+
+The name is one of your database, so it's different on each: `Latin1_General_BIN2` forces a case-sensitive comparison on SQL Server, and `utf8mb4_0900_ai_ci` a case-insensitive one on MySQL. For code that runs on several databases, prefer the options of the connection or the collation of the schema. The [Per database](#per-database) tabs list the names to use.
 
 !!! warning "Two engine caveats for `.collate()`"
 
@@ -218,7 +265,7 @@ For the per-database detail see the [SQL Server](supported-databases/sqlserver.m
 
 ### `replaceAllInsensitive(...)` — the insensitive twin
 
-`.replaceAllInsensitive(...)` (and `.replaceAllInsensitiveIfValue(...)`) is a **method on a string value source**, completing the pair the rest of the API has (`contains` / `containsInsensitive`, …): `replaceAll` is case-sensitive (coherent via `replaceCollation`), `replaceAllInsensitive` forces the case-insensitive transform. Its reach is honest and per-engine:
+`.replaceAllInsensitive(...)` (and `.replaceAllInsensitiveIfValue(...)`) is a **method on a string value source**, completing the pair the rest of the API has (`contains` / `containsInsensitive`, …): `replaceAll` is case-sensitive (coherent via `replaceCollation`), `replaceAllInsensitive` forces the case-insensitive transform. What it can do depends on the engine:
 
 | engine | mechanism | uses `insensitiveCollation`? | accent-insensitive? |
 |---|---|---|---|
@@ -234,7 +281,7 @@ On **Oracle** the forced collation is fully configurable: `insensitiveCollation`
 
 !!! note "`REGEXP_REPLACE` version floor"
 
-    The MySQL / MariaDB path needs MySQL 8.0+ / MariaDB 10.0.5+. PostgreSQL and Oracle have their functions on every supported version.
+    On MySQL, `regexp_replace` needs MySQL 8.0.4 or newer: MySQL 5.7 rejects the query. On MariaDB it needs 10.0.5 or newer.
 
 #### SQLite: register a UDF, or accept the case-sensitive fallback
 
@@ -276,7 +323,7 @@ The **`sqlite3`** and **`bun:sql`** connectors have **no user-defined-function A
 
 ## Per database
 
-The default collation, the collation names to use with `insensitiveCollation` / `.collate()`, how to set a collation on the schema, and the session lever — one tab per engine.
+The default collation, the collation names to use with `insensitiveCollation` / `.collate()`, how to set a collation on the schema, and the session collation — one tab per engine.
 
 === "MariaDB"
     **Default:** case- **and accent-insensitive** (`utf8mb4_uca1400_ai_ci`). So `equals` / `contains` / `like` fold both case and accents out of the box.
@@ -290,7 +337,7 @@ The default collation, the collation names to use with `insensitiveCollation` / 
 
     **Set on the schema:** `CREATE TABLE t (name varchar(100) COLLATE utf8mb4_bin)`, or `CREATE DATABASE app CHARACTER SET utf8mb4 COLLATE …`.
 
-    **Session lever — partial:** `SET collation_connection = <coll>` reaches literals / coercible values only; **a column keeps its own collation**, so it cannot retarget a column comparison — use `.collate()` or the column collation for that. Run it [on each new connection](#beyond-the-query-the-schema-and-the-session).
+    **Session collation — partial:** `SET collation_connection = <coll>` reaches literals / coercible values only; **a column keeps its own collation**, so it cannot retarget a column comparison — use `.collate()` or the column collation for that. Run it [on each new connection](#beyond-the-query-the-schema-and-the-session).
 
     !!! tip "On a case-insensitive database, set `insensitiveCollation = ''`"
 
@@ -308,7 +355,7 @@ The default collation, the collation names to use with `insensitiveCollation` / 
 
     **Set on the schema:** `CREATE TABLE t (name varchar(100) COLLATE utf8mb4_bin)`, or `CREATE DATABASE app CHARACTER SET utf8mb4 COLLATE …`.
 
-    **Session lever — partial:** `SET collation_connection = <coll>` reaches literals / coercible values only; **a column keeps its own collation**, so it cannot retarget a column comparison — use `.collate()` or the column collation for that. Run it [on each new connection](#beyond-the-query-the-schema-and-the-session).
+    **Session collation — partial:** `SET collation_connection = <coll>` reaches literals / coercible values only; **a column keeps its own collation**, so it cannot retarget a column comparison — use `.collate()` or the column collation for that. Run it [on each new connection](#beyond-the-query-the-schema-and-the-session).
 
     !!! tip "On a case-insensitive database, set `insensitiveCollation = ''`"
 
@@ -326,7 +373,7 @@ The default collation, the collation names to use with `insensitiveCollation` / 
 
     **Set on the schema:** `CREATE TABLE t (name varchar2(100) COLLATE binary_ci)` (needs `MAX_STRING_SIZE = EXTENDED`, and a database-level `DEFAULT_COLLATION`).
 
-    **Session lever — full:** `ALTER SESSION SET NLS_COMP = LINGUISTIC; NLS_SORT = <coll>` flips `equals` / `like` / `distinct` / `order` session-wide. Run it [on each new connection](#beyond-the-query-the-schema-and-the-session).
+    **Session collation — full:** `ALTER SESSION SET NLS_COMP = LINGUISTIC; NLS_SORT = <coll>` flips `equals` / `like` / `distinct` / `order` session-wide. Run it [on each new connection](#beyond-the-query-the-schema-and-the-session).
 
     **`replaceAll`:** honours the session collation, so it corrupts on a case-insensitive configuration — fixed by default via [`replaceCollation`](#replacecollation-sql-server-and-oracle). See the [Oracle page](supported-databases/oracle.md#replaceall-and-collation).
 
@@ -357,7 +404,7 @@ The default collation, the collation names to use with `insensitiveCollation` / 
 
     **Set on the schema:** `CREATE TABLE t (name text COLLATE "insensitive")`, or `CREATE DATABASE app LC_COLLATE '…' TEMPLATE template0`.
 
-    **Session lever:** none — PostgreSQL has no session collation; use the per-column / database collation, or a per-expression `COLLATE` (`.collate()`).
+    **Session collation:** none — PostgreSQL has no session collation; use the per-column / database collation, or a per-expression `COLLATE` (`.collate()`).
 
     !!! note "`ORDER BY` sequence is deployment-dependent"
 
@@ -370,7 +417,7 @@ The default collation, the collation names to use with `insensitiveCollation` / 
 
     **Set on the schema:** `CREATE TABLE t (name text COLLATE NOCASE)`. SQLite has no database-level default collation.
 
-    **Session lever:** `PRAGMA case_sensitive_like = ON` makes `LIKE` case-sensitive (connection-global) — the only way to reach `LIKE`'s case behaviour, since `.collate()` doesn't. `GLOB` is case-sensitive with different wildcards.
+    **Session collation:** `PRAGMA case_sensitive_like = ON` makes `LIKE` case-sensitive (connection-global) — the only way to reach `LIKE`'s case behaviour, since `.collate()` doesn't. `GLOB` is case-sensitive with different wildcards.
 
     See the [SQLite page](supported-databases/sqlite.md#case-insensitive-operations-fold-ascii-only) for the ASCII-only limitation, and [`replaceAllInsensitive` on SQLite](#sqlite-register-a-udf-or-accept-the-case-sensitive-fallback) for the UDF.
 
@@ -386,13 +433,13 @@ The default collation, the collation names to use with `insensitiveCollation` / 
 
     **Set on the schema:** `CREATE TABLE t (name varchar(100) COLLATE Latin1_General_CS_AS)`, or `CREATE DATABASE app COLLATE Latin1_General_CI_AS`.
 
-    **Session lever:** **none** — SQL Server has no session collation, exactly as it has [no session time zone](time-zones.md#per-database). Reach for `.collate()` per value, `insensitiveCollation` connection-wide, `replaceCollation` for `replaceAll`, or the column / database collation.
+    **Session collation:** **none** — SQL Server has no session collation, exactly as it has [no session time zone](time-zones.md#per-database). Reach for `.collate()` per value, `insensitiveCollation` connection-wide, `replaceCollation` for `replaceAll`, or the column / database collation.
 
     **`replaceAll`:** honours the collation, so it corrupts on the case-insensitive default — fixed by default via [`replaceCollation`](#replacecollation-sql-server-and-oracle). See the [SQL Server page](supported-databases/sqlserver.md#replaceall-and-collation).
 
 ## Beyond the query: the schema and the session
 
-The library's levers (above) act *in the query*. There are two more places to pick a collation, at different levels — kept separate here because they are conceptually different:
+The library's options (above) act *in the query*. There are two more places to pick a collation, at different levels — kept separate here because they are conceptually different:
 
 ### In the schema — the column or database collation
 
@@ -400,9 +447,9 @@ If you own the schema this is the **cleanest** fix: no query changes, no per-que
 
 ### On the connection — the session collation
 
-Some engines carry a **session collation** that a connection sets on connect and that retargets comparisons *without touching the schema* — the collation analogue of a [session time zone](time-zones.md). Its reach is honest and per-engine:
+Some engines carry a **session collation** that a connection sets on connect and that retargets comparisons *without touching the schema* — the collation analogue of a [session time zone](time-zones.md). What it reaches depends on the engine:
 
-| engine | session lever | reach |
+| engine | session statement | reach |
 |---|---|---|
 | **Oracle** | `ALTER SESSION SET NLS_COMP = LINGUISTIC; NLS_SORT = <coll>` | **full** — flips `equals` / `like` / `distinct` / `order` session-wide |
 | **MySQL / MariaDB** | `SET collation_connection = <coll>` | **partial** — literals only; a column keeps its own collation |
@@ -412,15 +459,15 @@ Some engines carry a **session collation** that a connection sets on connect and
 
 You run the statement in the **pool's connection-init hook**, so every connection gets it — the same hook where you would set the session time zone. The mechanism is driver-specific: see [oracledb → Running a statement on each new connection](query-runners/recommended/oracledb.md#running-a-statement-on-each-new-connection) for the concrete code (Oracle is where a session collation reaches fully).
 
-!!! note "The query-level levers are the always-available ones"
+!!! note "The query-level options are always available"
 
-    The session collation is **partial or absent on four of the six engines**, and the schema collation needs a schema you control. The query-level levers (`.collate()`, `insensitiveCollation`) work everywhere, because the `collate` rides in the emitted SQL — reaching column comparisons even where the pool variable can't (MySQL / MariaDB) or doesn't exist (SQL Server). Use the session collation where it reaches fully (Oracle), and the query levers to fill the gaps.
+    The session collation is **partial or absent on all the engines but Oracle**, and the schema collation needs a schema you control. The query-level options (`.collate()`, `insensitiveCollation`) work everywhere, because the `collate` rides in the emitted SQL — reaching column comparisons even where the pool variable can't (MySQL / MariaDB) or doesn't exist (SQL Server). Use the session collation where it reaches fully (Oracle), and the query options to fill the gaps.
 
 ## You already have a database you can't re-collate
 
 The common case: a legacy, often mis-collated schema, and a migration is not on the table. The fix is **configuration, not a migration**:
 
-1. **Find out what your columns' collation is** — it decides everything below (`SELECT * FROM sys.fn_helpcollations()`, `SHOW COLLATION`, `pg_collation`, …).
+1. **Find out what your columns' collation is** — it decides everything below. On SQL Server it's in `sys.columns`, on MySQL and MariaDB in `SHOW FULL COLUMNS FROM your_table`, and on PostgreSQL in the `collation_name` of `information_schema.columns` (empty when the column uses the default of the database).
 2. **If a specific query needs a different collation**, reach for **`.collate('<name>')`** — surgical, index cost only there.
 3. **If the whole connection needs the insensitive direction**, set `insensitiveCollation` (a language collation), or `''` if the schema is already CI.
 4. **If `replaceAll` corrupts on your CI SQL Server / Oracle**, it is fixed by default — `replaceCollation = ''` opts out.

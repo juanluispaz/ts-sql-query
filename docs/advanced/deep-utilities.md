@@ -4,9 +4,9 @@ search:
 ---
 # Deep utilities
 
-The `ts-sql-query/extras/deepUtilities` module (also re-exported from the root `ts-sql-query`) provides the **deep (nested) analogues** of the built-in `Pick<Type, Keys>`, `Omit<Type, Keys>` and `keyof Type`, working over **dotted paths** (`'company.name'`) instead of top-level keys.
+These are the versions for nested objects of the built-in `Pick<Type, Keys>`, `Omit<Type, Keys>` and `keyof Type`: they work with **dotted paths**, like `'company.name'`, instead of top-level keys. They are in `ts-sql-query/extras/deepUtilities`, and also in the root `ts-sql-query`.
 
-They are useful whenever you manipulate a nested plain object — most notably to type a generic [dynamic pick](../dynamic/helper-types/picks.md) helper against your own nested business model without a cast, but they are general-purpose utilities you can use on any plain object.
+You use them when you work with a nested plain object. In this library, the usual case is typing a function that makes a [dynamic pick](../dynamic/helper-types/picks.md) from your own nested business model, without a cast, but they work on any plain object.
 
 | Built-in (flat) | Deep analogue (dotted paths) |
 |-----------------|------------------------------|
@@ -16,7 +16,7 @@ They are useful whenever you manipulate a nested plain object — most notably t
 | —               | `deepPick(obj, paths)` (runtime) |
 | —               | `deepOmit(obj, paths)` (runtime) |
 
-All of them treat a path like `'company.name'` as a descent into nested objects: selecting a whole object (`'company'`) keeps or drops it intact, while selecting a leaf (`'company.name'`) narrows the inner object. Top-level optionality of the model is always preserved, exactly like `Pick` / `Omit`.
+A path can name a whole object (`'company'`), which is kept or dropped as it is, or a property inside it (`'company.name'`), which narrows the inner object. A property that was optional stays optional, as with `Pick` and `Omit`.
 
 ## Types
 
@@ -24,7 +24,7 @@ All of them treat a path like `'company.name'` as a descent into nested objects:
 
 **Type**: `DeepPickPaths<Model>`
 
-The union of every legal dotted path of `Model` — the deep analogue of `keyof Model`. For a model with a nested object it yields both the whole-object path and each leaf path.
+The union of every valid path of `Model`, like `keyof Model` for nested objects. For a nested object it has the path of the whole object and the path of each property inside it.
 
 ```ts
 import type { DeepPickPaths } from 'ts-sql-query' // or 'ts-sql-query/extras/deepUtilities';
@@ -47,7 +47,7 @@ type CustomerPaths = DeepPickPaths<CustomerWithCompany>;
 
 **Type**: `DeepPick<Model, Paths>`
 
-The nested shape of `Model` keeping only the selected dotted `Paths` — the deep analogue of `Pick<Model, Keys>`. Selecting a whole object keeps it intact; selecting a leaf narrows the inner object. Top-level optionality is preserved, exactly like `Pick`.
+`Model` with only the selected `Paths`, like `Pick<Model, Keys>` for nested objects.
 
 ```ts
 import type { DeepPick } from 'ts-sql-query' // or 'ts-sql-query/extras/deepUtilities';
@@ -70,7 +70,7 @@ type PickedCustomer = DeepPick<CustomerWithCompany, 'firstName' | 'company.name'
 
 **Type**: `DeepOmit<Model, Paths>`
 
-The nested shape of `Model` with the selected dotted `Paths` removed — the deep analogue of `Omit<Model, Keys>`. Omitting a whole object (`'company'`) drops it entirely; omitting a leaf (`'company.id'`) keeps the inner object and removes only that property. Top-level optionality is preserved, exactly like `Omit`.
+`Model` without the selected `Paths`, like `Omit<Model, Keys>` for nested objects. Omitting a whole object (`'company'`) drops it; omitting a property inside it (`'company.id'`) keeps the object without that property.
 
 ```ts
 import type { DeepOmit } from 'ts-sql-query' // or 'ts-sql-query/extras/deepUtilities';
@@ -95,9 +95,9 @@ type TrimmedCustomer = DeepOmit<CustomerWithCompany, 'lastName' | 'company.id'>;
 
 **Function**: `deepPick(obj, paths)`
 
-Returns a new object keeping only the properties of `obj` selected by `paths` (dotted paths into nested objects). It is the runtime companion of the `DeepPick` type — the deep analogue of how [`dynamicPickPaths`](../dynamic/helper-types/picks.md#dynamicpickpaths) relates to `PickValuesPath`.
+Returns a new object with only the properties of `obj` selected by `paths`. Its type is `DeepPick`.
 
-Intermediate objects are created as needed; an intermediate value that is `null` is kept, and a path through an `undefined` or absent one is skipped.
+The objects on the way to a property are created as needed. If one of them is `null`, the `null` is kept, and if it's `undefined` or absent, that path is skipped.
 
 ```ts
 import { deepPick } from 'ts-sql-query' // or 'ts-sql-query/extras/deepUtilities';
@@ -114,15 +114,13 @@ const picked = deepPick(customer, ['id', 'firstName', 'company.name']);
 // picked: { id: number; firstName: string; company: { name: string } }
 ```
 
-!!! note "Forcing fields into a dynamic selection"
-
-    Unlike [`dynamicPickPaths`](../dynamic/helper-types/picks.md#dynamicpickpaths), `deepPick` has no `alwaysIncluded` argument: it is a plain `Pick` analogue. When you need some paths always present regardless of a caller-provided selection, add them to the `paths` array yourself (e.g. `deepPick(obj, ['id', ...fields])`). The mandatory-field ergonomics live in the dynamic-query helpers (`dynamicPickPaths` / `expandTypeFromDynamicPickPaths`).
+To always include some paths, whatever the caller selects, add them to the array yourself: `deepPick(obj, ['id', ...fields])`. Unlike [`dynamicPickPaths`](../dynamic/helper-types/picks.md#dynamicpickpaths), `deepPick` has no `alwaysIncluded` argument.
 
 ### deepOmit
 
 **Function**: `deepOmit(obj, paths)`
 
-Returns a shallow copy of `obj` with the properties selected by `paths` removed — the runtime companion of the `DeepOmit` type. Omitting a bare key drops it whole; omitting a dotted path keeps the intermediate object (copied, never mutated) and removes only the leaf. Values not touched by any path are copied by reference.
+Returns a copy of `obj` without the properties selected by `paths`. Its type is `DeepOmit`. Omitting a path inside an object copies that object, so `obj` doesn't change. The values no path touches are the same ones, not copies.
 
 ```ts
 import { deepOmit } from 'ts-sql-query' // or 'ts-sql-query/extras/deepUtilities';
@@ -141,16 +139,12 @@ const trimmed = deepOmit(customer, ['lastName', 'company.id']);
 
 ## Terminal object values
 
-`DeepPick` / `DeepPickPaths` (and their omit counterparts) treat the built-in object types that represent a single terminal value as **leaves** — they are **not** descended into: dates, binary buffers (`Uint8Array`, `ArrayBuffer`, …), `Map`/`Set` and their weak versions, arrays, regular expressions, promises and functions. So a `birthday` field typed as a date is the path `'birthday'`, never `'birthday.year'`.
+Some built-in objects are a single value, so paths don't go inside them: dates, binary buffers (`Uint8Array`, `ArrayBuffer`, ...), `Map`, `Set` and their weak versions, arrays, regular expressions, promises and functions. A `birthday` property of type `Date` is the path `'birthday'`, never `'birthday.year'`.
 
-The one shape that cannot be detected at the type level is a **plain custom object value** — for example a column whose value is a JSON object typed as `{ … }`. It is indistinguishable from a nested projection, so `DeepPickPaths` descends into it and produces dotted sub-paths for its members (this is a limitation shared by every structural deep-pick type). If you have such a column, type that property in your business model as a terminal value your code treats as opaque (or pick it whole), so it is not mistaken for a nested projection.
+A **plain custom object** can't be told apart from a nested object by its type, for example a column whose value is a JSON object typed as `{ ... }`. `DeepPickPaths` gives paths for its properties too. Either pick it whole, or type that property in your model with something that isn't a plain object.
 
 ## Relationship with dynamic picks
 
-These utilities are the recommended way to type a generic dynamic-pick helper against your **own nested business model**. When the picked fields are top-level keys, the built-in `Pick` / `keyof` are enough; when you pick fields inside nested objects through dotted paths, use `DeepPick` / `DeepPickPaths` instead.
+When the fields a caller picks are top-level keys, the built-in `Pick` and `keyof` are enough. When they are inside nested objects, use `DeepPick` and `DeepPickPaths`.
 
-See [Utility for dynamic picks → Creating definitions based on your nested business types](../dynamic/own-function/from-business-model.md#picking-columns-dynamicpickpaths-deeppick) for a complete example that pipes a `dynamicPickPaths(...)` selection through `expandTypeFromDynamicPickPaths(...)` and returns a value typed as `DeepPick<Model, FIELDS | 'id'>` without a cast.
-
-!!! note "Why a plain path-driven type"
-
-    `DeepPick` is intentionally a plain path-driven recursive mapped type. That shape stays covariant in its first type argument over a generic path union, which is what lets a generic helper returning `DeepPick<ResultModel, FIELDS>` be assignable to a caller's hand-written `DeepPick<BusinessModel, FIELDS>`. More elaborate community deep-pick types (built on `UnionToIntersection` / deep-simplify helpers) lose that covariance and cannot be used this way.
+A generic function that returns `DeepPick<ResultModel, FIELDS>` is assignable to `DeepPick<BusinessModel, FIELDS>` when the models match, which lets a function typed from your own interface return its result without a cast. See [Picking columns](../dynamic/own-function/from-business-model.md#picking-columns-dynamicpickpaths-deeppick) for a complete example that passes a `dynamicPickPaths(...)` selection through `expandTypeFromDynamicPickPaths(...)` and returns a value typed as `DeepPick<Model, FIELDS | 'id'>`.

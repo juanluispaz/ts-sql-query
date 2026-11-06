@@ -4,7 +4,7 @@ search:
 ---
 # ConsoleLogQueryRunner
 
-A general-purpose query runner that logs all executed SQL statements to the standard output using `console.log`. It wraps another query runner, delegating execution while recording detailed log information for inspection or debugging.
+A query runner that writes each statement on the standard output with `console.log`, before running it with the query runner it wraps. To send the statements to a logger of your own, use [`LoggingQueryRunner`](LoggingQueryRunner.md).
 
 !!! success "Supported databases"
 
@@ -19,15 +19,7 @@ A general-purpose query runner that logs all executed SQL statements to the stan
 
     `ConsoleLogQueryRunner` supports synchronous query execution. See the [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.
 
-!!! warning "Do not share connections between requests"
-
-    A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
-
-    Therefore, **you must not share the same connection object between concurrent HTTP requests**. Instead, create a new connection object for each request, along with its own query runners.
-
-    Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
-
-## Usage Example
+## Creating it
 
 ```ts
 import { ConsoleLogQueryRunner } from "ts-sql-query/queryRunners/ConsoleLogQueryRunner";
@@ -39,18 +31,20 @@ async function main() {
 }
 ```
 
-## API Overview
+By default it writes one line for each statement before it runs, with the type of query, the SQL and its parameters. It doesn't write the result, or an error. With `logResults`, `logDurations` or `logTimestamps` it also writes a line when the statement ends, with its result or its error.
 
-The constructor receives a secondary optional argument with the following definition: 
+## Options
+
+The constructor receives the options as a second optional argument:
 
 ```typescript
 interface ConsoleLogQueryRunnerOpts {
-    timeGranularity?: 'ms' | 'us' | 'ns' // Granularity of time and duration logged, default 'ms'
-    logTimestamps?: boolean // Include the time value when the log happened in nanoseconds since an arbitrary starting point, default false
-    logDurations?: boolean // Include the duration of the query execution, default false
-    logResults?: boolean // Include the result object in the log, default false
-    paramsAsObject?: boolean // Write in the log the query, params, result and error wrapped in an object, default false
-    includeLogPhase?: boolean // Write the phase name ('onQuery', 'onQueryResult', 'onQueryError') in the log, default false
+    timeGranularity?: 'ms' | 'us' | 'ns' // Unit of the times and durations written, default 'ms'
+    logTimestamps?: boolean // Include the time of the log, counted from an arbitrary starting point, default false
+    logDurations?: boolean // Include the duration of the statement, default false
+    logResults?: boolean // Include the result of the statement, default false
+    paramsAsObject?: boolean // Write the query, params, result and error wrapped in an object, default false
+    includeLogPhase?: boolean // Write the phase name ('onQuery', 'onQueryResult', 'onQueryError'), default false
 }
 ```
 

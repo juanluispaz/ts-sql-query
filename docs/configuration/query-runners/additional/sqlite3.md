@@ -19,7 +19,7 @@ This runner provides integration with the [sqlite3](https://www.npmjs.com/packag
 
 !!! danger "Deprecated"
 
-    The [sqlite3](https://www.npmjs.com/package/sqlite3) driver was deprecated by its maintainers on **2025-12-11**, so `Sqlite3QueryRunner` is deprecated as well — it is no longer listed in the *Recommended query runners* section, and the `Sqlite3QueryRunner` class is annotated with `@deprecated` so consumers see a strike-through in their IDE on every import and instantiation. Existing code keeps working — runtime behavior is unchanged and the runner will continue to ship for the time being — but new projects should pick another SQLite runner. Recommended replacements: [`better-sqlite3`](../recommended/better-sqlite3.md) (fast synchronous driver, the default choice for Node), [`node:sqlite`](../recommended/node_sqlite.md) (Node 22+'s built-in driver, zero dependencies), [`bun:sqlite`](../recommended/bun_sqlite.md) (when running on Bun), or [`sqlite-wasm-OO1`](../recommended/sqlite-wasm-OO1.md) (for environments without native bindings).
+    The [sqlite3](https://www.npmjs.com/package/sqlite3) driver was deprecated by its maintainers on **2025-12-11**, so `Sqlite3QueryRunner` is deprecated as well. Existing code keeps working and the query runner still ships, but new projects should pick another SQLite query runner: [`better-sqlite3`](../recommended/better-sqlite3.md) (fast synchronous driver, the default choice for Node), [`node:sqlite`](../recommended/node_sqlite.md) (Node 22+'s built-in driver, zero dependencies), [`bun:sqlite`](../recommended/bun_sqlite.md) (when running on Bun), or [`sqlite-wasm-OO1`](../recommended/sqlite-wasm-OO1.md) (for environments without native bindings).
 
 !!! warning "BigInt parameter binding"
 
@@ -29,17 +29,13 @@ This runner provides integration with the [sqlite3](https://www.npmjs.com/packag
 
     If you need full `int64` fidelity on SQLite, use a runner that binds `BigInt` natively instead: [`better-sqlite3`](../recommended/better-sqlite3.md), [`node:sqlite`](../recommended/node_sqlite.md), [`bun:sqlite`](../recommended/bun_sqlite.md) or [`sqlite-wasm-OO1`](../recommended/sqlite-wasm-OO1.md).
 
-!!! warning "Do not share connections between requests"
+!!! warning "A `Database` is a single connection"
 
-    A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
-
-    Therefore, **you must not share the same connection object between concurrent HTTP requests**. Instead, create a new connection object for each request, along with its own query runners.
-
-    Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
+    A `Database` is one connection to SQLite: every query runner created over the same object shares it, and shares its transaction. Two connection objects over one `Database` are not isolated from each other: a rollback in one undoes what the other did meanwhile, and while one has a transaction open, a transaction can't begin in the other. Don't use one object for requests that run at the same time with transactions: open a `Database` for each one, which is another connection to the same file.
 
 ## Using a single connection
 
-Enables executing queries through a dedicated [sqlite3](https://www.npmjs.com/package/sqlite3) connection.
+Every statement runs on the database object you give the query runner.
 
 ```ts
 import { Database } from 'sqlite3';
@@ -53,6 +49,14 @@ async function main() {
     connection // ...
 }
 ```
+
+## Large integers
+
+The driver reads every integer as a JavaScript number and has no option to read it exactly. An integer out of JavaScript's safe range comes back rounded, and `ts-sql-query` rejects it with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` instead of returning a wrong value.
+
+## sqlite3 and UUIDs
+
+To work with [UUIDs in SQLite](../../supported-databases/sqlite.md#uuid-strategies) the default strategy is `uuid-extension`, which needs the SQL functions of the [uuid extension](https://sqlite.org/src/file?name=ext/misc/uuid.c). This driver can't register functions written in JavaScript: load the compiled extension with `db.loadExtension(...)`, or use the `string` strategy.
 
 ## Inside a transaction something else manages
 

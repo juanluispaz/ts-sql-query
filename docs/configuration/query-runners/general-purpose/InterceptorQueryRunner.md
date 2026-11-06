@@ -4,7 +4,7 @@ search:
 ---
 # InterceptorQueryRunner
 
-A query runner that intercept all the queries and delegate the execution of the queries to the query runner received as second argument in the constructor.
+A query runner that calls your code before and after each statement, and runs the statement with the query runner it receives in the constructor. What your code returns before the statement reaches it after the statement, like the time it started. If you only need to log, [`LoggingQueryRunner`](LoggingQueryRunner.md) takes an object with your functions and gives you the times.
 
 !!! success "Supported databases"
 
@@ -19,24 +19,16 @@ A query runner that intercept all the queries and delegate the execution of the 
 
     `InterceptorQueryRunner` supports synchronous query execution. See the [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.
 
-!!! warning "Do not share connections between requests"
-
-    A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
-
-    Therefore, **you must not share the same connection object between concurrent HTTP requests**. Instead, create a new connection object for each request, along with its own query runners.
-
-    Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
-
-## Usage Example
+## Creating one
 
 ```ts
-import { QueryType } from "ts-sql-query/queryRunners/QueryRunner";
+import type { QueryType } from "ts-sql-query/queryRunners/QueryRunner";
 import { InterceptorQueryRunner } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
 
 interface DurationPayload {
     startTime: number
 }
-class DurationLogginQueryRunner extends InterceptorQueryRunner<DurationPayload> {
+class DurationLoggingQueryRunner extends InterceptorQueryRunner<DurationPayload> {
     onQuery(queryType: QueryType, query: string, params: any[]): DurationPayload {
         console.log('onQuery', queryType, query, params)
         return { startTime: Date.now() }
@@ -52,13 +44,13 @@ class DurationLogginQueryRunner extends InterceptorQueryRunner<DurationPayload> 
 }
 
 async function main() {
-    const connection = new DBConnection(new DurationLogginQueryRunner(otherQueryRunner));
+    const connection = new DBConnection(new DurationLoggingQueryRunner(otherQueryRunner));
     // Do your queries here
     connection // ...
 }
 ```
 
-## API Overview
+## The functions you implement
 
 The `InterceptorQueryRunner` is an abstract class where you must implement the following functions:
 
@@ -68,9 +60,9 @@ The `InterceptorQueryRunner` is an abstract class where you must implement the f
 
 This class uses a generic type to define the payload returned by `onQuery` and later received by `onQueryResult` and `onQueryError`.
 
-All these functions receive as argument:
+They receive these arguments:
 
-- **`type: QueryType`**: type of the query to be executed. The `QueryType` is defined as:
+- **`queryType: QueryType`**: type of the query to be executed. The `QueryType` is defined as:
 
 <!-- doc-code-snippet-template: simplifiedDefinition -->
 ```ts
@@ -86,8 +78,8 @@ type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | '
 - **`query: string`**: the SQL query to be executed. It will be empty for `beginTransaction`, `commit`, or `rollback`.
 - **`params: any[]`**: parameters received by the query.
 - **`result: any`**: (only in `onQueryResult`) result of the execution of the query.
-- **`error: any`**: (only in `onQueryError`) error that happens executiong the query.
-- **`payload: PLAYLOAD_TYPE`**:  (only in `onQueryResult` or `onQueryError`) payload data created by the `onQuery` function.
+- **`error: any`**: (only in `onQueryError`) error that happened executing the query.
+- **`payload`**: (only in `onQueryResult` or `onQueryError`) payload data created by the `onQuery` function.
 
 !!! info
 

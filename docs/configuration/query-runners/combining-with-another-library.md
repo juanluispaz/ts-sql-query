@@ -77,7 +77,7 @@ async function main(client: PoolClient) {
     | [`MssqlPoolQueryRunner`](recommended/mssql.md#inside-a-transaction-something-else-manages) | With the mssql `Transaction` |
     | The other query runners over a pool | They can't: a pool is not in a transaction. Take a connection from the pool and use the query runner over a single connection |
 
-    Its statements then run in that transaction, and the other library commits it or rolls it back. A transaction can't begin on the query runner: `connection.transaction(...)` and `connection.beginTransaction()` reject with `NESTED_TRANSACTION_NOT_SUPPORTED`. For `ts-sql-query` there is no transaction open: `connection.commit()`, `connection.rollback()`, the end-of-transaction functions and `getTransactionMetadata()` throw `NOT_IN_TRANSACTION`.
+    Its statements then run in that transaction, and the other library commits it or rolls it back. A transaction can't begin on the query runner: `connection.transaction(...)` and `connection.beginTransaction()` reject with `NESTED_TRANSACTION_NOT_SUPPORTED`. For `ts-sql-query` there is no transaction open: `connection.commit()` and `connection.rollback()` reject with `NOT_IN_TRANSACTION`, and the end-of-transaction functions and `getTransactionMetadata()` throw it.
 
 ## Example: pg-boss
 

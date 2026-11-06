@@ -25,28 +25,39 @@ search:
 
 ## What is ts-sql-query?
 
-`ts-sql-query` is a type-safe SQL query builder for TypeScript. It allows you to write dynamic queries with full type safety — meaning that the TypeScript compiler can validate your queries at compile time.
+`ts-sql-query` is a type-safe SQL query builder for TypeScript. You write the query in TypeScript, the compiler checks it, and the library sends that query to the database.
 
-Type-safe SQL means that mistakes in your queries are caught at compile time. With `ts-sql-query`, you can safely refactor your database schema: any issues will be surfaced immediately by the compiler.
+The compiler checks each query against the tables and views you map in your code: a column that doesn't exist, a comparison between different data types or a function your database doesn't have is a compilation error. When you change the mapping of a table, it points to every query that no longer fits.
 
 !!! note ""
 
-    `ts-sql-query` is _not_ an **ORM** — it focuses on full SQL control with type safety.
+    `ts-sql-query` is _not_ an **ORM**: there are no entities or a model layer between your code and the SQL.
 
 ![](demo.gif)
 
-## Why?
+## Why use it?
 
-There are many libraries available in JavaScript/TypeScript that allows querying a SQL database, but they are typically:
-
-- ORMs often limit direct control over SQL and can obscure database capabilities.
-- Many query builders rely on fragile string concatenation.
-- Some libraries lack proper type-safety integration.
-- Most tools make it hard to write truly dynamic SQL in a safe and expressive way.
-
-`ts-sql-query` addresses these issues by providing a type-safe, SQL-centric API, with rich support for building dynamic queries in a declarative style.
+- **You see the SQL you get.** The code follows the structure of the query, and each query you execute is one query in the database. The only method that sends two is [`executeSelectPage`](queries/select-page.md): the rows and the total.
+- **The result has a type without writing it.** The type of each row comes from the select, and a column that can be null is optional.
+- **Queries that vary stay one query.** See the next section.
+- **No SQL text is assembled from your values.** Values go to the database as parameters.
 
 For more details on the principles behind the library, see [Philosophy and Design Goals](about/philosophy.md).
+
+## Dynamic queries
+
+A search form, a table with filters, an API that other systems query: what these queries have to do is only known when they run. They are usually assembled with `if`s and pieces of SQL, so the code stops looking like the query it builds, and the types can't follow the result.
+
+In `ts-sql-query` you write one query with every part that can vary, and the library writes the SQL with only what applies:
+
+- A condition without a value disappears from the query: `tCustomer.firstName.containsIfValue(firstName)`.
+- A whole filter can arrive as an object, as in the body of a request, limited to the columns you list: `connection.dynamicConditionFor`.
+- The order can arrive as text, and it can only name properties of the select: `orderByFromString`. The page can be missing: `limitIfValue`, `offsetIfValue`.
+- The caller can choose the columns (`dynamicPick`), and a join that no chosen column needs is left out of the query (`optionalJoin`).
+- A function of yours can return exactly the type of what the caller asked for.
+- Inserts and updates set only what has a value (`setIfValue`), and an update that ends up without a `where` isn't sent.
+
+No extra query is sent to find anything out, and a value from a request never becomes SQL text. See [What a dynamic query can do](dynamic/building-blocks.md), which shows one query growing through all of this and lists everything on offer.
 
 ## Supported runtimes
 
@@ -86,7 +97,7 @@ Two ways to import:
   import { Table, Values, CustomBooleanTypeAdapter, dynamicPick,
            extractColumnsFrom, type Connection, type SelectedRow } from 'ts-sql-query'
   ```
-  Re-exports the cross-database surface (everything from `Connection`, `Table`, `View`, `TypeAdapter`, `Values`, `TsSqlError`, `dynamicCondition`, `extras/types`, `extras/utils` and `extras/sync`). Database-specific symbols are intentionally not re-exported here.
+  Re-exports the cross-database surface (everything from `Connection`, `Table`, `View`, `TypeAdapter`, `Values`, `TsSqlError`, `dynamicCondition`, `extras/types`, `extras/utils`, `extras/sync` and `extras/deepUtilities`). Database-specific symbols are intentionally not re-exported here.
 
 - **Per-feature subpaths** for database-specific imports (each connection, each query runner, `IDEncrypter`) — for example:
   ```ts

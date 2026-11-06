@@ -6,29 +6,31 @@ search:
 
 ## How does ts-sql-query model queries?
 
-`ts-sql-query` aims to model queries while preserving the essence of SQL. Its design is inspired by [SQLite](../configuration/supported-databases/sqlite.md) and [PostgreSQL](../configuration/supported-databases/postgresql.md), while ensuring compatibility and clarity in a TypeScript/JavaScript context. When JavaScript or TypeScript have an idiomatic way to express something, `ts-sql-query` tries to reflect that — maintaining a delicate balance. As a result, writing queries in `ts-sql-query` closely mirrors SQL itself, allowing you to easily anticipate how a query would translate to raw SQL.
+Writing a query in `ts-sql-query` closely mirrors SQL, so you can anticipate the SQL it generates. Its design is inspired by [SQLite](../configuration/supported-databases/sqlite.md) and [PostgreSQL](../configuration/supported-databases/postgresql.md), and when JavaScript or TypeScript have an idiomatic way to express something, `ts-sql-query` tries to reflect it.
 
-`ts-sql-query` executes the query in a single call to the database; no intermediate data is processed in your backend server; everything is done in a single SQL query in the same way you write it in `ts-sql-query`. The exception is the select page, where a first query will be executed, returning the data contained in the page, and a second query will be executed to get the count.
+`ts-sql-query` executes the query in a single call to the database, in the same way you write it, and no intermediate data is processed in your backend. The exception is the [select page](../queries/select-page.md), where a first query returns the data of the page, and a second one gets the count. The statements of a [transaction](../queries/transaction.md) go on their own too.
 
 ## Can I generate the Tables/Views models from my database?
 
-Yes, for this prupose you can use [ts-sql-codegen](https://github.com/lorefnon/ts-sql-codegen) that is a utility that generates table mapper classes for `ts-sql-query` by inspecting a database through [tbls](https://github.com/k1LoW/tbls).
+Yes, you can use [ts-sql-codegen](https://github.com/lorefnon/ts-sql-codegen), a utility that generates table mapper classes for `ts-sql-query` by inspecting a database through [tbls](https://github.com/k1LoW/tbls).
 
 ## Does ts-sql-query support dynamic SQL?
 
-Yes, `ts-sql-query` offers a very rich set of functionality to manage dynamic SQL generation. But be aware `ts-sql-query` deals with it in a declarative way (keeping the spirit of SQL) instead of an imperative way like in most commons query builders. In consequence, if you see yourself writing `if` in your code, that is the wrong path in `ts-sql-query`. You can read more here: [Dynamic queries](../queries/dynamic-queries.md#dynamic-queries).
+Yes. You write one query with every part that can vary, and the library writes the SQL with only what applies: a condition disappears when it has no value, the filter can arrive as an object, the caller can choose the columns, and a function can return the type of what was asked for. See [What a dynamic query can do](../dynamic/building-blocks.md) and [Dynamic queries](../queries/dynamic-queries.md#dynamic-queries).
+
+Write the query in this declarative way first, so it can still be read as a query. Your own `if`s are for the cases that need them, when what to add depends on logic that those methods can't express: see [Building a condition step by step](../dynamic/going-further/building-conditions.md).
 
 ## Does ts-sql-query support database-specific features?
 
-Yes, `ts-sql-query` already supports database-specific features validated at compile time; if you try to use one of them but your database doesn't support it, you will get a compilation error.
+Yes, and they are checked at compile time: if you try to use one of them and your database doesn't have it, you get a compilation error.
 
-## Will ts-sql-query will constrain you when you need to use a not supported feature?
+## Will ts-sql-query constrain you when you need a feature it doesn't support?
 
-`ts-sql-query` offers many ways to deal with non-yet supported features using [SQL fragments](../queries/sql-fragments.md); This feature covers the biggest of the cases you will hit in your use cases.
+For most cases, no: [SQL fragments](../queries/sql-fragments.md) let you write that part of the query in SQL, keeping the types in the rest. See also [Limitations](limitations.md).
 
 ## How can I implement select for update?
 
-`select ... for update` construction is not exposed by `ts-sql-query`; but if you really need (remember this is expensive), you can [customize the select](../queries/sql-fragments.md#customizing-a-select) to include the missing part in the generated SQL. Example:
+`select ... for update` locks the selected rows until the end of the transaction. `ts-sql-query` has no method for it, but you can [customize the select](../queries/sql-fragments.md#customizing-a-select) to add it to the SQL. The text goes to the database as you write it, so write what your database accepts:
 
 ```ts
 const customizedSelect = connection.selectFrom(tCustomer)
@@ -44,6 +46,71 @@ const customizedSelect = connection.selectFrom(tCustomer)
     .executeSelectOne()
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday 
+    from customer 
+    where id = ? for update
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday 
+    from customer 
+    where id = ? for update
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName", 
+        last_name as "lastName", 
+        birthday as "birthday" 
+    from customer 
+    where id = :0 for update
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName", 
+        birthday as birthday 
+    from customer 
+    where id = $1 for update
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday 
+    from customer 
+    where id = ?1 for update
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday 
+    from customer 
+    where id = @0 for update
+    ```
+
+The parameters are: `[ 10 ]`
+
 ## Does ts-sql-query support common table expressions (CTE)?
 
 Yes, you can read how to use it here: [A select used as a view (the with clause)](../queries/cte-subqueries.md#a-select-used-as-a-view-the-with-clause).
@@ -54,7 +121,7 @@ To use a table or view in a left join, you must mark it for use in a left join t
 
 ## How to do a left join of a select in a with clause?
 
-First, you must mark the query **for use in query** and then **for use in left join**. Example:
+First, you must mark the query **for use in query** and then **for use in left join**. See [Left join with a view](../queries/cte-subqueries.md#left-join-with-a-view) for the query that uses it. Example:
 
 ```ts
 const customerCountPerCompanyWith = connection.selectFrom(tCompany)
@@ -70,21 +137,21 @@ const customerCountPerCompanyWith = connection.selectFrom(tCompany)
 
 ## Where can I see all functions/methods provided by ts-sql-query?
 
-You can see them here: [API](../api/introduction.md).
+You can see them here: [API](../api/introduction.md). If you know the SQL keyword, the [keywords](../keywords/select.md) tables say what writes it in the library.
 
 ## How can I organize my code to reuse some queries in different places?
 
-You can create functions that return the prebuilt query you want to reuse; the only requirement is to omit the function's return type to allow TypeScript to infer it. Additionally, you can take advantage of [The order of the clauses](../queries/select.md#the-order-of-the-clauses) that `ts-sql-query` offers. With this in mind, you will be able to postpone the where clause till the end of the query (in SQL it will be generated in the proper place). Example:
+You can create functions that return the prebuilt query you want to reuse, omitting the function's return type so TypeScript infers it. With [The order of the clauses](../queries/select.md#the-order-of-the-clauses) that `ts-sql-query` offers, each caller can add the `where` at the end (in SQL it's generated in the proper place):
 
+<!-- doc-code-snippet-result: { id: 10, name: 'ACME', numberOfCustomers: 3 } -->
 ```ts
 function buildNumberOfCustomersSubquery(connection: DBConnection) {
     return connection
         .subSelectUsing(tCompany)
         .from(tCustomer)
         .where(tCustomer.companyId.equals(tCompany.id))
-        .selectOneColumn(connection.countAll())
-        .forUseAsInlineQueryValue()
-        .valueWhenNull(0);
+        .selectCountAll()
+        .forUseAsInlineQueryValue();
 }
 
 function buildCompaniesWithNumberOfCustomersQuery(connection: DBConnection) {
@@ -96,18 +163,69 @@ function buildCompaniesWithNumberOfCustomersQuery(connection: DBConnection) {
         })
 }
 
-interface CompanyInfoWithNumberOfCustomers {
-    id: number;
-    name: string;
-    numberOfCustomers: number;
-}
-
-async function getCompanyInfoWithNumberOfCustomers(connection: DBConnection, id: number): Promise<CompanyInfoWithNumberOfCustomers> {
-    return await buildCompaniesWithNumberOfCustomersQuery(connection)
-        .where(tCompany.id.equals(id))
-        .executeSelectOne()
-}
+const companyInfo = await buildCompaniesWithNumberOfCustomersQuery(connection)
+    .where(tCompany.id.equals(10))
+    .executeSelectOne()
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        name as name, 
+        (select count(*) as result from customer where company_id = company.id) as numberOfCustomers 
+    from company 
+    where id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        `name` as `name`, 
+        (select count(*) as result from customer where company_id = company.id) as numberOfCustomers 
+    from company 
+    where id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        name as "name", 
+        (select count(*) as "result" from customer where company_id = company.id) as "numberOfCustomers" 
+    from company 
+    where id = :0
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        name as name, 
+        (select count(*) as result from customer where company_id = company.id) as "numberOfCustomers" 
+    from company 
+    where id = $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        name as name, 
+        (select count(*) as result from customer where company_id = company.id) as numberOfCustomers 
+    from company 
+    where id = ?1
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        name as name, 
+        (select count(*) as [result] from customer where company_id = company.id) as numberOfCustomers 
+    from company 
+    where id = @0
+    ```
+
+The parameters are: `[ 10 ]`
 
 !!! tip
 
@@ -115,6 +233,6 @@ async function getCompanyInfoWithNumberOfCustomers(connection: DBConnection, id:
 
 ## How can I use select * in my queries?
 
-`select *` is very useful, especially when creating manual queries to see at the moment, but it is very dangerous when building your backend. The issue is related to what happens during the time; when you build your backend, the backend and database are synced, but that will be true only sometimes. One example is when you are deploying a new version of your system that requires changes in the database. If you use `select *`, then the query will return a new column (not managed by the backend), or an expected column will disappear, and the backend will misbehave (instead of throwing an error). That kinds of errors are hard and very dangerous; it is better to have a clear error than a silent malfunctioning system.
+You can't, on purpose. `select *` is useful in a query you write to look at the data, but dangerous in a backend, because the backend and the database aren't always in sync. While you deploy a version that changes the database, for example, the query can return a column the backend doesn't know, or an expected column can disappear. With `select *` the backend misbehaves without saying why; with the columns listed, you get a clear error.
 
-You should avoid using `select *` in your backend queries; instead, you should explicitly indicate what you are expecting; in this way, you will receive no unpleasant surprises. If you want to get similar behaviour to `select *` without the `*`, you can use the columns known by the backend as a reference. In that case, you can use [Extract columns](../advanced/columns-from-object.md#extract-columns) utility function.
+To get all the columns the backend knows, pass the table to `select`: `.select(tCustomer)`. The SQL lists each column by its name. To leave some out, use `extractColumnsFrom`. See [Select all the columns of a table](../advanced/columns-from-object.md#select-all-the-columns-of-a-table) and [Extract columns](../advanced/columns-from-object.md#extract-columns).

@@ -86,6 +86,43 @@ describe(ctx.label, () => {
         expect(selectCompanies).toEqual([{ id: 1, name: 'Acme Corp' }])
     })
 
+    // MOCK-ONLY: the synchronous promise comes from the option of the runner; a connector's own runner here may be asynchronous.
+    test('docs:synchronous-query-runners/transaction', () => {
+        const runner = new MockQueryRunner((type) => type === 'update' ? 1 : undefined, { promise: SynchronousPromise })
+        const connection = new DBConnection(runner, Number.POSITIVE_INFINITY)
+
+        // doc-start
+        const updatedOrganizations = sync(connection.transaction(() => {
+            return sync(
+                connection.update(tOrganization)
+                    .set({ name: 'Acme' })
+                    .where(tOrganization.id.equals(1))
+                    .executeUpdate()
+            )
+        }))
+        // doc-end
+
+        assertType<Exact<typeof updatedOrganizations, number>>()
+        expect(updatedOrganizations).toBe(1)
+    })
+
+    // MOCK-ONLY: the synchronous promise comes from the option of the runner; a connector's own runner here may be asynchronous.
+    test('docs-extra:synchronous-query-runners/transaction-rejected-throws-through-sync', () => {
+        const runner = new MockQueryRunner((type) => type === 'update' ? 1 : undefined, { promise: SynchronousPromise })
+        const connection = new DBConnection(runner, Number.POSITIVE_INFINITY)
+
+        let caught: unknown
+        try {
+            sync(connection.transaction(() => {
+                throw new Error('boom')
+            }))
+        } catch (e) {
+            caught = e
+        }
+        expect(caught).toBeInstanceOf(Error)
+        expect((caught as Error).message).toContain('boom')
+    })
+
     // MOCK-ONLY: the wrapped runner is the mock so that the synchronous promise reaches the wrapper in every cell.
     test('docs-extra:synchronous-query-runners/general-purpose-runners-honour-synchronous-promise', () => {
         const mock = () => new MockQueryRunner(() => [{ id: 1 }], { promise: SynchronousPromise })

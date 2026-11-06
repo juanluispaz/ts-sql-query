@@ -5,21 +5,9 @@ search:
 <!-- doc-code-template: oracle -->
 # Oracle
 
-This page describes how `ts-sql-query` integrates with **[Oracle](https://www.oracle.com/database/)**, including dialect-specific behavior, configuration options, and available features. It covers the proper setup of a Oracle connection, guidelines for connection management, and advanced behaviors such as UUID handling.
+This page has what is particular to Oracle: what it offers and what it doesn't, how to declare its version, how a boolean is stored, how `concat` treats `null`, `replaceAll`, and the UUID strategies. To define the connection and map your tables, the pages to read are [Connection](../connection.md) and [Mapping](../mapping.md).
 
-!!! info
-
-    To configure the database dialect, extend the appropriate database connection class when defining your connection. You must choose the correct database type to ensure that the generated SQL queries follow the dialect expected by that database.
-
-!!! warning "Do not share connections between requests"
-
-    A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
-
-    Therefore, **you must not share the same connection object between concurrent HTTP requests**. Instead, create a new connection object for each request, along with its own query runners.
-
-    Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
-
-## Usage Example
+## Defining the connection
 
 ```ts
 import { OracleConnection } from "ts-sql-query/connections/OracleConnection";
@@ -27,13 +15,35 @@ import { OracleConnection } from "ts-sql-query/connections/OracleConnection";
 class DBConnection extends OracleConnection<'DBConnection'> { }
 ```
 
+Create a connection object for each request, and don't share it between concurrent requests: see [Instantiating the connection](../connection.md#instantiating-the-connection-with-the-database-connection).
+
 !!! tip
 
-    Oracle doesn't have boolean data type; `ts-sql-query` assumes that the boolean is represented by a number where `0` is false, and `1` is true. All conversions are made automatically by `ts-sql-query`. In case you need a different way to represent a boolean, see [Custom booleans values](../../advanced/custom-booleans-values.md) for more information.
+    `ts-sql-query` assumes that a boolean is stored in a number where `0` is false, and `1` is true, and converts the values for you. If you need a different way to store a boolean, see [Custom booleans values](../../advanced/custom-booleans-values.md) for more information.
+
+## What it offers and what it doesn't
+
+What isn't offered doesn't compile on this connection. On a version older than the one shown, the database rejects the query. Each link goes to the page that explains the feature, with all the databases side by side.
+
+| What | On this database |
+|---|---|
+| [`returning` in an insert](../../queries/insert.md#availability-per-database) | Yes, written as `returning into`; not from a select |
+| [`returning` in an update](../../queries/update.md#availability-in-each-database) | Yes, written as `returning into` |
+| [`returning` in a delete](../../queries/delete.md#availability-in-each-database) | Yes, written as `returning into` |
+| [`oldValues()` in an update](../../queries/update.md#availability-in-each-database) | Not offered |
+| [Insert on conflict](../../queries/insert-on-conflict.md#what-each-database-offers) | Not offered |
+| Other tables in an [update](../../queries/update.md#availability-in-each-database) or a [delete](../../queries/delete.md#availability-in-each-database) | `from` and `using` from Oracle 23ai. A join right after `update` or `deleteFrom` isn't offered |
+| [Compound queries](../../queries/compound-select.md#availability-in-each-database) | All of them, written with `minus` for `except` |
+| [Recursive queries](../../queries/recursive-select.md#availability-in-each-database) | `recursiveUnionAll`, and `startWith` and `connectBy`. `recursiveUnion` isn't offered |
+| [Arrays of objects from an aggregate](../../queries/aggregate-as-object-array.md#availability-in-each-database) | Yes. The `Distinct` versions aren't offered |
+| [`stringConcatDistinct`, `anyValue`](../../queries/aggregate-and-group-by.md#how-each-function-is-written-in-each-database) | Yes; `stringConcatDistinct` needs Oracle 19c |
+| [Sequences](../mapping.md#using-a-sequence) | Yes |
+| [Stored procedures](../mapping.md#calling-a-stored-procedure) and [functions](../mapping.md#calling-a-function-of-the-database) | Yes |
+| [Isolation levels](../../queries/transaction.md#what-each-database-offers) | `read committed`, `snapshot` |
 
 ## Compatibility version
 
-The `compatibilityVersion` property declares the minimum Oracle Database version the generated SQL must support, encoded as the integer `major * 1_000_000 + minor * 1_000 + patch` — e.g. `23_009_000` for Oracle Database 23.9. The default is `Number.POSITIVE_INFINITY` (latest).
+The `compatibilityVersion` property says which Oracle Database version the SQL must work on, encoded as the integer `major * 1_000_000 + minor * 1_000 + patch` — e.g. `23_009_000` for Oracle Database 23.9. The default is `Number.POSITIVE_INFINITY` (latest).
 
 Recognized breakpoints:
 
@@ -165,7 +175,7 @@ select id from issue where title like string_util.concat_strict(:0, '%') escape 
 
 ## Collations & case sensitivity
 
-Oracle's default collation is **`BINARY`** — case- and accent-**sensitive**, the JavaScript-sensible default, so no configuration is needed unless you want the insensitive direction. The plain string operations follow the session collation; the `*Insensitive` operations force case-insensitivity over it. Oracle has a **full session collation lever** (`ALTER SESSION SET NLS_COMP = LINGUISTIC; NLS_SORT = <coll>`), which flips `equals` / `like` / `distinct` / `order` session-wide; you can also force a collation per value with `.collate('<name>')` or connection-wide with `insensitiveCollation`. See the dedicated [Collations & case sensitivity](../collations.md) page and the [Oracle tab](../collations.md#per-database) for the collation names (e.g. `binary_ci`, `binary_ai`).
+Oracle's default collation is **`BINARY`** — case- and accent-**sensitive**, the JavaScript-sensible default, so no configuration is needed unless you want the insensitive direction. The plain string operations follow the session collation; the `*Insensitive` operations force case-insensitivity over it. Oracle has a **session collation that reaches everything** (`ALTER SESSION SET NLS_COMP = LINGUISTIC; NLS_SORT = <coll>`), which flips `equals` / `like` / `distinct` / `order` session-wide; you can also force a collation per value with `.collate('<name>')` or connection-wide with `insensitiveCollation`. See the dedicated [Collations & case sensitivity](../collations.md) page and the [Oracle tab](../collations.md#per-database) for the collation names (e.g. `binary_ci`, `binary_ai`).
 
 ### `replaceAll` and collation
 
@@ -206,7 +216,7 @@ Set `replaceInsensitiveCollation` (or `insensitiveCollation`) to `''` to opt out
 
 - `'built-in'` *(default strategy)*: UUIDs are stored as `RAW(16)` and converted using Oracle's built-in `UUID_TO_RAW` / `RAW_TO_UUID` functions, available since **Oracle Database 23ai (23.9)**. The bytes are stored in canonical order. Note that these built-ins validate the value through Oracle's `IS_UUID` check, which **accepts only version-4 UUIDs**: a non-v4 value (v1, v7, …) is rejected at runtime with `ORA-62432: … is not a valid UUID value`. Use this strategy when your application uses **UUID v4**; for any other version (including v7) use `'custom-functions'`.
 - `'custom-functions'`: same `RAW(16)` storage, but `ts-sql-query` calls user-provided functions named `uuid_to_raw` and `raw_to_uuid` instead. Use this option on Oracle versions older than 23.9 (where the built-ins don't exist), when you need a UUID version the built-ins reject (such as **v7** or v1), or when you want to inject your own conversion logic — for example, the v1-style byte reordering shown below. Because these functions do the conversion themselves, they accept any UUID version. Oracle resolves identifiers case-insensitively, so the names match the built-ins on 23.9+ and your functions take precedence over them if both exist.
-- `'string'`: UUIDs are stored as text in character-based columns such as `CHAR(36)`, `VARCHAR(36)`, or `TEXT`. No conversion functions are involved.
+- `'string'`: UUIDs are stored as text in character-based columns such as `CHAR(36)` or `VARCHAR2(36)`. No conversion functions are involved.
 
 You can configure the strategy by overriding the `uuidStrategy` field in your connection class:
 

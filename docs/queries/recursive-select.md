@@ -57,7 +57,7 @@ The `where` belongs to the starting rows. Without a `where`, every row of the ta
 
 **With or without `All`:** see [`UNION` vs `UNION ALL`](#union-or-union-all). `recursiveUnion` and `recursiveUnionOn` aren't offered on every database: see [the availability](#availability-in-each-database).
 
-If the join condition is made only of `*IfValue` conditions and none has a value, nothing links one level with the next, and the library throws the error `MISSING_RECURSIVE_CONDITION` ([library raised errors](../api/error-management/library-raised-errors.md)).
+If the join condition is made only of `*IfValue` conditions and none has a value, nothing links one level with the next, and the promise of the execute method rejects with the error `MISSING_RECURSIVE_CONDITION` ([library raised errors](../api/error-management/library-raised-errors.md)).
 
 ## Recursive select looking for parents
 
@@ -1292,7 +1292,7 @@ Two things work differently from the recursive selects above:
 - **The `where` applies at the end, not to the starting rows:** the walk first finds all the rows, and then the `where` removes some. The rows below a removed row stay in the result. The condition of the starting rows goes in `startWith`.
 - **Without `orderBy`, the rows come in the order of the walk:** each row followed by the rows below it. A plain `orderBy`, without `orderingSiblingsOnly`, sorts the whole result and that order is lost.
 
-`startWith`, `connectBy` and `connectByNoCycle` can be written before or after `select`, like `where`. If all the conditions of `connectBy` are `*IfValue` without a value, the library throws the error `MISSING_RECURSIVE_CONDITION`.
+`startWith`, `connectBy` and `connectByNoCycle` can be written before or after `select`, like `where`. If all the conditions of `connectBy` are `*IfValue` without a value, the promise of the execute method rejects with the error `MISSING_RECURSIVE_CONDITION`.
 
 ## Availability in each database
 
@@ -1305,4 +1305,4 @@ Two things work differently from the recursive selects above:
 | MariaDB | Yes | Yes | Not offered |
 | MySQL | From MySQL 8.0.1 | From MySQL 8.0.1 | Not offered |
 
-A method that is not offered doesn't compile on that connection. On MySQL, with a [`compatibilityVersion`](../configuration/supported-databases/mysql.md) below `8_000_000`, the library throws the error `UNSUPPORTED_QUERY` when it builds the query.
+A method that is not offered doesn't compile on that connection. On MySQL, with a [`compatibilityVersion`](../configuration/supported-databases/mysql.md) below `8_000_000`, the promise of the execute method rejects with the error `UNSUPPORTED_QUERY`, and nothing is sent.

@@ -20,15 +20,13 @@ This page explains how to use `ts-sql-query` with the [mysql2](https://www.npmjs
 
 !!! warning "Do not share connections between requests"
 
-    A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
-
-    Therefore, **you must not share the same connection object between concurrent HTTP requests**. Instead, create a new connection object for each request, along with its own query runners.
-
-    Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
+    Create the pool once, and a connection object with its query runner for each request: they hold the state of the transaction of that request. See [Instantiating the connection](../../connection.md#instantiating-the-connection-with-the-database-connection).
 
 ## Using a connection pool
 
-Executes queries through a [mysql2](https://www.npmjs.com/package/mysql2) connection obtained from a pool.
+For each statement the query runner takes a connection from the pool and gives it back. In a transaction it keeps one connection until the transaction ends.
+
+The query runner uses the callback API of the driver: create the pool with `mysql2`, not with `mysql2/promise`.
 
 ```ts
 import { createPool } from "mysql2";
@@ -53,7 +51,7 @@ async function main() {
 
 ## Using a single connection
 
-Executes queries through a dedicated [mysql2](https://www.npmjs.com/package/mysql2) connection.
+Every statement runs on the connection you give the query runner: one taken from a pool, as here, or one you created. You release or close it, the query runner doesn't.
 
 ```ts
 import { createPool } from "mysql2";
@@ -92,20 +90,20 @@ async function doYourLogic(connection: DBConnection) {
 }
 ```
 
-!!! note "Safe Integers"
+## Large integers
 
-    If your queries may return integers larger than JavaScript's safe integer range — a `bigint` column, or arithmetic that grows past `Number.MAX_SAFE_INTEGER` (`9_007_199_254_740_991`) — enable `supportBigNumbers` in the connection configuration:
+If your queries may return integers larger than JavaScript's safe integer range — a `bigint` column, or arithmetic that grows past `Number.MAX_SAFE_INTEGER` (`9_007_199_254_740_991`) — enable `supportBigNumbers` in the connection configuration:
 
-    ```ts
-    const pool = createPool({
-        // ... the rest of your configuration
-        supportBigNumbers: true
-    });
-    ```
+```ts
+const pool = createPool({
+    // ... the rest of your configuration
+    supportBigNumbers: true
+});
+```
 
-    Without it the driver reads every integer as a JavaScript `number`, so an out-of-range value comes back rounded; ts-sql-query rejects that rounded number with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` rather than hand back a silently-wrong value. With it, the driver hands those values over as strings and ts-sql-query converts them to the type the column declares (`bigint` stays exact, `int` raises `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` if the exact value doesn't fit — read it as `bigint`). Values within the safe range keep coming back as `number`, so nothing else changes.
+Without it the driver reads every integer as a JavaScript `number`, so an out-of-range value comes back rounded; ts-sql-query rejects that rounded number with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` rather than hand back a silently-wrong value. With it, the driver hands those values over as strings and ts-sql-query converts them to the type the column declares (`bigint` stays exact, `int` raises `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` if the exact value doesn't fit — read it as `bigint`). Values within the safe range keep coming back as `number`, so nothing else changes.
 
-    Add `bigNumberStrings: true` as well only if you want *every* integer as a string, not just the out-of-range ones.
+Add `bigNumberStrings: true` as well only if you want *every* integer as a string, not just the out-of-range ones.
 
 ## Inside a transaction something else manages
 

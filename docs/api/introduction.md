@@ -8,4 +8,4 @@ The most common operations on data are supported by `ts-sql-query`. When a datab
 
 Some parts of the API follow a fluent interface design, meaning that each method returns an object exposing the next valid operations for that stage of the query.
 
-Below is a simplified overview of the `ts-sql-query` APIs.
+These pages are a simplified overview of the `ts-sql-query` APIs. To be easy to read, a fluent interface is shown as one interface with all its methods, and the optionality of a value isn't part of the signatures. The real types offer each method only where it's valid, and they know whether each value is optional.

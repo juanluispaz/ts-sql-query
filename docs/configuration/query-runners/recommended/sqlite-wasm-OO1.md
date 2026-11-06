@@ -19,19 +19,15 @@ This runner provides integration with the WebAssembly-based [sqlite-wasm](https:
 
 !!! tip
 
-    [better-sqlite3](https://www.npmjs.com/package/better-sqlite3) supports synchronous query execution. See the [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.
+    `Sqlite3WasmOO1QueryRunner` supports synchronous query execution. See the [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.
 
-!!! warning "Do not share connections between requests"
+!!! warning "A `Database` is a single connection"
 
-    A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
-
-    Therefore, **you must not share the same connection object between concurrent HTTP requests**. Instead, create a new connection object for each request, along with its own query runners.
-
-    Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
+    A `Database` is one connection to SQLite: every query runner created over the same object shares it, and shares its transaction. Two connection objects over one `Database` are not isolated from each other: a rollback in one undoes what the other did meanwhile, and while one has a transaction open, a transaction can't begin in the other. Don't use one object for work that runs at the same time with transactions.
 
 ## Using a single connection
 
-Enables executing queries through a dedicated WebAssembly-based [sqlite-wasm](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm) [Object Oriented API 1](https://sqlite.org/wasm/doc/trunk/api-oo1.md) connection.
+Every statement runs on the database object you give the query runner. `new sqlite3.oo1.DB()` with no arguments creates a database in memory.
 
 ```ts
 import sqlite3InitModule from "@sqlite.org/sqlite-wasm";

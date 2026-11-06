@@ -56,6 +56,58 @@ describe(ctx.label, () => {
         expect(row).toEqual({ id: 2, version: '1.3.0-beta.1', channel: 'beta', notes: 'release-1.3.0-beta.1', versionTag: 'BETA' })
     })
 
+    test('docs:columns-from-object/select-whole-table', async () => {
+        ctx.mockNext({ id: 2, version: '1.3.0-beta.1', channel: 'beta', notes: 'release-1.3.0-beta.1', versionTag: 'BETA' })
+
+        // doc-start
+        const row = await ctx.conn.selectFrom(tReleaseRow)
+            .select(tReleaseRow)
+            .where(tReleaseRow.id.equals(2))
+            .executeSelectOne()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as version, channel as channel, signing_key as signingKey, notes as notes, upper(channel) as versionTag from project_release where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id:          number
+            version:     string
+            channel:     string
+            signingKey?: string
+            notes:       string
+            versionTag:  string
+        }>>()
+        expect(row).toEqual({ id: 2, version: '1.3.0-beta.1', channel: 'beta', notes: 'release-1.3.0-beta.1', versionTag: 'BETA' })
+    })
+
+    test('docs:columns-from-object/extract-columns-leaving-out', async () => {
+        ctx.mockNext({ id: 2, version: '1.3.0-beta.1', channel: 'beta', notes: 'release-1.3.0-beta.1' })
+
+        // doc-start
+        const row = await ctx.conn.selectFrom(tReleaseRow)
+            .select(extractColumnsFrom(tReleaseRow, ['versionTag', 'signingKey']))
+            .where(tReleaseRow.id.equals(2))
+            .executeSelectOne()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as version, channel as channel, notes as notes from project_release where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id:      number
+            version: string
+            channel: string
+            notes:   string
+        }>>()
+        expect(row).toEqual({ id: 2, version: '1.3.0-beta.1', channel: 'beta', notes: 'release-1.3.0-beta.1' })
+    })
+
     test('docs-extra:columns-from-object/extract-columns-exclude-keys', () => {
         const cols = extractColumnsFrom(tOrganization, ['createdAt'])
         assertType<Exact<keyof typeof cols, 'id' | 'name' | 'plan' | 'verified'>>()

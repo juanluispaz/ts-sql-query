@@ -20,15 +20,13 @@ This page explains how to use `ts-sql-query` with the [mariadb](https://www.npmj
 
 !!! warning "Do not share connections between requests"
 
-    A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
-
-    Therefore, **you must not share the same connection object between concurrent HTTP requests**. Instead, create a new connection object for each request, along with its own query runners.
-
-    Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
+    Create the pool once, and a connection object with its query runner for each request: they hold the state of the transaction of that request. See [Instantiating the connection](../../connection.md#instantiating-the-connection-with-the-database-connection).
 
 ## Using a connection pool
 
-Enables executing queries through a [mariadb](https://www.npmjs.com/package/mariadb) connection obtained from a pool.
+For each statement the query runner takes a connection from the pool and gives it back. In a transaction it keeps one connection until the transaction ends.
+
+The query runner uses the promise API of the driver: create the pool with `mariadb`, not with `mariadb/callback`.
 
 ```ts
 import { createPool } from "mariadb";
@@ -51,7 +49,7 @@ async function main() {
 
 ## Using a single connection
 
-Enables executing queries through a dedicated [mariadb](https://www.npmjs.com/package/mariadb) connection.
+Every statement runs on the connection you give the query runner: one taken from a pool, as here, or one you created. You release or close it, the query runner doesn't.
 
 ```ts
 import { createPool } from "mariadb";
@@ -76,6 +74,10 @@ async function main() {
     }
 }
 ```
+
+## Large integers
+
+There is nothing to configure: the query runner asks the driver for large integers as text, and `ts-sql-query` converts them to the type the column declares, so they aren't rounded.
 
 ## Inside a transaction something else manages
 

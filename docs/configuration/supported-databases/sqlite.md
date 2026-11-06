@@ -5,21 +5,9 @@ search:
 <!-- doc-code-template: sqlite -->
 # SQLite
 
-This page describes how `ts-sql-query` integrates with **[SQLite](https://sqlite.org)**, including dialect-specific behaviors, configuration options, and available features. It covers the proper setup of a SQLite connection, guidelines for connection management, and advanced behaviors such as UUID handling.
+This page has what is particular to SQLite: what it offers and what it doesn't, how to declare its version, how dates are stored, why the insensitive operations only fold ASCII, the UUID strategies, and the versions. To define the connection and map your tables, the pages to read are [Connection](../connection.md) and [Mapping](../mapping.md).
 
-!!! info
-
-    To configure the database dialect, extend the appropriate database connection class when defining your connection. You must choose the correct database type to ensure that the generated SQL queries follow the dialect expected by that database.
-
-!!! warning "Do not share connections between requests"
-
-    A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
-
-    Therefore, **you must not share the same connection object between concurrent HTTP requests**. Instead, create a new connection object for each request, along with its own query runners.
-
-    Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
-
-## Usage Example
+## Defining the connection
 
 ```ts
 import { SqliteConnection } from "ts-sql-query/connections/SqliteConnection";
@@ -27,9 +15,31 @@ import { SqliteConnection } from "ts-sql-query/connections/SqliteConnection";
 class DBConnection extends SqliteConnection<'DBConnection'> { }
 ```
 
+Create a connection object for each request, and don't share it between concurrent requests: see [Instantiating the connection](../connection.md#instantiating-the-connection-with-the-database-connection).
+
 !!! tip
 
     If you use [better-sqlite3](https://www.npmjs.com/package/better-sqlite3) or [sqlite-wasm](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm) to connect to the database you can run your queries synchronously. See [BetterSqlite3QueryRunner](../query-runners/recommended/better-sqlite3.md), [Sqlite3WasmOO1QueryRunner](../query-runners/recommended/sqlite-wasm-OO1.md) and [Synchronous query runners](../../advanced/synchronous-query-runners.md) for more information.
+
+## What it offers and what it doesn't
+
+What isn't offered doesn't compile on this connection. On a version older than the one shown, the database rejects the query. Each link goes to the page that explains the feature, with all the databases side by side.
+
+| What | On this database |
+|---|---|
+| [`returning` in an insert](../../queries/insert.md#availability-per-database) | From SQLite 3.35 |
+| [`returning` in an update](../../queries/update.md#availability-in-each-database) | From SQLite 3.35 |
+| [`returning` in a delete](../../queries/delete.md#availability-in-each-database) | From SQLite 3.35 |
+| [`oldValues()` in an update](../../queries/update.md#availability-in-each-database) | Not offered |
+| [Insert on conflict](../../queries/insert-on-conflict.md#what-each-database-offers) | `onConflictDoNothing`, `onConflictDoUpdateSet` and `onConflictOn`. `onConflictOnConstraint` isn't offered |
+| Other tables in an [update](../../queries/update.md#availability-in-each-database) or a [delete](../../queries/delete.md#availability-in-each-database) | `from` in an update. `using` and a join right after `update` or `deleteFrom` aren't offered |
+| [Compound queries](../../queries/compound-select.md#availability-in-each-database) | `union`, `unionAll`, `intersect`, `except`, `minus`. Their `All` versions aren't offered |
+| [Recursive queries](../../queries/recursive-select.md#availability-in-each-database) | `recursiveUnionAll`, `recursiveUnion`. `startWith` and `connectBy` aren't offered |
+| [Arrays of objects from an aggregate](../../queries/aggregate-as-object-array.md#availability-in-each-database) | Yes, also the `Distinct` versions |
+| [`stringConcatDistinct`, `anyValue`](../../queries/aggregate-and-group-by.md#how-each-function-is-written-in-each-database) | `anyValue` yes; [`stringConcatDistinct` without a separator](#stringconcatdistinct-has-no-separator) |
+| [Sequences](../mapping.md#using-a-sequence) | Not offered: SQLite doesn't have them |
+| [Stored procedures](../mapping.md#calling-a-stored-procedure) and [functions](../mapping.md#calling-a-function-of-the-database) | SQLite has no stored procedures, and rejects the statement. A function exists only if you register it in the driver |
+| [Isolation levels](../../queries/transaction.md#what-each-database-offers) | You can't choose one: transactions are always serializable |
 
 ## Working with Date and Time
 
@@ -55,7 +65,7 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
 }
 ```
 
-## Date and type strategies
+## Date and time strategies
 
 - `localdate as text`: *(default strategy)*
     - Dates and time are interpreted to be in the same timezone of the running application.
@@ -63,14 +73,14 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
     - **Date format**: *YYYY-MM-DD*. Example: `2021-09-25`
     - **Time format**: *HH:MM:SS.SSS*. Example: `18:00:00`. In JavaScript, always use *1970-01-01* as the base date when representing a time value.
     - **Date time format**: *YYYY-MM-DD HH:MM:SS.SSS*. Example: `2021-09-25 18:00:00`
-    - **Limitation**: If you get the unix time in the database you will get the wrong value; the returned value will be like that date is in UTC timezone.
+    - **Limitation**: `getTime()`, computed by the database, reads the text as if it were in UTC, so it gives another instant when the application doesn't run in UTC.
 - `localdate as text using T separator`
     - Dates and time are interpreted to be in the same timezone of the running application.
     - **Column type in sqlite**: *TEXT*
     - **Date format**: *YYYY-MM-DD*. Example: `2021-09-25`
     - **Time format**: *HH:MM:SS.SSS*. Example: `18:00:00`. In JavaScript, always use *1970-01-01* as the base date when representing a time value.
     - **Date time format**: *YYYY-MM-DD***T***HH:MM:SS.SSS*. Example: `2021-09-25T18:00:00`
-    - **Limitation**: If you get the unix time in the database you will get the wrong value; the returned value will be like that date is in UTC timezone.
+    - **Limitation**: `getTime()`, computed by the database, reads the text as if it were in UTC, so it gives another instant when the application doesn't run in UTC.
 - `UTC as text`
     - Dates and time are interpreted to be in the UTC timezone.
     - **Column type in sqlite**: *TEXT*
@@ -99,7 +109,7 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
     - Dates and time are expressed as [Julian day](https://en.wikipedia.org/wiki/Julian_day).
     - **Column type in sqlite**: *REAL*
     - **Date format**: *NNNNNNNNNN.5*. Example: `2459482.5` (*2021-09-25*).
-    - **Time format**: *0.NNNNNNNNNN* or *-0.NNNNNNNNNN*. Example: `0.75` (*18:00:00*). This value is a number between -0.5 to 0.5 that express the time on the first day of the calendar (November 24, 4714 BC). In JavaScript, always use *1970-01-01* as the base date when representing a time value.
+    - **Time format**: *0.NNNNNNNNNN*. Example: `0.75` (*18:00:00*). This value is the fraction of the day that has passed since midnight, in UTC, from 0 to 1. In JavaScript, always use *1970-01-01* as the base date when representing a time value.
     - **Date time format**: *NNNNNNNNNN.NNNNNNNNNN*. Example: `2459483.25` (*2021-09-25 18:00:00*)
 - `Unix time seconds as integer`
     - Dates and time are expressed as the number of seconds from the beginning of the UNIX time (*1970-01-01*).
@@ -172,9 +182,13 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
 
     When generating UUIDs on the application side, prefer **UUID v7** over UUID v4. With the `'string'` strategy v7 sorts chronologically by lexicographic comparison of its 36-character text representation; with the `'uuid-extension'` strategy this depends on the `uuid_blob` function you register — the snippets recommended in the [better-sqlite3](../query-runners/recommended/better-sqlite3.md#better-sqlite3-and-uuids) and [node:sqlite](../query-runners/recommended/node_sqlite.md#nodesqlite-and-uuids) pages preserve the canonical byte order, so v7 sorts on the primary-key index. See the [column types](../column-types.md) page for more context.
 
+## `stringConcatDistinct` has no separator
+
+SQLite's `GROUP_CONCAT` rejects `DISTINCT` together with a separator argument: `DISTINCT aggregates must have exactly one argument`. So `SqliteConnection` only has `stringConcatDistinct(value)`, with the default separator `,`, and the version with a separator doesn't compile. Use `stringConcat(value, separator)` if you need a separator and don't need `distinct`.
+
 ## Compatibility version
 
-The `compatibilityVersion` property declares the minimum SQLite version the generated SQL must support, encoded as the integer `major * 1_000_000 + minor * 1_000 + patch` — e.g. `3_035_000` for SQLite 3.35.0, `3_029_000` for SQLite 3.29.0. The numeric separator `_` is for readability only (`3_035_000 === 3035000`). The default is `Number.POSITIVE_INFINITY` (latest), so every supported feature is emitted.
+The `compatibilityVersion` property says which SQLite version the SQL must work on, encoded as the integer `major * 1_000_000 + minor * 1_000 + patch` — e.g. `3_035_000` for SQLite 3.35.0, `3_029_000` for SQLite 3.29.0. The numeric separator `_` is for readability only (`3_035_000 === 3035000`). The default is `Number.POSITIVE_INFINITY` (latest), so every supported feature is emitted.
 
 You can set this to your real database version (whatever it is) regardless of whether ts-sql-query currently uses it — extra granularity is harmless and future-proof.
 
@@ -193,7 +207,3 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
     protected override compatibilityVersion = 3_029_000
 }
 ```
-
-!!! warning "Limitation"
-
-    [SQLite](https://www.sqlite.org/lang_aggfunc.html#groupconcat)'s `GROUP_CONCAT` rejects `DISTINCT` together with a separator argument (the engine raises `DISTINCT aggregates must have exactly one argument`). This is a hard SQLite restriction, not a version-bundled quirk. To prevent emitting SQL the engine will always reject, `ts-sql-query` does not expose the `stringConcatDistinct(value, separator)` overload on [SqliteConnection](sqlite.md) — only the no-separator form `stringConcatDistinct(value)` (default separator `,`) is typed. Use `stringConcat(value, separator)` if you need a custom separator and do not need distinct.

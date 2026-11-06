@@ -50,6 +50,7 @@ import {
     getFunctionExecutingQuery, 
     getQueryExecutionMetadata, 
     getQueryExecutionName, 
+    getQueryExecutionSource,
     getQueryExecutionStack, 
     isSelectPageCountQuery, 
     type FunctionExecutingQueryInformation, 
@@ -309,6 +310,7 @@ void InterceptorQueryRunner
 void getFunctionExecutingQuery
 void getQueryExecutionMetadata
 void getQueryExecutionName
+void getQueryExecutionSource
 void getQueryExecutionStack
 void isSelectPageCountQuery
 void dynamicPick, 

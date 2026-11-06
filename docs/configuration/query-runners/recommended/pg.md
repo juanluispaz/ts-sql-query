@@ -19,15 +19,11 @@ This page explains how to use `ts-sql-query` with the [pg](https://www.npmjs.com
 
 !!! warning "Do not share connections between requests"
 
-    A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
-
-    Therefore, **you must not share the same connection object between concurrent HTTP requests**. Instead, create a new connection object for each request, along with its own query runners.
-
-    Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
+    Create the pool once, and a connection object with its query runner for each request: they hold the state of the transaction of that request. See [Instantiating the connection](../../connection.md#instantiating-the-connection-with-the-database-connection).
 
 ## Using a connection pool
 
-Executes queries through a [pg](https://www.npmjs.com/package/pg) connection obtained from a pool.
+For each statement the query runner takes a connection from the pool and gives it back. In a transaction it keeps one connection until the transaction ends.
 
 ```ts
 import { Pool } from 'pg';
@@ -48,15 +44,9 @@ async function main() {
 }
 ```
 
-!!! warning
-
-    If you want to allow to have nested transactions you must create the instance as `new PgPoolQueryRunner(pool, {allowNestedTransactions: true})` 
-
-    PostgreSQL doesn't nest them: see [what this option does](../../../queries/transaction.md#nested-transactions).
-
 ## Using a single connection
 
-Executes queries through a dedicated [pg](https://www.npmjs.com/package/pg) connection.
+Every statement runs on the connection you give the query runner: one taken from a pool, as here, or a `Client` you connected. You release or close it, the query runner doesn't.
 
 ```ts
 import { Pool } from 'pg';
@@ -82,11 +72,22 @@ async function main() {
 }
 ```
 
-!!! warning
+## Running a statement on each new connection
 
-    If you want to allow to have nested transactions you must create the instance as `new PgQueryRunner(pgConnection, {allowNestedTransactions: true})` 
+Some settings are properties of the **database session**, not of the query — notably the [session time zone](../../time-zones.md#per-database). To pin it without touching your schema, run the statement **once per connection**, when the pool opens it. The `pg` pool emits a `connect` event on each brand-new client for exactly this:
 
-    PostgreSQL doesn't nest them: see [what this option does](../../../queries/transaction.md#nested-transactions).
+```ts
+import { Pool } from 'pg';
+
+const pool = new Pool({ /* … */ });
+
+pool.on('connect', (client) => {
+    // Runs once per newly created pooled connection.
+    client.query("SET TIME ZONE 'UTC'"); // session time zone — see the Time zones page
+});
+```
+
+This is what the [Time zones page](../../time-zones.md#the-databases-zone) recommends aligning on connect. PostgreSQL has **no session collation** (unlike Oracle), so a case-insensitive comparison is set on the column / database collation or per value with [`.collate()`](../../collations.md#collate-force-a-collation-per-value) instead — see the [Collations page](../../collations.md#on-the-connection-the-session-collation).
 
 ## Inside a transaction something else manages
 
@@ -105,19 +106,8 @@ async function main(pgConnection: PoolClient) {
 }
 ```
 
-## Running a statement on each new connection
+## Nested transactions
 
-Some settings are properties of the **database session**, not of the query — notably the [session time zone](../../time-zones.md#per-database). To pin it without touching your schema, run the statement **once per connection**, when the pool opens it. The `pg` pool emits a `connect` event on each brand-new client for exactly this:
+A transaction that begins inside another one is rejected. Both query runners accept the option `allowNestedTransactions`, which sends its `begin` and its `commit` or `rollback` to the database: `new PgPoolQueryRunner(pool, { allowNestedTransactions: true })` or `new PgQueryRunner(pgConnection, { allowNestedTransactions: true })`.
 
-```ts
-import { Pool } from 'pg';
-
-const pool = new Pool({ /* … */ });
-
-pool.on('connect', (client) => {
-    // Runs once per newly created pooled connection.
-    client.query("SET TIME ZONE 'UTC'"); // session time zone — see the Time zones page
-});
-```
-
-This is what the [Time zones page](../../time-zones.md#the-databases-zone) recommends aligning on connect. PostgreSQL has **no session collation** (unlike Oracle), so a case-insensitive comparison is set on the column / database collation or per value with [`.collate()`](../../collations.md#collate-force-a-collation-per-value) instead — see the [Collations page](../../collations.md#on-the-connection-the-session-collation).
+PostgreSQL doesn't nest them: see [what this option does](../../../queries/transaction.md#nested-transactions).

@@ -8,83 +8,83 @@ This API provides methods to construct and execute SQL `DELETE` statements using
 
 ```typescript
 interface DeleteExpression {
-    /** Allows to create the where dynamically */
+    /** Creates the where dynamically */
     dynamicWhere(): this
-    /** Allows to specify the where */
+    /** Specifies the where */
     where(condition: BooleanValueSource): this
 
-    /** Allows extending the WHERE or ON clause of a join using AND */
+    /** Extends the where or the on clause of a join using an and */
     and(condition: BooleanValueSource): this
-    /** Allows extending the WHERE or ON clause of a join using OR */
+    /** Extends the where or the on clause of a join using an or */
     or(condition: BooleanValueSource): this
 
     /**
-    * Execute the delete returning the number of deleted rows
-    * 
-    * @param min Minimum number of rows that must be deleted. An exception is thrown if not reached
-    * @param max Maximum number of rows that can be deleted. An exception is thrown if exceeded
-    */
+     * Executes the delete returning the number of deleted rows
+     * 
+     * @param min Minimum number of rows that must be deleted. If it isn't reached, the promise is rejected
+     * @param max Maximum number of rows that can be deleted. If it is exceeded, the promise is rejected
+     */
     executeDelete(min?: number, max?: number): Promise<number>
     /** Returns the sql query to be executed in the database */
     query(): string
     /** Returns the required parameters by the sql query */
     params(): any[]
 
-    // Returning methods
+    // Returning methods, not available on MySQL
     /** 
-     * Allows to specify the returning clause.
+     * Specifies the returning clause.
      * The object keys define the names of the resulting properties, and the values specify the ValueSource to retrieve from.
      */
     returning(columns: DeleteReturningValues): this
-    /** Returns the optional values as null instead of optional undefined values, can only used immediately after returning(...) */
+    /** Returns the optional values as null instead of optional undefined values. It can only be used immediately after returning(...) */
     projectingOptionalValuesAsNullable(): this
     /** 
-     * Allows to specify the returning clause of a query that returns only one column.
+     * Specifies the returning clause of a query that returns only one column.
      * It receives as argument the ValueSource where the value will be obtained.
      */
     returningOneColumn(column: AnyValueSource): this
     /** Executes the delete query and returns one or no result */
     executeDeleteNoneOrOne(): Promise<RESULT | null>
     /** 
-     * Execute the delete query that returns one result from the database.
-     * If no result is returned by the database an exception will be thrown.
+     * Executes the delete query that returns one result from the database.
+     * If the database returns no result, the promise is rejected.
      */
     executeDeleteOne(): Promise<RESULT>
     /** 
-     * Execute the delete query that returns zero or many results from the database 
+     * Executes the delete query that returns zero or many results from the database 
      * 
-     * @param min Indicate the minimum of rows that must be deleted, 
-     *           if the minimum is not reached an exception will be thrown
-     * @param max Indicate the maximum of rows that must be deleted, 
-     *           if the maximum is exceeded an exception will be thrown
+     * @param min Minimum number of rows that must be deleted. If it isn't reached, the promise is rejected
+     * @param max Maximum number of rows that can be deleted. If it is exceeded, the promise is rejected
      */
     executeDeleteMany(min?: number, max?: number): Promise<RESULT[]>
 
-    /** Allows to add a using (like a from that doesn't delete) to the delete query */
+    /** Adds a using (like a from that doesn't delete) to the delete query. Not available on SQLite */
     using(table: Table | View): this
 
-    /** Allows to add a join to the delete query */
+    // Joins right after deleteFrom, only available on MariaDB and MySQL. On the other databases they go after a using
+    /** Adds a join to the delete query */
     join(table: Table | View): this
-    /** Allows to add a inner join to the delete query */
+    /** Adds an inner join to the delete query */
     innerJoin(table: Table | View): this
     /** 
-     * Allows to add a left join to the delete query. 
+     * Adds a left join to the delete query. 
      * Note: You must call forUseInLeftJoin on a table or view before using it in a left join
      */
     leftJoin(source: OuterJoinSource): this
     /** 
-     * Allows to add a left outer join to the delete query. 
+     * Adds a left outer join to the delete query. 
      * Note: You must call forUseInLeftJoin on a table or view before using it in a left join
      */
     leftOuterJoin(source: OuterJoinSource): this
 
-    /** Allows to create the on clause of a join dynamically */
+    /** Creates the on clause of a join dynamically */
     dynamicOn(): this
-    /** Allows to specify the on clause of a join */
+    /** Specifies the on clause of a join */
     on(condition: BooleanValueSource): this
 
     customizeQuery(customization: {
         afterDeleteKeyword?: RawFragment
+        beforeQuery?: RawFragment
         afterQuery?: RawFragment
         queryExecutionName?: string
         queryExecutionMetadata?: any

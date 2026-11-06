@@ -4,7 +4,7 @@ search:
 ---
 # NoopQueryRunner
 
-A query runner that simulates a database connection and always returns empty results. Useful for testing or disabling execution without modifying application logic.
+A query runner that takes the place of the database: it sends nothing, and always returns empty results. Useful for running code without a database when the results don't matter. To decide the result of each statement in a test, use [`MockQueryRunner`](MockQueryRunner.md).
 
 !!! success "Supported databases"
 
@@ -19,15 +19,7 @@ A query runner that simulates a database connection and always returns empty res
 
     `NoopQueryRunner` supports synchronous query execution. See the [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.
 
-!!! warning "Do not share connections between requests"
-
-    A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
-
-    Therefore, **you must not share the same connection object between concurrent HTTP requests**. Instead, create a new connection object for each request, along with its own query runners.
-
-    Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
-
-## Usage Example
+## Creating it
 
 ```ts
 import { NoopQueryRunner } from "ts-sql-query/queryRunners/NoopQueryRunner";
@@ -40,3 +32,20 @@ async function main() {
     connection // ...
 }
 ```
+
+## What each query returns
+
+| Query | Result |
+|---|---|
+| `executeSelectMany` | An empty list |
+| `executeSelectNoneOrOne` | `null` |
+| `executeSelectOne` | Rejects with `NO_RESULT`, as with a database that finds no row |
+| `executeInsert`, `executeUpdate`, `executeDelete` | `0`, so with a minimum of rows (`executeUpdate(1)`) they reject with `MINIMUM_ROWS_NOT_REACHED` |
+
+## Options
+
+The constructor receives the name of a database, or an object with these options:
+
+- **`database`**: the database to write the SQL for. A connection sets it to its own database when you create it, so you only need this to use the query runner without a connection.
+- **`promise`**: another `Promise` provider, for [synchronous query execution](../../../advanced/synchronous-query-runners.md).
+- **`allowNestedTransactions`**: accepts a transaction inside another one, which is [rejected by default](../../../queries/transaction.md#nested-transactions).

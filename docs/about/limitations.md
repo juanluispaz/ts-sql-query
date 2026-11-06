@@ -4,13 +4,37 @@ search:
 ---
 # Limitations
 
+The first two sections are things the library doesn't write, and what to do instead. The others answer questions that look like limitations, and aren't.
+
+## Does ts-sql-query support window functions?
+
+No, and there are no plans to support them: each database implements them in a different way. You have two ways of using them:
+
+- Create a view in the database that uses them, and [map the view](../configuration/mapping.md#mapping-the-views).
+- Write them in a [SQL fragment](../queries/sql-fragments.md). For the `window` clause of a select, `customizeQuery` has [`customWindow`](../queries/sql-fragments.md#customizing-a-select).
+
+## Is it possible to include INSERT, UPDATE, or DELETE statements in a WITH clause?
+
+No. PostgreSQL accepts these statements in a `with` clause, but `ts-sql-query` doesn't write them: what goes in a `with` clause is a [select](../queries/cte-subqueries.md#a-select-used-as-a-view-the-with-clause).
+
+## How to compare against a null or undefined value?
+
+In SQL, a comparison with `null` isn't true or false: it's `null`, and a `where` discards the row. To avoid this surprise, `equals` and the other comparisons don't accept a `null` or an `undefined` from your code. You choose what to do when there is no value, here with a variable `parentId` of type `number | null`:
+
+| When there is no value | Use |
+|---|---|
+| The condition disappears | `tCompany.parentId.equalsIfValue(parentId)` |
+| No row is found | `tCompany.parentId.equalsIfValue(parentId).falseWhenNoValue()` |
+| The rows with `null` in the column are found | `tCompany.parentId.is(parentId)` |
+| The comparison of SQL is made, so no row is found | `tCompany.parentId.equals(connection.optionalConst(parentId, 'int'))` |
+
+See [Optional conditions: the IfValue methods](../queries/dynamic-queries.md#optional-conditions-the-ifvalue-methods) and [Booleans and three-valued logic](../dynamic/optional-parts/three-valued-booleans.md).
+
 ## How to order by a column not returned in the SELECT projection?
 
-In `ts-sql-query`, this was previously a limitation. However, starting with `ts-sql-query` 1.52.0, you can now do the following:
+Pass the column to `orderBy`:
 
 ```ts
-const customerId = 10;
-
 const customerWithId = connection.selectFrom(tCustomer)
     .where(tCustomer.id.equals(10))
     .select({
@@ -22,71 +46,71 @@ const customerWithId = connection.selectFrom(tCustomer)
     .executeSelectOne();
 ```
 
-!!! quote "Workaround not required any more"
+The executed query is:
 
-    The `orderBy` functions previously only supported columns that were returned by the query. Now, you can [customize the select](../queries/sql-fragments.md#customizing-a-select) to provide a custom `order by` for your query. For example:
-
-    ```ts
-    const customizedSelect = connection.selectFrom(tCustomer)
-        .where(tCustomer.id.equals(10))
-        .select({
-            id: tCustomer.id,
-            firstName: tCustomer.firstName,
-            lastName: tCustomer.lastName
-        }).customizeQuery({
-            beforeOrderByItems: connection.rawFragment`${tCustomer.birthday} desc`
-        })
-        .executeSelectOne()
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where id = ? 
+    order by customer.birthday desc
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where id = ? 
+    order by customer.birthday desc
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer 
+    where id = :0 
+    order by customer.birthday desc nulls last
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer 
+    where id = $1 
+    order by customer.birthday desc nulls last
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where id = ?1 
+    order by customer.birthday desc nulls last
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where id = @0 
+    order by customer.birthday desc
     ```
 
-## Does ts-sql-query support window functions?
-
-Currently, `window` functions are not supported by `ts-sql-query`. This feature is powerful and complex, with each database implementing it in different ways. At this time, there are no plans to support `window` functions in `ts-sql-query`. A recommended solution is to create a view; however, if you need to use `window` functions in your query, you can utilize [SQL fragments](../queries/sql-fragments.md) to achieve it. Please note that the `customizeQuery` function allows you to provide a window clause for your select queries if needed.
-
-## How to compare against a null or undefined value?
-
-SQL supports three-valued logic, which does not exist in the same manner in TypeScript/JavaScript. In earlier versions of `ts-sql-query`, this was fully supported, but through our internal use, we realized it caused many issues due to its unexpected behavior from the TypeScript/JavaScript perspective. As a result, operations that produce a boolean value (such as comparisons) using values from TypeScript/JavaScript were deprecated. Typically, when you want to compare against a value that can be `null` or `undefined`, you need dynamic SQL. For this purpose, you have the `*IfValue` methods available, which create the condition when the provided value is not `null` or `undefined`. Otherwise, the condition is omitted (You can read more [here](../queries/dynamic-queries.md#optional-conditions-the-ifvalue-methods)). In most cases, the `*IfValue` behavior is sufficient; however, in some situations, you may not want the condition to be omitted when there is no value; instead, you may want to use `false` as the value. To achieve this, you can use `*IfValue(...).falseWhenNoValue()`. If you wish to utilize SQL's three-valued logic, you will need to write your custom SQL fragment like this:
-
-```ts
-class DBConnection extends PostgreSqlConnection<'DBConnection'> { 
-
-    equalsFalsyOptionalString = this.buildFragmentWithArgs(
-        this.arg('string', 'optional'),
-        this.arg('string', 'optional')
-    ).as((left, right) => {
-        // The fragment here is: ${left} = ${right}
-        return this.fragmentWithType('boolean', 'optional').sql`${left} = ${right}`
-    })
-}
-```
+The parameters are: `[ 10 ]`
 
 ## How to handle optional values returned by a SELECT COUNT(*) inline subquery?
 
-In `ts-sql-query`, this was previously a limitation. However, starting with `ts-sql-query` 1.52.0, you can now do the following:
-
-```ts
-const numberOfCustomers = connection
-    .subSelectUsing(tCompany)
-    .from(tCustomer)
-    .where(tCustomer.companyId.equals(tCompany.id))
-    .selectCountAll()
-    .forUseAsInlineQueryValue();  // At this point, this is a value that you can use in another query
-```
-
-!!! quote "Workaround not required any more"
-
-    When using an inline query value, the result may return `null` if no rows match the conditions of the table. However, `SELECT COUNT(*)` is an exception, and `ts-sql-query` cannot detect it. To address this limitation, you can set the value to zero when it is null. For example:
-
-    ```ts
-    const numberOfCustomers = connection
-        .subSelectUsing(tCompany)
-        .from(tCustomer)
-        .where(tCustomer.companyId.equals(tCompany.id))
-        .selectOneColumn(connection.countAll())
-        .forUseAsInlineQueryValue() // At this point, this is a value that you can use in another query
-        .valueWhenNull(0);
-    ```
-
-## Is it possible to include INSERT, UPDATE, or DELETE statements in a WITH clause?
-
-Currently, only [PostgreSQL](../configuration/supported-databases/postgresql.md) supports including these statements in a WITH clause, but this construction is not yet supported in `ts-sql-query`.
+Use `selectCountAll()`: a count always returns one row, so its value isn't optional. See [Inline subquery referencing the outer query](../queries/cte-subqueries.md#inline-subquery-referencing-the-outer-query).

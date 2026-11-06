@@ -82,9 +82,8 @@ describe(ctx.label, () => {
                 .subSelectUsing(project)
                 .from(tIssue)
                 .where(tIssue.projectId.equals(project.id))
-                .selectOneColumn(connection.countAll())
+                .selectCountAll()
                 .forUseAsInlineQueryValue()
-                .valueWhenNull(0)
         }
 
         ctx.mockNext({ id: 1, name: 'Marketing site', issueCount: 2 })
@@ -101,16 +100,66 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, coalesce((select count(*) as result from issue where project_id = project.id), $1) as "issueCount" from project as project where project.id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, (select count(*) as result from issue where project_id = project.id) as "issueCount" from project as project where project.id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            0,
             1,
           ]
         `)
         assertType<Exact<typeof row, { id: number; name: string; issueCount: number }>>()
         // project 1 (Marketing site) has issues 1 and 2 → issueCount 2
         expect(row).toEqual({ id: 1, name: 'Marketing site', issueCount: 2 })
+    })
+
+    test('docs:tables-views-as-parameter/left-join-ref', async () => {
+        ctx.mockNext([{ id: 1, 'organization.id': 1, 'organization.name': 'Acme Corp' }, { id: 3 }])
+
+        // doc-start
+        function buildOrganizationProjection<ORGANIZATION extends TableOrViewLeftJoinOf<typeof tOrganization, 'organization'>>(organizationRef: ORGANIZATION) {
+            const organization = fromRef(tOrganization, organizationRef)
+
+            return {
+                id:   organization.id,
+                name: organization.name,
+            }
+        }
+
+        const organization = tOrganization.forUseInLeftJoinAs('organization')
+
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(organization).on(organization.id.equals(tProject.organizationId).and(organization.verified))
+            .where(tProject.id.in([1, 3]))
+            .select({
+                id:           tProject.id,
+                organization: buildOrganizationProjection(organization),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, organization.id as "organization.id", organization.name as "organization.name" from project left join organization as organization on organization.id = project.organization_id and organization.verified = 'Y' where project.id in ($1, $2) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; organization?: { id: number; name: string } }>>>()
+        // The organization of project 3 isn't verified, so the left join brings nothing.
+        expect(rows).toEqual([{ id: 1, organization: { id: 1, name: 'Acme Corp' } }, { id: 3 }])
+    })
+
+    test('docs-extra:tables-views-as-parameter/table-or-view-of-without-alias-accepts-any-alias', () => {
+        function nameOf<PROJECT extends TableOrViewOf<typeof tProject>>(projectRef: PROJECT) {
+            return fromRef(tProject, projectRef).name
+        }
+        function nameOfLeftJoin<ISSUE extends TableOrViewLeftJoinOf<typeof tIssue>>(issueRef: ISSUE) {
+            return fromRef(tIssue, issueRef).title
+        }
+        expect(nameOf(tProject)).toBeDefined()
+        expect(nameOf(tProject.as('anyAlias'))).toBeDefined()
+        expect(nameOfLeftJoin(tIssue.forUseInLeftJoin())).toBeDefined()
+        expect(nameOfLeftJoin(tIssue.forUseInLeftJoinAs('anyAlias'))).toBeDefined()
     })
 
     test('docs-extra:tables-views-as-parameter/from-ref-accepts-table-class', async () => {

@@ -8,11 +8,11 @@ This page describes the API surface for all value expressions used in `ts-sql-qu
 
 All values managed by the database are represented as a subclass of `ValueSource`, almost all methods listed here support the TypeScript value and the database value (as overload).
 
-Methods ending in `IfValue` behave like their counterparts without `IfValue`, but only apply the logic if the provided value is not `undefined`, `null`, an empty string (unless `allowEmptyString` is enabled in the connection), or an empty array, otherwise it is ignored.”
+Methods ending in `IfValue` behave like their counterparts without `IfValue`, but only apply the logic if the provided value is not `undefined`, `null`, an empty string (unless `allowEmptyString` is enabled in the connection), or an empty array. Otherwise, the condition is ignored. See [What counts as no value](../queries/dynamic-queries.md#what-counts-as-no-value).
 
-Be aware, in the database, when null is part of an operation the result of the operation is null (It is not represented in the following definition but it is implemented)
+In the database, when null is part of an operation, the result of the operation is null. The definitions below don't show the optionality of each result, but the types of the library do: the result is optional when any operand is optional, except where a comment says something else.
 
-All data manipulation operations are implemented as methods on the value itself, that means if you what to calculate the absolute, in sql is `abs(value)` but in `ts-sql-query` is represented as `value.abs()`.
+All data manipulation operations are methods on the value itself. For example, the absolute value in SQL is `abs(value)`, and in `ts-sql-query` it is `value.abs()`.
 
 ```typescript
 interface ValueSource<T, TYPE_NAME> {
@@ -23,12 +23,14 @@ interface ValueSource<T, TYPE_NAME> {
      */
     getConstValue(): any
     /**
-     * Throw an error if the value source is used in the generated sql query when the boolean value provided as argument is false
+     * Makes the query fail if the value source is used in it and the boolean value provided as argument is false.
+     * execute* rejects the promise with the error. query() and params() throw it.
      */
     allowWhen(when: boolean, errorMessage: string): this
     allowWhen(when: boolean, error: Error): this
     /**
-     * Throw an error if the value source is used in the generated sql query when the boolean value provided as argument is true
+     * Makes the query fail if the value source is used in it and the boolean value provided as argument is true.
+     * execute* rejects the promise with the error. query() and params() throw it.
      */
     disallowWhen(when: boolean, errorMessage: string): this
     disallowWhen(when: boolean, error: Error): this
@@ -39,47 +41,56 @@ interface ValueSource<T, TYPE_NAME> {
 interface NullableValueSource<T, TYPE_NAME> extends ValueSource<T, TYPE_NAME> {
     isNull(): BooleanValueSource
     isNotNull(): BooleanValueSource
+    /** The result is required if the provided value is required */
     valueWhenNull(value: T | this): this
+    /** The result is optional */
     nullIfValue(value: T | this): this
+    /** The result is optional */
     asOptional(): this
+    /** The value is required when the object that contains it has a value */
     asRequiredInOptionalObject(): this
+    /** The value when the argument is true, and null otherwise. The result is optional */
     onlyWhenOrNull(when: boolean): this
+    /** Null when the argument is true, and the value otherwise. The result is optional */
     ignoreWhenAsNull(when: boolean): this
 }
 ```
 
 ```typescript
 interface EqualableValueSource<T, TYPE_NAME> extends NullableValueSource<T, TYPE_NAME> {
-    equalsIfValue(value: T | null | undefined): BooleanValueSource
+    equalsIfValue(value: T | null | undefined): IfValueSource
     equals(value: T | this): BooleanValueSource
-    notEqualsIfValue(value: T | null | undefined): BooleanValueSource
+    notEqualsIfValue(value: T | null | undefined): IfValueSource
     notEquals(value: T | this): BooleanValueSource
-    isIfValue(value: T | null | undefined): BooleanValueSource
-    /** 'is' is the same that equals, but returns true when both are null */
-    is(value: T | this): BooleanValueSource
-    isNotIfValue(value: T | null | undefined): BooleanValueSource
-    isNot(value: T | this): BooleanValueSource
+    isIfValue(value: T | null | undefined): IfValueSource
+    /** 'is' is the same as equals, but returns true when both are null. The result is required */
+    is(value: T | null | undefined | this): BooleanValueSource
+    isNotIfValue(value: T | null | undefined): IfValueSource
+    /** The result is required */
+    isNot(value: T | null | undefined | this): BooleanValueSource
 
-    inIfValue(values: T[] | null | undefined): BooleanValueSource
-    in(values: T[] | this[]): BooleanValueSource
+    inIfValue(values: T[] | null | undefined): IfValueSource
+    in(values: T[] | this): BooleanValueSource
+    /** The result is optional if the column of the subquery is optional */
     in(select: Subquery): BooleanValueSource
-    notInIfValue(values: T[] | null | undefined): BooleanValueSource
-    notIn(values: T[] | this[]): BooleanValueSource
+    notInIfValue(values: T[] | null | undefined): IfValueSource
+    notIn(values: T[] | this): BooleanValueSource
+    /** The result is optional if the column of the subquery is optional */
     notIn(select: Subquery): BooleanValueSource
-    inN(...value: T[] | this[]): BooleanValueSource
-    notInN(...value: T[] | this[]): BooleanValueSource
+    inN(...value: Array<T | this>): BooleanValueSource
+    notInN(...value: Array<T | this>): BooleanValueSource
 }
 ```
 
 ```typescript
 interface ComparableValueSource<T, TYPE_NAME> extends EqualableValueSource<T, TYPE_NAME> {
-    lessThanIfValue(value: T | null | undefined): BooleanValueSource
+    lessThanIfValue(value: T | null | undefined): IfValueSource
     lessThan(value: T | this): BooleanValueSource
-    greaterThanIfValue(value: T | null | undefined): BooleanValueSource
+    greaterThanIfValue(value: T | null | undefined): IfValueSource
     greaterThan(value: T | this): BooleanValueSource
-    lessOrEqualIfValue(value: T | null | undefined): BooleanValueSource
+    lessOrEqualIfValue(value: T | null | undefined): IfValueSource
     lessOrEqual(value: T | this): BooleanValueSource
-    greaterOrEqualIfValue(value: T | null | undefined): BooleanValueSource
+    greaterOrEqualIfValue(value: T | null | undefined): IfValueSource
     greaterOrEqual(value: T | this): BooleanValueSource
     between(value: T | this, value2: T | this): BooleanValueSource
     notBetween(value: T | this, value2: T | this): BooleanValueSource
@@ -92,18 +103,58 @@ interface ComparableValueSource<T, TYPE_NAME> extends EqualableValueSource<T, TY
  */
 interface BooleanValueSource extends EqualableValueSource<boolean, 'boolean'> {
     negate(): this
-    and(value: boolean): this
-    or(value: boolean): this
-    /** This function returns a boolean expression that only applies if the argument is true */
+    and(value: boolean | BooleanValueSource | IfValueSource | AlwaysIfValueSource): this
+    or(value: boolean | BooleanValueSource | IfValueSource | AlwaysIfValueSource): this
+    /** Returns a boolean expression that only applies if the argument is true */
+    onlyWhen(condition: boolean): IfValueSource
+    /** Returns a boolean expression that only applies if the argument is false, it is ignored when true */
+    ignoreWhen(condition: boolean): IfValueSource
+}
+```
+
+```typescript
+/**
+ * Represents a boolean that may have no value: the result of an *IfValue function, onlyWhen, ignoreWhen or noValueBoolean.
+ * When it has no value it is neutral: an and or an or with it gives the other operand, and a where with it is left out.
+ */
+interface IfValueSource {
+    /** A neutral boolean stays neutral */
+    negate(): IfValueSource
+    /** The result is a BooleanValueSource if the argument is a boolean or a BooleanValueSource */
+    and(value: boolean | BooleanValueSource | IfValueSource | AlwaysIfValueSource): BooleanValueSource | IfValueSource
+    /** The result is a BooleanValueSource if the argument is a boolean or a BooleanValueSource */
+    or(value: boolean | BooleanValueSource | IfValueSource | AlwaysIfValueSource): BooleanValueSource | IfValueSource
+    /** Returns a boolean expression that only applies if the argument is true */
+    onlyWhen(condition: boolean): IfValueSource
+    /** Returns a boolean expression that only applies if the argument is false, it is ignored when true */
+    ignoreWhen(condition: boolean): IfValueSource
+    /**
+     * Returns true when it has no value: null, undefined, an empty string (unless allowEmptyString is true) or an empty array
+     * was provided to the *IfValue function, or the condition was discarded by onlyWhen or ignoreWhen.
+     */
+    trueWhenNoValue(): BooleanValueSource
+    /** Same as trueWhenNoValue, but it returns false */
+    falseWhenNoValue(): BooleanValueSource
+    /** Same as trueWhenNoValue, but it returns the provided value. The result is an IfValueSource if the argument is one */
+    valueWhenNoValue(value: boolean | BooleanValueSource): BooleanValueSource
+    valueWhenNoValue(value: IfValueSource | AlwaysIfValueSource): IfValueSource
+}
+```
+
+```typescript
+/**
+ * The same as IfValueSource, but every method returns this same type. It is the result of dynamicBooleanExpressionUsing,
+ * and allows to reassign a variable while a boolean expression is built.
+ */
+interface AlwaysIfValueSource {
+    negate(): this
+    and(value: boolean | BooleanValueSource | IfValueSource | AlwaysIfValueSource): this
+    or(value: boolean | BooleanValueSource | IfValueSource | AlwaysIfValueSource): this
     onlyWhen(condition: boolean): this
-    /** This function returns a boolean expression that only applies if the argument is false, it is ignored when true */
     ignoreWhen(condition: boolean): this
-    /** This function allows to return a true value when null or undefined were provided to the *IfValue function */
     trueWhenNoValue(): this
-    /** This function allows to return a false value when null or undefined were provided to the *IfValue function */
     falseWhenNoValue(): this
-    /** This function allows to return a value when null or undefined were provided to the *IfValue function */
-    valueWhenNoValue(value: boolean | this): this
+    valueWhenNoValue(value: boolean | BooleanValueSource | IfValueSource | AlwaysIfValueSource): this
 }
 ```
 
@@ -112,8 +163,10 @@ interface BooleanValueSource extends EqualableValueSource<boolean, 'boolean'> {
  * Represents an int or a double
  */
 interface NumberValueSource extends ComparableValueSource<number, 'number'> {
+    /** It may lose the decimals: the value is rounded when necessary */
     asInt(): NumberValueSource
     asDouble(): NumberValueSource
+    /** It may lose the decimals: the value is rounded when necessary */
     asBigint(): BigintValueSource
     abs(): this
     ceil(): this
@@ -172,7 +225,6 @@ interface BigintValueSource extends ComparableValueSource<bigint, 'bigint'> {
     maxValue(value: bigint | this): this
     add(value: bigint | this): this
     subtract(value: bigint | this): this
-    multiply(value: bigint | this): this
     modulo(value: bigint | this): this
 }
 ```
@@ -182,41 +234,41 @@ interface BigintValueSource extends ComparableValueSource<bigint, 'bigint'> {
  * Represents a string
  */
 interface StringValueSource extends ComparableValueSource<string, 'string'> {
-    equalsInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    equalsInsensitiveIfValue(value: string | null | undefined): IfValueSource
     equalsInsensitive(value: string | this): BooleanValueSource
-    notEqualsInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    notEqualsInsensitiveIfValue(value: string | null | undefined): IfValueSource
     notEqualsInsensitive(value: string | this): BooleanValueSource
-    likeIfValue(value: string | null | undefined): BooleanValueSource
+    likeIfValue(value: string | null | undefined): IfValueSource
     like(value: string | this): BooleanValueSource
-    notLikeIfValue(value: string | null | undefined): BooleanValueSource
+    notLikeIfValue(value: string | null | undefined): IfValueSource
     notLike(value: string | this): BooleanValueSource
-    likeInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    likeInsensitiveIfValue(value: string | null | undefined): IfValueSource
     likeInsensitive(value: string | this): BooleanValueSource
-    notLikeInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    notLikeInsensitiveIfValue(value: string | null | undefined): IfValueSource
     notLikeInsensitive(value: string | this): BooleanValueSource
-    startsWithIfValue(value: string | null | undefined): BooleanValueSource
+    startsWithIfValue(value: string | null | undefined): IfValueSource
     startsWith(value: string | this): BooleanValueSource
-    notStartsWithIfValue(value: string | null | undefined): BooleanValueSource
+    notStartsWithIfValue(value: string | null | undefined): IfValueSource
     notStartsWith(value: string | this): BooleanValueSource
-    endsWithIfValue(value: string | null | undefined): BooleanValueSource
+    endsWithIfValue(value: string | null | undefined): IfValueSource
     endsWith(value: string | this): BooleanValueSource
-    notEndsWithIfValue(value: string | null | undefined): BooleanValueSource
+    notEndsWithIfValue(value: string | null | undefined): IfValueSource
     notEndsWith(value: string | this): BooleanValueSource
-    startsWithInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    startsWithInsensitiveIfValue(value: string | null | undefined): IfValueSource
     startsWithInsensitive(value: string | this): BooleanValueSource
-    notStartsWithInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    notStartsWithInsensitiveIfValue(value: string | null | undefined): IfValueSource
     notStartsWithInsensitive(value: string | this): BooleanValueSource
-    endsWithInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    endsWithInsensitiveIfValue(value: string | null | undefined): IfValueSource
     endsWithInsensitive(value: string | this): BooleanValueSource
-    notEndsWithInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    notEndsWithInsensitiveIfValue(value: string | null | undefined): IfValueSource
     notEndsWithInsensitive(value: string | this): BooleanValueSource
-    containsIfValue(value: string | null | undefined): BooleanValueSource
+    containsIfValue(value: string | null | undefined): IfValueSource
     contains(value: string | this): BooleanValueSource
-    notContainsIfValue(value: string | null | undefined): BooleanValueSource
+    notContainsIfValue(value: string | null | undefined): IfValueSource
     notContains(value: string | this): BooleanValueSource
-    containsInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    containsInsensitiveIfValue(value: string | null | undefined): IfValueSource
     containsInsensitive(value: string | this): BooleanValueSource
-    notContainsInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    notContainsInsensitiveIfValue(value: string | null | undefined): IfValueSource
     notContainsInsensitive(value: string | this): BooleanValueSource
     toLowerCase(): StringValueSource
     toUpperCase(): StringValueSource
@@ -225,18 +277,23 @@ interface StringValueSource extends ComparableValueSource<string, 'string'> {
     trimLeft(): StringValueSource
     trimRight(): StringValueSource
     reverse(): StringValueSource
+    /** Forces a collation on this expression. The name is the one of the database, so it isn't portable */
     collate(collation: string): StringValueSource
     concatIfValue(value: string | null | undefined): StringValueSource
     concat(value: string | this): StringValueSource
+    /** The same as concatIgnoringNull, and the operand is dropped when it has no value. The result is optional if this value is optional */
     concatIgnoringNullIfValue(value: string | null | undefined): StringValueSource
+    /** A concatenation that reads null as an empty string. The result is optional only if both operands are optional */
     concatIgnoringNull(value: string | this): StringValueSource
     substrToEnd(start: number | NumberValueSource): StringValueSource
     substringToEnd(start: number | NumberValueSource): StringValueSource
     substr(start: number | NumberValueSource, count: number | NumberValueSource): StringValueSource
     substring(start: number | NumberValueSource, end: number | NumberValueSource): StringValueSource
-    replaceAllIfValue(findString: string | null | undefined, replaceWith: string | null | undefined): StringValueSource
+    /** At most one of the arguments can be a value source */
+    replaceAllIfValue(findString: string | null | undefined | this, replaceWith: string | null | undefined | this): StringValueSource
     replaceAll(findString: string | this, replaceWith: string | this): StringValueSource
-    replaceAllInsensitiveIfValue(findString: string | null | undefined, replaceWith: string | null | undefined): StringValueSource
+    /** At most one of the arguments can be a value source */
+    replaceAllInsensitiveIfValue(findString: string | null | undefined | this, replaceWith: string | null | undefined | this): StringValueSource
     replaceAllInsensitive(findString: string | this, replaceWith: string | this): StringValueSource
 }
 ```
@@ -245,9 +302,9 @@ interface StringValueSource extends ComparableValueSource<string, 'string'> {
 /**
  * Represents an UUID
  */
- interface UuidValueSource extends ComparableValueSource<string, 'uuid'> {
+interface UuidValueSource extends ComparableValueSource<string, 'uuid'> {
     asString(): StringValueSource
- }
+}
 ```
 
 ```typescript
@@ -357,7 +414,8 @@ interface CustomDoubleValueSource<T, TYPE_NAME> extends ComparableValueSource<T,
     tan(): this
     power(value: T | this): this
     logn(value: T | this): this
-    roundn(value: T | this): this
+    /** The number of decimals can be a value of the custom type or a number, or a value source of either */
+    roundn(value: T | number | this | NumberValueSource): this
     /**
      * This function establishes a minimum value for the current value, that means the biggest value must be returned
      */
@@ -381,7 +439,7 @@ interface CustomDoubleValueSource<T, TYPE_NAME> extends ComparableValueSource<T,
  */
 interface CustomUuidValueSource<T, TYPE_NAME> extends ComparableValueSource<T, TYPE_NAME> {
     asString(): StringValueSource
- }
+}
 ```
 
 ```typescript
@@ -447,7 +505,9 @@ interface CustomLocalDateTimeValueSource<T, TYPE_NAME> extends ComparableValueSo
  * Represents the result of an aggregate as object array
  */
 interface AggregatedArrayValueSource<T> extends ValueSource<T, 'aggregated'> {
+    /** Returns an empty array when there is no value, which is the default. The result is required */
     useEmptyArrayForNoValue(): AggregatedArrayValueSource<T>
+    /** The result is optional, an array with at least one element when it has a value */
     asOptionalNonEmptyArray(): AggregatedArrayValueSource<T>
     asRequiredInOptionalObject(): AggregatedArrayValueSource<T>
     onlyWhenOrNull(when: boolean): AggregatedArrayValueSource<T>

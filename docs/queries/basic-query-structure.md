@@ -262,7 +262,7 @@ const customerWithId: Promise<{
 }>
 ```
 
-`executeSelectOne` returns one row, and throws an error when the database doesn't return any. To get `null` when the row isn't found, use `executeSelectNoneOrOne`. All the ways of executing a select are in [Executing a select](select.md#executing-a-select).
+`executeSelectOne` returns one row, and its promise rejects when the database doesn't return any. To get `null` when the row isn't found, use `executeSelectNoneOrOne`. All the ways of executing a select are in [Executing a select](select.md#executing-a-select).
 
 ## Projecting optional values
 
@@ -455,7 +455,7 @@ It goes further than that: the filter can arrive as an object, and the caller ca
 
 ## Other options
 
-A select is executed with `executeSelectNoneOrOne()`, `executeSelectOne()`, `executeSelectMany()` or `executeSelectPage()`: see what each one returns and when it throws an error in [Executing a select](select.md#executing-a-select), and the details of the last one in [Select page](select-page.md).
+A select is executed with `executeSelectNoneOrOne()`, `executeSelectOne()`, `executeSelectMany()` or `executeSelectPage()`: see what each one returns and when it fails in [Executing a select](select.md#executing-a-select), and the details of the last one in [Select page](select-page.md).
 
 To return the value of a single column instead of an object, use [`selectOneColumn(column)`](select.md#select-one-column) instead of `select({...})`; to return `count(*)`, use [`selectCountAll()`](select.md#select-count-all).
 

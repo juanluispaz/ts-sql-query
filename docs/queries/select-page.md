@@ -43,6 +43,112 @@ const customerPage = await connection.selectFrom(tCustomer)
 const totalPages = Math.ceil(customerPage.count / pageSize)
 ```
 
+The executed query to get the data is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    order by id 
+    limit ? 
+    offset ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    order by id 
+    limit ? 
+    offset ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer 
+    order by "id" 
+    offset :0 rows 
+    fetch next :1 rows only
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer 
+    order by id 
+    limit $1 
+    offset $2
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    order by id 
+    limit ?1 
+    offset ?2
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    order by id 
+    offset @0 rows 
+    fetch next @1 rows only
+    ```
+
+And its parameters are: `[ 10, 20 ]` (on Oracle and SQL Server: `[ 20, 10 ]`)
+
+The executed query to get the count is:
+
+=== "MariaDB"
+    ```mariadb
+    select count(*) 
+    from customer
+    ```
+=== "MySQL"
+    ```mysql
+    select count(*) 
+    from customer
+    ```
+=== "Oracle"
+    ```oracle
+    select count(*) 
+    from customer
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select count(*) 
+    from customer
+    ```
+=== "SQLite"
+    ```sqlite
+    select count(*) 
+    from customer
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select count(*) 
+    from customer
+    ```
+
+And its parameters are: `[]`
+
 Both are optional:
 
 - With `limit` and no `offset`, the page starts at the first row.
@@ -66,6 +172,101 @@ const customerPage = await connection.selectFrom(tCustomer)
     .offsetIfValue(paging.offset)
     .executeSelectPage();
 ```
+
+The executed query to get the data is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    order by id 
+    limit ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    order by id 
+    limit ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName" 
+    from customer 
+    order by "id" 
+    fetch next :0 rows only
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName" 
+    from customer 
+    order by id 
+    limit $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    order by id 
+    limit ?1
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    order by id 
+    offset 0 rows 
+    fetch next @0 rows only
+    ```
+
+And its parameters are: `[ 10 ]`
+
+The executed query to get the count is:
+
+=== "MariaDB"
+    ```mariadb
+    select count(*) 
+    from customer
+    ```
+=== "MySQL"
+    ```mysql
+    select count(*) 
+    from customer
+    ```
+=== "Oracle"
+    ```oracle
+    select count(*) 
+    from customer
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select count(*) 
+    from customer
+    ```
+=== "SQLite"
+    ```sqlite
+    select count(*) 
+    from customer
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select count(*) 
+    from customer
+    ```
+
+And its parameters are: `[]`
 
 ## Ordering the rows
 
@@ -311,6 +512,71 @@ const customers = await connection.selectFrom(tCustomer)
     .executeSelectMany();
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    order by id 
+    limit ? 
+    offset ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    order by id 
+    limit ? 
+    offset ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName" 
+    from customer 
+    order by "id" 
+    offset :0 rows 
+    fetch next :1 rows only
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName" 
+    from customer 
+    order by id 
+    limit $1 
+    offset $2
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    order by id 
+    limit ?1 
+    offset ?2
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    order by id 
+    offset @0 rows 
+    fetch next @1 rows only
+    ```
+
+The parameters are: `[ 10, 20 ]` (on Oracle and SQL Server: `[ 20, 10 ]`)
+
 If all you need is to know whether there is a next page, ask for one more row than you are going to show, with `limit(pageSize + 1)`: if it comes back, there is a next page.
 
 ### You already know the total
@@ -331,12 +597,78 @@ const customerPage = await connection.selectFrom(tCustomer)
     .executeSelectPage({ count: knownCount });
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    order by id 
+    limit ? 
+    offset ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    order by id 
+    limit ? 
+    offset ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName" 
+    from customer 
+    order by "id" 
+    offset :0 rows 
+    fetch next :1 rows only
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName" 
+    from customer 
+    order by id 
+    limit $1 
+    offset $2
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    order by id 
+    limit ?1 
+    offset ?2
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    order by id 
+    offset @0 rows 
+    fetch next @1 rows only
+    ```
+
+The parameters are: `[ 10, 20 ]` (on Oracle and SQL Server: `[ 20, 10 ]`)
+
 The total you pass can be out of date if the rows have changed since you got it.
 
 ### You only need the total
 
 Pass the rows as `data`, and only the count query is sent. The library returns them as they are, so they can be an empty list, or the rows you already have. You can keep the same query you use to get the page: because only the count is requested, its `orderBy`, `limit` and `offset` aren't used.
 
+<!-- doc-code-snippet-result: 146 -->
 ```ts
 const customers: { id: number, firstName: string }[] = [] // Or the rows you already have
 
@@ -350,6 +682,41 @@ const customerPage = await connection.selectFrom(tCustomer)
     .offset(20)
     .executeSelectPage({ data: customers });
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select count(*) 
+    from customer
+    ```
+=== "MySQL"
+    ```mysql
+    select count(*) 
+    from customer
+    ```
+=== "Oracle"
+    ```oracle
+    select count(*) 
+    from customer
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select count(*) 
+    from customer
+    ```
+=== "SQLite"
+    ```sqlite
+    select count(*) 
+    from customer
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select count(*) 
+    from customer
+    ```
+
+The parameters are: `[]`
 
 ## Extra properties
 
@@ -369,6 +736,106 @@ const customerPage = await connection.selectFrom(tCustomer)
     .offset((pageNumber - 1) * pageSize)
     .executeSelectPage({ pageNumber, pageSize });
 ```
+
+The executed query to get the data is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    order by id 
+    limit ? 
+    offset ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    order by id 
+    limit ? 
+    offset ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName" 
+    from customer 
+    order by "id" 
+    offset :0 rows 
+    fetch next :1 rows only
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName" 
+    from customer 
+    order by id 
+    limit $1 
+    offset $2
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    order by id 
+    limit ?1 
+    offset ?2
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    order by id 
+    offset @0 rows 
+    fetch next @1 rows only
+    ```
+
+And its parameters are: `[ 10, 20 ]` (on Oracle and SQL Server: `[ 20, 10 ]`)
+
+The executed query to get the count is:
+
+=== "MariaDB"
+    ```mariadb
+    select count(*) 
+    from customer
+    ```
+=== "MySQL"
+    ```mysql
+    select count(*) 
+    from customer
+    ```
+=== "Oracle"
+    ```oracle
+    select count(*) 
+    from customer
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select count(*) 
+    from customer
+    ```
+=== "SQLite"
+    ```sqlite
+    select count(*) 
+    from customer
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select count(*) 
+    from customer
+    ```
+
+And its parameters are: `[]`
 
 The result type is:
 ```tsx

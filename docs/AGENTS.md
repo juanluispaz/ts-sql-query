@@ -46,12 +46,12 @@ Start with the file of the area of your task. These files are written for you: o
 
 | To | Read | Tokens |
 |---|---|---|
-| Read data: start here | [`llms-queries-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-queries-postgresql.txt), with `<database>` being `mariadb`, `mysql`, `oracle`, `postgresql`, `sqlite` or `sqlserver` | 38k |
-| Use a select inside another, combine several, or walk a hierarchy | [`llms-queries-advanced-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-queries-advanced-postgresql.txt) | 11k |
-| Aggregate and group | [`llms-aggregates-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-aggregates-postgresql.txt) | 10k |
+| Read data: start here | [`llms-queries-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-queries-postgresql.txt), with `<database>` being `mariadb`, `mysql`, `oracle`, `postgresql`, `sqlite` or `sqlserver` | 40k |
+| Use a select inside another, combine several, or walk a hierarchy | [`llms-queries-advanced-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-queries-advanced-postgresql.txt) | 12k |
+| Aggregate and group | [`llms-aggregates-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-aggregates-postgresql.txt) | 11k |
 | Write data | [`llms-mutations-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-mutations-postgresql.txt) | 24k |
 | Use a transaction | [`llms-transactions.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-transactions.txt) | 13k |
-| Go beyond what the library offers: your own SQL or column type | [`llms-extending-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-extending-postgresql.txt) | 14k |
+| Go beyond what the library offers: your own SQL or column type | [`llms-extending-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-extending-postgresql.txt) | 15k |
 | Let the caller choose columns, filters and order, fill a table or offer a query API from a request, write a function that returns a dynamic select, or write values with a shape | [`llms-extreme-dynamic-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-extreme-dynamic-postgresql.txt) | 20k |
 | Go deeper in dynamic queries: booleans and null, or typing them from a model | [`llms-dynamic.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-dynamic.txt) | 24k |
 | Type a row of a table | [`llms-types.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-types.txt) | 5k |

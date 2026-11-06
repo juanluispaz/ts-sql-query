@@ -81,6 +81,167 @@ const recursiveParentCompany = connection.selectFrom(tCompany)
     }).executeSelectMany()
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    with recursive 
+        recursive_select_1 as ( 
+            select 
+                id as id, 
+                name as name, 
+                parent_id as parentId 
+            from company 
+            where id = ? 
+    
+            union all 
+    
+            select 
+                company.id as id, 
+                company.name as name, 
+                company.parent_id as parentId 
+            from company 
+            join recursive_select_1 on recursive_select_1.parentId = company.id 
+        ) 
+    select 
+        id as id, 
+        name as name, 
+        parentId as parentId 
+    from recursive_select_1
+    ```
+=== "MySQL"
+    ```mysql
+    with recursive 
+        recursive_select_1 as ( 
+            select 
+                id as id, 
+                `name` as `name`, 
+                parent_id as parentId 
+            from company 
+            where id = ? 
+    
+            union all 
+    
+            select 
+                company.id as id, 
+                company.`name` as `name`, 
+                company.parent_id as parentId 
+            from company 
+            join recursive_select_1 on recursive_select_1.parentId = company.id 
+        ) 
+    select 
+        id as id, 
+        `name` as `name`, 
+        parentId as parentId 
+    from recursive_select_1
+    ```
+=== "Oracle"
+    ```oracle
+    with 
+        recursive_select_1(id, name, parentId) as ( 
+            select 
+                id as id, 
+                name as name, 
+                parent_id as parentId 
+            from company 
+            where id = :0 
+    
+            union all 
+    
+            select 
+                company.id as id, 
+                company.name as name, 
+                company.parent_id as parentId 
+            from company 
+            join recursive_select_1 on recursive_select_1.parentId = company.id 
+        ) 
+    select 
+        id as "id", 
+        name as "name", 
+        parentId as "parentId" 
+    from recursive_select_1
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    with recursive 
+        recursive_select_1 as ( 
+            select 
+                id as id, 
+                name as name, 
+                parent_id as parentId 
+            from company 
+            where id = $1 
+    
+            union all 
+    
+            select 
+                company.id as id, 
+                company.name as name, 
+                company.parent_id as parentId 
+            from company 
+            join recursive_select_1 on recursive_select_1.parentId = company.id 
+        ) 
+    select 
+        id as id, 
+        name as name, 
+        parentId as "parentId" 
+    from recursive_select_1
+    ```
+=== "SQLite"
+    ```sqlite
+    with recursive 
+        recursive_select_1 as ( 
+            select 
+                id as id, 
+                name as name, 
+                parent_id as parentId 
+            from company 
+            where id = ?1 
+    
+            union all 
+    
+            select 
+                company.id as id, 
+                company.name as name, 
+                company.parent_id as parentId 
+            from company 
+            join recursive_select_1 on recursive_select_1.parentId = company.id 
+        ) 
+    select 
+        id as id, 
+        name as name, 
+        parentId as parentId 
+    from recursive_select_1
+    ```
+=== "SQL Server"
+    ```sqlserver
+    with 
+        recursive_select_1 as ( 
+            select 
+                id as id, 
+                name as name, 
+                parent_id as parentId 
+            from company 
+            where id = @0 
+    
+            union all 
+    
+            select 
+                company.id as id, 
+                company.name as name, 
+                company.parent_id as parentId 
+            from company 
+            join recursive_select_1 on recursive_select_1.parentId = company.id 
+        ) 
+    select 
+        id as id, 
+        name as name, 
+        parentId as parentId 
+    from recursive_select_1
+    ```
+
+The parameters are: `[ 10 ]`
+
 If the recursive query uses the same `SELECT` and `FROM` clauses as the outer query, you can simplify it by specifying only the `JOIN ON` condition:
 
 ```ts
@@ -286,6 +447,167 @@ const recursiveChildrenCompany = connection.selectFrom(tCompany)
         })
     }).executeSelectMany()
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    with recursive 
+        recursive_select_1 as ( 
+            select 
+                id as id, 
+                name as name, 
+                parent_id as parentId 
+            from company 
+            where id = ? 
+    
+            union all 
+    
+            select 
+                company.id as id, 
+                company.name as name, 
+                company.parent_id as parentId 
+            from company 
+            join recursive_select_1 on recursive_select_1.id = company.parent_id 
+        ) 
+    select 
+        id as id, 
+        name as name, 
+        parentId as parentId 
+    from recursive_select_1
+    ```
+=== "MySQL"
+    ```mysql
+    with recursive 
+        recursive_select_1 as ( 
+            select 
+                id as id, 
+                `name` as `name`, 
+                parent_id as parentId 
+            from company 
+            where id = ? 
+    
+            union all 
+    
+            select 
+                company.id as id, 
+                company.`name` as `name`, 
+                company.parent_id as parentId 
+            from company 
+            join recursive_select_1 on recursive_select_1.id = company.parent_id 
+        ) 
+    select 
+        id as id, 
+        `name` as `name`, 
+        parentId as parentId 
+    from recursive_select_1
+    ```
+=== "Oracle"
+    ```oracle
+    with 
+        recursive_select_1(id, name, parentId) as ( 
+            select 
+                id as id, 
+                name as name, 
+                parent_id as parentId 
+            from company 
+            where id = :0 
+    
+            union all 
+    
+            select 
+                company.id as id, 
+                company.name as name, 
+                company.parent_id as parentId 
+            from company 
+            join recursive_select_1 on recursive_select_1.id = company.parent_id 
+        ) 
+    select 
+        id as "id", 
+        name as "name", 
+        parentId as "parentId" 
+    from recursive_select_1
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    with recursive 
+        recursive_select_1 as ( 
+            select 
+                id as id, 
+                name as name, 
+                parent_id as parentId 
+            from company 
+            where id = $1 
+    
+            union all 
+    
+            select 
+                company.id as id, 
+                company.name as name, 
+                company.parent_id as parentId 
+            from company 
+            join recursive_select_1 on recursive_select_1.id = company.parent_id 
+        ) 
+    select 
+        id as id, 
+        name as name, 
+        parentId as "parentId" 
+    from recursive_select_1
+    ```
+=== "SQLite"
+    ```sqlite
+    with recursive 
+        recursive_select_1 as ( 
+            select 
+                id as id, 
+                name as name, 
+                parent_id as parentId 
+            from company 
+            where id = ?1 
+    
+            union all 
+    
+            select 
+                company.id as id, 
+                company.name as name, 
+                company.parent_id as parentId 
+            from company 
+            join recursive_select_1 on recursive_select_1.id = company.parent_id 
+        ) 
+    select 
+        id as id, 
+        name as name, 
+        parentId as parentId 
+    from recursive_select_1
+    ```
+=== "SQL Server"
+    ```sqlserver
+    with 
+        recursive_select_1 as ( 
+            select 
+                id as id, 
+                name as name, 
+                parent_id as parentId 
+            from company 
+            where id = @0 
+    
+            union all 
+    
+            select 
+                company.id as id, 
+                company.name as name, 
+                company.parent_id as parentId 
+            from company 
+            join recursive_select_1 on recursive_select_1.id = company.parent_id 
+        ) 
+    select 
+        id as id, 
+        name as name, 
+        parentId as parentId 
+    from recursive_select_1
+    ```
+
+The parameters are: `[ 10 ]`
 
 If the recursive query uses the same `SELECT` and `FROM` clauses as the outer query, you can simplify it by specifying only the `JOIN ON` condition:
 
@@ -512,6 +834,127 @@ const companies = await connection.selectFrom(tCompany)
     .executeSelectMany()
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    with recursive 
+        recursive_select_1 as ( 
+            select 
+                id as id, 
+                name as name, 
+                parent_id as parentId 
+            from company 
+            where id = ? 
+    
+            union 
+    
+            select 
+                company.id as id, 
+                company.name as name, 
+                company.parent_id as parentId 
+            from company 
+            join recursive_select_1 on recursive_select_1.id = company.parent_id 
+        ) 
+    select 
+        id as id, 
+        name as name, 
+        parentId as parentId 
+    from recursive_select_1 
+    order by id
+    ```
+=== "MySQL"
+    ```mysql
+    with recursive 
+        recursive_select_1 as ( 
+            select 
+                id as id, 
+                `name` as `name`, 
+                parent_id as parentId 
+            from company 
+            where id = ? 
+    
+            union 
+    
+            select 
+                company.id as id, 
+                company.`name` as `name`, 
+                company.parent_id as parentId 
+            from company 
+            join recursive_select_1 on recursive_select_1.id = company.parent_id 
+        ) 
+    select 
+        id as id, 
+        `name` as `name`, 
+        parentId as parentId 
+    from recursive_select_1 
+    order by id
+    ```
+=== "Oracle"
+    ```oracle
+    -- Oracle only accepts `union all` in a recursive select: use recursiveUnionAllOn
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    with recursive 
+        recursive_select_1 as ( 
+            select 
+                id as id, 
+                name as name, 
+                parent_id as parentId 
+            from company 
+            where id = $1 
+    
+            union 
+    
+            select 
+                company.id as id, 
+                company.name as name, 
+                company.parent_id as parentId 
+            from company 
+            join recursive_select_1 on recursive_select_1.id = company.parent_id 
+        ) 
+    select 
+        id as id, 
+        name as name, 
+        parentId as "parentId" 
+    from recursive_select_1 
+    order by id
+    ```
+=== "SQLite"
+    ```sqlite
+    with recursive 
+        recursive_select_1 as ( 
+            select 
+                id as id, 
+                name as name, 
+                parent_id as parentId 
+            from company 
+            where id = ?1 
+    
+            union 
+    
+            select 
+                company.id as id, 
+                company.name as name, 
+                company.parent_id as parentId 
+            from company 
+            join recursive_select_1 on recursive_select_1.id = company.parent_id 
+        ) 
+    select 
+        id as id, 
+        name as name, 
+        parentId as parentId 
+    from recursive_select_1 
+    order by id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    -- SQL Server only accepts `union all` in a recursive select: use recursiveUnionAllOn
+    ```
+
+The parameters are: `[ 1 ]`
+
 With the cycle above, it returns the companies 1 and 2, once each. It only works if the row is really the same: a column that changes in each step, like the level of the next section, makes every row different, and `union` no longer stops the walk.
 
 **A limit on the depth**: see the next section. It doesn't work on Oracle, which rejects the query with the error `ORA-32044` when it finds a cycle in a recursive `with`, even if the depth is limited.
@@ -541,6 +984,179 @@ const companies = await connection.selectFrom(tCompany)
     }).orderBy('level')
     .executeSelectMany()
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    with recursive 
+        recursive_select_1 as ( 
+            select 
+                id as id, 
+                name as name, 
+                ? as level 
+            from company 
+            where id = ? 
+    
+            union all 
+    
+            select 
+                company.id as id, 
+                company.name as name, 
+                recursive_select_1.level + ? as level 
+            from company 
+            join recursive_select_1 on recursive_select_1.id = company.parent_id 
+            where recursive_select_1.level < ? 
+        ) 
+    select 
+        id as id, 
+        name as name, 
+        level as level 
+    from recursive_select_1 
+    order by level
+    ```
+=== "MySQL"
+    ```mysql
+    with recursive 
+        recursive_select_1 as ( 
+            select 
+                id as id, 
+                `name` as `name`, 
+                ? as `level` 
+            from company 
+            where id = ? 
+    
+            union all 
+    
+            select 
+                company.id as id, 
+                company.`name` as `name`, 
+                recursive_select_1.`level` + ? as `level` 
+            from company 
+            join recursive_select_1 on recursive_select_1.id = company.parent_id 
+            where recursive_select_1.`level` < ? 
+        ) 
+    select 
+        id as id, 
+        `name` as `name`, 
+        `level` as `level` 
+    from recursive_select_1 
+    order by `level`
+    ```
+=== "Oracle"
+    ```oracle
+    with 
+        recursive_select_1(id, name, "level") as ( 
+            select 
+                id as id, 
+                name as name, 
+                :0 as "level" 
+            from company 
+            where id = :1 
+    
+            union all 
+    
+            select 
+                company.id as id, 
+                company.name as name, 
+                recursive_select_1."level" + :2 as "level" 
+            from company 
+            join recursive_select_1 on recursive_select_1.id = company.parent_id 
+            where recursive_select_1."level" < :3 
+        ) 
+    select 
+        id as "id", 
+        name as "name", 
+        "level" as "level" 
+    from recursive_select_1 
+    order by "level"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    with recursive 
+        recursive_select_1 as ( 
+            select 
+                id as id, 
+                name as name, 
+                $1::int4 as level 
+            from company 
+            where id = $2 
+    
+            union all 
+    
+            select 
+                company.id as id, 
+                company.name as name, 
+                recursive_select_1.level + $3 as level 
+            from company 
+            join recursive_select_1 on recursive_select_1.id = company.parent_id 
+            where recursive_select_1.level < $4 
+        ) 
+    select 
+        id as id, 
+        name as name, 
+        level as level 
+    from recursive_select_1 
+    order by level
+    ```
+=== "SQLite"
+    ```sqlite
+    with recursive 
+        recursive_select_1 as ( 
+            select 
+                id as id, 
+                name as name, 
+                ?1 as level 
+            from company 
+            where id = ?2 
+    
+            union all 
+    
+            select 
+                company.id as id, 
+                company.name as name, 
+                recursive_select_1.level + ?3 as level 
+            from company 
+            join recursive_select_1 on recursive_select_1.id = company.parent_id 
+            where recursive_select_1.level < ?4 
+        ) 
+    select 
+        id as id, 
+        name as name, 
+        level as level 
+    from recursive_select_1 
+    order by level
+    ```
+=== "SQL Server"
+    ```sqlserver
+    with 
+        recursive_select_1 as ( 
+            select 
+                id as id, 
+                name as name, 
+                @0 as [level] 
+            from company 
+            where id = @1 
+    
+            union all 
+    
+            select 
+                company.id as id, 
+                company.name as name, 
+                recursive_select_1.[level] + @2 as [level] 
+            from company 
+            join recursive_select_1 on recursive_select_1.id = company.parent_id 
+            where recursive_select_1.[level] < @3 
+        ) 
+    select 
+        id as id, 
+        name as name, 
+        [level] as [level] 
+    from recursive_select_1 
+    order by [level]
+    ```
+
+The parameters are: `[ 1, 1, 1, 3 ]`
 
 It returns up to three levels, and the query always ends: when no row of the previous step has a level below 3, the step finds nothing. With a cycle, the rows of the cycle appear several times, once per level.
 

@@ -331,6 +331,59 @@ const updateCustomerData = connection.update(tCustomer)
     .executeUpdate()
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    update customer 
+    set 
+        first_name = ?, 
+        last_name = ? 
+    where id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    update customer 
+    set 
+        first_name = ?, 
+        last_name = ? 
+    where id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    update customer 
+    set 
+        first_name = :0, 
+        last_name = :1 
+    where id = :2
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    update customer 
+    set 
+        first_name = $1, 
+        last_name = $2 
+    where id = $3
+    ```
+=== "SQLite"
+    ```sqlite
+    update customer 
+    set 
+        first_name = ?1, 
+        last_name = ?2 
+    where id = ?3
+    ```
+=== "SQL Server"
+    ```sqlserver
+    update customer 
+    set 
+        first_name = @0, 
+        last_name = @1 
+    where id = @2
+    ```
+
+The parameters are: `[ 'John', 'Smith', 10 ]`
+
 The query writes `first_name` and `last_name`, and the `where` chooses the row. `token` is ignored because it isn't in the shape.
 
 ## The type of the values
@@ -367,6 +420,47 @@ const updateCustomerName = await connection.update(tCustomer)
     .where(tCustomer.id.equals(10))
     .executeUpdate();
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    update customer 
+    set first_name = ? 
+    where id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    update customer 
+    set first_name = ? 
+    where id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    update customer 
+    set first_name = :0 
+    where id = :1
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    update customer 
+    set first_name = $1 
+    where id = $2
+    ```
+=== "SQLite"
+    ```sqlite
+    update customer 
+    set first_name = ?1 
+    where id = ?2
+    ```
+=== "SQL Server"
+    ```sqlserver
+    update customer 
+    set first_name = @0 
+    where id = @1
+    ```
+
+The parameters are: `[ 'John', 10 ]`
 ## Update multiple tables in a single query
 
 On [MariaDB](../configuration/supported-databases/mariadb.md) and [MySQL](../configuration/supported-databases/mysql.md) a single query can change the columns of more than one table, like the name of a customer and the name of their company. Join the tables right after `update`, and use a shape: it's the shape that says where each value goes. A column of the other tables goes in the shape as the column itself, like `tCompany.name`, because a name refers only to the table in `update`.

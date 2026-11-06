@@ -55,6 +55,59 @@ const customersWithCompany = connection.selectFrom(tCustomer)
     .executeSelectMany();
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        customer.id as id, 
+        company.name as companyName 
+    from customer, company 
+    where customer.company_id = company.id
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        customer.id as id, 
+        company.`name` as companyName 
+    from customer, company 
+    where customer.company_id = company.id
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        customer.id as "id", 
+        company.name as "companyName" 
+    from customer, company 
+    where customer.company_id = company.id
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        customer.id as id, 
+        company.name as "companyName" 
+    from customer, company 
+    where customer.company_id = company.id
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        customer.id as id, 
+        company.name as companyName 
+    from customer, company 
+    where customer.company_id = company.id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        customer.id as id, 
+        company.name as companyName 
+    from customer, company 
+    where customer.company_id = company.id
+    ```
+
+The parameters are: `[]`
+
 ## Select with joins and order by
 
 ```ts
@@ -303,6 +356,59 @@ const companies = await connection.selectFrom(tCompany)
     .executeSelectMany();
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company.name as name, 
+        parent.name as parentName 
+    from company 
+    left join company as parent on company.parent_id = parent.id and parent.name = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company.`name` as `name`, 
+        parent.`name` as parentName 
+    from company 
+    left join company as parent on company.parent_id = parent.id and parent.`name` = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company.name as "name", 
+        parent.name as "parentName" 
+    from company 
+    left join company parent on company.parent_id = parent.id and parent.name = :0
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company.name as name, 
+        parent.name as "parentName" 
+    from company 
+    left join company as parent on company.parent_id = parent.id and parent.name = $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company.name as name, 
+        parent.name as parentName 
+    from company 
+    left join company as parent on company.parent_id = parent.id and parent.name = ?1
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company.name as name, 
+        parent.name as parentName 
+    from company 
+    left join company as parent on company.parent_id = parent.id and parent.name = @0
+    ```
+
+The parameters are: `[ 'Acme' ]`
+
 In the `where`, the condition is checked after the join, on all the rows. The rows without a parent have `null` there, the condition isn't met, and they are removed, so the result is the same as with an inner join:
 
 ```ts
@@ -317,6 +423,65 @@ const companies = await connection.selectFrom(tCompany)
     })
     .executeSelectMany();
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company.name as name, 
+        parent.name as parentName 
+    from company 
+    left join company as parent on company.parent_id = parent.id 
+    where parent.name = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company.`name` as `name`, 
+        parent.`name` as parentName 
+    from company 
+    left join company as parent on company.parent_id = parent.id 
+    where parent.`name` = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company.name as "name", 
+        parent.name as "parentName" 
+    from company 
+    left join company parent on company.parent_id = parent.id 
+    where parent.name = :0
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company.name as name, 
+        parent.name as "parentName" 
+    from company 
+    left join company as parent on company.parent_id = parent.id 
+    where parent.name = $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company.name as name, 
+        parent.name as parentName 
+    from company 
+    left join company as parent on company.parent_id = parent.id 
+    where parent.name = ?1
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company.name as name, 
+        parent.name as parentName 
+    from company 
+    left join company as parent on company.parent_id = parent.id 
+    where parent.name = @0
+    ```
+
+The parameters are: `[ 'Acme' ]`
 
 ## Select with left join and complex projections
 
@@ -440,6 +605,86 @@ const customersInOrder = await connection.selectFrom(tCustomer)
     .orderBy(connection.rawFragment`lower(${tCustomer.firstName})`)
     .executeSelectMany();
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    order by 
+        lastName desc, 
+        customer.birthday is null, 
+        customer.birthday asc, 
+        lower(customer.first_name)
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    order by 
+        lastName desc, 
+        customer.birthday is null, 
+        customer.birthday asc, 
+        lower(customer.first_name)
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer 
+    order by 
+        "lastName" desc, 
+        customer.birthday asc nulls last, 
+        lower(customer.first_name)
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer 
+    order by 
+        "lastName" desc, 
+        customer.birthday asc nulls last, 
+        lower(customer.first_name)
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    order by 
+        lastName desc, 
+        customer.birthday asc nulls last, 
+        lower(customer.first_name)
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    order by 
+        lastName desc, 
+        iif(customer.birthday is null, 1, 0), 
+        customer.birthday asc, 
+        lower(customer.first_name)
+    ```
+
+The parameters are: `[]`
 
 When the order comes from outside your code, like a request from a user, use `orderByFromString(...)` or `orderByFromStringArray(...)`, which receive the same names and modes as text: see [Order by from a string](dynamic-queries.md#order-by-from-a-string).
 
@@ -601,6 +846,66 @@ const lastCustomer = await connection.selectFrom(tCustomer)
     .executeSelectNoneOrOne();
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    order by id desc 
+    limit ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    order by id desc 
+    limit ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName" 
+    from customer 
+    order by "id" desc 
+    fetch next :0 rows only
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName" 
+    from customer 
+    order by id desc 
+    limit $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    order by id desc 
+    limit ?1
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    order by id desc 
+    offset 0 rows 
+    fetch next @0 rows only
+    ```
+
+The parameters are: `[ 1 ]`
+
 ## Select distinct
 
 `selectDistinctFrom(table)` starts a select that removes the repeated rows from the result. Two rows are the same when all the columns of the select have the same value, and in this comparison two nulls are taken as the same value. So use it with the columns whose repetition you want to remove: if the select includes a value that identifies the row, like the id, nothing is removed.
@@ -676,6 +981,47 @@ const firstNames = await connection.selectFrom(tCustomer)
     .orderBy('result')
     .executeSelectMany();
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select first_name as result 
+    from customer 
+    order by result
+    ```
+=== "MySQL"
+    ```mysql
+    select first_name as result 
+    from customer 
+    order by result
+    ```
+=== "Oracle"
+    ```oracle
+    select first_name as "result" 
+    from customer 
+    order by "result"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select first_name as result 
+    from customer 
+    order by result
+    ```
+=== "SQLite"
+    ```sqlite
+    select first_name as result 
+    from customer 
+    order by result
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select first_name as [result] 
+    from customer 
+    order by [result]
+    ```
+
+The parameters are: `[]`
 
 In SQL the column is called `result`, and this is the name to use in `orderBy`.
 

@@ -35,6 +35,71 @@ const customersPerCompany = await connection.selectFrom(tCustomer)
     .executeSelectMany();
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company_id as companyId, 
+        count(*) as customers, 
+        sum(calculateAge(birthday)) as totalAge 
+    from customer 
+    group by company_id 
+    order by companyId
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company_id as companyId, 
+        count(*) as customers, 
+        sum(calculateAge(birthday)) as totalAge 
+    from customer 
+    group by company_id 
+    order by companyId
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company_id as "companyId", 
+        count(*) as "customers", 
+        sum(calculateAge(birthday)) as "totalAge" 
+    from customer 
+    group by company_id 
+    order by "companyId"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company_id as "companyId", 
+        count(*) as customers, 
+        sum(calculateAge(birthday)) as "totalAge" 
+    from customer 
+    group by company_id 
+    order by "companyId"
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company_id as companyId, 
+        count(*) as customers, 
+        sum(calculateAge(birthday)) as totalAge 
+    from customer 
+    group by company_id 
+    order by companyId
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company_id as companyId, 
+        count(*) as customers, 
+        sum(calculateAge(birthday)) as totalAge 
+    from customer 
+    group by company_id 
+    order by companyId
+    ```
+
+The parameters are: `[]`
+
 The result is:
 
 | `companyId` | `customers` | `totalAge` |
@@ -86,6 +151,77 @@ const companiesWithSeveralAges = await connection.selectFrom(tCustomer)
     .orderBy('companyId')
     .executeSelectMany();
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company_id as companyId, 
+        count(*) as customers 
+    from customer 
+    where calculateAge(birthday) is not null 
+    group by company_id 
+    having customers >= ? 
+    order by companyId
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company_id as companyId, 
+        count(*) as customers 
+    from customer 
+    where calculateAge(birthday) is not null 
+    group by company_id 
+    having customers >= ? 
+    order by companyId
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company_id as "companyId", 
+        count(*) as "customers" 
+    from customer 
+    where calculateAge(birthday) is not null 
+    group by company_id 
+    having count(*) >= :0 
+    order by "companyId"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company_id as "companyId", 
+        count(*) as customers 
+    from customer 
+    where calculateAge(birthday) is not null 
+    group by company_id 
+    having count(*) >= $1 
+    order by "companyId"
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company_id as companyId, 
+        count(*) as customers 
+    from customer 
+    where calculateAge(birthday) is not null 
+    group by company_id 
+    having count(*) >= ?1 
+    order by companyId
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company_id as companyId, 
+        count(*) as customers 
+    from customer 
+    where calculateAge(birthday) is not null 
+    group by company_id 
+    having count(*) >= @0 
+    order by companyId
+    ```
+
+The parameters are: `[ 2 ]`
 
 The number of customers per company changes with each filter:
 
@@ -160,6 +296,65 @@ const totalAgePerCompany = await connection.selectFrom(tCustomer)
     .executeSelectMany();
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company_id as companyId, 
+        ifnull(sum(calculateAge(birthday)), ?) as totalAge 
+    from customer 
+    group by company_id 
+    order by companyId
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company_id as companyId, 
+        ifnull(sum(calculateAge(birthday)), ?) as totalAge 
+    from customer 
+    group by company_id 
+    order by companyId
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company_id as "companyId", 
+        nvl(sum(calculateAge(birthday)), :0) as "totalAge" 
+    from customer 
+    group by company_id 
+    order by "companyId"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company_id as "companyId", 
+        coalesce(sum(calculateAge(birthday)), $1) as "totalAge" 
+    from customer 
+    group by company_id 
+    order by "companyId"
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company_id as companyId, 
+        ifnull(sum(calculateAge(birthday)), ?1) as totalAge 
+    from customer 
+    group by company_id 
+    order by companyId
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company_id as companyId, 
+        coalesce(sum(calculateAge(birthday)), @0) as totalAge 
+    from customer 
+    group by company_id 
+    order by companyId
+    ```
+
+The parameters are: `[ 0 ]`
+
 With the rows above, company 3 gets `totalAge: 0`.
 
 The difference between `countAll` and `count` matters with a left join. A company with no customers still has one row, with the columns of `customer` in null: `countAll` counts that row, and `count` over a column of `customer` doesn't. For the number of customers per company, including the companies with none, use `count`:
@@ -178,6 +373,71 @@ const customersOfEachCompany = await connection.selectFrom(tCompany)
     .executeSelectMany();
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company.id as companyId, 
+        count(customer.id) as customers 
+    from company 
+    left join customer on customer.company_id = company.id 
+    group by company.id 
+    order by companyId
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company.id as companyId, 
+        count(customer.id) as customers 
+    from company 
+    left join customer on customer.company_id = company.id 
+    group by company.id 
+    order by companyId
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company.id as "companyId", 
+        count(customer.id) as "customers" 
+    from company 
+    left join customer on customer.company_id = company.id 
+    group by company.id 
+    order by "companyId"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company.id as "companyId", 
+        count(customer.id) as customers 
+    from company 
+    left join customer on customer.company_id = company.id 
+    group by company.id 
+    order by "companyId"
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company.id as companyId, 
+        count(customer.id) as customers 
+    from company 
+    left join customer on customer.company_id = company.id 
+    group by company.id 
+    order by companyId
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company.id as companyId, 
+        count(customer.id) as customers 
+    from company 
+    left join customer on customer.company_id = company.id 
+    group by company.id 
+    order by companyId
+    ```
+
+The parameters are: `[]`
+
 ### Concatenating text
 
 `stringConcat` receives the separator as an optional second argument, and `,` is the default one. An empty text, `''`, joins the values with nothing between them.
@@ -193,15 +453,109 @@ const customerNamesPerCompany = await connection.selectFrom(tCustomer)
     .executeSelectMany();
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company_id as companyId, 
+        group_concat(first_name separator ', ') as firstNames 
+    from customer 
+    group by company_id 
+    order by companyId
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company_id as companyId, 
+        group_concat(first_name separator ', ') as firstNames 
+    from customer 
+    group by company_id 
+    order by companyId
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company_id as "companyId", 
+        listagg(first_name, :0) within group (order by first_name) as "firstNames" 
+    from customer 
+    group by company_id 
+    order by "companyId"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company_id as "companyId", 
+        string_agg(first_name, $1) as "firstNames" 
+    from customer 
+    group by company_id 
+    order by "companyId"
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company_id as companyId, 
+        group_concat(first_name, ?1) as firstNames 
+    from customer 
+    group by company_id 
+    order by companyId
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company_id as companyId, 
+        string_agg(first_name, ', ') as firstNames 
+    from customer 
+    group by company_id 
+    order by companyId
+    ```
+
+The parameters are: `[ ', ' ]` (on MariaDB and MySQL and SQL Server: `[]`)
+
 With the rows above, company 1 gets `'Ann, Bob, Carl'`, or the same names in another order: the order of the values in the text isn't defined, and there's no argument to choose it. Oracle returns them sorted, because `listagg` requires an order, and the library orders by the value itself.
 
 `stringConcatDistinct` removes the repeated values first:
 
+<!-- doc-code-snippet-result: 'Smith, Jones' -->
 ```ts
 const differentLastNames = await connection.selectFrom(tCustomer)
     .selectOneColumn(connection.stringConcatDistinct(tCustomer.lastName))
     .executeSelectOne();
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select group_concat(distinct last_name) as result 
+    from customer
+    ```
+=== "MySQL"
+    ```mysql
+    select group_concat(distinct last_name) as result 
+    from customer
+    ```
+=== "Oracle"
+    ```oracle
+    select listagg(distinct last_name, ',') within group (order by last_name) as "result" 
+    from customer
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select string_agg(distinct last_name, ',') as result 
+    from customer
+    ```
+=== "SQLite"
+    ```sqlite
+    select group_concat(distinct last_name) as result 
+    from customer
+    ```
+=== "SQL Server"
+    ```sqlserver
+    -- Not available on SQL Server
+    ```
+
+The parameters are: `[]`
 
 The separator of `stringConcatDistinct` isn't available on SQLite, and the function isn't available on SQL Server; there it doesn't compile. On Oracle it needs [Oracle 19c or later](../configuration/supported-databases/oracle.md).
 
@@ -293,6 +647,7 @@ Whole numbers are `int`, `bigint` and `customInt` values. They are cast so that 
 
 Without a `group by`, all the rows are a single group, so the query returns exactly one row. It's executed with `executeSelectOne`:
 
+<!-- doc-code-snippet-result: { customers: 6, withAge: 4, averageAge: 32.5, oldest: 40 } -->
 ```ts
 const customerStatistics = await connection.selectFrom(tCustomer)
     .select({
@@ -303,6 +658,65 @@ const customerStatistics = await connection.selectFrom(tCustomer)
     })
     .executeSelectOne();
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        count(*) as customers, 
+        count(calculateAge(birthday)) as withAge, 
+        avg(cast(calculateAge(birthday) as double)) as averageAge, 
+        max(calculateAge(birthday)) as oldest 
+    from customer
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        count(*) as customers, 
+        count(calculateAge(birthday)) as withAge, 
+        avg(cast(calculateAge(birthday) as double)) as averageAge, 
+        max(calculateAge(birthday)) as oldest 
+    from customer
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        count(*) as "customers", 
+        count(calculateAge(birthday)) as "withAge", 
+        avg(cast(calculateAge(birthday) as float)) as "averageAge", 
+        max(calculateAge(birthday)) as "oldest" 
+    from customer
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        count(*) as customers, 
+        count(calculateAge(birthday)) as "withAge", 
+        avg(calculateAge(birthday)::float) as "averageAge", 
+        max(calculateAge(birthday)) as oldest 
+    from customer
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        count(*) as customers, 
+        count(calculateAge(birthday)) as withAge, 
+        avg(cast(calculateAge(birthday) as real)) as averageAge, 
+        max(calculateAge(birthday)) as oldest 
+    from customer
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        count(*) as customers, 
+        count(calculateAge(birthday)) as withAge, 
+        avg(cast(calculateAge(birthday) as float)) as averageAge, 
+        max(calculateAge(birthday)) as oldest 
+    from customer
+    ```
+
+The parameters are: `[]`
 
 With the rows above, the result is `{ customers: 6, withAge: 4, averageAge: 32.5, oldest: 40 }`.
 
@@ -335,6 +749,47 @@ const customerCounts = await connection.selectFrom(tCustomer)
     .executeSelectMany();
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select count(*) as customers 
+    from customer 
+    group by company_id
+    ```
+=== "MySQL"
+    ```mysql
+    select count(*) as customers 
+    from customer 
+    group by company_id
+    ```
+=== "Oracle"
+    ```oracle
+    select count(*) as "customers" 
+    from customer 
+    group by company_id
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select count(*) as customers 
+    from customer 
+    group by company_id
+    ```
+=== "SQLite"
+    ```sqlite
+    select count(*) as customers 
+    from customer 
+    group by company_id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select count(*) as customers 
+    from customer 
+    group by company_id
+    ```
+
+The parameters are: `[]`
+
 With a nested object in the select, the group by uses the path of the property:
 
 ```ts
@@ -349,6 +804,65 @@ const customersPerCompanyId = await connection.selectFrom(tCustomer)
     .orderBy('company.id')
     .executeSelectMany();
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company_id as `company.id`, 
+        count(*) as customers 
+    from customer 
+    group by company_id 
+    order by `company.id`
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company_id as `company.id`, 
+        count(*) as customers 
+    from customer 
+    group by company_id 
+    order by `company.id`
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company_id as "company.id", 
+        count(*) as "customers" 
+    from customer 
+    group by company_id 
+    order by "company.id"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company_id as "company.id", 
+        count(*) as customers 
+    from customer 
+    group by company_id 
+    order by "company.id"
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company_id as "company.id", 
+        count(*) as customers 
+    from customer 
+    group by company_id 
+    order by "company.id"
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company_id as [company.id], 
+        count(*) as customers 
+    from customer 
+    group by company_id 
+    order by [company.id]
+    ```
+
+The parameters are: `[]`
 
 An expression with a parameter can't be written again in the group by: see [An expression that carries a parameter, written again](#an-expression-that-carries-a-parameter-written-again). The other ways of writing the group by and the having before the select are at the end of the page, in [Grouping and filtering before the select](#grouping-and-filtering-before-the-select).
 
@@ -1015,6 +1529,77 @@ const companiesByCustomers = await connection.selectFrom(tCustomer)
     .executeSelectMany();
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company_id as companyId, 
+        count(*) as customers 
+    from customer 
+    group by company_id 
+    order by 
+        customers desc, 
+        companyId
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company_id as companyId, 
+        count(*) as customers 
+    from customer 
+    group by company_id 
+    order by 
+        customers desc, 
+        companyId
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company_id as "companyId", 
+        count(*) as "customers" 
+    from customer 
+    group by company_id 
+    order by 
+        "customers" desc, 
+        "companyId"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company_id as "companyId", 
+        count(*) as customers 
+    from customer 
+    group by company_id 
+    order by 
+        customers desc, 
+        "companyId"
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company_id as companyId, 
+        count(*) as customers 
+    from customer 
+    group by company_id 
+    order by 
+        customers desc, 
+        companyId
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company_id as companyId, 
+        count(*) as customers 
+    from customer 
+    group by company_id 
+    order by 
+        customers desc, 
+        companyId
+    ```
+
+The parameters are: `[]`
+
 With the rows above, the result is the companies `1`, `2` and `3`, with `3`, `2` and `1` customers.
 
 An aggregate that isn't returned goes in the `orderBy` as an expression:
@@ -1030,6 +1615,65 @@ const companyIdsByCustomers = await connection.selectFrom(tCustomer)
     .executeSelectMany();
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select company_id as companyId 
+    from customer 
+    group by company_id 
+    order by 
+        count(*) desc, 
+        companyId
+    ```
+=== "MySQL"
+    ```mysql
+    select company_id as companyId 
+    from customer 
+    group by company_id 
+    order by 
+        count(*) desc, 
+        companyId
+    ```
+=== "Oracle"
+    ```oracle
+    select company_id as "companyId" 
+    from customer 
+    group by company_id 
+    order by 
+        count(*) desc, 
+        "companyId"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select company_id as "companyId" 
+    from customer 
+    group by company_id 
+    order by 
+        count(*) desc, 
+        "companyId"
+    ```
+=== "SQLite"
+    ```sqlite
+    select company_id as companyId 
+    from customer 
+    group by company_id 
+    order by 
+        count(*) desc, 
+        companyId
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select company_id as companyId 
+    from customer 
+    group by company_id 
+    order by 
+        count(*) desc, 
+        companyId
+    ```
+
+The parameters are: `[]`
+
 An aggregate can have no value, and the databases don't agree on where the nulls go. Say it with the [order mode](select.md#the-order-modes). Here company 3, which has no ages to add, goes last:
 
 ```ts
@@ -1042,6 +1686,65 @@ const companiesByTotalAge = await connection.selectFrom(tCustomer)
     .orderBy('totalAge', 'desc nulls last')
     .executeSelectMany();
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company_id as companyId, 
+        sum(calculateAge(birthday)) as totalAge 
+    from customer 
+    group by company_id 
+    order by totalAge desc
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company_id as companyId, 
+        sum(calculateAge(birthday)) as totalAge 
+    from customer 
+    group by company_id 
+    order by totalAge desc
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company_id as "companyId", 
+        sum(calculateAge(birthday)) as "totalAge" 
+    from customer 
+    group by company_id 
+    order by "totalAge" desc nulls last
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company_id as "companyId", 
+        sum(calculateAge(birthday)) as "totalAge" 
+    from customer 
+    group by company_id 
+    order by "totalAge" desc nulls last
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company_id as companyId, 
+        sum(calculateAge(birthday)) as totalAge 
+    from customer 
+    group by company_id 
+    order by totalAge desc nulls last
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company_id as companyId, 
+        sum(calculateAge(birthday)) as totalAge 
+    from customer 
+    group by company_id 
+    order by totalAge desc
+    ```
+
+The parameters are: `[]`
 
 ## Grouping and filtering before the select
 

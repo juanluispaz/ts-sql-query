@@ -213,6 +213,53 @@ const customersWithAgeGroup = connection.selectFrom(tCustomer)
     .executeSelectMany();
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        case when id > 100 then 'adult' else 'minor' end as ageGroup 
+    from customer
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        case when id > 100 then 'adult' else 'minor' end as ageGroup 
+    from customer
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        case when id > 100 then 'adult' else 'minor' end as "ageGroup" 
+    from customer
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        case when id > 100 then 'adult' else 'minor' end as "ageGroup" 
+    from customer
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        case when id > 100 then 'adult' else 'minor' end as ageGroup 
+    from customer
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        case when id > 100 then 'adult' else 'minor' end as ageGroup 
+    from customer
+    ```
+
+The parameters are: `[]`
+
 The library can't read your SQL, so it trusts what you declare:
 
 - At compile time, the type decides which methods the fragment offers, what it can be compared with, and the type of the property in the result. `'optional'` makes the property optional.
@@ -628,6 +675,165 @@ const idsPerCompany = connection.selectFrom(tCustomer)
     .orderBy('companyId')
     .executeSelectMany();
 ```
+
+The executed query to get the data is:
+
+=== "MariaDB"
+    ```mariadb
+    select count(*) as customers 
+    from customer
+    ```
+=== "MySQL"
+    ```mysql
+    select count(*) as customers 
+    from customer
+    ```
+=== "Oracle"
+    ```oracle
+    select count(*) as "customers" 
+    from customer
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select count(*) as customers 
+    from customer
+    ```
+=== "SQLite"
+    ```sqlite
+    select count(*) as customers 
+    from customer
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select count(*) as customers 
+    from customer
+    ```
+
+And its parameters are: `[]`
+
+The executed query to get the count is:
+
+=== "MariaDB"
+    ```mariadb
+    with 
+        result_for_count as ( 
+            select count(*) as customers  
+            from customer 
+        ) 
+    select count(*) 
+    from result_for_count
+    ```
+=== "MySQL"
+    ```mysql
+    with 
+        result_for_count as ( 
+            select count(*) as customers  
+            from customer 
+        ) 
+    select count(*) 
+    from result_for_count
+    ```
+=== "Oracle"
+    ```oracle
+    with 
+        result_for_count as ( 
+            select count(*) as customers  
+            from customer 
+        ) 
+    select count(*) 
+    from result_for_count
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    with 
+        result_for_count as ( 
+            select count(*) as customers  
+            from customer 
+        ) 
+    select count(*) 
+    from result_for_count
+    ```
+=== "SQLite"
+    ```sqlite
+    with 
+        result_for_count as ( 
+            select count(*) as customers  
+            from customer 
+        ) 
+    select count(*) 
+    from result_for_count
+    ```
+=== "SQL Server"
+    ```sqlserver
+    with 
+        result_for_count as ( 
+            select count(*) as customers  
+            from customer 
+        ) 
+    select count(*) 
+    from result_for_count
+    ```
+
+And its parameters are: `[]`
+
+The executed query to get the count is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company_id as companyId, 
+        sum(id) as total 
+    from customer 
+    group by company_id 
+    order by companyId
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company_id as companyId, 
+        sum(id) as total 
+    from customer 
+    group by company_id 
+    order by companyId
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company_id as "companyId", 
+        sum(id) as "total" 
+    from customer 
+    group by company_id 
+    order by "companyId"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company_id as "companyId", 
+        sum(id) as total 
+    from customer 
+    group by company_id 
+    order by "companyId"
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company_id as companyId, 
+        sum(id) as total 
+    from customer 
+    group by company_id 
+    order by companyId
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company_id as companyId, 
+        sum(id) as total 
+    from customer 
+    group by company_id 
+    order by companyId
+    ```
+
+And its parameters are: `[]`
 
 ### Virtual columns
 
@@ -1687,3 +1893,38 @@ const customersOfTheList = connection.selectFrom(tCustomer)
     })
     .executeSelectMany();
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select id as id 
+    from customer
+    ```
+=== "MySQL"
+    ```mysql
+    select id as id 
+    from customer
+    ```
+=== "Oracle"
+    ```oracle
+    select id as "id" 
+    from customer
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select id as id 
+    from customer
+    ```
+=== "SQLite"
+    ```sqlite
+    select id as id 
+    from customer
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select id as id 
+    from customer
+    ```
+
+The parameters are: `[]`

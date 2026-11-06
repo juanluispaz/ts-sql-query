@@ -307,6 +307,62 @@ const acmeCompanyWithLastNames = connection.selectFrom(tCompany)
     .executeSelectOne();
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company.id as id, 
+        company.name as name, 
+        cast(json_arrayagg(distinct customer.last_name) as char) as lastNames 
+    from company 
+    left join customer on customer.company_id = company.id 
+    where company.id = ? 
+    group by 
+        company.id, 
+        company.name
+    ```
+=== "MySQL"
+    ```mysql
+    -- Not available on MySQL
+    ```
+=== "Oracle"
+    ```oracle
+    -- Not available on Oracle
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company.id as id, 
+        company.name as name, 
+        (json_agg(distinct customer.last_name))::text as "lastNames" 
+    from company 
+    left join customer on customer.company_id = company.id 
+    where company.id = $1 
+    group by 
+        company.id, 
+        company.name
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company.id as id, 
+        company.name as name, 
+        json_group_array(distinct customer.last_name) as lastNames 
+    from company 
+    left join customer on customer.company_id = company.id 
+    where company.id = ?1 
+    group by 
+        company.id, 
+        company.name
+    ```
+=== "SQL Server"
+    ```sqlserver
+    -- Not available on SQL Server
+    ```
+
+The parameters are: `[ 1 ]`
+
 !!! warning "Limitation"
 
     [MySQL](../configuration/supported-databases/mysql.md), [Oracle](../configuration/supported-databases/oracle.md), and [SQL Server](../configuration/supported-databases/sqlserver.md) don't accept the `DISTINCT` quantifier inside their JSON-array aggregation function. If you try to use `aggregateAsArrayDistinct` or `aggregateAsArrayOfOneColumnDistinct` on any of these databases, you will get a compilation error. A workaround is to remove the duplicates inside a subquery created with `subSelectDistinctUsing`, as shown in [Inline subquery with distinct values referencing outer query](cte-subqueries.md#inline-subquery-with-distinct-values-referencing-outer-query).
@@ -660,6 +716,59 @@ const companies = await connection.selectFrom(tCompany)
     .executeSelectMany();
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        name as name, 
+        cast((select json_arrayagg(json_object('id', id, 'firstName', first_name) order by id desc limit ?) from customer where company_id = company.id) as char) as lastCustomers 
+    from company
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        `name` as `name`, 
+        cast((select json_arrayagg(json_object('id', a_1_.id, 'firstName', a_1_.firstName)) from (select id as id, first_name as firstName from customer where company_id = company.id order by id desc limit ?) as a_1_) as char) as lastCustomers 
+    from company
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        name as "name", 
+        (select json_arrayagg(json_object('id' value a_1_.id, 'firstName' value a_1_.firstName)) from (select id as id, first_name as firstName from customer where company_id = company.id order by id desc fetch next :0 rows only) a_1_) as "lastCustomers" 
+    from company
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        name as name, 
+        ((select json_agg(json_build_object('id', a_1_.id, 'firstName', a_1_.firstName)) from (select id as id, first_name as firstName from customer where company_id = company.id order by id desc limit $1) as a_1_))::text as "lastCustomers" 
+    from company
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        name as name, 
+        (select json_group_array(json_object('id', a_1_.id, 'firstName', a_1_.firstName)) from (select id as id, first_name as firstName from customer where company_id = company.id order by id desc limit ?1) as a_1_) as lastCustomers 
+    from company
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        name as name, 
+        (select id as id, first_name as firstName from customer where company_id = company.id order by id desc offset 0 rows fetch next @0 rows only for json path) as lastCustomers 
+    from company
+    ```
+
+The parameters are: `[ 3 ]`
+
 ## Arrays inside an array
 
 An inline query can be a property of the elements of another inline query, with the outer query of each one being the next level. For example, each company with its child companies, and each of those with its customers:
@@ -692,6 +801,59 @@ const companies = await connection.selectFrom(tCompany)
     })
     .executeSelectMany();
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        name as name, 
+        cast((select json_arrayagg(json_object('id', childCompany.id, 'name', childCompany.name, 'customers', (select json_arrayagg(json_object('id', id, 'firstName', first_name)) from customer where company_id = childCompany.id))) from company as childCompany where childCompany.parent_id = company.id) as char) as children 
+    from company
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        `name` as `name`, 
+        cast((select json_arrayagg(json_object('id', childCompany.id, 'name', childCompany.`name`, 'customers', (select json_arrayagg(json_object('id', id, 'firstName', first_name)) from customer where company_id = childCompany.id))) from company as childCompany where childCompany.parent_id = company.id) as char) as children 
+    from company
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        name as "name", 
+        (select json_arrayagg(json_object('id' value childCompany.id, 'name' value childCompany.name, 'customers' value (select json_arrayagg(json_object('id' value id, 'firstName' value first_name)) from customer where company_id = childCompany.id))) from company childCompany where childCompany.parent_id = company.id) as "children" 
+    from company
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        name as name, 
+        ((select json_agg(json_build_object('id', childCompany.id, 'name', childCompany.name, 'customers', (select json_agg(json_build_object('id', id, 'firstName', first_name)) from customer where company_id = childCompany.id))) from company as childCompany where childCompany.parent_id = company.id))::text as children 
+    from company
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        name as name, 
+        (select json_group_array(json_object('id', childCompany.id, 'name', childCompany.name, 'customers', (select json_group_array(json_object('id', id, 'firstName', first_name)) from customer where company_id = childCompany.id))) from company as childCompany where childCompany.parent_id = company.id) as children 
+    from company
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        name as name, 
+        (select childCompany.id as id, childCompany.name as name, (select id as id, first_name as firstName from customer where company_id = childCompany.id for json path) as customers from company as childCompany where childCompany.parent_id = company.id for json path) as children 
+    from company
+    ```
+
+The parameters are: `[]`
 
 ## Recursive query as an inline array of objects
 
@@ -900,6 +1062,7 @@ These methods of the resulting value change that, and they are the same for the 
 
 With an inline query, the subquery isn't sent to the database at all. With an aggregate function, the `null` takes the place of the function, but the join and the group by you wrote stay in the query. For example, with a boolean `includeCustomers`:
 
+<!-- doc-code-snippet-result: { id: 1, name: 'ACME' } -->
 ```ts
 const includeCustomers = false;
 
@@ -922,6 +1085,65 @@ const company = await connection.selectFrom(tCompany)
     .executeSelectOne();
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        name as name, 
+        cast(null as char) as customers 
+    from company 
+    where id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        `name` as `name`, 
+        cast(null as char) as customers 
+    from company 
+    where id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        name as "name", 
+        null as "customers" 
+    from company 
+    where id = :0
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        name as name, 
+        (null)::text as customers 
+    from company 
+    where id = $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        name as name, 
+        null as customers 
+    from company 
+    where id = ?1
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        name as name, 
+        null as customers 
+    from company 
+    where id = @0
+    ```
+
+The parameters are: `[ 1 ]`
+
 `allowWhen` and `disallowWhen` are available too; they [throw an error](../dynamic/restricting-values.md#restrict-access-to-values) instead of leaving out the value.
 
 ## Optional values in the elements
@@ -930,6 +1152,7 @@ const company = await connection.selectFrom(tCompany)
 
 **In an array of objects**, an optional property with no value is left out of the element by default, like in a select. To have it always present, with `null` when it has no value, call `projectingOptionalValuesAsNullable()`. It goes immediately after `aggregateAsArray(...)`:
 
+<!-- doc-code-snippet-result: { id: 1, customers: [] } -->
 ```ts
 const tCustomerLeftJoin = tCustomer.forUseInLeftJoin();
 
@@ -947,8 +1170,74 @@ const acmeCompanyWithCustomers = await connection.selectFrom(tCompany)
     .executeSelectOne();
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company.id as id, 
+        cast(json_arrayagg(json_object('id', customer.id, 'birthday', customer.birthday)) as char) as customers 
+    from company 
+    left join customer on customer.company_id = company.id 
+    where company.id = ? 
+    group by company.id
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company.id as id, 
+        cast(json_arrayagg(json_object('id', customer.id, 'birthday', customer.birthday)) as char) as customers 
+    from company 
+    left join customer on customer.company_id = company.id 
+    where company.id = ? 
+    group by company.id
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company.id as "id", 
+        json_arrayagg(json_object('id' value customer.id, 'birthday' value customer.birthday)) as "customers" 
+    from company 
+    left join customer on customer.company_id = company.id 
+    where company.id = :0 
+    group by company.id
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company.id as id, 
+        (json_agg(json_build_object('id', customer.id, 'birthday', customer.birthday)))::text as customers 
+    from company 
+    left join customer on customer.company_id = company.id 
+    where company.id = $1 
+    group by company.id
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company.id as id, 
+        json_group_array(json_object('id', customer.id, 'birthday', customer.birthday)) as customers 
+    from company 
+    left join customer on customer.company_id = company.id 
+    where company.id = ?1 
+    group by company.id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company.id as id, 
+        json_arrayagg(json_object('id':customer.id, 'birthday':customer.birthday)) as customers 
+    from company 
+    left join customer on customer.company_id = company.id 
+    where company.id = @0 
+    group by company.id
+    ```
+
+The parameters are: `[ 1 ]`
+
 In an inline query it goes immediately after `select(...)`:
 
+<!-- doc-code-snippet-result: { id: 1, customers: [] } -->
 ```ts
 const customersOfTheCompany = connection.subSelectUsing(tCompany).from(tCustomer)
     .where(tCustomer.companyId.equals(tCompany.id))
@@ -968,6 +1257,59 @@ const acmeCompanyWithCustomers = await connection.selectFrom(tCompany)
     })
     .executeSelectOne();
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        cast((select json_arrayagg(json_object('id', id, 'birthday', birthday) order by id) from customer where company_id = company.id) as char) as customers 
+    from company 
+    where id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        cast((select json_arrayagg(json_object('id', a_1_.id, 'birthday', a_1_.birthday)) from (select id as id, birthday as birthday from customer where company_id = company.id order by id limit 2147483647) as a_1_) as char) as customers 
+    from company 
+    where id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        (select json_arrayagg(json_object('id' value a_1_.id, 'birthday' value a_1_.birthday)) from (select id as id, birthday as birthday from customer where company_id = company.id order by id offset 0 rows) a_1_) as "customers" 
+    from company 
+    where id = :0
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        ((select json_agg(json_build_object('id', a_1_.id, 'birthday', a_1_.birthday)) from (select id as id, birthday as birthday from customer where company_id = company.id order by id) as a_1_))::text as customers 
+    from company 
+    where id = $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        (select json_group_array(json_object('id', a_1_.id, 'birthday', a_1_.birthday)) from (select id as id, birthday as birthday from customer where company_id = company.id order by id) as a_1_) as customers 
+    from company 
+    where id = ?1
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        (select id as id, birthday as birthday from customer where company_id = company.id order by id offset 0 rows for json path) as customers 
+    from company 
+    where id = @0
+    ```
+
+The parameters are: `[ 1 ]`
 
 In both, the type of the elements is `{ id: number; birthday: Date | null }`, and not `{ id: number; birthday?: Date }`. This only applies to the array where you call it: `projectingOptionalValuesAsNullable()` on the outer select doesn't change the elements of an `aggregateAsArray` in it.
 

@@ -220,6 +220,65 @@ const companiesWithUbication = connection.selectFrom(tCompany)
     .executeSelectMany();
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        ubication_latitude as `ubication.latitude`, 
+        ubication_longitude as `ubication.longitude`, 
+        ubication_comment as `ubication.comment` 
+    from company
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        ubication_latitude as `ubication.latitude`, 
+        ubication_longitude as `ubication.longitude`, 
+        ubication_comment as `ubication.comment` 
+    from company
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        ubication_latitude as "ubication.latitude", 
+        ubication_longitude as "ubication.longitude", 
+        ubication_comment as "ubication.comment" 
+    from company
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        ubication_latitude as "ubication.latitude", 
+        ubication_longitude as "ubication.longitude", 
+        ubication_comment as "ubication.comment" 
+    from company
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        ubication_latitude as "ubication.latitude", 
+        ubication_longitude as "ubication.longitude", 
+        ubication_comment as "ubication.comment" 
+    from company
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        ubication_latitude as [ubication.latitude], 
+        ubication_longitude as [ubication.longitude], 
+        ubication_comment as [ubication.comment] 
+    from company
+    ```
+
+The parameters are: `[]`
+
 The result type is:
 ```tsx
 const companiesWithUbication: Promise<{
@@ -261,6 +320,71 @@ const companiesWithParent = connection.selectFrom(tCompany)
     .executeSelectMany();
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company.id as id, 
+        parent.id as `parent.id`, 
+        parent.name as `parent.name`, 
+        parent.parent_id as `parent.parentId` 
+    from company 
+    left join company as parent on company.parent_id = parent.id
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company.id as id, 
+        parent.id as `parent.id`, 
+        parent.`name` as `parent.name`, 
+        parent.parent_id as `parent.parentId` 
+    from company 
+    left join company as parent on company.parent_id = parent.id
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company.id as "id", 
+        parent.id as "parent.id", 
+        parent.name as "parent.name", 
+        parent.parent_id as "parent.parentId" 
+    from company 
+    left join company parent on company.parent_id = parent.id
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company.id as id, 
+        parent.id as "parent.id", 
+        parent.name as "parent.name", 
+        parent.parent_id as "parent.parentId" 
+    from company 
+    left join company as parent on company.parent_id = parent.id
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company.id as id, 
+        parent.id as "parent.id", 
+        parent.name as "parent.name", 
+        parent.parent_id as "parent.parentId" 
+    from company 
+    left join company as parent on company.parent_id = parent.id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company.id as id, 
+        parent.id as [parent.id], 
+        parent.name as [parent.name], 
+        parent.parent_id as [parent.parentId] 
+    from company 
+    left join company as parent on company.parent_id = parent.id
+    ```
+
+The parameters are: `[]`
+
 The result type is:
 ```tsx
 const companiesWithParent: Promise<{
@@ -295,6 +419,95 @@ const companiesWithWholeParent = connection.selectFrom(tCompany)
     .executeSelectMany();
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company.id as id, 
+        parent.id as `parent.id`, 
+        parent.name as `parent.name`, 
+        parent.parent_id as `parent.parentId`, 
+        parent.favourite_customer_id as `parent.favouriteCustomerId`, 
+        parent.ubication_latitude as `parent.ubicationLatitude`, 
+        parent.ubication_longitude as `parent.ubicationLongitude`, 
+        parent.ubication_comment as `parent.ubicationComment` 
+    from company 
+    left join company as parent on company.parent_id = parent.id
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company.id as id, 
+        parent.id as `parent.id`, 
+        parent.`name` as `parent.name`, 
+        parent.parent_id as `parent.parentId`, 
+        parent.favourite_customer_id as `parent.favouriteCustomerId`, 
+        parent.ubication_latitude as `parent.ubicationLatitude`, 
+        parent.ubication_longitude as `parent.ubicationLongitude`, 
+        parent.ubication_comment as `parent.ubicationComment` 
+    from company 
+    left join company as parent on company.parent_id = parent.id
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company.id as "id", 
+        parent.id as "parent.id", 
+        parent.name as "parent.name", 
+        parent.parent_id as "parent.parentId", 
+        parent.favourite_customer_id as "parent.favouriteCustomerId", 
+        parent.ubication_latitude as "parent.ubicationLatitude", 
+        parent.ubication_longitude as "parent.ubicationLongitude", 
+        parent.ubication_comment as "parent.ubicationComment" 
+    from company 
+    left join company parent on company.parent_id = parent.id
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company.id as id, 
+        parent.id as "parent.id", 
+        parent.name as "parent.name", 
+        parent.parent_id as "parent.parentId", 
+        parent.favourite_customer_id as "parent.favouriteCustomerId", 
+        parent.ubication_latitude as "parent.ubicationLatitude", 
+        parent.ubication_longitude as "parent.ubicationLongitude", 
+        parent.ubication_comment as "parent.ubicationComment" 
+    from company 
+    left join company as parent on company.parent_id = parent.id
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company.id as id, 
+        parent.id as "parent.id", 
+        parent.name as "parent.name", 
+        parent.parent_id as "parent.parentId", 
+        parent.favourite_customer_id as "parent.favouriteCustomerId", 
+        parent.ubication_latitude as "parent.ubicationLatitude", 
+        parent.ubication_longitude as "parent.ubicationLongitude", 
+        parent.ubication_comment as "parent.ubicationComment" 
+    from company 
+    left join company as parent on company.parent_id = parent.id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company.id as id, 
+        parent.id as [parent.id], 
+        parent.name as [parent.name], 
+        parent.parent_id as [parent.parentId], 
+        parent.favourite_customer_id as [parent.favouriteCustomerId], 
+        parent.ubication_latitude as [parent.ubicationLatitude], 
+        parent.ubication_longitude as [parent.ubicationLongitude], 
+        parent.ubication_comment as [parent.ubicationComment] 
+    from company 
+    left join company as parent on company.parent_id = parent.id
+    ```
+
+The parameters are: `[]`
+
 To select only some columns of a table in this way, see [`extractColumnsFrom`](../advanced/columns-from-object.md).
 
 ### Rule 3: a required value
@@ -316,6 +529,71 @@ const companiesWithInfo = connection.selectFrom(tCompany)
     })
     .executeSelectMany();
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company.id as id, 
+        company.name as `info.name`, 
+        company.parent_id as `info.parentId`, 
+        parent.name as `info.parentName` 
+    from company 
+    left join company as parent on company.parent_id = parent.id
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company.id as id, 
+        company.`name` as `info.name`, 
+        company.parent_id as `info.parentId`, 
+        parent.`name` as `info.parentName` 
+    from company 
+    left join company as parent on company.parent_id = parent.id
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company.id as "id", 
+        company.name as "info.name", 
+        company.parent_id as "info.parentId", 
+        parent.name as "info.parentName" 
+    from company 
+    left join company parent on company.parent_id = parent.id
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company.id as id, 
+        company.name as "info.name", 
+        company.parent_id as "info.parentId", 
+        parent.name as "info.parentName" 
+    from company 
+    left join company as parent on company.parent_id = parent.id
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company.id as id, 
+        company.name as "info.name", 
+        company.parent_id as "info.parentId", 
+        parent.name as "info.parentName" 
+    from company 
+    left join company as parent on company.parent_id = parent.id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company.id as id, 
+        company.name as [info.name], 
+        company.parent_id as [info.parentId], 
+        parent.name as [info.parentName] 
+    from company 
+    left join company as parent on company.parent_id = parent.id
+    ```
+
+The parameters are: `[]`
 
 The result type is:
 ```tsx
@@ -352,6 +630,65 @@ const companiesWithAnyUbication = connection.selectFrom(tCompany)
     })
     .executeSelectMany();
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        ubication_latitude as `ubication.latitude`, 
+        ubication_longitude as `ubication.longitude`, 
+        ubication_comment as `ubication.comment` 
+    from company
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        ubication_latitude as `ubication.latitude`, 
+        ubication_longitude as `ubication.longitude`, 
+        ubication_comment as `ubication.comment` 
+    from company
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        ubication_latitude as "ubication.latitude", 
+        ubication_longitude as "ubication.longitude", 
+        ubication_comment as "ubication.comment" 
+    from company
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        ubication_latitude as "ubication.latitude", 
+        ubication_longitude as "ubication.longitude", 
+        ubication_comment as "ubication.comment" 
+    from company
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        ubication_latitude as "ubication.latitude", 
+        ubication_longitude as "ubication.longitude", 
+        ubication_comment as "ubication.comment" 
+    from company
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        ubication_latitude as [ubication.latitude], 
+        ubication_longitude as [ubication.longitude], 
+        ubication_comment as [ubication.comment] 
+    from company
+    ```
+
+The parameters are: `[]`
 
 The result type is:
 ```tsx
@@ -780,6 +1117,71 @@ const companiesWithNulls = connection.selectFrom(tCompany)
     .projectingOptionalValuesAsNullable()
     .executeSelectMany();
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        parent_id as parentId, 
+        ubication_latitude as `ubication.latitude`, 
+        ubication_longitude as `ubication.longitude`, 
+        ubication_comment as `ubication.comment` 
+    from company
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        parent_id as parentId, 
+        ubication_latitude as `ubication.latitude`, 
+        ubication_longitude as `ubication.longitude`, 
+        ubication_comment as `ubication.comment` 
+    from company
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        parent_id as "parentId", 
+        ubication_latitude as "ubication.latitude", 
+        ubication_longitude as "ubication.longitude", 
+        ubication_comment as "ubication.comment" 
+    from company
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        parent_id as "parentId", 
+        ubication_latitude as "ubication.latitude", 
+        ubication_longitude as "ubication.longitude", 
+        ubication_comment as "ubication.comment" 
+    from company
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        parent_id as parentId, 
+        ubication_latitude as "ubication.latitude", 
+        ubication_longitude as "ubication.longitude", 
+        ubication_comment as "ubication.comment" 
+    from company
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        parent_id as parentId, 
+        ubication_latitude as [ubication.latitude], 
+        ubication_longitude as [ubication.longitude], 
+        ubication_comment as [ubication.comment] 
+    from company
+    ```
+
+The parameters are: `[]`
 
 The result type is:
 ```tsx

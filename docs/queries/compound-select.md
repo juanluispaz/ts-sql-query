@@ -178,6 +178,108 @@ const firstNames = await connection.selectFrom(tCustomer)
     .executeSelectMany();
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as name 
+    from customer 
+    
+    union all 
+    
+    select 
+        id as id, 
+        name as name 
+    from company 
+    order by name 
+    limit ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as `name` 
+    from customer 
+    
+    union all 
+    
+    select 
+        id as id, 
+        `name` as `name` 
+    from company 
+    order by `name` 
+    limit ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "name" 
+    from customer 
+    
+    union all 
+    
+    select 
+        id as "id", 
+        name as "name" 
+    from company 
+    order by 2 
+    fetch next :0 rows only
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as name 
+    from customer 
+    
+    union all 
+    
+    select 
+        id as id, 
+        name as name 
+    from company 
+    order by name 
+    limit $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as name 
+    from customer 
+    
+    union all 
+    
+    select 
+        id as id, 
+        name as name 
+    from company 
+    order by name 
+    limit ?1
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as name 
+    from customer 
+    
+    union all 
+    
+    select 
+        id as id, 
+        name as name 
+    from company 
+    order by name 
+    offset 0 rows 
+    fetch next @0 rows only
+    ```
+
+The parameters are: `[ 10 ]`
+
 ## Combining more than two selects
 
 The operators can be chained, and they compose as they are written in the code:

@@ -180,6 +180,65 @@ const companiesWithCustomers = await connection.selectFrom(tCompany)
     .executeSelectMany();
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        name as name 
+    from company 
+    where exists(select id as result from customer where company_id = company.id) 
+    order by id
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        `name` as `name` 
+    from company 
+    where exists(select id as result from customer where company_id = company.id) 
+    order by id
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        name as "name" 
+    from company 
+    where exists(select id as "result" from customer where company_id = company.id) 
+    order by "id"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        name as name 
+    from company 
+    where exists(select id as result from customer where company_id = company.id) 
+    order by id
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        name as name 
+    from company 
+    where exists(select id as result from customer where company_id = company.id) 
+    order by id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        name as name 
+    from company 
+    where exists(select id as [result] from customer where company_id = company.id) 
+    order by id
+    ```
+
+The parameters are: `[]`
+
 The result type is:
 ```tsx
 const companiesWithCustomers: {
@@ -430,6 +489,59 @@ const customersWithNamesakes = await connection.selectFrom(tCustomer)
     .orderBy('id')
     .executeSelectMany();
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        (select count(*) as result from customer as otherCustomer where otherCustomer.last_name = customer.last_name and otherCustomer.id <> customer.id) as numberOfNamesakes 
+    from customer 
+    order by id
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        (select count(*) as result from customer as otherCustomer where otherCustomer.last_name = customer.last_name and otherCustomer.id <> customer.id) as numberOfNamesakes 
+    from customer 
+    order by id
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        (select count(*) as "result" from customer otherCustomer where otherCustomer.last_name = customer.last_name and otherCustomer.id <> customer.id) as "numberOfNamesakes" 
+    from customer 
+    order by "id"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        (select count(*) as result from customer as otherCustomer where otherCustomer.last_name = customer.last_name and otherCustomer.id <> customer.id) as "numberOfNamesakes" 
+    from customer 
+    order by id
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        (select count(*) as result from customer as otherCustomer where otherCustomer.last_name = customer.last_name and otherCustomer.id <> customer.id) as numberOfNamesakes 
+    from customer 
+    order by id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        (select count(*) as [result] from customer as otherCustomer where otherCustomer.last_name = customer.last_name and otherCustomer.id <> customer.id) as numberOfNamesakes 
+    from customer 
+    order by id
+    ```
+
+The parameters are: `[]`
 
 ## Inline subquery with distinct values referencing outer query
 
@@ -710,6 +822,125 @@ const customersOfAcme = await connection.selectFrom(customerWithCompany)
     .executeSelectMany();
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    with 
+        customerWithCompany as ( 
+            select 
+                customer.id as id, 
+                company.id as `company.id`, 
+                company.name as `company.name` 
+            from customer 
+            inner join company on company.id = customer.company_id 
+        ) 
+    select 
+        id as id, 
+        `company.id` as `company.id`, 
+        `company.name` as `company.name` 
+    from customerWithCompany 
+    where `company.name` like concat('%', ?, '%') 
+    order by id
+    ```
+=== "MySQL"
+    ```mysql
+    with 
+        customerWithCompany as ( 
+            select 
+                customer.id as id, 
+                company.id as `company.id`, 
+                company.`name` as `company.name` 
+            from customer 
+            inner join company on company.id = customer.company_id 
+        ) 
+    select 
+        id as id, 
+        `company.id` as `company.id`, 
+        `company.name` as `company.name` 
+    from customerWithCompany 
+    where `company.name` like concat('%', ?, '%') 
+    order by id
+    ```
+=== "Oracle"
+    ```oracle
+    with 
+        customerWithCompany as ( 
+            select 
+                customer.id as id, 
+                company.id as "company.id", 
+                company.name as "company.name" 
+            from customer 
+            inner join company on company.id = customer.company_id 
+        ) 
+    select 
+        id as "id", 
+        "company.id" as "company.id", 
+        "company.name" as "company.name" 
+    from customerWithCompany 
+    where "company.name" like ('%' || :0 || '%') escape '\' 
+    order by "id"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    with 
+        customerWithCompany as ( 
+            select 
+                customer.id as id, 
+                company.id as "company.id", 
+                company.name as "company.name" 
+            from customer 
+            inner join company on company.id = customer.company_id 
+        ) 
+    select 
+        id as id, 
+        "company.id" as "company.id", 
+        "company.name" as "company.name" 
+    from customerWithCompany 
+    where "company.name" like ('%' || $1 || '%') 
+    order by id
+    ```
+=== "SQLite"
+    ```sqlite
+    with 
+        customerWithCompany as ( 
+            select 
+                customer.id as id, 
+                company.id as "company.id", 
+                company.name as "company.name" 
+            from customer 
+            inner join company on company.id = customer.company_id 
+        ) 
+    select 
+        id as id, 
+        "company.id" as "company.id", 
+        "company.name" as "company.name" 
+    from customerWithCompany 
+    where "company.name" like ('%' || ?1 || '%') escape '\' 
+    order by id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    with 
+        customerWithCompany as ( 
+            select 
+                customer.id as id, 
+                company.id as [company.id], 
+                company.name as [company.name] 
+            from customer 
+            inner join company on company.id = customer.company_id 
+        ) 
+    select 
+        id as id, 
+        [company.id] as [company.id], 
+        [company.name] as [company.name] 
+    from customerWithCompany 
+    where [company.name] like ('%' + @0 + '%') 
+    order by id
+    ```
+
+The parameters are: `[ 'ACME' ]`
+
 The result type is:
 ```tsx
 const customersOfAcme: {
@@ -749,6 +980,119 @@ const companiesWithCustomerCount = await connection.selectFrom(tCompany)
     .executeSelectMany();
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    with 
+        customerCountPerCompany as ( 
+            select 
+                company_id as companyId, 
+                count(id) as customerCount 
+            from customer 
+            group by company_id 
+        ) 
+    select 
+        company.id as id, 
+        company.name as name, 
+        ifnull(customerCountPerCompany.customerCount, ?) as customerCount 
+    from company 
+    left join customerCountPerCompany on customerCountPerCompany.companyId = company.id 
+    order by id
+    ```
+=== "MySQL"
+    ```mysql
+    with 
+        customerCountPerCompany as ( 
+            select 
+                company_id as companyId, 
+                count(id) as customerCount 
+            from customer 
+            group by company_id 
+        ) 
+    select 
+        company.id as id, 
+        company.`name` as `name`, 
+        ifnull(customerCountPerCompany.customerCount, ?) as customerCount 
+    from company 
+    left join customerCountPerCompany on customerCountPerCompany.companyId = company.id 
+    order by id
+    ```
+=== "Oracle"
+    ```oracle
+    with 
+        customerCountPerCompany as ( 
+            select 
+                company_id as companyId, 
+                count(id) as customerCount 
+            from customer 
+            group by company_id 
+        ) 
+    select 
+        company.id as "id", 
+        company.name as "name", 
+        nvl(customerCountPerCompany.customerCount, :0) as "customerCount" 
+    from company 
+    left join customerCountPerCompany on customerCountPerCompany.companyId = company.id 
+    order by "id"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    with 
+        customerCountPerCompany as ( 
+            select 
+                company_id as companyId, 
+                count(id) as customerCount 
+            from customer 
+            group by company_id 
+        ) 
+    select 
+        company.id as id, 
+        company.name as name, 
+        coalesce(customerCountPerCompany.customerCount, $1) as "customerCount" 
+    from company 
+    left join customerCountPerCompany on customerCountPerCompany.companyId = company.id 
+    order by id
+    ```
+=== "SQLite"
+    ```sqlite
+    with 
+        customerCountPerCompany as ( 
+            select 
+                company_id as companyId, 
+                count(id) as customerCount 
+            from customer 
+            group by company_id 
+        ) 
+    select 
+        company.id as id, 
+        company.name as name, 
+        ifnull(customerCountPerCompany.customerCount, ?1) as customerCount 
+    from company 
+    left join customerCountPerCompany on customerCountPerCompany.companyId = company.id 
+    order by id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    with 
+        customerCountPerCompany as ( 
+            select 
+                company_id as companyId, 
+                count(id) as customerCount 
+            from customer 
+            group by company_id 
+        ) 
+    select 
+        company.id as id, 
+        company.name as name, 
+        coalesce(customerCountPerCompany.customerCount, @0) as customerCount 
+    from company 
+    left join customerCountPerCompany on customerCountPerCompany.companyId = company.id 
+    order by id
+    ```
+
+The parameters are: `[ 0 ]`
+
 The result type is:
 ```tsx
 const companiesWithCustomerCount: {
@@ -783,6 +1127,107 @@ const pairsOfCustomers = await connection.selectFrom(customerOfCompany)
     .executeSelectMany();
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    with 
+        customerOfCompany as ( 
+            select 
+                id as id, 
+                company_id as companyId 
+            from customer 
+        ) 
+    select 
+        customerOfCompany.id as customerId, 
+        otherCustomerOfCompany.id as otherCustomerId 
+    from customerOfCompany 
+    inner join customerOfCompany as otherCustomerOfCompany on otherCustomerOfCompany.companyId = customerOfCompany.companyId and otherCustomerOfCompany.id > customerOfCompany.id 
+    order by customerId
+    ```
+=== "MySQL"
+    ```mysql
+    with 
+        customerOfCompany as ( 
+            select 
+                id as id, 
+                company_id as companyId 
+            from customer 
+        ) 
+    select 
+        customerOfCompany.id as customerId, 
+        otherCustomerOfCompany.id as otherCustomerId 
+    from customerOfCompany 
+    inner join customerOfCompany as otherCustomerOfCompany on otherCustomerOfCompany.companyId = customerOfCompany.companyId and otherCustomerOfCompany.id > customerOfCompany.id 
+    order by customerId
+    ```
+=== "Oracle"
+    ```oracle
+    with 
+        customerOfCompany as ( 
+            select 
+                id as id, 
+                company_id as companyId 
+            from customer 
+        ) 
+    select 
+        customerOfCompany.id as "customerId", 
+        otherCustomerOfCompany.id as "otherCustomerId" 
+    from customerOfCompany 
+    inner join customerOfCompany otherCustomerOfCompany on otherCustomerOfCompany.companyId = customerOfCompany.companyId and otherCustomerOfCompany.id > customerOfCompany.id 
+    order by "customerId"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    with 
+        customerOfCompany as ( 
+            select 
+                id as id, 
+                company_id as companyId 
+            from customer 
+        ) 
+    select 
+        customerOfCompany.id as "customerId", 
+        otherCustomerOfCompany.id as "otherCustomerId" 
+    from customerOfCompany 
+    inner join customerOfCompany as otherCustomerOfCompany on otherCustomerOfCompany.companyId = customerOfCompany.companyId and otherCustomerOfCompany.id > customerOfCompany.id 
+    order by "customerId"
+    ```
+=== "SQLite"
+    ```sqlite
+    with 
+        customerOfCompany as ( 
+            select 
+                id as id, 
+                company_id as companyId 
+            from customer 
+        ) 
+    select 
+        customerOfCompany.id as customerId, 
+        otherCustomerOfCompany.id as otherCustomerId 
+    from customerOfCompany 
+    inner join customerOfCompany as otherCustomerOfCompany on otherCustomerOfCompany.companyId = customerOfCompany.companyId and otherCustomerOfCompany.id > customerOfCompany.id 
+    order by customerId
+    ```
+=== "SQL Server"
+    ```sqlserver
+    with 
+        customerOfCompany as ( 
+            select 
+                id as id, 
+                company_id as companyId 
+            from customer 
+        ) 
+    select 
+        customerOfCompany.id as customerId, 
+        otherCustomerOfCompany.id as otherCustomerId 
+    from customerOfCompany 
+    inner join customerOfCompany as otherCustomerOfCompany on otherCustomerOfCompany.companyId = customerOfCompany.companyId and otherCustomerOfCompany.id > customerOfCompany.id 
+    order by customerId
+    ```
+
+The parameters are: `[]`
+
 ### A view that reads from another view
 
 A CTE can read from another one, which lets you write a query in steps. The `with` clause lists them in the order they need, each one only once:
@@ -809,6 +1254,125 @@ const bigCompanies = await connection.selectFrom(bigCompany)
     .orderBy('companyId')
     .executeSelectMany();
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    with 
+        customerCountPerCompany as ( 
+            select 
+                company_id as companyId, 
+                count(id) as customerCount 
+            from customer 
+            group by company_id 
+        ), 
+        bigCompany as ( 
+            select companyId as companyId 
+            from customerCountPerCompany 
+            where customerCount >= ? 
+        ) 
+    select companyId as companyId 
+    from bigCompany 
+    order by companyId
+    ```
+=== "MySQL"
+    ```mysql
+    with 
+        customerCountPerCompany as ( 
+            select 
+                company_id as companyId, 
+                count(id) as customerCount 
+            from customer 
+            group by company_id 
+        ), 
+        bigCompany as ( 
+            select companyId as companyId 
+            from customerCountPerCompany 
+            where customerCount >= ? 
+        ) 
+    select companyId as companyId 
+    from bigCompany 
+    order by companyId
+    ```
+=== "Oracle"
+    ```oracle
+    with 
+        customerCountPerCompany as ( 
+            select 
+                company_id as companyId, 
+                count(id) as customerCount 
+            from customer 
+            group by company_id 
+        ), 
+        bigCompany as ( 
+            select companyId as companyId 
+            from customerCountPerCompany 
+            where customerCount >= :0 
+        ) 
+    select companyId as "companyId" 
+    from bigCompany 
+    order by "companyId"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    with 
+        customerCountPerCompany as ( 
+            select 
+                company_id as companyId, 
+                count(id) as customerCount 
+            from customer 
+            group by company_id 
+        ), 
+        bigCompany as ( 
+            select companyId as companyId 
+            from customerCountPerCompany 
+            where customerCount >= $1 
+        ) 
+    select companyId as "companyId" 
+    from bigCompany 
+    order by "companyId"
+    ```
+=== "SQLite"
+    ```sqlite
+    with 
+        customerCountPerCompany as ( 
+            select 
+                company_id as companyId, 
+                count(id) as customerCount 
+            from customer 
+            group by company_id 
+        ), 
+        bigCompany as ( 
+            select companyId as companyId 
+            from customerCountPerCompany 
+            where customerCount >= ?1 
+        ) 
+    select companyId as companyId 
+    from bigCompany 
+    order by companyId
+    ```
+=== "SQL Server"
+    ```sqlserver
+    with 
+        customerCountPerCompany as ( 
+            select 
+                company_id as companyId, 
+                count(id) as customerCount 
+            from customer 
+            group by company_id 
+        ), 
+        bigCompany as ( 
+            select companyId as companyId 
+            from customerCountPerCompany 
+            where customerCount >= @0 
+        ) 
+    select companyId as companyId 
+    from bigCompany 
+    order by companyId
+    ```
+
+The parameters are: `[ 2 ]`
 
 ### Where else a view can be used
 

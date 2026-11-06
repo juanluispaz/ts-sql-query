@@ -122,6 +122,41 @@ const deletedCount = await connection.deleteFrom(tCustomer)
     .executeDelete(1, 1);
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    delete from customer 
+    where id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    delete from customer 
+    where id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    delete from customer 
+    where id = :0
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    delete from customer 
+    where id = $1
+    ```
+=== "SQLite"
+    ```sqlite
+    delete from customer 
+    where id = ?1
+    ```
+=== "SQL Server"
+    ```sqlserver
+    delete from customer 
+    where id = @0
+    ```
+
+The parameters are: `[ 10 ]`
+
 With fewer rows than the minimum, the error has the reason `MINIMUM_ROWS_NOT_REACHED`; with more rows than the maximum, `MAXIMUM_ROWS_EXCEEDED`.
 
 !!! warning

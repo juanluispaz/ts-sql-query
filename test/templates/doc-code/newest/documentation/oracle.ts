@@ -15,6 +15,7 @@ import { OracleDBQueryRunner } from '../../../../../src/queryRunners/OracleDBQue
 import { 
     extractColumnsFrom,
     extractWritableColumnsFrom,
+    extractWritableShapeFrom,
 } from '../../../../../src/extras/utils.js'
 import { type DynamicCondition, type DynamicConditionForModel } from '../../../../../src/dynamic/condition.js'
 import { dynamicPick, dynamicPickPaths, expandTypeFromDynamicPickPaths, type DynamicPickPaths, type PickValuesPath } from '../../../../../src/dynamic/pick.js'
@@ -22,7 +23,7 @@ import {
     type OrderByForModel
 } from '../../../../../src/dynamic/orderBy.js'
 import { deepPick, deepOmit, type DeepPick, type DeepOmit, type DeepPickPaths } from '../../../../../src/extras/deepUtilities.js'
-import { fromRef, type TableOrViewLeftJoinOf, type TableOrViewOf } from '../../../../../src/extras/types.js'
+import { fromRef, type TableOrViewLeftJoinOf, type TableOrViewOf, type UpdatableValuesShapedAs } from '../../../../../src/extras/types.js'
 
 class DBConnection extends OracleConnection<'DBConnection'> { 
     // insensitiveCollation = 'acs'
@@ -175,6 +176,8 @@ void MockQueryRunner
 
 void extractColumnsFrom
 void extractWritableColumnsFrom
+void extractWritableShapeFrom
+void (null as unknown as UpdatableValuesShapedAs<any, any>)
 void dynamicPick
 void dynamicPickPaths
 void expandTypeFromDynamicPickPaths

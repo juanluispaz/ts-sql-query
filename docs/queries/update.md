@@ -165,6 +165,47 @@ const updatedCount = await connection.update(tCustomer)
     .executeUpdate(1, 1);
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    update customer 
+    set first_name = ? 
+    where id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    update customer 
+    set first_name = ? 
+    where id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    update customer 
+    set first_name = :0 
+    where id = :1
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    update customer 
+    set first_name = $1 
+    where id = $2
+    ```
+=== "SQLite"
+    ```sqlite
+    update customer 
+    set first_name = ?1 
+    where id = ?2
+    ```
+=== "SQL Server"
+    ```sqlserver
+    update customer 
+    set first_name = @0 
+    where id = @1
+    ```
+
+The parameters are: `[ 'John', 10 ]`
+
 With fewer rows than the minimum, the error has the reason `MINIMUM_ROWS_NOT_REACHED`; with more rows than the maximum, `MAXIMUM_ROWS_EXCEEDED`.
 
 !!! warning

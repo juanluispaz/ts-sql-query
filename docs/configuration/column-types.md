@@ -64,6 +64,47 @@ this.column<MyCustomComparableType>('ColumnName', 'customComparable', 'MyCustomC
 
     Per-database considerations apply; see the supported databases section for the server-side generators available on your engine.
 
+## Custom types
+
+A custom type (`customInt`, `customDouble`, `customUuid`, `customLocalDate`, `customLocalTime`, `customLocalDateTime`, `enum`, `custom` and `customComparable`) gives a column your own TypeScript type, and its name (the last argument of the column, like `'MyIntTypeName'`) identifies it. The first word of the type only says which operations the column offers in a query; the library knows nothing about what your type contains, so it doesn't convert its values.
+
+!!! important
+
+    Register how each custom type is converted, also `customInt` and `customDouble`. Without it, the value is returned as it comes, and that depends on where it comes from: from a plain column you get what the driver gives, which can be different in each driver, and from [an array aggregate](../queries/aggregate-as-object-array.md#how-the-values-go-through-json) you get what is in the JSON. A number there is its text, so that no digit is lost, and it's the conversion that decides what to do with it.
+
+The best place to register it is the connection, so it applies everywhere that type is used. These are the three methods to implement, and all of them receive the name of the type:
+
+- `transformValueFromDB`: converts a value that comes from the database.
+- `transformValueToDB`: converts a value that is sent to the database.
+- `transformPlaceholder`: changes how the parameter is written in the SQL, like adding a cast. PostgreSQL needs a cast in some positions, and the library only writes it for the types it knows.
+
+A typical case is a type that the database holds as a type the library knows, like an int with a TypeScript brand. Then you can call `super` with that type, and the library handles the value in the same way, with the same checks:
+
+```ts
+class DBConnection extends PostgreSqlConnection<'DBConnection'> {
+    protected override transformValueFromDB(value: unknown, type: string) {
+        if (type === 'MyIntTypeName') {
+            return super.transformValueFromDB(value, 'int');
+        }
+        return super.transformValueFromDB(value, type);
+    }
+    protected override transformValueToDB(value: unknown, type: string) {
+        if (type === 'MyIntTypeName') {
+            return super.transformValueToDB(value, 'int');
+        }
+        return super.transformValueToDB(value, type);
+    }
+    protected override transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown): string {
+        if (type === 'MyIntTypeName') {
+            return super.transformPlaceholder(placeholder, 'int', forceTypeCast, valueSentToDB);
+        }
+        return super.transformPlaceholder(placeholder, type, forceTypeCast, valueSentToDB);
+    }
+}
+```
+
+When the value needs a conversion of its own, write it there: see [Global type adapter](#global-type-adapter). If only one column needs it, use a [type adapter](#type-adapters) in that column.
+
 ## Type adapters
 
 You can control how a value is sent and received from the database. For that purpose, you can add a type adapter at the end of the column definition.

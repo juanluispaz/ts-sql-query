@@ -21,6 +21,10 @@ made it read as a mountain of debt nobody could pay down. Those moved to
 out: an entry that lands here should be one someone on this project could
 sit down and close.
 
+## Custom types inside an array aggregate need their conversion
+
+The JSON of an array aggregate is parsed keeping every number as its text, so that no precision is lost, and it's the transformation of the type that converts it. A custom type must register that conversion, the best place being the connection; calling `super` with a type the library knows is the typical case, not the only one. Without it, a number arrives in the array as text, while a plain select gives what the driver gives. This applies also to `customInt` and `customDouble`, which could need nothing registered: that ergonomics is a limitation of the current implementation. The domain of the tests registers it through `baseTypeForCustom`.
+
 ## The golden rule: no closing a gap with a query of its own
 
 The library sends to the database **only the query the user asked for**

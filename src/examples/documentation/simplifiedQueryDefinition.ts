@@ -715,7 +715,7 @@ interface Connection {
     /**
      * Allows to create a condition where the criteria is provided by an external system
      */
-    dynamicConditionFor(definition: Filterable, extension?: DinamicConditionExtension): DynamicConditionExpression
+    dynamicConditionFor(definition: Filterable, extension?: DynamicConditionExtension): DynamicConditionExpression
 
     /*
      * The fn function will receive as first argument the table name as ValueSource,
@@ -2283,7 +2283,7 @@ type OuterJoinSource = any
 type Argument<_T, _TYPE_NAME> = any
 type DynamicFilter = any
 type Filterable = any
-type DinamicConditionExtension = any
+type DynamicConditionExtension = any
 type RawFragment = any
 type CustomizedTableOrView = any
 type AnyValueSource = ValueSource<any, any>

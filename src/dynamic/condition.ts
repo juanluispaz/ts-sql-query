@@ -1,5 +1,5 @@
 import type { TerminalValueObject, NonValueObject } from '../utils/objectUtils.js'
-import type { DynamicCondition, DinamicConditionExtension } from '../expressions/dynamicConditionUsingFilters.js'
+import type { DynamicCondition, DynamicConditionExtension } from '../expressions/dynamicConditionUsingFilters.js'
 
 export type { DynamicCondition }
 export type {
@@ -55,4 +55,4 @@ export type DynamicDefinitionForModel<MODEL> = {
     [K in keyof MODEL & string]-?: DynamicDefinitionFieldForModel<NonNullable<MODEL[K]>>
 }
 
-export type DynamicConditionForModel<MODEL, EXTENSION extends DinamicConditionExtension = never> = DynamicCondition<DynamicDefinitionForModel<MODEL>, EXTENSION>
+export type DynamicConditionForModel<MODEL, EXTENSION extends DynamicConditionExtension = never> = DynamicCondition<DynamicDefinitionForModel<MODEL>, EXTENSION>

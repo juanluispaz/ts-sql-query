@@ -20,7 +20,7 @@ import { TsSqlError, TsSqlProcessingError, TsSqlQueryExecutionError, QueryExecut
 import { FragmentQueryBuilder, FragmentFunctionBuilder, FragmentFunctionBuilderIfValue, FragmentFunctionBuilderMaybeOptional } from '../queryBuilders/FragmentQueryBuilder.js'
 import { connection, source, transactionIsolationLevel, typeName, valueType } from '../utils/symbols.js'
 import { callDeferredFunctions, callDeferredFunctionsStoppingOnError, isPromise } from '../utils/PromiseUtils.js'
-import type { DinamicConditionExtension, DynamicConditionExpression, Filterable } from '../expressions/dynamicConditionUsingFilters.js'
+import type { DynamicConditionExtension, DynamicConditionExpression, Filterable } from '../expressions/dynamicConditionUsingFilters.js'
 import { DynamicConditionBuilder } from '../queryBuilders/DynamicConditionBuilder.js'
 import type { RawFragment } from '../utils/RawFragment.js'
 import { RawFragmentImpl } from '../internal/RawFragmentImpl.js'
@@ -1206,7 +1206,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     }
 
     dynamicConditionFor<DEFINITION extends Filterable>(definition: DEFINITION): DynamicConditionExpression<DEFINITION, never>
-    dynamicConditionFor<DEFINITION extends Filterable, EXTENSION extends DinamicConditionExtension>(definition: DEFINITION, extension: EXTENSION): DynamicConditionExpression<DEFINITION, EXTENSION>
+    dynamicConditionFor<DEFINITION extends Filterable, EXTENSION extends DynamicConditionExtension>(definition: DEFINITION, extension: EXTENSION): DynamicConditionExpression<DEFINITION, EXTENSION>
     dynamicConditionFor(definition: Filterable, extension?: any): DynamicConditionExpression<any, any> {
         return new DynamicConditionBuilder(this.__sqlBuilder, definition, extension)
     }

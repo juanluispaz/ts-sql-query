@@ -155,7 +155,7 @@ export type DynamicDefinition = {
     [key: string]: AnyValueSource | DynamicColumnType<any> | DynamicDefinition
 }
 
-export type DynamicCondition<DEFINITION extends DynamicDefinition, EXTENSION extends DinamicConditionExtension = never> = {
+export type DynamicCondition<DEFINITION extends DynamicDefinition, EXTENSION extends DynamicConditionExtension = never> = {
     not?: DynamicCondition<DEFINITION, EXTENSION>
     and?: Array<DynamicCondition<DEFINITION, EXTENSION> | undefined>
     or?: Array<DynamicCondition<DEFINITION, EXTENSION> | undefined>
@@ -164,7 +164,7 @@ export type DynamicCondition<DEFINITION extends DynamicDefinition, EXTENSION ext
         DEFINITION[KEY] extends DynamicColumnType<any>
         ? ColumnFilterWithExtension<FilterTypeOf<DEFINITION[KEY]>, EXTENSION> : DEFINITION[KEY] extends AnyValueSource
         ? ColumnFilterWithExtension<FilterTypeOf<DEFINITION[KEY]>, EXTENSION> : DEFINITION[KEY] extends DynamicDefinition
-        ? DynamicCondition<DEFINITION[KEY], KEY extends keyof EXTENSION ? (EXTENSION[KEY] extends DinamicConditionExtension ? EXTENSION[KEY] : never) : never>
+        ? DynamicCondition<DEFINITION[KEY], KEY extends keyof EXTENSION ? (EXTENSION[KEY] extends DynamicConditionExtension ? EXTENSION[KEY] : never) : never>
         : never
 } & {
     [KEY in DynamicConditionExtensionKeys<EXTENSION>]?: EXTENSION[KEY] extends DynamicConditionRule<infer TYPE> ? TYPE : never
@@ -195,7 +195,7 @@ export type MapValueSourceToFilter<TYPE> =
 
 export type Filterable = DataToProjectOfAny
 
-export type DinamicConditionExtension = DataToProjectOf<DynamicConditionRule<any>>
+export type DynamicConditionExtension = DataToProjectOf<DynamicConditionRule<any>>
 export type DynamicConditionRule<T> = (rule: T) => IAnyBooleanValueSource<any, any>
 
 type NonReplacedField<DEFINITION, EXTENSION> = Exclude<UsableKeyOf<DEFINITION>, DynamicConditionExtensionKeys<EXTENSION>> 
@@ -210,7 +210,7 @@ type DynamicConditionExtensionKeys<EXTENSION> = {[K in keyof EXTENSION]: EXTENSI
 type DynamicConditionColumnExtension<EXTENSION> = {
     [KEY in keyof EXTENSION]?:
         EXTENSION[KEY] extends DynamicConditionRule<infer TYPE> ? TYPE
-        : EXTENSION[KEY] extends DinamicConditionExtension ? DynamicConditionColumnExtension<EXTENSION[KEY]>
+        : EXTENSION[KEY] extends DynamicConditionExtension ? DynamicConditionColumnExtension<EXTENSION[KEY]>
         : never
 }
 
@@ -231,7 +231,7 @@ export type DynamicFilter<DEFINITION extends Filterable> = {
     [KEY in UsableKeyOf<DEFINITION>]?: DEFINITION[KEY] extends AnyValueSource ? MapValueSourceToFilter<DEFINITION[KEY]> : DEFINITION[KEY] extends Filterable ? DynamicFilter<DEFINITION[KEY]> : never
 }
 
-export interface DynamicConditionExpression<DEFINITION extends Filterable, EXTENSION extends DinamicConditionExtension> {
+export interface DynamicConditionExpression<DEFINITION extends Filterable, EXTENSION extends DynamicConditionExtension> {
     // It is optional because some members can be optionals, another strategy will be look inside the object looking for 
     // any optional, but is provides low value
     withValues(filter: DynamicFilter<DEFINITION>): BooleanValueSource<SourceOf<DEFINITION> | SourceOf<EXTENSION>, 'optional'>

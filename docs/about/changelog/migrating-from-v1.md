@@ -51,6 +51,7 @@ The compiler finds all of these. This section is what to write instead.
 | `.ltrim()`, `.rtrim()` | `.trimLeft()`, `.trimRight()` |
 | `.replace(...)`, `.replaceIfValue(...)` | `.replaceAll(...)`, `.replaceAllIfValue(...)` |
 | `mergeType(...)` | `connection.dynamicBooleanExpressionUsing(...)` |
+| `PickValuesPathWitAllProperties`, `PickValuesPathWitAllPropertiesProjectedAsNullable` | `PickValuesPathWithAllProperties`, `PickValuesPathWithAllPropertiesProjectedAsNullable` |
 | `queryRunner.getCurrentNativeTransaction()` | `queryRunner.getCurrentNativeConnection()` |
 | `QueryExecutor` from `MockQueryRunner` | `MockQueryExecutor`, same path |
 | `QueryType` from `MockQueryRunner`, `InterceptorQueryRunner` or `LoggingQueryRunner` | `QueryType` from `ts-sql-query/queryRunners/QueryRunner` |

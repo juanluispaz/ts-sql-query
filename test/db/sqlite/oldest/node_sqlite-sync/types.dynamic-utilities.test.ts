@@ -5,7 +5,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { dynamicPick, dynamicPickPaths, expandTypeFromDynamicPickPaths, expandTypeProjectedAsNullableFromDynamicPickPaths, type DynamicPick, type DynamicPickPaths, type PickValuesPath, type PickValuesPathProjectedAsNullable, type PickValuesPathWitAllProperties } from '../../../../../src/dynamic/pick.js'
+import { dynamicPick, dynamicPickPaths, expandTypeFromDynamicPickPaths, expandTypeProjectedAsNullableFromDynamicPickPaths, type DynamicPick, type DynamicPickPaths, type PickValuesPath, type PickValuesPathProjectedAsNullable, type PickValuesPathWithAllProperties } from '../../../../../src/dynamic/pick.js'
 import { tIssue, tProject, vReleaseOverview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -184,7 +184,7 @@ describe(ctx.label, () => {
         expect(Object.keys(picked)).toEqual(['info'])
         expect(Object.keys(picked.info!)).toEqual(['priority', 'status'])
         assertType<Exact<PickValuesPath<typeof fields, 'info'>, { info: { priority: number; status: string } }>>()
-        assertType<Exact<PickValuesPathWitAllProperties<typeof fields, 'info'>, { id?: number; info: { priority: number; status: string } }>>()
+        assertType<Exact<PickValuesPathWithAllProperties<typeof fields, 'info'>, { id?: number; info: { priority: number; status: string } }>>()
     })
 
     test('dynamic-utilities/empty-pick-types-match-the-empty-object-it-returns', () => {
@@ -196,7 +196,7 @@ describe(ctx.label, () => {
         expect(fromMap).toEqual({})
         expect(fromPaths).toEqual({})
         assertType<Exact<PickValuesPath<typeof fields, never>, {}>>()
-        assertType<Exact<PickValuesPathWitAllProperties<typeof fields, never>, { id?: number; info?: { priority?: number; status?: string } }>>()
+        assertType<Exact<PickValuesPathWithAllProperties<typeof fields, never>, { id?: number; info?: { priority?: number; status?: string } }>>()
     })
 
     test('dynamic-utilities/pick-input-types-drop-only-the-always-included-fields', () => {
@@ -262,9 +262,9 @@ describe(ctx.label, () => {
             gated: { gate: tIssue.status.asRequiredInOptionalObject(), title: tIssue.title },
             deep: { a: { b: { x: tIssue.id, y: tIssue.title }, z: tIssue.status }, w: tIssue.body },
         }
-        assertType<Exact<PickValuesPathWitAllProperties<typeof fields, 'assignee.fullName'>['assignee'], { fullName: string; id?: number } | undefined>>()
-        assertType<Exact<PickValuesPathWitAllProperties<typeof fields, 'gated.gate'>['gated'], { gate: string; title?: string } | undefined>>()
-        assertType<Exact<PickValuesPathWitAllProperties<typeof fields, 'deep.a.b.x'>['deep'], { a: { b: { x: number; y?: string }; z?: string }; w?: string }>>()
+        assertType<Exact<PickValuesPathWithAllProperties<typeof fields, 'assignee.fullName'>['assignee'], { fullName: string; id?: number } | undefined>>()
+        assertType<Exact<PickValuesPathWithAllProperties<typeof fields, 'gated.gate'>['gated'], { gate: string; title?: string } | undefined>>()
+        assertType<Exact<PickValuesPathWithAllProperties<typeof fields, 'deep.a.b.x'>['deep'], { a: { b: { x: number; y?: string }; z?: string }; w?: string }>>()
     })
 
     test('dynamic-utilities/always-included-nested-path-survives-any-pick', () => {

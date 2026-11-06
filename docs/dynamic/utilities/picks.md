@@ -12,7 +12,7 @@ The `ts-sql-query/dynamic/pick` module (also re-exported from the root `ts-sql-q
 | `dynamicPickPaths(...)` | Select fields from a list of dotted paths (`['name', 'company.name']`). |
 | `expandTypeFromDynamicPickPaths(...)` / `expandTypeProjectedAsNullableFromDynamicPickPaths(...)` | Re-type already-fetched rows so they match the picked shape without a cast. |
 | `DynamicPick<Type>` / `DynamicPickPaths<Type>` | The input types for the two pick functions (a boolean map / a path union). |
-| `PickValuesPath<…>` / `PickValuesPathWitAllProperties<…>` (and their `…ProjectedAsNullable` variants) | The result types computed from the selected fields. |
+| `PickValuesPath<…>` / `PickValuesPathWithAllProperties<…>` (and their `…ProjectedAsNullable` variants) | The result types computed from the selected fields. |
 | `Pickable` | The base constraint for an available-fields map. |
 
 When using `dynamicPick` or `dynamicPickPaths`, you often need these helper types to specify the input structure of fields the caller can choose from, and to compute the type of the result based on the selected fields.
@@ -118,25 +118,25 @@ type ResultType = PickValuesPath<typeof availableFields, 'firstName' | 'birthday
 !!! note "Typed result with projected required fields"
     If your query projects optional values in objects as always-required properties, use `PickValuesPathProjectedAsNullable` instead of `PickValuesPath`.
 
-### PickValuesPathWitAllProperties
+### PickValuesPathWithAllProperties
 
-**Type**: `PickValuesPathWitAllProperties<Type, PickedPaths>`
+**Type**: `PickValuesPathWithAllProperties<Type, PickedPaths>`
 
 Similar to `PickValuesPath`, but includes **all** properties from the original object: selected ones as their column says (required, unless the column is optional), and unselected ones as optional.
 
 ```ts
-import type { PickValuesPathWitAllProperties } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
+import type { PickValuesPathWithAllProperties } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
 
-type ResultType = PickValuesPathWitAllProperties<typeof availableFields, 'firstName' | 'birthday'>
+type ResultType = PickValuesPathWithAllProperties<typeof availableFields, 'firstName' | 'birthday'>
 ```
 
 !!! note "Full result shape with projected required fields"
-    If your query projects optional values in objects as always-required properties, use `PickValuesPathWitAllPropertiesProjectedAsNullable` instead of `PickValuesPathWitAllProperties`.
+    If your query projects optional values in objects as always-required properties, use `PickValuesPathWithAllPropertiesProjectedAsNullable` instead of `PickValuesPathWithAllProperties`.
 
-!!! note "Choosing between `PickValuesPath` and `PickValuesPathWitAllProperties`"
+!!! note "Choosing between `PickValuesPath` and `PickValuesPathWithAllProperties`"
 
     Use `PickValuesPath` if you want a precise type with *only* the picked fields.  
-    Use `PickValuesPathWitAllProperties` if you want to preserve a consistent structure where unpicked fields are still present, but optional — matching the behavior of `.select()` queries.
+    Use `PickValuesPathWithAllProperties` if you want to preserve a consistent structure where unpicked fields are still present, but optional — matching the behavior of `.select()` queries.
 
 ## Expanding result types from dynamic picks
 

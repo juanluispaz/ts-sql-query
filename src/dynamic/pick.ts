@@ -14,13 +14,13 @@ export type DynamicPickPaths<TYPE extends Pickable, MANDATORY extends PickablePa
  * Result type (not projected as nullable)
  */
 export type PickValuesPath<COLUMNS extends Pickable, PICKED extends DynamicPickPaths<COLUMNS>> = Expand<ResultObjectValues<PickMandatoryOnly<COLUMNS, PICKED>>>
-export type PickValuesPathWitAllProperties<COLUMNS extends Pickable, PICKED extends DynamicPickPaths<COLUMNS>> = Expand<ResultObjectValues<PickWitOthersAsOptionals<COLUMNS, PICKED>>>
+export type PickValuesPathWithAllProperties<COLUMNS extends Pickable, PICKED extends DynamicPickPaths<COLUMNS>> = Expand<ResultObjectValues<PickWitOthersAsOptionals<COLUMNS, PICKED>>>
 
 /*
  * Result type (projected as nullable)
  */
 export type PickValuesPathProjectedAsNullable<COLUMNS extends Pickable, PICKED extends DynamicPickPaths<COLUMNS>> = Expand<ResultObjectValuesProjectedAsNullable<PickMandatoryOnly<COLUMNS, PICKED>>>
-export type PickValuesPathWitAllPropertiesProjectedAsNullable<COLUMNS extends Pickable, PICKED extends DynamicPickPaths<COLUMNS>> = Expand<ResultObjectValuesProjectedAsNullable<PickWitOthersAsOptionals<COLUMNS, PICKED>>>
+export type PickValuesPathWithAllPropertiesProjectedAsNullable<COLUMNS extends Pickable, PICKED extends DynamicPickPaths<COLUMNS>> = Expand<ResultObjectValuesProjectedAsNullable<PickWitOthersAsOptionals<COLUMNS, PICKED>>>
 
 /*
  * Flat (top-level) picked properties keyed DIRECTLY on the requested key set — the bridge

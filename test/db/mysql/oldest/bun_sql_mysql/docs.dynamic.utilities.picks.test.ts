@@ -5,7 +5,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { dynamicPick, dynamicPickPaths, expandTypeFromDynamicPickPaths, type DynamicPick, type DynamicPickPaths, type PickValuesPath, type PickValuesPathWitAllProperties, type PickValuesPathProjectedAsNullable, type PickValuesPathWitAllPropertiesProjectedAsNullable } from '../../../../../src/dynamic/pick.js'
+import { dynamicPick, dynamicPickPaths, expandTypeFromDynamicPickPaths, type DynamicPick, type DynamicPickPaths, type PickValuesPath, type PickValuesPathWithAllProperties, type PickValuesPathProjectedAsNullable, type PickValuesPathWithAllPropertiesProjectedAsNullable } from '../../../../../src/dynamic/pick.js'
 import { type DeepPick, type DeepPickPaths } from '../../../../../src/extras/deepUtilities.js'
 import { tProject, tOrganization } from '../../domain/connection.js'
 import { ctx } from './setup.js'
@@ -107,11 +107,11 @@ describe(ctx.label, () => {
     })
 
     test('docs:utilities-picks/pick-values-path-with-all-properties', () => {
-        // Section "PickValuesPathWitAllProperties" — like
+        // Section "PickValuesPathWithAllProperties" — like
         // `PickValuesPath` but every property of the source appears in
         // the result (picked ones required, unpicked ones optional).
         // doc-start
-        type Result = PickValuesPathWitAllProperties<typeof availableFields, 'id' | 'name'>
+        type Result = PickValuesPathWithAllProperties<typeof availableFields, 'id' | 'name'>
         // doc-end
         // id and name are required, slug is optional.
         assertType<Exact<Result, { id: number; name: string; slug?: string }>>()
@@ -270,11 +270,11 @@ describe(ctx.label, () => {
     })
 
     test('docs-extra:utilities-picks/pick-values-path-with-all-properties-projected-as-nullable', () => {
-        // The …WitAllPropertiesProjectedAsNullable sibling keeps the picked
+        // The …WithAllPropertiesProjectedAsNullable sibling keeps the picked
         // leaf required; unpicked properties stay optional (`?:`) as in the
         // non-nullable twin, and the nullable projection additionally adds
         // `| null` to the VALUE of the originally-optional column (archivedAt).
-        type ResultNullable = PickValuesPathWitAllPropertiesProjectedAsNullable<typeof fieldsWithNullable, 'name'>
+        type ResultNullable = PickValuesPathWithAllPropertiesProjectedAsNullable<typeof fieldsWithNullable, 'name'>
         assertType<Exact<ResultNullable, { name: string; id?: number; archivedAt?: Date | null }>>()
     })
 

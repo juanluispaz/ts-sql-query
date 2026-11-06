@@ -88,7 +88,7 @@ async function pickCustomerColumns<FIELDS extends CustomerFields>(connection: DB
 const result = pickCustomerColumns(connection, ['name', 'company.name'])
 ```
 
-`PickValuesPath` keeps the optional properties optional and narrows nested objects to the picked paths. The `…WitAllProperties` and `…ProjectedAsNullable` variants are described on the [Dynamic picks](utilities/picks.md) utility page.
+`PickValuesPath` keeps the optional properties optional and narrows nested objects to the picked paths. The `…WithAllProperties` and `…ProjectedAsNullable` variants are described on the [Dynamic picks](utilities/picks.md) utility page.
 
 ## Ordering: `OrderByForModel` over the result row
 

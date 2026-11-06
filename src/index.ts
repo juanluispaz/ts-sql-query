@@ -27,9 +27,9 @@ export type {
     DynamicPick,
     DynamicPickPaths,
     PickValuesPath,
-    PickValuesPathWitAllProperties,
+    PickValuesPathWithAllProperties,
     PickValuesPathProjectedAsNullable,
-    PickValuesPathWitAllPropertiesProjectedAsNullable
+    PickValuesPathWithAllPropertiesProjectedAsNullable
 } from './dynamic/pick.js'
 export type {
     DynamicCondition,

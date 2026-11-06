@@ -4,7 +4,7 @@
 // positive control that must compile. DESIGN §6.
 
 import { test, expect } from '../../../lib/testRunner.js'
-import { dynamicPick, dynamicPickPaths, type DynamicPick, type DynamicPickPaths, type PickValuesPath, type PickValuesPathWitAllProperties } from '../../../../src/dynamic/pick.js'
+import { dynamicPick, dynamicPickPaths, type DynamicPick, type DynamicPickPaths, type PickValuesPath, type PickValuesPathWithAllProperties } from '../../../../src/dynamic/pick.js'
 import type { DynamicConditionForModel } from '../../../../src/dynamic/condition.js'
 import type { OrderByMode } from '../../../../src/dynamic/orderBy.js'
 import { tIssue } from '../domain/connection.js'
@@ -46,7 +46,7 @@ function _typeNegatives() {
     // @ts-expect-error 'bogus' is not a path of the available fields
     type Bad3 = PickValuesPath<typeof fields, 'bogus'>
     // @ts-expect-error 'bogus' is not a path of the available fields
-    type Bad4 = PickValuesPathWitAllProperties<typeof fields, 'bogus'>
+    type Bad4 = PickValuesPathWithAllProperties<typeof fields, 'bogus'>
 
     // Rule: a path that is always included can't be chosen.
     // @ts-expect-error 'id' is always included

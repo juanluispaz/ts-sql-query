@@ -56,7 +56,7 @@ import {
     type QueryType 
 } from '../../../../../src/queryRunners/QueryRunner.js'
 import { type DynamicCondition, type DynamicConditionForModel, type DynamicDefinitionForModel } from '../../../../../src/dynamic/condition.js'
-import { dynamicPick, dynamicPickPaths, expandTypeFromDynamicPickPaths, type DynamicPick, type DynamicPickPaths, type PickValuesPath, type PickValuesPathWitAllProperties } from '../../../../../src/dynamic/pick.js'
+import { dynamicPick, dynamicPickPaths, expandTypeFromDynamicPickPaths, type DynamicPick, type DynamicPickPaths, type PickValuesPath, type PickValuesPathWithAllProperties } from '../../../../../src/dynamic/pick.js'
 import {
     type OrderByForModel,
     type OrderByMode
@@ -325,7 +325,7 @@ void function(
     _dp: DynamicPick<any>, 
     _dpp: DynamicPickPaths<any>, 
     _pvp: PickValuesPath<any, never>, 
-    _pvpwap: PickValuesPathWitAllProperties<any, never>,
+    _pvpwap: PickValuesPathWithAllProperties<any, never>,
     _tovlfo: TableOrViewLeftJoinOf<any>,
     _tovo: TableOrViewOf<any>,
     _dta: DefaultTypeAdapter,

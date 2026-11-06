@@ -475,7 +475,12 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
             if (opts.endWithoutTransaction) {
                 expect(await r().executeCommit()).toBeUndefined()
             } else {
-                expect(reasonOf(await rejectionOf(r().executeCommit()))).toBe('NOT_IN_TRANSACTION')
+                // With the promise of the runner: a synchronous runner only works with its own
+                const rejected = r().createRejectedPromise(new Error('expected'))
+                await rejectionOf(rejected)
+                const promise = r().executeCommit()
+                expect(promise.constructor).toBe(rejected.constructor)
+                expect(reasonOf(await rejectionOf(promise))).toBe('NOT_IN_TRANSACTION')
             }
         })
 
@@ -483,7 +488,12 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
             if (opts.endWithoutTransaction) {
                 expect(await r().executeRollback()).toBeUndefined()
             } else {
-                expect(reasonOf(await rejectionOf(r().executeRollback()))).toBe('NOT_IN_TRANSACTION')
+                // With the promise of the runner: a synchronous runner only works with its own
+                const rejected = r().createRejectedPromise(new Error('expected'))
+                await rejectionOf(rejected)
+                const promise = r().executeRollback()
+                expect(promise.constructor).toBe(rejected.constructor)
+                expect(reasonOf(await rejectionOf(promise))).toBe('NOT_IN_TRANSACTION')
             }
         })
 

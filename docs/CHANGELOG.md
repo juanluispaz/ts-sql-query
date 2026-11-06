@@ -15,6 +15,7 @@ The nested objects that a select and the `with` queries already accepted now wor
 - A table, view or `Values` can group its columns in plain objects, like the two columns of a coordinate. Insert, update, on conflict, `Values.create`, insert from a select and the result of a select use the shape of the definition (see [the docs](configuration/mapping.md#grouping-columns)).
 - The methods that receive column names (`ignoreIfSet`, `keepOnly`, `disallowIfSet`…) accept the path of a column in a group and the name of a group; a shape accepts paths and can have its own groups (see [the docs](queries/shapes.md#columns-in-a-group)).
 - `asRequiredInOptionalObject()` on a column returns a column, so it can be used in the definition of a table, view or values. In a group, that column is required when the group is provided.
+- `INVALID_VALUE_TO_SEND_TO_DATABASE` tells where the value is when it's in a `set` of an insert, an update or the update of a conflict: `columnPath` has the property, with the name used in a shape, and `rowIndex` has the row when several are inserted.
 
 **Behavior changes**:
 
@@ -36,6 +37,10 @@ The nested objects that a select and the `with` queries already accepted now wor
 - MySQL: an insert from a select that reads the row to insert with `valuesForInsert()` in the update of the conflict compiled and failed on the database: it works from MySQL 8.0.19.
 - A compound select with a constant in an object of left join columns could return the object without its required columns.
 - `update` with only properties that aren't columns left in the values sent invalid SQL: it now sends nothing, as with no values at all.
+- The `transactionSource` of an error leaving a transaction was the error itself, and the `stack` repeated it: it's now the place where the transaction was executed, once.
+- `executeProcedure` and `executeFunction` didn't give the source of the execution to the query runner, so `getQueryExecutionStack` returned `undefined` for them.
+- With a synchronous query runner, an error that made the transaction roll back was reported as its own `rollbackError`, even when the rollback worked.
+- `SqlTransactionQueryRunner` and the other query runners that manage the transaction rejected `NOT_IN_TRANSACTION` with a native promise, which `sync()` refuses with `SYNCHRONOUS_PROMISE_EXPECTED`.
 - `setIfSet` and `setIfHasValue` no longer count as giving a value to a required column of an insert: they only change what already has one, so `dynamicSet().setIfSet(...)` alone no longer compiles as executable.
 - `DynamicPick`, `DynamicPickPaths` and the functions that use them stopped one level before what a select projects: the columns of an object at the fifth level couldn't be picked.
 

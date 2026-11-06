@@ -460,6 +460,10 @@ export class TsSqlQueryExecutionError extends TsSqlError {
     }
 
     attachTransactionSource(source: QueryExecutionSource): this {
+        if (this.transactionSource) {
+            // The error is on its way out of the transaction where it was first seen
+            return this
+        }
         Object.defineProperty(this, 'transactionSource', {
             value: source,
             writable: true,

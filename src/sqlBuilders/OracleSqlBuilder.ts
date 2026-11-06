@@ -979,6 +979,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             insertQuery += 'into '
             insertQuery += this._appendTableOrViewName(table, params)
 
+            const rowIndex = i
             const sets = multiple[i]!
             let columns = ''
             const sequences: Array<{ name: string, valueType: ValueType }> = []
@@ -1082,7 +1083,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                         values += ', '
                     }
                     const value = sets[property]
-                    values += this._appendValueForColumn(column, value, params, false)
+                    values += this._appendSetValue(property, rowIndex, column, value, params)
                 }
             } else { // No shape, follow set order
                 const properties = Object.getOwnPropertyNames(sets)
@@ -1100,7 +1101,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                         values += ', '
                     }
                     const value = sets[property]
-                    values += this._appendValueForColumn(column, value, params, false)
+                    values += this._appendSetValue(property, rowIndex, column, value, params)
                 }
             }
 

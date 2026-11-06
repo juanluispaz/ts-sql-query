@@ -20,7 +20,7 @@ import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { getWithData, hasWithData } from './SqlBuilder.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { RawFragment } from '../utils/RawFragment.js'
-import { TsSqlProcessingError } from '../TsSqlError.js'
+import { TsSqlError, TsSqlProcessingError } from '../TsSqlError.js'
 import { getContainsInsertReturningClause, setContainsInsertReturningClause, setContainsMutationReturningClause, setForcedAffectedRowCount } from '../utils/queryParamsMetadata.js'
 
 /** A column of the select list as it was written, for the group by that refers to it */
@@ -1817,7 +1817,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 if (!(setPropertyName in sets) && sequenceName) {
                     values += this._nextSequenceValue(params, sequenceName, columnPrivate.__valueType)
                 } else {
-                    values += this._appendValueForColumn(column, value, params, false)
+                    values += this._appendSetValue(setPropertyName, i, column, value, params)
                 }
             }
 
@@ -1903,6 +1903,21 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // if value is column and its type adapter is CustomBooleanTypeAdapter append value will be required to normalize value
         // if not it is same boolean, nothing to transform here
         return null
+    }
+    /**
+     * The value of a property in a set: an invalid value tells the property, and the row
+     * when several rows are inserted, as the values received from the database do.
+     */
+    _appendSetValue(columnPath: string, rowIndex: number | undefined, column: DBColumn, value: any, params: any[]): string {
+        try {
+            return this._appendValueForColumn(column, value, params, false)
+        } catch (e) {
+            if (e instanceof TsSqlError && e.errorReason.reason === 'INVALID_VALUE_TO_SEND_TO_DATABASE') {
+                e.errorReason.columnPath = columnPath
+                e.errorReason.rowIndex = rowIndex
+            }
+            throw e
+        }
     }
     _appendValueForColumn(column: DBColumn, value: any, params: any[], forceTypeCast: boolean): string {
         const sql = this._appendCustomBooleanRemapForColumnIfRequired(column, value, params, forceTypeCast)
@@ -2131,7 +2146,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     values += ', '
                 }
                 const value = sets[property]
-                values += this._appendValueForColumn(column, value, params, false)
+                values += this._appendSetValue(property, undefined, column, value, params)
             }
         } else { // No shape, follow set order
             const properties = Object.getOwnPropertyNames(sets)
@@ -2149,7 +2164,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     values += ', '
                 }
                 const value = sets[property]
-                values += this._appendValueForColumn(column, value, params, false)
+                values += this._appendSetValue(property, undefined, column, value, params)
             }
         }
 
@@ -2317,8 +2332,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * `params`, so it can be called to inspect the assignment list — e.g. to
      * detect that it resolves to zero columns — before emitting any SQL.
      */
-    _resolveInsertOnConflictUpdateSetColumns(query: InsertData): Array<{ column: DBColumn, value: any }> {
-        const result: Array<{ column: DBColumn, value: any }> = []
+    _resolveInsertOnConflictUpdateSetColumns(query: InsertData): Array<{ property: string, column: DBColumn, value: any }> {
+        const result: Array<{ property: string, column: DBColumn, value: any }> = []
         const table = query.__table
         const shape = query.__onConflictUpdateShape
         const sets = query.__onConflictUpdateSets
@@ -2341,7 +2356,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     // No value set for that property in the shape
                     continue
                 }
-                result.push({ column, value: sets[property] })
+                result.push({ property, column, value: sets[property] })
             }
         } else { // No shape, follow set order
             const properties = Object.getOwnPropertyNames(sets)
@@ -2354,7 +2369,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     // This allows to have more complex objects used in the query
                     continue
                 }
-                result.push({ column, value: sets[property] })
+                result.push({ property, column, value: sets[property] })
             }
         }
         return result
@@ -2385,13 +2400,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const resolved = this._resolveInsertOnConflictUpdateSetColumns(query)
         let columns = ''
         for (let i = 0, length = resolved.length; i < length; i++) {
-            const { column, value } = resolved[i]!
+            const { property, column, value } = resolved[i]!
             if (columns) {
                 columns += ', '
             }
             columns += this._appendColumnNameForUpdate(column, params)
             columns += ' = '
-            columns += this._appendValueForColumn(column, value, params, false)
+            columns += this._appendSetValue(property, undefined, column, value, params)
         }
         return columns
     }
@@ -2548,7 +2563,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
                 columns += this._appendColumnNameForUpdate(column, params)
                 columns += ' = '
-                columns += this._appendValueForColumn(column, value, params, false)
+                columns += this._appendSetValue(property, undefined, column, value, params)
             }
         } else { // No shape, follow set order
             const properties = Object.getOwnPropertyNames(sets)
@@ -2572,7 +2587,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     
                 columns += this._appendColumnNameForUpdate(column, params)
                 columns += ' = '
-                columns += this._appendValueForColumn(column, value, params, false)
+                columns += this._appendSetValue(property, undefined, column, value, params)
             }
         }
         updateQuery += ' set ' + columns

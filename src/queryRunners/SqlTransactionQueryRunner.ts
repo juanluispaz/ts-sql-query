@@ -30,7 +30,7 @@ export abstract class SqlTransactionQueryRunner extends ManagedTransactionQueryR
     }
     executeCommit(_opts: CommitOpts = []): Promise<void> {
         if (!this.isTransactionActive()) {
-            return Promise.reject(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in an transaction, you cannot commit the transaction'))
+            return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in an transaction, you cannot commit the transaction'))
         }
         if (this.transactionOutcome.isRolledBackByTheDatabase()) {
             return this.createRejectedPromise(this.transactionOutcome.rolledBackError())
@@ -51,7 +51,7 @@ export abstract class SqlTransactionQueryRunner extends ManagedTransactionQueryR
     }
     executeRollback(_opts: RollbackOpts = []): Promise<void> {
         if (!this.isTransactionActive()) {
-            return Promise.reject(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in an transaction, you cannot rollback the transaction'))
+            return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in an transaction, you cannot rollback the transaction'))
         }
         if (this.transactionOutcome.rollbackAlreadyDone()) {
             this.rollbackAlreadyDoneByTheDatabase()

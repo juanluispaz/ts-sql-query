@@ -104,7 +104,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
     }
     executeCommit(opts: CommitOpts = []): Promise<void> {
         if (this.transactionLevel <= 0) {
-            return Promise.reject(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in a transaction, you cannot commit the transaction'))
+            return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in a transaction, you cannot commit the transaction'))
         }
         
         if (this.currentQueryRunner) {
@@ -128,7 +128,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
     }
     executeRollback(opts: RollbackOpts = []): Promise<void> {
         if (this.transactionLevel <= 0) {
-            return Promise.reject(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in a transaction, you cannot rollback the transaction'))
+            return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in a transaction, you cannot rollback the transaction'))
         }
 
         if (this.currentQueryRunner) {

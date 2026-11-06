@@ -22,7 +22,8 @@ export abstract class ManagedTransactionQueryRunner extends AbstractQueryRunner 
                 return outermostQueryRunner.executeRollback(opts as any).then(() => {
                     throw e
                 }, (innerError) => {
-                    if (e instanceof TsSqlQueryExecutionError) {
+                    // SynchronousPromise also calls this function when the one above throws e
+                    if (e instanceof TsSqlQueryExecutionError && innerError !== e) {
                         e.attachRollbackError(innerError)
                     }
                     // Throw the innermost error

@@ -223,7 +223,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                         return callDeferredFunctionsStoppingOnError('before next commit', beforeCommit, fnResult, source)
                     }).catch( (e) => {
                         if (e instanceof TsSqlQueryExecutionError) {
-                            throw e.attachTransactionSource(e)
+                            throw e.attachTransactionSource(source)
                         } else if (this.queryRunner.isSqlError(e)) {
                             throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e).attachTransactionSource(source)
                         } else {
@@ -243,7 +243,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                     // the tail of the chain below.
                     let error
                     if (e instanceof TsSqlQueryExecutionError) {
-                        error = e.attachTransactionSource(e)
+                        error = e.attachTransactionSource(source)
                     } else if (this.queryRunner.isSqlError(e)) {
                         error = new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e).attachTransactionSource(source)
                     } else {
@@ -258,7 +258,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             }, (e) => {
                 let throwError
                 if (e instanceof TsSqlQueryExecutionError) {
-                    throwError = e.attachTransactionSource(e)
+                    throwError = e.attachTransactionSource(source)
                 } else if (this.queryRunner.isSqlError(e)) {
                     throwError = new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e).attachTransactionSource(source)
                 } else {
@@ -277,7 +277,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             })
         } catch (e) {
             if (e instanceof TsSqlQueryExecutionError) {
-                return this.queryRunner.createRejectedPromise(e.attachTransactionSource(e))
+                return this.queryRunner.createRejectedPromise(e.attachTransactionSource(source))
             } else if (this.queryRunner.isSqlError(e)) {
                 return this.queryRunner.createRejectedPromise(new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e).attachTransactionSource(source))
             } else {
@@ -299,7 +299,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 return result
             }, (e) => {
                 if (e instanceof TsSqlQueryExecutionError) {
-                    throw e.attachTransactionSource(e)
+                    throw e.attachTransactionSource(source)
                 } else if (this.queryRunner.isSqlError(e)) {
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e).attachTransactionSource(source)
                 } else {
@@ -308,7 +308,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             })
         } catch (e) {
             if (e instanceof TsSqlQueryExecutionError) {
-                return this.queryRunner.createRejectedPromise(e.attachTransactionSource(e))
+                return this.queryRunner.createRejectedPromise(e.attachTransactionSource(source))
             } else if (this.queryRunner.isSqlError(e)) {
                 return this.queryRunner.createRejectedPromise(new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e).attachTransactionSource(source))
             } else {
@@ -613,7 +613,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         try {
             const queryParams: any[] = []
             query = this.__sqlBuilder._buildCallProcedure(queryParams, procedureName, params)
-            __setQueryMetadata(source, params)
+            __setQueryMetadata(source, queryParams)
             return this.__sqlBuilder._queryRunner.executeProcedure(query, queryParams).catch((e) => {
                 throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
             })
@@ -688,7 +688,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             }
             const queryParams: any[] = []
             query = this.__sqlBuilder._buildCallFunction(queryParams, functionName, params)
-            __setQueryMetadata(source, params)
+            __setQueryMetadata(source, queryParams)
             return this.__sqlBuilder._queryRunner.executeFunction(query, queryParams).then((value) => {
                 let result
                 try {

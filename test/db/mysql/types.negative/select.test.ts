@@ -21,6 +21,12 @@ declare const connection: DBConnection
 // runtime; we keep it wrapped in an unreachable function so the throw
 // paths inside ts-sql-query are not triggered by accident.
 function _typeNegatives() {
+    // A select has one recursive part
+    connection.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ id: tIssue.id, parentId: tIssue.parentId })
+        .recursiveUnionAllOn((parent) => parent.id.equals(tIssue.parentId))
+        // @ts-expect-error a second recursive part would read a recursive select that the query doesn't define
+        .recursiveUnionAllOn((parent) => parent.parentId.equals(tIssue.id))
+
     // Rule: `.equals()` requires the same scalar type on both sides.
     // tAppUser.id is `int`; passing a string must not compile.
     // @ts-expect-error string passed where int is required

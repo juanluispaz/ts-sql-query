@@ -170,7 +170,6 @@ interface SelectExpression {
      * Execute the select query that returns zero or many results from the database.
      * Select page execute the query twice, the first one to get the data from the database 
      * and the second one to get the count of all data without the limit and the offset. 
-     * Note: select page is only available if you don't define a group by clause.
      */
     executeSelectPage(): Promise<{ data: RESULT[], count: number }>
     /** 

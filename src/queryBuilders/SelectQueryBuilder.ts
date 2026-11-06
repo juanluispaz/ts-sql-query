@@ -867,7 +867,9 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             return recursiveSelect.__buildSelectCount(countAll, params)
         }
 
-        if (this.__distinct || this.__groupBy.length > 0 || this.__customization) {
+        if (this.__distinct || this.__groupBy.length > 0 || this.__customization || this.__connectBy || hasAggregationQueryColumns(this.__columns, this.__sqlBuilder)) {
+            // An aggregate without group by gives one row whatever the rows of the table are, and a connect by decides
+            // which rows there are: the count must be of the rows of the select, not of the table.
             // A `customizeQuery` on a plain (non-distinct, non-grouped) select must
             // still decorate the count query, so route it through the same CTE
             // wrapper the distinct/grouped/compound paths use: the copied data

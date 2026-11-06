@@ -388,6 +388,7 @@ const customerPage: {
 The total is the number of rows that the select would return without `limit` and `offset`. In a simple select, it's enough to replace the columns with `count(*)`, as in the query above. When the rows of the result aren't the rows of the tables, the library counts over the whole select, without replacing anything:
 
 - With a **`group by`**, the total is the number of groups, after the `having`.
+- With an **aggregate and no `group by`**, like `selectCountAll()`, the select returns one row, so the total is `1`.
 - With **`selectDistinctFrom`**, the total is the number of different rows.
 - With a [**compound select**](compound-select.md), the total is the number of rows of the combined result, so `union` counts them after removing the duplicates. The `order by`, `limit` and `offset` written after the operator apply to the combined result.
 - With a [**recursive select**](recursive-select.md), the total is the number of rows of the recursive result.

@@ -45,10 +45,10 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     }
 
     executeUpdate(min?: number, max?: number): Promise<number> {
-        this.query()
         const source = new QueryExecutionSource('Query executed at')
-        __setQueryMetadata(source, this.__params, this.__customization)
         try {
+            this.query()
+            __setQueryMetadata(source, this.__params, this.__customization)
             let result: Promise<number>
             if (!this.__hasColumnsToSet()) {
                 // Nothing to update, nothing to set: resolve 0 without touching the
@@ -73,14 +73,14 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
             }
             return result
         } catch (e) {
-            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
+            return this.__rejectExecution(source, e)
         }
     }
     executeUpdateNoneOrOne(): Promise<any> {
-        this.query()
         const source = new QueryExecutionSource('Query executed at')
-        __setQueryMetadata(source, this.__params, this.__customization)
         try {
+            this.query()
+            __setQueryMetadata(source, this.__params, this.__customization)
             if (!this.__hasColumnsToSet()) {
                 // Nothing to update, nothing to set
                 return this.__sqlBuilder._queryRunner.createResolvedPromise(null)
@@ -114,14 +114,14 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
             }
             return result
         } catch (e) {
-            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
+            return this.__rejectExecution(source, e)
         }
     }
     executeUpdateOne(): Promise<any> {
-        this.query()
         const source = new QueryExecutionSource('Query executed at')
-        __setQueryMetadata(source, this.__params, this.__customization)
         try {
+            this.query()
+            __setQueryMetadata(source, this.__params, this.__customization)
             if (!this.__hasColumnsToSet()) {
                 // Nothing to update, nothing to set
                 return this.__sqlBuilder._queryRunner.createResolvedPromise(null).then(() => {
@@ -156,14 +156,14 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
             }
             return result
         } catch (e) {
-            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
+            return this.__rejectExecution(source, e)
         }
     }
     executeUpdateMany(min?: number, max?: number): Promise<any> {
         const source = new QueryExecutionSource('Query executed at')
-        this.query()
-        __setQueryMetadata(source, this.__params, this.__customization)
         try {
+            this.query()
+            __setQueryMetadata(source, this.__params, this.__customization)
             let result
             if (!this.__hasColumnsToSet()) {
                 // Nothing to update, nothing to set: resolve [] without touching the
@@ -218,7 +218,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
             }
             return result
         } catch (e) {
-            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
+            return this.__rejectExecution(source, e)
         }
     }
     query(): string {

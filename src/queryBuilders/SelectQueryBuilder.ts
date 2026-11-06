@@ -71,10 +71,10 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
     }
 
     executeSelectNoneOrOne(): Promise<any> {
-        this.query()
         const source = new QueryExecutionSource('Query executed at')
-        __setQueryMetadata(source, this.__params, this.__customization)
         try {
+            this.query()
+            __setQueryMetadata(source, this.__params, this.__customization)
             this.__sqlBuilder._resetUnique()
             let result
             if (this.__oneColumn) {
@@ -103,14 +103,14 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
             }
             return result
         } catch (e) {
-            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
+            return this.__rejectExecution(source, e)
         }
     }
     executeSelectOne(): Promise<any> {
-        this.query()
         const source = new QueryExecutionSource('Query executed at')
-        __setQueryMetadata(source, this.__params, this.__customization)
         try {
+            this.query()
+            __setQueryMetadata(source, this.__params, this.__customization)
             this.__sqlBuilder._resetUnique()
             let result
             if (this.__oneColumn) {
@@ -139,13 +139,13 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
             }
             return result
         } catch (e) {
-            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
+            return this.__rejectExecution(source, e)
         }
     }
     __executeSelectMany(source: QueryExecutionSource): Promise<any> {
-        this.query()
-        __setQueryMetadata(source, this.__params, this.__customization)
         try {
+            this.query()
+            __setQueryMetadata(source, this.__params, this.__customization)
             this.__sqlBuilder._resetUnique()
             let result
             if (this.__oneColumn) {
@@ -182,7 +182,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
             }
             return result
         } catch (e) {
-            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
+            return this.__rejectExecution(source, e)
         }
     }
     executeSelectMany(): Promise<any> {
@@ -216,11 +216,12 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
     }
 
     __executeSelectCount(source: QueryExecutionSource): Promise<any> {
+        let query = ''
         try {
             this.__sqlBuilder._resetUnique()
             const countAll = new AggregateFunctions0ValueSource('_countAll', 'int', 'int', 'required', undefined)
             const params: any[] = []
-            const query = this.__buildSelectCount(countAll, params)
+            query = this.__buildSelectCount(countAll, params)
             __setQueryMetadata(source, params, this.__customization, true)
             return this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(query, params).then((value) => {
                 return this.__transformValueFromDB(countAll, value, undefined, undefined, true)
@@ -228,7 +229,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
                 throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
             })
         } catch (e) {
-            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
+            return this.__rejectExecution(source, e, query)
         }
     }
     executeSelectPage(extras?: any) {

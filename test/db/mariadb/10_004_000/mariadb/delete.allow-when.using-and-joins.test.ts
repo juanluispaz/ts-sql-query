@@ -22,8 +22,6 @@
 // the CTE anywhere else, so the gated CTE body is the only limb that can report
 // the query disallowed. They are introspection-only and never built.
 //
-// The throws are SYNCHRONOUS — the statement renders before the promise chain is
-// entered — hence `try { await … } catch` rather than `.rejects`.
 // `isQueryAllowed` is the sanctioned introspection seam; see test/LIMITATIONS.md.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'

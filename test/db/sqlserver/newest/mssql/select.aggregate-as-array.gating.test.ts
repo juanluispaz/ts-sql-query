@@ -20,9 +20,7 @@
 // idempotent: once null-projected there is no way back to the subquery, so the
 // modifiers can be reapplied in either arm and the emission stays a literal null.
 //
-// The build-time throw is SYNCHRONOUS — the query renders before the `execute*`
-// promise is created — hence the `try { await … } catch` idiom rather than
-// `rejects`. `isQueryAllowed` is the sanctioned introspection seam; see
+// `isQueryAllowed` is the sanctioned introspection seam; see
 // test/LIMITATIONS.md.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'

@@ -38,10 +38,10 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     }
 
     executeDelete(min?: number, max?: number): Promise<number> {
-        this.query()
         const source = new QueryExecutionSource('Query executed at')
-        __setQueryMetadata(source, this.__params, this.__customization)
         try {
+            this.query()
+            __setQueryMetadata(source, this.__params, this.__customization)
             let result = this.__sqlBuilder._queryRunner.executeDelete(this.__query, this.__params).catch((e) => {
                 throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
             })
@@ -58,14 +58,14 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
             }
             return result
         } catch (e) {
-            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
+            return this.__rejectExecution(source, e)
         }
     }
     executeDeleteNoneOrOne(): Promise<any> {
-        this.query()
         const source = new QueryExecutionSource('Query executed at')
-        __setQueryMetadata(source, this.__params, this.__customization)
         try {
+            this.query()
+            __setQueryMetadata(source, this.__params, this.__customization)
             this.__sqlBuilder._resetUnique()
             let result
             if (this.__oneColumn) {
@@ -94,14 +94,14 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
             }
             return result
         } catch (e) {
-            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
+            return this.__rejectExecution(source, e)
         }
     }
     executeDeleteOne(): Promise<any> {
-        this.query()
         const source = new QueryExecutionSource('Query executed at')
-        __setQueryMetadata(source, this.__params, this.__customization)
         try {
+            this.query()
+            __setQueryMetadata(source, this.__params, this.__customization)
             this.__sqlBuilder._resetUnique()
             let result
             if (this.__oneColumn) {
@@ -130,14 +130,14 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
             }
             return result
         } catch (e) {
-            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
+            return this.__rejectExecution(source, e)
         }
     }
     executeDeleteMany(min?: number, max?: number): Promise<any> {
         const source = new QueryExecutionSource('Query executed at')
-        this.query()
-        __setQueryMetadata(source, this.__params, this.__customization)
         try {
+            this.query()
+            __setQueryMetadata(source, this.__params, this.__customization)
             this.__sqlBuilder._resetUnique()
             let result
             if (this.__oneColumn) {
@@ -186,7 +186,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
             }
             return result
         } catch (e) {
-            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
+            return this.__rejectExecution(source, e)
         }
     }
     query(): string {

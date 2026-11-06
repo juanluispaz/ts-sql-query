@@ -24,20 +24,20 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    test('delete without where throws MISSING_WHERE', () => {
+    test('delete without where throws MISSING_WHERE', async () => {
         let caught: unknown
         try {
-            (ctx.conn.deleteFrom(tIssue) as any).executeDelete()
+            await (ctx.conn.deleteFrom(tIssue) as any).executeDelete()
         } catch (e) {
             caught = e
         }
         expect(reasonOf(caught)).toBe('MISSING_WHERE')
     })
 
-    test('update without where throws MISSING_WHERE', () => {
+    test('update without where throws MISSING_WHERE', async () => {
         let caught: unknown
         try {
-            (ctx.conn.update(tIssue).set({ title: 'x' }) as any).executeUpdate()
+            await (ctx.conn.update(tIssue).set({ title: 'x' }) as any).executeUpdate()
         } catch (e) {
             caught = e
         }

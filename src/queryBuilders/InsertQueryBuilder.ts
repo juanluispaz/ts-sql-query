@@ -56,10 +56,10 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     }
 
     executeInsert(min?: number, max?: number): Promise<any> {
-        this.query()
         const source = new QueryExecutionSource('Query executed at')
-        __setQueryMetadata(source, this.__params, this.__customization)
         try {
+            this.query()
+            __setQueryMetadata(source, this.__params, this.__customization)
             const idColumn = this.__idColumn
             const multiple = this.__multiple
             let result
@@ -198,14 +198,14 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
             }
             return result
         } catch (e) {
-            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
+            return this.__rejectExecution(source, e)
         }
     }
     executeInsertNoneOrOne(): Promise<any> {
-        this.query()
         const source = new QueryExecutionSource('Query executed at')
-        __setQueryMetadata(source, this.__params, this.__customization)
         try {
+            this.query()
+            __setQueryMetadata(source, this.__params, this.__customization)
             this.__sqlBuilder._resetUnique()
             const multiple = this.__multiple
             let result
@@ -240,14 +240,14 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
             }
             return result
         } catch (e) {
-            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
+            return this.__rejectExecution(source, e)
         }
     }
     executeInsertOne(): Promise<any> {
-        this.query()
         const source = new QueryExecutionSource('Query executed at')
-        __setQueryMetadata(source, this.__params, this.__customization)
         try {
+            this.query()
+            __setQueryMetadata(source, this.__params, this.__customization)
             this.__sqlBuilder._resetUnique()
             const multiple = this.__multiple
             let result
@@ -284,14 +284,14 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
             }
             return result
         } catch (e) {
-            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
+            return this.__rejectExecution(source, e)
         }
     }
     executeInsertMany(min?: number, max?: number): Promise<any> {
         const source = new QueryExecutionSource('Query executed at')
-        this.query()
-        __setQueryMetadata(source, this.__params, this.__customization)
         try {
+            this.query()
+            __setQueryMetadata(source, this.__params, this.__customization)
             this.__sqlBuilder._resetUnique()
             const multiple = this.__multiple
             let result
@@ -347,7 +347,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
             }
             return result
         } catch (e) {
-            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
+            return this.__rejectExecution(source, e)
         }
     }
     query(): string {

@@ -31,8 +31,7 @@
 // and are silently dropped — there the walker's verdict is the only signal, and the
 // emitted SQL is snapshotted to prove the renderer saw nothing.
 //
-// The throw is SYNCHRONOUS — the query renders before the promise chain is entered
-// — hence `try { await … } catch` rather than `.rejects`. `isQueryAllowed` is the
+// `isQueryAllowed` is the
 // sanctioned introspection seam; see test/LIMITATIONS.md.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'

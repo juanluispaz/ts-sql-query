@@ -591,12 +591,11 @@ describe(ctx.label, () => {
         }
     })
 
-    test('transaction-body-failing-to-build-its-query-synchronously-surfaces-the-library-reason', async () => {
+    test('transaction-body-failing-to-build-its-query-surfaces-the-library-reason', async () => {
         // A non-async body whose query is refused while it is being built: the
-        // `title` column is gated off, so building the SELECT throws before
-        // anything is sent and before the body returns a promise. The caller still
-        // gets a rejected `transaction(...)` carrying the library's reason, and the
-        // transaction is closed.
+        // `title` column is gated off, so nothing is sent and the body returns a
+        // rejected promise. The caller gets a rejected `transaction(...)` carrying
+        // the library's reason, and the transaction is closed.
         const connection = ctx.conn
         let caught: unknown
 

@@ -6,6 +6,10 @@ search:
 
 `ts-sql-query` wraps execution and processing failures in typed errors. The most important field for callers is `errorReason`, whose `reason` value identifies the semantic category of the failure.
 
+Every `execute*` method, and `transaction`, `beginTransaction`, `commit` and `rollback`, reports its failures through the promise it returns: they never throw when they are called. An error of the library arrives as `TsSqlQueryExecutionError`, including a query that can't be built, like a delete without `where`. An error of your code raised while the query is built arrives as it is, like the error you give to `allowWhen`, or one thrown by your own `transformValueToDB`, `transformPlaceholder` or `escape`.
+
+`query()` and `params()` return no promise, so they throw the error directly.
+
 Database and driver failures are represented with `TsSqlQueryExecutionError`. When the source error exposes native metadata, the mapped reason can include:
 
 | <span class="min-width-7rem">Field</span> | Meaning |

@@ -208,7 +208,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     transaction<T>(fn: () => T | Promise<T>, isolationLevel?: TransactionIsolationLevel<DB>): Promise<T> {
         const source = new QueryExecutionSource('Transaction executed at')
         if (this.isTransactionActive() && !this.queryRunner.nestedTransactionsSupported()) {
-            throw new TsSqlQueryExecutionError(source, { reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, 'Nested transactions not supported')
+            return this.queryRunner.createRejectedPromise(new TsSqlQueryExecutionError(source, { reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, 'Nested transactions not supported'))
         }
         const opts: any = isolationLevel || []
         __setQueryMetadata(source, opts)
@@ -277,11 +277,11 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             })
         } catch (e) {
             if (e instanceof TsSqlQueryExecutionError) {
-                throw e.attachTransactionSource(e)
+                return this.queryRunner.createRejectedPromise(e.attachTransactionSource(e))
             } else if (this.queryRunner.isSqlError(e)) {
-                throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e).attachTransactionSource(source)
+                return this.queryRunner.createRejectedPromise(new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e).attachTransactionSource(source))
             } else {
-                throw e
+                return this.queryRunner.createRejectedPromise(e)
             }
         }
     }
@@ -289,7 +289,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     beginTransaction(isolationLevel?: TransactionIsolationLevel<DB>): Promise<void> {
         const source = new QueryExecutionSource('Query executed at')
         if (this.isTransactionActive() && !this.queryRunner.nestedTransactionsSupported()) {
-            throw new TsSqlQueryExecutionError(source, { reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, 'Nested transactions not supported')
+            return this.queryRunner.createRejectedPromise(new TsSqlQueryExecutionError(source, { reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, 'Nested transactions not supported'))
         }
         const opts: any = isolationLevel || []
         __setQueryMetadata(source, opts)
@@ -308,35 +308,45 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             })
         } catch (e) {
             if (e instanceof TsSqlQueryExecutionError) {
-                throw e.attachTransactionSource(e)
+                return this.queryRunner.createRejectedPromise(e.attachTransactionSource(e))
             } else if (this.queryRunner.isSqlError(e)) {
-                throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e).attachTransactionSource(source)
+                return this.queryRunner.createRejectedPromise(new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e).attachTransactionSource(source))
             } else {
-                throw e
+                return this.queryRunner.createRejectedPromise(e)
             }
         }
     }
     commit(): Promise<void> {
         const source = new QueryExecutionSource('Query executed at')
         if (!this.isTransactionActive()) {
-            throw new TsSqlQueryExecutionError(source, { reason: 'NOT_IN_TRANSACTION' }, 'There is no open transaction')
+            return this.queryRunner.createRejectedPromise(new TsSqlQueryExecutionError(source, { reason: 'NOT_IN_TRANSACTION' }, 'There is no open transaction'))
         }
         const opts: any = []
         __setQueryMetadata(source, opts)
-        const beforeCommit = this.beforeCommit
-        if (beforeCommit) {
-            this.beforeCommit = null
-            const result = callDeferredFunctionsStoppingOnError('before next commit', beforeCommit, undefined, source)
-            if (isPromise(result)) {
-                return result.then(() => {
-                    try {
-                        return this.queryRunner.executeCommit(opts).then(() => {
-                            const onCommit = this.onCommit
-                            this.onCommit = null
-                            return callDeferredFunctions('after next commit', onCommit, undefined, source)
-                        }, (e) => {
-                            // Transaction only closed when commit successful, in case of error there is still an open transaction
-                            // No rollback yet, then no executeAfterNextRollback will be executed
+        try {
+            const beforeCommit = this.beforeCommit
+            if (beforeCommit) {
+                this.beforeCommit = null
+                const result = callDeferredFunctionsStoppingOnError('before next commit', beforeCommit, undefined, source)
+                if (isPromise(result)) {
+                    return result.then(() => {
+                        try {
+                            return this.queryRunner.executeCommit(opts).then(() => {
+                                const onCommit = this.onCommit
+                                this.onCommit = null
+                                return callDeferredFunctions('after next commit', onCommit, undefined, source)
+                            }, (e) => {
+                                // Transaction only closed when commit successful, in case of error there is still an open transaction
+                                // No rollback yet, then no executeAfterNextRollback will be executed
+                                if (e instanceof TsSqlQueryExecutionError) {
+                                    throw e
+                                } else if (this.queryRunner.isSqlError(e)) {
+                                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
+                                } else {
+                                    throw e
+                                }
+                            })
+                        } catch (e) {
                             if (e instanceof TsSqlQueryExecutionError) {
                                 throw e
                             } else if (this.queryRunner.isSqlError(e)) {
@@ -344,22 +354,12 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                             } else {
                                 throw e
                             }
-                        })
-                    } catch (e) {
-                        if (e instanceof TsSqlQueryExecutionError) {
-                            throw e
-                        } else if (this.queryRunner.isSqlError(e)) {
-                            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
-                        } else {
-                            throw e
                         }
-                    }
-                }).then(() => {
-                    this.popTransactionStack()
-                })
+                    }).then(() => {
+                        this.popTransactionStack()
+                    })
+                }
             }
-        }
-        try {
             return this.queryRunner.executeCommit(opts).then(() => {
                 const onCommit = this.onCommit
                 this.onCommit = null
@@ -379,18 +379,18 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             })
         } catch (e) {
             if (e instanceof TsSqlQueryExecutionError) {
-                throw e
+                return this.queryRunner.createRejectedPromise(e)
             } else if (this.queryRunner.isSqlError(e)) {
-                throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
+                return this.queryRunner.createRejectedPromise(new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e))
             } else {
-                throw e
+                return this.queryRunner.createRejectedPromise(e)
             }
         }
     }
     rollback(): Promise<void> {
         const source = new QueryExecutionSource('Query executed at')
         if (!this.isTransactionActive()) {
-            throw new TsSqlQueryExecutionError(source, { reason: 'NOT_IN_TRANSACTION' }, 'There is no open transaction')
+            return this.queryRunner.createRejectedPromise(new TsSqlQueryExecutionError(source, { reason: 'NOT_IN_TRANSACTION' }, 'There is no open transaction'))
         }
         const opts: any = []
         __setQueryMetadata(source, opts)
@@ -421,11 +421,11 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             })
         } catch (e) {
             if (e instanceof TsSqlQueryExecutionError) {
-                throw e
+                return this.queryRunner.createRejectedPromise(e)
             } else if (this.queryRunner.isSqlError(e)) {
-                throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
+                return this.queryRunner.createRejectedPromise(new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e))
             } else {
-                throw e
+                return this.queryRunner.createRejectedPromise(e)
             }
         }
     }
@@ -609,15 +609,16 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
 
     protected executeProcedure(procedureName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[]): Promise<void> {
         const source = new QueryExecutionSource('Query executed at')
+        let query: string | undefined
         try {
             const queryParams: any[] = []
-            const query = this.__sqlBuilder._buildCallProcedure(queryParams, procedureName, params)
+            query = this.__sqlBuilder._buildCallProcedure(queryParams, procedureName, params)
             __setQueryMetadata(source, params)
             return this.__sqlBuilder._queryRunner.executeProcedure(query, queryParams).catch((e) => {
                 throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
             })
         } catch (e) {
-            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
+            return this.__rejectExecution(source, e, query)
         }
     }
 
@@ -677,6 +678,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     protected executeFunction<T>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
     protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): Promise<any> {
         const source = new QueryExecutionSource('Query executed at')
+        let query: string | undefined
         try {
             if (typeof adapter === 'string') {
                 returnType = required
@@ -685,7 +687,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 adapter2 = adapter
             }
             const queryParams: any[] = []
-            const query = this.__sqlBuilder._buildCallFunction(queryParams, functionName, params)
+            query = this.__sqlBuilder._buildCallFunction(queryParams, functionName, params)
             __setQueryMetadata(source, params)
             return this.__sqlBuilder._queryRunner.executeFunction(query, queryParams).then((value) => {
                 let result
@@ -713,8 +715,21 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
             })
         } catch (e) {
-            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
+            return this.__rejectExecution(source, e, query)
         }
+    }
+
+    /**
+     * Same rule as the execute methods of the query builders: the failure goes through the
+     * promise, and an error that isn't of the library while building the call comes from
+     * the code of the application, so it arrives as it is.
+     */
+    private __rejectExecution(source: QueryExecutionSource, error: unknown, query: string | undefined): Promise<any> {
+        const queryRunner = this.__sqlBuilder._queryRunner
+        if (query === undefined && !(error instanceof TsSqlError)) {
+            return queryRunner.createRejectedPromise(error)
+        }
+        return queryRunner.createRejectedPromise(new TsSqlQueryExecutionError(source, queryRunner.getErrorReason(error), error))
     }
 
     fragmentWithType(type: 'boolean', required: 'required', adapter?: TypeAdapter): BooleanFragmentExpression<NNoTableOrViewRequired<DB>, 'required'>

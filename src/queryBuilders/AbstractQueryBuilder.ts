@@ -5,7 +5,8 @@ import { getQueryColumn, isUsableValue } from '../sqlBuilders/SqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { AnyTableOrView, IWithView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate, __registerRequiredColumn } from '../utils/ITableOrView.js'
-import { TsSqlError, TsSqlProcessingError } from '../TsSqlError.js'
+import type { QueryExecutionSource } from '../TsSqlError.js'
+import { TsSqlError, TsSqlProcessingError, TsSqlQueryExecutionError } from '../TsSqlError.js'
 import { setQueryExecutionMetadata, setQueryExecutionSource, setSelectPageCountQuery } from '../utils/queryParamsMetadata.js'
 
 export class AbstractQueryBuilder {
@@ -43,6 +44,24 @@ export class AbstractQueryBuilder {
         this.__query = ''
         this.__params = []
         this.__withsGenerated = false
+    }
+
+    /**
+     * An execute method reports every failure through the promise it returns, so a caller
+     * handles them in one place. A query that can't be built ends here, as does a runner
+     * that throws instead of rejecting. It uses the runner's promise, because the runners
+     * for synchronous databases only work with their own.
+     *
+     * While building the query, an error that isn't of the library comes from the code of
+     * the application, like the error given to `allowWhen` or a `transformValueToDB` of its
+     * own, and it arrives as it is. The query only has a value once it is built.
+     */
+    __rejectExecution(source: QueryExecutionSource, error: unknown, query: string = this.__query): Promise<any> {
+        const queryRunner = this.__sqlBuilder._queryRunner
+        if (!query && !(error instanceof TsSqlError)) {
+            return queryRunner.createRejectedPromise(error)
+        }
+        return queryRunner.createRejectedPromise(new TsSqlQueryExecutionError(source, queryRunner.getErrorReason(error), error))
     }
 
     __isValue<T>(value: T): value is NonNullable<T> {

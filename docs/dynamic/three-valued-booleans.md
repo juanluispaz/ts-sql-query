@@ -75,6 +75,60 @@ const companies = await connection.selectFrom(tCustomCompany)
     .executeSelectMany()
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        name as name 
+    from custom_company 
+    where (is_big = 'Y') <=> ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        `name` as `name` 
+    from custom_company 
+    where (is_big = 'Y') <=> ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        name as "name" 
+    from custom_company 
+    where decode(case when is_big = 'Y' then 1 else 0 end, :0, 1, 0 ) = 1
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        name as name 
+    from custom_company 
+    where (is_big = 'Y') is not distinct 
+    from $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        name as name 
+    from custom_company 
+    where (is_big = 'Y') is ?1
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        name as name 
+    from custom_company 
+    where is_big is null
+    ```
+
+The parameters are: `[ null ]` (on SQL Server: `[]`)
+
 Use `equals` when you want plain SQL `=` semantics over present values, and `is` when you want a total, JavaScript-like equality that copes with `null` on either side. (For the *dynamic* case — "apply this filter only if a value was provided" — use `equalsIfValue` / `isIfValue`, covered next.)
 
 ## Values coming from the backend are not three-valued
@@ -89,6 +143,59 @@ const companies = await connection.selectFrom(tCustomCompany)
     .select({ id: tCustomCompany.id, name: tCustomCompany.name })
     .executeSelectMany()
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        name as name 
+    from custom_company 
+    where (is_big = 'Y') = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        `name` as `name` 
+    from custom_company 
+    where (is_big = 'Y') = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        name as "name" 
+    from custom_company 
+    where case when is_big = 'Y' then 1 else 0 end = :0
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        name as name 
+    from custom_company 
+    where (is_big = 'Y') = $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        name as name 
+    from custom_company 
+    where (is_big = 'Y') = ?1
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        name as name 
+    from custom_company 
+    where cast(case when is_big = 'Y' then 1 else 0 end as bit) = @0
+    ```
+
+The parameters are: `[ true ]` (on Oracle: `[ 1 ]`)
 
 Earlier versions of `ts-sql-query` fully modelled SQL's three-valued logic for these operations, but in practice it caused surprising behaviour from the TypeScript/JavaScript point of view (a comparison silently evaluating to `null`), so producing a boolean from a possibly-`null`/`undefined` TS value was deprecated. The reason is conceptual: **an optional value in your backend almost never means "compare against null" — it means "this condition is dynamic"** (apply it only when a value is present). That is a dynamic-query concern, not a three-valued-logic one.
 
@@ -106,6 +213,53 @@ const companies = await connection.selectFrom(tCustomCompany)
     .executeSelectMany()
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        name as name 
+    from custom_company
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        `name` as `name` 
+    from custom_company
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        name as "name" 
+    from custom_company
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        name as name 
+    from custom_company
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        name as name 
+    from custom_company
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        name as name 
+    from custom_company
+    ```
+
+The parameters are: `[]`
+
 Because the neutral boolean is reduced, the whole condition disappears from the emitted SQL when there is no value — even when it is combined with other conditions through `and` / `or`. See [Easy dynamic queries](../queries/dynamic-queries.md#easy-dynamic-queries) for the full treatment (including the generated SQL per database) and the other dynamic-query building blocks (`onlyWhen`, `ignoreWhen`, optional joins, …).
 
 ### When the absence should mean `false` instead of being omitted
@@ -121,6 +275,59 @@ const companies = await connection.selectFrom(tCustomCompany)
     .select({ id: tCustomCompany.id, name: tCustomCompany.name })
     .executeSelectMany()
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        name as name 
+    from custom_company 
+    where false
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        `name` as `name` 
+    from custom_company 
+    where false
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        name as "name" 
+    from custom_company 
+    where (0=1)
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        name as name 
+    from custom_company 
+    where false
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        name as name 
+    from custom_company 
+    where 0
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        name as name 
+    from custom_company 
+    where (0=1)
+    ```
+
+The parameters are: `[]`
 
 ## Three-valued logic still happens with database values
 

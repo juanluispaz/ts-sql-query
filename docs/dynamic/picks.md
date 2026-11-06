@@ -130,12 +130,66 @@ const availableFields = {
 
 type CustomerField = DynamicPickPaths<typeof availableFields, 'id'>
 
+const req = { query: { fields: 'firstName,lastName' } }
 const requestedFields = req.query.fields.split(',') as CustomerField[]
 
 const customers = await connection.selectFrom(tCustomer)
     .select(dynamicPickPaths(availableFields, requestedFields, ['id']))
     .executeSelectMany()
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer
+    ```
+
+The parameters are: `[]`
 
 The client can ask for any column of the map. If some of them need a permission, mark them with [`allowWhen`](restricting-values.md#restrict-access-to-values).
 

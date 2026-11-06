@@ -183,7 +183,62 @@ async function getCustomersInformation<FIELDS extends CustomerInformationFields>
 
     return expandTypeFromDynamicPickPaths(customerInformationFields, fields, customers, ['id'])
 }
+
+const customers = await getCustomersInformation(connection, ['firstName', 'lastName'])
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer
+    ```
+
+The parameters are: `[]`
 
 ### Creating definitions based on your business types
 
@@ -214,7 +269,62 @@ async function getCustomersInformation<FIELDS extends keyof CustomerInformation>
 
     return expandTypeFromDynamicPickPaths(availableFields, fields, customers, ['id']);
 }
+
+const customers = await getCustomersInformation(connection, ['firstName', 'lastName'])
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer
+    ```
+
+The parameters are: `[]`
 
 ### Creating definitions based on your nested business types
 
@@ -259,7 +369,68 @@ async function getCustomersWithCompany<FIELDS extends DeepPickPaths<CustomerWith
 
     return expandTypeFromDynamicPickPaths(availableFields, fields, customers, ['id']);
 }
+
+const customers = await getCustomersWithCompany(connection, ['firstName', 'company.name'])
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        customer.id as id, 
+        customer.first_name as firstName, 
+        company.name as `company.name` 
+    from customer 
+    left outer join company as company on company.id = customer.company_id
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        customer.id as id, 
+        customer.first_name as firstName, 
+        company.`name` as `company.name` 
+    from customer 
+    left outer join company as company on company.id = customer.company_id
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        customer.id as "id", 
+        customer.first_name as "firstName", 
+        company.name as "company.name" 
+    from customer 
+    left outer join company company on company.id = customer.company_id
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        customer.id as id, 
+        customer.first_name as "firstName", 
+        company.name as "company.name" 
+    from customer 
+    left outer join company as company on company.id = customer.company_id
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        customer.id as id, 
+        customer.first_name as firstName, 
+        company.name as "company.name" 
+    from customer 
+    left outer join company as company on company.id = customer.company_id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        customer.id as id, 
+        customer.first_name as firstName, 
+        company.name as [company.name] 
+    from customer 
+    left outer join company as company on company.id = customer.company_id
+    ```
+
+The parameters are: `[]`
 
 !!! note "Flat `Pick` vs nested `DeepPick`"
 

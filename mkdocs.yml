@@ -214,22 +214,26 @@ nav:
         - SQLite: api/error-management/native-mappings/sqlite.md
         - SQL Server: api/error-management/native-mappings/sql-server.md
   - Dynamic:
-    - Dynamic query building blocks: dynamic/building-blocks.md
-    - Building a condition step by step: dynamic/building-conditions.md
-    - Order and page from a request: dynamic/order-and-page.md
-    - Optional joins: dynamic/optional-joins.md
-    - Dynamic filters: dynamic/filters.md
-    - Picking columns dynamically: dynamic/picks.md
-    - Restricting values: dynamic/restricting-values.md
-    - Queries from a request: dynamic/queries-from-requests.md
-    - Functions that return a dynamic select: dynamic/dynamic-select-functions.md
-    - Dynamic queries from the database types: dynamic/from-database-types.md
-    - Dynamic queries from a business model: dynamic/from-business-model.md
-    - Booleans and three-valued logic: dynamic/three-valued-booleans.md
-    - Utilities:
+    - What a dynamic query can do: dynamic/building-blocks.md
+    - Optional parts of a query:
+      - Order and page from a request: dynamic/order-and-page.md
+      - Optional joins: dynamic/optional-joins.md
+      - Booleans and three-valued logic: dynamic/three-valued-booleans.md
+    - The caller decides:
+      - Queries from a request: dynamic/queries-from-requests.md
+      - Dynamic filters: dynamic/filters.md
+      - Picking columns dynamically: dynamic/picks.md
+      - Restricting values: dynamic/restricting-values.md
+    - A function of your own:
+      - Functions that return a dynamic select: dynamic/dynamic-select-functions.md
+      - Typing from the database types: dynamic/from-database-types.md
+      - Typing from a business model: dynamic/from-business-model.md
+    - Helper types:
       - Dynamic conditions: dynamic/utilities/conditions.md
       - Dynamic picks: dynamic/utilities/picks.md
       - Dynamic order by: dynamic/utilities/order-by.md
+    - Going further:
+      - Building a condition step by step: dynamic/building-conditions.md
   - Advanced:
     - Custom booleans values: advanced/custom-booleans-values.md
     - Synchronous query runners: advanced/synchronous-query-runners.md

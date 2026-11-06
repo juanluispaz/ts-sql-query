@@ -30,7 +30,7 @@ The functions and types used to pick columns, and to type the result, are explai
 
 ## Complex dynamic boolean expressions
 
-To decide with your own `if`s how the conditions combine, keep the condition in a variable with `connection.dynamicBooleanExpressionUsing(...)`. A function can build it, so several queries can share it: see [A condition in a variable](../dynamic/building-conditions.md#a-condition-in-a-variable) and [Bringing a condition from outside the query](../dynamic/building-conditions.md#bringing-a-condition-from-outside-the-query).
+When the conditions can't be said with the `*IfValue` methods and `onlyWhen`, which should be the first option, you can decide with your own `if`s how they combine, keeping the condition in a variable with `connection.dynamicBooleanExpressionUsing(...)`. A function can build it, so several queries can share it: see [A condition in a variable](../dynamic/building-conditions.md#a-condition-in-a-variable) and [Bringing a condition from outside the query](../dynamic/building-conditions.md#bringing-a-condition-from-outside-the-query).
 
 ## Select using a dynamic filter
 
@@ -57,7 +57,82 @@ const customers = await connection.selectFrom(tCustomer)
     .executeSelectMany()
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where 
+           lower(first_name) like concat(lower(?), '%') 
+        or lower(last_name) like concat('%', lower(?), '%')
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where 
+           lower(first_name) like concat(lower(?), '%') 
+        or lower(last_name) like concat('%', lower(?), '%')
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer 
+    where 
+           lower(first_name) like lower(:0 || '%') escape '\' 
+        or lower(last_name) like lower('%' || :1 || '%') escape '\'
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer 
+    where 
+           first_name ilike ($1 || '%') 
+        or last_name ilike ('%' || $2 || '%')
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where 
+           lower(first_name) like lower(?1 || '%') escape '\' 
+        or lower(last_name) like lower('%' || ?2 || '%') escape '\'
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where 
+           lower(first_name) like lower(@0 + '%') 
+        or lower(last_name) like lower('%' + @1 + '%')
+    ```
+
+The parameters are: `[ 'John', 'Smi' ]`
+
 [Dynamic filters](../dynamic/filters.md) has what a filter can say, what happens with empty values, the errors, and rules of your own.
+
+## Select using a dynamic filter with complex projections
+
+When the select returns nested objects, the filter has the same shape: see [the filter with complex projections](../dynamic/filters.md#select-using-a-dynamic-filter-with-complex-projections).
 
 ## Select dynamically picking columns
 
@@ -78,7 +153,64 @@ const customers = await connection.selectFrom(tCustomer)
     .executeSelectMany()
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer
+    ```
+
+The parameters are: `[]`
+
 [Picking columns dynamically](../dynamic/picks.md) has the two ways of saying what to pick, how it affects the order, and the columns asked for with `?fields=`.
+
+## Select dynamically picking columns with complex projections
+
+The same happens with a pick: see [the pick with complex projections](../dynamic/picks.md#select-dynamically-picking-columns-with-complex-projections).
 
 ## Optional joins dynamically picking columns
 
@@ -91,14 +223,6 @@ What the caller picks also decides the joins: if no column of a table is picked,
 ## Restrict access to values
 
 `allowWhen` and `disallowWhen` make a value unusable under some circumstances: if a query needs it, the query isn't sent and you get the error you gave. See [Restrict access to values](../dynamic/restricting-values.md#restrict-access-to-values).
-
-## Select using a dynamic filter with complex projections
-
-When the select returns nested objects, the filter has the same shape: see [the filter with complex projections](../dynamic/filters.md#select-using-a-dynamic-filter-with-complex-projections).
-
-## Select dynamically picking columns with complex projections
-
-The same happens with a pick: see [the pick with complex projections](../dynamic/picks.md#select-dynamically-picking-columns-with-complex-projections).
 
 ## A function that returns a dynamic select
 

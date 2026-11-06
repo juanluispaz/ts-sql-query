@@ -53,6 +53,77 @@ const result = filterCustomers(connection, {
 })
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        concat(first_name, ?, last_name) as name, 
+        birthday as birthday 
+    from customer 
+    where 
+            lower(concat(first_name, ?, last_name)) like concat('%', lower(?), '%') 
+        and birthday > ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        concat(first_name, ?, last_name) as `name`, 
+        birthday as birthday 
+    from customer 
+    where 
+            lower(concat(first_name, ?, last_name)) like concat('%', lower(?), '%') 
+        and birthday > ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name || :0 || last_name as "name", 
+        birthday as "birthday" 
+    from customer 
+    where 
+            lower(first_name || :1 || last_name) like lower('%' || :2 || '%') escape '\' 
+        and birthday > :3
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name || $1 || last_name as name, 
+        birthday as birthday 
+    from customer 
+    where 
+            (first_name || $2 || last_name) ilike ('%' || $3 || '%') 
+        and birthday > $4
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name || ?1 || last_name as name, 
+        birthday as birthday 
+    from customer 
+    where 
+            lower(first_name || ?2 || last_name) like lower('%' || ?3 || '%') escape '\' 
+        and birthday > ?4
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name + @0 + last_name as name, 
+        birthday as birthday 
+    from customer 
+    where 
+            lower(first_name + @1 + last_name) like lower('%' + @2 + '%') 
+        and birthday > @3
+    ```
+
+The parameters are: `[ ' ', ' ', 'ACME', '1990-01-01T00:00:00.000Z' ]` (on SQLite: `[ ' ', ' ', 'ACME', '1990-01-01' ]`)
+
 Each model property maps to a filter: `boolean` → `EqualableFilter<boolean>`, `number` → `ComparableFilter<number>`, `bigint` → `ComparableFilter<bigint>`, `string` → `StringFilter`, `Date` → `ComparableFilter<Date>`, a string/number **literal union** → `EqualableFilter<…>` (an enum), and a **nested object** recurses. See the [Dynamic conditions](utilities/conditions.md) utility page for the full reference, and the *[Limitations](#limitations)* below.
 
 ## Picking columns: `dynamicPickPaths` + `DeepPick`
@@ -99,6 +170,65 @@ async function pickCustomerColumns<FIELDS extends DeepPickPaths<CustomerPickRow>
 const result = pickCustomerColumns(connection, ['name', 'company.name'])
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        customer.id as id, 
+        concat(customer.first_name, ?, customer.last_name) as name, 
+        company.name as `company.name` 
+    from customer 
+    left outer join company as company on company.id = customer.company_id
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        customer.id as id, 
+        concat(customer.first_name, ?, customer.last_name) as `name`, 
+        company.`name` as `company.name` 
+    from customer 
+    left outer join company as company on company.id = customer.company_id
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        customer.id as "id", 
+        customer.first_name || :0 || customer.last_name as "name", 
+        company.name as "company.name" 
+    from customer 
+    left outer join company company on company.id = customer.company_id
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        customer.id as id, 
+        customer.first_name || $1 || customer.last_name as name, 
+        company.name as "company.name" 
+    from customer 
+    left outer join company as company on company.id = customer.company_id
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        customer.id as id, 
+        customer.first_name || ?1 || customer.last_name as name, 
+        company.name as "company.name" 
+    from customer 
+    left outer join company as company on company.id = customer.company_id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        customer.id as id, 
+        customer.first_name + @0 + customer.last_name as name, 
+        company.name as [company.name] 
+    from customer 
+    left outer join company as company on company.id = customer.company_id
+    ```
+
+The parameters are: `[ ' ' ]`
+
 Use the built-in `Pick<Model, K>` when the picked fields are **top-level** keys, and `DeepPick<Model, PATHS>` when you pick fields inside nested objects through dotted paths. `DeepPick` / `DeepPickPaths` (and their `Omit` counterparts) are documented in full on the [Deep utilities](../advanced/deep-utilities.md) page; the pick functions on the [Dynamic picks](utilities/picks.md) page.
 
 ## Ordering: `OrderByForModel`
@@ -130,6 +260,77 @@ async function sortCustomers(connection: DBConnection, orderBy: OrderByForModel<
 // each clause is constrained to the model's leaves and the valid ordering modes
 const result = sortCustomers(connection, ['name asc', 'birthday desc nulls last'])
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        concat(first_name, ?, last_name) as name, 
+        birthday as birthday 
+    from customer 
+    order by 
+        name asc, 
+        birthday desc
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        concat(first_name, ?, last_name) as `name`, 
+        birthday as birthday 
+    from customer 
+    order by 
+        `name` asc, 
+        birthday desc
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name || :0 || last_name as "name", 
+        birthday as "birthday" 
+    from customer 
+    order by 
+        "name" asc, 
+        "birthday" desc nulls last
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name || $1 || last_name as name, 
+        birthday as birthday 
+    from customer 
+    order by 
+        name asc, 
+        birthday desc nulls last
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name || ?1 || last_name as name, 
+        birthday as birthday 
+    from customer 
+    order by 
+        name asc, 
+        birthday desc nulls last
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name + @0 + last_name as name, 
+        birthday as birthday 
+    from customer 
+    order by 
+        name asc, 
+        birthday desc
+    ```
+
+The parameters are: `[ ' ' ]`
 
 The orderable targets are the model's scalar **leaves**, addressed by their dotted path — so in a complex projection `'company.name'` is orderable, while `'company'` (the object itself) is not, and array fields are excluded. The modes union is exported as `OrderByMode`; see the [Dynamic order by](utilities/order-by.md) utility page.
 
@@ -189,6 +390,104 @@ const result = listCustomerDirectory(connection, ['name', 'company.name'],
     { name: { containsInsensitive: 'ACME' }, company: { name: { equals: 'ACME Corp' } } },
     ['company.name asc nulls last', 'name desc'])
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        customer.id as id, 
+        concat(customer.first_name, ?, customer.last_name) as name, 
+        company.name as `company.name` 
+    from customer 
+    left outer join company as company on company.id = customer.company_id 
+    where 
+            lower(concat(customer.first_name, ?, customer.last_name)) like concat('%', lower(?), '%') 
+        and company.name = ? 
+    order by 
+        company.name is null, 
+        `company.name` asc, 
+        name desc
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        customer.id as id, 
+        concat(customer.first_name, ?, customer.last_name) as `name`, 
+        company.`name` as `company.name` 
+    from customer 
+    left outer join company as company on company.id = customer.company_id 
+    where 
+            lower(concat(customer.first_name, ?, customer.last_name)) like concat('%', lower(?), '%') 
+        and company.`name` = ? 
+    order by 
+        company.`name` is null, 
+        `company.name` asc, 
+        `name` desc
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        customer.id as "id", 
+        customer.first_name || :0 || customer.last_name as "name", 
+        company.name as "company.name" 
+    from customer 
+    left outer join company company on company.id = customer.company_id 
+    where 
+            lower(customer.first_name || :1 || customer.last_name) like lower('%' || :2 || '%') escape '\' 
+        and company.name = :3 
+    order by 
+        "company.name" asc nulls last, 
+        "name" desc
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        customer.id as id, 
+        customer.first_name || $1 || customer.last_name as name, 
+        company.name as "company.name" 
+    from customer 
+    left outer join company as company on company.id = customer.company_id 
+    where 
+            (customer.first_name || $2 || customer.last_name) ilike ('%' || $3 || '%') 
+        and company.name = $4 
+    order by 
+        "company.name" asc nulls last, 
+        name desc
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        customer.id as id, 
+        customer.first_name || ?1 || customer.last_name as name, 
+        company.name as "company.name" 
+    from customer 
+    left outer join company as company on company.id = customer.company_id 
+    where 
+            lower(customer.first_name || ?2 || customer.last_name) like lower('%' || ?3 || '%') escape '\' 
+        and company.name = ?4 
+    order by 
+        "company.name" asc nulls last, 
+        name desc
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        customer.id as id, 
+        customer.first_name + @0 + customer.last_name as name, 
+        company.name as [company.name] 
+    from customer 
+    left outer join company as company on company.id = customer.company_id 
+    where 
+            lower(customer.first_name + @1 + customer.last_name) like lower('%' + @2 + '%') 
+        and company.name = @3 
+    order by 
+        iif(company.name is null, 1, 0), 
+        [company.name] asc, 
+        name desc
+    ```
+
+The parameters are: `[ ' ', ' ', 'ACME', 'ACME Corp' ]`
 
 This is the same end-to-end function shown, side by side with its database-first twin, in [Extreme dynamic queries — From the model](dynamic-select-functions.md#from-the-model).
 

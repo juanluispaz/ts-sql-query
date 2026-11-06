@@ -48,6 +48,77 @@ const result = filterCustomers(connection, {
 })
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        concat(first_name, ?, last_name) as name, 
+        birthday as birthday 
+    from customer 
+    where 
+            lower(concat(first_name, ?, last_name)) like concat('%', lower(?), '%') 
+        and birthday > ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        concat(first_name, ?, last_name) as `name`, 
+        birthday as birthday 
+    from customer 
+    where 
+            lower(concat(first_name, ?, last_name)) like concat('%', lower(?), '%') 
+        and birthday > ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name || :0 || last_name as "name", 
+        birthday as "birthday" 
+    from customer 
+    where 
+            lower(first_name || :1 || last_name) like lower('%' || :2 || '%') escape '\' 
+        and birthday > :3
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name || $1 || last_name as name, 
+        birthday as birthday 
+    from customer 
+    where 
+            (first_name || $2 || last_name) ilike ('%' || $3 || '%') 
+        and birthday > $4
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name || ?1 || last_name as name, 
+        birthday as birthday 
+    from customer 
+    where 
+            lower(first_name || ?2 || last_name) like lower('%' || ?3 || '%') escape '\' 
+        and birthday > ?4
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name + @0 + last_name as name, 
+        birthday as birthday 
+    from customer 
+    where 
+            lower(first_name + @1 + last_name) like lower('%' + @2 + '%') 
+        and birthday > @3
+    ```
+
+The parameters are: `[ ' ', ' ', 'ACME', '1990-01-01T00:00:00.000Z' ]` (on SQLite: `[ ' ', ' ', 'ACME', '1990-01-01' ]`)
+
 To add custom rules, build an extension and pass its type as the second argument — `DynamicCondition<typeof availableFields, typeof extension>` — and the value as the second argument of `dynamicConditionFor(availableFields, extension)`. See the [Dynamic conditions API](../api/dynamic-conditions.md) for the extension mechanism.
 
 ## Picking columns: `DynamicPickPaths` + `PickValuesPath`
@@ -88,6 +159,65 @@ async function pickCustomerColumns<FIELDS extends CustomerFields>(connection: DB
 const result = pickCustomerColumns(connection, ['name', 'company.name'])
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        customer.id as id, 
+        concat(customer.first_name, ?, customer.last_name) as name, 
+        company.name as `company.name` 
+    from customer 
+    left outer join company as company on company.id = customer.company_id
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        customer.id as id, 
+        concat(customer.first_name, ?, customer.last_name) as `name`, 
+        company.`name` as `company.name` 
+    from customer 
+    left outer join company as company on company.id = customer.company_id
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        customer.id as "id", 
+        customer.first_name || :0 || customer.last_name as "name", 
+        company.name as "company.name" 
+    from customer 
+    left outer join company company on company.id = customer.company_id
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        customer.id as id, 
+        customer.first_name || $1 || customer.last_name as name, 
+        company.name as "company.name" 
+    from customer 
+    left outer join company as company on company.id = customer.company_id
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        customer.id as id, 
+        customer.first_name || ?1 || customer.last_name as name, 
+        company.name as "company.name" 
+    from customer 
+    left outer join company as company on company.id = customer.company_id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        customer.id as id, 
+        customer.first_name + @0 + customer.last_name as name, 
+        company.name as [company.name] 
+    from customer 
+    left outer join company as company on company.id = customer.company_id
+    ```
+
+The parameters are: `[ ' ' ]`
+
 `PickValuesPath` keeps the optional properties optional and narrows nested objects to the picked paths. The `…WithAllProperties` and `…ProjectedAsNullable` variants are described on the [Dynamic picks](utilities/picks.md) utility page.
 
 ## Ordering: `OrderByForModel` over the result row
@@ -117,6 +247,77 @@ async function sortCustomers(connection: DBConnection, orderBy: OrderByForModel<
 // each clause is constrained to the row's leaves and the valid ordering modes
 const result = sortCustomers(connection, ['name asc', 'birthday desc nulls last'])
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        concat(first_name, ?, last_name) as name, 
+        birthday as birthday 
+    from customer 
+    order by 
+        name asc, 
+        birthday desc
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        concat(first_name, ?, last_name) as `name`, 
+        birthday as birthday 
+    from customer 
+    order by 
+        `name` asc, 
+        birthday desc
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name || :0 || last_name as "name", 
+        birthday as "birthday" 
+    from customer 
+    order by 
+        "name" asc, 
+        "birthday" desc nulls last
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name || $1 || last_name as name, 
+        birthday as birthday 
+    from customer 
+    order by 
+        name asc, 
+        birthday desc nulls last
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name || ?1 || last_name as name, 
+        birthday as birthday 
+    from customer 
+    order by 
+        name asc, 
+        birthday desc nulls last
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name + @0 + last_name as name, 
+        birthday as birthday 
+    from customer 
+    order by 
+        name asc, 
+        birthday desc
+    ```
+
+The parameters are: `[ ' ' ]`
 
 `orderByFromString(...)` / `orderByFromStringArray(...)` keep taking a plain `string` / `string[]`, so the `OrderByForModel` typing is opt-in.
 
@@ -169,6 +370,104 @@ const result = listCustomerDirectory(connection, ['name', 'company.name'],
     { name: { containsInsensitive: 'ACME' }, company: { name: { equals: 'ACME Corp' } } },
     ['company.name asc nulls last', 'name desc'])
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        customer.id as id, 
+        concat(customer.first_name, ?, customer.last_name) as name, 
+        company.name as `company.name` 
+    from customer 
+    left outer join company as company on company.id = customer.company_id 
+    where 
+            lower(concat(customer.first_name, ?, customer.last_name)) like concat('%', lower(?), '%') 
+        and company.name = ? 
+    order by 
+        company.name is null, 
+        `company.name` asc, 
+        name desc
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        customer.id as id, 
+        concat(customer.first_name, ?, customer.last_name) as `name`, 
+        company.`name` as `company.name` 
+    from customer 
+    left outer join company as company on company.id = customer.company_id 
+    where 
+            lower(concat(customer.first_name, ?, customer.last_name)) like concat('%', lower(?), '%') 
+        and company.`name` = ? 
+    order by 
+        company.`name` is null, 
+        `company.name` asc, 
+        `name` desc
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        customer.id as "id", 
+        customer.first_name || :0 || customer.last_name as "name", 
+        company.name as "company.name" 
+    from customer 
+    left outer join company company on company.id = customer.company_id 
+    where 
+            lower(customer.first_name || :1 || customer.last_name) like lower('%' || :2 || '%') escape '\' 
+        and company.name = :3 
+    order by 
+        "company.name" asc nulls last, 
+        "name" desc
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        customer.id as id, 
+        customer.first_name || $1 || customer.last_name as name, 
+        company.name as "company.name" 
+    from customer 
+    left outer join company as company on company.id = customer.company_id 
+    where 
+            (customer.first_name || $2 || customer.last_name) ilike ('%' || $3 || '%') 
+        and company.name = $4 
+    order by 
+        "company.name" asc nulls last, 
+        name desc
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        customer.id as id, 
+        customer.first_name || ?1 || customer.last_name as name, 
+        company.name as "company.name" 
+    from customer 
+    left outer join company as company on company.id = customer.company_id 
+    where 
+            lower(customer.first_name || ?2 || customer.last_name) like lower('%' || ?3 || '%') escape '\' 
+        and company.name = ?4 
+    order by 
+        "company.name" asc nulls last, 
+        name desc
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        customer.id as id, 
+        customer.first_name + @0 + customer.last_name as name, 
+        company.name as [company.name] 
+    from customer 
+    left outer join company as company on company.id = customer.company_id 
+    where 
+            lower(customer.first_name + @1 + customer.last_name) like lower('%' + @2 + '%') 
+        and company.name = @3 
+    order by 
+        iif(company.name is null, 1, 0), 
+        [company.name] asc, 
+        name desc
+    ```
+
+The parameters are: `[ ' ', ' ', 'ACME', 'ACME Corp' ]`
 
 The same end-to-end function — including a custom-rule extension and an optional join built through a reusable `buildAvailableFields` helper — is shown in full in [Extreme dynamic queries — From the database](dynamic-select-functions.md#from-the-database), next to its model-first twin.
 

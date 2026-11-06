@@ -2,8 +2,10 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tOrganization, tProject } from '../../domain/connection.js'
+import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { type DynamicCondition } from '../../../../../src/dynamic/condition.js'
+import { dynamicPickPaths, expandTypeFromDynamicPickPaths, type DynamicPickPaths, type PickValuesPath } from '../../../../../src/dynamic/pick.js'
 import { sync } from '../../../../../src/extras/sync.js'
 
 describe(ctx.label, () => {
@@ -11,171 +13,209 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    test('docs:building-blocks/contains-if-value', async () => {
-        const expected = [{ id: 1, name: 'Marketing site' }]
-        ctx.mockNext(expected)
-        const connection = ctx.conn
-
-        // doc-start
-        const nameContains: string | null | undefined = 'site'
-
-        const projects = sync(connection.selectFrom(tProject)
-            .where(tProject.name.containsIfValue(nameContains)) // dropped entirely when nameContains is absent
-            .select({ id: tProject.id, name: tProject.name })
-            .executeSelectMany())
-        // doc-end
-
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where name like ('%' || ?1 || '%') escape '\\'"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            "site",
-          ]
-        `)
-        assertType<Exact<typeof projects, Array<{ id: number; name: string }>>>()
-        expect(projects).toEqual(expected)
-    })
-
-    test('docs:building-blocks/only-when', async () => {
+    test('docs:building-blocks/a-condition-that-may-not-apply', async () => {
         const expected = [
-            { id: 3, name: 'Public API' },
-            { id: 4, name: 'Legacy app' },
+            { id: 1, title: 'Update hero copy' },
+            { id: 2, title: 'Redesign navbar' },
+            { id: 3, title: 'Migrate to ESM' },
+            { id: 4, title: 'Document /v2/users' },
         ]
         ctx.mockNext(expected)
         const connection = ctx.conn
 
         // doc-start
-        const restrictToMyOrganization = true
-        const myOrganizationId = 2
+        const title: string | null = null
 
-        const projects = sync(connection.selectFrom(tProject)
-            .where(tProject.organizationId.equals(myOrganizationId).onlyWhen(restrictToMyOrganization))
-            .select({ id: tProject.id, name: tProject.name })
+        const issues = sync(connection.selectFrom(tIssue)
+            .where(tIssue.title.containsIfValue(title))
+            .select({
+                id: tIssue.id,
+                title: tIssue.title,
+            })
+            .orderBy('id')
             .executeSelectMany())
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where organization_id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof issues, Array<{ id: number, title: string }>>>()
+        expect(issues).toEqual(expected)
+    })
+
+    test('docs:building-blocks/order-and-page-from-a-request', async () => {
+        const expected = [
+            { id: 1, title: 'Update hero copy' },
+            { id: 2, title: 'Redesign navbar' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const request: { title?: string, order?: string, limit?: number, offset?: number } = { title: 'e', order: 'title desc', limit: 2 }
+
+        const issues = sync(connection.selectFrom(tIssue)
+            .where(tIssue.title.containsIfValue(request.title))
+            .select({
+                id: tIssue.id,
+                title: tIssue.title,
+            })
+            .orderByFromStringIfValue(request.order)
+            .limitIfValue(request.limit)
+            .offsetIfValue(request.offset)
+            .executeSelectMany())
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where title like ('%' || ?1 || '%') escape '\\' order by title desc limit ?2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "e",
+            2,
+          ]
+        `)
+        assertType<Exact<typeof issues, Array<{ id: number, title: string }>>>()
+        expect(issues).toEqual(expected)
+    })
+
+    test('docs:building-blocks/the-filter-from-a-request', async () => {
+        const expected = [
+            { id: 1, title: 'Update hero copy' },
+            { id: 2, title: 'Redesign navbar' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const filterableFields = {
+            title: tIssue.title,
+            body: tIssue.body,
+        }
+
+        const projectOfTheUser = 1
+        const filter: DynamicCondition<typeof filterableFields> = {
+            or: [
+                { title: { startsWithInsensitive: 'Update' } },
+                { body: { containsInsensitive: 'tokens' } },
+            ],
+        }
+
+        const issues = sync(connection.selectFrom(tIssue)
+            .where(tIssue.projectId.equals(projectOfTheUser))
+            .and(connection.dynamicConditionFor(filterableFields).withValues(filter))
+            .select({
+                id: tIssue.id,
+                title: tIssue.title,
+            })
+            .orderBy('id')
+            .executeSelectMany())
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where project_id = ?1 and (lower(title) like lower(?2 || '%') escape '\\' or lower(body) like lower('%' || ?3 || '%') escape '\\') order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "Update",
+            "tokens",
+          ]
+        `)
+        assertType<Exact<typeof issues, Array<{ id: number, title: string }>>>()
+        expect(issues).toEqual(expected)
+    })
+
+    test('docs:building-blocks/picked-columns-without-the-join', async () => {
+        const expected = [{ id: 2, title: 'Redesign navbar' }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const availableFields = {
+            id: tIssue.id,
+            title: tIssue.title,
+            body: tIssue.body,
+            projectName: tProject.name,
+        }
+
+        const issues = sync(connection.selectFrom(tIssue)
+            .optionalJoin(tProject).on(tProject.id.equals(tIssue.projectId))
+            .where(tIssue.id.equals(2))
+            .select(dynamicPickPaths(availableFields, ['title'], ['id']))
+            .executeSelectMany())
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
           ]
         `)
-        assertType<Exact<typeof projects, Array<{ id: number; name: string }>>>()
-        expect(projects.toSorted((a, b) => a.id - b.id)).toEqual(expected)
+        expect(issues).toEqual(expected)
     })
 
-    test('docs:building-blocks/dynamic-boolean-expression-using', async () => {
-        const expected = [{ id: 1, name: 'Marketing site' }]
+    test('docs:building-blocks/picked-columns-with-the-join', async () => {
+        const expected = [{ id: 2, projectName: 'Marketing site' }]
         ctx.mockNext(expected)
         const connection = ctx.conn
 
         // doc-start
-        const nameContains: string | null | undefined = 'site'
-        const slugContains: string | null | undefined = null
-
-        let dynamicWhere = connection.dynamicBooleanExpressionUsing(tProject)
-        dynamicWhere = dynamicWhere.and(tProject.name.containsIfValue(nameContains))
-        dynamicWhere = dynamicWhere.or(tProject.slug.containsIfValue(slugContains))
-
-        const projects = sync(connection.selectFrom(tProject)
-            .where(dynamicWhere)
-            .select({ id: tProject.id, name: tProject.name })
-            .executeSelectMany())
-        // doc-end
-
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where name like ('%' || ?1 || '%') escape '\\'"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            "site",
-          ]
-        `)
-        assertType<Exact<typeof projects, Array<{ id: number; name: string }>>>()
-        expect(projects).toEqual(expected)
-    })
-
-    test('docs:building-blocks/only-when-or-null', async () => {
-        const expected = { id: 1, name: 'Marketing site', slug: 'mktg-site' }
-        ctx.mockNext(expected)
-        const connection = ctx.conn
-
-        // doc-start
-        const displayNames = true
-
-        const project = sync(connection.selectFrom(tProject)
-            .where(tProject.id.equals(1))
-            .select({
-                id:   tProject.id,
-                name: tProject.name.onlyWhenOrNull(displayNames), // null when displayNames is false
-                slug: tProject.slug.onlyWhenOrNull(displayNames),
-            })
-            .executeSelectOne())
-        // doc-end
-
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, slug as slug from project where id = ?1"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-          ]
-        `)
-        assertType<Exact<typeof project, { id: number; name?: string; slug?: string }>>()
-        expect(project).toEqual(expected)
-    })
-
-    test('docs:building-blocks/optional-join', async () => {
-        const expected = [
-            { id: 1, name: 'Marketing site' },
-            { id: 2, name: 'Internal tools' },
-            { id: 3, name: 'Public API' },
-            { id: 4, name: 'Legacy app' },
-        ]
-        ctx.mockNext(expected)
-        const connection = ctx.conn
-
-        // doc-start
-        const organizationName: string | null | undefined = undefined
-
-        const projects = sync(connection.selectFrom(tProject)
-            .optionalJoin(tOrganization).on(tOrganization.id.equals(tProject.organizationId)) // omitted when tOrganization is unused
-            .where(tOrganization.name.equalsIfValue(organizationName))
-            .select({ id: tProject.id, name: tProject.name })
-            .executeSelectMany())
-        // doc-end
-
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        assertType<Exact<typeof projects, Array<{ id: number; name: string }>>>()
-        expect(projects.toSorted((a, b) => a.id - b.id)).toEqual(expected)
-    })
-
-    test('docs:building-blocks/order-limit-offset-if-value', async () => {
-        const expected = [
-            { id: 4, title: 'Document /v2/users', body: 'See ADR-014' },
-            { id: 3, title: 'Migrate to ESM' },
-            { id: 2, title: 'Redesign navbar', body: 'Use new tokens' },
-            { id: 1, title: 'Update hero copy' },
-        ]
-        ctx.mockNext(expected)
-        const connection = ctx.conn
-
-        // doc-start
-        const orderBy: string | null | undefined = 'title insensitive, body asc nulls last'
-        const max: number | null | undefined = 20
-        const skip: number | null | undefined = undefined
+        const availableFields = {
+            id: tIssue.id,
+            title: tIssue.title,
+            body: tIssue.body,
+            projectName: tProject.name,
+        }
 
         const issues = sync(connection.selectFrom(tIssue)
-            .select({ id: tIssue.id, title: tIssue.title, body: tIssue.body })
-            .orderByFromStringIfValue(orderBy)
-            .limitIfValue(max)   // applied only when max is present
-            .offsetIfValue(skip) // skipped here: skip is undefined
+            .optionalJoin(tProject).on(tProject.id.equals(tIssue.projectId))
+            .where(tIssue.id.equals(2))
+            .select(dynamicPickPaths(availableFields, ['projectName'], ['id']))
             .executeSelectMany())
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title, body as body from issue order by lower(title), body is null, body asc limit ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, project.name as projectName from issue join project on project.id = issue.project_id where issue.id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            20,
+            2,
           ]
         `)
-        assertType<Exact<typeof issues, Array<{ id: number; title: string; body?: string }>>>()
+        expect(issues).toEqual(expected)
+    })
+
+    test('docs:building-blocks/a-function-whose-result-is-what-was-asked-for', async () => {
+        const expected = [{ id: 2, title: 'Redesign navbar' }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const availableFields = {
+            id: tIssue.id,
+            title: tIssue.title,
+            body: tIssue.body,
+            projectName: tProject.name,
+        }
+
+        type IssueFields = DynamicPickPaths<typeof availableFields, 'id'>
+        type IssueFilter = DynamicCondition<typeof availableFields>
+
+        async function getIssues<FIELDS extends IssueFields>(fields: FIELDS[], filter: IssueFilter, order?: string): Promise<PickValuesPath<typeof availableFields, FIELDS | 'id'>[]> {
+            const issues = sync(connection.selectFrom(tIssue)
+                .optionalJoin(tProject).on(tProject.id.equals(tIssue.projectId))
+                .where(connection.dynamicConditionFor(availableFields).withValues(filter))
+                .select(dynamicPickPaths(availableFields, fields, ['id']))
+                .orderByFromStringIfValue(order)
+                .executeSelectMany())
+
+            return expandTypeFromDynamicPickPaths(availableFields, fields, issues, ['id'])
+        }
+
+        const issues = await getIssues(['title'], { title: { startsWith: 'Redesign' } })
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where title like (?1 || '%') escape '\\'"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "Redesign",
+          ]
+        `)
+        assertType<Exact<typeof issues, Array<{ id: number, title: string }>>>()
         expect(issues).toEqual(expected)
     })
 

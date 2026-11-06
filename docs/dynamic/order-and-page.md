@@ -31,6 +31,77 @@ const customers = await connection.selectFrom(tCustomer)
     .executeSelectMany();
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    order by 
+        lastName desc, 
+        lower(first_name)
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    order by 
+        lastName desc, 
+        lower(first_name)
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer 
+    order by 
+        "lastName" desc, 
+        lower("firstName")
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer 
+    order by 
+        "lastName" desc, 
+        lower(first_name)
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    order by 
+        lastName desc, 
+        lower(first_name)
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    order by 
+        lastName desc, 
+        lower(first_name)
+    ```
+
+The parameters are: `[]`
+
 The text is a list of clauses separated by commas. Each one is a property of the select followed by a mode, and with no mode the order is ascending. Upper and lower case don't matter, nor do extra spaces: `'  LASTNAME   DESC '` is `lastName desc`. A property inside a nested object of the select is written with a dot, like `'company.name desc'`.
 
 These are all the accepted forms, for a property called `name`:
@@ -65,6 +136,77 @@ const customers = await connection.selectFrom(tCustomer)
     .orderByFromStringArrayIfValue(orderBy)
     .executeSelectMany();
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    order by 
+        lastName desc, 
+        lower(first_name)
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    order by 
+        lastName desc, 
+        lower(first_name)
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer 
+    order by 
+        "lastName" desc, 
+        lower("firstName")
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer 
+    order by 
+        "lastName" desc, 
+        lower(first_name)
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    order by 
+        lastName desc, 
+        lower(first_name)
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    order by 
+        lastName desc, 
+        lower(first_name)
+    ```
+
+The parameters are: `[]`
 
 They can be combined with `orderBy` and with each other: each call adds its clauses after the ones already there. They can also be used after a [compound operator](../queries/compound-select.md#ordering-the-combined-result).
 
@@ -134,5 +276,66 @@ const customers = await connection.selectFrom(tCustomer)
     .offsetIfValue(request.offset)
     .executeSelectMany();
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    where first_name like concat('%', ?, '%') 
+    limit ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    where first_name like concat('%', ?, '%') 
+    limit ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName" 
+    from customer 
+    where first_name like ('%' || :0 || '%') escape '\' 
+    fetch next :1 rows only
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName" 
+    from customer 
+    where first_name like ('%' || $1 || '%') 
+    limit $2
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    where first_name like ('%' || ?1 || '%') escape '\' 
+    limit ?2
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    where first_name like ('%' + @0 + '%') 
+    order by 1 
+    offset 0 rows 
+    fetch next @1 rows only
+    ```
+
+The parameters are: `[ 'ohn', 10 ]`
 
 [Select page](../queries/select-page.md) explains how a page is defined, why it must be ordered, and how to get the total of rows too.

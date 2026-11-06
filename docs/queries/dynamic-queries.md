@@ -18,17 +18,17 @@ Each part of a query has its own way of being optional:
 | A condition with no value means `true`, `false` or another condition | `trueWhenNoValue`, `falseWhenNoValue`, `valueWhenNoValue` | [When there is no value](#when-there-is-no-value) |
 | A condition applies only if a flag is set, like a role | `onlyWhen`, `ignoreWhen` | [Ignorable boolean expression](#ignorable-boolean-expression) |
 | A selected value is returned only if a flag is set | `onlyWhenOrNull`, `ignoreWhenAsNull` | [Ignorable expression as null](#ignorable-expression-as-null) |
-| Your code decides which conditions to add | `dynamicWhere`, `dynamicBooleanExpressionUsing` | [Building a condition step by step](../dynamic/building-conditions.md) |
-| The same, in the `on` of a join or in the `having` | `dynamicOn`, `dynamicHaving` | [Dynamic join conditions and having](../dynamic/building-conditions.md#dynamic-join-conditions-and-having) |
 | The order comes as text, from a request | `orderByFromString`, `orderByFromStringArray` and their `IfValue` variants | [Order by from a string](#order-by-from-a-string) |
 | The limit and the offset may be absent | `limitIfValue`, `offsetIfValue` | [Optional limit and offset](../dynamic/order-and-page.md#optional-limit-and-offset) |
 | A table is joined only if the query uses it | `optionalJoin`, `optionalInnerJoin`, `optionalLeftJoin`, `optionalLeftOuterJoin` | [Optional joins](../dynamic/optional-joins.md) |
+| Your code decides which conditions to add, when nothing above can express them | `dynamicWhere`, `dynamicBooleanExpressionUsing` | [Building a condition step by step](../dynamic/building-conditions.md) |
+| The same, in the `on` of a join or in the `having` | `dynamicOn`, `dynamicHaving` | [Dynamic join conditions and having](../dynamic/building-conditions.md#dynamic-join-conditions-and-having) |
 
 Inserts and updates have their own family, to set a column only if there is a value (`setIfValue`, `setIfSet`, `setIfNotSet`, `ignoreIfSet`...): see [Manipulating values to insert](insert.md#manipulating-values-to-insert) and [Manipulating values to update](update.md#manipulating-values-to-update).
 
 When the caller also chooses which columns the select returns, or sends the filter as an object, or when using a value must fail with an error because the user can't see it (`allowWhen`, `disallowWhen`), go to [Extreme dynamic queries](extreme-dynamic-queries.md). What's on this page is enough for most queries.
 
-For a short tour of these methods, with one example each, see [Dynamic query building blocks](../dynamic/building-blocks.md).
+To see how far the dynamism of the library goes, and everything it offers, see [What a dynamic query can do](../dynamic/building-blocks.md).
 
 When the conditions, the order and the page come from a request, like in a table of a user interface or an API for other systems, see [Queries from a request](../dynamic/queries-from-requests.md).
 
@@ -47,6 +47,53 @@ const customers = await connection.selectFrom(tCustomer)
     })
     .executeSelectMany();
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName" 
+    from customer
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName" 
+    from customer
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer
+    ```
+
+The parameters are: `[]`
 
 When what to add can't be said with these methods, because it depends on the logic of your code, you can use `if`s by [building the condition step by step](../dynamic/building-conditions.md).
 
@@ -259,6 +306,59 @@ const customers = await connection.selectFrom(tCustomer)
     .executeSelectMany();
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    where false
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    where false
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName" 
+    from customer 
+    where (0=1)
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName" 
+    from customer 
+    where false
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    where 0
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    where (0=1)
+    ```
+
+The parameters are: `[]`
+
 With an empty list, the `where` is always false, and the query returns no rows. With `valueWhenNoValue`, another condition takes the place of the one without a value:
 
 ```ts
@@ -276,6 +376,59 @@ const customers = await connection.selectFrom(tCustomer)
     .executeSelectMany();
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    where last_name = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    where last_name = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName" 
+    from customer 
+    where last_name = :0
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName" 
+    from customer 
+    where last_name = $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    where last_name = ?1
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    where last_name = @0
+    ```
+
+The parameters are: `[ 'Smith' ]`
+
 They apply to everything they are written after: in `a.equalsIfValue(x).and(b.equalsIfValue(y)).falseWhenNoValue()`, the condition is false only if neither `x` nor `y` has a value. They also apply to the neutral boolean of `onlyWhen`, `ignoreWhen`, `noValueBoolean` and `dynamicBooleanExpressionUsing`.
 
 They have another use. An `IfValue` condition on its own can't be selected, because it might not exist. With `trueWhenNoValue` or `falseWhenNoValue` it's always a boolean, and you can return it:
@@ -290,6 +443,53 @@ const customers = await connection.selectFrom(tCustomer)
     })
     .executeSelectMany();
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        company_id = ? as isInSearchedCompany 
+    from customer
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        company_id = ? as isInSearchedCompany 
+    from customer
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        case when company_id = :0 then 1 else 0 end as "isInSearchedCompany" 
+    from customer
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        company_id = $1 as "isInSearchedCompany" 
+    from customer
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        company_id = ?1 as isInSearchedCompany 
+    from customer
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        cast(case when company_id = @0 then 1 else 0 end as bit) as isInSearchedCompany 
+    from customer
+    ```
+
+The parameters are: `[ 16 ]`
 
 The result type is:
 ```tsx
@@ -475,6 +675,53 @@ const customers = await connection.selectFrom(tCustomer)
     .executeSelectMany()
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer
+    ```
+
+The parameters are: `[]`
+
 Here the query has no `where`. An `onlyWhen` that leaves a delete or an update without a condition is [an error](#a-condition-that-ends-up-empty).
 
 ### The neutral boolean
@@ -548,6 +795,44 @@ const customers: Promise<{
     firstName: string;
 }[]>
 ```
+
+## A condition that ends up empty
+
+A condition can be left with nothing written in it: a `dynamicWhere()` without any `and` or `or`, a `where` with only `*IfValue` conditions without a value, or an `onlyWhen(false)`. What happens depends on where it is:
+
+| Where the condition is | What happens |
+|---|---|
+| The `where` of a select | The query has no `where`, and it returns all the rows |
+| The `having` of a select | The query has no `having` |
+| The `on` of a join | The `on` is a condition that is always true, so each row is combined with all the rows of the joined table |
+| The `where` of a `deleteFrom` or an `update` | The returned promise rejects with the reason `MISSING_WHERE`, and nothing is sent to the database |
+| The `where` of a `deleteAllowingNoWhereFrom` or an `updateAllowingNoWhere` | The statement has no `where`, and it affects all the rows of the table |
+
+The error in a delete or an update protects you from a filter that arrives empty by mistake, and that would otherwise change the whole table:
+
+```ts
+import { TsSqlError } from "ts-sql-query" // or "ts-sql-query/TsSqlError"
+
+const customerId: number | null = null;
+
+try {
+    await connection.deleteFrom(tCustomer)
+        .where(tCustomer.id.equalsIfValue(customerId))
+        .executeDelete();
+} catch (e) {
+    if (e instanceof TsSqlError && e.errorReason.reason === 'MISSING_WHERE') {
+        // Nothing was deleted, and no query was sent
+    }
+}
+```
+
+The methods of [When there is no value](#when-there-is-no-value) make the condition no longer empty, so they change this:
+
+| Written in a delete or an update | When there is no value |
+|---|---|
+| `...IfValue(x)` | The `MISSING_WHERE` error |
+| `...IfValue(x).falseWhenNoValue()` | The query is sent with a condition that is always false: it affects no rows, and it's not an error |
+| `...IfValue(x).trueWhenNoValue()` | The query is sent with a condition that is always true: it affects **all the rows** of the table |
 
 ## Ignorable expression as null
 
@@ -731,52 +1016,6 @@ The executed query is:
 
 The parameters are: `[ 10 ]`
 
-## Building a condition step by step
-
-When what to add depends on the logic of your code, and not just on whether a value is present, you can use `if`s. `dynamicWhere()` adds conditions to the query while you build it, and `connection.dynamicBooleanExpressionUsing(...)` keeps a condition in a variable, so a function can build it. [Building a condition step by step](../dynamic/building-conditions.md) shows both.
-
-## Dynamic join conditions and having
-
-`dynamicOn()` and `dynamicHaving()` do the same for the `on` of a join and the `having`: see [Dynamic join conditions and having](../dynamic/building-conditions.md#dynamic-join-conditions-and-having).
-
-## A condition that ends up empty
-
-A condition can be left with nothing written in it: a `dynamicWhere()` without any `and` or `or`, a `where` with only `*IfValue` conditions without a value, or an `onlyWhen(false)`. What happens depends on where it is:
-
-| Where the condition is | What happens |
-|---|---|
-| The `where` of a select | The query has no `where`, and it returns all the rows |
-| The `having` of a select | The query has no `having` |
-| The `on` of a join | The `on` is a condition that is always true, so each row is combined with all the rows of the joined table |
-| The `where` of a `deleteFrom` or an `update` | The returned promise rejects with the reason `MISSING_WHERE`, and nothing is sent to the database |
-| The `where` of a `deleteAllowingNoWhereFrom` or an `updateAllowingNoWhere` | The statement has no `where`, and it affects all the rows of the table |
-
-The error in a delete or an update protects you from a filter that arrives empty by mistake, and that would otherwise change the whole table:
-
-```ts
-import { TsSqlError } from "ts-sql-query" // or "ts-sql-query/TsSqlError"
-
-const customerId: number | null = null;
-
-try {
-    await connection.deleteFrom(tCustomer)
-        .where(tCustomer.id.equalsIfValue(customerId))
-        .executeDelete();
-} catch (e) {
-    if (e instanceof TsSqlError && e.errorReason.reason === 'MISSING_WHERE') {
-        // Nothing was deleted, and no query was sent
-    }
-}
-```
-
-The methods of [When there is no value](#when-there-is-no-value) make the condition no longer empty, so they change this:
-
-| Written in a delete or an update | When there is no value |
-|---|---|
-| `...IfValue(x)` | The `MISSING_WHERE` error |
-| `...IfValue(x).falseWhenNoValue()` | The query is sent with a condition that is always false: it affects no rows, and it's not an error |
-| `...IfValue(x).trueWhenNoValue()` | The query is sent with a condition that is always true: it affects **all the rows** of the table |
-
 ## Order by from a string
 
 `orderByFromString` receives the order as text, as it would come in a request. It has the syntax of an SQL `order by`, but it uses the **names of the properties of the select**, not the columns of the table. So the request can't name anything that the select doesn't return, and the structure of the database isn't exposed:
@@ -793,6 +1032,77 @@ const customers = await connection.selectFrom(tCustomer)
     .orderByFromString(orderBy)
     .executeSelectMany();
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    order by 
+        lastName desc, 
+        lower(first_name)
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    order by 
+        lastName desc, 
+        lower(first_name)
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer 
+    order by 
+        "lastName" desc, 
+        lower("firstName")
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer 
+    order by 
+        "lastName" desc, 
+        lower(first_name)
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    order by 
+        lastName desc, 
+        lower(first_name)
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    order by 
+        lastName desc, 
+        lower(first_name)
+    ```
+
+The parameters are: `[]`
 
 A clause is a property followed by a mode, like `'name desc nulls last insensitive'`, and a name that isn't a property of the select is an error, so the request can't reach anything else. [Order and page from a request](../dynamic/order-and-page.md) has every form it accepts, its variants for a list of clauses and for a value that may be missing, and how to answer a wrong order.
 
@@ -817,6 +1127,53 @@ const customers = await connection.selectFrom(tCustomer)
     .executeSelectMany()
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName" 
+    from customer
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName" 
+    from customer
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer
+    ```
+
+The parameters are: `[]`
+
 Here `companyName` has no value, so the query has no condition and no join.
 
 !!! warning
@@ -824,6 +1181,14 @@ Here `companyName` has no value, so the query has no condition and no join.
     Leaving out a join can change the number of rows: an inner join removes the rows without a match, and any join repeats the rows with several matches.
 
 [Optional joins](../dynamic/optional-joins.md) says when a join is kept and when each join changes the rows.
+
+## Building a condition step by step
+
+The methods above cover the usual cases, and they keep the query readable: prefer them. Only when what to add depends on logic they can't express, `dynamicWhere()` and `connection.dynamicBooleanExpressionUsing(...)` let you add conditions with your own `if`s, at the price of a condition that is no longer in the text of the query. See [Building a condition step by step](../dynamic/building-conditions.md).
+
+## Dynamic join conditions and having
+
+`dynamicOn()` and `dynamicHaving()` do the same for the `on` of a join and the `having`, with the same price: see [Dynamic join conditions and having](../dynamic/building-conditions.md#dynamic-join-conditions-and-having).
 
 ## When the query takes its shape at run time
 

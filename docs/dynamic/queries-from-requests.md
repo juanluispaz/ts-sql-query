@@ -63,7 +63,168 @@ function getCustomerTable(companyOfTheUser: number, request: CustomerTableReques
         .offsetIfValue(request.offset)
         .executeSelectPage();
 }
+
+const customerTable = await getCustomerTable(16, {
+    filter: { lastName: { startsWith: 'S' }, firstName: { contains: '' } },
+    order: 'firstName asc',
+    limit: 10,
+    offset: 20
+})
 ```
+
+The executed query to get the data is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where 
+            company_id = ? 
+        and last_name like concat(?, '%') 
+    order by 
+        firstName asc, 
+        id 
+    limit ? 
+    offset ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where 
+            company_id = ? 
+        and last_name like concat(?, '%') 
+    order by 
+        firstName asc, 
+        id 
+    limit ? 
+    offset ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer 
+    where 
+            company_id = :0 
+        and last_name like (:1 || '%') escape '\' 
+    order by 
+        "firstName" asc, 
+        "id" 
+    offset :2 rows 
+    fetch next :3 rows only
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer 
+    where 
+            company_id = $1 
+        and last_name like ($2 || '%') 
+    order by 
+        "firstName" asc, 
+        id 
+    limit $3 
+    offset $4
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where 
+            company_id = ?1 
+        and last_name like (?2 || '%') escape '\' 
+    order by 
+        firstName asc, 
+        id 
+    limit ?3 
+    offset ?4
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where 
+            company_id = @0 
+        and last_name like (@1 + '%') 
+    order by 
+        firstName asc, 
+        id 
+    offset @2 rows 
+    fetch next @3 rows only
+    ```
+
+And its parameters are: `[ 16, 'S', 10, 20 ]` (on Oracle and SQL Server: `[ 16, 'S', 20, 10 ]`)
+
+The executed query to get the count is:
+
+=== "MariaDB"
+    ```mariadb
+    select count(*) 
+    from customer 
+    where 
+            company_id = ? 
+        and last_name like concat(?, '%')
+    ```
+=== "MySQL"
+    ```mysql
+    select count(*) 
+    from customer 
+    where 
+            company_id = ? 
+        and last_name like concat(?, '%')
+    ```
+=== "Oracle"
+    ```oracle
+    select count(*) 
+    from customer 
+    where 
+            company_id = :0 
+        and last_name like (:1 || '%') escape '\'
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select count(*) 
+    from customer 
+    where 
+            company_id = $1 
+        and last_name like ($2 || '%')
+    ```
+=== "SQLite"
+    ```sqlite
+    select count(*) 
+    from customer 
+    where 
+            company_id = ?1 
+        and last_name like (?2 || '%') escape '\'
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select count(*) 
+    from customer 
+    where 
+            company_id = @0 
+        and last_name like (@1 + '%')
+    ```
+
+And its parameters are: `[ 16, 'S' ]`
 
 These are the parts of that query, and what each one protects:
 
@@ -71,7 +232,7 @@ These are the parts of that query, and what each one protects:
 - `orderBy('id')` goes after the order of the request, so [the order leaves no ties](../queries/select-page.md#ordering-the-rows) and a row doesn't appear in two pages.
 - `Math.min` sets a maximum of rows, whatever the request asks for.
 
-With this request, a user looking for the customers whose last name starts with `S`, ordered by first name, on the third page:
+The call in the example is what this request becomes, from a user looking for the customers whose last name starts with `S`, ordered by first name, on the third page:
 
 ```json
 {
@@ -124,7 +285,102 @@ function queryCustomers(companyOfTheClient: number, query: CustomerQuery) {
         .offsetIfValue(query.offset)
         .executeSelectMany();
 }
+
+const customers = await queryCustomers(16, {
+    filter: { id: { equals: 1 } },
+    limit: 50
+})
 ```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday 
+    from customer 
+    where 
+            company_id = ? 
+        and id = ? 
+    order by id 
+    limit ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday 
+    from customer 
+    where 
+            company_id = ? 
+        and id = ? 
+    order by id 
+    limit ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName", 
+        last_name as "lastName", 
+        birthday as "birthday" 
+    from customer 
+    where 
+            company_id = :0 
+        and id = :1 
+    order by "id" 
+    fetch next :2 rows only
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName", 
+        birthday as birthday 
+    from customer 
+    where 
+            company_id = $1 
+        and id = $2 
+    order by id 
+    limit $3
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday 
+    from customer 
+    where 
+            company_id = ?1 
+        and id = ?2 
+    order by id 
+    limit ?3
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday 
+    from customer 
+    where 
+            company_id = @0 
+        and id = @1 
+    order by id 
+    offset 0 rows 
+    fetch next @2 rows only
+    ```
+
+The parameters are: `[ 16, 1, 50 ]`
 
 Keep in mind when you offer one:
 

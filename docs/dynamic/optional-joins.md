@@ -436,6 +436,65 @@ const customerWithOptionalCompany = await connection.selectFrom(tCustomer)
     .executeSelectMany();
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        customer.id as id, 
+        customer.first_name as firstName, 
+        company.name as companyName 
+    from customer 
+    left join company on company.id = customer.company_id
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        customer.id as id, 
+        customer.first_name as firstName, 
+        company.`name` as companyName 
+    from customer 
+    left join company on company.id = customer.company_id
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        customer.id as "id", 
+        customer.first_name as "firstName", 
+        company.name as "companyName" 
+    from customer 
+    left join company on company.id = customer.company_id
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        customer.id as id, 
+        customer.first_name as "firstName", 
+        company.name as "companyName" 
+    from customer 
+    left join company on company.id = customer.company_id
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        customer.id as id, 
+        customer.first_name as firstName, 
+        company.name as companyName 
+    from customer 
+    left join company on company.id = customer.company_id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        customer.id as id, 
+        customer.first_name as firstName, 
+        company.name as companyName 
+    from customer 
+    left join company on company.id = customer.company_id
+    ```
+
+The parameters are: `[]`
+
 The result type is:
 ```tsx
 const customerWithOptionalCompany: {

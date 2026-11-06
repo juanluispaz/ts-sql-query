@@ -58,7 +58,7 @@ interface DeleteExpression {
      * @param max Indicate the maximum of rows that must be deleted, 
      *           if the maximum is exceeded an exception will be thrown
      */
-    executeDeleteMany(): Promise<RESULT[]>
+    executeDeleteMany(min?: number, max?: number): Promise<RESULT[]>
 
     /** Allows to add a using (like a from that doesn't delete) to the delete query */
     using(table: Table | View): this

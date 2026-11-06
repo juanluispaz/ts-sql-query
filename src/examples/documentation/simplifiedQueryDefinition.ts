@@ -1962,7 +1962,7 @@ interface DeleteExpression {
      * Execute the delete query that returns one result from the database.
      * If no result is returned by the database an exception will be thrown.
      */
-    executeDeleteOne(min?: number, max?: number): Promise<RESULT>
+    executeDeleteOne(): Promise<RESULT>
     /** 
      * Execute the delete query that returns zero or many results from the database 
      * 
@@ -1971,7 +1971,7 @@ interface DeleteExpression {
      * @param max Indicate the maximum of rows that must be deleted, 
      *           if the maximum is exceeded an exception will be thrown
      */
-    executeDeleteMany(): Promise<RESULT[]>
+    executeDeleteMany(min?: number, max?: number): Promise<RESULT[]>
 
     /** Allows to add a using (like a from that doesn't delete) to the delete query */
     using(table: Table | View): this

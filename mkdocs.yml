@@ -61,6 +61,35 @@ plugins:
   # https://squidfunk.github.io/mkdocs-material/setup/setting-up-site-search/#+search.separator + ' (escaped as '') + \- moved at the end of group, added +*<>@{}
   - search:
       separator: '[\s,:!=\[\]()"\''/\-+*<>@{}]+|(?!\b)(?=[A-Z][a-z])|\.(?!\d)|&[lg]t;'
+  # Pages that moved: the old addresses keep working
+  - redirects:
+      redirect_maps:
+        'CHANGELOG.md': 'about/changelog/v2.md'
+        'about/migrating-from-v1.md': 'about/changelog/migrating-from-v1.md'
+        'about/limimitations.md': 'about/limitations.md'
+        'about/examples.md': 'queries/basic-query-structure.md'
+        'advanced/utility-dynamic-picks.md': 'dynamic/helper-types/picks.md'
+        'advanced-usage.md': 'advanced/custom-booleans-values.md'
+        'column-types.md': 'configuration/column-types.md'
+        'composing-and-splitting-results.md': 'queries/complex-projections.md'
+        'configuration/query-runners/recommended/sqlite3.md': 'configuration/query-runners/additional/sqlite3.md'
+        'configuration/query-runners/additional/prisma.md': 'configuration/query-runners/combining-with-another-library.md#example-prisma'
+        'connection-tables-views.md': 'configuration/connection.md'
+        'dynamic/from-business-model.md': 'dynamic/own-function/from-business-model.md'
+        'dynamic/from-database-types.md': 'dynamic/own-function/from-database-types.md'
+        'dynamic/three-valued-booleans.md': 'dynamic/optional-parts/three-valued-booleans.md'
+        'dynamic/utilities/conditions.md': 'dynamic/helper-types/conditions.md'
+        'dynamic/utilities/order-by.md': 'dynamic/helper-types/order-by.md'
+        'dynamic/utilities/picks.md': 'dynamic/helper-types/picks.md'
+        'faqs-limimitations.md': 'about/faqs.md'
+        'queries/select-picking-columns.md': 'dynamic/caller-decides/picks.md'
+        'queries/select-using-a-dynamic-filter.md': 'dynamic/caller-decides/filters.md'
+        'query-runners/additional-query-runners.md': 'configuration/query-runners/combining-with-another-library.md'
+        'query-runners/general-purpose-query-runners.md': 'configuration/query-runners/general-purpose/InterceptorQueryRunner.md'
+        'query-runners/recommended-query-runners.md': 'configuration/connection.md'
+        'supported-databases-with-extended-types.md': 'index.md#supported-databases'
+        'supported-databases.md': 'index.md#supported-databases'
+        'supported-operations.md': 'api/introduction.md'
 theme:
   name: material
   custom_dir: docs/overrides

@@ -300,6 +300,73 @@ The result type is a promise with the information of the updated rows:
 const updateCustomer: Promise<number>
 ```
 
+## Columns in a group
+
+When the table has [groups of columns](../configuration/mapping.md#grouping-columns), a shape names a column in a group by its path. It can also have its own groups, which don't need to follow the ones of the table, and the values then follow the groups of the shape:
+
+```ts
+const query = connection.update(tGroupedCompany)
+    .shapedAs({ title: 'name', position: { lat: 'ubication.latitude', lng: 'ubication.longitude' } })
+    .set({ position: { lat: '40.4' } })
+    .where(tGroupedCompany.id.equals(10));
+```
+
+## A shape from the columns of the table
+
+[`extractWritableShapeFrom`](../advanced/columns-from-object.md#extract-writable-shape) gives a shape with all the columns that can be written, each one with its own name. It's useful when the properties already have the names of the columns and you only want to limit what is written: the second argument lists the columns to leave out. Groups of columns stay as groups, with the paths of their columns.
+
+```ts
+import { extractWritableShapeFrom } from "ts-sql-query" // or "ts-sql-query/extras/utils";
+
+const customerData = {
+    firstName: 'John',
+    lastName: 'Smith',
+    token: 'abc'
+}
+
+const updateCustomerData = connection.update(tCustomer)
+    .shapedAs(extractWritableShapeFrom(tCustomer, ['id', 'companyId']))
+    .set(customerData)
+    .where(tCustomer.id.equals(10))
+    .executeUpdate()
+```
+
+The query writes `first_name` and `last_name`, and the `where` chooses the row. `token` is ignored because it isn't in the shape.
+
+## The type of the values
+
+The [utility types](../advanced/utility-types.md) give the type of the values that follow a shape, for example to declare the parameter of a function:
+
+| Type | What it gives |
+|---|---|
+| [`InsertableValuesShapedAs`](../advanced/utility-types.md#insertable-values) | The values of an insert |
+| [`InsertableRowShapedAs`](../advanced/utility-types.md#insertable-row) | The values of an insert, also accepting expressions |
+| [`UpdatableValuesShapedAs`](../advanced/utility-types.md#updatable-values) | The values of an update |
+| [`UpdatableRowShapedAs`](../advanced/utility-types.md#updatable-row) | The values of an update, also accepting expressions |
+| [`UpdatableOnInsertConflictValuesShapedAs`](../advanced/utility-types.md#updatable-values-in-case-of-conflict-on-insert) | The values to update when an insert has a conflict |
+| [`UpdatableOnInsertConflictRowShapedAs`](../advanced/utility-types.md#updatable-row-in-case-of-conflict-on-insert) | The values to update when an insert has a conflict, also accepting expressions |
+| [`WritableShapeFor`](../advanced/utility-types.md#writable-shape) | The shape that `extractWritableShapeFrom` returns |
+
+The shape must be declared `as const`, so the type knows the columns:
+
+```ts
+import { UpdatableValuesShapedAs } from 'ts-sql-query' // or 'ts-sql-query/extras/types';
+
+const customerShape = {
+    newFirstName: 'firstName',
+    newLastName: 'lastName'
+} as const;
+
+type CustomerData = UpdatableValuesShapedAs<typeof tCustomer, typeof customerShape>;
+
+const customerData: CustomerData = { newFirstName: 'John' };
+
+const updateCustomerName = await connection.update(tCustomer)
+    .shapedAs(customerShape)
+    .set(customerData)
+    .where(tCustomer.id.equals(10))
+    .executeUpdate();
+```
 ## Update multiple tables in a single query
 
 On [MariaDB](../configuration/supported-databases/mariadb.md) and [MySQL](../configuration/supported-databases/mysql.md) a single query can change the columns of more than one table, like the name of a customer and the name of their company. Join the tables right after `update`, and use a shape: it's the shape that says where each value goes. A column of the other tables goes in the shape as the column itself, like `tCompany.name`, because a name refers only to the table in `update`.
@@ -396,71 +463,3 @@ const shapedUpdateCustomerNameAndCompanyNameResult: Promise<number>
 ```
 
 The number returned counts the rows changed in all the tables: in this example, 2 if both tables change.
-
-## Columns in a group
-
-When the table has [groups of columns](../configuration/mapping.md#grouping-columns), a shape names a column in a group by its path. It can also have its own groups, which don't need to follow the ones of the table, and the values then follow the groups of the shape:
-
-```ts
-const query = connection.update(tGroupedCompany)
-    .shapedAs({ title: 'name', position: { lat: 'ubication.latitude', lng: 'ubication.longitude' } })
-    .set({ position: { lat: '40.4' } })
-    .where(tGroupedCompany.id.equals(10));
-```
-
-## A shape from the columns of the table
-
-[`extractWritableShapeFrom`](../advanced/columns-from-object.md#extract-writable-shape) gives a shape with all the columns that can be written, each one with its own name. It's useful when the properties already have the names of the columns and you only want to limit what is written: the second argument lists the columns to leave out. Groups of columns stay as groups, with the paths of their columns.
-
-```ts
-import { extractWritableShapeFrom } from "ts-sql-query" // or "ts-sql-query/extras/utils";
-
-const customerData = {
-    firstName: 'John',
-    lastName: 'Smith',
-    token: 'abc'
-}
-
-const updateCustomerData = connection.update(tCustomer)
-    .shapedAs(extractWritableShapeFrom(tCustomer, ['id', 'companyId']))
-    .set(customerData)
-    .where(tCustomer.id.equals(10))
-    .executeUpdate()
-```
-
-The query writes `first_name` and `last_name`, and the `where` chooses the row. `token` is ignored because it isn't in the shape.
-
-## The type of the values
-
-The [utility types](../advanced/utility-types.md) give the type of the values that follow a shape, for example to declare the parameter of a function:
-
-| Type | What it gives |
-|---|---|
-| [`InsertableValuesShapedAs`](../advanced/utility-types.md#insertable-values) | The values of an insert |
-| [`InsertableRowShapedAs`](../advanced/utility-types.md#insertable-row) | The values of an insert, also accepting expressions |
-| [`UpdatableValuesShapedAs`](../advanced/utility-types.md#updatable-values) | The values of an update |
-| [`UpdatableRowShapedAs`](../advanced/utility-types.md#updatable-row) | The values of an update, also accepting expressions |
-| [`UpdatableOnInsertConflictValuesShapedAs`](../advanced/utility-types.md#updatable-values-in-case-of-conflict-on-insert) | The values to update when an insert has a conflict |
-| [`UpdatableOnInsertConflictRowShapedAs`](../advanced/utility-types.md#updatable-row-in-case-of-conflict-on-insert) | The values to update when an insert has a conflict, also accepting expressions |
-| [`WritableShapeFor`](../advanced/utility-types.md#writable-shape) | The shape that `extractWritableShapeFrom` returns |
-
-The shape must be declared `as const`, so the type knows the columns:
-
-```ts
-import { UpdatableValuesShapedAs } from 'ts-sql-query' // or 'ts-sql-query/extras/types';
-
-const customerShape = {
-    newFirstName: 'firstName',
-    newLastName: 'lastName'
-} as const;
-
-type CustomerData = UpdatableValuesShapedAs<typeof tCustomer, typeof customerShape>;
-
-const customerData: CustomerData = { newFirstName: 'John' };
-
-const updateCustomerName = await connection.update(tCustomer)
-    .shapedAs(customerShape)
-    .set(customerData)
-    .where(tCustomer.id.equals(10))
-    .executeUpdate();
-```

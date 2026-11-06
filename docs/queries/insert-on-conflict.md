@@ -51,79 +51,6 @@ What isn't available is a compilation error. PostgreSQL requires saying which co
 
 The clause can follow the values of [one row](insert.md#insert-one-row), of [several rows](insert.md#insert-multiple-values) and an [insert from select](insert.md#insert-from-select); it can't follow [`defaultValues()`](insert.md#insert-default-values).
 
-## The on conflict methods
-
-The clause is added to an insert with one of these methods, after setting the values to insert:
-
-<!-- doc-code-snippet-template: simplifiedDefinitionInQuery -->
-```ts
-interface InsertExpression {
-    /** Do nothing when the row conflicts with any unique key (PostgreSQL, SQLite, MariaDB, MySQL) */
-    onConflictDoNothing(): this
-    /** Update the existing row when the row conflicts with any unique key (SQLite, MariaDB, MySQL) */
-    onConflictDoUpdateSet(columns: UpdateSets): this
-    /** 
-     * Like onConflictDoUpdateSet, but a value is only updated if it is not null, undefined, empty string 
-     * (only when the allowEmptyString flag in the connection is not set to true, 
-     * that is the default behaviour) or an empty array (SQLite, MariaDB, MySQL)
-     */
-    onConflictDoUpdateSetIfValue(columns: OptionalUpdateSets): this
-    /** Start the update with these values, or with none, to add them later (SQLite, MariaDB, MySQL) */
-    onConflictDoUpdateDynamicSet(): this
-    onConflictDoUpdateDynamicSet(columns: UpdateSets): this
-    /** Choose the conflict that is handled: the columns of a unique key or a unique index (PostgreSQL, SQLite) */
-    onConflictOn(column: AnyValueSource, ...columns: AnyValueSource[]): this
-    /** Choose the conflict that is handled: the name of a unique constraint (PostgreSQL) */
-    onConflictOnConstraint(constraint: RawFragment): this
-}
-```
-
-Once the conflict is chosen with `onConflictOn` or `onConflictOnConstraint`, what to do is given with these methods:
-
-<!-- doc-code-snippet-template: simplifiedDefinitionInQuery -->
-```ts
-interface InsertOnConflictExpression {
-    /** 
-     * The condition of a partial unique index, so the database can pick it 
-     * (only right after onConflictOn)
-     */
-    where(condition: BooleanValueSource): this
-    /** Allows to create that condition dynamically */
-    dynamicWhere(): this
-    /** Allows to extend that condition using an and */
-    and(condition: BooleanValueSource): this
-    /** Allows to extend that condition using an or */
-    or(condition: BooleanValueSource): this
-    /** Do nothing */
-    doNothing(): this
-    /** Update the existing row */
-    doUpdateSet(columns: UpdateSets): this
-    /** Update the existing row, only with the values that have a value (like onConflictDoUpdateSetIfValue) */
-    doUpdateSetIfValue(columns: OptionalUpdateSets): this
-    /** Start the update with these values, or with none, to add them later */
-    doUpdateDynamicSet(): this
-    doUpdateDynamicSet(columns: UpdateSets): this
-}
-```
-
-After an update, on PostgreSQL and SQLite, a condition decides which conflicting rows are updated; it can use the existing row (the table) and the values to insert, which the table gives with `valuesForInsert()`:
-
-<!-- doc-code-snippet-template: simplifiedDefinitionInQuery -->
-```ts
-interface InsertOnConflictDoUpdateExpression {
-    /** The condition the conflicting row must meet to be updated (PostgreSQL, SQLite) */
-    where(condition: BooleanValueSource): this
-    /** Allows to create the where dynamically */
-    dynamicWhere(): this
-    /** Allows to extend the where using an and */
-    and(condition: BooleanValueSource): this
-    /** Allows to extend the where using an or */
-    or(condition: BooleanValueSource): this
-}
-```
-
-An update started with `onConflictDoUpdateDynamicSet` or `doUpdateDynamicSet` takes its values with the same methods an update has (`set`, `setIfValue`, `ignoreIfSet`, …), described in [Manipulating values to update](update.md#manipulating-values-to-update). The sections below show each of these methods.
-
 ## Do nothing
 
 If you are using [PostgreSQL](../configuration/supported-databases/postgresql.md), [SQLite](../configuration/supported-databases/sqlite.md), [MariaDB](../configuration/supported-databases/mariadb.md) or [MySQL](../configuration/supported-databases/mysql.md) you can specify the insert must do nothing in case of conflict.
@@ -651,172 +578,6 @@ const insertReturningCustomerData: Promise<{
     - With [groups of columns](../configuration/mapping.md#grouping-columns), the values of the update and `valuesForInsert()` have the shape of the groups: `doUpdateSet({ ubication: { latitude: tGroupedCompany.valuesForInsert().ubication.latitude } })`.
     - On PostgreSQL, two rows of the same insert can't update the same existing row: the database raises an error.
 
-## Choosing the conflict
-
-On [PostgreSQL](../configuration/supported-databases/postgresql.md) and [SQLite](../configuration/supported-databases/sqlite.md) you can say which conflict the clause handles; any other conflict still raises an error. The columns must be those of a unique key of the table; otherwise the database raises an error even when the row conflicts with nothing. When an insert can break several unique keys, this lets you treat each as what it means: a repeated name is the same customer, while a repeated email can be a mistake that must fail. On [MariaDB](../configuration/supported-databases/mariadb.md) and [MySQL](../configuration/supported-databases/mysql.md) the clause handles any unique-key violation, so there is nothing to choose.
-
-### Doing nothing for a specific conflict
-
-`onConflictOn(...)` receives the columns of the unique key (or unique index) whose conflict is handled, and `doNothing()` skips the insert for it.
-
-```ts
-const insertedCount = await connection.insertInto(tCustomer).set({
-        firstName: 'John',
-        lastName: 'Smith',
-        companyId: 1
-    })
-    .onConflictOn(tCustomer.firstName, tCustomer.lastName)
-    .doNothing()
-    .executeInsert();
-```
-
-The executed query is:
-
-=== "MariaDB"
-    ```mariadb
-    -- MariaDB doesn't let you choose the conflict: use onConflictDoNothing() / onConflictDoUpdateSet(...)
-    ```
-=== "MySQL"
-    ```mysql
-    -- MySQL doesn't let you choose the conflict: use onConflictDoNothing() / onConflictDoUpdateSet(...)
-    ```
-=== "Oracle"
-    ```oracle
-    -- Oracle doesn't support insert on conflict
-    ```
-===+ "PostgreSQL"
-    ```postgresql
-    insert into customer (first_name, last_name, company_id)
-    values ($1, $2, $3)
-    on conflict (first_name, last_name) do nothing
-    ```
-=== "SQLite"
-    ```sqlite
-    insert into customer (first_name, last_name, company_id)
-    values (?1, ?2, ?3)
-    on conflict (first_name, last_name) do nothing
-    ```
-=== "SQL Server"
-    ```sqlserver
-    -- SQL Server doesn't support insert on conflict
-    ```
-
-The parameters are: `[ 'John', 'Smith', 1 ]`
-
-The result type is:
-```tsx
-const insertedCount: number
-```
-
-### A conflict on a partial unique index
-
-When the unique index is partial (it only covers the rows that match a condition), the `where` that follows `onConflictOn(...)` gives that condition, so the database can pick the index. This `where` doesn't decide what is updated; for that, see the next section. It can be extended with `and` and `or`, or built with `dynamicWhere()`.
-
-```ts
-const insertedCount = await connection.insertInto(tCustomer).set({
-        firstName: 'John',
-        lastName: 'Smith',
-        companyId: 1
-    })
-    .onConflictOn(tCustomer.firstName, tCustomer.lastName)
-    .where(tCustomer.companyId.equals(1))
-    .doUpdateSet({
-        birthday: new Date('1990-01-01')
-    })
-    .executeInsert();
-```
-
-The executed query is:
-
-=== "MariaDB"
-    ```mariadb
-    -- MariaDB doesn't let you choose the conflict: use onConflictDoNothing() / onConflictDoUpdateSet(...)
-    ```
-=== "MySQL"
-    ```mysql
-    -- MySQL doesn't let you choose the conflict: use onConflictDoNothing() / onConflictDoUpdateSet(...)
-    ```
-=== "Oracle"
-    ```oracle
-    -- Oracle doesn't support insert on conflict
-    ```
-===+ "PostgreSQL"
-    ```postgresql
-    insert into customer (first_name, last_name, company_id)
-    values ($1, $2, $3)
-    on conflict (first_name, last_name) where company_id = $4 do update set
-        birthday = $5
-    ```
-=== "SQLite"
-    ```sqlite
-    insert into customer (first_name, last_name, company_id)
-    values (?1, ?2, ?3)
-    on conflict (first_name, last_name) where company_id = ?4 do update set
-        birthday = ?5
-    ```
-=== "SQL Server"
-    ```sqlserver
-    -- SQL Server doesn't support insert on conflict
-    ```
-
-The parameters are: `[ 'John', 'Smith', 1, 1, 1990-01-01T00:00:00.000Z ]`
-
-The result type is:
-```tsx
-const insertedCount: number
-```
-
-### A conflict on a named constraint
-
-On [PostgreSQL](../configuration/supported-databases/postgresql.md) the conflict can also be identified by the name of the unique constraint, with `onConflictOnConstraint(...)`. The name is an SQL identifier, not a value, so it is given as a [raw SQL fragment](sql-fragments.md); build it from what you know of the database, never from a string a user can influence.
-
-```ts
-const insertedCount = await connection.insertInto(tCustomer).set({
-        firstName: 'John',
-        lastName: 'Smith',
-        companyId: 1
-    })
-    .onConflictOnConstraint(connection.rawFragment`customer_name_key`)
-    .doNothing()
-    .executeInsert();
-```
-
-The executed query is:
-
-=== "MariaDB"
-    ```mariadb
-    -- MariaDB doesn't let you choose the conflict: use onConflictDoNothing() / onConflictDoUpdateSet(...)
-    ```
-=== "MySQL"
-    ```mysql
-    -- MySQL doesn't let you choose the conflict: use onConflictDoNothing() / onConflictDoUpdateSet(...)
-    ```
-=== "Oracle"
-    ```oracle
-    -- Oracle doesn't support insert on conflict
-    ```
-===+ "PostgreSQL"
-    ```postgresql
-    insert into customer (first_name, last_name, company_id)
-    values ($1, $2, $3)
-    on conflict on constraint customer_name_key do nothing
-    ```
-=== "SQLite"
-    ```sqlite
-    -- SQLite doesn't support a conflict on a named constraint
-    ```
-=== "SQL Server"
-    ```sqlserver
-    -- SQL Server doesn't support insert on conflict
-    ```
-
-The parameters are: `[ 'John', 'Smith', 1 ]`
-
-The result type is:
-```tsx
-const insertedCount: number
-```
-
 ## Updating only some of the conflicting rows
 
 On [PostgreSQL](../configuration/supported-databases/postgresql.md) and [SQLite](../configuration/supported-databases/sqlite.md) a `where` after `doUpdateSet(...)` decides whether the conflicting row is updated; the condition can use the existing row (the table) and the values to insert (`valuesForInsert()`). Here the row is only updated when the company changes:
@@ -1231,3 +992,241 @@ The result type is:
 ```tsx
 const affectedCount: number
 ```
+## Choosing the conflict
+
+On [PostgreSQL](../configuration/supported-databases/postgresql.md) and [SQLite](../configuration/supported-databases/sqlite.md) you can say which conflict the clause handles; any other conflict still raises an error. The columns must be those of a unique key of the table; otherwise the database raises an error even when the row conflicts with nothing. When an insert can break several unique keys, this lets you treat each as what it means: a repeated name is the same customer, while a repeated email can be a mistake that must fail. On [MariaDB](../configuration/supported-databases/mariadb.md) and [MySQL](../configuration/supported-databases/mysql.md) the clause handles any unique-key violation, so there is nothing to choose.
+
+### Doing nothing for a specific conflict
+
+`onConflictOn(...)` receives the columns of the unique key (or unique index) whose conflict is handled, and `doNothing()` skips the insert for it.
+
+```ts
+const insertedCount = await connection.insertInto(tCustomer).set({
+        firstName: 'John',
+        lastName: 'Smith',
+        companyId: 1
+    })
+    .onConflictOn(tCustomer.firstName, tCustomer.lastName)
+    .doNothing()
+    .executeInsert();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    -- MariaDB doesn't let you choose the conflict: use onConflictDoNothing() / onConflictDoUpdateSet(...)
+    ```
+=== "MySQL"
+    ```mysql
+    -- MySQL doesn't let you choose the conflict: use onConflictDoNothing() / onConflictDoUpdateSet(...)
+    ```
+=== "Oracle"
+    ```oracle
+    -- Oracle doesn't support insert on conflict
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    insert into customer (first_name, last_name, company_id)
+    values ($1, $2, $3)
+    on conflict (first_name, last_name) do nothing
+    ```
+=== "SQLite"
+    ```sqlite
+    insert into customer (first_name, last_name, company_id)
+    values (?1, ?2, ?3)
+    on conflict (first_name, last_name) do nothing
+    ```
+=== "SQL Server"
+    ```sqlserver
+    -- SQL Server doesn't support insert on conflict
+    ```
+
+The parameters are: `[ 'John', 'Smith', 1 ]`
+
+The result type is:
+```tsx
+const insertedCount: number
+```
+
+### A conflict on a partial unique index
+
+When the unique index is partial (it only covers the rows that match a condition), the `where` that follows `onConflictOn(...)` gives that condition, so the database can pick the index. This `where` doesn't decide what is updated; for that, see [Updating only some of the conflicting rows](#updating-only-some-of-the-conflicting-rows). It can be extended with `and` and `or`, or built with `dynamicWhere()`.
+
+```ts
+const insertedCount = await connection.insertInto(tCustomer).set({
+        firstName: 'John',
+        lastName: 'Smith',
+        companyId: 1
+    })
+    .onConflictOn(tCustomer.firstName, tCustomer.lastName)
+    .where(tCustomer.companyId.equals(1))
+    .doUpdateSet({
+        birthday: new Date('1990-01-01')
+    })
+    .executeInsert();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    -- MariaDB doesn't let you choose the conflict: use onConflictDoNothing() / onConflictDoUpdateSet(...)
+    ```
+=== "MySQL"
+    ```mysql
+    -- MySQL doesn't let you choose the conflict: use onConflictDoNothing() / onConflictDoUpdateSet(...)
+    ```
+=== "Oracle"
+    ```oracle
+    -- Oracle doesn't support insert on conflict
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    insert into customer (first_name, last_name, company_id)
+    values ($1, $2, $3)
+    on conflict (first_name, last_name) where company_id = $4 do update set
+        birthday = $5
+    ```
+=== "SQLite"
+    ```sqlite
+    insert into customer (first_name, last_name, company_id)
+    values (?1, ?2, ?3)
+    on conflict (first_name, last_name) where company_id = ?4 do update set
+        birthday = ?5
+    ```
+=== "SQL Server"
+    ```sqlserver
+    -- SQL Server doesn't support insert on conflict
+    ```
+
+The parameters are: `[ 'John', 'Smith', 1, 1, 1990-01-01T00:00:00.000Z ]`
+
+The result type is:
+```tsx
+const insertedCount: number
+```
+
+### A conflict on a named constraint
+
+On [PostgreSQL](../configuration/supported-databases/postgresql.md) the conflict can also be identified by the name of the unique constraint, with `onConflictOnConstraint(...)`. The name is an SQL identifier, not a value, so it is given as a [raw SQL fragment](sql-fragments.md); build it from what you know of the database, never from a string a user can influence.
+
+```ts
+const insertedCount = await connection.insertInto(tCustomer).set({
+        firstName: 'John',
+        lastName: 'Smith',
+        companyId: 1
+    })
+    .onConflictOnConstraint(connection.rawFragment`customer_name_key`)
+    .doNothing()
+    .executeInsert();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    -- MariaDB doesn't let you choose the conflict: use onConflictDoNothing() / onConflictDoUpdateSet(...)
+    ```
+=== "MySQL"
+    ```mysql
+    -- MySQL doesn't let you choose the conflict: use onConflictDoNothing() / onConflictDoUpdateSet(...)
+    ```
+=== "Oracle"
+    ```oracle
+    -- Oracle doesn't support insert on conflict
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    insert into customer (first_name, last_name, company_id)
+    values ($1, $2, $3)
+    on conflict on constraint customer_name_key do nothing
+    ```
+=== "SQLite"
+    ```sqlite
+    -- SQLite doesn't support a conflict on a named constraint
+    ```
+=== "SQL Server"
+    ```sqlserver
+    -- SQL Server doesn't support insert on conflict
+    ```
+
+The parameters are: `[ 'John', 'Smith', 1 ]`
+
+The result type is:
+```tsx
+const insertedCount: number
+```
+
+## The on conflict methods
+
+The clause is added to an insert with one of these methods, after setting the values to insert:
+
+<!-- doc-code-snippet-template: simplifiedDefinitionInQuery -->
+```ts
+interface InsertExpression {
+    /** Do nothing when the row conflicts with any unique key (PostgreSQL, SQLite, MariaDB, MySQL) */
+    onConflictDoNothing(): this
+    /** Update the existing row when the row conflicts with any unique key (SQLite, MariaDB, MySQL) */
+    onConflictDoUpdateSet(columns: UpdateSets): this
+    /** 
+     * Like onConflictDoUpdateSet, but a value is only updated if it is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array (SQLite, MariaDB, MySQL)
+     */
+    onConflictDoUpdateSetIfValue(columns: OptionalUpdateSets): this
+    /** Start the update with these values, or with none, to add them later (SQLite, MariaDB, MySQL) */
+    onConflictDoUpdateDynamicSet(): this
+    onConflictDoUpdateDynamicSet(columns: UpdateSets): this
+    /** Choose the conflict that is handled: the columns of a unique key or a unique index (PostgreSQL, SQLite) */
+    onConflictOn(column: AnyValueSource, ...columns: AnyValueSource[]): this
+    /** Choose the conflict that is handled: the name of a unique constraint (PostgreSQL) */
+    onConflictOnConstraint(constraint: RawFragment): this
+}
+```
+
+Once the conflict is chosen with `onConflictOn` or `onConflictOnConstraint`, what to do is given with these methods:
+
+<!-- doc-code-snippet-template: simplifiedDefinitionInQuery -->
+```ts
+interface InsertOnConflictExpression {
+    /** 
+     * The condition of a partial unique index, so the database can pick it 
+     * (only right after onConflictOn)
+     */
+    where(condition: BooleanValueSource): this
+    /** Allows to create that condition dynamically */
+    dynamicWhere(): this
+    /** Allows to extend that condition using an and */
+    and(condition: BooleanValueSource): this
+    /** Allows to extend that condition using an or */
+    or(condition: BooleanValueSource): this
+    /** Do nothing */
+    doNothing(): this
+    /** Update the existing row */
+    doUpdateSet(columns: UpdateSets): this
+    /** Update the existing row, only with the values that have a value (like onConflictDoUpdateSetIfValue) */
+    doUpdateSetIfValue(columns: OptionalUpdateSets): this
+    /** Start the update with these values, or with none, to add them later */
+    doUpdateDynamicSet(): this
+    doUpdateDynamicSet(columns: UpdateSets): this
+}
+```
+
+After an update, on PostgreSQL and SQLite, a condition decides which conflicting rows are updated; it can use the existing row (the table) and the values to insert, which the table gives with `valuesForInsert()`:
+
+<!-- doc-code-snippet-template: simplifiedDefinitionInQuery -->
+```ts
+interface InsertOnConflictDoUpdateExpression {
+    /** The condition the conflicting row must meet to be updated (PostgreSQL, SQLite) */
+    where(condition: BooleanValueSource): this
+    /** Allows to create the where dynamically */
+    dynamicWhere(): this
+    /** Allows to extend the where using an and */
+    and(condition: BooleanValueSource): this
+    /** Allows to extend the where using an or */
+    or(condition: BooleanValueSource): this
+}
+```
+
+An update started with `onConflictDoUpdateDynamicSet` or `doUpdateDynamicSet` takes its values with the same methods an update has (`set`, `setIfValue`, `ignoreIfSet`, …), described in [Manipulating values to update](update.md#manipulating-values-to-update). The sections below show each of these methods.

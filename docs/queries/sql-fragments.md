@@ -1340,22 +1340,6 @@ const idsFromCte: Promise<{
 
     When a recursive `SELECT` (built with `recursiveUnion` / `recursiveUnionAll` / `recursiveUnionOn` / `recursiveUnionAllOn`) is materialized as a common table expression with [`forUseInQueryAs`](recursive-select.md), its outer `select ... from <cte>` projection is dropped — the query that consumes the CTE supplies that projection instead. Because of that, the projection-only hooks `afterSelectKeyword`, `beforeColumns` and `customWindow` customize a `SELECT` clause that no longer exists in the emitted CTE, so they are **not applicable** in this case and have no effect. The other hooks still apply: `beforeQuery` / `afterQuery` bracket the `anchor UNION recursive` body and `beforeWithQuery` / `afterWithQuery` wrap the CTE parentheses. All the hooks — including `afterSelectKeyword`, `beforeColumns` and `customWindow` — take effect as documented when the recursive query is executed directly (`executeSelectMany()`, and so on) instead of being consumed as a CTE.
 
-#### A name and metadata for the execution
-
-`queryExecutionName` and `queryExecutionMetadata` don't change the SQL. They reach your [query runner](../configuration/query-runners/general-purpose/InterceptorQueryRunner.md), which reads them with [`getQueryExecutionName`](../advanced/query-execution-metadata.md#retrieve-the-execution-name-of-a-query) and [`getQueryExecutionMetadata`](../advanced/query-execution-metadata.md#retrieve-additional-execution-metadata), for example to measure each query with a name you recognize. The other statements have them too.
-
-```ts
-const customersOfTheList = connection.selectFrom(tCustomer)
-    .select({
-        id: tCustomer.id
-    })
-    .customizeQuery({
-        queryExecutionName: 'Customers of the list',
-        queryExecutionMetadata: { screen: 'customer-list' }
-    })
-    .executeSelectMany();
-```
-
 ### Customizing a compound select
 
 A [compound select](compound-select.md) as a whole has fewer hooks, because it has no `select` keyword or columns of its own. To reach those, call `customizeQuery` on the select inside it, before combining it.
@@ -1687,4 +1671,19 @@ The parameters are: `[ 10 ]`
 The result type is:
 ```tsx
 const customizedDelete: Promise<number>
+```
+### A name and metadata for the execution
+
+`queryExecutionName` and `queryExecutionMetadata` don't change the SQL. They reach your [query runner](../configuration/query-runners/general-purpose/InterceptorQueryRunner.md), which reads them with [`getQueryExecutionName`](../advanced/query-execution-metadata.md#retrieve-the-execution-name-of-a-query) and [`getQueryExecutionMetadata`](../advanced/query-execution-metadata.md#retrieve-additional-execution-metadata), for example to measure each query with a name you recognize. The other statements have them too.
+
+```ts
+const customersOfTheList = connection.selectFrom(tCustomer)
+    .select({
+        id: tCustomer.id
+    })
+    .customizeQuery({
+        queryExecutionName: 'Customers of the list',
+        queryExecutionMetadata: { screen: 'customer-list' }
+    })
+    .executeSelectMany();
 ```

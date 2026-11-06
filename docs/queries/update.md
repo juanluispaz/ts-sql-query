@@ -346,286 +346,6 @@ An old value is a value like any other, so you can use it inside an expression. 
 - On MariaDB, as of 13.0.2, an old value only works as a property on its own: inside a function the database returns the new value, and as the operand of an operator it rejects the query ([MDEV-40126](https://jira.mariadb.org/browse/MDEV-40126)).
 - On SQL Server, `output` doesn't accept subqueries.
 
-## Update using other tables or views
-
-Use `from` when the new value, or the condition that chooses the rows, depends on another table or view. It's like the `from` of a select: the condition that relates the tables goes in the `where`. Only the rows of the table in `update` change; the others are only read. Call `from` again to add more tables.
-
-```ts
-const addACMECompanyNameToLastName = connection.update(tCustomer)
-    .from(tCompany)
-    .set({
-        lastName: tCustomer.lastName.concat(' - ').concat(tCompany.name)
-    })
-    .where(tCustomer.companyId.equals(tCompany.id))
-    .and(tCompany.name.containsInsensitive('ACME'))
-    .executeUpdate()
-```
-
-The executed query is:
-
-=== "MariaDB"
-    ```mariadb
-    update customer, 
-           company 
-    set customer.last_name = concat(customer.last_name, ?, company.name) 
-    where 
-            customer.company_id = company.id 
-        and lower(company.name) like concat('%', lower(?), '%')
-    ```
-=== "MySQL"
-    ```mysql
-    update customer, 
-           company 
-    set customer.last_name = concat(customer.last_name, ?, company.`name`) 
-    where 
-            customer.company_id = company.id 
-        and lower(company.`name`) like concat('%', lower(?), '%')
-    ```
-=== "Oracle"
-    ```oracle
-    update customer 
-    set customer.last_name = customer.last_name || :0 || company.name 
-    from company 
-    where 
-            customer.company_id = company.id 
-        and lower(company.name) like lower('%' || :1 || '%') escape '\'
-    ```
-===+ "PostgreSQL"
-    ```postgresql
-    update customer 
-    set last_name = customer.last_name || $1 || company.name 
-    from company 
-    where 
-            customer.company_id = company.id 
-        and company.name ilike ('%' || $2 || '%')
-    ```
-=== "SQLite"
-    ```sqlite
-    update customer 
-    set last_name = customer.last_name || ?1 || company.name 
-    from company 
-    where 
-            customer.company_id = company.id 
-        and lower(company.name) like lower('%' || ?2 || '%') escape '\'
-    ```
-=== "SQL Server"
-    ```sqlserver
-    update customer 
-    set last_name = customer.last_name + @0 + company.name 
-    from company 
-    where 
-            customer.company_id = company.id 
-        and lower(company.name) like lower('%' + @1 + '%')
-    ```
-
-The parameters are: `[ ' - ', 'ACME' ]`
-
-The result type is a promise with the information of the updated rows:
-```tsx
-const addACMECompanyNameToLastName: Promise<number>
-```
-
-### Using joins
-
-After `from` you can add `join`, `innerJoin`, `leftJoin` or `leftOuterJoin`, each one with its `on`. Their `on` relates the tables in the `from` and the joins; the condition that relates them with the updated table goes in the `where`. As in a select, the table of a left join is the one returned by [`forUseInLeftJoin`](select.md#select-with-left-join).
-
-[MariaDB](../configuration/supported-databases/mariadb.md) and [MySQL](../configuration/supported-databases/mysql.md) also offer the join right after `update`, with no `from`, and its `on` can use the updated table:
-
-```ts
-const addACMECompanyNameToLastNameWithJoin = connection.update(tCustomer)
-    .innerJoin(tCompany).on(tCustomer.companyId.equals(tCompany.id))
-    .set({
-        lastName: tCustomer.lastName.concat(' - ').concat(tCompany.name)
-    })
-    .where(tCompany.name.containsInsensitive('ACME'))
-    .executeUpdate()
-```
-
-The executed query is:
-
-=== "MariaDB"
-    ```mariadb
-    update customer 
-    inner join company on customer.company_id = company.id 
-    set customer.last_name = concat(customer.last_name, ?, company.name) 
-    where lower(company.name) like concat('%', lower(?), '%')
-    ```
-=== "MySQL"
-    ```mysql
-    update customer 
-    inner join company on customer.company_id = company.id 
-    set customer.last_name = concat(customer.last_name, ?, company.`name`) 
-    where lower(company.`name`) like concat('%', lower(?), '%')
-    ```
-=== "Oracle"
-    ```oracle
-    --
-    --
-    -- Oracle doesn't support a join right after update, use from
-    --
-    --
-    ```
-===+ "PostgreSQL"
-    ```postgresql
-    --
-    --
-    -- PostgreSQL doesn't support a join right after update, use from
-    --
-    --
-    ```
-=== "SQLite"
-    ```sqlite
-    --
-    --
-    -- SQLite doesn't support a join right after update, use from
-    --
-    --
-    ```
-=== "SQL Server"
-    ```sqlserver
-    --
-    --
-    -- SQL Server doesn't support a join right after update, use from
-    --
-    --
-    ```
-
-The parameters are: `[ ' - ', 'ACME' ]`
-
-The result type is a promise with the number of updated rows:
-```tsx
-const addACMECompanyNameToLastNameWithJoin: Promise<number>
-```
-
-### Returning with other tables
-
-`returning` depends more on the database when the update uses other tables. PostgreSQL and Oracle can return columns of the other tables. On SQL Server and SQLite, `returning` only sees the updated table. MariaDB rejects `returning` on an update that uses other tables.
-
-## Bulk update
-
-A bulk update changes several rows in a single query, each one with its own values, instead of sending one update per row. To do it, [map the constant values as a view](../configuration/mapping.md#mapping-constant-values-as-view) with `Values`, with one row per row to change, and use it in `from` like any other table.
-
-On [Oracle](../configuration/supported-databases/oracle.md) this isn't possible, not even on Oracle 23ai where `from` is accepted: the query needs a `with` before the `update`, and Oracle rejects it (`ORA-00928`). Use a `MERGE` or a correlated subquery instead.
-
-```ts
-class VCustomerForUpdate extends Values<DBConnection, 'customerForUpdate'> {
-    id = this.column('int')
-    firstName = this.column('string')
-    lastName = this.column('string')
-}
-const customerForUpdate = Values.create(VCustomerForUpdate, 'customerForUpdate', [{
-    id: 1,
-    firstName: 'First Name',
-    lastName: 'Last Name'
-}])
-
-const updateCustomer = connection.update(tCustomer)
-    .from(customerForUpdate)
-    .set({
-        firstName: customerForUpdate.firstName,
-        lastName: customerForUpdate.lastName
-    })
-    .where(tCustomer.id.equals(customerForUpdate.id))
-    .executeUpdate()
-```
-
-The executed query is:
-
-=== "MariaDB"
-    ```mariadb
-    with 
-        customerForUpdate(id, firstName, lastName) as (
-            values (?, ?, ?)
-        ) 
-    update customer, customerForUpdate 
-    set 
-        customer.first_name = customerForUpdate.firstName, 
-        customer.last_name = customerForUpdate.lastName 
-    where customer.id = customerForUpdate.id
-    ```
-=== "MySQL"
-    ```mysql
-    with 
-        customerForUpdate(id, firstName, lastName) as (
-            values row(?, ?, ?)
-        ) 
-    update customer, customerForUpdate 
-    set 
-        customer.first_name = customerForUpdate.firstName, 
-        customer.last_name = customerForUpdate.lastName 
-    where customer.id = customerForUpdate.id
-    ```
-=== "Oracle"
-    ```oracle
-    --
-    --
-    --
-    --
-    --
-    -- Oracle doesn't support bulk update
-    --
-    --
-    --
-    --
-    ```
-===+ "PostgreSQL"
-    ```postgresql
-    with 
-        customerForUpdate(id, firstName, lastName) as (
-            values ($1::int4, $2::text, $3::text)
-        ) 
-    update customer 
-    set 
-        first_name = customerForUpdate.firstName, 
-        last_name = customerForUpdate.lastName 
-    from customerForUpdate 
-    where customer.id = customerForUpdate.id
-    ```
-=== "SQLite"
-    ```sqlite
-    with 
-        customerForUpdate(id, firstName, lastName) as (
-            values (?1, ?2, ?3)
-        ) 
-    update customer 
-    set 
-        first_name = customerForUpdate.firstName, 
-        last_name = customerForUpdate.lastName 
-    from customerForUpdate 
-    where customer.id = customerForUpdate.id
-    ```
-=== "SQL Server"
-    ```sqlserver
-    with 
-        customerForUpdate as (
-            select * 
-            from (
-                values (@0, @1, @2)
-            ) as customerForUpdate(id, firstName, lastName)
-        ) 
-    update customer 
-    set 
-        first_name = customerForUpdate.firstName, 
-        last_name = customerForUpdate.lastName 
-    from customerForUpdate 
-    where customer.id = customerForUpdate.id
-    ```
-
-The parameters are: `[ 1, 'First Name', 'Last Name' ]`
-
-The result type is a promise with the information of the updated rows:
-```tsx
-const updateCustomer: Promise<number>
-```
-
-## Update with a shape
-
-The values to update can have other property names than the columns of the table, using a shape: see [Insert and update with a shape](shapes.md).
-
-## Update multiple tables in a single query
-
-If you are using [MariaDB](../configuration/supported-databases/mariadb.md) or [MySQL](../configuration/supported-databases/mysql.md) you can update multiple tables in a single query, using a shape: see [Update multiple tables in a single query](shapes.md#update-multiple-tables-in-a-single-query).
-
 ## Manipulating values to update
 
 The values to update often arrive from outside the code, with some of them missing or not allowed for the current user. Instead of building the object by hand, these methods add missing values, take out undesired values, or throw an error when a value is present.
@@ -904,6 +624,286 @@ const updatedCount: number
 ### When no value is left
 
 If no column is set when you execute the query, for example after a `dynamicSet()` with nothing added, there is nothing to update, so the library doesn't send any query. `executeUpdate` returns `0`, `executeUpdateNoneOrOne` returns `null`, `executeUpdateMany` returns an empty array, and `executeUpdateOne` throws an error with the reason `NO_COLUMN_SETS`. A minimum given to `executeUpdate` or `executeUpdateMany` still applies.
+
+## Update with a shape
+
+The values to update can have other property names than the columns of the table, using a shape: see [Insert and update with a shape](shapes.md).
+
+## Update using other tables or views
+
+Use `from` when the new value, or the condition that chooses the rows, depends on another table or view. It's like the `from` of a select: the condition that relates the tables goes in the `where`. Only the rows of the table in `update` change; the others are only read. Call `from` again to add more tables.
+
+```ts
+const addACMECompanyNameToLastName = connection.update(tCustomer)
+    .from(tCompany)
+    .set({
+        lastName: tCustomer.lastName.concat(' - ').concat(tCompany.name)
+    })
+    .where(tCustomer.companyId.equals(tCompany.id))
+    .and(tCompany.name.containsInsensitive('ACME'))
+    .executeUpdate()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    update customer, 
+           company 
+    set customer.last_name = concat(customer.last_name, ?, company.name) 
+    where 
+            customer.company_id = company.id 
+        and lower(company.name) like concat('%', lower(?), '%')
+    ```
+=== "MySQL"
+    ```mysql
+    update customer, 
+           company 
+    set customer.last_name = concat(customer.last_name, ?, company.`name`) 
+    where 
+            customer.company_id = company.id 
+        and lower(company.`name`) like concat('%', lower(?), '%')
+    ```
+=== "Oracle"
+    ```oracle
+    update customer 
+    set customer.last_name = customer.last_name || :0 || company.name 
+    from company 
+    where 
+            customer.company_id = company.id 
+        and lower(company.name) like lower('%' || :1 || '%') escape '\'
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    update customer 
+    set last_name = customer.last_name || $1 || company.name 
+    from company 
+    where 
+            customer.company_id = company.id 
+        and company.name ilike ('%' || $2 || '%')
+    ```
+=== "SQLite"
+    ```sqlite
+    update customer 
+    set last_name = customer.last_name || ?1 || company.name 
+    from company 
+    where 
+            customer.company_id = company.id 
+        and lower(company.name) like lower('%' || ?2 || '%') escape '\'
+    ```
+=== "SQL Server"
+    ```sqlserver
+    update customer 
+    set last_name = customer.last_name + @0 + company.name 
+    from company 
+    where 
+            customer.company_id = company.id 
+        and lower(company.name) like lower('%' + @1 + '%')
+    ```
+
+The parameters are: `[ ' - ', 'ACME' ]`
+
+The result type is a promise with the information of the updated rows:
+```tsx
+const addACMECompanyNameToLastName: Promise<number>
+```
+
+### Using joins
+
+After `from` you can add `join`, `innerJoin`, `leftJoin` or `leftOuterJoin`, each one with its `on`. Their `on` relates the tables in the `from` and the joins; the condition that relates them with the updated table goes in the `where`. As in a select, the table of a left join is the one returned by [`forUseInLeftJoin`](select.md#select-with-left-join).
+
+[MariaDB](../configuration/supported-databases/mariadb.md) and [MySQL](../configuration/supported-databases/mysql.md) also offer the join right after `update`, with no `from`, and its `on` can use the updated table:
+
+```ts
+const addACMECompanyNameToLastNameWithJoin = connection.update(tCustomer)
+    .innerJoin(tCompany).on(tCustomer.companyId.equals(tCompany.id))
+    .set({
+        lastName: tCustomer.lastName.concat(' - ').concat(tCompany.name)
+    })
+    .where(tCompany.name.containsInsensitive('ACME'))
+    .executeUpdate()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    update customer 
+    inner join company on customer.company_id = company.id 
+    set customer.last_name = concat(customer.last_name, ?, company.name) 
+    where lower(company.name) like concat('%', lower(?), '%')
+    ```
+=== "MySQL"
+    ```mysql
+    update customer 
+    inner join company on customer.company_id = company.id 
+    set customer.last_name = concat(customer.last_name, ?, company.`name`) 
+    where lower(company.`name`) like concat('%', lower(?), '%')
+    ```
+=== "Oracle"
+    ```oracle
+    --
+    --
+    -- Oracle doesn't support a join right after update, use from
+    --
+    --
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    --
+    --
+    -- PostgreSQL doesn't support a join right after update, use from
+    --
+    --
+    ```
+=== "SQLite"
+    ```sqlite
+    --
+    --
+    -- SQLite doesn't support a join right after update, use from
+    --
+    --
+    ```
+=== "SQL Server"
+    ```sqlserver
+    --
+    --
+    -- SQL Server doesn't support a join right after update, use from
+    --
+    --
+    ```
+
+The parameters are: `[ ' - ', 'ACME' ]`
+
+The result type is a promise with the number of updated rows:
+```tsx
+const addACMECompanyNameToLastNameWithJoin: Promise<number>
+```
+
+### Returning with other tables
+
+`returning` depends more on the database when the update uses other tables. PostgreSQL and Oracle can return columns of the other tables. On SQL Server and SQLite, `returning` only sees the updated table. MariaDB rejects `returning` on an update that uses other tables.
+
+## Update multiple tables in a single query
+
+If you are using [MariaDB](../configuration/supported-databases/mariadb.md) or [MySQL](../configuration/supported-databases/mysql.md) you can update multiple tables in a single query, using a shape: see [Update multiple tables in a single query](shapes.md#update-multiple-tables-in-a-single-query).
+
+## Bulk update
+
+A bulk update changes several rows in a single query, each one with its own values, instead of sending one update per row. To do it, [map the constant values as a view](../configuration/mapping.md#mapping-constant-values-as-view) with `Values`, with one row per row to change, and use it in `from` like any other table.
+
+On [Oracle](../configuration/supported-databases/oracle.md) this isn't possible, not even on Oracle 23ai where `from` is accepted: the query needs a `with` before the `update`, and Oracle rejects it (`ORA-00928`). Use a `MERGE` or a correlated subquery instead.
+
+```ts
+class VCustomerForUpdate extends Values<DBConnection, 'customerForUpdate'> {
+    id = this.column('int')
+    firstName = this.column('string')
+    lastName = this.column('string')
+}
+const customerForUpdate = Values.create(VCustomerForUpdate, 'customerForUpdate', [{
+    id: 1,
+    firstName: 'First Name',
+    lastName: 'Last Name'
+}])
+
+const updateCustomer = connection.update(tCustomer)
+    .from(customerForUpdate)
+    .set({
+        firstName: customerForUpdate.firstName,
+        lastName: customerForUpdate.lastName
+    })
+    .where(tCustomer.id.equals(customerForUpdate.id))
+    .executeUpdate()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    with 
+        customerForUpdate(id, firstName, lastName) as (
+            values (?, ?, ?)
+        ) 
+    update customer, customerForUpdate 
+    set 
+        customer.first_name = customerForUpdate.firstName, 
+        customer.last_name = customerForUpdate.lastName 
+    where customer.id = customerForUpdate.id
+    ```
+=== "MySQL"
+    ```mysql
+    with 
+        customerForUpdate(id, firstName, lastName) as (
+            values row(?, ?, ?)
+        ) 
+    update customer, customerForUpdate 
+    set 
+        customer.first_name = customerForUpdate.firstName, 
+        customer.last_name = customerForUpdate.lastName 
+    where customer.id = customerForUpdate.id
+    ```
+=== "Oracle"
+    ```oracle
+    --
+    --
+    --
+    --
+    --
+    -- Oracle doesn't support bulk update
+    --
+    --
+    --
+    --
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    with 
+        customerForUpdate(id, firstName, lastName) as (
+            values ($1::int4, $2::text, $3::text)
+        ) 
+    update customer 
+    set 
+        first_name = customerForUpdate.firstName, 
+        last_name = customerForUpdate.lastName 
+    from customerForUpdate 
+    where customer.id = customerForUpdate.id
+    ```
+=== "SQLite"
+    ```sqlite
+    with 
+        customerForUpdate(id, firstName, lastName) as (
+            values (?1, ?2, ?3)
+        ) 
+    update customer 
+    set 
+        first_name = customerForUpdate.firstName, 
+        last_name = customerForUpdate.lastName 
+    from customerForUpdate 
+    where customer.id = customerForUpdate.id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    with 
+        customerForUpdate as (
+            select * 
+            from (
+                values (@0, @1, @2)
+            ) as customerForUpdate(id, firstName, lastName)
+        ) 
+    update customer 
+    set 
+        first_name = customerForUpdate.firstName, 
+        last_name = customerForUpdate.lastName 
+    from customerForUpdate 
+    where customer.id = customerForUpdate.id
+    ```
+
+The parameters are: `[ 1, 'First Name', 'Last Name' ]`
+
+The result type is a promise with the information of the updated rows:
+```tsx
+const updateCustomer: Promise<number>
+```
 
 ## Other options
 

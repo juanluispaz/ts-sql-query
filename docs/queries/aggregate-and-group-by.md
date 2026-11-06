@@ -808,6 +808,88 @@ The parameters are: `[]`
 
 When any value of the group will do, [`anyValue(...)`](#any-value-of-the-group) says so explicitly.
 
+## Any value of the group
+
+`anyValue(value)` is the SQL:2023 `any_value` aggregate function: any value of the group, for a column that is not grouped. It's useful when every row of the group has the same value but the column isn't part of the group by, like the name of the company the customers of a group belong to. If some rows of the group have null in that column, the result can be null even if others have a value.
+
+```ts
+const customerCountPerCompany = connection.selectFrom(tCustomer)
+    .innerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+    .select({
+        companyId: tCustomer.companyId,
+        companyName: connection.anyValue(tCompany.name),
+        customerCount: connection.count(tCustomer.id)
+    })
+    .groupBy('companyId')
+    .executeSelectMany();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    -- MariaDB has no any_value aggregate function
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        customer.company_id as companyId, 
+        any_value(company.`name`) as companyName, 
+        count(customer.id) as customerCount 
+    from customer 
+    inner join company on company.id = customer.company_id 
+    group by customer.company_id
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        customer.company_id as "companyId", 
+        any_value(company.name) as "companyName", 
+        count(customer.id) as "customerCount" 
+    from customer 
+    inner join company on company.id = customer.company_id 
+    group by customer.company_id
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        customer.company_id as "companyId", 
+        any_value(company.name) as "companyName", 
+        count(customer.id) as "customerCount" 
+    from customer 
+    inner join company on company.id = customer.company_id 
+    group by customer.company_id
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        customer.company_id as companyId, 
+        company.name as companyName, 
+        count(customer.id) as customerCount 
+    from customer 
+    inner join company on company.id = customer.company_id 
+    group by customer.company_id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    -- SQL Server has no any_value aggregate function
+    ```
+
+The parameters are: `[]`
+
+The result type is:
+```tsx
+const customerCountPerCompany: Promise<{
+    companyId: number;
+    companyName?: string;
+    customerCount: number;
+}[]>
+```
+
+!!! note "Support"
+
+    `anyValue` is written `any_value(...)` on PostgreSQL, MySQL and Oracle. SQLite has no such function, but a column outside an aggregate in a grouped query (a bare column) takes the value of one of the rows of the group, so the value is written as it is. MariaDB and SQL Server have no such function and `anyValue` is not offered on their connections.
+
 ## Filtering the groups by the columns of the select
 
 Once the select is written, `having` also accepts a function that receives the columns of the select (with the same shape, nested objects included). Each column is written as the same expression the select list computes, with the same parameters, so a grouped expression that carries a parameter can be filtered too; MySQL and MariaDB only accept a column of the select in a `having` through its alias, so it is written that way there.
@@ -961,88 +1043,6 @@ const companiesByTotalAge = await connection.selectFrom(tCustomer)
     .executeSelectMany();
 ```
 
-## Any value of the group
-
-`anyValue(value)` is the SQL:2023 `any_value` aggregate function: any value of the group, for a column that is not grouped. It's useful when every row of the group has the same value but the column isn't part of the group by, like the name of the company the customers of a group belong to. If some rows of the group have null in that column, the result can be null even if others have a value.
-
-```ts
-const customerCountPerCompany = connection.selectFrom(tCustomer)
-    .innerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
-    .select({
-        companyId: tCustomer.companyId,
-        companyName: connection.anyValue(tCompany.name),
-        customerCount: connection.count(tCustomer.id)
-    })
-    .groupBy('companyId')
-    .executeSelectMany();
-```
-
-The executed query is:
-
-=== "MariaDB"
-    ```mariadb
-    -- MariaDB has no any_value aggregate function
-    ```
-=== "MySQL"
-    ```mysql
-    select 
-        customer.company_id as companyId, 
-        any_value(company.`name`) as companyName, 
-        count(customer.id) as customerCount 
-    from customer 
-    inner join company on company.id = customer.company_id 
-    group by customer.company_id
-    ```
-=== "Oracle"
-    ```oracle
-    select 
-        customer.company_id as "companyId", 
-        any_value(company.name) as "companyName", 
-        count(customer.id) as "customerCount" 
-    from customer 
-    inner join company on company.id = customer.company_id 
-    group by customer.company_id
-    ```
-===+ "PostgreSQL"
-    ```postgresql
-    select 
-        customer.company_id as "companyId", 
-        any_value(company.name) as "companyName", 
-        count(customer.id) as "customerCount" 
-    from customer 
-    inner join company on company.id = customer.company_id 
-    group by customer.company_id
-    ```
-=== "SQLite"
-    ```sqlite
-    select 
-        customer.company_id as companyId, 
-        company.name as companyName, 
-        count(customer.id) as customerCount 
-    from customer 
-    inner join company on company.id = customer.company_id 
-    group by customer.company_id
-    ```
-=== "SQL Server"
-    ```sqlserver
-    -- SQL Server has no any_value aggregate function
-    ```
-
-The parameters are: `[]`
-
-The result type is:
-```tsx
-const customerCountPerCompany: Promise<{
-    companyId: number;
-    companyName?: string;
-    customerCount: number;
-}[]>
-```
-
-!!! note "Support"
-
-    `anyValue` is written `any_value(...)` on PostgreSQL, MySQL and Oracle. SQLite has no such function, but a column outside an aggregate in a grouped query (a bare column) takes the value of one of the rows of the group, so the value is written as it is. MariaDB and SQL Server have no such function and `anyValue` is not offered on their connections.
-
 ## Grouping and filtering before the select
 
 `groupBy` and `having` can also be written before the `select`, in the logical order of the query. There they receive the expressions to group by and the condition, written again, and the ways that read the columns of the select are not available: [`groupByNonAggregatedColumns()`](#grouping-by-every-non-aggregated-column), the names of its columns in [`groupBy`](#grouping-by-the-columns-of-the-select) and [`having(columns => …)`](#filtering-the-groups-by-the-columns-of-the-select) are only offered after the select.
@@ -1154,6 +1154,88 @@ const customerCountPerCompany: Promise<{
     customerCount: number;
 }[]>
 ```
+
+### An expression that carries a parameter, written again
+
+!!! danger "The database rejects the query"
+
+    Write the select first and use [`groupBy('<column name>')`](#grouping-by-the-columns-of-the-select), [`groupByNonAggregatedColumns()`](#grouping-by-every-non-aggregated-column) or [`having(columns => …)`](#filtering-the-groups-by-the-columns-of-the-select), which repeat the SQL of the select with the same parameters.
+
+Each time an expression that carries a parameter is written, it gets new parameters. For example, the number of customers per initial of the last name, grouped by the expression written again:
+
+```ts
+const customerCountPerInitial = connection.selectFrom(tCustomer)
+    .groupBy(tCustomer.lastName.substr(0, 1))
+    .select({
+        initial: tCustomer.lastName.substr(0, 1),
+        customerCount: connection.count(tCustomer.id)
+    })
+    .executeSelectMany();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        substr(last_name, ?, ?) as initial, 
+        count(id) as customerCount 
+    from customer 
+    group by substr(last_name, ?, ?)
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        substr(last_name, ?, ?) as initial, 
+        count(id) as customerCount 
+    from customer 
+    group by substr(last_name, ?, ?)
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        substr(last_name, :0, :1) as "initial", 
+        count(id) as "customerCount" 
+    from customer 
+    group by substr(last_name, :2, :3)
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        substr(last_name, $1, $2) as initial, 
+        count(id) as "customerCount" 
+    from customer 
+    group by substr(last_name, $3, $4)
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        substr(last_name, ?1, ?2) as initial, 
+        count(id) as customerCount 
+    from customer 
+    group by substr(last_name, ?3, ?4)
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        substring(last_name, @0, @1) as initial, 
+        count(id) as customerCount 
+    from customer 
+    group by substring(last_name, @2, @3)
+    ```
+
+The parameters are: `[ 1, 1, 1, 1 ]`
+
+!!! failure "Rejected by PostgreSQL, SQL Server and Oracle, and by MySQL in a prepared statement"
+
+    The group by gets new parameters (`$3` and `$4` on PostgreSQL) while the select has `$1` and `$2`, so the database doesn't take them as the same expression:
+
+    - PostgreSQL: *column must appear in the GROUP BY clause or be used in an aggregate function*.
+    - SQL Server: *is invalid in the select list because it is not contained in either an aggregate function or the GROUP BY clause*.
+    - Oracle: *ORA-00979*.
+    - MySQL, when the query runs as a prepared statement, like with Bun SQL: *isn't in GROUP BY*.
+
+    The same happens with such an expression in a `having`, where MySQL and MariaDB also reject it (*unknown column in HAVING*). Plain columns and aggregates, which carry no parameter, are not affected.
 
 ### Filtering the groups with having
 
@@ -1630,85 +1712,3 @@ The executed query is:
     ```
 
 The parameters are: `[ 1 ]`
-
-### An expression that carries a parameter, written again
-
-!!! danger "The database rejects the query"
-
-    Write the select first and use [`groupBy('<column name>')`](#grouping-by-the-columns-of-the-select), [`groupByNonAggregatedColumns()`](#grouping-by-every-non-aggregated-column) or [`having(columns => …)`](#filtering-the-groups-by-the-columns-of-the-select), which repeat the SQL of the select with the same parameters.
-
-Each time an expression that carries a parameter is written, it gets new parameters. For example, the number of customers per initial of the last name, grouped by the expression written again:
-
-```ts
-const customerCountPerInitial = connection.selectFrom(tCustomer)
-    .groupBy(tCustomer.lastName.substr(0, 1))
-    .select({
-        initial: tCustomer.lastName.substr(0, 1),
-        customerCount: connection.count(tCustomer.id)
-    })
-    .executeSelectMany();
-```
-
-The executed query is:
-
-=== "MariaDB"
-    ```mariadb
-    select 
-        substr(last_name, ?, ?) as initial, 
-        count(id) as customerCount 
-    from customer 
-    group by substr(last_name, ?, ?)
-    ```
-=== "MySQL"
-    ```mysql
-    select 
-        substr(last_name, ?, ?) as initial, 
-        count(id) as customerCount 
-    from customer 
-    group by substr(last_name, ?, ?)
-    ```
-=== "Oracle"
-    ```oracle
-    select 
-        substr(last_name, :0, :1) as "initial", 
-        count(id) as "customerCount" 
-    from customer 
-    group by substr(last_name, :2, :3)
-    ```
-===+ "PostgreSQL"
-    ```postgresql
-    select 
-        substr(last_name, $1, $2) as initial, 
-        count(id) as "customerCount" 
-    from customer 
-    group by substr(last_name, $3, $4)
-    ```
-=== "SQLite"
-    ```sqlite
-    select 
-        substr(last_name, ?1, ?2) as initial, 
-        count(id) as customerCount 
-    from customer 
-    group by substr(last_name, ?3, ?4)
-    ```
-=== "SQL Server"
-    ```sqlserver
-    select 
-        substring(last_name, @0, @1) as initial, 
-        count(id) as customerCount 
-    from customer 
-    group by substring(last_name, @2, @3)
-    ```
-
-The parameters are: `[ 1, 1, 1, 1 ]`
-
-!!! failure "Rejected by PostgreSQL, SQL Server and Oracle, and by MySQL in a prepared statement"
-
-    The group by gets new parameters (`$3` and `$4` on PostgreSQL) while the select has `$1` and `$2`, so the database doesn't take them as the same expression:
-
-    - PostgreSQL: *column must appear in the GROUP BY clause or be used in an aggregate function*.
-    - SQL Server: *is invalid in the select list because it is not contained in either an aggregate function or the GROUP BY clause*.
-    - Oracle: *ORA-00979*.
-    - MySQL, when the query runs as a prepared statement, like with Bun SQL: *isn't in GROUP BY*.
-
-    The same happens with such an expression in a `having`, where MySQL and MariaDB also reject it (*unknown column in HAVING*). Plain columns and aggregates, which carry no parameter, are not affected.

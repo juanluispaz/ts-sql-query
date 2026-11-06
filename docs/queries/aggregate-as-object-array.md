@@ -19,6 +19,14 @@ Don't confuse it with a plain join: a join repeats the company once per customer
 | Acme | `[Ann, Bob]` |
 | Globex | `[]` |
 
+## When to use it
+
+| Option | Choose it when | Take into account |
+|---|---|---|
+| Plain join | You need the combinations of rows, one per result row, or you filter and order by the related columns | The company is repeated; you need to group the rows yourself if you want them nested |
+| Array aggregate | You need each row with its related rows, and there are few of them per row | The whole array is a single value: the database has to build it and the driver to return it, and each database limits how large a value can be |
+| A separate query | The related rows are many, need paging, or you load them only for some rows | One more round trip to the database, and you need to match the rows in your code |
+
 ## Introduction
 
 The database builds the array: a JSON aggregate function turns the rows of each group into a single JSON value, which comes back as one column of the row. The library parses that JSON and gives you a JavaScript array, with [each value converted to its type](#how-the-values-go-through-json).
@@ -39,14 +47,6 @@ The aggregate functions are the shortest way when the query already joins the re
 - You want more than one array in a row. With an aggregate function, two joins to two related tables multiply each other: each customer is combined with each order, and both arrays have repeated elements. Each inline query computes its array apart.
 - You want [arrays inside an array](#arrays-inside-an-array). An aggregate function can't go inside another one: it doesn't compile.
 - The outer query shouldn't have a group by.
-
-## When to use it
-
-| Option | Choose it when | Take into account |
-|---|---|---|
-| Plain join | You need the combinations of rows, one per result row, or you filter and order by the related columns | The company is repeated; you need to group the rows yourself if you want them nested |
-| Array aggregate | You need each row with its related rows, and there are few of them per row | The whole array is a single value: the database has to build it and the driver to return it, and each database limits how large a value can be |
-| A separate query | The related rows are many, need paging, or you load them only for some rows | One more round trip to the database, and you need to match the rows in your code |
 
 ## Aggregate as an array of objects
 
@@ -288,7 +288,7 @@ const acmeCompanyWithCustomers: Promise<{
 }>
 ```
 
-### Removing the duplicates
+## Removing the duplicates
 
 `aggregateAsArrayOfOneColumnDistinct` and `aggregateAsArrayDistinct` work like the functions above, but each value or object is only once in the array. In the object form, two objects are the same when all their properties are the same. For example, the different last names of the customers of a company:
 
@@ -634,6 +634,65 @@ const acmeCompanyWithCustomers: Promise<{
 
     The same technique can be used with recursive queries, as shown below.
 
+## Ordering and limiting the array
+
+The order of the elements of an array isn't defined unless you ask for it, and the `orderBy` of the outer query orders the rows of the result, not the elements inside each array.
+
+The aggregate functions offer no way of indicating the order. To have it, write the array as an inline query: its `orderBy`, `limit` and `offset` apply to the array of each row. For example, each company with its last three customers:
+
+```ts
+const lastCustomers = connection.subSelectUsing(tCompany).from(tCustomer)
+    .where(tCustomer.companyId.equals(tCompany.id))
+    .select({
+        id: tCustomer.id,
+        firstName: tCustomer.firstName
+    })
+    .orderBy('id', 'desc')
+    .limit(3)
+    .forUseAsInlineAggregatedArrayValue();
+
+const companies = await connection.selectFrom(tCompany)
+    .select({
+        id: tCompany.id,
+        name: tCompany.name,
+        lastCustomers: lastCustomers
+    })
+    .executeSelectMany();
+```
+
+## Arrays inside an array
+
+An inline query can be a property of the elements of another inline query, with the outer query of each one being the next level. For example, each company with its child companies, and each of those with its customers:
+
+```ts
+const childCompany = tCompany.as('childCompany');
+
+const customersOfTheChild = connection.subSelectUsing(childCompany).from(tCustomer)
+    .where(tCustomer.companyId.equals(childCompany.id))
+    .select({
+        id: tCustomer.id,
+        firstName: tCustomer.firstName
+    })
+    .forUseAsInlineAggregatedArrayValue();
+
+const childrenOfTheCompany = connection.subSelectUsing(tCompany).from(childCompany)
+    .where(childCompany.parentId.equals(tCompany.id))
+    .select({
+        id: childCompany.id,
+        name: childCompany.name,
+        customers: customersOfTheChild
+    })
+    .forUseAsInlineAggregatedArrayValue();
+
+const companies = await connection.selectFrom(tCompany)
+    .select({
+        id: tCompany.id,
+        name: tCompany.name,
+        children: childrenOfTheCompany
+    })
+    .executeSelectMany();
+```
+
 ## Recursive query as an inline array of objects
 
 A [recursive query](recursive-select.md) can be the source of the array too. Here, the company comes with the array of all its ancestors: its parent, the parent of its parent, and so on.
@@ -823,65 +882,6 @@ const lowCompany: Promise<{
 
     [SQL Server](../configuration/supported-databases/sqlserver.md), [Oracle](../configuration/supported-databases/oracle.md), and [MariaDB](../configuration/supported-databases/mariadb.md) don't support recursive queries that reference outer tables (using `subSelectUsing`). If you try to use this query on any of these databases, you will get a compilation error. A workaround is to avoid the outer reference in the recursive query indicating the parent id in the `parentCompanies` query.
 
-## Ordering and limiting the array
-
-The order of the elements of an array isn't defined unless you ask for it, and the `orderBy` of the outer query orders the rows of the result, not the elements inside each array.
-
-The aggregate functions offer no way of indicating the order. To have it, write the array as an inline query: its `orderBy`, `limit` and `offset` apply to the array of each row. For example, each company with its last three customers:
-
-```ts
-const lastCustomers = connection.subSelectUsing(tCompany).from(tCustomer)
-    .where(tCustomer.companyId.equals(tCompany.id))
-    .select({
-        id: tCustomer.id,
-        firstName: tCustomer.firstName
-    })
-    .orderBy('id', 'desc')
-    .limit(3)
-    .forUseAsInlineAggregatedArrayValue();
-
-const companies = await connection.selectFrom(tCompany)
-    .select({
-        id: tCompany.id,
-        name: tCompany.name,
-        lastCustomers: lastCustomers
-    })
-    .executeSelectMany();
-```
-
-## Arrays inside an array
-
-An inline query can be a property of the elements of another inline query, with the outer query of each one being the next level. For example, each company with its child companies, and each of those with its customers:
-
-```ts
-const childCompany = tCompany.as('childCompany');
-
-const customersOfTheChild = connection.subSelectUsing(childCompany).from(tCustomer)
-    .where(tCustomer.companyId.equals(childCompany.id))
-    .select({
-        id: tCustomer.id,
-        firstName: tCustomer.firstName
-    })
-    .forUseAsInlineAggregatedArrayValue();
-
-const childrenOfTheCompany = connection.subSelectUsing(tCompany).from(childCompany)
-    .where(childCompany.parentId.equals(tCompany.id))
-    .select({
-        id: childCompany.id,
-        name: childCompany.name,
-        customers: customersOfTheChild
-    })
-    .forUseAsInlineAggregatedArrayValue();
-
-const companies = await connection.selectFrom(tCompany)
-    .select({
-        id: tCompany.id,
-        name: tCompany.name,
-        children: childrenOfTheCompany
-    })
-    .executeSelectMany();
-```
-
 ## When there are no values
 
 A company with no customers has no values for the array. Depending on the database and the form of the query, that comes back as a null, an empty array, or an array with an empty element; the library treats all of them in the same way, and by default you get an empty array.
@@ -894,7 +894,7 @@ These methods of the resulting value change that, and they are the same for the 
 | `asOptionalNonEmptyArray()` | No property (`undefined`), never an empty array | `T[]`, optional |
 | `asRequiredInOptionalObject()` | The nested object that contains the array is left out, as explained in [Optional nested objects with required fields](complex-projections.md#optional-nested-objects-with-required-fields) | `T[]`, in an optional object |
 
-### An array only when it's required
+## An array only when it's required
 
 `onlyWhenOrNull(when)` computes the array only when the argument is `true`. When it's `false`, the query has a `null` in its place and the property is left out of the result; if you prefer an empty array in that case, call `useEmptyArrayForNoValue()` afterwards. `ignoreWhenAsNull(when)` is the opposite: it leaves out the array when the argument is `true`. In both, the property is optional in the type.
 

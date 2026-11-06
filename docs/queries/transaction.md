@@ -211,43 +211,6 @@ A function that can be called with or without a transaction open can [join the o
 
     In `ts-sql-query` the inner transaction still has its own [end-of-transaction functions](#deferring-logic-during-a-transaction) and its own [metadata](#transaction-metadata).
 
-## Using the driver's connection in the transaction
-
-Some libraries run their own SQL and accept a connection of your database driver: a job queue that keeps its jobs in the same database, for example. For their SQL to be part of your transaction, they must run it on the connection the transaction runs on, which the query runner gives you in two ways.
-
-`connection.queryRunner.getCurrentNativeConnection()` returns the driver's connection the current transaction runs on (the pg `PoolClient` with `PgPoolQueryRunner`):
-
-```ts
-await connection.transaction(async () => {
-    const customerId = await registerCustomer('John', 'Smith', 10);
-    const client = connection.queryRunner.getCurrentNativeConnection();
-    await jobQueue.send('send-welcome-email', { customerId }, client);
-});
-```
-
-A query runner over a pool takes the connection from the pool with the first statement of the transaction: before it, the transaction has no connection yet, and `getCurrentNativeConnection()` returns `undefined`, as it does outside a transaction. `connection.queryRunner.execute(fn)` always gives one: it calls `fn` with the connection of the transaction, taking it from the pool (and beginning the transaction on it) when the transaction had none yet; and outside a transaction, with a connection for `fn` alone, given back when the promise `fn` returns ends:
-
-```ts
-await connection.transaction(async () => {
-    await connection.queryRunner.execute(async (client) => {
-        await jobQueue.send('send-welcome-email', { customerId: 10 }, client);
-    });
-});
-```
-
-What each query runner gives:
-
-| Query runner | `getCurrentNativeConnection()` and `execute(fn)` in a transaction | `execute(fn)` outside a transaction | `getNativeRunner()` |
-| --- | --- | --- | --- |
-| `PgPoolQueryRunner`, `MySql2PoolQueryRunner`, `MariaDBPoolQueryRunner`, `OracleDBPoolQueryRunner`, `OracleDBPoolPromiseQueryRunner` | The connection taken from the pool for the transaction | A connection taken from the pool for `fn` | The pool |
-| `PostgresQueryRunner`, `BunSqlPostgresQueryRunner`, `BunSqlMySqlQueryRunner` | The `sql` of the transaction (`connection.transaction(...)`), or the connection reserved for it (`connection.beginTransaction()`) | A connection reserved for `fn` | The `sql` |
-| `PgQueryRunner`, `PgLiteQueryRunner`, `MySql2QueryRunner`, `MariaDBQueryRunner`, `OracleDBQueryRunner` and the SQLite query runners | The connection you gave the query runner | The connection you gave the query runner | The connection |
-| `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner` | The mssql `Transaction` | The pool: mssql only gives one of its connections for a transaction | The pool |
-
-The connection belongs to the query runner: don't release it, and don't commit or roll back with it. A connection `execute(fn)` takes for `fn` alone is given back when `fn` ends, so don't keep it to use later.
-
-To work in one transaction with another library, whichever of the two manages it, see [Combining with another library](../configuration/query-runners/combining-with-another-library.md).
-
 ## Transaction isolation
 
 While your transaction runs, other transactions change the same data and commit. The **isolation level** is what you ask to be shown of their work, and what happens when you write on the strength of what you read.
@@ -316,39 +279,6 @@ Each cell shows the isolation level `ts-sql-query` asks the database for; a dash
 
 The default level is the one the database uses when you don't ask for one; MySQL and MariaDB's default `REPEATABLE READ` is `ts-sql-query`'s `snapshot`.
 
-### How each database refuses
-
-At `snapshot`, when you write a row another transaction changed after your moment, and at `serializable`, when the transactions can't be told as one after another:
-
-| **Database** | **`snapshot`: writing a row that changed after your moment**                                          | **`serializable`**                                                                                                               |
-| ------------ | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
-| MariaDB      | The statement is refused (error 1020, _Record has changed since last read_) <sup>3</sup>                | Every row you read is locked: others **wait**; a conflict ends in a deadlock (error 1213) and one transaction is rolled back.   |
-| MySql        | **Not refused** <sup>4</sup>                                                                            | Every row you read is locked: others **wait**; a conflict ends in a deadlock (error 1213) and one transaction is rolled back.   |
-| Oracle       | The statement is refused (ORA-08177); the transaction can still continue                                 | —                                                                                                                                |
-| PostgreSql   | The transaction is aborted (SQLSTATE 40001, _could not serialize access due to concurrent update_)       | One of the transactions is aborted (SQLSTATE 40001), possibly at `COMMIT`: you must **retry** it.                                |
-| SqlServer    | The transaction is aborted (error 3960, _Snapshot isolation transaction aborted due to update conflict_) | The ranges you read are locked: others **wait**; a conflict ends in a deadlock (error 1205) and one transaction is rolled back. |
-
-### MySQL and MariaDB: snapshot writes
-
-!!! warning "MySQL's `snapshot` doesn't protect your writes"
-
-    On MySQL, `snapshot` (MySQL's `REPEATABLE READ`) keeps its promise for plain reads only. An `UPDATE` or a `DELETE` works on the **latest committed** version of the row, not on your snapshot, and it is never refused. So the transaction can write on the strength of something that is no longer true, and another transaction's update is lost without any error:
-
-    | **Transaction A** (`snapshot`)                                  | **Transaction B**                      |
-    | --------------------------------------------------------------- | -------------------------------------- |
-    | reads `n` → `10`                                                |                                        |
-    |                                                                 | sets `n = n + 1` and commits (`11`)    |
-    | reads `n` again → `10` (the snapshot holds for reads)           |                                        |
-    | sets `n = 20` (computed by the application: `10 + 10`)          |                                        |
-    | commits                                                         |                                        |
-    | **`n` is `20`: B's update is lost, and nobody got an error**    |                                        |
-
-    Every other database `ts-sql-query` supports refuses A's write at that point, and A runs again from a fresh look. This behaviour has been reported to MySQL since 2010 and every report was closed as the intended behaviour (the most recent, [MySQL bug #117797](https://bugs.mysql.com/bug.php?id=117797) (2025), says changing it wouldn't be backward compatible; see also [#57973](https://bugs.mysql.com/bug.php?id=57973) and [Jepsen's analysis of MySQL 8.0.34](https://jepsen.io/analyses/mysql-8.0.34)). It contradicts the definition of snapshot isolation and what every other supported database does, including MariaDB, which shares the same storage engine and fixed it. `ts-sql-query` treats it as a MySQL defect: `snapshot` on MySQL gives you consistent reads, but not protection for your writes.
-
-    **MariaDB** fixed it with the `innodb_snapshot_isolation` system variable ([MDEV-35124](https://jira.mariadb.org/browse/MDEV-35124), see also [Jepsen's note on it](https://jepsen.io/blog/2024-11-07-mariadb-snapshot-isolation)): added in 10.6.18, 10.11.8 and 11.4.2 turned off, and turned on by default since 11.6.2. Before 11.6.2, or with the variable turned off, MariaDB behaves as MySQL does.
-
-    Where the database doesn't refuse the write, keep the computation inside the statement, as an expression over the column (the database computes it on the current value), or carry a version column in the `where` and check how many rows were updated.
-
 ### Setting the isolation level
 
 `transaction` and `beginTransaction` receive the level as an optional last argument, a value created with `connection.isolationLevel`. It receives the isolation level, and an optional [access mode](#access-modes) as the second argument:
@@ -396,6 +326,39 @@ Available access modes:
 !!! warning
 
     The [Oracle](../configuration/supported-databases/oracle.md) database doesn't support specifying the isolation level and the access mode simultaneously.
+
+### How each database refuses
+
+At `snapshot`, when you write a row another transaction changed after your moment, and at `serializable`, when the transactions can't be told as one after another:
+
+| **Database** | **`snapshot`: writing a row that changed after your moment**                                          | **`serializable`**                                                                                                               |
+| ------------ | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| MariaDB      | The statement is refused (error 1020, _Record has changed since last read_) <sup>3</sup>                | Every row you read is locked: others **wait**; a conflict ends in a deadlock (error 1213) and one transaction is rolled back.   |
+| MySql        | **Not refused** <sup>4</sup>                                                                            | Every row you read is locked: others **wait**; a conflict ends in a deadlock (error 1213) and one transaction is rolled back.   |
+| Oracle       | The statement is refused (ORA-08177); the transaction can still continue                                 | —                                                                                                                                |
+| PostgreSql   | The transaction is aborted (SQLSTATE 40001, _could not serialize access due to concurrent update_)       | One of the transactions is aborted (SQLSTATE 40001), possibly at `COMMIT`: you must **retry** it.                                |
+| SqlServer    | The transaction is aborted (error 3960, _Snapshot isolation transaction aborted due to update conflict_) | The ranges you read are locked: others **wait**; a conflict ends in a deadlock (error 1205) and one transaction is rolled back. |
+
+### MySQL and MariaDB: snapshot writes
+
+!!! warning "MySQL's `snapshot` doesn't protect your writes"
+
+    On MySQL, `snapshot` (MySQL's `REPEATABLE READ`) keeps its promise for plain reads only. An `UPDATE` or a `DELETE` works on the **latest committed** version of the row, not on your snapshot, and it is never refused. So the transaction can write on the strength of something that is no longer true, and another transaction's update is lost without any error:
+
+    | **Transaction A** (`snapshot`)                                  | **Transaction B**                      |
+    | --------------------------------------------------------------- | -------------------------------------- |
+    | reads `n` → `10`                                                |                                        |
+    |                                                                 | sets `n = n + 1` and commits (`11`)    |
+    | reads `n` again → `10` (the snapshot holds for reads)           |                                        |
+    | sets `n = 20` (computed by the application: `10 + 10`)          |                                        |
+    | commits                                                         |                                        |
+    | **`n` is `20`: B's update is lost, and nobody got an error**    |                                        |
+
+    Every other database `ts-sql-query` supports refuses A's write at that point, and A runs again from a fresh look. This behaviour has been reported to MySQL since 2010 and every report was closed as the intended behaviour (the most recent, [MySQL bug #117797](https://bugs.mysql.com/bug.php?id=117797) (2025), says changing it wouldn't be backward compatible; see also [#57973](https://bugs.mysql.com/bug.php?id=57973) and [Jepsen's analysis of MySQL 8.0.34](https://jepsen.io/analyses/mysql-8.0.34)). It contradicts the definition of snapshot isolation and what every other supported database does, including MariaDB, which shares the same storage engine and fixed it. `ts-sql-query` treats it as a MySQL defect: `snapshot` on MySQL gives you consistent reads, but not protection for your writes.
+
+    **MariaDB** fixed it with the `innodb_snapshot_isolation` system variable ([MDEV-35124](https://jira.mariadb.org/browse/MDEV-35124), see also [Jepsen's note on it](https://jepsen.io/blog/2024-11-07-mariadb-snapshot-isolation)): added in 10.6.18, 10.11.8 and 11.4.2 turned off, and turned on by default since 11.6.2. Before 11.6.2, or with the variable turned off, MariaDB behaves as MySQL does.
+
+    Where the database doesn't refuse the write, keep the computation inside the statement, as an expression over the column (the database computes it on the current value), or carry a version column in the `where` and check how many rows were updated.
 
 ## Deferring logic during a transaction
 
@@ -641,3 +604,39 @@ await connection.transaction(async () => {
 ```
 
 The wake-up is only a shortcut, and it can be lost (the process stops after the commit, or the relay is busy): the relay keeps looking for unsent messages from time to time, and finds them anyway. What the outbox guarantees is that a message is never lost, not that it is sent only once: a relay that stops after sending a message and before marking it as sent sends it again when it resumes. This is *at-least-once* delivery, and it is why every message carries an identifier and the system that receives it must handle a repeated one as a single one (it must be *idempotent*), for example by recording the identifiers it has already handled in a table with a unique constraint.
+## Using the driver's connection in the transaction
+
+Some libraries run their own SQL and accept a connection of your database driver: a job queue that keeps its jobs in the same database, for example. For their SQL to be part of your transaction, they must run it on the connection the transaction runs on, which the query runner gives you in two ways.
+
+`connection.queryRunner.getCurrentNativeConnection()` returns the driver's connection the current transaction runs on (the pg `PoolClient` with `PgPoolQueryRunner`):
+
+```ts
+await connection.transaction(async () => {
+    const customerId = await registerCustomer('John', 'Smith', 10);
+    const client = connection.queryRunner.getCurrentNativeConnection();
+    await jobQueue.send('send-welcome-email', { customerId }, client);
+});
+```
+
+A query runner over a pool takes the connection from the pool with the first statement of the transaction: before it, the transaction has no connection yet, and `getCurrentNativeConnection()` returns `undefined`, as it does outside a transaction. `connection.queryRunner.execute(fn)` always gives one: it calls `fn` with the connection of the transaction, taking it from the pool (and beginning the transaction on it) when the transaction had none yet; and outside a transaction, with a connection for `fn` alone, given back when the promise `fn` returns ends:
+
+```ts
+await connection.transaction(async () => {
+    await connection.queryRunner.execute(async (client) => {
+        await jobQueue.send('send-welcome-email', { customerId: 10 }, client);
+    });
+});
+```
+
+What each query runner gives:
+
+| Query runner | `getCurrentNativeConnection()` and `execute(fn)` in a transaction | `execute(fn)` outside a transaction | `getNativeRunner()` |
+| --- | --- | --- | --- |
+| `PgPoolQueryRunner`, `MySql2PoolQueryRunner`, `MariaDBPoolQueryRunner`, `OracleDBPoolQueryRunner`, `OracleDBPoolPromiseQueryRunner` | The connection taken from the pool for the transaction | A connection taken from the pool for `fn` | The pool |
+| `PostgresQueryRunner`, `BunSqlPostgresQueryRunner`, `BunSqlMySqlQueryRunner` | The `sql` of the transaction (`connection.transaction(...)`), or the connection reserved for it (`connection.beginTransaction()`) | A connection reserved for `fn` | The `sql` |
+| `PgQueryRunner`, `PgLiteQueryRunner`, `MySql2QueryRunner`, `MariaDBQueryRunner`, `OracleDBQueryRunner` and the SQLite query runners | The connection you gave the query runner | The connection you gave the query runner | The connection |
+| `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner` | The mssql `Transaction` | The pool: mssql only gives one of its connections for a transaction | The pool |
+
+The connection belongs to the query runner: don't release it, and don't commit or roll back with it. A connection `execute(fn)` takes for `fn` alone is given back when `fn` ends, so don't keep it to use later.
+
+To work in one transaction with another library, whichever of the two manages it, see [Combining with another library](../configuration/query-runners/combining-with-another-library.md).

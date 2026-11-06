@@ -186,151 +186,6 @@ const customersWithCompanyName: Promise<{
 
 Without an `orderBy`, the database can return the rows in any order. Each call to `orderBy` adds a criterion, and each criterion only decides between the rows that are tied in the previous ones.
 
-### What you can order by
-
-`orderBy` receives one of these, followed by the [order mode](#the-order-modes):
-
-- **The name of a property of the select**, like `'firstName'`, or its path in a [complex projection](complex-projections.md), like `'company.name'`. The name is checked by the compiler. When the select has [one column](#select-one-column), the name is `'result'`.
-- **A column or an expression**, which doesn't need to be returned: see [Select ordering by a not returned column](#select-ordering-by-a-not-returned-column).
-- **A [raw SQL fragment](sql-fragments.md#raw-fragments)**, for what the library has no method for.
-
-```ts
-const customersInOrder = await connection.selectFrom(tCustomer)
-    .select({
-        id: tCustomer.id,
-        firstName: tCustomer.firstName,
-        lastName: tCustomer.lastName
-    })
-    .orderBy('lastName', 'desc')
-    .orderBy(tCustomer.birthday, 'asc nulls last')
-    .orderBy(connection.rawFragment`lower(${tCustomer.firstName})`)
-    .executeSelectMany();
-```
-
-When the order comes from outside your code, like a request from a user, use `orderByFromString(...)` or `orderByFromStringArray(...)`, which receive the same names and modes as text: see [Order by from a string](dynamic-queries.md#order-by-from-a-string).
-
-### The order modes
-
-The mode is the second argument of `orderBy`, like `.orderBy('name', 'desc nulls last insensitive')`. Without it, the order is ascending:
-
-| Mode | Order | Rows without a value | Upper and lower case |
-|---|---|---|---|
-| `asc` | From the lowest to the highest | Where the database puts them | As the collation says |
-| `desc` | From the highest to the lowest | Where the database puts them | As the collation says |
-| `asc nulls first` | From the lowest to the highest | First | As the collation says |
-| `asc nulls last` | From the lowest to the highest | Last | As the collation says |
-| `desc nulls first` | From the highest to the lowest | First | As the collation says |
-| `desc nulls last` | From the highest to the lowest | Last | As the collation says |
-| `insensitive` | From the lowest to the highest | Where the database puts them | Not distinguished |
-| `asc insensitive` | From the lowest to the highest | Where the database puts them | Not distinguished |
-| `desc insensitive` | From the highest to the lowest | Where the database puts them | Not distinguished |
-| `asc nulls first insensitive` | From the lowest to the highest | First | Not distinguished |
-| `asc nulls last insensitive` | From the lowest to the highest | Last | Not distinguished |
-| `desc nulls first insensitive` | From the highest to the lowest | First | Not distinguished |
-| `desc nulls last insensitive` | From the highest to the lowest | Last | Not distinguished |
-
-`nulls first` and `nulls last` say where the rows without a value go. Without them, the place of the nulls depends on the database: with `asc`, MariaDB, MySQL, SQLite and SQL Server put them first, and PostgreSQL puts them last. Say it explicitly when it matters.
-
-On the databases that don't have `nulls first` or `nulls last`, the library writes an order by that gives the same result.
-
-`insensitive` orders the text without distinguishing upper and lower case. Whether a text is ordered that way depends on its [collation](../configuration/collations.md): with a case-sensitive one, the usual in PostgreSQL, SQLite and Oracle, the upper case letters can go together before the lower case ones, so you get `Bea, Carla, ana`, while the insensitive order is `ana, Bea, Carla`. It's written `lower(column)`, or `column collate <name>` when the connection has an [`insensitiveCollation`](../configuration/collations.md#the-tools). A database can't use a plain index on the column for an order written that way, so if the column is already case-insensitive you don't need it. In a column that isn't text, `insensitive` is ignored.
-
-## Select ordering by a not returned column
-
-`orderBy` also accepts a column or an expression, so you can order by a value that the select doesn't return:
-
-```ts
-const customerId = 10;
-
-const customerWithId = connection.selectFrom(tCustomer)
-    .where(tCustomer.id.equals(customerId))
-    .select({
-        id: tCustomer.id,
-        firstName: tCustomer.firstName,
-        lastName: tCustomer.lastName
-    })
-    .orderBy(tCustomer.birthday, 'desc nulls last')
-    .executeSelectOne();
-```
-
-The executed query is:
-
-=== "MariaDB"
-    ```mariadb
-    select 
-        id as id, 
-        first_name as firstName, 
-        last_name as lastName 
-    from customer 
-    where id = ? 
-    order by customer.birthday desc
-    ```
-=== "MySQL"
-    ```mysql
-    select 
-        id as id, 
-        first_name as firstName, 
-        last_name as lastName 
-    from customer 
-    where id = ? 
-    order by customer.birthday desc
-    ```
-=== "Oracle"
-    ```oracle
-    select 
-        id as "id", 
-        first_name as "firstName", 
-        last_name as "lastName" 
-    from customer 
-    where id = :0 
-    order by customer.birthday desc nulls last
-    ```
-===+ "PostgreSQL"
-    ```postgresql
-    select 
-        id as id, 
-        first_name as "firstName", 
-        last_name as "lastName" 
-    from customer 
-    where id = $1 
-    order by customer.birthday desc nulls last
-    ```
-=== "SQLite"
-    ```sqlite
-    select 
-        id as id, 
-        first_name as firstName, 
-        last_name as lastName 
-    from customer 
-    where id = ?1 
-    order by customer.birthday desc nulls last
-    ```
-=== "SQL Server"
-    ```sqlserver
-    select 
-        id as id, 
-        first_name as firstName, 
-        last_name as lastName 
-    from customer 
-    where id = @0 
-    order by customer.birthday desc
-    ```
-
-The parameters are: `[ 10 ]`
-
-The result type is:
-```tsx
-const customerWithId: Promise<{
-    id: number;
-    firstName: string;
-    lastName: string;
-}>
-```
-
-## Select with aggregate functions and group by
-
-See [Aggregate functions, group by and having](aggregate-and-group-by.md).
-
 ## Select with left join
 
 A left join keeps the rows that have no related row, so any column of the joined table can be `null`, even a required one. The types must say so, which is why a left join can't receive the table itself, and passing it doesn't compile: you must create a left join representation first by calling the method `forUseInLeftJoin()`, or `forUseInLeftJoinAs('name')` to also give it another name. It's a copy of the table where all the columns are optional.
@@ -565,13 +420,186 @@ An optional join is written in the SQL only when the query uses the joined table
 
 Leaving out an inner join also changes which rows are returned: the rows that it would drop are no longer dropped.
 
-## Select with a compound operator (union, intersect, except)
+## What you can order by
 
-The result of several selects can be combined with `union`, `intersect` and `except`: see [Compound select](compound-select.md).
+`orderBy` receives one of these, followed by the [order mode](#the-order-modes):
 
-## CTE (with clause) and subqueries
+- **The name of a property of the select**, like `'firstName'`, or its path in a [complex projection](complex-projections.md), like `'company.name'`. The name is checked by the compiler. When the select has [one column](#select-one-column), the name is `'result'`.
+- **A column or an expression**, which doesn't need to be returned: see [Select ordering by a not returned column](#select-ordering-by-a-not-returned-column).
+- **A [raw SQL fragment](sql-fragments.md#raw-fragments)**, for what the library has no method for.
 
-A select can be used inside another one, as a value, in a condition or as a view with a Common Table Expression (the SQL `with` clause): see [CTE (with clause) & subqueries](cte-subqueries.md).
+```ts
+const customersInOrder = await connection.selectFrom(tCustomer)
+    .select({
+        id: tCustomer.id,
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName
+    })
+    .orderBy('lastName', 'desc')
+    .orderBy(tCustomer.birthday, 'asc nulls last')
+    .orderBy(connection.rawFragment`lower(${tCustomer.firstName})`)
+    .executeSelectMany();
+```
+
+When the order comes from outside your code, like a request from a user, use `orderByFromString(...)` or `orderByFromStringArray(...)`, which receive the same names and modes as text: see [Order by from a string](dynamic-queries.md#order-by-from-a-string).
+
+## The order modes
+
+The mode is the second argument of `orderBy`, like `.orderBy('name', 'desc nulls last insensitive')`. Without it, the order is ascending:
+
+| Mode | Order | Rows without a value | Upper and lower case |
+|---|---|---|---|
+| `asc` | From the lowest to the highest | Where the database puts them | As the collation says |
+| `desc` | From the highest to the lowest | Where the database puts them | As the collation says |
+| `asc nulls first` | From the lowest to the highest | First | As the collation says |
+| `asc nulls last` | From the lowest to the highest | Last | As the collation says |
+| `desc nulls first` | From the highest to the lowest | First | As the collation says |
+| `desc nulls last` | From the highest to the lowest | Last | As the collation says |
+| `insensitive` | From the lowest to the highest | Where the database puts them | Not distinguished |
+| `asc insensitive` | From the lowest to the highest | Where the database puts them | Not distinguished |
+| `desc insensitive` | From the highest to the lowest | Where the database puts them | Not distinguished |
+| `asc nulls first insensitive` | From the lowest to the highest | First | Not distinguished |
+| `asc nulls last insensitive` | From the lowest to the highest | Last | Not distinguished |
+| `desc nulls first insensitive` | From the highest to the lowest | First | Not distinguished |
+| `desc nulls last insensitive` | From the highest to the lowest | Last | Not distinguished |
+
+`nulls first` and `nulls last` say where the rows without a value go. Without them, the place of the nulls depends on the database: with `asc`, MariaDB, MySQL, SQLite and SQL Server put them first, and PostgreSQL puts them last. Say it explicitly when it matters.
+
+On the databases that don't have `nulls first` or `nulls last`, the library writes an order by that gives the same result.
+
+`insensitive` orders the text without distinguishing upper and lower case. Whether a text is ordered that way depends on its [collation](../configuration/collations.md): with a case-sensitive one, the usual in PostgreSQL, SQLite and Oracle, the upper case letters can go together before the lower case ones, so you get `Bea, Carla, ana`, while the insensitive order is `ana, Bea, Carla`. It's written `lower(column)`, or `column collate <name>` when the connection has an [`insensitiveCollation`](../configuration/collations.md#the-tools). A database can't use a plain index on the column for an order written that way, so if the column is already case-insensitive you don't need it. In a column that isn't text, `insensitive` is ignored.
+
+## Select ordering by a not returned column
+
+`orderBy` also accepts a column or an expression, so you can order by a value that the select doesn't return:
+
+```ts
+const customerId = 10;
+
+const customerWithId = connection.selectFrom(tCustomer)
+    .where(tCustomer.id.equals(customerId))
+    .select({
+        id: tCustomer.id,
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName
+    })
+    .orderBy(tCustomer.birthday, 'desc nulls last')
+    .executeSelectOne();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where id = ? 
+    order by customer.birthday desc
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where id = ? 
+    order by customer.birthday desc
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer 
+    where id = :0 
+    order by customer.birthday desc nulls last
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer 
+    where id = $1 
+    order by customer.birthday desc nulls last
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where id = ?1 
+    order by customer.birthday desc nulls last
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where id = @0 
+    order by customer.birthday desc
+    ```
+
+The parameters are: `[ 10 ]`
+
+The result type is:
+```tsx
+const customerWithId: Promise<{
+    id: number;
+    firstName: string;
+    lastName: string;
+}>
+```
+
+## Limit and offset
+
+`limit(n)` returns at most `n` rows, and `offset(n)` skips the first `n` rows. Both apply after the order, so without an `orderBy` the database decides which rows you get. `offset` is written after `limit`.
+
+`limitIfValue` and `offsetIfValue` do the same but they ignore `null` and `undefined`. So `limitIfValue(undefined).offset(10)` is how you write an offset without a limit.
+
+[Select page](select-page.md#limit-and-offset) explains how to use them to read a list page by page, together with the total of rows.
+
+## Executing a select
+
+The method that executes the select says how many rows you expect, and it's what decides the type of the result. The library checks the rows it receives; it doesn't add anything to the query to get fewer of them.
+
+| Method | Minimum rows | Maximum rows | Returns | When there are too few or too many rows |
+|---|---|---|---|---|
+| `executeSelectNoneOrOne()` | 0 | 1 | The row, or `null` when there's none | More than one: error `MORE_THAN_ONE_ROW` |
+| `executeSelectOne()` | 1 | 1 | The row | None: error `NO_RESULT`. More than one: error `MORE_THAN_ONE_ROW` |
+| `executeSelectMany()` | 0 | No maximum | An array of rows, empty when there's none | Never |
+| `executeSelectPage()` | 0 | No maximum | `{ data, count }`: the rows and the total | Never. See [Select page](select-page.md) |
+
+The error is a rejected promise with a [`TsSqlError`](../api/error-management/overview.md), and the name above is in `errorReason.reason`.
+
+To choose between them:
+
+- Use `executeSelectOne` when the row must exist, like reading by the id something you know is there. If it isn't, that's an error in your program.
+- Use `executeSelectNoneOrOne` when the row may not exist, like looking for a customer by email.
+- Use `executeSelectMany` for anything else.
+
+`executeSelectOne` and `executeSelectNoneOrOne` don't choose a row when there are several: they throw an error. To get the first row of a list, say which one it is with `orderBy` and `limit(1)`:
+
+```ts
+const lastCustomer = await connection.selectFrom(tCustomer)
+    .select({
+        id: tCustomer.id,
+        firstName: tCustomer.firstName
+    })
+    .orderBy('id', 'desc')
+    .limit(1)
+    .executeSelectNoneOrOne();
+```
 
 ## Select distinct
 
@@ -652,46 +680,6 @@ const firstNames = await connection.selectFrom(tCustomer)
 In SQL the column is called `result`, and this is the name to use in `orderBy`.
 
 With an optional column there is no property to leave out, so a missing value is `null`. In `selectFrom(tCustomer).selectOneColumn(tCustomer.birthday)`, the rows have the type `Date | null`. This also means that `executeSelectNoneOrOne` returns `null` both when there's no row and when the row has no value; if you need to tell them apart, use `select({...})`.
-
-## Limit and offset
-
-`limit(n)` returns at most `n` rows, and `offset(n)` skips the first `n` rows. Both apply after the order, so without an `orderBy` the database decides which rows you get. `offset` is written after `limit`.
-
-`limitIfValue` and `offsetIfValue` do the same but they ignore `null` and `undefined`. So `limitIfValue(undefined).offset(10)` is how you write an offset without a limit.
-
-[Select page](select-page.md#limit-and-offset) explains how to use them to read a list page by page, together with the total of rows.
-
-## Executing a select
-
-The method that executes the select says how many rows you expect, and it's what decides the type of the result. The library checks the rows it receives; it doesn't add anything to the query to get fewer of them.
-
-| Method | Minimum rows | Maximum rows | Returns | When there are too few or too many rows |
-|---|---|---|---|---|
-| `executeSelectNoneOrOne()` | 0 | 1 | The row, or `null` when there's none | More than one: error `MORE_THAN_ONE_ROW` |
-| `executeSelectOne()` | 1 | 1 | The row | None: error `NO_RESULT`. More than one: error `MORE_THAN_ONE_ROW` |
-| `executeSelectMany()` | 0 | No maximum | An array of rows, empty when there's none | Never |
-| `executeSelectPage()` | 0 | No maximum | `{ data, count }`: the rows and the total | Never. See [Select page](select-page.md) |
-
-The error is a rejected promise with a [`TsSqlError`](../api/error-management/overview.md), and the name above is in `errorReason.reason`.
-
-To choose between them:
-
-- Use `executeSelectOne` when the row must exist, like reading by the id something you know is there. If it isn't, that's an error in your program.
-- Use `executeSelectNoneOrOne` when the row may not exist, like looking for a customer by email.
-- Use `executeSelectMany` for anything else.
-
-`executeSelectOne` and `executeSelectNoneOrOne` don't choose a row when there are several: they throw an error. To get the first row of a list, say which one it is with `orderBy` and `limit(1)`:
-
-```ts
-const lastCustomer = await connection.selectFrom(tCustomer)
-    .select({
-        id: tCustomer.id,
-        firstName: tCustomer.firstName
-    })
-    .orderBy('id', 'desc')
-    .limit(1)
-    .executeSelectNoneOrOne();
-```
 
 ## Select count all
 
@@ -814,6 +802,18 @@ const counts: Promise<{
     companies: number;
 }>
 ```
+
+## Select with a compound operator (union, intersect, except)
+
+The result of several selects can be combined with `union`, `intersect` and `except`: see [Compound select](compound-select.md).
+
+## CTE (with clause) and subqueries
+
+A select can be used inside another one, as a value, in a condition or as a view with a Common Table Expression (the SQL `with` clause): see [CTE (with clause) & subqueries](cte-subqueries.md).
+
+## Select with aggregate functions and group by
+
+See [Aggregate functions, group by and having](aggregate-and-group-by.md).
 
 ## Select clauses order
 

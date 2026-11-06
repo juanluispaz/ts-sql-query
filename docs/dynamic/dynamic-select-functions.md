@@ -112,13 +112,13 @@ The pieces of this code are:
 |---|---|
 | `buildCompanyAvailableFields` | Returns the map of columns the caller can pick and filter by. Being a function, its type is available to the types below, even though the alias of the left join is created inside `getSubcompanies` |
 | `favouriteCustomerRef` | The table as a parameter. `TableOrViewLeftJoinOf<typeof tCustomer, 'favouriteCustomer'>` is the type for `tCustomer.forUseInLeftJoinAs('favouriteCustomer')`, and `fromRef` gives back its columns. See [Passing tables and views as parameter](../advanced/tables-views-as-parameter.md) |
-| `buildCompanyConditionExtension` | The rules of the filter that aren't a column: `customers` and `favouriteCustomer.isInAnotherCompanyWithName`. The first one builds its condition with `if`s, using [`dynamicBooleanExpressionUsing`](../queries/extreme-dynamic-queries.md#complex-dynamic-boolean-expressions) |
+| `buildCompanyConditionExtension` | The rules of the filter that aren't a column: `customers` and `favouriteCustomer.isInAnotherCompanyWithName`. The first one builds its condition with `if`s, using [`dynamicBooleanExpressionUsing`](building-conditions.md#a-condition-in-a-variable) |
 | `CompanyFields` | The names the caller can pick, without `id`, which is always returned |
 | `CompanyDynamicCondition` | The type of the filter: the columns of the map and the rules |
 | `CompanyInformation<FIELDS>` | The type of a row with only the columns in `FIELDS`, plus `id` |
 | `expandTypeFromDynamicPickPaths` | Gives the rows that type, and returns them as they are. See [Expanding result types](utilities/picks.md#expanding-result-types-from-dynamic-picks) |
 
-The order is an array of clauses that name properties of the select: as in any [pick](../queries/extreme-dynamic-queries.md#select-dynamically-picking-columns), naming one that wasn't picked throws `ORDER_BY_COLUMN_NOT_IN_SELECT`.
+The order is an array of clauses that name properties of the select: as in any [pick](picks.md), naming one that wasn't picked throws `ORDER_BY_COLUMN_NOT_IN_SELECT`.
 
 **If you call `getSubcompanies` as:**
 ```ts

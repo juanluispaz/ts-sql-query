@@ -95,4 +95,4 @@ type AuditedFilter = DynamicCondition<DynamicDefinitionForModel<Customer> & { au
 
 - [Typing dynamic queries from a business model](../from-business-model.md) — the model-first guide.
 - [Dynamic conditions API](../../api/dynamic-conditions.md) — the full `DynamicCondition` reference.
-- [Select using a dynamic filter](../../queries/extreme-dynamic-queries.md#select-using-a-dynamic-filter) — a worked end-to-end example.
+- [Select using a dynamic filter](../filters.md) — a worked end-to-end example.

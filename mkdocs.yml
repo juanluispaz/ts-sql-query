@@ -215,11 +215,17 @@ nav:
         - SQL Server: api/error-management/native-mappings/sql-server.md
   - Dynamic:
     - Dynamic query building blocks: dynamic/building-blocks.md
-    - Booleans and three-valued logic: dynamic/three-valued-booleans.md
+    - Building a condition step by step: dynamic/building-conditions.md
+    - Order and page from a request: dynamic/order-and-page.md
+    - Optional joins: dynamic/optional-joins.md
+    - Dynamic filters: dynamic/filters.md
+    - Picking columns dynamically: dynamic/picks.md
+    - Restricting values: dynamic/restricting-values.md
     - Queries from a request: dynamic/queries-from-requests.md
     - Functions that return a dynamic select: dynamic/dynamic-select-functions.md
-    - Dynamic queries from a business model: dynamic/from-business-model.md
     - Dynamic queries from the database types: dynamic/from-database-types.md
+    - Dynamic queries from a business model: dynamic/from-business-model.md
+    - Booleans and three-valued logic: dynamic/three-valued-booleans.md
     - Utilities:
       - Dynamic conditions: dynamic/utilities/conditions.md
       - Dynamic picks: dynamic/utilities/picks.md

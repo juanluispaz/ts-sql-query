@@ -16,11 +16,11 @@ Nothing that comes from the request becomes SQL text: the values go as parameter
 | Part of the query | Who decides | What to use |
 |---|---|---|
 | The rows the caller is allowed to see | Your code | A normal `where`. The filter is added to it, and can't remove it |
-| Which fields can be filtered | Your code | The map you give to [`dynamicConditionFor`](../queries/extreme-dynamic-queries.md#select-using-a-dynamic-filter) |
-| The condition | The caller, inside those fields | [`withValues(filter)`](../queries/extreme-dynamic-queries.md#select-using-a-dynamic-filter) |
-| The order | The caller, among the properties of the select | [`orderByFromStringIfValue`](../queries/dynamic-queries.md#order-by-from-a-string) |
-| The page | The caller, with the maximum you set | `limit`, and [`offsetIfValue`](../queries/dynamic-queries.md#optional-limit-and-offset) |
-| The columns, if they can vary | The caller, inside the ones you list | [`dynamicPickPaths`](../queries/extreme-dynamic-queries.md#the-columns-the-client-asks-for) |
+| Which fields can be filtered | Your code | The map you give to [`dynamicConditionFor`](filters.md) |
+| The condition | The caller, inside those fields | [`withValues(filter)`](filters.md) |
+| The order | The caller, among the properties of the select | [`orderByFromStringIfValue`](order-and-page.md#order-by-from-a-string) |
+| The page | The caller, with the maximum you set | `limit`, and [`offsetIfValue`](order-and-page.md#optional-limit-and-offset) |
+| The columns, if they can vary | The caller, inside the ones you list | [`dynamicPickPaths`](picks.md#the-columns-the-client-asks-for) |
 
 ## A table in a user interface
 
@@ -82,7 +82,7 @@ With this request, a user looking for the customers whose last name starts with 
 }
 ```
 
-The empty filter of `firstName`, a box nobody filled in, adds no condition: see [Empty values in a filter](../queries/extreme-dynamic-queries.md#empty-values-in-a-filter).
+The empty filter of `firstName`, a box nobody filled in, adds no condition: see [Empty values in a filter](filters.md#empty-values-in-a-filter).
 
 ## A query API for other systems
 
@@ -129,9 +129,9 @@ function queryCustomers(companyOfTheClient: number, query: CustomerQuery) {
 Keep in mind when you offer one:
 
 - **Your conditions go in the code.** The client can filter by any field of the map, with any operator of its type, and it can send an empty filter. So what it may see goes in the `where` you write, and the map lists only what it may use.
-- **A system in Java or C# sends everything.** It usually can't leave out a property, so `{ "id": { "equals": 1, "notEquals": null, "in": null } }` means `id = 1`. That's why [a filter with empty values is tolerated](../queries/extreme-dynamic-queries.md#empty-values-in-a-filter).
+- **A system in Java or C# sends everything.** It usually can't leave out a property, so `{ "id": { "equals": 1, "notEquals": null, "in": null } }` means `id = 1`. That's why [a filter with empty values is tolerated](filters.md#empty-values-in-a-filter).
 - **Dates arrive as text in JSON.** Convert them to `Date` before calling `withValues`: a text in a date column is rejected.
-- **A column can depend on who asks.** Mark it with [`allowWhen`](../queries/extreme-dynamic-queries.md#restrict-access-to-values) and it can stay in the map: the query is refused only if the client uses it.
+- **A column can depend on who asks.** Mark it with [`allowWhen`](restricting-values.md#restrict-access-to-values) and it can stay in the map: the query is refused only if the client uses it.
 - **Validating more is your choice.** To tell the client that `equals: null` isn't accepted, validate the request first, with a library like Zod.
 
 ## Answering an error of the caller
@@ -168,8 +168,8 @@ function isErrorOfTheCaller(error: unknown): boolean {
 
 ## More details
 
-- [Select using a dynamic filter](../queries/extreme-dynamic-queries.md#select-using-a-dynamic-filter): the operators, the groups of fields and the rules of your own.
-- [Order by from a string](../queries/dynamic-queries.md#order-by-from-a-string): the text it accepts, and how it combines with `orderBy`.
+- [Select using a dynamic filter](filters.md): the operators, the groups of fields and the rules of your own.
+- [Order by from a string](order-and-page.md#order-by-from-a-string): the text it accepts, and how it combines with `orderBy`.
 - [Select page](../queries/select-page.md): the limit, the offset, the total, and how to avoid the count.
-- [Select dynamically picking columns](../queries/extreme-dynamic-queries.md#select-dynamically-picking-columns), when the columns vary too.
+- [Select dynamically picking columns](picks.md), when the columns vary too.
 - [Functions that return a dynamic select](dynamic-select-functions.md), to type all of this precisely in one function.

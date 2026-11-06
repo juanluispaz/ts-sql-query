@@ -35,6 +35,7 @@ AREAS = [
     ('queries', 'Queries', 'reading data: select, joins, pages, projections and dynamic queries: start here', [
         'queries/basic-query-structure.md', 'queries/select.md', 'queries/select-page.md', 'queries/complex-projections.md',
         'queries/aggregate-as-object-array.md', 'queries/dynamic-queries.md',
+        'dynamic/building-conditions.md', 'dynamic/order-and-page.md', 'dynamic/optional-joins.md',
     ], True),
     ('queries-advanced', 'Queries combining selects', 'common table expressions (with) and subqueries, compound selects (union, intersect, except) and recursive selects', [
         'queries/cte-subqueries.md', 'queries/compound-select.md', 'queries/recursive-select.md',
@@ -52,7 +53,7 @@ AREAS = [
         'queries/sql-fragments.md', 'configuration/column-types.md',
     ], True),
     ('extreme-dynamic', 'Extreme dynamic queries', 'queries whose columns, filters and order come from the caller, typed from the database or from a business model, and writing values with a shape', [
-        'queries/extreme-dynamic-queries.md', 'dynamic/queries-from-requests.md', 'dynamic/dynamic-select-functions.md', 'queries/shapes.md',
+        'queries/extreme-dynamic-queries.md', 'dynamic/filters.md', 'dynamic/picks.md', 'dynamic/restricting-values.md', 'dynamic/queries-from-requests.md', 'dynamic/dynamic-select-functions.md', 'queries/shapes.md',
         'advanced/deep-utilities.md', 'advanced/tables-views-as-parameter.md',
     ], True),
     ('dynamic', 'Dynamic queries in more detail', 'a tour of the building blocks, booleans and null, typing a dynamic query from the database or from a business model, and its helper types: it adds detail, and the main cases do not depend on it', [

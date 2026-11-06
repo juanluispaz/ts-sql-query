@@ -59,7 +59,7 @@ const customers = await connection.selectFrom(tCustomer)
     .executeSelectMany()
 ```
 
-See [Complex dynamic boolean expressions](../queries/extreme-dynamic-queries.md#complex-dynamic-boolean-expressions).
+See [Complex dynamic boolean expressions](building-conditions.md#a-condition-in-a-variable).
 
 ## Optional projected values: `onlyWhenOrNull` / `ignoreWhenAsNull`
 
@@ -94,7 +94,7 @@ const customers = await connection.selectFrom(tCustomer)
     .executeSelectMany()
 ```
 
-See [Optional joins](../queries/dynamic-queries.md#optional-joins).
+See [Optional joins](optional-joins.md).
 
 ## Dynamic `order by`, `limit` and `offset`
 

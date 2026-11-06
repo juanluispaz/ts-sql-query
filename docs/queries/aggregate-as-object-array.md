@@ -50,7 +50,7 @@ The aggregate functions are the shortest way when the query already joins the re
 
 ## Aggregate as an array of objects
 
-Each property of the object passed to `aggregateAsArray` is a property of the elements of the array, and it can also be a nested object, as in the [complex projections](complex-projections.md). The object can come from [`dynamicPick`](extreme-dynamic-queries.md#select-dynamically-picking-columns) too.
+Each property of the object passed to `aggregateAsArray` is a property of the elements of the array, and it can also be a nested object, as in the [complex projections](complex-projections.md). The object can come from [`dynamicPick`](../dynamic/picks.md) too.
 
 The left join keeps the companies with no customers. With an inner join they would have no row in the result. The other columns of the select go in the group by, and `groupByNonAggregatedColumns()` [writes it for you](aggregate-and-group-by.md#grouping-by-every-non-aggregated-column). In this example `asOptionalNonEmptyArray()` leaves out the property when [there are no customers](#when-there-are-no-values).
 
@@ -922,7 +922,7 @@ const company = await connection.selectFrom(tCompany)
     .executeSelectOne();
 ```
 
-`allowWhen` and `disallowWhen` are available too; they [throw an error](extreme-dynamic-queries.md#restrict-access-to-values) instead of leaving out the value.
+`allowWhen` and `disallowWhen` are available too; they [throw an error](../dynamic/restricting-values.md#restrict-access-to-values) instead of leaving out the value.
 
 ## Optional values in the elements
 

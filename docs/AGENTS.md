@@ -46,7 +46,7 @@ Start with the file of the area of your task. These files are written for you: o
 
 | To | Read | Tokens |
 |---|---|---|
-| Read data: start here | [`llms-queries-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-queries-postgresql.txt), with `<database>` being `mariadb`, `mysql`, `oracle`, `postgresql`, `sqlite` or `sqlserver` | 35k |
+| Read data: start here | [`llms-queries-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-queries-postgresql.txt), with `<database>` being `mariadb`, `mysql`, `oracle`, `postgresql`, `sqlite` or `sqlserver` | 37k |
 | Use a select inside another, combine several, or walk a hierarchy | [`llms-queries-advanced-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-queries-advanced-postgresql.txt) | 11k |
 | Aggregate and group | [`llms-aggregates-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-aggregates-postgresql.txt) | 10k |
 | Write data | [`llms-mutations-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-mutations-postgresql.txt) | 24k |
@@ -85,7 +85,7 @@ Once you know the area, go straight to the part you need, in those files or in i
 | Use a transaction | [Transaction](queries/transaction.md) |
 | Filter by optional values | [Dynamic queries](queries/dynamic-queries.md), [building blocks](dynamic/building-blocks.md), [booleans and null](dynamic/three-valued-booleans.md) |
 | Write SQL the library doesn't offer | [SQL fragments](queries/sql-fragments.md) |
-| Let the caller choose columns, filters and order | [Extreme dynamic queries](queries/extreme-dynamic-queries.md), and [from a business model](dynamic/from-business-model.md) or [from the database types](dynamic/from-database-types.md) |
+| Let the caller choose columns, filters and order | [Extreme dynamic queries](queries/extreme-dynamic-queries.md), [dynamic filters](dynamic/filters.md), [picking columns](dynamic/picks.md), and [from a business model](dynamic/from-business-model.md) or [from the database types](dynamic/from-database-types.md) |
 | Fill a table in a user interface, or offer a query API | [Queries from a request](dynamic/queries-from-requests.md) |
 | Write a function where the caller chooses columns, filter and order | [Functions that return a dynamic select](dynamic/dynamic-select-functions.md) |
 | Write values whose properties aren't named as the columns | [Insert and update with a shape](queries/shapes.md) |

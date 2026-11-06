@@ -36,7 +36,7 @@ Neither of them keeps the number of rows when a row has several related rows: it
 
 The same table can be used twice in a query only with different names. `tCompany.as('parent')` gives a table another name for an inner join, and `tCompany.forUseInLeftJoinAs('parent')` for a left join.
 
-`on` accepts `and(...)` and `or(...)` after it to add more conditions. To build the condition while the query is built, see [`dynamicOn`](dynamic-queries.md#dynamic-join-conditions-and-having).
+`on` accepts `and(...)` and `or(...)` after it to add more conditions. To build the condition while the query is built, see [`dynamicOn`](../dynamic/building-conditions.md#dynamic-join-conditions-and-having).
 
 There are no methods for a `right join`, which you can write as a left join starting from the other table, or for a `full join`.
 
@@ -561,7 +561,7 @@ const leftJoinCompany: Promise<{
 
 ## Optional joins
 
-An optional join is written in the SQL only when the query uses the joined table: for example, when one of its columns is selected, or when it's in a `where` condition that wasn't removed because it has no value. It's meant for queries whose columns or conditions are decided while the query runs, so a table that isn't needed isn't read. See [Optional joins](dynamic-queries.md#optional-joins) for its use.
+An optional join is written in the SQL only when the query uses the joined table: for example, when one of its columns is selected, or when it's in a `where` condition that wasn't removed because it has no value. It's meant for queries whose columns or conditions are decided while the query runs, so a table that isn't needed isn't read. See [Optional joins](../dynamic/optional-joins.md) for its use.
 
 Leaving out an inner join also changes which rows are returned: the rows that it would drop are no longer dropped.
 

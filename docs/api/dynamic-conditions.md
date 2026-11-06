@@ -8,9 +8,9 @@ This page describes the API for building dynamic conditions in `ts-sql-query`, e
 
 !!! tip
 
-    See [Select using a dynamic filter](../queries/extreme-dynamic-queries.md#select-using-a-dynamic-filter) for related information.
+    See [Select using a dynamic filter](../dynamic/filters.md) for related information.
 
-These types are strict, and the execution is tolerant: in a filter that arrives as data, an operator with an empty value (`null`, an empty string, an empty array) adds no condition. See [Empty values in a filter](../queries/extreme-dynamic-queries.md#empty-values-in-a-filter).
+These types are strict, and the execution is tolerant: in a filter that arrives as data, an operator with an empty value (`null`, an empty string, an empty array) adds no condition. See [Empty values in a filter](../dynamic/filters.md#empty-values-in-a-filter).
 
 A dynamic condition allows you to create a condition whose structure is defined at runtime. To create a dynamic condition, you must call the method `dynamicConditionFor` from the connection. This method receives a map where the key is the name with which is going to be referred the field, and the value is the corresponding value source to be used in the query. The `dynamicConditionFor` method returns an object that contains the method `withValues` that receives the dynamic criteria and returns a boolean value source that you can use in any place where a boolean can be used in the query (like the where).
 

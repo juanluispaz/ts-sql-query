@@ -51,11 +51,34 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
             // Avoid quote identifiers when the aggregate array query wrapper is generated
             return this._escape(name, true)
         }
+        name = this._resultColumnKey(name)
         if (name.toLocaleLowerCase() !== name) {
             // Avoid automatically lowercase identifiers by postgresql when it contains uppercase characters
             return this._forceAsIdentifier(name)
         }
         return this._escape(name, true)
+    }
+    /*
+     * PostgreSQL keeps the first 63 bytes of an identifier and silently drops the rest, so the column of a long path
+     * wouldn't be found in the row. A long alias is written as its beginning and a hash of the whole name.
+     */
+    override _resultColumnKey(name: string): string {
+        const encoder = new TextEncoder()
+        if (encoder.encode(name).length <= 63) {
+            return name
+        }
+        let hash = 0x811c9dc5 // FNV-1a
+        for (const byte of encoder.encode(name)) {
+            hash = Math.imul(hash ^ byte, 0x01000193)
+        }
+        let result = ''
+        for (const char of name) {
+            if (encoder.encode(result + char).length > 50) {
+                break
+            }
+            result += char
+        }
+        return result + '_' + (hash >>> 0).toString(16)
     }
     override _appendColumnValue(value: AnyValueSource, params: any[], isOutermostQuery: boolean): string {
         const valueSourcePrivate = __getValueSourcePrivate(value)

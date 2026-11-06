@@ -45,9 +45,9 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
             let result = this.__sqlBuilder._queryRunner.executeDelete(this.__query, this.__params).catch((e) => {
                 throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
             })
-            if (min !== undefined) {
+            if (min !== undefined || max !== undefined) {
                 result = result.then((count) => {
-                    if (count < min) {
+                    if (min !== undefined && count < min) {
                         throw new TsSqlQueryExecutionError(source, {reason: 'MINIMUM_ROWS_NOT_REACHED', count, min }, "The delete operation didn't delete the minimum of " + min + " row(s)")
                     }
                     if (max !== undefined && count > max) {
@@ -172,10 +172,10 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             }
-            if (min !== undefined) {
+            if (min !== undefined || max !== undefined) {
                 result = result.then((rows) => {
                     const count = rows.length
-                    if (count < min) {
+                    if (min !== undefined && count < min) {
                         throw new TsSqlQueryExecutionError(source, { reason: 'MINIMUM_ROWS_NOT_REACHED', count, min }, "The delete operation didn't delete the minimum of " + min + " row(s)")
                     }
                     if (max !== undefined && count > max) {

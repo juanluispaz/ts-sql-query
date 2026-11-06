@@ -28,6 +28,14 @@ The nested objects that a select and the `with` queries already accepted now wor
 - Compound selects compose as they are written: `a.union(b).intersect(c)` is `(a union b) intersect c` and `a.except(b.union(c))` is `a except (b union c)`, on every database. Before, the selects were written one after the other without grouping, so the database decided, and the rows could be different: PostgreSQL, MySQL, MariaDB and SQL Server did `intersect` first, and an operand that was itself a compound was read as part of the chain on every database.
 - `executeSelectPage` counted the rows of the table when the select was an aggregate without `group by`, or an Oracle `connect by`: the total is now the rows of the select.
 - A second `recursiveUnion*` on a recursive select compiled and failed on the database: it no longer compiles.
+- The maximum of rows of `executeInsert`, `executeUpdate`, `executeDelete` and their `*Many` versions was ignored when there was no minimum.
+- PostgreSQL: a property whose path was longer than 63 bytes lost its value without any error, or failed if it was required, because PostgreSQL truncates a long alias. A long alias is now written shortened, so the result is read correctly.
+- An optional join used only in the `orderBy` was left out of the query, which the database rejected.
+- `returningLastInsertedId` after an update of a conflict whose `where` isn't met returns `null`, as its type says, instead of throwing.
+- MySQL: an insert from a select that reads the row to insert with `valuesForInsert()` in the update of the conflict compiled and failed on the database: it works from MySQL 8.0.19.
+- A compound select with a constant in an object of left join columns could return the object without its required columns.
+- `update` with only properties that aren't columns left in the values sent invalid SQL: it now sends nothing, as with no values at all.
+- `setIfSet` and `setIfHasValue` no longer count as giving a value to a required column of an insert: they only change what already has one, so `dynamicSet().setIfSet(...)` alone no longer compiles as executable.
 - `DynamicPick`, `DynamicPickPaths` and the functions that use them stopped one level before what a select projects: the columns of an object at the fifth level couldn't be picked.
 
 ## v2.0.0-beta.3 (5 Nov 2026)

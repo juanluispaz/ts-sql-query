@@ -293,12 +293,16 @@ export function getInnerObjetRuleToApply(sqlBuilder: HasIsValue, columns: QueryC
             }
 
             const columnPrivate = __getValueSourcePrivate(column)
+            let valueSourceRequiredTables = new Set<AnyTableOrView>()
+            columnPrivate.__registerTableOrView(sqlBuilder, valueSourceRequiredTables)
+            if (valueSourceRequiredTables.size <= 0) {
+                // A value that doesn't come from a table, like a constant, says nothing about the left join
+                continue
+            }
             if (alwaysSameRequiredTablesSize === undefined) {
-                columnPrivate.__registerTableOrView(sqlBuilder, firstRequiredTables)
+                firstRequiredTables = valueSourceRequiredTables
                 alwaysSameRequiredTablesSize = true
             } else if (alwaysSameRequiredTablesSize) {
-                let valueSourceRequiredTables = new Set<AnyTableOrView>()
-                columnPrivate.__registerTableOrView(sqlBuilder, valueSourceRequiredTables)
                 const initialSize = firstRequiredTables.size
                 if (initialSize !== valueSourceRequiredTables.size) {
                     alwaysSameRequiredTablesSize = false

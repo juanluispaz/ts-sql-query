@@ -57,17 +57,15 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
             return super._buildInsertOnConflictBeforeReturning(query, params)
         }
 
-        if (query.__from) {
+        if (query.__from && !query.__valuesForInsert) {
             // INSERT ... SELECT form: MySQL accepts the `AS _new_` row alias only
             // after a `VALUES (...)` tuple, never after a SELECT source — placing
             // it there is a parse error near `as _new_ on duplicate key update`.
             // Without the alias the target table is the only relation visible in
             // the SET clause, so unqualified column references are unambiguous;
             // emit the same shape MariaDB does (no alias, no forced table
-            // qualifier). Referencing the would-be-inserted row in the SET clause
-            // is not expressible in this form on MySQL: the row alias is
-            // unavailable and `VALUES(col)` returns NULL outside an
-            // INSERT ... VALUES statement.
+            // qualifier). When the SET clause reads the would-be-inserted row,
+            // _buildInsertSelectSource makes the select a derived table named `_new_`.
             return super._buildInsertOnConflictBeforeReturning(query, params)
         }
 
@@ -91,8 +89,18 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         if (!result) {
             return result
         }
+        if (query.__from) {
+            return result // `_new_` is the derived table of _buildInsertSelectSource
+        }
         // The row alias must sit between the VALUES clause and ON DUPLICATE KEY UPDATE
         return ' as ' + this._escape(this._updateNewAlias, true) + result
+    }
+    override _buildInsertSelectSource(query: InsertData, from: SelectData, columns: string, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }): string {
+        const select = super._buildInsertSelectSource(query, from, columns, params, columnsForInsert)
+        if (this._connectionConfiguration.compatibilityVersion < 8_000_019 || !query.__valuesForInsert) {
+            return select
+        }
+        return 'select * from (' + select + ') as ' + this._escape(this._updateNewAlias, true) + ' (' + columns + ')'
     }
     override _appendParam(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (__isUuidValueType(columnType) && this._getUuidStrategy() === 'binary') {

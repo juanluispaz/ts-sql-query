@@ -609,6 +609,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _appendColumnAlias(name: string, _params: any[]): string {
         return this._escape(name, true)
     }
+    // The key of a column in a row returned by the database, for the databases that don't keep the whole alias
+    _resultColumnKey(name: string): string {
+        return name
+    }
     _appendColumnValue(value: AnyValueSource, params: any[], isOutermostQuery: boolean): string {
         const sql = this._appendSql(value, params, false)
         // An aggregated-array column is a JSON document. On the dialects whose connector
@@ -2236,7 +2240,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         insertQuery += ' (' + columns + ')'
         insertQuery += this._buildInsertOutput(query, params)
-        insertQuery += ' ' + this._buildSelectWithColumnsInfo(from, params, columnsForInsert, false)
+        insertQuery += ' ' + this._buildInsertSelectSource(query, from, columns, params, columnsForInsert)
         insertQuery += this._buildInsertOnConflictBeforeReturning(query, params)
         insertQuery += this._buildInsertReturning(query, params)
         if (customization && customization.afterQuery) {
@@ -2298,6 +2302,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return ''
         }
         return ' returning ' + result
+    }
+    _buildInsertSelectSource(_query: InsertData, from: SelectData, _columns: string, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }): string {
+        return this._buildSelectWithColumnsInfo(from, params, columnsForInsert, false)
     }
     _buildInsertOnConflictBeforeInto(_query: InsertData, _params: any[]): string {
         return ''

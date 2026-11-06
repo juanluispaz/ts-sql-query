@@ -99,7 +99,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: idColumnPrivate.__valueTypeName }, e)
                         }
                     }
-                    if (!this.__onConflictDoNothing) {
+                    if (!this.__onConflictDoNothing && !this.__onConflictUpdateWhere) {
                         if (result === undefined) {
                             throw new TsSqlProcessingError({ reason: 'NO_RESULT' }, 'No result returned by the database')
                         } else if (result === null) {
@@ -173,7 +173,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             }
-            if (min !== undefined) {
+            if (min !== undefined || max !== undefined) {
                 result = result.then((result: any) => {
                     let count: number
                     if (Array.isArray(result)) {
@@ -187,7 +187,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     } else {
                         count = result
                     }
-                    if (count < min) {
+                    if (min !== undefined && count < min) {
                         throw new TsSqlQueryExecutionError(source, {reason: 'MINIMUM_ROWS_NOT_REACHED', count, min }, "The insert operation didn't insert the minimum of " + min + " row(s)")
                     }
                     if (max !== undefined && count > max) {
@@ -333,10 +333,10 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             }
-            if (min !== undefined) {
+            if (min !== undefined || max !== undefined) {
                 result = result.then((rows) => {
                     const count = rows.length
-                    if (count < min) {
+                    if (min !== undefined && count < min) {
                         throw new TsSqlQueryExecutionError(source, {reason: 'MINIMUM_ROWS_NOT_REACHED', count, min }, "The insert operation didn't insert the minimum of " + min + " row(s)")
                     }
                     if (max !== undefined && count > max) {

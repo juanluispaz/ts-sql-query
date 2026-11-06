@@ -1,3 +1,4 @@
+import { __getColumnOfObject } from '../utils/Column.js'
 import type { JoinData, QueryColumns, SqlBuilder, ToSql, UpdateData } from '../sqlBuilders/SqlBuilder.js'
 import { hasAggregationQueryColumns, isAllowedQueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { AnyTableOrView, ForUseInLeftJoin, IQueryDataDiscovery, HasIsValue, ITable, IWithView } from '../utils/ITableOrView.js'
@@ -49,7 +50,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         __setQueryMetadata(source, this.__params, this.__customization)
         try {
             let result: Promise<number>
-            if (Object.getOwnPropertyNames(this.__sets).length <= 0) {
+            if (!this.__hasColumnsToSet()) {
                 // Nothing to update, nothing to set: resolve 0 without touching the
                 // database. The `min`/`max` guard below still runs against the count of 0.
                 result = this.__sqlBuilder._queryRunner.createResolvedPromise(0)
@@ -59,9 +60,9 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                 })
             }
 
-            if (min !== undefined) {
+            if (min !== undefined || max !== undefined) {
                 result = result.then((count) => {
-                    if (count < min) {
+                    if (min !== undefined && count < min) {
                         throw new TsSqlQueryExecutionError(source, {reason: 'MINIMUM_ROWS_NOT_REACHED', count, min }, "The update operation didn't update the minimum of " + min + " row(s)")
                     }
                     if (max !== undefined && count > max) {
@@ -80,7 +81,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const source = new QueryExecutionSource('Query executed at')
         __setQueryMetadata(source, this.__params, this.__customization)
         try {
-            if (Object.getOwnPropertyNames(this.__sets).length <= 0) {
+            if (!this.__hasColumnsToSet()) {
                 // Nothing to update, nothing to set
                 return this.__sqlBuilder._queryRunner.createResolvedPromise(null)
             }
@@ -121,7 +122,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const source = new QueryExecutionSource('Query executed at')
         __setQueryMetadata(source, this.__params, this.__customization)
         try {
-            if (Object.getOwnPropertyNames(this.__sets).length <= 0) {
+            if (!this.__hasColumnsToSet()) {
                 // Nothing to update, nothing to set
                 return this.__sqlBuilder._queryRunner.createResolvedPromise(null).then(() => {
                     throw new TsSqlQueryExecutionError(source, {reason: 'NO_COLUMN_SETS' }, 'No values to update due no sets')
@@ -164,7 +165,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         __setQueryMetadata(source, this.__params, this.__customization)
         try {
             let result
-            if (Object.getOwnPropertyNames(this.__sets).length <= 0) {
+            if (!this.__hasColumnsToSet()) {
                 // Nothing to update, nothing to set: resolve [] without touching the
                 // database. The `min`/`max` guard below still runs against the count of 0.
                 result = this.__sqlBuilder._queryRunner.createResolvedPromise([])
@@ -203,10 +204,10 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                 })
             }
 
-            if (min !== undefined) {
+            if (min !== undefined || max !== undefined) {
                 result = result.then((rows) => {
                     const count = rows.length
-                    if (count < min) {
+                    if (min !== undefined && count < min) {
                         throw new TsSqlQueryExecutionError(source, {reason: 'MINIMUM_ROWS_NOT_REACHED', count, min }, "The update operation didn't update the minimum of " + min + " row(s)")
                     }
                     if (max !== undefined && count > max) {
@@ -243,6 +244,20 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this.__toSql(sqlBuilder, params, forceTypeCast)
     }
 
+    __hasColumnsToSet(): boolean {
+        const shape = this.__shape
+        const properties = Object.getOwnPropertyNames(this.__sets)
+        if (shape) {
+            return properties.length > 0
+        }
+        // The object can have other properties, that aren't part of the query
+        for (let i = 0, length = properties.length; i < length; i++) {
+            if (__getColumnOfObject(this.__table, properties[i]!)) {
+                return true
+            }
+        }
+        return false
+    }
     __flattenColumns(columns: any): any {
         return __flattenSets(this.__table, this.__shape, columns)
     }

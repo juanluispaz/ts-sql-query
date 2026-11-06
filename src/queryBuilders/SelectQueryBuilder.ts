@@ -1289,6 +1289,15 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         if (having) {
             __getValueSourcePrivate(having).__registerTableOrView(this.__sqlBuilder, requiredTableOrView)
         }
+        const orderBy = this.__orderBy
+        if (orderBy) {
+            for (let i = 0, lenght = orderBy.length; i < lenght; i++) {
+                const expression = orderBy[i]!.expression
+                if (typeof expression !== 'string') { // A name is a column of the select, already registered
+                    __registerTableOrView(expression, this.__sqlBuilder, requiredTableOrView)
+                }
+            }
+        }
 
         const joins = this.__joins
         for (let i = 0, lenght = joins.length; i < lenght; i++) {

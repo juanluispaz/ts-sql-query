@@ -264,15 +264,15 @@ export interface ShapedExecutableInsertExpression</*in|out*/ TABLE extends HasSo
 export interface MissingKeysInsertExpression</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>, /*in|out*/ MISSING_KEYS> extends InsertExpressionBase<TABLE, USING> {
     set<COLUMNS extends InsertSets<TABLE, USING, undefined>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, USING, Exclude<MISSING_KEYS, NonOptionalKeys<COLUMNS>>>
     setIfValue<COLUMNS extends OptionalInsertSets<TABLE, USING, undefined>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, USING, Exclude<MISSING_KEYS, NonOptionalKeys<COLUMNS>>>
-    setIfSet<COLUMNS extends InsertSets<TABLE, USING, undefined>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, USING, Exclude<MISSING_KEYS, NonOptionalKeys<COLUMNS>>>
-    setIfSetIfValue<COLUMNS extends OptionalInsertSets<TABLE, USING, undefined>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, USING, Exclude<MISSING_KEYS, NonOptionalKeys<COLUMNS>>>
+    setIfSet<COLUMNS extends InsertSets<TABLE, USING, undefined>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, USING, MISSING_KEYS>
+    setIfSetIfValue<COLUMNS extends OptionalInsertSets<TABLE, USING, undefined>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, USING, MISSING_KEYS>
     setIfNotSet<COLUMNS extends InsertSets<TABLE, USING, undefined>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, USING, Exclude<MISSING_KEYS, NonOptionalKeys<COLUMNS>>>
     setIfNotSetIfValue<COLUMNS extends OptionalInsertSets<TABLE, USING, undefined>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, USING, Exclude<MISSING_KEYS, NonOptionalKeys<COLUMNS>>>
     ignoreIfSet<COLUMNS extends ColumnsForSetOf<TABLE>>(...columns: COLUMNS[]): MissingKeysInsertExpression<TABLE, USING, (RequiredKeysOfNames<TABLE, COLUMNS>) | MISSING_KEYS>
     keepOnly<COLUMNS extends ColumnsForSetOf<TABLE>>(...columns: COLUMNS[]): MissingKeysInsertExpression<TABLE, USING, Exclude<RequiredColumnsForSetOf<TABLE>, RequiredKeysCoveredByNames<TABLE, COLUMNS>> | MISSING_KEYS>
     
-    setIfHasValue<COLUMNS extends InsertSets<TABLE, USING, undefined>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, USING, Exclude<MISSING_KEYS, NonOptionalKeys<COLUMNS>>>
-    setIfHasValueIfValue<COLUMNS extends OptionalInsertSets<TABLE, USING, undefined>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, USING, Exclude<MISSING_KEYS, NonOptionalKeys<COLUMNS>>>
+    setIfHasValue<COLUMNS extends InsertSets<TABLE, USING, undefined>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, USING, MISSING_KEYS>
+    setIfHasValueIfValue<COLUMNS extends OptionalInsertSets<TABLE, USING, undefined>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, USING, MISSING_KEYS>
     setIfHasNoValue<COLUMNS extends InsertSets<TABLE, USING, undefined>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, USING, Exclude<MISSING_KEYS, NonOptionalKeys<COLUMNS>>>
     setIfHasNoValueIfValue<COLUMNS extends OptionalInsertSets<TABLE, USING, undefined>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, USING, Exclude<MISSING_KEYS, NonOptionalKeys<COLUMNS>>>
     ignoreIfHasValue(...columns: OptionalColumnsForSetOf<TABLE>[]): MissingKeysInsertExpression<TABLE, USING, MISSING_KEYS>
@@ -323,15 +323,15 @@ export interface ShapedMissingKeysInsertExpression</*in|out*/ TABLE extends HasS
     extendShape<EXTEND_SHAPE extends InsertShape<TABLE, USING>>(shape: EXTEND_SHAPE): ShapedMissingKeysInsertExpression<TABLE, USING, SHAPE & ResolveShape<TABLE, EXTEND_SHAPE>, MISSING_KEYS | keyof EXTEND_SHAPE, Exclude<MISSING_KEYS_IN_SHAPE, RequiredKeysCoveredByShape<TABLE, EXTEND_SHAPE>>>
     set<COLUMNS extends InsertSets<TABLE, USING, SHAPE>>(columns: COLUMNS): MaybeShapedExecutableInsertExpression<TABLE, USING, SHAPE, Exclude<MISSING_KEYS, NonOptionalKeys<COLUMNS>>, MISSING_KEYS_IN_SHAPE>
     setIfValue<COLUMNS extends OptionalInsertSets<TABLE, USING, SHAPE>>(columns: COLUMNS): MaybeShapedExecutableInsertExpression<TABLE, USING, SHAPE, Exclude<MISSING_KEYS, NonOptionalKeys<COLUMNS>>, MISSING_KEYS_IN_SHAPE>
-    setIfSet<COLUMNS extends InsertSets<TABLE, USING, SHAPE>>(columns: COLUMNS): MaybeShapedExecutableInsertExpression<TABLE, USING, SHAPE, Exclude<MISSING_KEYS, NonOptionalKeys<COLUMNS>>, MISSING_KEYS_IN_SHAPE>
-    setIfSetIfValue<COLUMNS extends OptionalInsertSets<TABLE, USING, SHAPE>>(columns: COLUMNS): MaybeShapedExecutableInsertExpression<TABLE, USING, SHAPE, Exclude<MISSING_KEYS, NonOptionalKeys<COLUMNS>>, MISSING_KEYS_IN_SHAPE>
+    setIfSet<COLUMNS extends InsertSets<TABLE, USING, SHAPE>>(columns: COLUMNS): MaybeShapedExecutableInsertExpression<TABLE, USING, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    setIfSetIfValue<COLUMNS extends OptionalInsertSets<TABLE, USING, SHAPE>>(columns: COLUMNS): MaybeShapedExecutableInsertExpression<TABLE, USING, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
     setIfNotSet<COLUMNS extends InsertSets<TABLE, USING, SHAPE>>(columns: COLUMNS): MaybeShapedExecutableInsertExpression<TABLE, USING, SHAPE, Exclude<MISSING_KEYS, NonOptionalKeys<COLUMNS>>, MISSING_KEYS_IN_SHAPE>
     setIfNotSetIfValue<COLUMNS extends OptionalInsertSets<TABLE, USING, SHAPE>>(columns: COLUMNS): MaybeShapedExecutableInsertExpression<TABLE, USING, SHAPE, Exclude<MISSING_KEYS, NonOptionalKeys<COLUMNS>>, MISSING_KEYS_IN_SHAPE>
     ignoreIfSet<COLUMNS extends ColumnsForSetOfWithShape<TABLE, SHAPE>>(...columns: COLUMNS[]): ShapedMissingKeysInsertExpression<TABLE, USING, SHAPE, (RequiredKeysOfNamesWithShape<TABLE, SHAPE, COLUMNS>) | MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
     keepOnly<COLUMNS extends ColumnsForSetOfWithShape<TABLE, SHAPE>>(...columns: COLUMNS[]): ShapedMissingKeysInsertExpression<TABLE, USING, SHAPE, Exclude<RequiredColumnsForSetOfWithShape<TABLE, SHAPE>, RequiredKeysCoveredByNamesWithShape<TABLE, SHAPE, COLUMNS>> | MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
     
-    setIfHasValue<COLUMNS extends InsertSets<TABLE, USING, SHAPE>>(columns: COLUMNS): MaybeShapedExecutableInsertExpression<TABLE, USING, SHAPE, Exclude<MISSING_KEYS, NonOptionalKeys<COLUMNS>>, MISSING_KEYS_IN_SHAPE>
-    setIfHasValueIfValue<COLUMNS extends OptionalInsertSets<TABLE, USING, SHAPE>>(columns: COLUMNS): MaybeShapedExecutableInsertExpression<TABLE, USING, SHAPE, Exclude<MISSING_KEYS, NonOptionalKeys<COLUMNS>>, MISSING_KEYS_IN_SHAPE>
+    setIfHasValue<COLUMNS extends InsertSets<TABLE, USING, SHAPE>>(columns: COLUMNS): MaybeShapedExecutableInsertExpression<TABLE, USING, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    setIfHasValueIfValue<COLUMNS extends OptionalInsertSets<TABLE, USING, SHAPE>>(columns: COLUMNS): MaybeShapedExecutableInsertExpression<TABLE, USING, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
     setIfHasNoValue<COLUMNS extends InsertSets<TABLE, USING, SHAPE>>(columns: COLUMNS): MaybeShapedExecutableInsertExpression<TABLE, USING, SHAPE, Exclude<MISSING_KEYS, NonOptionalKeys<COLUMNS>>, MISSING_KEYS_IN_SHAPE>
     setIfHasNoValueIfValue<COLUMNS extends OptionalInsertSets<TABLE, USING, SHAPE>>(columns: COLUMNS): MaybeShapedExecutableInsertExpression<TABLE, USING, SHAPE, Exclude<MISSING_KEYS, NonOptionalKeys<COLUMNS>>, MISSING_KEYS_IN_SHAPE>
     ignoreIfHasValue(...columns: OptionalColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysInsertExpression<TABLE, USING, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>

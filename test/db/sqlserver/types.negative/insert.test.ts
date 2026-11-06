@@ -33,6 +33,12 @@ class TDefaultsOnly extends Table<DBConnection, 'TDefaultsOnly'> {
 const tDefaultsOnly = new TDefaultsOnly()
 
 function _typeNegatives() {
+    // setIfSet and setIfHasValue change what already has a value: they don't give a value to a required column
+    // @ts-expect-error name and plan are still missing
+    connection.insertInto(tOrganization).dynamicSet().setIfSet({ name: 'a', plan: 'p' }).executeInsert()
+    // @ts-expect-error name and plan are still missing
+    connection.insertInto(tOrganization).dynamicSet().setIfHasValue({ name: 'a', plan: 'p' }).executeInsert()
+
     // Rule: optional columns (here `body`) on an INSERT can be omitted, but
     // required columns must be present. The `status` field below is
     // required and missing, which must not compile.

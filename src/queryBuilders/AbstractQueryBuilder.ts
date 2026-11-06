@@ -99,7 +99,7 @@ export class AbstractQueryBuilder {
         const result: any = {}
         for (let prop in columns) {
             const valueSource = columns[prop]!
-            let value = row[prop]
+            let value = prop in row ? row[prop] : row[this.__sqlBuilder._resultColumnKey(prop)]
             let transformed 
             if (!isUsableValue(prop, valueSource, columns)) {
                 continue
@@ -234,8 +234,11 @@ export class AbstractQueryBuilder {
             }
             const propName = pathPrefix + prop
             let value 
+            const propKey = this.__sqlBuilder._resultColumnKey(propName)
             if (propName in row) {
                 value = row[propName]
+            } else if (propKey in row) {
+                value = row[propKey]
             } else {
                 value = row
                 const parts = propName.split('.')

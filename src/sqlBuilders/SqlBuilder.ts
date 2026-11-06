@@ -284,6 +284,7 @@ export interface SqlBuilder extends SqlOperation {
     _queryRunner: QueryRunner
     _connectionConfiguration: ConnectionConfiguration
     _isValue(value: any): boolean
+    _resultColumnKey(name: string): string
     _isReservedKeyword(word: string): boolean
     _forceAsIdentifier(identifier: string): string
     _appendColumnName(column: DBColumn, params: any[]): string

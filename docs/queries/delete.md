@@ -4,9 +4,13 @@ search:
 ---
 # Delete
 
-This page explains how to construct SQL `DELETE` statements using `ts-sql-query`. It covers conditional deletions, returning deleted values using `returning`, deleting with additional tables via `using`, and bulk deletions using mapped constant values. It also highlights safety mechanisms to avoid unintended full-table deletions.
+A delete removes from a table the rows that meet a condition. It's the way to do things like "this customer no longer exists", or "remove all the customers of this company".
+
+It always removes whole rows: to empty a column and keep its row, use an [update](update.md).
 
 ## General delete
+
+`deleteFrom` receives the table, `where` the rows to remove, and `executeDelete` runs the query.
 
 ```ts
 const deleteCustomer = connection.deleteFrom(tCustomer)
@@ -56,11 +60,79 @@ const deleteCustomer: Promise<number>
 
 !!! danger "Security constraint"
 
-    `ts-sql-query` will reject the execution of a delete statement if, for some reason, it ends without a `WHERE` clause. If you want to allow a delete without where, you must call `connection.deleteAllowingNoWhereFrom(...)` instead of `connection.deleteFrom(...)` when you start writing the sentence.
+    `ts-sql-query` rejects a delete that ends without a `WHERE` clause. To delete all the rows you must say so: see [Delete without a where](#delete-without-a-where).
+
+## Delete without a where
+
+A delete without a `where` removes all the rows of the table, and it's usually a mistake that is hard to undo. The library stops it in two moments:
+
+- **When you compile:** `deleteFrom(...)` doesn't offer the execute methods until you call `where` or `dynamicWhere`.
+- **When you execute:** a condition can end up empty, for example a `dynamicWhere()` with no conditions added, or a `where` with only conditions that are [ignored because they have no value](dynamic-queries.md#easy-dynamic-queries). The library then throws an error with the reason `MISSING_WHERE`, and nothing is sent to the database.
+
+When removing all the rows is what you want, start the query with `deleteAllowingNoWhereFrom` instead of `deleteFrom`:
+
+```ts
+const deleteAllCustomers = connection.deleteAllowingNoWhereFrom(tCustomer)
+    .executeDelete();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    delete from customer
+    ```
+=== "MySQL"
+    ```mysql
+    delete from customer
+    ```
+=== "Oracle"
+    ```oracle
+    delete from customer
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    delete from customer
+    ```
+=== "SQLite"
+    ```sqlite
+    delete from customer
+    ```
+=== "SQL Server"
+    ```sqlserver
+    delete from customer
+    ```
+
+The parameters are: `[ ]`
+
+The result type is a promise with the number of deleted rows:
+```tsx
+const deleteAllCustomers: Promise<number>
+```
+
+It only allows the `where` to be missing: if you add one, it's used as usual.
+
+## The number of deleted rows
+
+`executeDelete` returns the number of deleted rows. When that number tells you something went wrong, like a row that had to exist and doesn't, give it a minimum and a maximum:
+
+```ts
+const deletedCount = await connection.deleteFrom(tCustomer)
+    .where(tCustomer.id.equals(10))
+    .executeDelete(1, 1);
+```
+
+With fewer rows than the minimum, the error has the reason `MINIMUM_ROWS_NOT_REACHED`; with more rows than the maximum, `MAXIMUM_ROWS_EXCEEDED`.
+
+!!! warning
+
+    The library compares the number after the database has executed the delete, so the rows are already gone. If the error must bring them back, run the delete inside a [transaction](transaction.md).
 
 ## Delete returning
 
-If you are using [PostgreSQL](../configuration/supported-databases/postgresql.md), modern [SQLite](../configuration/supported-databases/sqlite.md), [SQL Server](../configuration/supported-databases/sqlserver.md), modern [MariaDB](../configuration/supported-databases/mariadb.md) or [Oracle](../configuration/supported-databases/oracle.md), you can return values of the deleted record in the same query using the `returning` or `returningOneColumn` methods.
+`returning` makes the delete give back data of the rows it has removed, in the same query, so you don't need a select before. It receives the same as a `select`, nested objects included, and `returningOneColumn(column)` returns the value of a single column instead of an object.
+
+It isn't available on MySQL: see [Availability in each database](#availability-in-each-database).
 
 ```ts
 const deletedAcmeCompany = connection.deleteFrom(tCompany)
@@ -138,17 +210,19 @@ const deletedAcmeCompany: Promise<{
 
 You can project optional values in objects as always-required properties that allow null calling `projectingOptionalValuesAsNullable()` immediately after `returning(...)`.
 
-You can execute the query using:
+With `returning` or `returningOneColumn` you execute the query with one of these methods, depending on how many rows you expect:
 
-- `executeDeleteNoneOrOne(): Promise<RESULT | null>`: Execute the delete query that returns one or no result from the database. In case of more than one result found an exception will be thrown.
-- `executeDeleteOne(): Promise<RESULT>`: Execute the delete query that returns one result from the database. If no result is returned by the database an exception will be thrown.
-- `executeDeleteMany(min?: number, max?: number): Promise<RESULT[]>`: Execute the delete query that returns zero or many results from the database.
+| Method | Returns | With no rows | With several rows |
+|---|---|---|---|
+| `executeDeleteNoneOrOne()` | The row or `null` | `null` | Error `MORE_THAN_ONE_ROW` |
+| `executeDeleteOne()` | The row | Error `NO_RESULT` | Error `MORE_THAN_ONE_ROW` |
+| `executeDeleteMany(min?, max?)` | An array of rows | An empty array | All the rows |
 
-Aditionally, if you want to return the value of a single column, you can use `returningOneColumn(column)` instead of `returning({...})`.
+`min` and `max` in `executeDeleteMany` work as in [`executeDelete`](#the-number-of-deleted-rows). All these errors arrive when the database has already executed the delete.
 
 ## Delete using other tables or views
 
-Sometimes you want to include in the delete query other tables or views to process the delete instruction, you can add the `using` clause that is like a `from` clause in a select statement. This is supported by [PostgreSQL](../configuration/supported-databases/postgresql.md), [SQL Server](../configuration/supported-databases/sqlserver.md), [MariaDB](../configuration/supported-databases/mariadb.md), [MySQL](../configuration/supported-databases/mysql.md) and [Oracle](../configuration/supported-databases/oracle.md) (Oracle Database 23ai or newer).
+Use `using` when the condition that chooses the rows depends on another table or view. It's like the `from` of a select: the condition that relates the tables goes in the `where`. Only the rows of the table in `deleteFrom` are removed; the others are only read. Call `using` again to add more tables.
 
 ```ts
 const deleteACMECustomers = connection.deleteFrom(tCustomer)
@@ -218,9 +292,162 @@ The result type is a promise with the information of the deleted rows:
 const deleteACMECustomers: Promise<number>
 ```
 
+### Using a subquery
+
+`using` isn't offered on [SQLite](../configuration/supported-databases/sqlite.md). A subquery in the `where` chooses the rows in the same way, and it works on all the databases:
+
+```ts
+const deleteACMECustomersWithSubquery = connection.deleteFrom(tCustomer)
+    .where(tCustomer.companyId.in(
+        connection.selectFrom(tCompany)
+            .where(tCompany.name.containsInsensitive('ACME'))
+            .selectOneColumn(tCompany.id)
+    ))
+    .executeDelete()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    delete from customer 
+    where company_id in (
+        select id as result 
+        from company 
+        where lower(name) like concat('%', lower(?), '%')
+    )
+    ```
+=== "MySQL"
+    ```mysql
+    delete from customer 
+    where company_id in (
+        select id as result 
+        from company 
+        where lower(`name`) like concat('%', lower(?), '%')
+    )
+    ```
+=== "Oracle"
+    ```oracle
+    delete from customer 
+    where company_id in (
+        select id as "result" 
+        from company 
+        where lower(name) like lower('%' || :0 || '%') escape '\'
+    )
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    delete from customer 
+    where company_id in (
+        select id as result 
+        from company 
+        where name ilike ('%' || $1 || '%')
+    )
+    ```
+=== "SQLite"
+    ```sqlite
+    delete from customer 
+    where company_id in (
+        select id as result 
+        from company 
+        where lower(name) like lower('%' || ?1 || '%') escape '\'
+    )
+    ```
+=== "SQL Server"
+    ```sqlserver
+    delete from customer 
+    where company_id in (
+        select id as [result] 
+        from company 
+        where lower(name) like lower('%' + @0 + '%')
+    )
+    ```
+
+The parameters are: `[ 'ACME' ]`
+
+The result type is a promise with the number of deleted rows:
+```tsx
+const deleteACMECustomersWithSubquery: Promise<number>
+```
+
+### Using joins
+
+After `using` you can add `join`, `innerJoin`, `leftJoin` or `leftOuterJoin`, each one with its `on`. Their `on` relates the tables in the `using` and the joins; the condition that relates them with the table to delete from goes in the `where`. As in a select, the table of a left join is the one returned by [`forUseInLeftJoin`](select.md#select-with-left-join).
+
+[MariaDB](../configuration/supported-databases/mariadb.md) and [MySQL](../configuration/supported-databases/mysql.md) also offer the join right after `deleteFrom`, with no `using`, and its `on` can use the table to delete from:
+
+```ts
+const deleteACMECustomersWithJoin = connection.deleteFrom(tCustomer)
+    .innerJoin(tCompany).on(tCustomer.companyId.equals(tCompany.id))
+    .where(tCompany.name.containsInsensitive('ACME'))
+    .executeDelete()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    delete from customer 
+    using customer 
+    inner join company on customer.company_id = company.id 
+    where lower(company.name) like concat('%', lower(?), '%')
+    ```
+=== "MySQL"
+    ```mysql
+    delete from customer 
+    using customer 
+    inner join company on customer.company_id = company.id 
+    where lower(company.`name`) like concat('%', lower(?), '%')
+    ```
+=== "Oracle"
+    ```oracle
+    --
+    --
+    -- Oracle doesn't support a join right after delete, use using
+    --
+    --
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    --
+    --
+    -- PostgreSQL doesn't support a join right after delete, use using
+    --
+    --
+    ```
+=== "SQLite"
+    ```sqlite
+    --
+    --
+    -- SQLite doesn't support a join right after delete
+    --
+    --
+    ```
+=== "SQL Server"
+    ```sqlserver
+    --
+    --
+    -- SQL Server doesn't support a join right after delete, use using
+    --
+    --
+    ```
+
+The parameters are: `[ 'ACME' ]`
+
+The result type is a promise with the number of deleted rows:
+```tsx
+const deleteACMECustomersWithJoin: Promise<number>
+```
+
+### Returning with other tables
+
+`returning` depends more on the database when the delete uses other tables. PostgreSQL, SQL Server and Oracle can return columns of the other tables. MariaDB rejects `returning` on a delete that uses other tables.
+
 ## Bulk delete
 
-Sometimes you need to delete multiple rows in a single query, where each condition depends on different data. For these cases, you can [map the constant values as a view](../configuration/mapping.md#mapping-constant-values-as-view) and perform the deletion. This is supported by [PostgreSQL](../configuration/supported-databases/postgresql.md), [SQL Server](../configuration/supported-databases/sqlserver.md), [MariaDB](../configuration/supported-databases/mariadb.md) and [MySQL](../configuration/supported-databases/mysql.md). MariaDB and MySQL drive it through their multi-table `DELETE ... USING target, name` form. On [Oracle](../configuration/supported-databases/oracle.md) — even on Oracle 23ai, where `deleteFrom.using(...)` itself is accepted — combining a `Values` view with `deleteFrom.using(...)` would emit `WITH name AS (VALUES …) DELETE … USING name`, which the Oracle parser rejects with `ORA-00928: SELECT keyword missing` because it does not allow a `WITH` clause to precede a `DELETE … USING` statement; use a `MERGE` or a correlated subquery for the bulk-delete use case instead.
+A bulk delete removes several rows in a single query, when each one is identified by its own values and a simple condition isn't enough, instead of sending one delete per row. To do it, [map the constant values as a view](../configuration/mapping.md#mapping-constant-values-as-view) with `Values`, with one row per row to remove, and use it in `using` like any other table.
+
+On [Oracle](../configuration/supported-databases/oracle.md) this isn't possible, not even on Oracle 23ai where `using` is accepted: the query needs a `with` before the `delete`, and Oracle rejects it (`ORA-00928`). Use a `MERGE` or a correlated subquery instead. [SQLite](../configuration/supported-databases/sqlite.md) has no `using`.
 
 ```ts
 class VCustomerForDelete extends Values<DBConnection, 'customerForDelete'> {
@@ -323,3 +550,22 @@ The result type is a promise with the information of the deleted rows:
 ```tsx
 const deleteCustomer: Promise<number>
 ```
+
+## Other options
+
+- `where` can be called once: add more conditions with `and` and `or`, or build them step by step with [`dynamicWhere`](dynamic-queries.md#easy-dynamic-queries).
+- `customizeQuery` adds raw SQL to the query and names its execution: see [Customizing a delete](sql-fragments.md#customizing-a-delete).
+- `query()` and `params()` return the SQL and the parameters without executing the query.
+
+## Availability in each database
+
+| Database | `returning` | `using` | Join right after `deleteFrom` | `using` with `Values` |
+|---|---|---|---|---|
+| PostgreSQL | Yes | Yes | Not offered | Yes |
+| SQLite | From SQLite 3.35 | Not offered | Not offered | Not offered |
+| SQL Server | Yes, written as `output` | Yes, written as `from` | Not offered | Yes |
+| Oracle | Yes, written as `returning into` | From Oracle 23ai | Not offered | Rejected by the database |
+| MariaDB | From MariaDB 10.0.5 | Yes | Yes | From MariaDB 12.3 |
+| MySQL | Not offered | Yes | Yes | From MySQL 8.0.19 |
+
+An option that is not offered doesn't compile on that connection. On an older version than the one in the table, the database rejects the query.

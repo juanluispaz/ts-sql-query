@@ -159,4 +159,100 @@ describe(ctx.label, () => {
         })
     })
 
+    test('docs:delete/delete-without-where', async () => {
+        // Section "Delete without a where": every seeded issue goes.
+        ctx.mockNext(4)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            // doc-start
+            const deletedCount = await connection.deleteAllowingNoWhereFrom(tIssue)
+                .executeDelete()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            assertType<Exact<typeof deletedCount, number>>()
+            expect(deletedCount).toBe(4)
+        })
+    })
+
+    test('docs:delete/minimum-and-maximum-rows', async () => {
+        // Section "The number of deleted rows": exactly one row must be deleted.
+        ctx.mockNext(1)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            // doc-start
+            const deletedCount = await connection.deleteFrom(tIssue)
+                .where(tIssue.id.equals(4))
+                .executeDelete(1, 1)
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                4,
+              ]
+            `)
+            assertType<Exact<typeof deletedCount, number>>()
+            expect(deletedCount).toBe(1)
+        })
+    })
+
+    test('docs:delete/delete-with-subquery', async () => {
+        // Section "Delete using other tables or views": the issue of the "Public API" project.
+        ctx.mockNext(1)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            // doc-start
+            const deletedCount = await connection.deleteFrom(tIssue)
+                .where(tIssue.projectId.in(
+                    connection.selectFrom(tProject)
+                        .where(tProject.name.containsInsensitive('Public'))
+                        .selectOneColumn(tProject.id)
+                ))
+                .executeDelete()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where project_id in (select id as result from project where lower(\`name\`) like concat('%', lower(?), '%'))"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Public",
+              ]
+            `)
+            assertType<Exact<typeof deletedCount, number>>()
+            expect(deletedCount).toBe(1)
+        })
+    })
+
+    test('docs:delete/delete-with-join', async () => {
+        // The issue of the "Public API" project: one row.
+        ctx.mockNext(1)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            // doc-start
+            const deletedCount = await connection.deleteFrom(tIssue)
+                .innerJoin(tProject).on(tIssue.projectId.equals(tProject.id))
+                .where(tProject.name.containsInsensitive('Public'))
+                .executeDelete()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue inner join project on issue.project_id = project.id where lower(project.\`name\`) like concat('%', lower(?), '%')"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Public",
+              ]
+            `)
+            assertType<Exact<typeof deletedCount, number>>()
+            expect(deletedCount).toBe(1)
+        })
+    })
+
 })

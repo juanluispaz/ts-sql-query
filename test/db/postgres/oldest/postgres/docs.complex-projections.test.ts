@@ -314,4 +314,287 @@ describe(ctx.label, () => {
         }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('docs:complex-projections/rule-1-as-required-in-optional-object', async () => {
+        // Section "Rule 1". Issue 4 has assignee_id and body but no external_ref: the
+        // object goes even though the others have a value.
+        const expected = [
+            { id: 1, meta: { externalRef: '0a8f9c1e-1111-4222-8333-444455556666', assigneeId: 1 } },
+            { id: 2, meta: { externalRef: '7b3e9d20-2222-4c55-9b66-dddd00009999', assigneeId: 2, body: 'Use new tokens' } },
+            { id: 3 },
+            { id: 4 },
+        ]
+        ctx.mockNext([
+            { id: 1, 'meta.externalRef': '0a8f9c1e-1111-4222-8333-444455556666', 'meta.assigneeId': 1, 'meta.body': null },
+            { id: 2, 'meta.externalRef': '7b3e9d20-2222-4c55-9b66-dddd00009999', 'meta.assigneeId': 2, 'meta.body': 'Use new tokens' },
+            { id: 3, 'meta.externalRef': null, 'meta.assigneeId': null, 'meta.body': null },
+            { id: 4, 'meta.externalRef': null, 'meta.assigneeId': 3, 'meta.body': 'See ADR-014' },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const issues = await connection.selectFrom(tIssue)
+            .select({
+                id: tIssue.id,
+                meta: {
+                    externalRef: tIssue.externalRef.asRequiredInOptionalObject(),
+                    assigneeId:  tIssue.assigneeId.asRequiredInOptionalObject(),
+                    body:        tIssue.body,
+                },
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, external_ref as "meta.externalRef", assignee_id as "meta.assigneeId", body as "meta.body" from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof issues, Array<{
+            id: number
+            meta?: {
+                externalRef: string
+                assigneeId:  number
+                body?:       string
+            }
+        }>>>()
+        expect(issues).toEqual(expected)
+    })
+
+    test('docs:complex-projections/rule-2-all-from-the-same-left-join', async () => {
+        // Section "Rule 2". Project 4 has no issues, so the left join has no match.
+        const expected = [
+            { id: 1, firstIssue: { id: 1, title: 'Update hero copy' } },
+            { id: 2, firstIssue: { id: 3, title: 'Migrate to ESM' } },
+            { id: 3, firstIssue: { id: 4, title: 'Document /v2/users', body: 'See ADR-014' } },
+            { id: 4 },
+        ]
+        ctx.mockNext([
+            { id: 1, 'firstIssue.id': 1,    'firstIssue.title': 'Update hero copy',   'firstIssue.body': null },
+            { id: 2, 'firstIssue.id': 3,    'firstIssue.title': 'Migrate to ESM',     'firstIssue.body': null },
+            { id: 3, 'firstIssue.id': 4,    'firstIssue.title': 'Document /v2/users', 'firstIssue.body': 'See ADR-014' },
+            { id: 4, 'firstIssue.id': null, 'firstIssue.title': null,                 'firstIssue.body': null },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const firstIssue = tIssue.forUseInLeftJoinAs('firstIssue')
+
+        const projects = await connection.selectFrom(tProject)
+            .leftJoin(firstIssue).on(firstIssue.projectId.equals(tProject.id).and(firstIssue.number.equals(1)))
+            .select({
+                id: tProject.id,
+                firstIssue: {
+                    id:    firstIssue.id,
+                    title: firstIssue.title,
+                    body:  firstIssue.body,
+                },
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, firstIssue.id as "firstIssue.id", firstIssue.title as "firstIssue.title", firstIssue.body as "firstIssue.body" from project left join issue as firstIssue on firstIssue.project_id = project.id and firstIssue.number = $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof projects, Array<{
+            id: number
+            firstIssue?: {
+                id:    number
+                title: string
+                body?: string
+            }
+        }>>>()
+        expect(projects).toEqual(expected)
+    })
+
+    test('docs:complex-projections/rule-2-a-whole-table', async () => {
+        // Section "Rule 2": a left-joined table in place of its columns. Only the
+        // organizations with the plan pro are joined: Globex Ltd's projects have no match.
+        const acme = { id: 1, name: 'Acme Corp', plan: 'pro', verified: true, createdAt: new Date(Date.UTC(2023, 5, 15, 8, 0, 0)) }
+        const noMatch = {
+            'proOrganization.id':        null,
+            'proOrganization.name':      null,
+            'proOrganization.plan':      null,
+            'proOrganization.verified':  null,
+            'proOrganization.createdAt': null,
+        }
+        const expected = [
+            { id: 1, proOrganization: acme },
+            { id: 2, proOrganization: acme },
+            { id: 3 },
+            { id: 4 },
+        ]
+        ctx.mockNext([
+            { id: 1, proOrganization: acme },
+            { id: 2, proOrganization: acme },
+            { id: 3, ...noMatch },
+            { id: 4, ...noMatch },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const proOrganization = tOrganization.forUseInLeftJoinAs('proOrganization')
+
+        const projects = await connection.selectFrom(tProject)
+            .leftJoin(proOrganization).on(proOrganization.id.equals(tProject.organizationId).and(proOrganization.plan.equals('pro')))
+            .select({
+                id: tProject.id,
+                proOrganization: proOrganization,
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, proOrganization.id as "proOrganization.id", proOrganization.name as "proOrganization.name", proOrganization.plan as "proOrganization.plan", (proOrganization.verified = 'Y') as "proOrganization.verified", proOrganization.created_at as "proOrganization.createdAt" from project left join organization as proOrganization on proOrganization.id = project.organization_id and proOrganization.plan = $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "pro",
+          ]
+        `)
+        assertType<Exact<typeof projects, Array<{
+            id: number
+            proOrganization?: { id: number; name: string; plan: string; verified: boolean; createdAt: Date }
+        }>>>()
+        expect(projects).toEqual(expected)
+    })
+
+    test('docs:complex-projections/rule-3-required-property', async () => {
+        // Section "Rule 3": the title of the issue keeps the object, whatever the left
+        // join finds. Issue 3 has no body and no assignee.
+        const expected = [
+            { id: 1, info: { title: 'Update hero copy', assigneeName: 'Ada Lovelace' } },
+            { id: 2, info: { title: 'Redesign navbar', body: 'Use new tokens', assigneeName: 'Grace Hopper' } },
+            { id: 3, info: { title: 'Migrate to ESM' } },
+            { id: 4, info: { title: 'Document /v2/users', body: 'See ADR-014', assigneeName: 'Alan Turing' } },
+        ]
+        ctx.mockNext([
+            { id: 1, 'info.title': 'Update hero copy',   'info.body': null,             'info.assigneeName': 'Ada Lovelace' },
+            { id: 2, 'info.title': 'Redesign navbar',    'info.body': 'Use new tokens', 'info.assigneeName': 'Grace Hopper' },
+            { id: 3, 'info.title': 'Migrate to ESM',     'info.body': null,             'info.assigneeName': null },
+            { id: 4, 'info.title': 'Document /v2/users', 'info.body': 'See ADR-014',    'info.assigneeName': 'Alan Turing' },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const assignee = tAppUser.forUseInLeftJoinAs('assignee')
+
+        const issues = await connection.selectFrom(tIssue)
+            .leftJoin(assignee).on(assignee.id.equals(tIssue.assigneeId))
+            .select({
+                id: tIssue.id,
+                info: {
+                    title:        tIssue.title,
+                    body:         tIssue.body,
+                    assigneeName: assignee.fullName,
+                },
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.title as "info.title", issue.body as "info.body", assignee.full_name as "info.assigneeName" from issue left join app_user as assignee on assignee.id = issue.assignee_id order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof issues, Array<{
+            id: number
+            info: {
+                title:         string
+                body?:         string
+                assigneeName?: string
+            }
+        }>>>()
+        expect(issues).toEqual(expected)
+    })
+
+    test('docs:complex-projections/rule-4-only-optional-properties', async () => {
+        // Section "Rule 4": the same columns as rule 1 without the mark. Issue 4 keeps
+        // the object now, and issue 3, with no value at all, is the only one without it.
+        const expected = [
+            { id: 1, meta: { externalRef: '0a8f9c1e-1111-4222-8333-444455556666', assigneeId: 1 } },
+            { id: 2, meta: { externalRef: '7b3e9d20-2222-4c55-9b66-dddd00009999', assigneeId: 2, body: 'Use new tokens' } },
+            { id: 3 },
+            { id: 4, meta: { assigneeId: 3, body: 'See ADR-014' } },
+        ]
+        ctx.mockNext([
+            { id: 1, 'meta.externalRef': '0a8f9c1e-1111-4222-8333-444455556666', 'meta.assigneeId': 1, 'meta.body': null },
+            { id: 2, 'meta.externalRef': '7b3e9d20-2222-4c55-9b66-dddd00009999', 'meta.assigneeId': 2, 'meta.body': 'Use new tokens' },
+            { id: 3, 'meta.externalRef': null, 'meta.assigneeId': null, 'meta.body': null },
+            { id: 4, 'meta.externalRef': null, 'meta.assigneeId': 3, 'meta.body': 'See ADR-014' },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const issues = await connection.selectFrom(tIssue)
+            .select({
+                id: tIssue.id,
+                meta: {
+                    externalRef: tIssue.externalRef,
+                    assigneeId:  tIssue.assigneeId,
+                    body:        tIssue.body,
+                },
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, external_ref as "meta.externalRef", assignee_id as "meta.assigneeId", body as "meta.body" from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof issues, Array<{
+            id: number
+            meta?: {
+                externalRef?: string
+                assigneeId?:  number
+                body?:        string
+            }
+        }>>>()
+        expect(issues).toEqual(expected)
+    })
+
+    test('docs:complex-projections/optional-values-as-null', async () => {
+        // Section "Optional values as null": what's left out by default is null. Issues
+        // 3 and 4 have no object, and no issue has a parent.
+        const expected = [
+            { id: 1, parentId: null, meta: { externalRef: '0a8f9c1e-1111-4222-8333-444455556666', assigneeId: 1, body: null } },
+            { id: 2, parentId: null, meta: { externalRef: '7b3e9d20-2222-4c55-9b66-dddd00009999', assigneeId: 2, body: 'Use new tokens' } },
+            { id: 3, parentId: null, meta: null },
+            { id: 4, parentId: null, meta: null },
+        ]
+        ctx.mockNext([
+            { id: 1, parentId: null, 'meta.externalRef': '0a8f9c1e-1111-4222-8333-444455556666', 'meta.assigneeId': 1, 'meta.body': null },
+            { id: 2, parentId: null, 'meta.externalRef': '7b3e9d20-2222-4c55-9b66-dddd00009999', 'meta.assigneeId': 2, 'meta.body': 'Use new tokens' },
+            { id: 3, parentId: null, 'meta.externalRef': null, 'meta.assigneeId': null, 'meta.body': null },
+            { id: 4, parentId: null, 'meta.externalRef': null, 'meta.assigneeId': 3, 'meta.body': 'See ADR-014' },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const issues = await connection.selectFrom(tIssue)
+            .select({
+                id:       tIssue.id,
+                parentId: tIssue.parentId,
+                meta: {
+                    externalRef: tIssue.externalRef.asRequiredInOptionalObject(),
+                    assigneeId:  tIssue.assigneeId.asRequiredInOptionalObject(),
+                    body:        tIssue.body,
+                },
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('id')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, parent_id as "parentId", external_ref as "meta.externalRef", assignee_id as "meta.assigneeId", body as "meta.body" from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof issues, Array<{
+            id:       number
+            parentId: number | null
+            meta: {
+                externalRef: string
+                assigneeId:  number
+                body:        string | null
+            } | null
+        }>>>()
+        expect(issues).toEqual(expected)
+    })
 })

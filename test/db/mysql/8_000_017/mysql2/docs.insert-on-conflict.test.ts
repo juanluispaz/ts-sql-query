@@ -308,6 +308,43 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-APPLICABLE: MySQL handles any unique-key violation, with no conflict target nor update condition, and has no RETURNING
+    /*
+    test('docs:insert-on-conflict/do-update-where-returning', async () => {
+        // The seeded project 1 has a different name, so the condition lets the update run.
+        ctx.mockNext({ id: 1, name: 'Marketing web' })
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            // doc-start
+            const tProjectForInsert = tProject.valuesForInsert()
+
+            const updatedProject = await connection.insertInto(tProject).set({
+                    organizationId: 1,
+                    slug:           'mktg-site',
+                    name:           'Marketing web',
+                })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSet({
+                    name: tProjectForInsert.name,
+                })
+                .where(tProject.name.notEquals(tProjectForInsert.name))
+                .returning({
+                    id:   tProject.id,
+                    name: tProject.name,
+                })
+                .executeInsertNoneOrOne()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof updatedProject, { id: number; name: string } | null>>()
+            expect(updatedProject).toEqual({ id: 1, name: 'Marketing web' })
+        })
+    })
+    */
+
     test('docs:insert-on-conflict/do-update-set-if-value', async () => {
         // An updated row counts as 2.
         ctx.mockNext(2)

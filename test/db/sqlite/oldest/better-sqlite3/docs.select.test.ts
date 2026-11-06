@@ -160,6 +160,227 @@ describe(ctx.label, () => {
         expect(issuesWithParent).toEqual(expected)
     })
 
+    test('docs:select/several-tables-in-the-from', async () => {
+        const expected = [
+            { id: 1, organizationName: 'Acme Corp' },
+            { id: 2, organizationName: 'Acme Corp' },
+            { id: 3, organizationName: 'Globex Ltd' },
+            { id: 4, organizationName: 'Globex Ltd' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const projectsWithOrganization = await connection.selectFrom(tProject)
+            .from(tOrganization)
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .select({
+                id:               tProject.id,
+                organizationName: tOrganization.name,
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, organization.name as organizationName from project, organization where project.organization_id = organization.id order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof projectsWithOrganization, Array<{
+            id:               number
+            organizationName: string
+        }>>>()
+        expect(projectsWithOrganization).toEqual(expected)
+    })
+
+    test('docs:select/what-you-can-order-by', async () => {
+        const expected = [
+            { id: 3, name: 'Public API',     slug: 'public-api' },
+            { id: 1, name: 'Marketing site', slug: 'mktg-site' },
+            { id: 4, name: 'Legacy app',     slug: 'legacy' },
+            { id: 2, name: 'Internal tools', slug: 'tools' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const projectsInOrder = await connection.selectFrom(tProject)
+            .select({
+                id:   tProject.id,
+                name: tProject.name,
+                slug: tProject.slug,
+            })
+            .orderBy('name', 'desc')
+            .orderBy(tProject.archivedAt, 'asc nulls last')
+            .orderBy(connection.rawFragment`lower(${tProject.slug})`)
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, slug as slug from project order by name desc, project.archived_at is null, project.archived_at asc, lower(project.slug)"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof projectsInOrder, Array<{
+            id:   number
+            name: string
+            slug: string
+        }>>>()
+        expect(projectsInOrder).toEqual(expected)
+    })
+
+    test('docs:select/left-join-condition-in-on', async () => {
+        // The issues without that assignee are kept, without the name.
+        const expected = [
+            { id: 1, assigneeName: 'Ada Lovelace' },
+            { id: 2 },
+            { id: 3 },
+            { id: 4 },
+        ]
+        ctx.mockNext(expected.map((row) => ({ assigneeName: null, ...row })))
+        const connection = ctx.conn
+
+        // doc-start
+        const assignee = tAppUser.forUseInLeftJoinAs('assignee')
+
+        const issues = await connection.selectFrom(tIssue)
+            .leftJoin(assignee).on(tIssue.assigneeId.equals(assignee.id))
+                .and(assignee.fullName.equals('Ada Lovelace'))
+            .select({
+                id:           tIssue.id,
+                assigneeName: assignee.fullName,
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, assignee.full_name as assigneeName from issue left join app_user as assignee on issue.assignee_id = assignee.id and assignee.full_name = ?1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "Ada Lovelace",
+          ]
+        `)
+        assertType<Exact<typeof issues, Array<{
+            id:            number
+            assigneeName?: string
+        }>>>()
+        expect(issues).toEqual(expected)
+    })
+
+    test('docs:select/left-join-condition-in-where', async () => {
+        // The issues without that assignee are removed.
+        const expected = [
+            { id: 1, assigneeName: 'Ada Lovelace' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const assignee = tAppUser.forUseInLeftJoinAs('assignee')
+
+        const issues = await connection.selectFrom(tIssue)
+            .leftJoin(assignee).on(tIssue.assigneeId.equals(assignee.id))
+            .where(assignee.fullName.equals('Ada Lovelace'))
+            .select({
+                id:           tIssue.id,
+                assigneeName: assignee.fullName,
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, assignee.full_name as assigneeName from issue left join app_user as assignee on issue.assignee_id = assignee.id where assignee.full_name = ?1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "Ada Lovelace",
+          ]
+        `)
+        assertType<Exact<typeof issues, Array<{
+            id:            number
+            assigneeName?: string
+        }>>>()
+        expect(issues).toEqual(expected)
+    })
+
+    test('docs:select/select-distinct', async () => {
+        const expected = [{ status: 'closed' }, { status: 'in_progress' }, { status: 'open' }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const statuses = await connection.selectDistinctFrom(tIssue)
+            .select({
+                status: tIssue.status,
+            })
+            .orderBy('status')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select distinct status as status from issue order by status"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof statuses, Array<{ status: string }>>>()
+        expect(statuses).toEqual(expected)
+    })
+
+    test('docs:select/select-one-column', async () => {
+        const expected = ['Internal tools', 'Legacy app', 'Marketing site', 'Public API']
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const projectNames = await connection.selectFrom(tProject)
+            .selectOneColumn(tProject.name)
+            .orderBy('result')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as result from project order by result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof projectNames, string[]>>()
+        expect(projectNames).toEqual(expected)
+    })
+
+    test('docs:select/select-one-column-optional', async () => {
+        // Issue 3 has no assignee.
+        ctx.mockNext(null)
+        const connection = ctx.conn
+
+        const assigneeId = await connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(3))
+            .selectOneColumn(tIssue.assigneeId)
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select assignee_id as result from issue where id = ?1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof assigneeId, number | null>>()
+        expect(assigneeId).toBeNull()
+    })
+
+    test('docs:select/first-row-of-a-list', async () => {
+        const expected = { id: 4, name: 'Legacy app' }
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const lastProject = await connection.selectFrom(tProject)
+            .select({
+                id:   tProject.id,
+                name: tProject.name,
+            })
+            .orderBy('id', 'desc')
+            .limit(1)
+            .executeSelectNoneOrOne()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project order by id desc limit ?1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof lastProject, { id: number; name: string } | null>>()
+        expect(lastProject).toEqual(expected)
+    })
+
     test('docs:select/count-all', async () => {
         // Section "Select count all" — `selectCountAll()` is the shortcut
         // for `selectOneColumn(connection.countAll())`. Result is a plain

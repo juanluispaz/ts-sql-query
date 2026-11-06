@@ -464,4 +464,109 @@ describe(ctx.label, () => {
             expect(updatedCount).toBe(1)
         })
     })
+
+    test('docs:update/update-without-where', async () => {
+        // Section "Update without a where": every seeded issue changes.
+        ctx.mockNext(4)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            // doc-start
+            const updatedCount = await connection.updateAllowingNoWhere(tIssue)
+                .set({ status: 'archived' })
+                .executeUpdate()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "archived",
+              ]
+            `)
+            assertType<Exact<typeof updatedCount, number>>()
+            expect(updatedCount).toBe(4)
+        })
+    })
+
+    test('docs:update/minimum-and-maximum-rows', async () => {
+        // Section "The number of updated rows": exactly one row must be updated.
+        ctx.mockNext(1)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            // doc-start
+            const updatedCount = await connection.update(tIssue)
+                .set({ status: 'closed' })
+                .where(tIssue.id.equals(2))
+                .executeUpdate(1, 1)
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?1 where id = ?2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "closed",
+                2,
+              ]
+            `)
+            assertType<Exact<typeof updatedCount, number>>()
+            expect(updatedCount).toBe(1)
+        })
+    })
+
+    test('docs:update/set-if-value', async () => {
+        // Section "Manipulating values to update": a value that didn't arrive isn't written.
+        ctx.mockNext(1)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            // doc-start
+            const issueChanges: { title?: string, status?: string } = { title: 'New title' }
+
+            const updatedCount = await connection.update(tIssue)
+                .setIfValue(issueChanges)
+                .where(tIssue.id.equals(2))
+                .executeUpdate()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?1 where id = ?2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "New title",
+                2,
+              ]
+            `)
+            assertType<Exact<typeof updatedCount, number>>()
+            expect(updatedCount).toBe(1)
+        })
+    })
+
+    // NOT-APPLICABLE: a join right after update(...) is only typed on MariaDB and MySQL
+    /*
+    test('docs:update/update-with-join', async () => {
+        // The issue of the "Public API" project: one row.
+        ctx.mockNext(1)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            // doc-start
+            const updatedCount = await connection.update(tIssue)
+                .innerJoin(tProject).on(tIssue.projectId.equals(tProject.id))
+                .set({
+                    title: tIssue.title.concat(' - ').concat(tProject.name),
+                })
+                .where(tProject.name.containsInsensitive('Public'))
+                .executeUpdate()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof updatedCount, number>>()
+            expect(updatedCount).toBe(1)
+        })
+    })
+    */
 })

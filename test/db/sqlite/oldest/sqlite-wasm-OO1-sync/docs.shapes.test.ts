@@ -4,6 +4,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { extractWritableShapeFrom } from '../../../../../src/extras/utils.js'
+import type { UpdatableValuesShapedAs } from '../../../../../src/extras/types.js'
 import { sync } from '../../../../../src/extras/sync.js'
 
 describe(ctx.label, () => {
@@ -179,4 +181,74 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    test('docs:shapes/extract-writable-shape-from', async () => {
+        // Section "A shape from the columns of the table": sessionToken isn't part of the shape.
+        ctx.mockNext(1)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            // doc-start
+            const issueData = {
+                title: 'New title',
+                body: 'New body',
+                sessionToken: 'abc',
+            }
+
+            const updatedCount = sync(connection.update(tIssue)
+                .shapedAs(extractWritableShapeFrom(tIssue, ['id', 'projectId', 'number', 'status', 'priority']))
+                .set(issueData)
+                .where(tIssue.id.equals(2))
+                .executeUpdate())
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?1, body = ?2 where id = ?3"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "New title",
+                "New body",
+                2,
+              ]
+            `)
+            assertType<Exact<typeof updatedCount, number>>()
+            expect(updatedCount).toBe(1)
+        })
+    })
+
+    test('docs:shapes/type-of-the-values', async () => {
+        // Section "The type of the values": the values follow the names of the shape.
+        ctx.mockNext(1)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            // doc-start
+            const issueShape = {
+                newTitle: 'title',
+                newBody: 'body',
+            } as const
+
+            type IssueData = UpdatableValuesShapedAs<typeof tIssue, typeof issueShape>
+
+            const issueData: IssueData = { newTitle: 'New title' }
+
+            const updatedCount = sync(connection.update(tIssue)
+                .shapedAs(issueShape)
+                .set(issueData)
+                .where(tIssue.id.equals(2))
+                .executeUpdate())
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?1 where id = ?2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "New title",
+                2,
+              ]
+            `)
+            assertType<Exact<typeof updatedCount, number>>()
+            expect(updatedCount).toBe(1)
+        })
+    })
 })

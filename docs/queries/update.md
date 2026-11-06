@@ -4,9 +4,13 @@ search:
 ---
 # Update
 
-This page explains how to construct SQL `UPDATE` statements using `ts-sql-query`. It covers conditional updates, updating with data from other tables, returning updated or previous values, and manipulating sets of columns dynamically during the update process.
+An update changes the value of some columns in the rows of a table that meet a condition. The other rows, and the other columns of those rows, stay as they are. It's the way to do things like "this customer has a new last name", or "all the customers of this company move to another one".
+
+Don't confuse it with an [insert](insert.md), which adds new rows, or with a [delete](delete.md), which removes whole rows: an update doesn't change the number of rows of the table. To insert a row or update it if it already exists, see [Update the existing row ("upsert")](insert-on-conflict.md#update-the-existing-row-upsert).
 
 ## General update
+
+`update` receives the table, `set` the new values, `where` the rows to change, and `executeUpdate` runs the query. In this example, `ignoreIfSet` takes the birthday out of the update: see [Manipulating values to update](#manipulating-values-to-update).
 
 ```ts
 const updateCustomer = connection.update(tCustomer).set({
@@ -76,13 +80,102 @@ The result type is a promise with the number of updated rows:
 const updateCustomer: Promise<number>
 ```
 
+Only the columns in `set` are written; computed and virtual columns can't be. If you call `set` more than once the values are added to the previous ones, and the last value of a column is the one that stays.
+
+The value of a column can be:
+
+- A value of the type of the column.
+- An expression, to compute the new value from the current row, like `tCustomer.lastName.concat(' Jr.')`.
+- `null` or `undefined`, on an optional column: the column ends up with no value.
+- `connection.default()`, on a column with a default value: the column goes back to its default. It's not offered on [SQLite](../configuration/supported-databases/sqlite.md).
+
 !!! danger "Security constraint"
 
-    `ts-sql-query` will reject the execution of the update sentence if, for some reason, ended without a `WHERE` clause. If you want to allow an update without where, you must call `connection.updateAllowingNoWhere(...)` instead of `connection.update(...)` when you start writing the sentence.
+    `ts-sql-query` rejects an update that ends without a `WHERE` clause. To update all the rows you must say so: see [Update without a where](#update-without-a-where).
+
+## Update without a where
+
+An update without a `where` changes all the rows of the table, and it's usually a mistake that is hard to undo. The library stops it in two moments:
+
+- **When you compile:** `update(...)` doesn't offer the execute methods until you call `where` or `dynamicWhere`.
+- **When you execute:** a condition can end up empty, for example a `dynamicWhere()` with no conditions added, or a `where` with only conditions that are [ignored because they have no value](dynamic-queries.md#easy-dynamic-queries). The library then throws an error with the reason `MISSING_WHERE`, and nothing is sent to the database.
+
+When changing all the rows is what you want, start the query with `updateAllowingNoWhere` instead of `update`:
+
+```ts
+const updateAllCustomers = connection.updateAllowingNoWhere(tCustomer)
+    .set({
+        companyId: 1
+    })
+    .executeUpdate();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    update customer 
+    set company_id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    update customer 
+    set company_id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    update customer 
+    set company_id = :0
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    update customer 
+    set company_id = $1
+    ```
+=== "SQLite"
+    ```sqlite
+    update customer 
+    set company_id = ?1
+    ```
+=== "SQL Server"
+    ```sqlserver
+    update customer 
+    set company_id = @0
+    ```
+
+The parameters are: `[ 1 ]`
+
+The result type is a promise with the number of updated rows:
+```tsx
+const updateAllCustomers: Promise<number>
+```
+
+It only allows the `where` to be missing: if you add one, it's used as usual.
+
+## The number of updated rows
+
+`executeUpdate` returns the number of updated rows. When that number tells you something went wrong, like a row that had to exist and doesn't, give it a minimum and a maximum:
+
+```ts
+const updatedCount = await connection.update(tCustomer)
+    .set({
+        firstName: 'John'
+    })
+    .where(tCustomer.id.equals(10))
+    .executeUpdate(1, 1);
+```
+
+With fewer rows than the minimum, the error has the reason `MINIMUM_ROWS_NOT_REACHED`; with more rows than the maximum, `MAXIMUM_ROWS_EXCEEDED`.
+
+!!! warning
+
+    The library compares the number after the database has executed the update, so the rows have already changed. If the error must undo them, run the update inside a [transaction](transaction.md).
 
 ## Update returning
 
-If you are using [PostgreSQL](../configuration/supported-databases/postgresql.md), modern [SQLite](../configuration/supported-databases/sqlite.md), modern [MariaDB](../configuration/supported-databases/mariadb.md), [SQL Server](../configuration/supported-databases/sqlserver.md) or [Oracle](../configuration/supported-databases/oracle.md), you can return updated values of the updated record in the same query using the `returning` or `returningOneColumn` methods.
+`returning` makes the update give back data of the rows it has changed, in the same query, so you don't need a select afterwards. The columns of the table have their **new** value. It receives the same as a `select`, nested objects included, and `returningOneColumn(column)` returns the value of a single column instead of an object.
+
+It isn't available on MySQL: see [Availability in each database](#availability-in-each-database).
 
 ```ts
 const updatedSmithFirstName = connection.update(tCustomer)
@@ -151,17 +244,21 @@ const updatedSmithFirstName: Promise<string>
 
 You can project optional values in objects as always-required properties that allow null calling `projectingOptionalValuesAsNullable()` immediately after `returning(...)`.
 
-You can execute the query using:
+With `returning` or `returningOneColumn` you execute the query with one of these methods, depending on how many rows you expect:
 
-- `executeUpdateNoneOrOne(): Promise<RESULT | null>`: Execute the update query that returns one or no result from the database. In case of more than one result found an exception will be thrown.
-- `executeUpdateOne(): Promise<RESULT>`: Execute the update query that returns one result from the database. If no result is returned by the database an exception will be thrown.
-- `executeUpdateMany(min?: number, max?: number): Promise<RESULT[]>`: Execute the update query that returns zero or many results from the database.
+| Method | Returns | With no rows | With several rows |
+|---|---|---|---|
+| `executeUpdateNoneOrOne()` | The row or `null` | `null` | Error `MORE_THAN_ONE_ROW` |
+| `executeUpdateOne()` | The row | Error `NO_RESULT` | Error `MORE_THAN_ONE_ROW` |
+| `executeUpdateMany(min?, max?)` | An array of rows | An empty array | All the rows |
 
-Aditionally, if you want to return the value of a single column, you can use `returningOneColumn(column)` instead of `returning({...})`.
+`min` and `max` in `executeUpdateMany` work as in [`executeUpdate`](#the-number-of-updated-rows). All these errors arrive when the database has already executed the update.
 
 ## Update returning old values
 
-If you are using [SQL Server](../configuration/supported-databases/sqlserver.md), modern [MariaDB](../configuration/supported-databases/mariadb.md) or [PostgreSQL](../configuration/supported-databases/postgresql.md) (natively since PostgreSQL 18; on older versions it is emulated in a single query, and the table must have a primary key), you can return previous values of the updated record in the same query; to do this, you can create a reference to the old values of the table calling `myTable.oldValues()` and then use it in the returning clause.
+`returning` gives the values after the update. To also get the value a row had before it, without a select first, create a reference to the old values of the table by calling `myTable.oldValues()`, and use it in `returning`. It's useful, for example, to record what has changed. It's the only place that accepts it.
+
+It isn't available on MySQL, Oracle or SQLite: see [Availability in each database](#availability-in-each-database).
 
 ```ts
 const oldCustomerValues = tCustomer.oldValues()
@@ -244,9 +341,14 @@ const updatedLastNames: Promise<{
 }>
 ```
 
+An old value is a value like any other, so you can use it inside an expression. There are two limits set by the database:
+
+- On MariaDB, as of 13.0.2, an old value only works as a property on its own: inside a function the database returns the new value, and as the operand of an operator it rejects the query ([MDEV-40126](https://jira.mariadb.org/browse/MDEV-40126)).
+- On SQL Server, `output` doesn't accept subqueries.
+
 ## Update using other tables or views
 
-Sometimes you want to include in the update query other tables or views to process the update instruction, you can add the `from` clause that is like a `from` clasue in a select. This is supported by [PostgreSQL](../configuration/supported-databases/postgresql.md), [SQLite](../configuration/supported-databases/sqlite.md), [SQL Server](../configuration/supported-databases/sqlserver.md), [MariaDB](../configuration/supported-databases/mariadb.md), [MySQL](../configuration/supported-databases/mysql.md) and [Oracle](../configuration/supported-databases/oracle.md) (Oracle Database 23ai or newer).
+Use `from` when the new value, or the condition that chooses the rows, depends on another table or view. It's like the `from` of a select: the condition that relates the tables goes in the `where`. Only the rows of the table in `update` change; the others are only read. Call `from` again to add more tables.
 
 ```ts
 const addACMECompanyNameToLastName = connection.update(tCustomer)
@@ -323,9 +425,87 @@ The result type is a promise with the information of the updated rows:
 const addACMECompanyNameToLastName: Promise<number>
 ```
 
+### Using joins
+
+After `from` you can add `join`, `innerJoin`, `leftJoin` or `leftOuterJoin`, each one with its `on`. Their `on` relates the tables in the `from` and the joins; the condition that relates them with the updated table goes in the `where`. As in a select, the table of a left join is the one returned by [`forUseInLeftJoin`](select.md#select-with-left-join).
+
+[MariaDB](../configuration/supported-databases/mariadb.md) and [MySQL](../configuration/supported-databases/mysql.md) also offer the join right after `update`, with no `from`, and its `on` can use the updated table:
+
+```ts
+const addACMECompanyNameToLastNameWithJoin = connection.update(tCustomer)
+    .innerJoin(tCompany).on(tCustomer.companyId.equals(tCompany.id))
+    .set({
+        lastName: tCustomer.lastName.concat(' - ').concat(tCompany.name)
+    })
+    .where(tCompany.name.containsInsensitive('ACME'))
+    .executeUpdate()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    update customer 
+    inner join company on customer.company_id = company.id 
+    set customer.last_name = concat(customer.last_name, ?, company.name) 
+    where lower(company.name) like concat('%', lower(?), '%')
+    ```
+=== "MySQL"
+    ```mysql
+    update customer 
+    inner join company on customer.company_id = company.id 
+    set customer.last_name = concat(customer.last_name, ?, company.`name`) 
+    where lower(company.`name`) like concat('%', lower(?), '%')
+    ```
+=== "Oracle"
+    ```oracle
+    --
+    --
+    -- Oracle doesn't support a join right after update, use from
+    --
+    --
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    --
+    --
+    -- PostgreSQL doesn't support a join right after update, use from
+    --
+    --
+    ```
+=== "SQLite"
+    ```sqlite
+    --
+    --
+    -- SQLite doesn't support a join right after update, use from
+    --
+    --
+    ```
+=== "SQL Server"
+    ```sqlserver
+    --
+    --
+    -- SQL Server doesn't support a join right after update, use from
+    --
+    --
+    ```
+
+The parameters are: `[ ' - ', 'ACME' ]`
+
+The result type is a promise with the number of updated rows:
+```tsx
+const addACMECompanyNameToLastNameWithJoin: Promise<number>
+```
+
+### Returning with other tables
+
+`returning` depends more on the database when the update uses other tables. PostgreSQL and Oracle can return columns of the other tables. On SQL Server and SQLite, `returning` only sees the updated table. MariaDB rejects `returning` on an update that uses other tables.
+
 ## Bulk update
 
-Sometimes you want to do several updates in a single query, where each one have their own data; for this cases you can [map the constant values as view](../configuration/mapping.md#mapping-constant-values-as-view) and perform the update. This is supported by [PostgreSQL](../configuration/supported-databases/postgresql.md), [SQL Server](../configuration/supported-databases/sqlserver.md), [SQLite](../configuration/supported-databases/sqlite.md), [MariaDB](../configuration/supported-databases/mariadb.md) and [MySQL](../configuration/supported-databases/mysql.md). MariaDB and MySQL drive it through their multi-table `UPDATE target, name SET ...` form instead of the `UPDATE target SET ... FROM name` form the other dialects use. On [Oracle](../configuration/supported-databases/oracle.md) — even on Oracle 23ai, where `update.from(...)` itself is accepted — combining a `Values` view with `update.from(...)` would emit `WITH name AS (VALUES …) UPDATE … FROM name`, which the Oracle parser rejects with `ORA-00928: SELECT keyword missing` because it does not allow a `WITH` clause to precede an `UPDATE … FROM` statement; use a `MERGE` or a correlated subquery for the bulk-update use case instead.
+A bulk update changes several rows in a single query, each one with its own values, instead of sending one update per row. To do it, [map the constant values as a view](../configuration/mapping.md#mapping-constant-values-as-view) with `Values`, with one row per row to change, and use it in `from` like any other table.
+
+On [Oracle](../configuration/supported-databases/oracle.md) this isn't possible, not even on Oracle 23ai where `from` is accepted: the query needs a `with` before the `update`, and Oracle rejects it (`ORA-00928`). Use a `MERGE` or a correlated subquery instead.
 
 ```ts
 class VCustomerForUpdate extends Values<DBConnection, 'customerForUpdate'> {
@@ -448,7 +628,7 @@ If you are using [MariaDB](../configuration/supported-databases/mariadb.md) or [
 
 ## Manipulating values to update
 
-`ts-sql-query` offers many commodity methods to manipulate the data to update, allowing adding missing values, deleting undesired values, or throwing an error if a value is present.
+The values to update often arrive from outside the code, with some of them missing or not allowed for the current user. Instead of building the object by hand, these methods add missing values, take out undesired values, or throw an error when a value is present.
 
 When you write your update query, you set the initial value calling:
 
@@ -461,9 +641,80 @@ interface UpdateExpression {
 }
 ```
 
-The `set` and method will require you to provide the values to update. The `dynamicSet` will allow you start with no values at all.
+`set` requires you to provide the values to update, and `dynamicSet` allows you to start with no values at all.
 
-When you set the initial value, you can start manipulating them using the following methods:
+Several of these methods distinguish a column that **is set** from one that **has a value**. A column is set when a value was given for it, whichever it is. It has a value when that value isn't `null`, `undefined`, an empty array, or an empty string (an empty string counts as a value if the `allowEmptyString` flag of the connection is true).
+
+The methods that set a value differ in what they do according to the current value of the column. Starting from `{ firstName: 'John', lastName: '' }`, with `birthday` not set, this happens to each column when one of these methods gives it a new value:
+
+| Method | `firstName` (has a value) | `lastName` (set, with no value) | `birthday` (not set) |
+|---|---|---|---|
+| `set` | Replaced | Replaced | Set |
+| `setIfSet` | Replaced | Replaced | Stays not set |
+| `setIfNotSet` | Stays | Stays | Set |
+| `setIfHasValue` | Replaced | Stays | Stays not set |
+| `setIfHasNoValue` | Stays | Replaced | Set |
+
+Each of them has a variant ending in `IfValue`, like `setIfValue` or `setIfNotSetIfValue`, that also skips the column when the **new** value has no value. Use it when only the values that arrived must be written:
+
+```ts
+const customerChanges: { firstName?: string, lastName?: string } = { firstName: 'John' };
+
+const updatedCustomer = await connection.update(tCustomer)
+    .setIfValue(customerChanges)
+    .where(tCustomer.id.equals(10))
+    .executeUpdate();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    update customer 
+    set first_name = ? 
+    where id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    update customer 
+    set first_name = ? 
+    where id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    update customer 
+    set first_name = :0 
+    where id = :1
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    update customer 
+    set first_name = $1 
+    where id = $2
+    ```
+=== "SQLite"
+    ```sqlite
+    update customer 
+    set first_name = ?1 
+    where id = ?2
+    ```
+=== "SQL Server"
+    ```sqlserver
+    update customer 
+    set first_name = @0 
+    where id = @1
+    ```
+
+The parameters are: `[ 'John', 10 ]`
+
+The result type is:
+```tsx
+const updatedCustomer: number
+```
+
+The other methods take columns out of the update (the `ignore` methods and `keepOnly`), or throw an error (the `disallow` methods). They look at the values set so far, so call them after the sets they must check. A `disallow` method throws when it's called, so the query is never sent. The error has the reason `DISALLOWED_BY_QUERY_RULE` and the column in `disallowedProperty`; if you give your own `Error` instead of a message, that one is thrown, also with `disallowedProperty`.
+
+These are all the methods:
 
 <!-- doc-code-snippet-template: simplifiedDefinitionInQuery -->
 ```ts
@@ -649,3 +900,28 @@ The result type is:
 ```tsx
 const updatedCount: number
 ```
+
+### When no value is left
+
+If no column is set when you execute the query, for example after a `dynamicSet()` with nothing added, there is nothing to update, so the library doesn't send any query. `executeUpdate` returns `0`, `executeUpdateNoneOrOne` returns `null`, `executeUpdateMany` returns an empty array, and `executeUpdateOne` throws an error with the reason `NO_COLUMN_SETS`. A minimum given to `executeUpdate` or `executeUpdateMany` still applies.
+
+## Other options
+
+- `where` can be called once: add more conditions with `and` and `or`, or build them step by step with [`dynamicWhere`](dynamic-queries.md#easy-dynamic-queries). A condition can use a [subquery](cte-subqueries.md).
+- `customizeQuery` adds raw SQL to the query and names its execution: see [Customizing an update](sql-fragments.md#customizing-an-update).
+- `query()` and `params()` return the SQL and the parameters without executing the query.
+
+## Availability in each database
+
+| Database | `returning` | `oldValues()` | `from` | Join right after `update` | `from` with `Values` |
+|---|---|---|---|---|---|
+| PostgreSQL | Yes | Yes | Yes | Not offered | Yes |
+| SQLite | From SQLite 3.35 | Not offered | Yes | Not offered | Yes |
+| SQL Server | Yes, written as `output` | Yes | Yes | Not offered | Yes |
+| Oracle | Yes, written as `returning into` | Not offered | From Oracle 23ai | Not offered | Rejected by the database |
+| MariaDB | From MariaDB 13.0.1 | From MariaDB 13.0.1 | Yes, written as `update a, b` | Yes | From MariaDB 12.3 |
+| MySQL | Not offered | Not offered | Yes, written as `update a, b` | Yes | From MySQL 8.0.19 |
+
+An option that is not offered doesn't compile on that connection. On an older version than the one in the table, the database rejects the query.
+
+On PostgreSQL, `oldValues()` is native from PostgreSQL 18. With a lower [`compatibilityVersion`](../configuration/supported-databases/postgresql.md#compatibility-version) it's emulated in a single query, and the table must have a primary key.

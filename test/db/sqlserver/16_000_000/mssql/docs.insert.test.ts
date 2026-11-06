@@ -596,6 +596,82 @@ describe(ctx.label, () => {
         })
     })
 
+    test('docs:insert/returning-one-column', async () => {
+        ctx.mockNext('Triage backlog')
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            // doc-start
+            const insertedTitle = await connection.insertInto(tIssue)
+                .set({
+                    projectId: 1,
+                    number:    99,
+                    title:     'Triage backlog',
+                    status:    'open',
+                    priority:  2,
+                })
+                .returningOneColumn(tIssue.title)
+                .executeInsertOne()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) output inserted.title as [result] values (@0, @1, @2, @3, @4)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                99,
+                "Triage backlog",
+                "open",
+                2,
+              ]
+            `)
+            assertType<Exact<typeof insertedTitle, string>>()
+            expect(insertedTitle).toBe('Triage backlog')
+        })
+    })
+
+    test('docs:insert/manipulating-values', async () => {
+        ctx.mockNext(7)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            // doc-start
+            const received = {
+                id:        9999,
+                projectId: 1,
+                number:    99,
+                title:     'Triage backlog',
+                status:    'open',
+                priority:  2,
+                body:      null,
+            }
+
+            const issueId = await connection.insertInto(tIssue)
+                .set(received)
+                .ignoreIfSet('id')
+                .ignoreIfHasNoValue('body')
+                .disallowIfNoValue('The title is mandatory', 'title')
+                .returningLastInsertedId()
+                .executeInsert()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) output inserted.id values (@0, @1, @2, @3, @4)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                99,
+                "Triage backlog",
+                "open",
+                2,
+              ]
+            `)
+            assertType<Exact<typeof issueId, number>>()
+            expect(typeof issueId).toBe('number')
+            if (!ctx.realDbEnabled) expect(issueId).toBe(7)
+        })
+    })
+
     test('docs:insert/insert-default-values', async () => {
         ctx.mockNext(1001)
 

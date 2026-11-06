@@ -4,7 +4,48 @@ search:
 ---
 # Insert on conflict ("upsert")
 
-This page explains what an `INSERT` can do when the row conflicts with an existing one (a unique key or a unique index): do nothing, or update the existing row instead (an "upsert"). [PostgreSQL](../configuration/supported-databases/postgresql.md), [SQLite](../configuration/supported-databases/sqlite.md), [MariaDB](../configuration/supported-databases/mariadb.md) and [MySQL](../configuration/supported-databases/mysql.md) support it; [Oracle](../configuration/supported-databases/oracle.md) and [SQL Server](../configuration/supported-databases/sqlserver.md) don't. For the rest of the insert, see [Insert](insert.md).
+An "upsert" is an insert that, if the row already exists, updates it instead: "create this customer, or update it if it's already there". It solves the problem of keeping a row up to date without knowing whether it exists. Doing it yourself takes a select followed by an insert or an update, which means two queries, and another connection can insert the same row between them. With an upsert it is one statement, and the database decides what to do.
+
+The same clause can also do nothing when the row already exists, which is useful to insert a row only if it isn't there yet.
+
+[PostgreSQL](../configuration/supported-databases/postgresql.md), [SQLite](../configuration/supported-databases/sqlite.md), [MariaDB](../configuration/supported-databases/mariadb.md) and [MySQL](../configuration/supported-databases/mysql.md) support it; [Oracle](../configuration/supported-databases/oracle.md) and [SQL Server](../configuration/supported-databases/sqlserver.md) don't. For the rest of the insert, see [Insert](insert.md).
+
+## What a conflict is
+
+A conflict happens when the new row has the same values as an existing row in a **unique key**: the primary key, a unique constraint or a unique index. It's the database that detects it, so the table must have that key; the columns of the insert alone don't make a conflict. A row that conflicts with nothing is simply inserted, and the clause doesn't apply.
+
+For example, with a unique key on `first_name, last_name` and this existing row:
+
+| first_name | last_name | company_id |
+|:-----------|:----------|:-----------|
+| John | Smith | 1 |
+
+This is what happens when you insert `John, Smith, 2`:
+
+| The insert has | What happens | `company_id` afterwards |
+|:---------------|:-------------|:------------------------|
+| No clause | The database raises an error | `1` |
+| Do nothing | Nothing is inserted | `1` |
+| Update, `company_id` with the new value | The existing row is updated | `2` |
+| Update with a `where` that the row doesn't meet | Nothing is inserted or updated | `1` |
+
+A generated primary key is new in each insert, so it normally only conflicts when you give its value yourself. The examples below that use `onConflictOn(tCustomer.id)` show the form of the call; to detect a row that already exists, use a key formed by columns you do give, as in [Choosing the conflict](#choosing-the-conflict).
+
+## What each database offers
+
+| | MariaDB | MySQL | PostgreSQL | SQLite |
+|:--|:--:|:--:|:--:|:--:|
+| Do nothing on any conflict: `onConflictDoNothing()` | Yes | Yes | Yes | Yes |
+| Update on any conflict: `onConflictDoUpdateSet(...)` | Yes | Yes | No | Yes |
+| Choose the conflict by its columns: `onConflictOn(...)` | No | No | Yes | Yes |
+| Choose the conflict by the name of the constraint: `onConflictOnConstraint(...)` | No | No | Yes | No |
+| Decide which rows are updated: `where` after the update | No | No | Yes | Yes |
+| The new values in the update: `valuesForInsert()` | Yes | Yes | Yes | Yes |
+| Get something back: `returning` or `returningLastInsertedId` | 10.5+ | No | Yes | 3.35+ |
+
+What isn't available is a compilation error. PostgreSQL requires saying which conflict an update handles, which is why it has no `onConflictDoUpdateSet`: use `onConflictOn(...)` followed by `doUpdateSet(...)`.
+
+The clause can follow the values of [one row](insert.md#insert-one-row), of [several rows](insert.md#insert-multiple-values) and an [insert from select](insert.md#insert-from-select); it can't follow [`defaultValues()`](insert.md#insert-default-values).
 
 ## The on conflict methods
 
@@ -43,6 +84,12 @@ interface InsertOnConflictExpression {
      * (only right after onConflictOn)
      */
     where(condition: BooleanValueSource): this
+    /** Allows to create that condition dynamically */
+    dynamicWhere(): this
+    /** Allows to extend that condition using an and */
+    and(condition: BooleanValueSource): this
+    /** Allows to extend that condition using an or */
+    or(condition: BooleanValueSource): this
     /** Do nothing */
     doNothing(): this
     /** Update the existing row */
@@ -174,7 +221,7 @@ const insertReturningCustomerData: Promise<{
 
 ## What is returned when nothing is inserted
 
-When the conflict makes the insert do nothing, no row is inserted: `executeInsert()` returns `0`, `returningLastInsertedId()` returns `null` instead of the id, and a `returning(...)` gives no row (use `executeInsertNoneOrOne()`, as in the example of [Insert on conflict do nothing](#do-nothing)). On MySQL and MariaDB the conflict makes the insert an `insert ignore`; MySQL doesn't offer `returningLastInsertedId()` after an on conflict clause, so there `executeInsert()` (the number of inserted rows) tells whether the row was inserted.
+When the conflict makes the insert do nothing, no row is inserted: `executeInsert()` returns `0`, `returningLastInsertedId()` returns `null` instead of the id, and a `returning(...)` gives no row (use `executeInsertNoneOrOne()`, as in the example of [Insert on conflict do nothing](#do-nothing)). When inserting several rows, you only get the ones that were inserted: their count, their ids or their columns, so the result can be shorter than the rows you sent. On MySQL and MariaDB the conflict makes the insert an `insert ignore`; MySQL doesn't offer `returningLastInsertedId()` after an on conflict clause, so there `executeInsert()` (the number of inserted rows) tells whether the row was inserted.
 
 ```ts
 const insertedId = await connection.insertInto(tCustomer).set({
@@ -397,7 +444,23 @@ const insertReturningCustomerData: Promise<{
 }>
 ```
 
-If you want to use in the update the values to insert you can call them method `valuesForInsert()` over the table to get access to the table representation of the values to insert. On PostgreSQL and SQLite you can also use them in the `.where(...)` that follows `.doUpdateSet(...)`, to decide whether the conflicting row is updated.
+On PostgreSQL and SQLite, `returning` gives the row as it is after the statement, whichever way it went: the new row, or the existing row after the update, with its own id. And `executeInsert()` returns `1` in both cases.
+
+### The existing row and the new values
+
+The values of `doUpdateSet` aren't related to the ones of `set`: the first ones say how to change the existing row, and a column you don't list keeps what it had, even if `set` gave it a value. In them you can use three different things:
+
+| You write | It means | Example, for `name` |
+|:----------|:---------|:--------------------|
+| A plain value | That value | `name: 'ACME'` |
+| A column of the table | The value in the **existing row**, before the update | `name: tCompany.name.concat(' (old)')` |
+| A column of `valuesForInsert()` | The value of the **new row**, the one that couldn't be inserted | `name: tCompany.valuesForInsert().name` |
+
+In the SQL, the new values are `excluded.column` on PostgreSQL and SQLite, `value(column)` on MariaDB and `_new_.column` on MySQL (`values(column)` before MySQL 8.0.19).
+
+To keep the new value, the usual case in an upsert, use `valuesForInsert()`: it avoids repeating the value, and with [several rows](insert.md#insert-multiple-values) it is the way to get the value of each row. They can also be combined: in the following example, an existing row with first name `John` and a new one with `Jon` end up as `John - Jon`.
+
+On PostgreSQL and SQLite you can also use them in the `.where(...)` that follows `.doUpdateSet(...)`, to decide whether the conflicting row is updated; they aren't available in the `where` of [a partial unique index](#a-conflict-on-a-partial-unique-index), which only uses the table.
 
 === "MariaDB"
     ```ts
@@ -580,10 +643,13 @@ const insertReturningCustomerData: Promise<{
     - On [PostgreSQL](../configuration/supported-databases/postgresql.md) and [SQLite](../configuration/supported-databases/sqlite.md) you can choose the conflict the clause handles, including a partial unique index, and on PostgreSQL a named constraint (see [Choosing the conflict](#choosing-the-conflict)), and decide with a `where` which conflicting rows are updated (see [Updating only some of the conflicting rows](#updating-only-some-of-the-conflicting-rows)).
     - The update can also skip the values that have no value ([Updating only the values that have a value](#updating-only-the-values-that-have-a-value)) or be built dynamically ([Building the update dynamically](#building-the-update-dynamically)).
     - You can combine any of these forms with other insert features, e.g. return some columns.
+    - On an insert with a [shape](shapes.md), the update receives its values with the names of that shape, and `extendShape` adds more names.
+    - With [groups of columns](../configuration/mapping.md#grouping-columns), the values of the update and `valuesForInsert()` have the shape of the groups: `doUpdateSet({ ubication: { latitude: tGroupedCompany.valuesForInsert().ubication.latitude } })`.
+    - On PostgreSQL, two rows of the same insert can't update the same existing row: the database raises an error.
 
 ## Choosing the conflict
 
-On [PostgreSQL](../configuration/supported-databases/postgresql.md) and [SQLite](../configuration/supported-databases/sqlite.md) you can say which conflict the clause handles; any other conflict still raises an error. On [MariaDB](../configuration/supported-databases/mariadb.md) and [MySQL](../configuration/supported-databases/mysql.md) the clause handles any unique-key violation, so there is nothing to choose.
+On [PostgreSQL](../configuration/supported-databases/postgresql.md) and [SQLite](../configuration/supported-databases/sqlite.md) you can say which conflict the clause handles; any other conflict still raises an error. The columns must be those of a unique key of the table; otherwise the database raises an error even when the row conflicts with nothing. When an insert can break several unique keys, this lets you treat each as what it means: a repeated name is the same customer, while a repeated email can be a mistake that must fail. On [MariaDB](../configuration/supported-databases/mariadb.md) and [MySQL](../configuration/supported-databases/mysql.md) the clause handles any unique-key violation, so there is nothing to choose.
 
 ### Doing nothing for a specific conflict
 
@@ -640,7 +706,7 @@ const insertedCount: number
 
 ### A conflict on a partial unique index
 
-When the unique index is partial (it only covers the rows that match a condition), the `where` that follows `onConflictOn(...)` gives that condition, so the database can pick the index.
+When the unique index is partial (it only covers the rows that match a condition), the `where` that follows `onConflictOn(...)` gives that condition, so the database can pick the index. This `where` doesn't decide what is updated; for that, see the next section. It can be extended with `and` and `or`, or built with `dynamicWhere()`.
 
 ```ts
 const insertedCount = await connection.insertInto(tCustomer).set({
@@ -809,9 +875,82 @@ The result type is:
 const affectedCount: number
 ```
 
+This `where` can be extended with `and` and `or`, or built with `dynamicWhere()`. When the row doesn't meet it, nothing changes and `executeInsert()` returns `0`. So an insert with this `where` may not return a row, and `executeInsertOne()` isn't available after `returning(...)`:
+
+```ts
+const tCustomerForInsert = tCustomer.valuesForInsert();
+
+const updatedCustomer = await connection.insertInto(tCustomer).set({
+        firstName: 'John',
+        lastName: 'Smith',
+        companyId: 1
+    })
+    .onConflictOn(tCustomer.firstName, tCustomer.lastName)
+    .doUpdateSet({
+        companyId: tCustomerForInsert.companyId
+    })
+    .where(tCustomer.companyId.notEquals(tCustomerForInsert.companyId))
+    .returning({
+        id: tCustomer.id,
+        companyId: tCustomer.companyId
+    })
+    .executeInsertNoneOrOne();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    -- MariaDB doesn't let you choose the conflict: use onConflictDoNothing() / onConflictDoUpdateSet(...)
+    ```
+=== "MySQL"
+    ```mysql
+    -- MySQL doesn't let you choose the conflict: use onConflictDoNothing() / onConflictDoUpdateSet(...)
+    ```
+=== "Oracle"
+    ```oracle
+    -- Oracle doesn't support insert on conflict
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    insert into customer (first_name, last_name, company_id)
+    values ($1, $2, $3)
+    on conflict (first_name, last_name) do update set
+        company_id = excluded.company_id
+    where customer.company_id <> excluded.company_id
+    returning
+        id as id,
+        company_id as "companyId"
+    ```
+=== "SQLite"
+    ```sqlite
+    insert into customer (first_name, last_name, company_id)
+    values (?1, ?2, ?3)
+    on conflict (first_name, last_name) do update set
+        company_id = excluded.company_id
+    where customer.company_id <> excluded.company_id
+    returning
+        id as id,
+        company_id as companyId
+    ```
+=== "SQL Server"
+    ```sqlserver
+    -- SQL Server doesn't support insert on conflict
+    ```
+
+The parameters are: `[ 'John', 'Smith', 1 ]`
+
+The result type is:
+```tsx
+const updatedCustomer: {
+    id: number;
+    companyId: number;
+} | null
+```
+
 ## Updating only the values that have a value
 
-`onConflictDoUpdateSetIfValue(...)` (and `doUpdateSetIfValue(...)` after choosing the conflict) only updates the columns whose value is not `null`, `undefined`, an empty string (unless the connection allows empty strings) or an empty array; the others keep their current value.
+`onConflictDoUpdateSetIfValue(...)` (and `doUpdateSetIfValue(...)` after choosing the conflict) only updates the columns whose value is not `null`, `undefined`, an empty string (unless the connection allows empty strings) or an empty array; the others keep their current value. It's useful when the values come from outside and a missing one must not overwrite what the row already has. If no column has a value, there is nothing to update, and the clause does nothing on a conflict.
 
 === "MariaDB"
     ```ts

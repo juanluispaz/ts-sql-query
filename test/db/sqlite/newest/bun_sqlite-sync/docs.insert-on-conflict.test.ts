@@ -350,6 +350,46 @@ describe(ctx.label, () => {
         })
     })
 
+    test('docs:insert-on-conflict/do-update-where-returning', async () => {
+        // The seeded project 1 has a different name, so the condition lets the update run.
+        ctx.mockNext({ id: 1, name: 'Marketing web' })
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            // doc-start
+            const tProjectForInsert = tProject.valuesForInsert()
+
+            const updatedProject = sync(connection.insertInto(tProject).set({
+                    organizationId: 1,
+                    slug:           'mktg-site',
+                    name:           'Marketing web',
+                })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSet({
+                    name: tProjectForInsert.name,
+                })
+                .where(tProject.name.notEquals(tProjectForInsert.name))
+                .returning({
+                    id:   tProject.id,
+                    name: tProject.name,
+                })
+                .executeInsertNoneOrOne())
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = excluded.name where project.name <> excluded.name returning id as id, name as name"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "Marketing web",
+              ]
+            `)
+            assertType<Exact<typeof updatedProject, { id: number; name: string } | null>>()
+            expect(updatedProject).toEqual({ id: 1, name: 'Marketing web' })
+        })
+    })
+
     test('docs:insert-on-conflict/do-update-set-if-value', async () => {
         ctx.mockNext(1)
 

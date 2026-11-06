@@ -3,7 +3,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tAppUser, tProject } from '../../domain/connection.js'
+import { tAppUser, tProject, tOrganization } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
 
@@ -11,6 +11,74 @@ describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
+
+    test('docs:basic-query-structure/how-a-query-reads', async () => {
+        const expected = [
+            { id: 2, name: 'Internal tools', organizationName: 'Acme Corp' },
+            { id: 1, name: 'Marketing site', organizationName: 'Acme Corp' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const projects = sync(connection.selectFrom(tProject)
+            .innerJoin(tOrganization).on(tProject.organizationId.equals(tOrganization.id))
+            .where(tOrganization.name.equals('Acme Corp'))
+            .select({
+                id:               tProject.id,
+                name:             tProject.name,
+                organizationName: tOrganization.name,
+            })
+            .orderBy('name')
+            .limit(10)
+            .executeSelectMany())
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, organization.name as organizationName from project inner join organization on project.organization_id = organization.id where organization.name = ?1 order by name limit ?2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "Acme Corp",
+            10,
+          ]
+        `)
+        assertType<Exact<typeof projects, Array<{
+            id:               number
+            name:             string
+            organizationName: string
+        }>>>()
+        expect(projects).toEqual(expected)
+    })
+
+    test('docs:basic-query-structure/order-of-the-clauses', async () => {
+        const connection = ctx.conn
+
+        // doc-start
+        const whereFirst = connection.selectFrom(tProject)
+            .where(tProject.organizationId.equals(1))
+            .select({
+                id:   tProject.id,
+                name: tProject.name,
+            })
+            .orderBy('name')
+
+        const whereLast = connection.selectFrom(tProject)
+            .select({
+                id:   tProject.id,
+                name: tProject.name,
+            })
+            .orderBy('name')
+            .where(tProject.organizationId.equals(1))
+        // doc-end
+
+        expect(whereFirst.query()).toMatchInlineSnapshot(`"select id as id, name as name from project where organization_id = ?1 order by name"`)
+        expect(whereFirst.params()).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(whereLast.query()).toBe(whereFirst.query())
+        expect(whereLast.params()).toEqual(whereFirst.params())
+    })
 
     test('docs-extra:basic-query-structure/select-many', async () => {
         const expected = [

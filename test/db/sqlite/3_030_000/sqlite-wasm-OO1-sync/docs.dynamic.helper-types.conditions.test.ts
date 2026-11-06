@@ -143,10 +143,11 @@ describe(ctx.label, () => {
         assertType<Exact<NonNullable<Filter['customLocalDateTime']>, CustomLocalDateTimeFilter<'a' | 'b'>>>()
     })
 
-    test('docs-extra:utilities-conditions/a-branded-property-counts-as-a-union', () => {
+    test('docs-extra:utilities-conditions/a-branded-property-has-equality-and-comparison', () => {
         type Code = string & { __brand: 'code' }
         type Filter = DynamicConditionForModel<{ code: Code; name: string; optional?: string | null }>
-        assertType<Exact<NonNullable<Filter['code']>, EqualableFilter<Code>>>()
+        assertType<Exact<NonNullable<Filter['code']>, ComparableFilter<Code>>>()
+        assertType<Exact<NonNullable<DynamicConditionForModel<{ kind: 'a' | 'b' }>['kind']>, EqualableFilter<'a' | 'b'>>>()
         assertType<Exact<NonNullable<Filter['name']>, StringFilter>>()
         assertType<Exact<NonNullable<Filter['optional']>, StringFilter>>()
     })

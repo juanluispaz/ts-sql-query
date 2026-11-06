@@ -34,16 +34,20 @@ export type {
  * `dynamicConditionFor(columns).withValues(...)` expects, with no value-source type
  * leaking into the public signature.
  *
- * Only the value categories the filter engine distinguishes are mapped; columns with a
- * custom-typed adapter (e.g. a branded `customComparable`) cannot be told apart from
- * their base type here, and non-filterable object values (arrays, Map/Set, binary, …)
- * map to `never`. For those, build the definition with the descriptor map directly.
+ * The type says nothing about how the column is defined. A branded string or number is
+ * some custom type, and which one can't be known here: `customComparable` has the operators
+ * that fit all of them, and it keeps the brand in the values. Non-filterable object values
+ * (arrays, Map/Set, binary, …) map to `never`. For those, or for the exact filter of a
+ * column, build the definition with the descriptor map directly.
  */
+// A brand adds keys that the base type doesn't have, and a union of literals doesn't.
+type IsBrandOf<T, BASE> = [Exclude<keyof T, keyof BASE>] extends [never] ? false : true
+
 type DynamicDefinitionFieldForModel<T> =
     [T] extends [boolean] ? 'boolean' :
     [T] extends [bigint] ? 'bigint' :
-    [T] extends [number] ? ([number] extends [T] ? 'int' : ['enum', T]) :
-    [T] extends [string] ? ([string] extends [T] ? 'string' : ['enum', T]) :
+    [T] extends [number] ? ([number] extends [T] ? 'int' : IsBrandOf<T, number> extends true ? ['customComparable', T] : ['enum', T]) :
+    [T] extends [string] ? ([string] extends [T] ? 'string' : IsBrandOf<T, string> extends true ? ['customComparable', T] : ['enum', T]) :
     [T] extends [Date] ? 'localDateTime' :
     // Date matched above; any other terminal value object (RegExp, binary, …) or non-value
     // object (arrays, Map/Set, …) is not filterable → `never`. Plain objects recurse.

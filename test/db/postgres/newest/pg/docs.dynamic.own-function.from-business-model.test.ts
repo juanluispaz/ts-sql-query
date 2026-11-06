@@ -5,7 +5,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import type { ComparableFilter, DynamicCondition, DynamicConditionForModel, DynamicDefinitionForModel } from '../../../../../src/dynamic/condition.js'
+import type { CustomDoubleFilter, DynamicCondition, DynamicConditionForModel, DynamicDefinitionForModel } from '../../../../../src/dynamic/condition.js'
 import type { OrderByForModel } from '../../../../../src/dynamic/orderBy.js'
 import { dynamicPickPaths, expandTypeFromDynamicPickPaths } from '../../../../../src/dynamic/pick.js'
 import type { DeepPick, DeepPickPaths } from '../../../../../src/extras/deepUtilities.js'
@@ -226,7 +226,7 @@ describe(ctx.label, () => {
             total: Money
         }
 
-        type InvoiceFilter = DynamicCondition<DynamicDefinitionForModel<Omit<Invoice, 'total'>> & { total: ['customComparable', Money] }>
+        type InvoiceFilter = DynamicCondition<DynamicDefinitionForModel<Omit<Invoice, 'total'>> & { total: ['customDouble', Money] }>
 
         const filter: InvoiceFilter = {
             id: { equals: 1 },
@@ -234,7 +234,7 @@ describe(ctx.label, () => {
         }
         // doc-end
 
-        assertType<Exact<NonNullable<InvoiceFilter['total']>, ComparableFilter<Money>>>()
+        assertType<Exact<NonNullable<InvoiceFilter['total']>, CustomDoubleFilter<Money>>>()
         expect(filter.total?.greaterThan).toBe(100)
     })
 
@@ -274,8 +274,8 @@ describe(ctx.label, () => {
             status: ['enum', 'active' | 'inactive']
             level: ['enum', 1 | 2]
             group: { id: 'int' }
-            brandedString: ['enum', Brand<string, 'Code'>]
-            brandedNumber: ['enum', Brand<number, 'Money'>]
+            brandedString: ['customComparable', Brand<string, 'Code'>]
+            brandedNumber: ['customComparable', Brand<number, 'Money'>]
             brandedBigint: 'bigint'
             brandedDate: 'localDateTime'
             list: never
@@ -360,5 +360,22 @@ describe(ctx.label, () => {
           ]
         `)
         expect(result).toEqual([{ id: 1 }])
+    })
+
+    test('docs-extra:from-business-model/a-branded-property-compares-on-its-column', async () => {
+        type Semver = string & { readonly brand: 'Semver' }
+        const expected = [{ id: 2 }]
+        ctx.mockNext(expected)
+
+        const filter: DynamicConditionForModel<{ version: Semver }> = { version: { greaterThan: '1.2.0' as Semver } }
+
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ version: tProjectRelease.version }).withValues(filter))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version > $1 order by id"`)
+        expect(rows).toEqual(expected)
     })
 })

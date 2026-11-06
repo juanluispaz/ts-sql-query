@@ -783,8 +783,8 @@ describe(ctx.label, () => {
         // the `['customComparable', T]` descriptor maps to a
         // ComparableFilter<T>. tProjectRelease.version is a branded
         // customComparable column; the dynamic filter must emit exactly the
-        // direct comparable calls. The model path cannot reach custom arms
-        // (it can't map adapters), so the descriptor map is the only route.
+        // direct comparable calls. A plain `string` in a model doesn't reach the custom
+        // arms, so here the descriptor map is the route.
         type ReleaseFilter = DynamicCondition<{ id: 'int', version: ['customComparable', string] }>
         const filter: ReleaseFilter = { version: { greaterThan: '0.5.0', lessThan: '1.3.0', equals: '1.2.0' } }
 

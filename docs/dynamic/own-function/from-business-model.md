@@ -527,7 +527,7 @@ An interface says nothing about the column, so the operators of a property come 
 
 | Property in the interface | What the filter offers | What differs from the column |
 |---|---|---|
-| A branded `string` or `number`, like `number & { brand: 'Money' }` | Equality, as for a union of literals | A `customComparable` column, or a `customInt`, `customDouble` or `customUuid` one, has more operators |
+| A branded `string` or `number`, like `number & { brand: 'Money' }` | Equality and comparison, with values of that type | A `custom` column has only equality in its own filter, but a comparison is accepted and sent to the database. The text operators, like `contains`, aren't offered |
 | A custom type written as a plain type, like `string` for a `customComparable` column | All the operators of that type | The text operators, like `contains`, aren't in the column's own filter, but they are accepted and sent to the database |
 | An object of your own, like a custom type stored in one column | A group of properties, one filter for each | The column is one value, with equality |
 | An array, a `Map`, a `Set`, a function, a binary value, a `RegExp`, or a union of different types like `string \| number` | Nothing: the filter can't use that property | |
@@ -546,7 +546,7 @@ interface Invoice {
     total: Money
 }
 
-type InvoiceFilter = DynamicCondition<DynamicDefinitionForModel<Omit<Invoice, 'total'>> & { total: ['customComparable', Money] }>
+type InvoiceFilter = DynamicCondition<DynamicDefinitionForModel<Omit<Invoice, 'total'>> & { total: ['customDouble', Money] }>
 
 const filter: InvoiceFilter = {
     id: { equals: 1 },

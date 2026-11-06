@@ -315,7 +315,7 @@ const filter: CustomerFilter = {
 
 An interface has only TypeScript types, so it doesn't say how the column is defined. Two cases need a definition with the names of the types instead of a model:
 
-- A column with a [custom type](../../configuration/column-types.md): the filter depends on the TypeScript type alone. If the property is a `string`, it gets `StringFilter`. If it's a type made more specific, like `string & { __brand: 'code' }`, it counts as a union of texts and gets `EqualableFilter`.
+- A column with a [custom type](../../configuration/column-types.md): the filter depends on the TypeScript type alone. If the property is a `string`, it gets `StringFilter`. If it's a type made more specific, like `string & { __brand: 'code' }`, it can be any custom type, so it gets `ComparableFilter` of that type.
 - A property that is an array, a `Map`, a `Set` or a binary value: it has no filter, and it doesn't appear in the type.
 
 [Rules of your own](../caller-decides/filters.md#rules-of-your-own) go in the second type argument, as in `DynamicCondition`.

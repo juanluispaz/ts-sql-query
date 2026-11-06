@@ -49,7 +49,7 @@ interface DeleteExpression {
      * Execute the delete query that returns one result from the database.
      * If no result is returned by the database an exception will be thrown.
      */
-    executeDeleteOne(min?: number, max?: number): Promise<RESULT>
+    executeDeleteOne(): Promise<RESULT>
     /** 
      * Execute the delete query that returns zero or many results from the database 
      * 

@@ -43,6 +43,10 @@ A generated primary key is new in each insert, so it normally only conflicts whe
 | The new values in the update: `valuesForInsert()` | Yes | Yes | Yes | Yes |
 | Get something back: `returning` or `returningLastInsertedId` | 10.5+ | No | Yes | 3.35+ |
 
+!!! warning
+
+    On MySQL and MariaDB, `onConflictDoNothing()` is written `insert ignore`, and that doesn't only ignore a conflict on a unique key: it also turns other errors into warnings. On MySQL, for example, a `null` in a column that doesn't accept it is inserted as the empty value of the type, so the row is inserted with a value you didn't ask for.
+
 What isn't available is a compilation error. PostgreSQL requires saying which conflict an update handles, which is why it has no `onConflictDoUpdateSet`: use `onConflictOn(...)` followed by `doUpdateSet(...)`.
 
 The clause can follow the values of [one row](insert.md#insert-one-row), of [several rows](insert.md#insert-multiple-values) and an [insert from select](insert.md#insert-from-select); it can't follow [`defaultValues()`](insert.md#insert-default-values).

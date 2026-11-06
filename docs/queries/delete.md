@@ -553,7 +553,7 @@ const deleteCustomer: Promise<number>
 
 ## Other options
 
-- `where` can be called once: add more conditions with `and` and `or`, or build them step by step with [`dynamicWhere`](dynamic-queries.md#easy-dynamic-queries).
+- `where` can be called once: add more conditions with `and` and `or`, or build them step by step with [`dynamicWhere`](dynamic-queries.md#building-a-condition-step-by-step).
 - `customizeQuery` adds raw SQL to the query and names its execution: see [Customizing a delete](sql-fragments.md#customizing-a-delete).
 - `query()` and `params()` return the SQL and the parameters without executing the query.
 

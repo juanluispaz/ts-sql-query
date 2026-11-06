@@ -7,7 +7,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tOrganization, tAppUser, tProject, tWebhookEvent } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import { TsSqlError, TsSqlQueryExecutionError } from '../../../../../src/TsSqlError.js'
+import { TsSqlError, TsSqlQueryExecutionError, QueryExecutionSource, TsSqlProcessingError } from '../../../../../src/TsSqlError.js'
 import { sync } from '../../../../../src/extras/sync.js'
 
 // The statements the test ran; a transaction managed by the driver doesn't record its begin and commit.
@@ -181,6 +181,100 @@ describe(ctx.label, () => {
     })
     */
 
+    test('docs:transaction/running-the-transaction-again', async () => {
+        const connection = ctx.conn
+        let bodyRuns = 0
+        let result = 0
+
+        await ctx.withReseed(async () => {
+            // doc-start
+            async function transactionWithRetry<T>(fn: () => Promise<T>, attempts: number): Promise<T> {
+                for (let attempt = 1; ; attempt++) {
+                    try {
+                        return await connection.transaction(fn)
+                    } catch (error) {
+                        const canRetry = error instanceof TsSqlQueryExecutionError
+                            && error.errorReason.reason === 'TRANSACTION_ERROR'
+                            && (error.errorReason.transactionErrorType === 'deadlock' || error.errorReason.transactionErrorType === 'serialization failure')
+                        if (!canRetry || attempt >= attempts) {
+                            throw error
+                        }
+                    }
+                }
+            }
+            // doc-end
+
+            result = await transactionWithRetry(async () => {
+                bodyRuns += 1
+                if (bodyRuns === 1) {
+                    throw new TsSqlQueryExecutionError(new QueryExecutionSource('Query executed at'), { reason: 'TRANSACTION_ERROR', transactionErrorType: 'deadlock' }, 'A deadlock')
+                }
+                return 7
+            }, 3)
+        })
+
+        assertType<Exact<typeof result, number>>()
+        expect(result).toBe(7)
+        expect(bodyRuns).toBe(2)
+    })
+
+    test('docs-extra:transaction/failures-arrive-through-the-promise', async () => {
+        const connection = ctx.conn
+        const reasonOf = (e: unknown) => e instanceof TsSqlQueryExecutionError ? e.errorReason.reason : undefined
+
+        // The calls don't throw: without a transaction, each one returns a rejected promise.
+        let commitError: unknown
+        let rollbackError: unknown
+        await connection.commit().catch((e: unknown) => { commitError = e })
+        await connection.rollback().catch((e: unknown) => { rollbackError = e })
+
+        expect(reasonOf(commitError)).toBe('NOT_IN_TRANSACTION')
+        expect(reasonOf(rollbackError)).toBe('NOT_IN_TRANSACTION')
+    })
+
+    test('docs-extra:transaction/what-has-no-promise-throws', async () => {
+        const connection = ctx.conn
+        let caught: unknown
+
+        try {
+            connection.getTransactionMetadata()
+        } catch (e) {
+            caught = e
+        }
+
+        expect(caught).toBeInstanceOf(TsSqlProcessingError)
+        expect(caught instanceof TsSqlError && caught.errorReason.reason).toBe('NOT_IN_TRANSACTION')
+        expect(connection.isTransactionActive()).toBe(false)
+    })
+
+    test('docs-extra:transaction/nested-rejected-outer-goes-on', async () => {
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        const connection = ctx.conn
+        let innerError: unknown
+
+        await ctx.withReseed(async () => {
+            await connection.transaction(async () => {
+                sync(connection.insertInto(tOrganization).set({ name: 'Top Organization', plan: 'free' }).executeInsert())
+                await connection.transaction(async () => 1).catch((e: unknown) => { innerError = e })
+            })
+
+            const savedOrganizations = sync(connection.selectFrom(tOrganization)
+                .where(tOrganization.name.equals('Top Organization'))
+                .selectCountAll()
+                .executeSelectOne())
+            expect(savedOrganizations).toBe(1)
+        })
+
+        if (ctx.realDbEnabled) {
+            expect(innerError).toBeInstanceOf(TsSqlQueryExecutionError)
+            expect(innerError instanceof TsSqlError && innerError.errorReason.reason).toBe('NESTED_TRANSACTION_NOT_SUPPORTED')
+        } else {
+            // The mock runner allows a nested transaction.
+            expect(innerError).toBeUndefined()
+        }
+    })
+
     test('docs:transaction/native-connection', async () => {
         const jobs: Array<{ name: string; hasClient: boolean }> = []
         const jobQueue = {
@@ -280,6 +374,51 @@ describe(ctx.label, () => {
 
             expect(ctx.lastTransactionOpts).toEqual(['snapshot', 'read only'])
         })
+    })
+    */
+
+    // NOT-APPLICABLE: SQLite has no transaction isolation or access mode to choose, so the connection has no isolationLevel method.
+    /*
+    test('docs:transaction/access-mode', async () => {
+        ctx.mockNext([{ id: 1, name: 'Acme' }, { id: 2, name: 'Globex' }])
+        const connection = ctx.conn
+
+        await ctx.withReseed(async () => {
+            // doc-start
+            const organizations = await connection.transaction(async () => {
+                return await connection.selectFrom(tOrganization)
+                    .select({ id: tOrganization.id, name: tOrganization.name })
+                    .orderBy('id')
+                    .executeSelectMany()
+            }, connection.isolationLevel('read only'))
+            // doc-end
+
+            expect(ctx.lastTransactionOpts).toEqual([undefined, 'read only'])
+            expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot()
+            assertType<Exact<typeof organizations, { id: number; name: string }[]>>()
+            expect(organizations).toHaveLength(2)
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: SQLite has no transaction isolation or access mode to choose, so the connection has no isolationLevel method.
+    /*
+    test('docs-extra:transaction/read-only-rejects-a-write', async () => {
+        ctx.mockNext(1)
+        const connection = ctx.conn
+        let caught: unknown
+
+        await ctx.withReseed(async () => {
+            await connection.transaction(async () => {
+                await connection.insertInto(tOrganization).set({ name: 'Top Organization', plan: 'free' }).executeInsert()
+            }, connection.isolationLevel('read only')).catch((e: unknown) => { caught = e })
+        })
+
+        if (ctx.realDbEnabled) {
+            expect(caught instanceof TsSqlError && caught.errorReason.reason).toBe('SQL_READ_ONLY_VIOLATION')
+        } else {
+            expect(caught).toBeUndefined()
+        }
     })
     */
 

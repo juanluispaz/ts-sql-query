@@ -4,34 +4,125 @@ search:
 ---
 # SQL fragments
 
-This page documents the use of SQL fragments in `ts-sql-query`.
+A SQL fragment is a piece of SQL written by you, which the library puts in the query as you wrote it. It's what you use when the library doesn't offer what you need: a function or an operator of your database, a hint for the optimizer, a clause like `for update`.
 
-Fragments allow injecting custom SQL expressions at specific points in a query, enabling support for operations that are not covered by the built-in API. They are intended for advanced use cases where database-specific features or unsupported syntax need to be expressed manually, while maintaining type safety.
+Use the methods of the library first. They are translated to each database and checked by the compiler. The text of a fragment isn't: the library doesn't read it, so it goes to the database as it is, and a mistake in it shows up when the database rejects the query.
 
-The following mechanisms are supported:
+## Which tool to use
 
-- `fragmentWithType`: injects raw SQL expressions with declared type and nullability.
-- `buildFragmentWithArgs`: defines reusable fragments with arguments.
-- `buildFragmentWithArgsIfValue`: adds conditional logic to omit fragments based on null or undefined inputs.
-- `buildFragmentWithMaybeOptionalArgs`: infers nullability of the result based on the arguments provided.
-- `aggregateFragmentWithType` / `buildAggregateFragmentWithArgs` / `buildAggregateFragmentWithArgsIfValue` / `buildAggregateFragmentWithMaybeOptionalArgs`: the aggregate counterparts of the four mechanisms above, for fragments that wrap an aggregate function.
-- `rawFragment`: inserts raw SQL without type guarantees.
-- `createTableOrViewCustomization`: defines alternative renderings for table or view references.
-- `customizeQuery`: customizes the generated SQL for `SELECT`, `INSERT`, `UPDATE`, and `DELETE` statements.
+| You need | Use | Details |
+|---|---|---|
+| A value or a condition, written once in a query | `fragmentWithType` | [Inline fragments](#inline-fragments) |
+| The same fragment in several queries, as a function with arguments | `buildFragmentWithArgs` | [Reusable fragments](#reusable-fragments) |
+| A condition that disappears when a value is missing | `buildFragmentWithArgsIfValue` | [Conditional fragments](#conditional-fragments) |
+| A function whose result is optional only when one of its arguments is | `buildFragmentWithMaybeOptionalArgs` | [Nullable fragments](#nullable-fragments) |
+| An aggregate function | `aggregateFragmentWithType`, `buildAggregateFragmentWithArgs`, `buildAggregateFragmentWithArgsIfValue`, `buildAggregateFragmentWithMaybeOptionalArgs` | [Aggregate fragments](#aggregate-fragments) |
+| A computed column, available in a table or view like the others | `virtualColumnFromFragment`, `optionalVirtualColumnFromFragment` | [Virtual columns](#virtual-columns) |
+| SQL with no type: an order by item, the name of a constraint | `rawFragment` | [Raw fragments](#raw-fragments) |
+| Another way of writing a table in the `from` | `createTableOrViewCustomization` | [Table or view customization](#table-or-view-customization) |
+| SQL at a fixed position of the statement, or a name for its execution | `customizeQuery` | [Customizing queries](#customizing-queries-with-raw-sql) |
 
-Each feature is described in its own section with examples of usage, generated SQL, and type inference.
+`fragmentWithType` and `aggregateFragmentWithType` have no arguments: you write them directly in the query, and they are public methods of the connection. The `build...` methods are `protected`: you call them in your connection class, and the result is a function you can use in any query.
+
+There are two kinds of fragment, and the difference is the type:
+
+| | Typed fragment (`fragmentWithType` and the rest) | `rawFragment` |
+|---|---|---|
+| Its type | The one you declare | None |
+| In `select`, `where`, `having`, or inside another expression | Yes | No |
+| Methods like `.concat` or `.equals` | Yes | No |
+| In `orderBy` | Yes | Yes |
+| In the hooks of `customizeQuery`, a table customization, `onConflictOnConstraint` | No | Yes |
+| What it takes in `${...}` | A value | A value, or a whole query |
+| How many `${...}` | Up to seven | Any number |
+
+## Values in a fragment
+
+The text of the template goes to the database as it is. Only what you put in `${...}` goes through the library:
+
+| In `${...}` | What is written in the SQL |
+|---|---|
+| A column, like `${tCustomer.firstName}` | The name of the column, with its table when it's needed |
+| A value, like `${connection.const(id, 'int')}` | A parameter: a placeholder in the SQL, with the value sent apart |
+| An expression, like `${tCustomer.id.add(1)}` | Its SQL, with its parameters |
+| A query, only in a `rawFragment` | Its SQL, with its parameters |
+
+The parameters are what keeps the values safe: the database receives the query and the values separately, so a value is never read as SQL. This query looks for a customer with that strange name, and it finds none, whatever the value says:
+
+```ts
+const searchedName = "x' or '1'='1";
+
+const customersWithName = connection.selectFrom(tCustomer)
+    .where(connection.fragmentWithType('boolean', 'required').sql`lower(${tCustomer.firstName}) = lower(${connection.const(searchedName, 'string')})`)
+    .select({
+        id: tCustomer.id
+    })
+    .executeSelectMany();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select id as id 
+    from customer 
+    where lower(first_name) = lower(?)
+    ```
+=== "MySQL"
+    ```mysql
+    select id as id 
+    from customer 
+    where lower(first_name) = lower(?)
+    ```
+=== "Oracle"
+    ```oracle
+    select id as "id" 
+    from customer 
+    where lower(first_name) = lower(:0)
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select id as id 
+    from customer 
+    where lower(first_name) = lower($1)
+    ```
+=== "SQLite"
+    ```sqlite
+    select id as id 
+    from customer 
+    where lower(first_name) = lower(?1)
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select id as id 
+    from customer 
+    where lower(first_name) = lower(@0)
+    ```
+
+The parameters are: `[ "x' or '1'='1" ]`
+
+The result type is:
+```tsx
+const customersWithName: Promise<{
+    id: number;
+}[]>
+```
+
+A plain value in `${...}` doesn't compile, so it can't end up in the text by mistake: pass it with `connection.const(value, type)` or as an [argument](#reusable-fragments).
+
+!!! warning "What keeps a fragment safe depends on you"
+
+    - **Never build the text of a fragment from the data of a request.** The text of a template is written in your code, and it takes a cast to make it something else. That cast opens the door to SQL injection, and the library can't protect you from it.
+    - **A parameter stands for a value only**, never for the name of a column or a keyword. If a request chooses a column, choose between fragments written in your code.
+    - **Don't write quotes around `${...}`.** In `'%${name}%'` the placeholder ends up inside a text, so it isn't a parameter: PostgreSQL rejects the query, and SQLite looks for the characters `%?1%`. Join the pieces in SQL, as in `'%' || ${name} || '%'`, with the operator of your database.
 
 ## Defining custom SQL expressions
 
-This section describes how to define custom SQL expressions that can be used inside queries. These expressions are implemented as fragments and behave like inline SQL functions, enabling support for database-specific operators or operations not directly supported by `ts-sql-query`.
-
-Fragments can be defined with fixed arguments, conditional logic based on optional values, or inferred nullability depending on the input. All of them preserve type safety and integrate seamlessly with the rest of the query building process.
+These are the ways of writing a typed fragment. All of them give a value that you use like any other expression of the library.
 
 ### Inline fragments
 
-SQL fragments allow you to inject raw SQL into your queries, enabling operations not natively supported by `ts-sql-query`.
-
-The example uses functions every database has, so it runs anywhere; in your queries you can write whatever your database offers.
+`fragmentWithType` receives the type of the value and whether it can be null, and its `sql` receives the template. The example uses functions every database has, so it runs anywhere; in your queries you can write whatever your database offers.
 
 ```ts
 const id = 10;
@@ -106,11 +197,43 @@ const customersUsingCustomFragment: Promise<{
 } | null>
 ```
 
+A typed fragment is a value like any other: you can select it, compare it and call its methods, like `` connection.fragmentWithType('string', 'required').sql`lower(${tCustomer.firstName})`.concat('!') ``. It doesn't need any `${...}`.
+
+### The type you declare
+
+`fragmentWithType(type, 'required' | 'optional', adapter?)` takes the same [data types as a column](../configuration/column-types.md). For a custom type or an enum, it also takes a name and the TypeScript type, as a column does:
+
+```ts
+const customersWithAgeGroup = connection.selectFrom(tCustomer)
+    .select({
+        id: tCustomer.id,
+        ageGroup: connection.fragmentWithType<'adult' | 'minor'>('enum', 'ageGroup', 'required')
+            .sql`case when ${tCustomer.id} > 100 then 'adult' else 'minor' end`
+    })
+    .executeSelectMany();
+```
+
+The library can't read your SQL, so it trusts what you declare:
+
+- At compile time, the type decides which methods the fragment offers, what it can be compared with, and the type of the property in the result. `'optional'` makes the property optional.
+- Reading the result, the value goes through the same checks and conversions as a column of that type. What you declared and what the database returned have to agree:
+
+| Declared | The database returns | Result |
+|---|---|---|
+| `'int', 'required'` | `5` | `5` |
+| `'int', 'required'` | `null` | The promise is rejected with `MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE` |
+| `'int', 'optional'` | `null` | The row doesn't have the property |
+| `'int', 'required'` | `'abc'` | The promise is rejected with `INVALID_VALUE_RECEIVED_FROM_DATABASE` |
+| `'string', 'required'` | `1` | The promise is rejected with `INVALID_VALUE_RECEIVED_FROM_DATABASE` |
+
+So declare `'optional'` whenever the SQL can give null: the optionality of what you put in `${...}` doesn't reach the fragment. `` fragmentWithType('int', 'required').sql`extract(year from ${tCustomer.birthday})` `` is required because you say so, and a customer with no birthday makes the query fail. These checks only happen to the values the query returns: nothing is checked for a fragment used in a `where` or an `orderBy`. See [the errors the library raises](../api/error-management/library-raised-errors.md).
+
 ### Reusable fragments
 
-You can define functions in your connection that create custom reusable SQL fragments, that let you express operations or functions not available through the default API.
+A function in your connection avoids repeating a fragment, and the rest of your queries use it as if the library offered it.
 
 If you define your connection like:
+
 
 ```ts
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
@@ -128,7 +251,17 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 }
 ```
 
-You will define the function `bitwiseShiftLeft` that receives two `int` as argument and returns an `int`; these arguments can be numbers or elements in the database that represent integer numbers. If you create the argument using the function `valueArg` instead of the `arg` function, the defined function will accept values only but not database elements. You can use the defined function as a regular database function in your query.
+
+`bitwiseShiftLeft` receives two `int`, and returns an `int`. `buildFragmentWithArgs` receives the definition of each argument, up to five of them, and `as` receives a function with each argument as a value you can put in `${...}`:
+
+| Argument | What you can pass | In the SQL |
+|---|---|---|
+| `this.arg(type, 'required' \| 'optional', adapter?)` | A value, a column or an expression | A parameter for a value, the SQL of the rest |
+| `this.valueArg(type, 'required' \| 'optional', adapter?)` | Only a value | A parameter |
+
+A `'required'` argument doesn't accept `null` or `undefined`. A custom type or an enum takes its name too, as in `fragmentWithType`.
+
+You use the function as a regular database function:
 
 ```ts
 const bitwiseMovements = 1;
@@ -212,15 +345,20 @@ const companiesUsingCustomFunctionFragment: Promise<{
 }[]>
 ```
 
+!!! note
+
+    The text isn't translated, so this example only works where the database has that operator: SQL Server has `<<` from 2022, and Oracle doesn't have it, so there you would write `${left} * power(2, ${right})`.
+
+    PostgreSQL has to find out the type of a parameter from the SQL around it. `id << $1` works, but with values on both sides, `$1 << $2`, it rejects the query with `operator is not unique`. Write a cast in the fragment: `${left}::int << ${right}::int`.
+
 ### Conditional fragments
 
-You can define functions in your connection that create custom reusable SQL fragments that behave like functions whose names end with `IfValue`, that let you express operations or functions not available through the default API.
+A function that behaves like the [methods ending in `IfValue`](dynamic-queries.md#all-the-ifvalue-methods): it's left out of the query when it doesn't receive a value, so you can write a filter that only applies when there is something to filter by.
 
-`ts-sql-query` provides several helper methods whose names end in `IfValue` to build dynamic queries; these methods allow to be ignored when the values specified by argument are `null` or `undefined` or an empty string (only when the `allowEmptyString` flag in the connection is not set to true, that is the default behaviour). When these methods are used in operations that return booleans value, `ts-sql-query` is smart enough to omit the operation when it is required, even when the operation is part of complex composition with `and`s and `or`s.
-
-The method `buildFragmentWithArgsIfValue` allows you to create a function, where if any optional value argument receives `null` or `undefined` or an empty string, the execution of the provided function is omitted.
+`buildFragmentWithArgsIfValue` creates a function that returns a condition. It's left out when an optional argument created with `valueArg` receives `null`, `undefined`, or an empty string (unless the `allowEmptyString` flag of the connection is set to true). `0` is a value. An argument created with `arg` never leaves it out: a `null` in it goes to the database as a parameter. As in the other `IfValue` methods, the library takes care of the `and` and `or` it was part of.
 
 If you define your connection like:
+
 
 ```ts
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
@@ -238,7 +376,8 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 }
 ```
 
-You will define the function `valuePlusOneEqualsIfValue` that receives one `int` and one optional `int`, and returns a boolean expression. These arguments can be numbers or database elements. The function is skipped automatically when the optional argument is null or undefined.
+
+`valuePlusOneEqualsIfValue` receives an `int`, which can be a column, and an optional `int` value. When you use it with no value, the condition isn't written:
 
 ```ts
 const noValue = null
@@ -317,9 +456,7 @@ const companiesUsingCustomFunctionFragmentIfValue: Promise<{
 
 ### Nullable fragments
 
-You can define functions in your connection that create custom reusable SQL fragments that detect if the returned value is required or optional based on the provided arguments, that give you the possibility to do some operations or functions not included in `ts-sql-query` allowing to have overloaded version where the returned type can be required or optional.
-
-If you define your connection like:
+A function whose result is optional only when one of the arguments it receives is. If you define your connection like:
 
 ```ts
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
@@ -337,7 +474,8 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 }
 ```
 
-You will define the function `bitwiseShiftLeft` that receives two `int` as argument and returns an `int`; these arguments can be numbers or elements in the database that represent integer numbers. If you create the argument using the function `valueArg` instead of the `arg` function, the defined function will accept values only but not database elements. You can use the defined function as a regular database function in your query. The function will return an optional value if any of the provided arguments when invoked is optional; otherwise, the return type will be marked as required.
+
+`bitwiseShiftLeft` receives two `int`, which can be values, columns or expressions. Its result is optional if an argument is an optional column or expression, or a value that is `null` or `undefined`, and required otherwise. So with `tCompany.id` and a number, as here, it's required.
 
 !!! warning
 
@@ -432,14 +570,14 @@ const companiesUsingCustomFunctionFragment: Promise<{
 
 ### Aggregate fragments
 
-When the SQL expression you inject is an **aggregate function** (one that collapses many rows into a single value, like `COUNT`, `SUM` or a database-specific aggregate `ts-sql-query` doesn't expose), use the aggregate variants of the fragment mechanisms:
+An **aggregate function** collapses many rows into a single value, like `COUNT`, `SUM` or an aggregate of your database that the library doesn't offer. For a fragment that is one, use the aggregate version of each method:
 
-- `aggregateFragmentWithType` — the aggregate counterpart of `fragmentWithType`.
-- `buildAggregateFragmentWithArgs` — the aggregate counterpart of `buildFragmentWithArgs`.
-- `buildAggregateFragmentWithArgsIfValue` — the aggregate counterpart of `buildFragmentWithArgsIfValue`.
-- `buildAggregateFragmentWithMaybeOptionalArgs` — the aggregate counterpart of `buildFragmentWithMaybeOptionalArgs`.
+- `aggregateFragmentWithType` is the aggregate version of `fragmentWithType`.
+- `buildAggregateFragmentWithArgs` is the aggregate version of `buildFragmentWithArgs`.
+- `buildAggregateFragmentWithArgsIfValue` is the aggregate version of `buildFragmentWithArgsIfValue`.
+- `buildAggregateFragmentWithMaybeOptionalArgs` is the aggregate version of `buildFragmentWithMaybeOptionalArgs`.
 
-They behave exactly like their non-aggregate versions, but the value they produce is **marked as an aggregate**. As with the built-in aggregate functions (`count`, `sum`, `avg`, …), the compiler then rejects the result wherever SQL does not allow an aggregate — in a `where(...)` / `.and(...)` / `.or(...)` filter, in `groupBy(...)`, or in a join `on(...)` condition — and accepts it where SQL expects one: `having(...)`, the `select({...})` projection and `orderBy(...)`. This turns a misplaced custom aggregate into a compile-time error instead of a runtime database error.
+They behave like their non-aggregate versions, and their value is **marked as an aggregate**. As with the built-in aggregate functions (`count`, `sum`, `avg`...), the compiler rejects it in `where`, `and`, `or`, `groupBy` and the `on` of a join, and accepts it in `having`, `select` and `orderBy`. A misplaced aggregate is then a compilation error instead of an error of the database.
 
 ```ts
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
@@ -455,13 +593,75 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 }
 ```
 
-You then use the defined function like any aggregate: it is accepted in `having(...)`, in the `select({...})` projection and in `orderBy(...)`, and rejected at compile time in `where(...)` / `.and(...)` / `.or(...)`, in `groupBy(...)` and in join `on(...)` conditions — so misplacing it is caught by the compiler instead of failing at the database.
+For a one-off aggregate you don't need a function: `` connection.aggregateFragmentWithType('int', 'optional').sql`...` `` works inline, as `fragmentWithType` does.
 
-For a one-off aggregate you don't need a reusable function: `connection.aggregateFragmentWithType('int', 'optional').sql` followed by the SQL template produces a marked aggregate inline, the same way `fragmentWithType` does for non-aggregate expressions.
+#### What changes when a fragment is an aggregate
+
+The library can't read your SQL, so it knows there is an aggregate only if you mark it, or if you pass the aggregate in a `${...}`. It uses that in two places:
+
+- [`executeSelectPage`](select-page.md#what-the-total-counts): a select with an aggregate and no `group by` returns one row, and the total has to say so.
+- `groupByNonAggregatedColumns`: an aggregate must stay out of the `group by`.
+
+This is what happens depending on how the aggregate is written, in a select over a table of four rows:
+
+| How it's written | Example | The total of `executeSelectPage` | `groupByNonAggregatedColumns` |
+|---|---|---|---|
+| Marked | `` aggregateFragmentWithType('int', 'required').sql`sum(${tCustomer.id})` `` | `1`, the rows of the result | Leaves it out of the `group by` |
+| In a `${...}` | `` fragmentWithType('int', 'required').sql`abs(${connection.count(tCustomer.id)})` `` | `1`, the rows of the result | Leaves it out of the `group by` |
+| Only in the text | `` fragmentWithType('int', 'required').sql`sum(${tCustomer.id})` `` | `4`, the rows of the table, while `data` has one row | Adds it to the `group by`, and the database rejects the query |
+
+So mark every fragment with an aggregate in its text:
+
+```ts
+const totalCustomers = connection.selectFrom(tCustomer)
+    .select({
+        customers: connection.aggregateFragmentWithType('int', 'required').sql`count(*)`
+    })
+    .executeSelectPage();
+
+const idsPerCompany = connection.selectFrom(tCustomer)
+    .select({
+        companyId: tCustomer.companyId,
+        total: connection.aggregateFragmentWithType('int', 'required').sql`sum(${tCustomer.id})`
+    })
+    .groupByNonAggregatedColumns()
+    .orderBy('companyId')
+    .executeSelectMany();
+```
+
+### Virtual columns
+
+A virtual column doesn't exist in the database: it's a property of your table or view, and each query that uses it writes its SQL. Use one when a computation belongs to the table, so that queries don't repeat a fragment. Its optionality is in the name of the method: `virtualColumnFromFragment` is required, and `optionalVirtualColumnFromFragment` is optional.
+
+```ts
+import { Table } from "ts-sql-query" // or "ts-sql-query/Table";
+
+const tCustomerWithAge = new class TCustomerWithAge extends Table<DBConnection, 'TCustomerWithAge'> {
+    id = this.autogeneratedPrimaryKey('id', 'int');
+    firstName = this.column('first_name', 'string');
+    birthday = this.optionalColumn('birthday', 'localDate');
+
+    upperFirstName = this.virtualColumnFromFragment('string', (fragment) => fragment.sql`upper(${this.firstName})`);
+    age = this.optionalVirtualColumnFromFragment('int', (fragment) => fragment.sql`calculateAge(${this.birthday})`);
+
+    constructor() {
+        super('customer');
+    }
+}();
+```
+
+The `${...}` of the `fragment` only takes the columns of that table. A type adapter can go as the last argument, and a custom type or an enum takes its name after the type. When the table has an alias, the fragment uses it. A virtual column can't be set in an insert or an update, and it's also available in a view and in [`Values`](../api/constant-values-view.md). [Mapping](../configuration/mapping.md#virtual-columns) has a query that uses one.
 
 ### Raw fragments
 
-`ts-sql-query` allows you to write raw SQL to extend and customize the generated queries in several places, like the [extension points of a query](#customizing-a-select) or a [table customization](#table-or-view-customization). This is how you use features the library doesn't support, for example the temporal tables of [SQL Server](../configuration/supported-databases/sqlserver.md):
+`rawFragment` is a piece of SQL with no type. It can't be selected or compared; it goes where the library expects SQL and not a value:
+
+- In [`orderBy`](#ordering-by-a-fragment).
+- In the [hooks of `customizeQuery`](#customizing-queries-with-raw-sql).
+- In a [table customization](#table-or-view-customization).
+- In [`onConflictOnConstraint`](insert-on-conflict.md).
+
+This is how you use features the library doesn't support, for example the temporal tables of [SQL Server](../configuration/supported-databases/sqlserver.md):
 
 ```typescriptreact
 const from = connection.const(new Date('2019-01-01'), 'localDateTime')
@@ -471,11 +671,112 @@ const fragment = connection.rawFragment`for system_time between ${from} and ${to
 
 The [table customization](#table-or-view-customization) below shows a complete query using this clause.
 
+Besides values, a `rawFragment` takes a whole query in `${...}`: a select, or an insert, an update or a delete where the database accepts it. Its SQL and its parameters go in that position. If that query uses a [CTE](cte-subqueries.md), the `with` goes up to the query that contains the fragment.
+
+### Ordering by a fragment
+
+`orderBy` receives a typed fragment or a `rawFragment`, when what you need isn't a property of the select. This query shows one company first, and the rest by name:
+
+```ts
+const preferredCompanyId = 2;
+
+const companiesInOrder = connection.selectFrom(tCompany)
+    .select({
+        id: tCompany.id,
+        name: tCompany.name
+    })
+    .orderBy(connection.rawFragment`case when ${tCompany.id} = ${connection.const(preferredCompanyId, 'int')} then 0 else 1 end`)
+    .orderBy('name')
+    .executeSelectMany();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        name as name 
+    from company 
+    order by 
+        case when company.id = ? then 0 else 1 end, 
+        name
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        `name` as `name` 
+    from company 
+    order by 
+        case when company.id = ? then 0 else 1 end, 
+        `name`
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        name as "name" 
+    from company 
+    order by 
+        case when company.id = :0 then 0 else 1 end, 
+        "name"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        name as name 
+    from company 
+    order by 
+        case when company.id = $1 then 0 else 1 end, 
+        name
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        name as name 
+    from company 
+    order by 
+        case when company.id = ?1 then 0 else 1 end, 
+        name
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        name as name 
+    from company 
+    order by 
+        case when company.id = @0 then 0 else 1 end, 
+        name
+    ```
+
+The parameters are: `[ 2 ]`
+
+The result type is:
+```tsx
+const companiesInOrder: Promise<{
+    id: number;
+    name: string;
+}[]>
+```
+
+What it means for the rest of the query:
+
+- The fragment doesn't change the columns: the rows have only what you selected.
+- The [order mode](select.md#the-order-modes) goes as the second argument: `` .orderBy(connection.rawFragment`...`, 'desc nulls last') ``.
+- A table used in the fragment counts as used, so an [optional join](dynamic-queries.md#optional-joins) of that table stays in the query, and in the count of a page, where it can change the number of rows.
+- [`executeSelectPage`](select-page.md#getting-the-page-and-the-total) leaves the `order by` out of its count, and with it the fragment and its parameters.
+- With `groupBy`, the `orderBy` can have an aggregate: an [aggregate fragment](#aggregate-fragments), or `` connection.rawFragment`count(*)` ``.
+- In a [compound select](compound-select.md#ordering-the-combined-result), the fragment can't use tables, because the order applies to the combined result, so it refers to the name of a column of the result: `` .orderBy(connection.rawFragment`name desc`) ``.
+
 ## Table or view customization
 
-Some databases offer additional features that require writing the table name in some way in the from clause. For example, [SQL Server](../configuration/supported-databases/sqlserver.md) and [MariaDB](../configuration/supported-databases/mariadb.md) have temporal tables that track all the changes in a table, allowing you to query a row with its values at a specific moment in time. For use temporal tables, when you refer to the table in the from, you must indicate the moment in time that you want to query. [Oracle](../configuration/supported-databases/oracle.md) offers something similar called "Oracle Flashback Technology", but with a different syntax.
+Some databases need something extra next to the name of a table in the `from`. For example, [SQL Server](../configuration/supported-databases/sqlserver.md) and [MariaDB](../configuration/supported-databases/mariadb.md) have temporal tables that track all the changes in a table, so you can read a row as it was at a specific moment, which you indicate in the `from`. [Oracle](../configuration/supported-databases/oracle.md) offers something similar called "Oracle Flashback Technology", with a different syntax.
 
-`ts-sql-query` allows you to customize the SQL required to use the table, allowing you to use features not already supported by `ts-sql-query` like the temporal tables. To do it, you must call the `createTableOrViewCustomization` in the connection to create a function that performs that task. This method receives as an argument a function that must return the raw fragment of the SQL; this function receives as arguments the table name and the alias; any other argument will be included in the generated function. The generated function receives as first argument the table or view, as second argument a name for the customization, and any other argument required by the previous function.
+`createTableOrViewCustomization` is a `protected` method for that, which you call in your connection class. It receives a function that returns the raw fragment to write. That function receives the name of the table, its alias, and up to five arguments of yours. The result is a function that receives the table or view, a name for the customization, and your arguments.
 
 **Example**:
 
@@ -589,34 +890,71 @@ On [Oracle](../configuration/supported-databases/oracle.md), use a flashback ver
 
 ## Customizing queries with raw SQL
 
-When you need to inject custom SQL that is not supported natively by `ts-sql-query`,
-you can use the method `customizeQuery`. This method allows you to insert raw fragments at well-defined points in the query, without breaking type safety or the fluent interface.
+`customizeQuery` writes raw fragments in fixed positions of a statement, called hooks, when what you need doesn't have a method: a hint, `for update`, a clause of your database. It also gives a name and metadata to the execution of the query.
 
-Each type of SQL operation (`select`, `insert`, `update`, `delete`) has its own set of supported customization points.
+These are all the hooks, and what each statement offers:
+
+| Hook | Select | Compound select | Insert | Update | Delete |
+|---|---|---|---|---|---|
+| `beforeQuery` | Yes | Yes | Yes | Yes | Yes |
+| `afterSelectKeyword` | Yes | No | No | No | No |
+| `beforeColumns` | Yes | No | No | No | No |
+| `customWindow` | Yes | No | No | No | No |
+| `beforeOrderByItems` | Yes | No | No | No | No |
+| `afterOrderByItems` | Yes | No | No | No | No |
+| `afterInsertKeyword` | No | No | Yes | No | No |
+| `afterUpdateKeyword` | No | No | No | Yes | No |
+| `afterDeleteKeyword` | No | No | No | No | Yes |
+| `afterQuery` | Yes | Yes | Yes | Yes | Yes |
+| `beforeWithQuery` | Yes | Yes | No | No | No |
+| `afterWithQuery` | Yes | Yes | No | No | No |
+| `queryExecutionName` | Yes | Yes | Yes | Yes | Yes |
+| `queryExecutionMetadata` | Yes | Yes | Yes | Yes | Yes |
+
+What applies to all of them:
+
+- `customizeQuery` can be called only once in a query, so all the hooks go in the same object. It usually goes last, before the execute method.
+- A hook receives a `rawFragment`, except the two for the execution. The fragment can use the tables of the query, and the values go as parameters.
+- The library adds the spaces, the commas of the `order by`, and the `window` keyword. The rest of the text is yours, and it has to be valid in your database: the examples of this page only show where each hook writes.
+- Hooks are written in the [count of a select page](select-page.md#customizing-and-monitoring-the-queries) too, except the ones of the `order by`.
 
 ### Customizing a select
 
-The method `customizeQuery` offers you to inject raw fragments of SQL in the query, allowing you to extend its functionality when the required feature is not supported by `ts-sql-query` API.
+Each hook writes in this position of the query:
 
-The extension points supported by the `customizeQuery` method for a `SELECT` query are:
+```text
+/* beforeQuery */ with ...
+select /* afterSelectKeyword */ distinct /* beforeColumns */ columns
+from ...
+where ...
+group by ...
+having ...
+window /* customWindow */
+order by /* beforeOrderByItems */, the items of orderBy, /* afterOrderByItems */
+limit ... offset ...
+/* afterQuery */
+```
 
-| Extension Point         | Description                                                                 |
+| Hook | What it writes |
 |-------------------------|-----------------------------------------------------------------------------|
-| `afterSelectKeyword`    | Place the fragment immediately after the `SELECT` keyword.                  |
-| `beforeColumns`         | Place the fragment before the column list, after `DISTINCT`.                |
-| `customWindow`          | Add a `WINDOW` clause (the keyword is added automatically).                 |
-| `beforeOrderByItems`    | Place the fragment before the `ORDER BY` items (with correct commas).       |
-| `afterOrderByItems`     | Place the fragment after the `ORDER BY` items (with correct commas).        |
-| `beforeQuery`           | Place the fragment at the beginning of the query.                           |
-| `afterQuery`            | Place the fragment at the end of the query.                                 |
-| `beforeWithQuery`       | Insert in `WITH` clause before the subquery’s opening parenthesis.          |
-| `afterWithQuery`        | Insert in `WITH` clause after the subquery’s closing parenthesis.           |
-| `queryExecutionName`    | Assign a human-readable name for query execution.                           |
-| `queryExecutionMetadata`| Attach metadata to the query execution.                                     |
+| `beforeQuery`           | At the beginning of the query, before the `with`.                           |
+| `afterSelectKeyword`    | Immediately after the `select` keyword, before the `distinct`.              |
+| `beforeColumns`         | Before the column list, after the `distinct`.                               |
+| `customWindow`          | A `window` clause. The library writes the `window` keyword.                 |
+| `beforeOrderByItems`    | An item of the `order by`, before the items of `orderBy`.                   |
+| `afterOrderByItems`     | An item of the `order by`, after the items of `orderBy`.                    |
+| `afterQuery`            | At the end of the query, after the `limit` and the `offset`.                |
+| `beforeWithQuery`       | When the select is used as a CTE, before the opening parenthesis of the `with`. |
+| `afterWithQuery`        | When the select is used as a CTE, after the closing parenthesis of the `with`. |
+| `queryExecutionName`    | Nothing in the SQL: a name for the execution of the query.                  |
+| `queryExecutionMetadata`| Nothing in the SQL: any value for the execution of the query.               |
+
 
 !!! warning "`afterSelectKeyword` and `beforeColumns` are for hints and modifiers, not for columns"
 
-    Use these two extension points for optimizer hints or select modifiers (like `/*+ ... */` or `SQL_NO_CACHE`), never to add columns to the select list. `ts-sql-query` relies on the position of the columns it writes in the select list: for example, on some databases `groupBy('<column name>')` is emitted as `group by <position of the column>`, and an extra column placed before the list shifts those positions, making the query group by a different column. To use a raw SQL fragment as a value, select it as a column with an [inline fragment](#inline-fragments), or pass the `rawFragment` to `orderBy`.
+    Use these two hooks for optimizer hints or select modifiers (like `/*+ ... */` or `SQL_NO_CACHE`), never to add columns to the select list. `ts-sql-query` relies on the position of the columns it writes in the select list: for example, on some databases `groupBy('<column name>')` is emitted as `group by <position of the column>`, and an extra column placed before the list shifts those positions, making the query group by a different column. To use a raw SQL fragment as a value, select it as a column with an [inline fragment](#inline-fragments), or pass the `rawFragment` to `orderBy`.
+
+This select adds a hint and locks the row it reads:
 
 ```ts
 const customizedSelect = connection.selectFrom(tCustomer)
@@ -708,21 +1046,424 @@ const customizedSelect: Promise<{
 }>
 ```
 
+This query has all the hooks that write in a select executed directly, except the window, which has [its own example](#a-window):
+
+```ts
+const customersWithHooks = connection.selectFrom(tCustomer)
+    .where(tCustomer.companyId.equals(1))
+    .select({
+        id: tCustomer.id,
+        firstName: tCustomer.firstName
+    })
+    .orderBy('firstName')
+    .limit(10)
+    .customizeQuery({
+        beforeQuery: connection.rawFragment`/* beforeQuery */`,
+        afterSelectKeyword: connection.rawFragment`/* afterSelectKeyword */`,
+        beforeColumns: connection.rawFragment`/* beforeColumns */`,
+        beforeOrderByItems: connection.rawFragment`${tCustomer.lastName} desc`,
+        afterOrderByItems: connection.rawFragment`${tCustomer.id} desc`,
+        afterQuery: connection.rawFragment`/* afterQuery */`
+    })
+    .executeSelectMany();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    /* beforeQuery */ select /* afterSelectKeyword */ /* beforeColumns */ 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    where company_id = ? 
+    order by 
+        customer.last_name desc, 
+        firstName, 
+        customer.id desc 
+    limit ? /* afterQuery */
+    ```
+=== "MySQL"
+    ```mysql
+    /* beforeQuery */ select /* afterSelectKeyword */ /* beforeColumns */ 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    where company_id = ? 
+    order by 
+        customer.last_name desc, 
+        firstName, 
+        customer.id desc 
+    limit ? /* afterQuery */
+    ```
+=== "Oracle"
+    ```oracle
+    /* beforeQuery */ select /* afterSelectKeyword */ /* beforeColumns */ 
+        id as "id", 
+        first_name as "firstName" 
+    from customer 
+    where company_id = :0 
+    order by 
+        customer.last_name desc, 
+        "firstName", 
+        customer.id desc 
+    fetch next :1 rows only /* afterQuery */
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    /* beforeQuery */ select /* afterSelectKeyword */ /* beforeColumns */ 
+        id as id, 
+        first_name as "firstName" 
+    from customer 
+    where company_id = $1 
+    order by 
+        customer.last_name desc, 
+        "firstName", 
+        customer.id desc 
+    limit $2 /* afterQuery */
+    ```
+=== "SQLite"
+    ```sqlite
+    /* beforeQuery */ select /* afterSelectKeyword */ /* beforeColumns */ 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    where company_id = ?1 
+    order by 
+        customer.last_name desc, 
+        firstName, 
+        customer.id desc 
+    limit ?2 /* afterQuery */
+    ```
+=== "SQL Server"
+    ```sqlserver
+    /* beforeQuery */ select /* afterSelectKeyword */ /* beforeColumns */ 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    where company_id = @0 
+    order by 
+        customer.last_name desc, 
+        firstName, 
+        customer.id desc 
+    offset 0 rows fetch next @1 rows only /* afterQuery */
+    ```
+
+The parameters are: `[ 1, 10 ]`
+
+The result type is:
+```tsx
+const customersWithHooks: Promise<{
+    id: number;
+    firstName: string;
+}[]>
+```
+
+#### A window
+
+The library has no [window functions](../about/limitations.md), so you write them in a fragment. `customWindow` defines a named window, and a column refers to it with `over`. MySQL has this clause from 8.0.2, and SQL Server from 2022.
+
+```ts
+const customersWithPosition = connection.selectFrom(tCustomer)
+    .select({
+        id: tCustomer.id,
+        position: connection.fragmentWithType('int', 'required').sql`row_number() over company_window`
+    })
+    .orderBy('id')
+    .customizeQuery({
+        customWindow: connection.rawFragment`company_window as (partition by ${tCustomer.companyId} order by ${tCustomer.id})`
+    })
+    .executeSelectMany();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        row_number() over company_window as position 
+    from customer 
+    window company_window as (partition by company_id order by id) 
+    order by id
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        row_number() over company_window as position 
+    from customer 
+    window company_window as (partition by company_id order by id) 
+    order by id
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        row_number() over company_window as "position" 
+    from customer 
+    window company_window as (partition by company_id order by id) 
+    order by "id"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        row_number() over company_window as position 
+    from customer 
+    window company_window as (partition by company_id order by id) 
+    order by id
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        row_number() over company_window as position 
+    from customer 
+    window company_window as (partition by company_id order by id) 
+    order by id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        row_number() over company_window as [position] 
+    from customer 
+    window company_window as (partition by company_id order by id) 
+    order by id
+    ```
+
+The result type is:
+```tsx
+const customersWithPosition: Promise<{
+    id: number;
+    position: number;
+}[]>
+```
+
+#### A select used inside another query
+
+The hooks stay with their select, and the query that uses it has its own:
+
+- When the select is [a CTE](cte-subqueries.md), `beforeQuery` and `afterQuery` are written inside its parentheses, and `beforeWithQuery` and `afterWithQuery` around them, for what the database accepts there, such as `materialized` on PostgreSQL and SQLite. In a select executed directly there is no `with` for these two to go in, and they aren't written.
+- When the select is [an inline value](cte-subqueries.md#inline-subquery-as-value), `beforeQuery` and `afterQuery` are written inside its parentheses.
+
+```ts
+const customerIds = connection.selectFrom(tCustomer)
+    .select({
+        id: tCustomer.id
+    })
+    .customizeQuery({
+        beforeWithQuery: connection.rawFragment`/* beforeWithQuery */`,
+        afterWithQuery: connection.rawFragment`/* afterWithQuery */`
+    })
+    .forUseInQueryAs('customer_ids');
+
+const idsFromCte = connection.selectFrom(customerIds)
+    .select({
+        id: customerIds.id
+    })
+    .executeSelectMany();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    with 
+        customer_ids as /* beforeWithQuery */ (
+            select id as id 
+            from customer
+        ) /* afterWithQuery */ 
+    select id as id 
+    from customer_ids
+    ```
+=== "MySQL"
+    ```mysql
+    with 
+        customer_ids as /* beforeWithQuery */ (
+            select id as id 
+            from customer
+        ) /* afterWithQuery */ 
+    select id as id 
+    from customer_ids
+    ```
+=== "Oracle"
+    ```oracle
+    with 
+        customer_ids as /* beforeWithQuery */ (
+            select id as id 
+            from customer
+        ) /* afterWithQuery */ 
+    select id as "id" 
+    from customer_ids
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    with 
+        customer_ids as /* beforeWithQuery */ (
+            select id as id 
+            from customer
+        ) /* afterWithQuery */ 
+    select id as id 
+    from customer_ids
+    ```
+=== "SQLite"
+    ```sqlite
+    with 
+        customer_ids as /* beforeWithQuery */ (
+            select id as id 
+            from customer
+        ) /* afterWithQuery */ 
+    select id as id 
+    from customer_ids
+    ```
+=== "SQL Server"
+    ```sqlserver
+    with 
+        customer_ids as /* beforeWithQuery */ (
+            select id as id 
+            from customer
+        ) /* afterWithQuery */ 
+    select id as id 
+    from customer_ids
+    ```
+
+The result type is:
+```tsx
+const idsFromCte: Promise<{
+    id: number;
+}[]>
+```
+
 !!! note "Recursive selects consumed as a CTE"
 
     When a recursive `SELECT` (built with `recursiveUnion` / `recursiveUnionAll` / `recursiveUnionOn` / `recursiveUnionAllOn`) is materialized as a common table expression with [`forUseInQueryAs`](recursive-select.md), its outer `select ... from <cte>` projection is dropped — the query that consumes the CTE supplies that projection instead. Because of that, the projection-only hooks `afterSelectKeyword`, `beforeColumns` and `customWindow` customize a `SELECT` clause that no longer exists in the emitted CTE, so they are **not applicable** in this case and have no effect. The other hooks still apply: `beforeQuery` / `afterQuery` bracket the `anchor UNION recursive` body and `beforeWithQuery` / `afterWithQuery` wrap the CTE parentheses. All the hooks — including `afterSelectKeyword`, `beforeColumns` and `customWindow` — take effect as documented when the recursive query is executed directly (`executeSelectMany()`, and so on) instead of being consumed as a CTE.
 
+#### A name and metadata for the execution
+
+`queryExecutionName` and `queryExecutionMetadata` don't change the SQL. They reach your [query runner](../configuration/query-runners/general-purpose/InterceptorQueryRunner.md), which reads them with [`getQueryExecutionName`](../advanced/query-execution-metadata.md#retrieve-the-execution-name-of-a-query) and [`getQueryExecutionMetadata`](../advanced/query-execution-metadata.md#retrieve-additional-execution-metadata), for example to measure each query with a name you recognize. The other statements have them too.
+
+```ts
+const customersOfTheList = connection.selectFrom(tCustomer)
+    .select({
+        id: tCustomer.id
+    })
+    .customizeQuery({
+        queryExecutionName: 'Customers of the list',
+        queryExecutionMetadata: { screen: 'customer-list' }
+    })
+    .executeSelectMany();
+```
+
+### Customizing a compound select
+
+A [compound select](compound-select.md) as a whole has fewer hooks, because it has no `select` keyword or columns of its own. To reach those, call `customizeQuery` on the select inside it, before combining it.
+
+| Hook | What it writes |
+|-------------------------|-----------------------------------------------------------------------------|
+| `beforeQuery`           | At the beginning of the compound select.                                    |
+| `afterQuery`            | At the end of the compound select.                                          |
+| `beforeWithQuery`       | When it's used as a CTE, before the opening parenthesis of the `with`.      |
+| `afterWithQuery`        | When it's used as a CTE, after the closing parenthesis of the `with`.       |
+| `queryExecutionName`    | Nothing in the SQL: a name for the execution of the query.                  |
+| `queryExecutionMetadata`| Nothing in the SQL: any value for the execution of the query.               |
+
+```ts
+const allIds = connection.selectFrom(tCustomer)
+    .select({
+        id: tCustomer.id
+    }).unionAll(
+        connection.selectFrom(tCompany)
+        .select({
+            id: tCompany.id
+        })
+    ).customizeQuery({
+        beforeQuery: connection.rawFragment`/* beforeQuery */`,
+        afterQuery: connection.rawFragment`/* afterQuery */`
+    })
+    .executeSelectMany();
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    /* beforeQuery */ select id as id 
+    from customer 
+    
+    union all 
+    
+    select id as id 
+    from company /* afterQuery */
+    ```
+=== "MySQL"
+    ```mysql
+    /* beforeQuery */ select id as id 
+    from customer 
+    
+    union all 
+    
+    select id as id 
+    from company /* afterQuery */
+    ```
+=== "Oracle"
+    ```oracle
+    /* beforeQuery */ select id as "id" 
+    from customer 
+    
+    union all 
+    
+    select id as "id" 
+    from company /* afterQuery */
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    /* beforeQuery */ select id as id 
+    from customer 
+    
+    union all 
+    
+    select id as id 
+    from company /* afterQuery */
+    ```
+=== "SQLite"
+    ```sqlite
+    /* beforeQuery */ select id as id 
+    from customer 
+    
+    union all 
+    
+    select id as id 
+    from company /* afterQuery */
+    ```
+=== "SQL Server"
+    ```sqlserver
+    /* beforeQuery */ select id as id 
+    from customer 
+    
+    union all 
+    
+    select id as id 
+    from company /* afterQuery */
+    ```
+
+The result type is:
+```tsx
+const allIds: Promise<{
+    id: number;
+}[]>
+```
+
 ### Customizing an insert
 
-The extension points supported by the `customizeQuery` method for an `INSERT` query are:
-
-| Extension Point         | Description                                                           |
+| Hook | What it writes |
 |-------------------------|-----------------------------------------------------------------------|
-| `afterInsertKeyword`    | Place the fragment immediately after the `INSERT` keyword.            |
-| `beforeQuery`           | Place the fragment at the beginning of the query.                     |
-| `afterQuery`            | Place the fragment at the end of the query.                           |
-| `queryExecutionName`    | Assign a human-readable name for query execution.                     |
-| `queryExecutionMetadata`| Attach metadata to the query execution.                               |
+| `beforeQuery`           | At the beginning of the query.                                        |
+| `afterInsertKeyword`    | Immediately after the `insert` keyword, such as `or ignore` on SQLite. |
+| `afterQuery`            | At the end of the query, after the `returning`.                       |
+| `queryExecutionName`    | Nothing in the SQL: a name for the execution of the query.            |
+| `queryExecutionMetadata`| Nothing in the SQL: any value for the execution of the query.         |
 
 ```ts
 const customizedInsert = connection.insertInto(tCustomer).set({
@@ -730,6 +1471,7 @@ const customizedInsert = connection.insertInto(tCustomer).set({
         lastName: 'Smith',
         companyId: 1
     }).customizeQuery({
+        beforeQuery: connection.rawFragment`/* before query */`,
         afterInsertKeyword: connection.rawFragment`/*+ some hints */`,
         afterQuery: connection.rawFragment`log errors reject limit unlimited`
     }).executeInsert()
@@ -739,42 +1481,42 @@ The executed query is:
 
 === "MariaDB"
     ```mariadb
-    insert /*+ some hints */ 
+    /* before query */ insert /*+ some hints */ 
     into customer (first_name, last_name, company_id) 
     values (?, ?, ?) 
     log errors reject limit unlimited
     ```
 === "MySQL"
     ```mysql
-    insert /*+ some hints */ 
+    /* before query */ insert /*+ some hints */ 
     into customer (first_name, last_name, company_id) 
     values (?, ?, ?) 
     log errors reject limit unlimited
     ```
 === "Oracle"
     ```oracle
-    insert /*+ some hints */ 
+    /* before query */ insert /*+ some hints */ 
     into customer (first_name, last_name, company_id) 
     values (:0, :1, :2) 
     log errors reject limit unlimited
     ```
 ===+ "PostgreSQL"
     ```postgresql
-    insert /*+ some hints */ 
+    /* before query */ insert /*+ some hints */ 
     into customer (first_name, last_name, company_id) 
     values ($1, $2, $3) 
     log errors reject limit unlimited
     ```
 === "SQLite"
     ```sqlite
-    insert /*+ some hints */ 
+    /* before query */ insert /*+ some hints */ 
     into customer (first_name, last_name, company_id) 
     values (?1, ?2, ?3) 
     log errors reject limit unlimited
     ```
 === "SQL Server"
     ```sqlserver
-    insert /*+ some hints */ 
+    /* before query */ insert /*+ some hints */ 
     into customer (first_name, last_name, company_id) 
     values (@0, @1, @2) 
     log errors reject limit unlimited
@@ -789,15 +1531,13 @@ const customizedInsert: Promise<number>
 
 ### Customizing an update
 
-The extension points supported by the `customizeQuery` method for an `UPDATE` query are:
- 
-| Extension Point         | Description                                                           |
+| Hook | What it writes |
 |-------------------------|-----------------------------------------------------------------------|
-| `afterUpdateKeyword`    | Place the fragment immediately after the `UPDATE` keyword.            |
-| `beforeQuery`           | Place the fragment at the beginning of the query.                     |
-| `afterQuery`            | Place the fragment at the end of the query.                           |
-| `queryExecutionName`    | Assign a human-readable name for query execution.                     |
-| `queryExecutionMetadata`| Attach metadata to the query execution.                               |
+| `beforeQuery`           | At the beginning of the query.                                        |
+| `afterUpdateKeyword`    | Immediately after the `update` keyword, such as `or ignore` on SQLite. |
+| `afterQuery`            | At the end of the query, after the `returning`.                       |
+| `queryExecutionName`    | Nothing in the SQL: a name for the execution of the query.            |
+| `queryExecutionMetadata`| Nothing in the SQL: any value for the execution of the query.         |
 
 ```ts
 const customizedUpdate = connection.update(tCustomer).set({
@@ -805,6 +1545,7 @@ const customizedUpdate = connection.update(tCustomer).set({
         lastName: 'Smith'
     }).where(tCustomer.id.equals(10))
     .customizeQuery({
+        beforeQuery: connection.rawFragment`/* before query */`,
         afterUpdateKeyword: connection.rawFragment`/*+ some hints */`,
         afterQuery: connection.rawFragment`keep plan`,
     })
@@ -815,7 +1556,7 @@ The executed query is:
 
 === "MariaDB"
     ```mariadb
-    update /*+ some hints */ customer 
+    /* before query */ update /*+ some hints */ customer 
     set 
         first_name = ?, 
         last_name = ? 
@@ -824,7 +1565,7 @@ The executed query is:
     ```
 === "MySQL"
     ```mysql
-    update /*+ some hints */ customer 
+    /* before query */ update /*+ some hints */ customer 
     set 
         first_name = ?, 
         last_name = ? 
@@ -833,7 +1574,7 @@ The executed query is:
     ```
 === "Oracle"
     ```oracle
-    update /*+ some hints */ customer 
+    /* before query */ update /*+ some hints */ customer 
     set 
         first_name = :0, 
         last_name = :1 
@@ -842,7 +1583,7 @@ The executed query is:
     ```
 ===+ "PostgreSQL"
     ```postgresql
-    update /*+ some hints */ customer 
+    /* before query */ update /*+ some hints */ customer 
     set 
         first_name = $1, 
         last_name = $2 
@@ -851,7 +1592,7 @@ The executed query is:
     ```
 === "SQLite"
     ```sqlite
-    update /*+ some hints */ customer 
+    /* before query */ update /*+ some hints */ customer 
     set 
         first_name = ?1, 
         last_name = ?2 
@@ -860,7 +1601,7 @@ The executed query is:
     ```
 === "SQL Server"
     ```sqlserver
-    update /*+ some hints */ customer 
+    /* before query */ update /*+ some hints */ customer 
     set 
         first_name = @0, 
         last_name = @1 
@@ -877,20 +1618,19 @@ const customizedUpdate: Promise<number>
 
 ### Customizing a delete
 
-The extension points supported by the `customizeQuery` method for a `DELETE` query are:
-
-| Extension Point         | Description                                                           |
+| Hook | What it writes |
 |-------------------------|-----------------------------------------------------------------------|
-| `afterDeleteKeyword`    | Place the fragment immediately after the `DELETE` keyword.            |
-| `beforeQuery`           | Place the fragment at the beginning of the query.                     |
-| `afterQuery`            | Place the fragment at the end of the query.                           |
-| `queryExecutionName`    | Assign a human-readable name for query execution.                     |
-| `queryExecutionMetadata`| Attach metadata to the query execution.                               |
+| `beforeQuery`           | At the beginning of the query.                                        |
+| `afterDeleteKeyword`    | Immediately after the `delete` keyword.                               |
+| `afterQuery`            | At the end of the query, after the `returning`.                       |
+| `queryExecutionName`    | Nothing in the SQL: a name for the execution of the query.            |
+| `queryExecutionMetadata`| Nothing in the SQL: any value for the execution of the query.         |
 
 ```ts
 const customizedDelete = connection.deleteFrom(tCustomer)
     .where(tCustomer.id.equals(10))
     .customizeQuery({
+        beforeQuery: connection.rawFragment`/* before query */`,
         afterDeleteKeyword: connection.rawFragment`/*+ some hints */`,
         afterQuery: connection.rawFragment`keep plan`,
     })
@@ -901,42 +1641,42 @@ The executed query is:
 
 === "MariaDB"
     ```mariadb
-    delete /*+ some hints */ 
+    /* before query */ delete /*+ some hints */ 
     from customer 
     where id = ? 
     keep plan
     ```
 === "MySQL"
     ```mysql
-    delete /*+ some hints */ 
+    /* before query */ delete /*+ some hints */ 
     from customer 
     where id = ? 
     keep plan
     ```
 === "Oracle"
     ```oracle
-    delete /*+ some hints */ 
+    /* before query */ delete /*+ some hints */ 
     from customer 
     where id = :0 
     keep plan
     ```
 ===+ "PostgreSQL"
     ```postgresql
-    delete /*+ some hints */ 
+    /* before query */ delete /*+ some hints */ 
     from customer 
     where id = $1 
     keep plan
     ```
 === "SQLite"
     ```sqlite
-    delete /*+ some hints */ 
+    /* before query */ delete /*+ some hints */ 
     from customer 
     where id = ?1 
     keep plan
     ```
 === "SQL Server"
     ```sqlserver
-    delete /*+ some hints */ 
+    /* before query */ delete /*+ some hints */ 
     from customer 
     where id = @0 
     keep plan

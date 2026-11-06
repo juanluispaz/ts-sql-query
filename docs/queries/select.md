@@ -207,7 +207,7 @@ const customersInOrder = await connection.selectFrom(tCustomer)
     .executeSelectMany();
 ```
 
-When the order comes from outside your code, like a request from a user, use `orderByFromString(...)` or `orderByFromStringArray(...)`, which receive the same names and modes as text: see [Dynamic order by, limit and offset](../dynamic/building-blocks.md#dynamic-order-by-limit-and-offset).
+When the order comes from outside your code, like a request from a user, use `orderByFromString(...)` or `orderByFromStringArray(...)`, which receive the same names and modes as text: see [Order by from a string](dynamic-queries.md#order-by-from-a-string).
 
 ### The order modes
 

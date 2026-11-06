@@ -4,31 +4,39 @@ search:
 ---
 # Extreme dynamic queries
 
-This page presents the most advanced patterns for building dynamic SQL queries with `ts-sql-query`. It explores techniques such as dynamically selecting columns, constructing complex filters from external input, controlling joins conditionally, and shaping the output type accordingly. These features provide maximum flexibility when building highly dynamic APIs or business logic layers, but they also require careful reasoning about query structure and behavior.
+Most dynamic queries only need a condition that disappears when its value is missing, and [Dynamic queries](dynamic-queries.md) explains that. This page is for when the query itself takes its shape at run time: the client chooses the columns that come back, the filter arrives as an object from outside, or using a value depends on the permissions of the user.
+
+None of these techniques sends an extra query: each one changes the single query that is built. What they cost is in your code, and the columns or conditions you read in it may not be the ones that run.
 
 ## Introduction
 
-This section covers more advanced patterns for dynamic query construction. These techniques are powerful, but should be used **only when necessary**.
+Start from what you need, and take the first row that solves it:
 
-In most applications, simple constructs like `.equalsIfValue()` or `.containsIfValue()` are sufficient for building flexible conditions. However, in more complex scenarios — such as dynamically selecting which columns to return, or building filters from condition objects — additional mechanisms are available.
+| You need to | Use | What it costs |
+|---|---|---|
+| Leave out a condition when its value is missing | `equalsIfValue`, `containsIfValue`... in [Dynamic queries](dynamic-queries.md#easy-dynamic-queries) | Nothing: start here |
+| Apply a condition only when a flag of your code says so | `onlyWhen`, `ignoreWhen` in [Dynamic queries](dynamic-queries.md#ignorable-boolean-expression) | Nothing |
+| Join a table only when the query uses it | `optionalJoin` and its family in [Dynamic queries](dynamic-queries.md#optional-joins) | Leaving out a join can change the number of rows |
+| Give everyone the same columns, without the value of those a user can't see | [`onlyWhenOrNull`, `ignoreWhenAsNull`](#hide-a-value-keeping-the-column) | The caller can't tell a hidden value from a null |
+| Decide with `if`s how the conditions combine | [`dynamicBooleanExpressionUsing`](#complex-dynamic-boolean-expressions) | The condition isn't in the text of the query any more |
+| Share a condition or some columns between queries | [A function that receives the table](#bringing-a-condition-from-outside-the-query) | Generic types in the signature of the function |
+| Receive the filter as an object, from a search screen or an API | [`dynamicConditionFor`](#select-using-a-dynamic-filter) | The caller can filter by every field you list, and a wrong filter throws |
+| Let the caller choose the columns | [`dynamicPick`, `dynamicPickPaths`](#select-dynamically-picking-columns) | The columns can disappear, so the properties are optional in the result type, and ordering depends on what was picked |
+| Return the columns the client asks for with `?fields=` | [`dynamicPickPaths`](#the-columns-the-client-asks-for) | The names are only known at run time, and the compiler can't check them |
+| Refuse a query that uses a value the user can't see | [`allowWhen`, `disallowWhen`](#restrict-access-to-values) | You have to handle the error |
+| All of it in one function, with a precise result type | [Full dynamic select](#full-dynamic-select) | Most of the code is types |
 
 !!! warning "These patterns are rarely needed"
 
-    These patterns exist to handle *rare but real* edge cases. They offer great flexibility, but at the cost of increased complexity and reduced readability.
+    They exist for rare but real cases. They give flexibility in exchange for code that is harder to read and queries that are harder to reason about, so prefer the rows at the top of the table.
 
-    Prefer the simpler declarative patterns unless your use case clearly requires this level of dynamic control.
-
-!!! warning "About utility types used in this page"
-
-    The examples in this section use advanced utility types to preserve proper TypeScript inference when selecting columns dynamically.
-
-    For a full reference of the utility functions and types used to define and infer types for dynamic picks, see [Utility for dynamic picks](../dynamic/utilities/picks.md).
+The functions and types used to pick columns, and to type the result, are explained in [Dynamic picks](../dynamic/utilities/picks.md). To type a whole function, see [from the database types](../dynamic/from-database-types.md) or [from a business model](../dynamic/from-business-model.md).
 
 ## Complex dynamic boolean expressions
 
-When the methods ended with `IfValue` are not enough to create dynamic complex boolean expressions, you can call the `dynamicBooleanExpressionUsing` method to create your complex boolean expressions. The `dynamicBooleanExpressionUsing` method is in the connection object. It allows you to create a dynamic expression with the initial value of the special neutral boolean. This method receives by argument the tables you expect to use while constructing the complex boolean expression.
+The methods ending in `IfValue` remove a condition when its value is missing. When what you add depends on the logic of your code, build the condition with `if`s. `connection.dynamicBooleanExpressionUsing(...)` starts with an empty condition, the [neutral boolean](dynamic-queries.md#the-neutral-boolean) (see also [Booleans and three-valued logic](../dynamic/three-valued-booleans.md)), and each `.and(...)` or `.or(...)` returns a new condition that you keep in the variable. It receives the tables that the conditions use, up to five.
 
-The previous example can be written in the following way:
+This is the query of [Easy dynamic queries](dynamic-queries.md#easy-dynamic-queries), written with `if`s:
 
 ```ts
 const firstNameContains = 'ohn';
@@ -147,9 +155,53 @@ const searchedCustomers: Promise<{
 }[]>
 ```
 
+If no `if` adds anything, the condition stays neutral and the query has no `where`. Each `.and` or `.or` applies to everything written before it, as the code reads: `.and(a).or(b).and(c)` is `(a or b) and c`.
+
+### Bringing a condition from outside the query
+
+A condition is a value, so a function can build it and any query can use it. When the query uses an alias of the table, the function has to receive that alias: `TableOrViewOf` is the type of the parameter, and `fromRef` gives back the columns of the table, as [Passing tables and views as parameter](../advanced/tables-views-as-parameter.md) explains.
+
+```ts
+import { fromRef, type TableOrViewOf } from 'ts-sql-query' // or 'ts-sql-query/extras/types'
+
+function nameContains<CUSTOMER extends TableOrViewOf<typeof tCustomer, 'customer'>>(customerRef: CUSTOMER, text: string | null | undefined) {
+    const customer = fromRef(tCustomer, customerRef);
+
+    return customer.firstName.containsInsensitiveIfValue(text)
+        .or(customer.lastName.containsInsensitiveIfValue(text));
+}
+
+const customer = tCustomer.as('customer');
+
+const customers = await connection.selectFrom(customer)
+    .where(nameContains(customer, 'smi'))
+    .select({
+        id: customer.id,
+        firstName: customer.firstName
+    })
+    .executeSelectMany();
+```
+
+A table used in a left join is received with `TableOrViewLeftJoinOf`, as in [Full dynamic select](#full-dynamic-select), which builds its columns and the rules of its filter in the same way.
+
 ## Select using a dynamic filter
 
-You can create a dynamic condition for use in a where (for example). In these dynamic conditions, the criteria are provided as an object. Another system, like the user interface, may fill the criteria object. The provided criteria object is translated to the corresponding SQL. To use this feature, you must call the method `dynamicConditionFor` from the connection; this method receives a map where the key is the name that the external system is going to use to refer to the field and the value is the corresponding value source to be used in the query. The `dynamicConditionFor` method returns an object that contains the method `withValues` that receives the criteria provided to the external system.
+A dynamic filter is a condition that arrives as data: a search screen or another system sends an object that says which fields to compare and how, and the library turns it into SQL. The values go as parameters, and the names must be the ones you list, so the object can't add SQL of its own.
+
+`connection.dynamicConditionFor(fields)` receives a map: each key is the name the filter uses, and each value is the column or expression it refers to. Its method `withValues(filter)` returns the condition, which goes wherever a boolean is accepted, like a `where`.
+
+| Filter | Condition |
+|---|---|
+| `{ firstName: { equals: 'John' } }` | The first name is `John` |
+| `{ firstName: { startsWith: 'J', endsWith: 'n' } }` | Both comparisons, joined with `and` |
+| `{ firstName: { equals: 'John' }, lastName: { equals: 'Smith' } }` | Both fields, joined with `and` |
+| `{ and: [a, b] }` | `a` and `b` |
+| `{ or: [a, b] }` | `a` or `b` |
+| `{ not: a }` | The opposite of `a` |
+| `{ firstName: { equalsIfValue: null } }` | No condition: the `IfValue` operators ignore a missing value |
+| `{}` | No condition |
+
+The operators of each type are listed in the [Dynamic conditions API](../api/dynamic-conditions.md).
 
 ```ts
 import { DynamicCondition } from "ts-sql-query" // or "ts-sql-query/dynamic/condition"
@@ -341,19 +393,31 @@ const customersWithDynamicCondition: Promise<{
 }[]>
 ```
 
-The utility type `DynamicCondition` from `ts-sql-query/dynamic/condition` allows you to create a type definition for the dynamic criteria using type description or the object with the available fields.
+`DynamicCondition`, from `ts-sql-query/dynamic/condition`, is the type of the filter. It's built from type names, as in the example, or from the map of fields. See [Dynamic conditions](../api/dynamic-conditions.md), the [types of a dynamic condition](../dynamic/utilities/conditions.md), and [from a business model](../dynamic/from-business-model.md) to build it from your own types.
 
-See [Dynamic conditions](../api/dynamic-conditions.md) for more information.
+With an empty filter there is no condition: a select returns all the rows, and an update or delete with no other condition is rejected with `MISSING_WHERE`.
 
-Sometimes you need to extend the available rules used in dynamic conditions to provide more functionality to your dynamic conditions.; to do this you will need to construct an object (it can contain inner objects), where the key is the name of the rule, and the value is a function that receives as an argument the configuration of the rule, and it must return a boolean value source. When you create the dynamic condition, you must provide the extension as the second argument. See [Full dynamic select](#full-dynamic-select) for a complete example.
+The caller can use every field of the map, with every operator of its type, so list only what they may use. A field restricted with [`allowWhen`](#restrict-access-to-values) can stay in the map: the query is refused only if the filter uses it.
+
+A filter that comes from outside can be wrong. `withValues` throws when you call it, with a [`TsSqlProcessingError`](../api/error-management/library-raised-errors.md) that has one of these reasons:
+
+| Reason | When |
+|---|---|
+| `DYNAMIC_CONDITION_UNKNOWN_COLUMN` | A name that isn't in the map, nor a rule |
+| `DYNAMIC_CONDITION_UNKNOWN_OPERATION` | An operator that doesn't exist, like `{ id: { nope: 1 } }` |
+| `DYNAMIC_CONDITION_INVALID_FILTER` | Something else where an object is expected, like `{ id: 1 }`, or an `and` or `or` that isn't an array |
+
+A filter parsed from JSON has its dates as text. Convert them to `Date` first: a text in a date column reaches the execute method, whose promise is rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE`.
+
+To add a rule that no column can express, like "there is a customer whose name contains this text", pass an object as the second argument of `dynamicConditionFor`, and as the second type argument of `DynamicCondition`. Each key is the name of a rule, and it can be nested to follow the groups of the map. Its value is a function that receives the value of the filter and returns a condition. See [Full dynamic select](#full-dynamic-select) for a complete example.
 
 ## Select dynamically picking columns
 
+The caller chooses which columns come back, as in GraphQL. You write all the columns that can be returned in a map, and the function keeps those the caller picks. The query only has those columns.
+
 !!! tip
 
-    This feature offers you the most extreme form of modification over the queries but the hardest one to figure out the consequences because the columns can disappear. Try to use first [Ignorable expression as null](dynamic-queries.md#ignorable-expression-as-null) instead of this feature where the structure of the columns is kept as is, and you will be able to reason over your queries more easily.
-
-You can create a select where the caller can conditionally pick the columns that want to be returned (like in GraphQL)
+    Columns that come and go make a query harder to reason about. If the caller can work with the same columns and no value in some of them, prefer [`onlyWhenOrNull`](#hide-a-value-keeping-the-column).
 
 ```ts
 import { dynamicPick, dynamicPickPaths } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
@@ -444,13 +508,49 @@ const customersWithIdPicking: Promise<{
 }[]>
 ```
 
-The `fieldsToPick` object defines all the properties that will be included, and the value is a boolean that tells if that property must be included or not. Alternatively, you can define `fieldsToPickList` array with the list of property names that will be included.
+There are two functions, which differ in how the caller says what to pick:
+
+| Function | Example | To pick the properties of a group |
+|---|---|---|
+| `dynamicPick` | `dynamicPick(availableFields, { firstName: true, lastName: true }, ['id'])` | List them: `{ company: { id: true, name: true } }` |
+| `dynamicPickPaths` | `dynamicPickPaths(availableFields, ['firstName', 'lastName'], ['id'])` | `'company'` for all of them, or `'company.name'` for one |
+
+In `dynamicPick`, only the value `true` picks a property: `false`, a missing property, or a text like `'true'` don't. In both, a name that isn't in the map is ignored.
+
+The optional third argument lists the properties that are always included: they are required in the result type, and the others are optional. The same is achieved by writing them in the `select`, as this example does with `id`. With no property picked and none always included, the query has no columns and the database rejects it.
+
+Ordering depends on what was picked. Given a name, `orderBy` accepts only the properties that are always included, and any other doesn't compile; given a column, like `.orderBy(tCustomer.birthday)`, it doesn't need it in the select. `orderByFromString` and `orderByFromStringArray` receive the name in a text, so they can use any picked property, and they throw `ORDER_BY_COLUMN_NOT_IN_SELECT` when you call them with one that wasn't picked.
+
+To return a type with only the picked properties, see [Expanding result types](../dynamic/utilities/picks.md#expanding-result-types-from-dynamic-picks). A pick also works in an [array aggregate](aggregate-as-object-array.md).
+
+### The columns the client asks for
+
+An endpoint like `GET /customers?fields=firstName,lastName` receives the names as text. Split them, and cast them to the type of the available names, with `DynamicPickPaths`. The cast checks nothing at run time, but it isn't a risk for the query: only the columns of your map can be selected, and any other name is ignored.
+
+```ts
+import { dynamicPickPaths, type DynamicPickPaths } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
+
+const availableFields = {
+    id: tCustomer.id,
+    firstName: tCustomer.firstName,
+    lastName: tCustomer.lastName,
+    birthday: tCustomer.birthday
+}
+
+type CustomerField = DynamicPickPaths<typeof availableFields, 'id'>
+
+const requestedFields = req.query.fields.split(',') as CustomerField[]
+
+const customers = await connection.selectFrom(tCustomer)
+    .select(dynamicPickPaths(availableFields, requestedFields, ['id']))
+    .executeSelectMany()
+```
+
+The client can ask for any column of the map. If some of them need a permission, mark them with [`allowWhen`](#restrict-access-to-values).
 
 ## Optional joins dynamically picking columns
 
-!!! tip
-
-    This feature offers you the most extreme form of modification over the queries but the hardest one to figure out the consequences because the columns can disappear. Try to use first [Ignorable expression as null](../queries/dynamic-queries.md#ignorable-expression-as-null) instead of this feature where the structure of the columns is kept as is, and you will be able to reason over your queries more easily.
+An [optional join](dynamic-queries.md#optional-joins) goes in the query only when the query uses the joined table. Together with a pick, what the caller asks for decides the join: if no column of `tCompany` is picked, and no condition uses it, the query doesn't join it.
 
 ```ts
 import { dynamicPick, dynamicPickPaths } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
@@ -552,7 +652,7 @@ const customerWithOptionalCompany: Promise<{
 }[]>
 ```
 
-But in the case of a column provided by the join is required, like when `fieldsToPick` is:
+But when a column provided by the join is picked, like with this `fieldsToPick`, the join is in the query:
 ```ts
 import { dynamicPick, dynamicPickPaths } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
 
@@ -656,36 +756,81 @@ The parameters are: `[ 12 ]`
 
 !!! warning
 
-    An omitted join can change the number of returned rows depending on your data structure. This behaviour doesn't happen when all rows of the initial table have one row in the joined table (or none if you use a left join), but not many rows.
+    Leaving out a join can change the number of rows returned. In this example, a customer with no company isn't returned when the query has the inner join, and is returned when it doesn't. With a left join, a customer with several rows in the joined table comes several times only when the query has the join. The rows are the same with or without the join only when every row has exactly one row in the joined table, or at most one if it's a left join.
+
+## Hide a value keeping the column
+
+`onlyWhenOrNull(when)` keeps the value when `when` is true, and otherwise replaces it with a null constant in the query. `ignoreWhenAsNull(when)` is the same with the boolean inverted. The query keeps its columns, so its shape doesn't depend on the user. A hidden value is a null for the rest of the query too: a filter on it can't find out what the column holds. [Ignorable expression as null](dynamic-queries.md#ignorable-expression-as-null) shows the code and the SQL. They are different from `onlyWhen` and `ignoreWhen`, which [remove a condition](dynamic-queries.md#ignorable-boolean-expression).
+
+This is what happens with the birthday of a user who can't see it, with each way of handling it:
+
+| Written in the code | The query | The result |
+|---|---|---|
+| `birthday` left out of a [pick](#select-dynamically-picking-columns) | Has no column for it | The row has no `birthday` |
+| `tCustomer.birthday.onlyWhenOrNull(false)` or `tCustomer.birthday.ignoreWhenAsNull(true)` | Has a null constant in its place | The row has no `birthday` |
+| `tCustomer.birthday.allowWhen(false, '...')` or `tCustomer.birthday.disallowWhen(true, '...')`, and the query uses it | Isn't sent | The promise is rejected |
+| The same, and the query doesn't use it, for example because it wasn't picked | Has no column for it | The row has no `birthday` |
+
+Choose `onlyWhenOrNull` when not seeing a value is normal, like a list with less detail for some roles, and the caller doesn't need to tell it apart from a customer with no birthday. Choose [`allowWhen`](#restrict-access-to-values) when asking for it is a mistake that should be noticed. All of these receive a boolean of your code, so they apply to the whole query, not to each row.
 
 ## Restrict access to values
 
-Sometimes you want to allow access to a value only under some circumstances, such as when you want a column in a dynamic select to be available only if the user has permissions. For this, you can call the function `allowWhen`, indicating as the first argument if it is allowed to use this value, and as the second argument, an error or text's error that will be thrown if the value is used in the generated query. Additionally, there is the `disallowWhen` that is analogous to `allowWhen`, but the boolean received as an argument indicates when the value is disallowed.
+Use this when a value can be used only under some circumstances, like a column that needs a permission. `allowWhen(when, error)`, available in every value, leaves the value as it is while `when` is true. When it's false, the value can be written in your code, but it can't be part of a query: if a query needs it, the query isn't sent to the database and you get the error. `disallowWhen(when, error)` is the same with the boolean inverted.
 
-!!! info "Defense-in-depth for dynamic field selection"
+This protects a list of fields that comes from outside your code, as an endpoint with `?fields=` does. While the client asks for what they may see, it's as if `allowWhen` weren't there. If they ask for a restricted field, because of a missing check, a wrong client, or an attempt to reach restricted data, nothing reaches the database.
 
-    The canonical use case is when the set of fields to project comes from outside your code — for example an HTTP endpoint that accepts `?fields=...` parameters from the client, and feeds that list into `dynamicPick(...)`. When the caller behaves correctly and asks only for fields they are entitled to see, `allowWhen` is silently transparent and the query runs. When the caller asks for a gated field (whether due to a missing permission check upstream, a misconfigured client, or a deliberate attempt to enumerate restricted data), `allowWhen` makes the SQL fail to **build**: the synchronous `query()` call inside `executeSelect*` / `executeUpdate*` / `executeInsert` / `executeDelete*` raises a [`TsSqlProcessingError`](../api/error-management/library-raised-errors.md) with `reason: 'DISALLOWED'` and the message you configured, **before any SQL is dispatched to the database**. The mistake never reaches the wire.
+It works wherever the query needs the value: in the `select`, in a `where`, `having`, `on`, `group by` or `order by`, in a subquery, a [common table expression](cte-subqueries.md), an [aggregate](aggregate-as-object-array.md), any select of a [compound select](compound-select.md), a [dynamic filter](#select-using-a-dynamic-filter), or an insert, update or delete.
 
-    Because the throw fires from inside the SQL construction, it propagates through every composite shape automatically: a gated column inside a subquery used as a value (`tFoo.id.in(connection.subSelectUsing(...).selectOneColumn(gatedCol))`), inside a [common table expression](recursive-select.md), inside a [typed fragment](sql-fragments.md), inside an [aggregate](aggregate-as-object-array.md), or inside a `WHERE` / `HAVING` / `JOIN ... ON` / `GROUP BY` / `ORDER BY` clause — all behave the same way: the building of the outer statement throws as soon as the gated value is reached during render.
+The error arrives through the promise of the execute method, in a form that depends on what you pass:
 
-    A typical HTTP-handler shape:
+| You pass | What the promise is rejected with |
+|---|---|
+| A text | A [`TsSqlQueryExecutionError`](../api/error-management/library-raised-errors.md), with `errorReason` being `{ reason: 'DISALLOWED', message: <your text>, functionName: 'allowWhen' }` or `'disallowWhen'`. Its `message` is `DISALLOWED: <your text>`, and its `cause` is the original `TsSqlProcessingError` |
+| An `Error` | That same object |
 
-    ```ts
-    import { TsSqlError } from "ts-sql-query"
+`query()` and `params()` don't return a promise, so they throw directly: the `TsSqlProcessingError` for a text, and your object for an `Error`.
 
-    try {
-        const rows = await connection.selectFrom(tCustomer)
-            .select(dynamicPick(availableFields, req.body.fields, ['id']))
-            .executeSelectMany()
-        res.json(rows)
-    } catch (e) {
-        if (e instanceof TsSqlError && e.errorReason.reason === 'DISALLOWED') {
-            res.status(403).json({ error: e.message })
-            return
-        }
-        throw e
+A typical handler of an HTTP request, which answers with your text:
+
+```ts
+import { TsSqlError } from "ts-sql-query"
+
+try {
+    const rows = await connection.selectFrom(tCustomer)
+        .select(dynamicPick(availableFields, req.body.fields, ['id']))
+        .executeSelectMany()
+    res.json(rows)
+} catch (e) {
+    if (e instanceof TsSqlError && e.errorReason.reason === 'DISALLOWED') {
+        res.status(403).json({ error: e.errorReason.message })
+        return
     }
-    ```
+    throw e
+}
+```
+
+With your own error you recognize it by its class:
+
+```ts
+class NoPermissionError extends Error {}
+
+const canSeeBirthday = false
+
+const customers = connection.selectFrom(tCustomer)
+    .select({
+        id: tCustomer.id,
+        birthday: tCustomer.birthday.allowWhen(canSeeBirthday, new NoPermissionError('You can\'t see the birthday'))
+    })
+    .executeSelectMany()
+
+customers.catch((e) => {
+    if (e instanceof NoPermissionError) {
+        // The query wasn't sent
+    }
+})
+```
+
+In this example the restricted column isn't picked, so the query runs:
 
 ```ts
 import { dynamicPick, dynamicPickPaths } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
@@ -784,7 +929,7 @@ const customerWithOptionalCompany: Promise<{
 }[]>
 ```
 
-But in the case of the `birthday` column is requested, when `fieldsToPick` is:
+But if the `birthday` column is requested, like with this `fieldsToPick`:
 ```ts
 const fieldsToPick = {
     firstName: true,
@@ -793,9 +938,11 @@ const fieldsToPick = {
 }
 ```
 
-An error will be thrown with the message "_You don't have permission to see the birthday_" because `birthdayVisible` is `false`
+No query is sent, and the promise is rejected with the reason `DISALLOWED` and the message "_You don't have permission to see the birthday_", because `birthdayVisible` is `false`.
 
 ## Select using a dynamic filter with complex projections
+
+When the select returns [nested objects](complex-projections.md), the filter has the same shape: a field inside a group is inside the same group in the filter, which can have its own `and`, `or` and `not`. The order uses the path of the property, like `company.name`.
 
 ```ts
 import { DynamicCondition } from "ts-sql-query" // or "ts-sql-query/dynamic/condition"
@@ -999,6 +1146,8 @@ See [Select using a dynamic filter](#select-using-a-dynamic-filter) and [Dynamic
 
 ## Select dynamically picking columns with complex projections
 
+With [nested objects](complex-projections.md), the pick has the same shape as the select. A group with nothing picked isn't in the query, and in the result type each group and its properties are optional.
+
 ```ts
 import { dynamicPick } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
 
@@ -1022,7 +1171,7 @@ const fieldsToPick = {
     }
 };
 
-// include allways id field as required
+// always include id field as required
 const pickedFields = dynamicPick(availableFields, fieldsToPick, ['id']);
 
 const customerWithOptionalCompany = await connection.selectFrom(tCustomer)
@@ -1107,7 +1256,7 @@ const customerWithOptionalCompany: Promise<{
 }[]>
 ```
 
-But in case of a column provided by the join is required, like when `fieldsToPick` is:
+But when a column provided by the join is picked, like with this `fieldsToPick`, the join is in the query:
 ```ts
 import { dynamicPick } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
 
@@ -1135,7 +1284,7 @@ const fieldsToPick = {
     }
 }
 
-// include allways id field as required
+// always include id field as required
 const pickedFields = dynamicPick(availableFields, fieldsToPick, ['id']);
 
 const customerWithOptionalCompany = await connection.selectFrom(tCustomer)
@@ -1220,22 +1369,24 @@ See [Select dynamically picking columns](#select-dynamically-picking-columns), [
 
 ## Full dynamic select
 
-In this example, several functionalities are used together using dynamic conditions, optional joins and select-picking columns.
+This example puts everything together in one function: `getSubcompanies` returns the subcompanies of a company. The caller chooses the columns and passes a filter and an order, and the type of the result has only the columns they asked for. The query joins the favourite customer only when it's needed.
 
-The same function can be written from **two perspectives**:
+Consider this when a single function serves many callers, like the layer behind a list in a user interface or an API. For a few fixed cases, a few separate queries are easier to read.
 
-- **From the database** — every helper type is derived from the available columns (`DynamicPickPaths` / `PickValuesPath` / `DynamicCondition` over `typeof availableFields`). This is the form shown first.
-- **From the business model** — the public surface is typed against a hand-written model interface instead, using the model-first helpers `DynamicConditionForModel` (filter), `DeepPickPaths` / `DeepPick` (picked result) and `expandTypeFromDynamicPickPaths`, so no column type leaks into the signature. This is the form shown in *[From the model](#from-the-model)*. For the reference on each helper see [Typing dynamic queries from a business model](../dynamic/from-business-model.md) and [Deep utilities](../advanced/deep-utilities.md).
+The same function can be typed in two ways:
 
-Either form can additionally receive a **type-safe dynamic order-by**: an array of clauses typed with `OrderByForModel<Model>[]` (see [Typing a dynamic order-by from the model](../dynamic/from-business-model.md#ordering-orderbyformodel)) and applied with `orderByFromStringArrayIfValue`, so each clause is constrained to the orderable fields and modes — no generic order-by string parameter needed. `orderByFromString` itself keeps taking a plain `string`, so the typing is opt-in.
+- **[From the database](#from-the-database):** the types come from the available columns, with `DynamicPickPaths`, `PickValuesPath` and `DynamicCondition` over the map. See [Typing dynamic queries from the database types](../dynamic/from-database-types.md).
+- **[From the model](#from-the-model):** the signature uses an interface you write, with `DynamicConditionForModel`, `DeepPickPaths`, `DeepPick` and `expandTypeFromDynamicPickPaths`, so no type of a column appears in it. See [Typing dynamic queries from a business model](../dynamic/from-business-model.md) and [Deep utilities](../advanced/deep-utilities.md).
+
+Both receive the order as an array of clauses typed with [`OrderByForModel`](../dynamic/utilities/order-by.md), applied with `orderByFromStringArrayIfValue`, so each clause must be a valid field and mode. `orderByFromString` takes a plain `string`, so this typing is optional.
 
 ### From the database
 
-Having this code:
+Having this code, which is explained below:
 
 <!-- doc-code-snippet-template: mariadb, mysql, oracle, postgresql, sqlite, sqlserver -->
 ```typescript
-function buildComanyAvailableFields<CUSTOMER extends TableOrViewLeftJoinOf<typeof tCustomer, 'favouriteCustomer'>>(_connection: DBConnection, favouriteCustomerRef: CUSTOMER) {
+function buildCompanyAvailableFields<CUSTOMER extends TableOrViewLeftJoinOf<typeof tCustomer, 'favouriteCustomer'>>(_connection: DBConnection, favouriteCustomerRef: CUSTOMER) {
     const favouriteCustomer = fromRef(tCustomer, favouriteCustomerRef);
 
     return {
@@ -1253,7 +1404,7 @@ interface CustomerRules {
     anyCustomerWithBirthdayOn?: Date
 }
 
-function buildCompanyConditionExtention<CUSTOMER extends TableOrViewLeftJoinOf<typeof tCustomer, 'favouriteCustomer'>>(connection: DBConnection, favouriteCustomerRef: CUSTOMER) {
+function buildCompanyConditionExtension<CUSTOMER extends TableOrViewLeftJoinOf<typeof tCustomer, 'favouriteCustomer'>>(connection: DBConnection, favouriteCustomerRef: CUSTOMER) {
     const favouriteCustomer = fromRef(tCustomer, favouriteCustomerRef);
 
     return {
@@ -1292,18 +1443,18 @@ function buildCompanyConditionExtention<CUSTOMER extends TableOrViewLeftJoinOf<t
     }
 }
 
-type CompanyFields = DynamicPickPaths<ReturnType<typeof buildComanyAvailableFields>, 'id'>
-type CompanyDynamicCondition = DynamicCondition<ReturnType<typeof buildComanyAvailableFields>, ReturnType<typeof buildCompanyConditionExtention>>
-type CompanyInformation<FIELDS extends CompanyFields> = PickValuesPath<ReturnType<typeof buildComanyAvailableFields>, FIELDS | 'id'>
+type CompanyFields = DynamicPickPaths<ReturnType<typeof buildCompanyAvailableFields>, 'id'>
+type CompanyDynamicCondition = DynamicCondition<ReturnType<typeof buildCompanyAvailableFields>, ReturnType<typeof buildCompanyConditionExtension>>
+type CompanyInformation<FIELDS extends CompanyFields> = PickValuesPath<ReturnType<typeof buildCompanyAvailableFields>, FIELDS | 'id'>
 
 async function getSubcompanies<FIELDS extends CompanyFields>(connection: DBConnection, parentCompanyId: number, fields: FIELDS[], condition: CompanyDynamicCondition, orderBy?: OrderByForModel<CompanyInformation<CompanyFields>>[]): Promise<CompanyInformation<FIELDS>[]> {
     const favouriteCustomer = tCustomer.forUseInLeftJoinAs('favouriteCustomer')
 
-    const avaliableFields = buildComanyAvailableFields(connection, favouriteCustomer)
-    const conditionExtention = buildCompanyConditionExtention(connection, favouriteCustomer)
+    const availableFields = buildCompanyAvailableFields(connection, favouriteCustomer)
+    const conditionExtension = buildCompanyConditionExtension(connection, favouriteCustomer)
 
-    const dynamicCondition = connection.dynamicConditionFor(avaliableFields, conditionExtention).withValues(condition)
-    const selectedFields = dynamicPickPaths(avaliableFields, fields, ['id'])
+    const dynamicCondition = connection.dynamicConditionFor(availableFields, conditionExtension).withValues(condition)
+    const selectedFields = dynamicPickPaths(availableFields, fields, ['id'])
     
     const companies = await connection
         .selectFrom(tCompany)
@@ -1314,9 +1465,23 @@ async function getSubcompanies<FIELDS extends CompanyFields>(connection: DBConne
         .orderByFromStringArrayIfValue(orderBy)
         .executeSelectMany()
 
-    return expandTypeFromDynamicPickPaths(avaliableFields, fields, companies, ['id'])
+    return expandTypeFromDynamicPickPaths(availableFields, fields, companies, ['id'])
 }
 ```
+
+The pieces of this code are:
+
+| Piece | What it does |
+|---|---|
+| `buildCompanyAvailableFields` | Returns the map of columns the caller can pick and filter by. Being a function, its type is available to the types below, even though the alias of the left join is created inside `getSubcompanies` |
+| `favouriteCustomerRef` | The table as a parameter. `TableOrViewLeftJoinOf<typeof tCustomer, 'favouriteCustomer'>` is the type for `tCustomer.forUseInLeftJoinAs('favouriteCustomer')`, and `fromRef` gives back its columns. See [Passing tables and views as parameter](../advanced/tables-views-as-parameter.md) |
+| `buildCompanyConditionExtension` | The rules of the filter that aren't a column: `customers` and `favouriteCustomer.isInAnotherCompanyWithName`. The first one builds its condition with `if`s, using [`dynamicBooleanExpressionUsing`](#complex-dynamic-boolean-expressions) |
+| `CompanyFields` | The names the caller can pick, without `id`, which is always returned |
+| `CompanyDynamicCondition` | The type of the filter: the columns of the map and the rules |
+| `CompanyInformation<FIELDS>` | The type of a row with only the columns in `FIELDS`, plus `id` |
+| `expandTypeFromDynamicPickPaths` | Gives the rows that type, and returns them as they are. See [Expanding result types](../dynamic/utilities/picks.md#expanding-result-types-from-dynamic-picks) |
+
+The order is an array of clauses that name properties of the select: as in any [pick](#select-dynamically-picking-columns), naming one that wasn't picked throws `ORDER_BY_COLUMN_NOT_IN_SELECT`.
 
 **If you call `getSubcompanies` as:**
 ```ts
@@ -1757,7 +1922,7 @@ const result: Promise<{
 
 ### From the model
 
-The same query, typed from a hand-written **business model** instead of from the columns. The body still builds the column map internally (the database layer is unavoidable to emit the SQL), but the public signature — the picked `fields`, the `condition`, the `orderBy` and the returned rows — references only `CompanyInformationModel`, so no column type leaks out. `DynamicConditionForModel` types the filter, `DeepPickPaths` / `DeepPick` type the dynamic pick, and `OrderByForModel` types the order-by (each is documented in [Typing dynamic queries from a business model](../dynamic/from-business-model.md) and [Deep utilities](../advanced/deep-utilities.md)):
+The same query, typed from an interface you write instead of from the columns. The body still builds the map of columns, which it needs for the SQL, but the signature uses only `CompanyInformationModel`: `DynamicConditionForModel` types the filter, `DeepPickPaths` and `DeepPick` type the pick, and `OrderByForModel` types the order. Each one is explained in [Typing dynamic queries from a business model](../dynamic/from-business-model.md) and [Deep utilities](../advanced/deep-utilities.md).
 
 <!-- doc-code-snippet-template: mariadb, mysql, oracle, postgresql, sqlite, sqlserver -->
 ```typescript
@@ -1773,7 +1938,7 @@ interface CompanyInformationModel {
 async function getSubcompaniesFromModel<FIELDS extends DeepPickPaths<CompanyInformationModel>>(connection: DBConnection, parentCompanyId: number, fields: FIELDS[], condition: DynamicConditionForModel<CompanyInformationModel>, orderBy?: OrderByForModel<CompanyInformationModel>[]): Promise<DeepPick<CompanyInformationModel, FIELDS | 'id'>[]> {
     const favouriteCustomer = tCustomer.forUseInLeftJoinAs('favouriteCustomer')
 
-    const avaliableFields = {
+    const availableFields = {
         id: tCompany.id,
         name: tCompany.name,
         favouriteCustomer: {
@@ -1782,8 +1947,8 @@ async function getSubcompaniesFromModel<FIELDS extends DeepPickPaths<CompanyInfo
         }
     }
 
-    const dynamicCondition = connection.dynamicConditionFor(avaliableFields).withValues(condition)
-    const selectedFields = dynamicPickPaths(avaliableFields, fields, ['id'])
+    const dynamicCondition = connection.dynamicConditionFor(availableFields).withValues(condition)
+    const selectedFields = dynamicPickPaths(availableFields, fields, ['id'])
 
     const companies = await connection
         .selectFrom(tCompany)
@@ -1794,11 +1959,11 @@ async function getSubcompaniesFromModel<FIELDS extends DeepPickPaths<CompanyInfo
         .orderByFromStringArrayIfValue(orderBy)
         .executeSelectMany()
 
-    return expandTypeFromDynamicPickPaths(avaliableFields, fields, companies, ['id'])
+    return expandTypeFromDynamicPickPaths(availableFields, fields, companies, ['id'])
 }
 ```
 
-You call it the same way, but every type the caller sees comes from `CompanyInformationModel` — including the order-by string, validated against it:
+You call it the same way, but every type the caller sees comes from `CompanyInformationModel`, including the order, which is checked against it:
 
 ```ts
 const result = await getSubcompaniesFromModel(connection, 23, ['name', 'favouriteCustomer.name'],
@@ -1806,12 +1971,12 @@ const result = await getSubcompaniesFromModel(connection, 23, ['name', 'favourit
     ['favouriteCustomer.name asc nulls last', 'name desc'])
 ```
 
-!!! note "Custom condition rules stay database-level"
+!!! note "The rules of the filter still come from the database"
 
-    `DynamicConditionForModel` maps the model's fields to standard filters. Arbitrary custom rules — like the `customers` / `isInAnotherCompanyWithName` extension in the database-first version, which run subqueries — are inherently database-level. To keep them, build the extension exactly as before and pass it as the second argument of both `DynamicConditionForModel<Model, Extension>` and `dynamicConditionFor(availableFields, extension)`.
+    `DynamicConditionForModel` turns the fields of the model into the usual operators. A rule of your own, like `customers` or `isInAnotherCompanyWithName` in the previous version, is written against the tables. To keep it, build the extension in the same way, and pass it as the second argument of both `DynamicConditionForModel<Model, Extension>` and `dynamicConditionFor(availableFields, extension)`.
 
 ## Summary and when to use these patterns
 
-The techniques in this page should be considered advanced and used with care. They are useful in scenarios where the structure of the query — both in terms of selected columns and applied filters — must be determined at runtime.
+Use these techniques when the columns or the filters of a query really have to be decided at run time, starting from the simplest row of the [table at the start](#introduction) that solves your case.
 
-If you find yourself using these patterns often, consider whether a change in your API design might make your system easier to reason about. Simpler alternatives such as optional projections, or multiple well-defined query shapes, may offer better maintainability.
+If you use them often, consider whether a change in the design of your API would make your system easier to reason about: a few well-defined queries, or the same columns with [hidden values](#hide-a-value-keeping-the-column), are easier to maintain.

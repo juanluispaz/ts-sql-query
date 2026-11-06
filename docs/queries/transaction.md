@@ -4,17 +4,39 @@ search:
 ---
 # Transaction
 
-A **transaction** is a sequence of one or more operations that are executed as a single logical unit of work. In databases, transactions provide **atomicity**, **consistency**, **isolation**, and **durability** (ACID properties), ensuring that changes either complete fully or not at all. This is essential for maintaining data integrity in concurrent and failure-prone environments.
+A **transaction** groups several statements so that all of them happen or none of them does. A **commit** saves all the changes of the transaction; a **rollback** undoes all of them.
 
-This page explains how to work with transactions in `ts-sql-query`, covering both high-level helpers for common workflows and low-level methods for fine-grained control. It also covers transaction isolation levels, read/write modes, deferring logic based on the transaction outcome, and storing temporary metadata during a transaction.
+You need one when a change takes more than one statement and stopping halfway would leave the data wrong: registering a company together with its first customer, or moving a customer from one company to another.
+
+This is what happens when the second insert of "a company and its first customer" fails:
+
+| Step | Without a transaction | In a transaction |
+|---|---|---|
+| Insert the company | Saved at once | Done, not saved yet |
+| Insert the customer | Fails | Fails |
+| Result | **The company stays saved, with no customer** | Rollback: **nothing is saved** |
+
+Each statement outside a transaction is committed on its own, so a change that takes a single statement doesn't need one. Keep a transaction short: while it is open it holds a connection and the locks of the rows it changed, and other transactions can have to wait for them.
+
+A connection object follows one transaction at a time. Two concurrent requests sharing it would be seen as a transaction inside another one: [don't share a connection between requests](../configuration/connection.md).
+
+## Which one to use
+
+| | `connection.transaction(fn)` | `beginTransaction()`, `commit()`, `rollback()` |
+|---|---|---|
+| Use it when | The statements run in one function and what it calls. It is the usual choice. | The transaction begins and ends in different places of the code, for example in the hooks of a framework or of your tests. |
+| Commit and rollback | Done for you, depending on how `fn` ends | You call them, and you must handle every error |
+| The result | The promise resolves with the value `fn` returned | The promises resolve with nothing |
+
+Both accept [an isolation level and an access mode](#setting-the-isolation-level), and the [functions deferred to the end of the transaction](#deferring-logic-during-a-transaction) work with both.
 
 ## High-level transaction management
 
-For simple transaction management, you can use the `transaction` method in the connection object. This method:
+`connection.transaction(fn)`:
 
-- begins the transaction before calling the function received by argument
-- commits the transaction if the resulting promise returns a result
-- rollbacks the transaction if the resulting promise returns an error
+- begins the transaction, and then calls `fn`
+- commits the transaction when `fn` finishes, and resolves with the value `fn` returned
+- rolls back the transaction when `fn` fails, or when the commit fails, and rejects with the error (see [what happens on an error](#what-happens-on-an-error))
 
 ```ts
 const transactionResult = connection.transaction(async () => {
@@ -36,9 +58,11 @@ const transactionResult = connection.transaction(async () => {
 });
 ```
 
+`fn` usually is an `async` function, but it can return its value directly. The commit waits for the promise of `fn`, not for a statement you didn't wait for: `await` every statement inside it. Don't call `commit()` or `rollback()` inside `fn`: the transaction would end there, and the commit that `transaction` does at the end would be rejected with `NOT_IN_TRANSACTION`, although your changes are committed.
+
 ## Low-level transaction management
 
-Sometimes a fine-grained control over the transaction is required, In such situations, `ts-sql-query` offers you the possibility to manually:
+When the transaction can't be wrapped in a function, you manage it with these methods:
 
 - begin the transaction
 
@@ -58,11 +82,47 @@ await connection.commit();
 await connection.rollback();
 ```
 
-When you use these methods, you must ensure the transaction has begun before calling `commit` or `rollback`.
+Nothing rolls back for you here. Catch the errors, and call `rollback` when something fails:
+
+```ts
+await connection.beginTransaction();
+try {
+    await connection.insertInto(tCompany).set({ name: 'Top Company' }).executeInsert();
+    await connection.commit();
+} catch (e) {
+    await connection.rollback();
+    throw e;
+}
+```
+
+A `commit` that fails leaves the transaction open, so the `rollback` of this example is also what ends it in that case. Calling `commit` or `rollback` with no transaction open rejects with `NOT_IN_TRANSACTION`.
+
+## What happens on an error
+
+Every failure of `transaction`, `beginTransaction`, `commit`, `rollback` and the `execute*` methods arrives through the promise they return, also the errors of the library that are found before anything is sent to the database. The call itself doesn't throw, so an `await` inside a `try`, or a `.catch(...)`, sees them all.
+
+| What failed | What the promise rejects with |
+|---|---|
+| A statement, or the begin, commit or rollback in the database | A `TsSqlQueryExecutionError`, with the reason in `errorReason` and the error of the driver in `cause` |
+| `commit` or `rollback` with no transaction open | A `TsSqlQueryExecutionError` with the reason `NOT_IN_TRANSACTION` |
+| `transaction` or `beginTransaction` with a transaction open | A `TsSqlQueryExecutionError` with the reason `NESTED_TRANSACTION_NOT_SUPPORTED` (see [nested transactions](#nested-transactions)) |
+| An error of your own, raised by the body of `transaction` | That same error, as it is, once the transaction is rolled back |
+
+`executeBeforeNextCommit`, `executeAfterNextCommit`, `executeAfterNextRollback` and `getTransactionMetadata` return no promise: with no transaction open, the call itself throws a `TsSqlProcessingError` with the reason `NOT_IN_TRANSACTION`. `isTransactionActive()` returns a boolean and works with or without a transaction.
+
+Inside `connection.transaction(fn)`, an error that leaves `fn` rolls back the transaction. An error you catch inside `fn` doesn't: the transaction goes on, unless the database has ended it (see [below](#when-the-database-rolls-back-the-transaction)).
+
+A `TsSqlQueryExecutionError` raised by `connection.transaction(fn)` can tell you more:
+
+- `transactionSource`: where in your code the transaction was asked for, next to `source`, where the failing query was. Both also appear in the stack of the error.
+- `rollbackError`: the rollback failed too. The error you get is still the one that caused the rollback, and this is the error of the rollback.
+- `additionalErrors`: other errors raised while the transaction was ending, like the one of an [`executeAfterNextRollback` function](#errors).
 
 ## When the database rolls back the transaction
 
-Some errors make the database roll back the whole transaction by itself, not only the statement that failed:
+A statement that fails usually undoes only itself: when your code catches the error, the transaction goes on, and the commit saves what the other statements did. Some errors make the database roll back the whole transaction by itself instead.
+
+The typical one is a **deadlock**: two transactions, each waiting for a row the other one has locked. Neither can go on, so the database picks one as its victim and makes it fail.
 
 - MariaDB and MySQL: a deadlock, in the transaction chosen as its victim.
 - SQL Server: a deadlock, and the errors that doom a transaction, like a failed conversion, or any error when `XACT_ABORT` is `ON`.
@@ -71,7 +131,9 @@ Some errors make the database roll back the whole transaction by itself, not onl
 
 Oracle rolls back only the statement that failed, also on a deadlock.
 
-When your code catches such an error and goes on, there is no transaction anymore: the database would run each statement that follows on its own, committed at once, and the commit would have nothing to commit (MariaDB and MySQL accept it without an error). `ts-sql-query` detects that the database rolled the transaction back: the statements that follow and the commit are rejected without being sent, with the `errorReason` `TRANSACTION_ERROR` (`transactionErrorType: 'transaction rolled back'`) and the error that ended the transaction as their `cause`, and the rollback sends nothing. `connection.transaction(...)` is rejected the same way, and the after-rollback functions run.
+When your code catches such an error and goes on, there is no transaction anymore: the database would run each statement that follows on its own, committed at once, and the commit would have nothing to commit (MariaDB and MySQL accept it without an error). `ts-sql-query` detects that the database rolled the transaction back: the statements that follow and the commit are rejected without being sent, with the `errorReason` `TRANSACTION_ERROR` (`transactionErrorType: 'transaction rolled back'`) and the error that ended the transaction in their chain of `cause`, and the rollback sends nothing. `connection.transaction(...)` is rejected the same way, and the after-rollback functions run.
+
+On PostgreSQL the transaction is still there, failed, until it ends: the statements that follow are sent and the database rejects them (`transactionErrorType: 'aborted'`). The commit is rejected as above.
 
 A statement retried inside the transaction after a deadlock, for example:
 
@@ -91,7 +153,7 @@ await connection.transaction(async () => {
 
     The company isn't saved, and neither is the customer. To retry after a deadlock, retry the whole transaction.
 
-`ts-sql-query` sends no query to find it out: it reads it from what the driver already gives. On MariaDB and MySQL, from the error (a deadlock); on SQL Server, from the mssql transaction; on SQLite, from the connection (`inTransaction` of better-sqlite3 and `bun:sqlite`, `isTransaction` of `node:sqlite`).
+`ts-sql-query` sends no query to find it out: it reads it from what the driver already gives. On MariaDB and MySQL, from the error (a deadlock); on PostgreSQL, from the answer to the commit; on SQL Server, from the mssql transaction; on SQLite, from the connection (`inTransaction` of better-sqlite3 and `bun:sqlite`, `isTransaction` of `node:sqlite`).
 
 !!! warning "Query runners that can't tell"
 
@@ -102,6 +164,51 @@ await connection.transaction(async () => {
 !!! warning "A change of the schema commits the transaction"
 
     On MariaDB, MySQL and Oracle, a statement that changes the schema (`create table`, `alter table`, ...) commits the transaction before it runs. On MariaDB and MySQL the statements that follow run each one committed at once; Oracle begins a new transaction with them. `ts-sql-query` doesn't detect it: keep the changes of the schema out of your transactions.
+
+### Running the transaction again
+
+A deadlock, or a transaction [refused](#how-each-database-refuses) at `snapshot` or `serializable`, doesn't say anything is wrong with your data: running the whole transaction again usually works. The errors to look for are the `TRANSACTION_ERROR` of type `deadlock` and `serialization failure`:
+
+```ts
+import { TsSqlQueryExecutionError } from 'ts-sql-query'; // or 'ts-sql-query/TsSqlError'
+
+async function transactionWithRetry<T>(fn: () => Promise<T>, attempts: number): Promise<T> {
+    for (let attempt = 1; ; attempt++) {
+        try {
+            return await connection.transaction(fn);
+        } catch (error) {
+            const canRetry = error instanceof TsSqlQueryExecutionError
+                && error.errorReason.reason === 'TRANSACTION_ERROR'
+                && (error.errorReason.transactionErrorType === 'deadlock' || error.errorReason.transactionErrorType === 'serialization failure');
+            if (!canRetry || attempt >= attempts) {
+                throw error;
+            }
+        }
+    }
+}
+```
+
+`fn` runs again from its beginning, so what it does outside the database happens again: leave that to an [`executeAfterNextCommit` function](#after-the-commit-telling-the-world-outside-the-database), which runs only for the attempt that commits.
+
+## Nested transactions
+
+A nested transaction is one that begins while another one is open. `ts-sql-query` rejects it: `transaction` and `beginTransaction` reject with `NESTED_TRANSACTION_NOT_SUPPORTED`, and nothing is sent to the database. The open transaction isn't affected: if your code catches the error it goes on, and if the error leaves `fn` it is rolled back.
+
+A function that can be called with or without a transaction open can [join the one of its caller](#code-that-may-run-with-or-without-a-transaction). `ts-sql-query` has no savepoints, so a part of a transaction can't be undone on its own.
+
+| Query runner | A transaction inside another one |
+|---|---|
+| `PgPoolQueryRunner`, `PgQueryRunner`, `PgLiteQueryRunner` created with `allowNestedTransactions: true` | Sends the `begin` and the `commit` or `rollback` of the inner transaction |
+| A query runner created with [`forUseInTransaction`](../configuration/query-runners/combining-with-another-library.md) | Rejected, also the outermost one: something else manages the transaction |
+| `MockQueryRunner` | Allowed, so a test with a mock doesn't show the rejection |
+| `NoopQueryRunner` | Rejected, unless created with `allowNestedTransactions: true` |
+| Any other query runner, on every database | Rejected |
+
+!!! warning "`allowNestedTransactions` doesn't make PostgreSQL nest"
+
+    PostgreSQL has a single transaction: it ignores the second `begin`, and the `commit` or `rollback` of the inner transaction ends all of it. What the outer transaction had done is committed or undone with it, and its statements that follow are each one committed at once, so its rollback undoes nothing.
+
+    In `ts-sql-query` the inner transaction still has its own [end-of-transaction functions](#deferring-logic-during-a-transaction) and its own [metadata](#transaction-metadata).
 
 ## Using the driver's connection in the transaction
 
@@ -148,7 +255,21 @@ Every database calls these levels by its own names, and the same name doesn't me
 
 ### Isolation levels
 
-The levels are ordered from the weakest to the strongest; each one keeps every promise of the levels above it in the table, and adds one more.
+These are the three things that can happen to your reads, and from which of them each level protects you:
+
+- **Dirty read**: you read a change another transaction hasn't committed, and that transaction then rolls back. You acted on data that never existed.
+- **Non repeatable read**: you read a row twice in your transaction and get different values, because another transaction changed the row and committed in between.
+- **Phantom**: you run the same query twice in your transaction and a new row appears, because another transaction inserted it and committed in between.
+
+| **Level** | **Dirty read** | **Non repeatable read** | **Phantom** |
+|---|---|---|---|
+| `read uncommitted` | Can happen | Can happen | Can happen |
+| `read committed` | Protected | Can happen | Can happen |
+| `repeatable read` | Protected | Protected | Can happen |
+| `snapshot` | Protected | Protected | Protected |
+| `serializable` | Protected | Protected | Protected |
+
+On MySQL, and on some versions of MariaDB, `snapshot` gives this protection to plain reads only: see [the warning below](#mysql-and-mariadb-snapshot-writes). The next table adds what happens when you write, which is where `snapshot` and `serializable` differ. The levels are ordered from the weakest to the strongest; each one keeps every promise of the levels above it in the table, and adds one more.
 
 | **Level**          | **What your reads see**                                                                                                                         | **What happens when you write**                                                                                                                                                                                         |
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -161,6 +282,16 @@ The levels are ordered from the weakest to the strongest; each one keeps every p
 !!! info "A level is a minimum, and it is not the whole story"
 
     A level says what must not happen to you, not how the database achieves it. Even at `snapshot`, two transactions can read the same rows, write **different** rows, and together break a rule neither broke alone (*write skew*): only `serializable` prevents it. And the two ways a database says no require different code from you: a database that **refuses** a transaction requires you to run it again; a database that makes others **wait** requires every program to take rows in the same order to avoid deadlocks.
+
+Which one to ask for:
+
+- **The default of your database** is enough when each statement stands on its own, or when the computation is inside the statement, as an expression over the column.
+- **`read uncommitted`** is for approximate figures that must not wait for other transactions.
+- **`snapshot`** is for several reads that must agree with each other: a report, or a page and its total.
+- **`repeatable read`**, only on SQL Server, is for reading rows that must stay as they are until the transaction ends, making others wait.
+- **`serializable`** is for a rule that depends on rows other transactions can change at the same time.
+
+With `snapshot` and `serializable`, be ready to [run the transaction again](#running-the-transaction-again).
 
 ### What each database offers
 
@@ -219,7 +350,34 @@ At `snapshot`, when you write a row another transaction changed after your momen
 
 ### Setting the isolation level
 
-You can set the transaction's isolation level by providing an additional argument to the `transaction` or `beginTransaction` method with a value created calling the `connection.isolationLevel` method. This function receives the isolation level as the first argument and the access mode as an optional second argument. You can also provide the access mode as the only argument.
+`transaction` and `beginTransaction` receive the level as an optional last argument, a value created with `connection.isolationLevel`. It receives the isolation level, and an optional [access mode](#access-modes) as the second argument:
+
+```ts
+const transactionResult = connection.transaction(async () => {
+    // ...
+}, connection.isolationLevel('snapshot', 'read only'));
+```
+
+```ts
+await connection.beginTransaction(connection.isolationLevel('snapshot', 'read only'));
+```
+
+Each connection offers only what its database has: a level or a mode that isn't available is a TypeScript error, and a SQLite connection has no `isolationLevel` method, because SQLite doesn't let you choose.
+
+### Access modes
+
+The access mode says whether the transaction can write. In a `read only` transaction the database rejects any statement that writes (the reason is `SQL_READ_ONLY_VIOLATION`), so it protects you from changing data by mistake in a transaction that only has to read. `read write` is the default.
+
+You can give the access mode as the only argument, to keep the default isolation level:
+
+```ts
+const companies = await connection.transaction(async () => {
+    return await connection.selectFrom(tCompany)
+        .select({ id: tCompany.id, name: tCompany.name })
+        .orderBy('id')
+        .executeSelectMany();
+}, connection.isolationLevel('read only'));
+```
 
 Available access modes:
 
@@ -237,16 +395,6 @@ Available access modes:
 !!! warning
 
     The [Oracle](../configuration/supported-databases/oracle.md) database doesn't support specifying the isolation level and the access mode simultaneously.
-
-```ts
-const transactionResult = connection.transaction(async () => {
-    // ...
-}, connection.isolationLevel('snapshot', 'read only'));
-```
-
-```ts
-await connection.beginTransaction(connection.isolationLevel('snapshot', 'read only'));
-```
 
 ## Deferring logic during a transaction
 
@@ -270,7 +418,7 @@ With `connection.transaction(fn)`:
 
 When `fn` throws an error, or an `executeBeforeNextCommit` function fails, the transaction is rolled back instead, the `executeAfterNextRollback` functions run, in the order they were registered, and the promise rejects with the error. With `commit()` and `rollback()` the same happens when you call them (see [Errors](#errors)).
 
-The functions are registered for the transaction that is running when you register them, and they are discarded when it ends: the next transaction starts with none. Registering one when there is no transaction throws a `TsSqlProcessingError` with reason `NOT_IN_TRANSACTION`.
+The functions are registered for the transaction that is running when you register them, and they are discarded when it ends: the next transaction starts with none. Registering one when there is no transaction throws a `TsSqlProcessingError` with reason `NOT_IN_TRANSACTION`: these calls return no promise, so the error comes from the call itself.
 
 ### Before the commit: work that belongs to the transaction
 

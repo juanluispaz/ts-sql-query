@@ -79,7 +79,7 @@ import { PgLiteQueryRunner } from '../../../../../src/queryRunners/PgLiteQueryRu
 import postgres from 'postgres'
 import { PostgresQueryRunner } from '../../../../../src/queryRunners/PostgresQueryRunner.js'
 
-import { TsSqlError } from '../../../../../src/TsSqlError.js'
+import { TsSqlError, TsSqlQueryExecutionError } from '../../../../../src/TsSqlError.js'
 
 const SQL = null as any
 // Bun types are not loaded here: the Bun SQL examples use these
@@ -363,3 +363,4 @@ void PgLiteQueryRunner
 void postgres
 void PostgresQueryRunner
 void TsSqlError
+void TsSqlQueryExecutionError

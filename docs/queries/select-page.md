@@ -51,7 +51,7 @@ Both are optional:
 
 A page after the last row isn't an error: `data` is empty and `count` is still the total.
 
-When the values are optional, for example because they come from a request, use `limitIfValue` and `offsetIfValue`. They ignore `null` and `undefined`. A `0` is a value: `limitIfValue(0)` asks for no rows.
+When the values are optional, for example because they come from a request, use [`limitIfValue` and `offsetIfValue`](dynamic-queries.md#optional-limit-and-offset). They ignore `null` and `undefined`. A `0` is a value: `limitIfValue(0)` asks for no rows.
 
 ```ts
 const paging: { limit?: number, offset?: number } = { limit: 10 }

@@ -152,7 +152,7 @@ const customerWithSelectedCompanies: Promise<{
 }[]>
 ```
 
-The `orderByFromString` of this example has nothing to do with the subquery: it's explained in [Easy dynamic queries](dynamic-queries.md#easy-dynamic-queries).
+The `orderByFromString` of this example has nothing to do with the subquery: it's explained in [Order by from a string](dynamic-queries.md#order-by-from-a-string).
 
 !!! warning
 

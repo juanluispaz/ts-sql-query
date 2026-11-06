@@ -10,8 +10,8 @@ import { type DynamicCondition, type DynamicConditionForModel } from '../../../.
 import type { OrderByForModel } from '../../../../../src/dynamic/orderBy.js'
 import { dynamicPick, dynamicPickPaths, expandTypeFromDynamicPickPaths, type DynamicPickPaths, type PickValuesPath } from '../../../../../src/dynamic/pick.js'
 import { type DeepPick, type DeepPickPaths } from '../../../../../src/extras/deepUtilities.js'
-import { fromRef, type TableOrViewLeftJoinOf } from '../../../../../src/extras/types.js'
-import { TsSqlError } from '../../../../../src/TsSqlError.js'
+import { fromRef, type TableOrViewLeftJoinOf, type TableOrViewOf } from '../../../../../src/extras/types.js'
+import { TsSqlError, TsSqlProcessingError, TsSqlQueryExecutionError } from '../../../../../src/TsSqlError.js'
 import { type DBConnection, tAppUser, tIssue, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -194,6 +194,44 @@ describe(ctx.label, () => {
             archivedAt?: Date
         }>>>()
         expect(searchedProjects).toEqual(expected)
+    })
+
+    test('docs:extreme-dynamic-queries/condition-outside-the-query', async () => {
+        const expected = [{ id: 1, fullName: 'Ada Lovelace' }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        function nameContains<USER extends TableOrViewOf<typeof tAppUser, 'appUser'>>(userRef: USER, text: string | null | undefined) {
+            const appUser = fromRef(tAppUser, userRef)
+
+            return appUser.fullName.containsInsensitiveIfValue(text)
+                .or(appUser.email.containsInsensitiveIfValue(text))
+        }
+
+        const appUser = tAppUser.as('appUser')
+
+        const users = await connection.selectFrom(appUser)
+            .where(nameContains(appUser, 'lovelace'))
+            .select({
+                id:       appUser.id,
+                fullName: appUser.fullName,
+            })
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select appUser.id as id, appUser.full_name as "fullName" from app_user as appUser where appUser.full_name ilike ('%' || $1 || '%') or appUser.email ilike ('%' || $2 || '%')"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "lovelace",
+            "lovelace",
+          ]
+        `)
+        assertType<Exact<typeof users, Array<{
+            id:       number
+            fullName: string
+        }>>>()
+        expect(users).toEqual(expected)
     })
 
     test('docs:extreme-dynamic-queries/dynamic-condition-for', async () => {
@@ -418,6 +456,57 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+    test('docs:extreme-dynamic-queries/fields-from-query-string', async () => {
+        const expected = [{ id: 2, title: 'Redesign navbar' }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const req = { query: { fields: 'title,notAColumn' } }
+
+        // doc-start
+        const availableFields = {
+            id:     tIssue.id,
+            title:  tIssue.title,
+            status: tIssue.status,
+        }
+
+        type IssueField = DynamicPickPaths<typeof availableFields, 'id'>
+
+        const isIssueField = (field: string): field is IssueField => field in availableFields
+        const requestedFields = req.query.fields.split(',').filter(isIssueField)
+
+        const issues = await connection.selectFrom(tIssue)
+            .select(dynamicPickPaths(availableFields, requestedFields, ['id']))
+            .where(tIssue.id.equals(2))
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof issues, Array<{
+            id:      number
+            title?:  string
+            status?: string
+        }>>>()
+        expect(issues).toEqual(expected)
+    })
+
+    test('docs-extra:extreme-dynamic-queries/order-by-a-column-not-picked-throws', () => {
+        const connection = ctx.conn
+        const availableFields = {
+            id:    tIssue.id,
+            title: tIssue.title,
+        }
+
+        expect(() => connection.selectFrom(tIssue)
+            .select(dynamicPick(availableFields, {}, ['id']))
+            .orderByFromString('title desc')
+        ).toThrow('ORDER_BY_COLUMN_NOT_IN_SELECT')
+    })
+
     test('docs:extreme-dynamic-queries/optional-inner-join-with-pick', async () => {
         const expected = [{ id: 1, name: 'Marketing site', slug: 'mktg-site' }]
         ctx.mockNext(expected)
@@ -543,7 +632,7 @@ describe(ctx.label, () => {
                 res.json(rows)
             } catch (e) {
                 if (e instanceof TsSqlError && e.errorReason.reason === 'DISALLOWED') {
-                    res.status(403).json({ error: e.message })
+                    res.status(403).json({ error: e.errorReason.message })
                     return
                 }
                 throw e
@@ -554,7 +643,86 @@ describe(ctx.label, () => {
         await handleRequest()
 
         expect(statusCode).toBe(403)
-        expect(responseBody).toMatchInlineSnapshot(`"{"error":"DISALLOWED: You don't have permission to see the body"}"`)
+        expect(responseBody).toMatchInlineSnapshot(`"{"error":"You don't have permission to see the body"}"`)
+    })
+
+    test('docs:extreme-dynamic-queries/allow-when-own-error', async () => {
+        const connection = ctx.conn
+        let caught: unknown = null
+
+        // doc-start
+        class NoPermissionError extends Error {}
+
+        const canSeeBody = false
+
+        const issues = connection.selectFrom(tIssue)
+            .select({
+                id:   tIssue.id,
+                body: tIssue.body.allowWhen(canSeeBody, new NoPermissionError("You can't see the body")),
+            })
+            .executeSelectMany()
+
+        await issues.catch((e) => {
+            if (e instanceof NoPermissionError) {
+                caught = e
+            }
+        })
+        // doc-end
+
+        expect(caught).toBeInstanceOf(NoPermissionError)
+    })
+
+    test('docs-extra:extreme-dynamic-queries/allow-when-text-arrives-wrapped', async () => {
+        const connection = ctx.conn
+        let caught: unknown = null
+
+        await connection.selectFrom(tIssue)
+            .select({
+                id:   tIssue.id,
+                body: tIssue.body.allowWhen(false, "You can't see the body"),
+            })
+            .executeSelectMany()
+            .catch((e) => {
+                caught = e
+            })
+
+        expect(caught).toBeInstanceOf(TsSqlQueryExecutionError)
+        const error = caught as TsSqlQueryExecutionError
+        expect(error.message).toBe("DISALLOWED: You can't see the body")
+        expect(error.errorReason).toEqual({ reason: 'DISALLOWED', message: "You can't see the body", functionName: 'allowWhen' })
+        expect(error.cause).toBeInstanceOf(TsSqlProcessingError)
+    })
+
+    test('docs-extra:extreme-dynamic-queries/filter-on-a-restricted-field', async () => {
+        const connection = ctx.conn
+        const availableFields = {
+            id:    tIssue.id,
+            title: tIssue.title,
+            body:  tIssue.body.allowWhen(false, "You can't see the body"),
+        }
+
+        const rejected = connection.selectFrom(tIssue)
+            .where(connection.dynamicConditionFor(availableFields).withValues({ body: { contains: 'x' } }))
+            .select({ id: tIssue.id })
+            .executeSelectMany()
+        await expect(rejected).rejects.toThrow('DISALLOWED')
+
+        ctx.mockNext([])
+        const allowed = await connection.selectFrom(tIssue)
+            .where(connection.dynamicConditionFor(availableFields).withValues({ title: { contains: 'not in any title' } }))
+            .select({ id: tIssue.id })
+            .executeSelectMany()
+        expect(allowed).toEqual([])
+    })
+
+    test('docs-extra:extreme-dynamic-queries/filter-from-outside-throws-in-with-values', () => {
+        const connection = ctx.conn
+        const condition = connection.dynamicConditionFor({ id: tIssue.id })
+
+        // A filter parsed from JSON has no static type
+        expect(() => condition.withValues(JSON.parse('{ "nope": { "equals": 1 } }'))).toThrow('DYNAMIC_CONDITION_UNKNOWN_COLUMN')
+        expect(() => condition.withValues(JSON.parse('{ "id": { "nope": 1 } }'))).toThrow('DYNAMIC_CONDITION_UNKNOWN_OPERATION')
+        expect(() => condition.withValues(JSON.parse('{ "id": 1 }'))).toThrow('DYNAMIC_CONDITION_INVALID_FILTER')
     })
 
     test('docs:extreme-dynamic-queries/allow-when-not-picked', async () => {

@@ -4,27 +4,353 @@ search:
 ---
 # Aggregate functions, group by and having
 
-This page describes how to compute aggregated values in a select: the aggregate functions, how to group the rows with `groupBy`, and how to filter the groups with `having`. To return an aggregated array of values or objects, see [Aggregate as an array of objects](aggregate-as-object-array.md).
+An aggregate function turns many rows into one value: how many there are, their sum, their average, the lowest or the highest. A `group by` splits the rows into groups that have the same values, and gives one row of the result for each group, with the aggregates computed over the rows of that group. They answer questions like "how many customers does each company have", "which companies have more than five customers", or "what is the age of the oldest customer of each company".
 
-The first sections show the recommended way: write the select first and refer to its columns in the group by and the having. The library then writes each column with the same SQL the select list computes, which the database always takes as the same expression. The ways of writing the group by and the having before the select, with the expressions written again, are at the end ([Grouping and filtering before the select](#grouping-and-filtering-before-the-select)).
+To return an array of values or objects for each group, instead of a single value, see [Aggregate as an array of objects](aggregate-as-object-array.md).
+
+## What an aggregate and a group by do
+
+The examples of this section and the next ones use these rows of `customer`:
+
+| `firstName` | `companyId` | `age` |
+|---|---|---|
+| Ann | 1 | 30 |
+| Bob | 1 | 40 |
+| Carl | 1 | 40 |
+| Dana | 2 | 20 |
+| Eve | 2 | null |
+| Frank | 3 | null |
+
+This query makes one group for each `companyId`, and returns one row for each group:
+
+```ts
+const customersPerCompany = await connection.selectFrom(tCustomer)
+    .select({
+        companyId: tCustomer.companyId,
+        customers: connection.countAll(),
+        totalAge: connection.sum(tCustomer.age)
+    })
+    .groupBy('companyId')
+    .orderBy('companyId')
+    .executeSelectMany();
+```
+
+The result is:
+
+| `companyId` | `customers` | `totalAge` |
+|---|---|---|
+| 1 | 3 | 110 |
+| 2 | 2 | 20 |
+| 3 | 1 | no value |
+
+The result type is:
+```tsx
+const customersPerCompany: {
+    companyId: number;
+    customers: number;
+    totalAge?: number;
+}[]
+```
+
+The sum of company 2 ignores the null of Eve. Company 3 has no ages to add, so its sum has no value, and that's why `totalAge` is optional in the type. See [Nulls and groups with no values](#nulls-and-groups-with-no-values).
+
+## Where and having: before and after the grouping
+
+Both of them filter, at a different moment: `where` keeps **rows** before they are grouped, and `having` keeps **groups** after the aggregates are computed. So a condition with an aggregate can only be in the `having`; in a `where` it doesn't compile.
+
+The database applies the clauses in this order, whatever the order in which you write them:
+
+| Step | Clause | What it does here |
+|---|---|---|
+| 1 | `from` and joins | Gets the rows. |
+| 2 | `where` | Removes rows. The aggregates don't see them. |
+| 3 | `group by` | Makes the groups, and the aggregates are computed. |
+| 4 | `having` | Removes groups. |
+| 5 | `select` | Gives the values of each row of the result. |
+| 6 | `order by` | Orders the rows of the result. |
+| 7 | `limit`, `offset` | Takes a part of the rows of the result. |
+
+The rest of the clauses are in [What each clause is for](basic-query-structure.md#what-each-clause-is-for).
+
+This query uses both, with the rows above:
+
+```ts
+const companiesWithSeveralAges = await connection.selectFrom(tCustomer)
+    .where(tCustomer.age.isNotNull())
+    .select({
+        companyId: tCustomer.companyId,
+        customers: connection.countAll()
+    })
+    .groupBy('companyId')
+    .having(columns => columns.customers.greaterOrEqual(2))
+    .orderBy('companyId')
+    .executeSelectMany();
+```
+
+The number of customers per company changes with each filter:
+
+| Filter | `companyId`: `customers` |
+|---|---|
+| None | 1: 3, 2: 2, 3: 1 |
+| `.where(tCustomer.age.isNotNull())` | 1: 3, 2: 1 |
+| `.having(columns => columns.customers.greaterOrEqual(2))` | 1: 3, 2: 2 |
+| Both | 1: 3 |
+
+With the `where`, Eve and Frank are removed before counting, so company 2 has only one customer and company 3 has no group at all. With both, the `having` sees the count after the `where`, and company 2 no longer reaches 2.
+
+Use the `where` for a condition on the rows, and the `having` for a condition on the aggregates. A condition on a column of the group by gives the same result in both places, but in the `where` the database has fewer rows to group.
+
+The `having` can be continued with `and` and `or`, like the `where`: `.having(a).and(b)`. To build it step by step, see [`dynamicHaving()`](dynamic-queries.md#dynamic-join-conditions-and-having).
 
 ## Aggregate functions
 
-The aggregate functions are available on the connection:
+The aggregate functions are available on the connection. The results in this table are for all the rows above, with no group by, where the values of `age` are `30, 40, 40, 20, null, null`:
 
-| Function                          | SQL                                    | Notes                                                                 |
-|:----------------------------------|:---------------------------------------|:----------------------------------------------------------------------|
-| `countAll()`                      | `count(*)`                             |                                                                       |
-| `count(value)`                    | `count(value)`                         |                                                                       |
-| `countDistinct(value)`            | `count(distinct value)`                |                                                                       |
-| `sum(value)` / `sumDistinct(value)` | `sum(value)` / `sum(distinct value)` | optional: an empty set aggregates to `null`                           |
-| `average(value)` / `averageDistinct(value)` | `avg(value)` / `avg(distinct value)` | optional                                                    |
-| `max(value)` / `min(value)`       | `max(value)` / `min(value)`            | optional                                                              |
-| `stringConcat(value, separator?)` / `stringConcatDistinct(value, separator?)` | `group_concat` / `string_agg` / `listagg` | optional |
-| `anyValue(value)`                 | `any_value(value)`                     | optional; not available on MariaDB and SQL Server (see [Any value of the group](#any-value-of-the-group)) |
-| `aggregateAsArray(...)` and its variants | | see [Aggregate as an array of objects](aggregate-as-object-array.md) |
+| Function | SQL | What it returns | Result | With no rows, or only nulls |
+|---|---|---|---|---|
+| `connection.countAll()` | `count(*)` | The number of rows, whatever their values | `6` | `0` with no rows; nulls are counted |
+| `connection.count(tCustomer.age)` | `count(age)` | The number of rows where the value isn't null | `4` | `0` |
+| `connection.countDistinct(tCustomer.age)` | `count(distinct age)` | The number of different values, without null | `3` | `0` |
+| `connection.sum(tCustomer.age)` | `sum(age)` | The sum of the values | `130` | No value |
+| `connection.sumDistinct(tCustomer.age)` | `sum(distinct age)` | The sum of the different values | `90` | No value |
+| `connection.average(tCustomer.age)` | `avg(...)` | The average of the values: the nulls don't count as values, or as zeros | `32.5` | No value |
+| `connection.averageDistinct(tCustomer.age)` | `avg(distinct ...)` | The average of the different values | `30` | No value |
+| `connection.min(tCustomer.age)` | `min(age)` | The lowest value | `20` | No value |
+| `connection.max(tCustomer.age)` | `max(age)` | The highest value | `40` | No value |
+| `connection.stringConcat(tCustomer.firstName, ', ')` | See [each database](#how-each-function-is-written-in-each-database) | The values joined in a text, with the separator | `'Ann, Bob, Carl, Dana, Eve, Frank'`, in any order | No value |
+| `connection.stringConcatDistinct(tCustomer.firstName)` | See [each database](#how-each-function-is-written-in-each-database) | The different values joined in a text | `'Ann,Bob,Carl,Dana,Eve,Frank'`, in any order | No value |
+| `connection.anyValue(tCustomer.firstName)` | See [each database](#how-each-function-is-written-in-each-database) | [Any value of the group](#any-value-of-the-group) | One of the first names | No value with no rows |
+| `connection.aggregateAsArray(...)` and its variants | | An array for each group | See [Aggregate as an array of objects](aggregate-as-object-array.md) | |
+
+The result type depends on the function:
+
+| Function | Receives | Result type |
+|---|---|---|
+| `countAll`, `count`, `countDistinct` | `countAll` nothing, the others any value | `number`, always with a value |
+| `sum`, `sumDistinct` | A number, a `bigint` or a custom numeric type | The same type, optional |
+| `average`, `averageDistinct` | A number, a `bigint` or a custom numeric type | `number`, optional |
+| `min`, `max` | A value that can be compared, like a number, a text or a date | The same type, optional |
+| `stringConcat`, `stringConcatDistinct` | A text | `string`, optional |
+| `anyValue` | Any value | The same type, optional |
+
+An aggregate is a value like any other, so it can receive an expression, like `connection.sum(tCustomer.age.add(1))`, and it can be part of one, like `connection.sum(tCustomer.age).add(1)`. An aggregate inside another one doesn't compile, except on Oracle.
+
+For an aggregate function the library doesn't offer, use [`aggregateFragmentWithType`](sql-fragments.md#aggregate-fragments).
 
 See the [Connection API](../api/connection.md) for their signatures.
+
+### Nulls and groups with no values
+
+Every function except `countAll` ignores the nulls. So `average` divides by the number of values that aren't null: `130 / 4 = 32.5`, not `130 / 6`.
+
+When there are no values to work with, because there are no rows or they are all null, `count` returns `0`, and the other functions return null. The result type says so: the property is optional, like `totalAge?: number`, and it's absent from the object. With [`projectingOptionalValuesAsNullable()`](complex-projections.md#optional-values-as-null) it's `null` instead.
+
+This holds even when the column is required: a `sum` over a required column has no value when there are no rows, so it's optional as well.
+
+To get a value when there is none, for example a `0`, use `valueWhenNull`. The property is then required:
+
+```ts
+const totalAgePerCompany = await connection.selectFrom(tCustomer)
+    .select({
+        companyId: tCustomer.companyId,
+        totalAge: connection.sum(tCustomer.age).valueWhenNull(0)
+    })
+    .groupBy('companyId')
+    .orderBy('companyId')
+    .executeSelectMany();
+```
+
+With the rows above, company 3 gets `totalAge: 0`.
+
+The difference between `countAll` and `count` matters with a left join. A company with no customers still has one row, with the columns of `customer` in null: `countAll` counts that row, and `count` over a column of `customer` doesn't. For the number of customers per company, including the companies with none, use `count`:
+
+```ts
+const tCustomerOfCompany = tCustomer.forUseInLeftJoin();
+
+const customersOfEachCompany = await connection.selectFrom(tCompany)
+    .leftJoin(tCustomerOfCompany).on(tCustomerOfCompany.companyId.equals(tCompany.id))
+    .select({
+        companyId: tCompany.id,
+        customers: connection.count(tCustomerOfCompany.id)
+    })
+    .groupBy('companyId')
+    .orderBy('companyId')
+    .executeSelectMany();
+```
+
+### Concatenating text
+
+`stringConcat` receives the separator as an optional second argument, and `,` is the default one. An empty text, `''`, joins the values with nothing between them.
+
+```ts
+const customerNamesPerCompany = await connection.selectFrom(tCustomer)
+    .select({
+        companyId: tCustomer.companyId,
+        firstNames: connection.stringConcat(tCustomer.firstName, ', ')
+    })
+    .groupBy('companyId')
+    .orderBy('companyId')
+    .executeSelectMany();
+```
+
+With the rows above, company 1 gets `'Ann, Bob, Carl'`, or the same names in another order: the order of the values in the text isn't defined, and there's no argument to choose it. Oracle returns them sorted, because `listagg` requires an order, and the library orders by the value itself.
+
+`stringConcatDistinct` removes the repeated values first:
+
+```ts
+const differentLastNames = await connection.selectFrom(tCustomer)
+    .selectOneColumn(connection.stringConcatDistinct(tCustomer.lastName))
+    .executeSelectOne();
+```
+
+The separator of `stringConcatDistinct` isn't available on SQLite, and the function isn't available on SQL Server; there it doesn't compile. On Oracle it needs [Oracle 19c or later](../configuration/supported-databases/oracle.md).
+
+A very long text has a limit on some databases: MySQL and MariaDB cut it, by default at 1024 bytes and with only a warning ([MySQL](../configuration/supported-databases/mysql.md#stringconcat-truncates-long-results), [MariaDB](../configuration/supported-databases/mariadb.md#stringconcat-truncates-long-results)), and Oracle and SQL Server return an error.
+
+### How each function is written in each database
+
+`countAll`, `count`, `countDistinct`, `sum`, `sumDistinct`, `min` and `max` are written in the same way on all of them, as in [the table above](#aggregate-functions). The rest are different:
+
+=== "MariaDB"
+    | Function | SQL |
+    |---|---|
+    | `average(value)` with whole numbers | `avg(cast(value as double))`; before MariaDB 10.4, `avg((value * 1.0e0))` |
+    | `averageDistinct(value)` with whole numbers | `avg(distinct cast(value as double))`; before MariaDB 10.4, `avg(distinct (value * 1.0e0))` |
+    | `average(value)`, `averageDistinct(value)` with a `double` | `avg(value)`, `avg(distinct value)` |
+    | `stringConcat(value)` | `group_concat(value)` |
+    | `stringConcat(value, ', ')` | `group_concat(value separator ', ')` |
+    | `stringConcat(value, '')` | `group_concat(value separator '')` |
+    | `stringConcatDistinct(value)` | `group_concat(distinct value)` |
+    | `stringConcatDistinct(value, ', ')` | `group_concat(distinct value separator ', ')` |
+    | `stringConcatDistinct(value, '')` | `group_concat(distinct value separator '')` |
+    | `anyValue(value)` | Not offered |
+=== "MySQL"
+    | Function | SQL |
+    |---|---|
+    | `average(value)` with whole numbers | `avg(cast(value as double))`; before MySQL 8.0.17, `avg((value * 1.0e0))` |
+    | `averageDistinct(value)` with whole numbers | `avg(distinct cast(value as double))`; before MySQL 8.0.17, `avg(distinct (value * 1.0e0))` |
+    | `average(value)`, `averageDistinct(value)` with a `double` | `avg(value)`, `avg(distinct value)` |
+    | `stringConcat(value)` | `group_concat(value)` |
+    | `stringConcat(value, ', ')` | `group_concat(value separator ', ')` |
+    | `stringConcat(value, '')` | `group_concat(value separator '')` |
+    | `stringConcatDistinct(value)` | `group_concat(distinct value)` |
+    | `stringConcatDistinct(value, ', ')` | `group_concat(distinct value separator ', ')` |
+    | `stringConcatDistinct(value, '')` | `group_concat(distinct value separator '')` |
+    | `anyValue(value)` | `any_value(value)` |
+=== "Oracle"
+    | Function | SQL |
+    |---|---|
+    | `average(value)` with whole numbers | `avg(cast(value as float))` |
+    | `averageDistinct(value)` with whole numbers | `avg(distinct cast(value as float))` |
+    | `average(value)`, `averageDistinct(value)` with a `double` | `avg(value)`, `avg(distinct value)` |
+    | `stringConcat(value)` | `listagg(value, ',') within group (order by value)` |
+    | `stringConcat(value, ', ')` | `listagg(value, :0) within group (order by value)` |
+    | `stringConcat(value, '')` | `listagg(value) within group (order by value)` |
+    | `stringConcatDistinct(value)` | `listagg(distinct value, ',') within group (order by value)` |
+    | `stringConcatDistinct(value, ', ')` | `listagg(distinct value, :0) within group (order by value)` |
+    | `stringConcatDistinct(value, '')` | `listagg(distinct value) within group (order by value)` |
+    | `anyValue(value)` | `any_value(value)` |
+===+ "PostgreSQL"
+    | Function | SQL |
+    |---|---|
+    | `average(value)` with whole numbers | `avg(value::float)` |
+    | `averageDistinct(value)` with whole numbers | `avg(distinct value::float)` |
+    | `average(value)`, `averageDistinct(value)` with a `double` | `avg(value)`, `avg(distinct value)` |
+    | `stringConcat(value)` | `string_agg(value, ',')` |
+    | `stringConcat(value, ', ')` | `string_agg(value, $1)` |
+    | `stringConcat(value, '')` | `string_agg(value, '')` |
+    | `stringConcatDistinct(value)` | `string_agg(distinct value, ',')` |
+    | `stringConcatDistinct(value, ', ')` | `string_agg(distinct value, $1)` |
+    | `stringConcatDistinct(value, '')` | `string_agg(distinct value, '')` |
+    | `anyValue(value)` | `any_value(value)` |
+=== "SQLite"
+    | Function | SQL |
+    |---|---|
+    | `average(value)` with whole numbers | `avg(cast(value as real))` |
+    | `averageDistinct(value)` with whole numbers | `avg(distinct cast(value as real))` |
+    | `average(value)`, `averageDistinct(value)` with a `double` | `avg(value)`, `avg(distinct value)` |
+    | `stringConcat(value)` | `group_concat(value)` |
+    | `stringConcat(value, ', ')` | `group_concat(value, ?1)` |
+    | `stringConcat(value, '')` | `group_concat(value, '')` |
+    | `stringConcatDistinct(value)` | `group_concat(distinct value)` |
+    | `stringConcatDistinct(value, ', ')`, `stringConcatDistinct(value, '')` | Not offered |
+    | `anyValue(value)` | `value` (see [Any value of the group](#any-value-of-the-group)) |
+=== "SQL Server"
+    | Function | SQL |
+    |---|---|
+    | `average(value)` with whole numbers | `avg(cast(value as float))` |
+    | `averageDistinct(value)` with whole numbers | `avg(distinct cast(value as float))` |
+    | `average(value)`, `averageDistinct(value)` with a `double` | `avg(value)`, `avg(distinct value)` |
+    | `stringConcat(value)` | `string_agg(value, ',')` |
+    | `stringConcat(value, ', ')` | `string_agg(value, ', ')` |
+    | `stringConcat(value, '')` | `string_agg(value, '')` |
+    | `stringConcatDistinct(value)`, with or without a separator | Not offered |
+    | `anyValue(value)` | Not offered |
+
+Whole numbers are `int`, `bigint` and `customInt` values. They are cast so that the average keeps its fraction on every database: `average` of `1`, `2` and `4` is `2.3333...`, and not `2`.
+
+## Aggregates without a group by
+
+Without a `group by`, all the rows are a single group, so the query returns exactly one row. It's executed with `executeSelectOne`:
+
+```ts
+const customerStatistics = await connection.selectFrom(tCustomer)
+    .select({
+        customers: connection.countAll(),
+        withAge: connection.count(tCustomer.age),
+        averageAge: connection.average(tCustomer.age),
+        oldest: connection.max(tCustomer.age)
+    })
+    .executeSelectOne();
+```
+
+With the rows above, the result is `{ customers: 6, withAge: 4, averageAge: 32.5, oldest: 40 }`.
+
+The row is returned even if there are no rows to aggregate. With a `where` that no row meets, the result is `{ customers: 0, withAge: 0 }`, without the other properties. With a `group by` it's different: no rows means no groups, so `executeSelectMany` returns an empty list.
+
+All the columns of the select must then be aggregates or constants: a column of a table, with no group by, doesn't compile (see [the next section](#grouping-by-every-non-aggregated-column)).
+
+If all you want is the number of rows, [`selectCountAll()`](select.md#select-count-all) is a shortcut for `selectOneColumn(connection.countAll())`. With a group by before it, it returns a list with the count of each group. In the same way, a `selectOneColumn` of an aggregate returns a list with one value per group, and it's `null` for a group with no value, like `(number | null)[]` for a `sum`.
+
+To page a query with aggregates, see [What the total counts](select-page.md#what-the-total-counts).
+
+## How to choose the group by
+
+There are three ways of writing the group by. The first two refer to the columns of the select, so they are the recommended ones: the library writes each column with the same SQL the select list computes, which the database always takes as the same expression.
+
+| Way | Where it goes | What it groups by |
+|---|---|---|
+| [`.groupByNonAggregatedColumns()`](#grouping-by-every-non-aggregated-column) | After the `select` | Every column of the select that isn't an aggregate and refers to a table or view |
+| [`.groupBy('companyId')`](#grouping-by-the-columns-of-the-select) | After the `select` | The columns of the select with those property names. A property in a nested object is written with its path, like `'company.id'`. A property that is an aggregate isn't accepted |
+| [`.groupBy(tCustomer.companyId)`](#group-by-with-the-expressions) | Before or after the `select` | The columns or expressions you give, which don't need to be in the select |
+
+The third way is the one to use for grouping by something you don't return. Here the customers are grouped by company, without returning the company:
+
+```ts
+const customerCounts = await connection.selectFrom(tCustomer)
+    .groupBy(tCustomer.companyId)
+    .select({
+        customers: connection.countAll()
+    })
+    .executeSelectMany();
+```
+
+With a nested object in the select, the group by uses the path of the property:
+
+```ts
+const customersPerCompanyId = await connection.selectFrom(tCustomer)
+    .select({
+        company: {
+            id: tCustomer.companyId
+        },
+        customers: connection.countAll()
+    })
+    .groupBy('company.id')
+    .orderBy('company.id')
+    .executeSelectMany();
+```
+
+An expression with a parameter can't be written again in the group by: see [An expression that carries a parameter, written again](#an-expression-that-carries-a-parameter-written-again). The other ways of writing the group by and the having before the select are at the end of the page, in [Grouping and filtering before the select](#grouping-and-filtering-before-the-select).
 
 ## Grouping by every non-aggregated column
 
@@ -589,6 +915,50 @@ const companiesWithSeveralCustomers: Promise<{
     companyName: string;
     customerCount: number;
 }[]>
+```
+
+## Ordering by an aggregate
+
+`orderBy` receives the name of a property of the select, so an aggregate of the select is ordered by its name. These are the companies with the most customers first:
+
+```ts
+const companiesByCustomers = await connection.selectFrom(tCustomer)
+    .select({
+        companyId: tCustomer.companyId,
+        customers: connection.countAll()
+    })
+    .groupBy('companyId')
+    .orderBy('customers', 'desc')
+    .orderBy('companyId')
+    .executeSelectMany();
+```
+
+With the rows above, the result is the companies `1`, `2` and `3`, with `3`, `2` and `1` customers.
+
+An aggregate that isn't returned goes in the `orderBy` as an expression:
+
+```ts
+const companyIdsByCustomers = await connection.selectFrom(tCustomer)
+    .select({
+        companyId: tCustomer.companyId
+    })
+    .groupBy('companyId')
+    .orderBy(connection.countAll(), 'desc')
+    .orderBy('companyId')
+    .executeSelectMany();
+```
+
+An aggregate can have no value, and the databases don't agree on where the nulls go. Say it with the [order mode](select.md#the-order-modes). Here company 3, which has no ages to add, goes last:
+
+```ts
+const companiesByTotalAge = await connection.selectFrom(tCustomer)
+    .select({
+        companyId: tCustomer.companyId,
+        totalAge: connection.sum(tCustomer.age)
+    })
+    .groupBy('companyId')
+    .orderBy('totalAge', 'desc nulls last')
+    .executeSelectMany();
 ```
 
 ## Any value of the group

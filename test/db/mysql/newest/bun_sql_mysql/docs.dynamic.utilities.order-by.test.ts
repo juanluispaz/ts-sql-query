@@ -36,24 +36,30 @@ describe(ctx.label, () => {
     })
 
     test('docs:utilities-order-by/array-of-clauses', async () => {
-        // doc-start
-        // each clause is validated against the model's orderable leaves and modes;
-        // pass the array to orderByFromStringArray(...) / orderByFromStringArrayIfValue(...)
-        const orderBy: OrderByForModel<Project>[] = ['organization.name asc nulls last', 'name desc']
-        // doc-end
-
-        const organization = tOrganization.forUseInLeftJoinAs('organization')
         ctx.mockNext([
             { id: 1, name: 'Marketing site', 'organization.name': 'Acme Corp' },
             { id: 2, name: 'Internal tools', 'organization.name': 'Acme Corp' },
             { id: 3, name: 'Public API', 'organization.name': 'Globex Ltd' },
             { id: 4, name: 'Legacy app', 'organization.name': 'Globex Ltd' },
         ])
+
+        // doc-start
+        const orderBy: OrderByForModel<Project>[] = ['organization.name asc nulls last', 'name desc']
+
+        const organization = tOrganization.forUseInLeftJoinAs('organization')
+
         const rows = await ctx.conn.selectFrom(tProject)
-            .optionalLeftOuterJoin(organization).on(organization.id.equals(tProject.organizationId))
-            .select({ id: tProject.id, name: tProject.name, organization: { name: organization.name } })
+            .leftOuterJoin(organization).on(organization.id.equals(tProject.organizationId))
+            .select({
+                id: tProject.id,
+                name: tProject.name,
+                organization: {
+                    name: organization.name
+                }
+            })
             .orderByFromStringArray(orderBy)
             .executeSelectMany()
+        // doc-end
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.\`name\` as \`name\`, \`organization\`.\`name\` as \`organization.name\` from project left outer join \`organization\` as \`organization\` on \`organization\`.id = project.organization_id order by \`organization\`.\`name\` is null, \`organization.name\` asc, \`name\` desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
@@ -66,11 +72,20 @@ describe(ctx.label, () => {
         ])
     })
 
+    test('docs-extra:utilities-order-by/only-the-properties-with-a-value', () => {
+        type Order = OrderByForModel<{ id: number; tags: string[]; organization?: { name: string } }>
+        assertType<Exact<Exclude<Order, `${string} ${string}`>, 'id' | 'organization.name'>>()
+    })
+
+    test('docs-extra:utilities-order-by/a-clause-of-the-model-not-in-the-select-throws', () => {
+        const orderBy: OrderByForModel<Project>[] = ['createdAt desc']
+        expect(() => ctx.conn.selectFrom(tProject)
+            .select({ id: tProject.id })
+            .orderByFromStringArray(orderBy)
+        ).toThrow('ORDER_BY_COLUMN_NOT_IN_SELECT')
+    })
+
     test('docs:utilities-order-by/order-by-mode', async () => {
-        // doc-start
-        // 'asc' | 'desc' | 'asc nulls first' | 'asc nulls last' | 'insensitive' | …
-        const mode: OrderByMode = 'desc nulls last'
-        // doc-end
 
         assertType<Exact<OrderByMode,
             | 'asc' | 'desc'
@@ -88,10 +103,18 @@ describe(ctx.label, () => {
             { id: 2, name: 'Internal tools' },
         ]
         ctx.mockNext(expected)
+
+        // doc-start
+        const mode: OrderByMode = 'desc nulls last'
+
         const rows = await ctx.conn.selectFrom(tProject)
-            .select({ id: tProject.id, name: tProject.name })
+            .select({
+                id: tProject.id,
+                name: tProject.name
+            })
             .orderBy('name', mode)
             .executeSelectMany()
+        // doc-end
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from project order by \`name\` desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)

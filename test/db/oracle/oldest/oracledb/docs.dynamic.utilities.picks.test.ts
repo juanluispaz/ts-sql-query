@@ -4,8 +4,8 @@
 // `expandTypeFromDynamicPickPaths` companion.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
-import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { dynamicPick, dynamicPickPaths, expandTypeFromDynamicPickPaths, type DynamicPick, type DynamicPickPaths, type PickValuesPath, type PickValuesPathWithAllProperties, type PickValuesPathProjectedAsNullable, type PickValuesPathWithAllPropertiesProjectedAsNullable } from '../../../../../src/dynamic/pick.js'
+import { assertType, type Exact, type Extends } from '../../../../lib/assertType.js'
+import { dynamicPick, dynamicPickPaths, expandTypeFromDynamicPickPaths, type DynamicPick, type DynamicPickPaths, type PickValuesPath, type PickValuesPathWithAllProperties, type PickValuesPathProjectedAsNullable, type PickValuesPathWithAllPropertiesProjectedAsNullable, expandTypeProjectedAsNullableFromDynamicPickPaths, type Pickable } from '../../../../../src/dynamic/pick.js'
 import { type DeepPick, type DeepPickPaths } from '../../../../../src/extras/deepUtilities.js'
 import { tProject, tOrganization } from '../../domain/connection.js'
 import { ctx } from './setup.js'
@@ -249,6 +249,130 @@ describe(ctx.label, () => {
             { id: 3, name: 'Public API', organization: { name: 'Globex Ltd' } },
             { id: 4, name: 'Legacy app', organization: { name: 'Globex Ltd' } },
         ])
+    })
+
+    test('docs:utilities-picks/result-types', () => {
+        // doc-start
+        type OnlyPicked = PickValuesPath<typeof fieldsWithNullable, 'name' | 'archivedAt'>
+        type AllProperties = PickValuesPathWithAllProperties<typeof fieldsWithNullable, 'name' | 'archivedAt'>
+        type OnlyPickedAsNullable = PickValuesPathProjectedAsNullable<typeof fieldsWithNullable, 'name' | 'archivedAt'>
+        type AllPropertiesAsNullable = PickValuesPathWithAllPropertiesProjectedAsNullable<typeof fieldsWithNullable, 'name' | 'archivedAt'>
+        // doc-end
+        assertType<Exact<OnlyPicked, { name: string; archivedAt?: Date }>>()
+        assertType<Exact<AllProperties, { name: string; archivedAt?: Date; id?: number }>>()
+        assertType<Exact<OnlyPickedAsNullable, { name: string; archivedAt: Date | null }>>()
+        assertType<Exact<AllPropertiesAsNullable, { name: string; archivedAt: Date | null; id?: number }>>()
+    })
+
+    test('docs:utilities-picks/pickable', async () => {
+        // doc-start
+        function pickFields<FIELDS extends Pickable>(fields: FIELDS, paths: DynamicPickPaths<FIELDS>[]) {
+            return dynamicPickPaths(fields, paths)
+        }
+
+        const pickedFields = pickFields(availableFields, ['name', 'slug'])
+        // doc-end
+
+        const expected = [{ name: 'Marketing site', slug: 'mktg-site' }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select(pickedFields)
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as "name", slug as "slug" from project where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(rows).toEqual(expected)
+    })
+
+    test('docs:utilities-picks/expand-a-page', async () => {
+        ctx.mockNext([{ id: 1, name: 'Marketing site' }, { id: 2, name: 'Internal tools' }])
+        ctx.mockNext(4)
+
+        // doc-start
+        const projectFields = {
+            id: tProject.id,
+            name: tProject.name,
+            slug: tProject.slug
+        }
+
+        async function getProjectsPage<FIELDS extends DynamicPickPaths<typeof projectFields, 'id'>>(fields: FIELDS[]) {
+            const page = await ctx.conn.selectFrom(tProject)
+                .select(dynamicPickPaths(projectFields, fields, ['id']))
+                .orderBy('id')
+                .limit(2)
+                .offset(0)
+                .executeSelectPage()
+
+            return expandTypeFromDynamicPickPaths(projectFields, fields, page, ['id'])
+        }
+
+        const projectsPage = await getProjectsPage(['name'])
+        // doc-end
+
+        expect(ctx.history).toMatchInlineSnapshot(`
+          [
+            {
+              "params": [
+                0,
+                2,
+              ],
+              "sql": "select id as "id", name as "name" from project order by "id" offset :0 rows fetch next :1 rows only",
+              "type": "selectManyRows",
+            },
+            {
+              "params": [],
+              "sql": "select count(*) from project",
+              "type": "selectOneColumnOneRow",
+            },
+          ]
+        `)
+        assertType<Extends<typeof projectsPage, { data: Array<{ id: number; name: string }>; count: number }>>()
+        expect(projectsPage).toEqual({
+            data: [{ id: 1, name: 'Marketing site' }, { id: 2, name: 'Internal tools' }],
+            count: 4,
+        })
+    })
+
+    test('docs:utilities-picks/expand-projected-as-nullable', async () => {
+        const expected = [{ id: 1, archivedAt: null }]
+        ctx.mockNext(expected)
+
+        // doc-start
+        const projectFields = {
+            id: tProject.id,
+            name: tProject.name,
+            archivedAt: tProject.archivedAt
+        }
+
+        type ProjectField = DynamicPickPaths<typeof projectFields, 'id'>
+        type ProjectRow<FIELDS extends ProjectField> = PickValuesPathProjectedAsNullable<typeof projectFields, FIELDS | 'id'>
+
+        async function getProjects<FIELDS extends ProjectField>(fields: FIELDS[]): Promise<ProjectRow<FIELDS>[]> {
+            const projects = await ctx.conn.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .select(dynamicPickPaths(projectFields, fields, ['id']))
+                .projectingOptionalValuesAsNullable()
+                .executeSelectMany()
+
+            return expandTypeProjectedAsNullableFromDynamicPickPaths(projectFields, fields, projects, ['id'])
+        }
+
+        const projects = await getProjects(['archivedAt'])
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", archived_at as "archivedAt" from project where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof projects, Array<{ id: number; archivedAt: Date | null }>>>()
+        expect(projects).toEqual(expected)
     })
 
     // Field map that includes an optional column (tProject.archivedAt) so the

@@ -4,33 +4,23 @@ search:
 ---
 # Dynamic picks
 
-The `ts-sql-query/dynamic/pick` module (also re-exported from the root `ts-sql-query`) provides the helpers for building a query with dynamic column selection. It exports the runtime functions that pick fields and the types that describe the picked input and infer the result:
+Picking columns dynamically lets the caller choose which columns a query returns, and [Picking columns dynamically](../picks.md) explains how it works and shows it with its queries. This page is the reference of what `ts-sql-query/dynamic/pick` exports, which is also exported from the root `ts-sql-query`.
 
-| Export | Purpose |
-|---|---|
-| `dynamicPick(...)` | Select fields from a boolean object map (`{ name: true, … }`). |
-| `dynamicPickPaths(...)` | Select fields from a list of dotted paths (`['name', 'company.name']`). |
-| `expandTypeFromDynamicPickPaths(...)` / `expandTypeProjectedAsNullableFromDynamicPickPaths(...)` | Re-type already-fetched rows so they match the picked shape without a cast. |
-| `DynamicPick<Type>` / `DynamicPickPaths<Type>` | The input types for the two pick functions (a boolean map / a path union). |
-| `PickValuesPath<…>` / `PickValuesPathWithAllProperties<…>` (and their `…ProjectedAsNullable` variants) | The result types computed from the selected fields. |
-| `Pickable` | The base constraint for an available-fields map. |
+| Export | What it's for | Where it's used |
+|---|---|---|
+| [`dynamicPick`](#dynamicpick) | Keeps the fields marked in an object, like `{ firstName: true }` | In the `select` of the query |
+| [`dynamicPickPaths`](#dynamicpickpaths) | Keeps the fields named in a list, like `['firstName', 'company.name']` | In the `select` of the query |
+| [`DynamicPick`](#dynamicpick_1) | The type of what `dynamicPick` receives | The parameter of your function, or the type of a request |
+| [`DynamicPickPaths`](#dynamicpickpaths_1) | The type of each name that `dynamicPickPaths` receives | The parameter of your function, or the type of a request |
+| [`Pickable`](#pickable) | What a map of available fields must be | A function of yours that receives the map as a type parameter |
+| [`PickValuesPath`, `PickValuesPathWithAllProperties`, and their `ProjectedAsNullable` twins](#types-of-the-result) | The type of a row, given what was picked | The return type of your function |
+| [`expandTypeFromDynamicPickPaths`, `expandTypeProjectedAsNullableFromDynamicPickPaths`](#expanding-result-types-from-dynamic-picks) | Gives the rows the type of what was picked | The `return` of your function |
 
-When using `dynamicPick` or `dynamicPickPaths`, you often need these helper types to specify the input structure of fields the caller can choose from, and to compute the type of the result based on the selected fields.
-
-!!! warning "Context: continuation of Extreme Dynamic Queries"
-
-    This page is part of the advanced dynamic query patterns covered in [Extreme Dynamic Queries](../../queries/extreme-dynamic-queries.md).  
-    It provides detailed reference for the utility functions and types used to define and infer types in dynamically picked projections.
-
-    If you haven’t read that page yet, we recommend starting there to understand the practical use cases and query-building patterns that these helpers support.
-
-## Functions to select fields dynamically
+## Functions that pick the columns
 
 ### dynamicPick
 
-**Function**: `dynamicPick(availableFields, fieldsToPick, alwaysIncluded?)`
-
-Returns a new object including only the properties in `availableFields` that are marked as `true` in `fieldsToPick`. Nested objects are also supported.
+`dynamicPick(availableFields, fieldsToPick, alwaysIncluded?)` returns a new object with the properties of `availableFields` whose value in `fieldsToPick` is `true`. For a nested object, `{ company: true }` picks all of it, and `{ company: { name: true } }` picks one property.
 
 ```ts
 import { dynamicPick } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
@@ -50,19 +40,11 @@ const fieldsToPick = {
 const pickedFields = dynamicPick(availableFields, fieldsToPick, ['id']);
 ```
 
-!!! note "Picking nothing"
-    With no field picked and no mandatory field, the query has no columns: the SQL is `select  from …`, which the database rejects. Keep at least one mandatory field, usually the id.
-
-!!! note "Including mandatory fields"
-
-    The third argument (`alwaysIncluded`) is optional. It ensures that certain fields are always included, regardless of what the user picks.  
-    However, we recommend including these directly in the `.select()` block when possible, for clarity.
+`alwaysIncluded` is optional, and it lists the properties that are returned whatever is picked. They are required in the result type, and the others are optional. With nothing picked and nothing always included, the query has no columns and the database rejects it, so a property that is always included, usually the id, avoids that.
 
 ### dynamicPickPaths
 
-**Function**: `dynamicPickPaths(availableFields, pathsToPick, alwaysIncluded?)`
-
-Like `dynamicPick`, but instead of a shape object, you provide an array of property names or paths (e.g. `'name.firstName'`).
+`dynamicPickPaths(availableFields, pathsToPick, alwaysIncluded?)` does the same from a list of names. A nested object is `'company'` for all of it, and `'company.name'` for one property. `alwaysIncluded` works as in `dynamicPick`.
 
 ```ts
 import { dynamicPickPaths } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
@@ -70,20 +52,11 @@ import { dynamicPickPaths } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick
 const pickedFields = dynamicPickPaths(availableFields, ['firstName', 'birthday'], ['id'])
 ```
 
-!!! note "Including mandatory fields"
-
-    The third argument (`alwaysIncluded`) is optional. It ensures that certain fields are always included, regardless of what the user picks.  
-    However, we recommend including these directly in the `.select()` block when possible, for clarity.
-
-## Types to define dynamic pick inputs and outputs
-
-These utility types help ensure proper typing when defining dynamic picks or returning their results.
+## Types of what is picked
 
 ### DynamicPick
 
-**Type**: `DynamicPick<Type, MandatoryFields>`
-
-Use this type to define the shape of a `fieldsToPick` object, where the user sets `true` to include each field. A group of properties accepts `true` to include all of it, or an object with the shape of the group to choose inside it.
+`DynamicPick<Type, MandatoryFields?>` is the type of the object that `dynamicPick` receives. Each property is an optional `boolean`. A nested object accepts `true` for all of it, or an object with its shape. `MandatoryFields` lists the ones that are always included, which aren't offered.
 
 ```ts
 import type { DynamicPick } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
@@ -93,9 +66,7 @@ type FieldsToPick = DynamicPick<typeof availableFields, 'id'>
 
 ### DynamicPickPaths
 
-**Type**: `DynamicPickPaths<Type, MandatoryPaths>`
-
-Use this type when your fields are selected by path strings (e.g. `'name.firstName'`).
+`DynamicPickPaths<Type, MandatoryPaths?>` is the type of one name that `dynamicPickPaths` receives: a union with the name of each property and each nested object, and the path of what is inside them, like `'company' | 'company.name'`. `MandatoryPaths` lists the ones that are always included, which aren't offered.
 
 ```ts
 import type { DynamicPickPaths } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
@@ -103,144 +74,60 @@ import type { DynamicPickPaths } from 'ts-sql-query' // or 'ts-sql-query/dynamic
 type FieldsToPickList = DynamicPickPaths<typeof availableFields, 'id'>
 ```
 
-### PickValuesPath
+### Pickable
 
-**Type**: `PickValuesPath<Type, PickedPaths>`
-
-Use this type to infer the result of a query that dynamically selects a subset of fields. The output will include **only** the selected fields.
+`Pickable` is the type that all the maps of available fields fit: an object whose values are columns, expressions, or nested objects of them. Use it to write a function that receives the map as a type parameter:
 
 ```ts
-import type { PickValuesPath } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
+import { dynamicPickPaths, DynamicPickPaths, Pickable } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
 
-type ResultType = PickValuesPath<typeof availableFields, 'firstName' | 'birthday'>
+function pickFields<FIELDS extends Pickable>(fields: FIELDS, paths: DynamicPickPaths<FIELDS>[]) {
+    return dynamicPickPaths(fields, paths)
+}
+
+const pickedFields = pickFields(availableFields, ['firstName', 'birthday'])
 ```
 
-!!! note "Typed result with projected required fields"
-    If your query projects optional values in objects as always-required properties, use `PickValuesPathProjectedAsNullable` instead of `PickValuesPath`.
+## Types of the result
 
-### PickValuesPathWithAllProperties
+These types give the type of a row from the map of available fields and the names that were picked. They differ in what they do with the properties that weren't picked, and with the optional values:
 
-**Type**: `PickValuesPathWithAllProperties<Type, PickedPaths>`
+| Type | Properties not picked | Optional values | With `availableFields` and `'firstName' \| 'birthday'` |
+|---|---|---|---|
+| `PickValuesPath` | Not in the type | Optional | `{ firstName: string; birthday?: Date }` |
+| `PickValuesPathWithAllProperties` | Optional | Optional | `{ firstName: string; birthday?: Date; id?: number; lastName?: string }` |
+| `PickValuesPathProjectedAsNullable` | Not in the type | Required, and they allow `null` | `{ firstName: string; birthday: Date \| null }` |
+| `PickValuesPathWithAllPropertiesProjectedAsNullable` | Optional | Required, and they allow `null` | `{ firstName: string; birthday: Date \| null; id?: number; lastName?: string }` |
 
-Similar to `PickValuesPath`, but includes **all** properties from the original object: selected ones as their column says (required, unless the column is optional), and unselected ones as optional.
+Use `PickValuesPath` for a type with only what was picked, and `PickValuesPathWithAllProperties` when the callers expect all the properties to exist in the type, as the result of `select` with a pick has them. Use a `ProjectedAsNullable` twin when the query calls [`projectingOptionalValuesAsNullable`](../../queries/basic-query-structure.md#projecting-optional-values).
 
 ```ts
-import type { PickValuesPathWithAllProperties } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
+import type { PickValuesPath, PickValuesPathWithAllProperties, PickValuesPathProjectedAsNullable, PickValuesPathWithAllPropertiesProjectedAsNullable } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
 
-type ResultType = PickValuesPathWithAllProperties<typeof availableFields, 'firstName' | 'birthday'>
+type OnlyPicked = PickValuesPath<typeof availableFields, 'firstName' | 'birthday'>
+type AllProperties = PickValuesPathWithAllProperties<typeof availableFields, 'firstName' | 'birthday'>
+type OnlyPickedAsNullable = PickValuesPathProjectedAsNullable<typeof availableFields, 'firstName' | 'birthday'>
+type AllPropertiesAsNullable = PickValuesPathWithAllPropertiesProjectedAsNullable<typeof availableFields, 'firstName' | 'birthday'>
 ```
-
-!!! note "Full result shape with projected required fields"
-    If your query projects optional values in objects as always-required properties, use `PickValuesPathWithAllPropertiesProjectedAsNullable` instead of `PickValuesPathWithAllProperties`.
-
-!!! note "Choosing between `PickValuesPath` and `PickValuesPathWithAllProperties`"
-
-    Use `PickValuesPath` if you want a precise type with *only* the picked fields.  
-    Use `PickValuesPathWithAllProperties` if you want to preserve a consistent structure where unpicked fields are still present, but optional — matching the behavior of `.select()` queries.
 
 ## Expanding result types from dynamic picks
 
-When you are dynamically picking columns, you will probably want to create a function that receives the list of columns in a generic way, allowing the output to be properly typed with the requested columns.
+A function that receives the names to pick as a type parameter can declare a return type with only those properties, but TypeScript can't relate that type to the rows of the query while the names are still generic. `expandTypeFromDynamicPickPaths` gives the rows that type, without a cast. It does nothing at run time: it returns what it receives.
 
-To achieve that, use the function `expandTypeFromDynamicPickPaths` from `ts-sql-query/dynamic/pick`. It recalculates the return type based on the original picking rules, ensuring correct inference at the type level.
+| Argument | What it is |
+|---|---|
+| First | The map of available fields |
+| Second | The names that were picked |
+| Third | The result of the query: the rows of `executeSelectMany`, the row of `executeSelectOne`, the row or `null` of `executeSelectNoneOrOne`, or the object with `data` and `count` of `executeSelectPage` |
+| Fourth, optional | The properties that are always included: the same list you passed to `dynamicPickPaths` |
 
-!!! note "When projecting optional fields as required"
-    If your query projects optional fields in objects as always-required properties, use `expandTypeProjectedAsNullableFromDynamicPickPaths` instead of `expandTypeFromDynamicPickPaths`.
+The value it returns can be returned from your function as any of these types, written over a generic `FIELDS`:
 
-!!! warning "Objects with a required property that wasn't picked"
-    The type of a dynamic pick can't know everything decided at runtime. When an object has required properties and you pick only its optional ones, the object can be absent from a row with no value in them: `PickValuesPath` says so, but the result of `expandTypeFromDynamicPickPaths` declares it present, and it has to, to be assignable to `DeepPick<Model, FIELDS>` over a generic `FIELDS`. The same happens when a mandatory property sits next to a picked `asRequiredInOptionalObject` one, or a mandatory property from a left join sits next to a picked one from another table. Check for the object when your pick can leave it out.
-
-**Arguments**:
-
-- The first argument is the full set of `availableFields`.
-- The second is the set of picked paths.
-- The third is the actual query result (as returned by `.executeSelectMany()`).
-- The fourth (optional) is a list of fields that must always be present in the result, even if they were not explicitly picked.
-
-### Creating definitions based on your database types
-
-```ts
-import { dynamicPickPaths, expandTypeFromDynamicPickPaths, DynamicPickPaths, PickValuesPath } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
-
-const customerInformationFields = {
-    id: tCustomer.id,
-    firstName: tCustomer.firstName,
-    lastName: tCustomer.lastName,
-    birthday: tCustomer.birthday,
-}
-
-type CustomerInformationFields = DynamicPickPaths<typeof customerInformationFields>
-type CustomerInformation<FIELDS extends CustomerInformationFields> = PickValuesPath<typeof customerInformationFields, FIELDS | 'id'>
-
-async function getCustomersInformation<FIELDS extends CustomerInformationFields>(connection: DBConnection, fields: FIELDS[]): Promise<CustomerInformation<FIELDS>[]> {
-    
-    // always include id field as required
-    const pickedFields = dynamicPickPaths(customerInformationFields, fields, ['id'])
-    
-    const customers = await connection.selectFrom(tCustomer)
-        .select(pickedFields)
-        .executeSelectMany()
-
-    return expandTypeFromDynamicPickPaths(customerInformationFields, fields, customers, ['id'])
-}
-
-const customers = await getCustomersInformation(connection, ['firstName', 'lastName'])
-```
-
-The executed query is:
-
-=== "MariaDB"
-    ```mariadb
-    select 
-        id as id, 
-        first_name as firstName, 
-        last_name as lastName 
-    from customer
-    ```
-=== "MySQL"
-    ```mysql
-    select 
-        id as id, 
-        first_name as firstName, 
-        last_name as lastName 
-    from customer
-    ```
-=== "Oracle"
-    ```oracle
-    select 
-        id as "id", 
-        first_name as "firstName", 
-        last_name as "lastName" 
-    from customer
-    ```
-===+ "PostgreSQL"
-    ```postgresql
-    select 
-        id as id, 
-        first_name as "firstName", 
-        last_name as "lastName" 
-    from customer
-    ```
-=== "SQLite"
-    ```sqlite
-    select 
-        id as id, 
-        first_name as firstName, 
-        last_name as lastName 
-    from customer
-    ```
-=== "SQL Server"
-    ```sqlserver
-    select 
-        id as id, 
-        first_name as firstName, 
-        last_name as lastName 
-    from customer
-    ```
-
-The parameters are: `[]`
-
-### Creating definitions based on your business types
+| Return type of your function | When | Complete example |
+|---|---|---|
+| `PickValuesPath<typeof availableFields, FIELDS \| 'id'>` | The types come from the columns | [Typing from the database types](../from-database-types.md#picking-columns-dynamicpickpaths-pickvaluespath) |
+| `Pick<Model, FIELDS \| 'id'>` | An interface of yours, and the names are its top-level properties | The next example |
+| `DeepPick<Model, FIELDS \| 'id'>` | An interface of yours, and the names can reach inside nested objects, like `'company.name'` | [Typing from a business model](../from-business-model.md#picking-columns-dynamicpickpaths-deeppick), and [Deep utilities](../../advanced/deep-utilities.md) for `DeepPick` and `DeepPickPaths` |
 
 ```ts
 import { dynamicPickPaths, expandTypeFromDynamicPickPaths } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
@@ -326,51 +213,161 @@ The executed query is:
 
 The parameters are: `[]`
 
-### Creating definitions based on your nested business types
+!!! warning "Objects with a required property that wasn't picked"
 
-The example above returns a flat `Pick<...>`, which works when the picked fields are **top-level** keys of your business type. When your business type is **nested** and you want to pick fields deep inside it using dotted paths (e.g. `'company.name'`), use `DeepPick` and `DeepPickPaths` — the deep analogues of the built-in `Pick` and `keyof` (see [Deep utilities](../../advanced/deep-utilities.md) for the full reference):
+    The type of a dynamic pick can't know everything decided at run time. When an object has required properties and you pick only its optional ones, the object can be absent from a row with no value in them. `PickValuesPath` says so, but the result of `expandTypeFromDynamicPickPaths` declares it present, because it has to be assignable to `DeepPick<Model, FIELDS>` over a generic `FIELDS`. The same happens when a mandatory property is next to a picked `asRequiredInOptionalObject` one, or when a mandatory property from a left join is next to a picked one from another table. Check for the object when your pick can leave it out.
 
-- `DeepPickPaths<Model>` is the union of every legal dotted path of `Model` (the deep `keyof`).
-- `DeepPick<Model, Paths>` keeps only the selected paths, narrowing the nested objects (the deep `Pick`). Top-level optionality is preserved, just like `Pick`.
+The third argument can also be a page of results. The function then returns `data` with the type of what was picked, and the rest as it was:
 
 ```ts
-import { dynamicPickPaths, expandTypeFromDynamicPickPaths } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
-import type { DeepPick, DeepPickPaths } from "ts-sql-query" // or "ts-sql-query/extras/deepUtilities"
+import { dynamicPickPaths, expandTypeFromDynamicPickPaths, DynamicPickPaths } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
 
-interface CustomerWithCompany {
-    id: number;
-    firstName: string;
-    lastName: string;
-    company?: {
-        id: number;
-        name: string;
-    };
+const customerFields = {
+    id: tCustomer.id,
+    firstName: tCustomer.firstName,
+    lastName: tCustomer.lastName
 }
 
-async function getCustomersWithCompany<FIELDS extends DeepPickPaths<CustomerWithCompany>>(connection: DBConnection, fields: FIELDS[]): Promise<DeepPick<CustomerWithCompany, FIELDS | 'id'>[]> {
-    const company = tCompany.forUseInLeftJoinAs('company')
-    const availableFields = {
-        id: tCustomer.id,
-        firstName: tCustomer.firstName,
-        lastName: tCustomer.lastName,
-        company: {
-            id: company.id,
-            name: company.name,
-        },
-    }
+async function getCustomersPage<FIELDS extends DynamicPickPaths<typeof customerFields, 'id'>>(connection: DBConnection, fields: FIELDS[]) {
+    const page = await connection.selectFrom(tCustomer)
+        .select(dynamicPickPaths(customerFields, fields, ['id']))
+        .orderBy('id')
+        .limit(10)
+        .offset(0)
+        .executeSelectPage()
 
-    // always include id field as required
-    const pickedFields = dynamicPickPaths(availableFields, fields, ['id'])
+    return expandTypeFromDynamicPickPaths(customerFields, fields, page, ['id'])
+}
 
+const customersPage = await getCustomersPage(connection, ['firstName'])
+```
+
+The executed query to get the data is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    order by id 
+    limit ? 
+    offset ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    order by id 
+    limit ? 
+    offset ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName" 
+    from customer 
+    order by "id" 
+    offset :0 rows 
+    fetch next :1 rows only
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName" 
+    from customer 
+    order by id 
+    limit $1 
+    offset $2
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    order by id 
+    limit ?1 
+    offset ?2
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName 
+    from customer 
+    order by id 
+    offset @0 rows 
+    fetch next @1 rows only
+    ```
+
+And its parameters are: `[ 10, 0 ]` (on Oracle and SQL Server: `[ 0, 10 ]`)
+
+The executed query to get the count is:
+
+=== "MariaDB"
+    ```mariadb
+    select count(*) 
+    from customer
+    ```
+=== "MySQL"
+    ```mysql
+    select count(*) 
+    from customer
+    ```
+=== "Oracle"
+    ```oracle
+    select count(*) 
+    from customer
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select count(*) 
+    from customer
+    ```
+=== "SQLite"
+    ```sqlite
+    select count(*) 
+    from customer
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select count(*) 
+    from customer
+    ```
+
+And its parameters are: `[]`
+
+### expandTypeProjectedAsNullableFromDynamicPickPaths
+
+When the query calls [`projectingOptionalValuesAsNullable`](../../queries/basic-query-structure.md#projecting-optional-values), use `expandTypeProjectedAsNullableFromDynamicPickPaths`, which has the same arguments. Its result can be returned as `PickValuesPathProjectedAsNullable`:
+
+```ts
+import { dynamicPickPaths, expandTypeProjectedAsNullableFromDynamicPickPaths, DynamicPickPaths, PickValuesPathProjectedAsNullable } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
+
+const customerFields = {
+    id: tCustomer.id,
+    firstName: tCustomer.firstName,
+    birthday: tCustomer.birthday
+}
+
+type CustomerField = DynamicPickPaths<typeof customerFields, 'id'>
+type CustomerRow<FIELDS extends CustomerField> = PickValuesPathProjectedAsNullable<typeof customerFields, FIELDS | 'id'>
+
+async function getCustomers<FIELDS extends CustomerField>(connection: DBConnection, fields: FIELDS[]): Promise<CustomerRow<FIELDS>[]> {
     const customers = await connection.selectFrom(tCustomer)
-        .optionalLeftOuterJoin(company).on(company.id.equals(tCustomer.companyId))
-        .select(pickedFields)
+        .select(dynamicPickPaths(customerFields, fields, ['id']))
+        .projectingOptionalValuesAsNullable()
         .executeSelectMany()
 
-    return expandTypeFromDynamicPickPaths(availableFields, fields, customers, ['id']);
+    return expandTypeProjectedAsNullableFromDynamicPickPaths(customerFields, fields, customers, ['id'])
 }
 
-const customers = await getCustomersWithCompany(connection, ['firstName', 'company.name'])
+const customers = await getCustomers(connection, ['birthday'])
 ```
 
 The executed query is:
@@ -378,63 +375,44 @@ The executed query is:
 === "MariaDB"
     ```mariadb
     select 
-        customer.id as id, 
-        customer.first_name as firstName, 
-        company.name as `company.name` 
-    from customer 
-    left outer join company as company on company.id = customer.company_id
+        id as id, 
+        birthday as birthday 
+    from customer
     ```
 === "MySQL"
     ```mysql
     select 
-        customer.id as id, 
-        customer.first_name as firstName, 
-        company.`name` as `company.name` 
-    from customer 
-    left outer join company as company on company.id = customer.company_id
+        id as id, 
+        birthday as birthday 
+    from customer
     ```
 === "Oracle"
     ```oracle
     select 
-        customer.id as "id", 
-        customer.first_name as "firstName", 
-        company.name as "company.name" 
-    from customer 
-    left outer join company company on company.id = customer.company_id
+        id as "id", 
+        birthday as "birthday" 
+    from customer
     ```
 ===+ "PostgreSQL"
     ```postgresql
     select 
-        customer.id as id, 
-        customer.first_name as "firstName", 
-        company.name as "company.name" 
-    from customer 
-    left outer join company as company on company.id = customer.company_id
+        id as id, 
+        birthday as birthday 
+    from customer
     ```
 === "SQLite"
     ```sqlite
     select 
-        customer.id as id, 
-        customer.first_name as firstName, 
-        company.name as "company.name" 
-    from customer 
-    left outer join company as company on company.id = customer.company_id
+        id as id, 
+        birthday as birthday 
+    from customer
     ```
 === "SQL Server"
     ```sqlserver
     select 
-        customer.id as id, 
-        customer.first_name as firstName, 
-        company.name as [company.name] 
-    from customer 
-    left outer join company as company on company.id = customer.company_id
+        id as id, 
+        birthday as birthday 
+    from customer
     ```
 
 The parameters are: `[]`
-
-!!! note "Flat `Pick` vs nested `DeepPick`"
-
-    Use the built-in `Pick<Model, FIELDS | 'id'>` when the picked fields are top-level keys.  
-    Use `DeepPick<Model, FIELDS | 'id'>` when you pick fields inside nested objects through dotted paths.
-
-`DeepPick`, `DeepPickPaths` and their `Omit` counterpart `DeepOmit`, together with the runtime companions `deepPick` / `deepOmit`, are documented in full — including how terminal object values (dates, buffers, `Map`/`Set`, …) are treated — on the dedicated [Deep utilities](../../advanced/deep-utilities.md) page.

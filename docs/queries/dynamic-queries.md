@@ -101,7 +101,7 @@ When what to add can't be said with these methods, because it depends on the log
 
 The methods ending in `IfValue` compare with a value that may be absent. When they have no value, they return a special [**neutral boolean**](#the-neutral-boolean), which means "there is no condition here": the library removes it from the `and`s, `or`s, `on`s and `where`s it's part of. It isn't the `null` of SQL: [Booleans and three-valued logic](../dynamic/three-valued-booleans.md) explains the difference.
 
-Use them when an absent value means "don't filter by this". `equals` and the other methods without `IfValue` don't accept `null` or `undefined`: see [why an optional value is a dynamic filter](../dynamic/three-valued-booleans.md#optional-backend-values-are-dynamic-queries-the-ifvalue-methods) and not a comparison with null.
+Use them when an absent value means "don't filter by this". `equals` and the other methods without `IfValue` don't accept `null` or `undefined`: see [why an optional value is a dynamic filter](../dynamic/three-valued-booleans.md#why-an-optional-value-means-a-dynamic-condition-the-ifvalue-methods) and not a comparison with null.
 
 In this example, only the first of the three conditions has a value. The order comes as text from the request, and it's explained in [Order by from a string](#order-by-from-a-string):
 

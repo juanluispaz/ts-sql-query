@@ -4,7 +4,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import type { DynamicCondition, DynamicConditionForModel, DynamicDefinitionForModel, ComparableFilter, EqualableFilter, StringFilter } from '../../../../../src/dynamic/condition.js'
+import type { DynamicCondition, DynamicConditionForModel, DynamicDefinitionForModel, ComparableFilter, EqualableFilter, StringFilter, BigintFilter, BooleanFilter, CustomDoubleFilter, CustomIntFilter, CustomLocalDateFilter, CustomLocalDateTimeFilter, CustomLocalTimeFilter, CustomUuidFilter, DateFilter, DateTimeFilter, NumberFilter, TimeFilter } from '../../../../../src/dynamic/condition.js'
 import { tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -24,6 +24,131 @@ describe(ctx.label, () => {
             name: tOrganization.name,
         },
     }
+
+    test('docs:utilities-conditions/dynamic-condition', async () => {
+        const expected = [{ id: 1, name: 'Marketing site', slug: 'mktg-site', organization: { name: 'Acme Corp' } }]
+        ctx.mockNext([{ id: 1, name: 'Marketing site', slug: 'mktg-site', 'organization.name': 'Acme Corp' }])
+
+        // doc-start
+        type ProjectFilter = DynamicCondition<{
+            id: 'int'
+            name: 'string'
+            slug: 'string'
+            organization: {
+                name: 'string'
+            }
+        }>
+
+        const filter: ProjectFilter = {
+            name: { startsWithInsensitive: 'MARKETING' },
+            organization: { name: { equals: 'Acme Corp' } }
+        }
+
+        const selectFields = {
+            id: tProject.id,
+            name: tProject.name,
+            slug: tProject.slug,
+            organization: {
+                name: tOrganization.name
+            }
+        }
+
+        const rows = await ctx.conn.selectFrom(tProject)
+            .innerJoin(tOrganization).on(tOrganization.id.equals(tProject.organizationId))
+            .where(ctx.conn.dynamicConditionFor(selectFields).withValues(filter))
+            .select(selectFields)
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, project.slug as slug, organization.name as "organization.name" from project inner join organization on organization.id = project.organization_id where project.name ilike ($1 || '%') and organization.name = $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "MARKETING",
+            "Acme Corp",
+          ]
+        `)
+        expect(rows).toEqual(expected)
+    })
+
+    test('docs:utilities-conditions/filter-of-a-field', async () => {
+        const expected = [{ name: 'Marketing site', slug: 'mktg-site' }]
+        ctx.mockNext(expected)
+
+        // doc-start
+        type ProjectFilter = DynamicCondition<{
+            name: 'string'
+            slug: 'string'
+        }>
+
+        function textFilter(text: string): StringFilter {
+            return { containsInsensitive: text }
+        }
+
+        const filter: ProjectFilter = {
+            or: [
+                { name: textFilter('MKTG') },
+                { slug: textFilter('MKTG') }
+            ]
+        }
+
+        const selectFields = {
+            name: tProject.name,
+            slug: tProject.slug
+        }
+
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(ctx.conn.dynamicConditionFor(selectFields).withValues(filter))
+            .select(selectFields)
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as name, slug as slug from project where name ilike ('%' || $1 || '%') or slug ilike ('%' || $2 || '%')"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "MKTG",
+            "MKTG",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ name: string; slug: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('docs-extra:utilities-conditions/each-type-name-maps-to-its-filter', () => {
+        type Definition = {
+            string: 'string'; uuid: 'uuid'; int: 'int'; double: 'double'; bigint: 'bigint'; boolean: 'boolean'
+            localDate: 'localDate'; localTime: 'localTime'; localDateTime: 'localDateTime'
+            enum: ['enum', 'a' | 'b']; custom: ['custom', 'a' | 'b']; customComparable: ['customComparable', 'a' | 'b']
+            customInt: ['customInt', 'a' | 'b']; customDouble: ['customDouble', 'a' | 'b']; customUuid: ['customUuid', 'a' | 'b']
+            customLocalDate: ['customLocalDate', 'a' | 'b']; customLocalTime: ['customLocalTime', 'a' | 'b']; customLocalDateTime: ['customLocalDateTime', 'a' | 'b']
+        }
+        type Filter = DynamicCondition<Definition>
+        assertType<Exact<NonNullable<Filter['string']>, StringFilter>>()
+        assertType<Exact<NonNullable<Filter['uuid']>, StringFilter>>()
+        assertType<Exact<NonNullable<Filter['int']>, NumberFilter>>()
+        assertType<Exact<NonNullable<Filter['double']>, NumberFilter>>()
+        assertType<Exact<NonNullable<Filter['bigint']>, BigintFilter>>()
+        assertType<Exact<NonNullable<Filter['boolean']>, BooleanFilter>>()
+        assertType<Exact<NonNullable<Filter['localDate']>, DateFilter>>()
+        assertType<Exact<NonNullable<Filter['localTime']>, TimeFilter>>()
+        assertType<Exact<NonNullable<Filter['localDateTime']>, DateTimeFilter>>()
+        assertType<Exact<NonNullable<Filter['enum']>, EqualableFilter<'a' | 'b'>>>()
+        assertType<Exact<NonNullable<Filter['custom']>, EqualableFilter<'a' | 'b'>>>()
+        assertType<Exact<NonNullable<Filter['customComparable']>, ComparableFilter<'a' | 'b'>>>()
+        assertType<Exact<NonNullable<Filter['customInt']>, CustomIntFilter<'a' | 'b'>>>()
+        assertType<Exact<NonNullable<Filter['customDouble']>, CustomDoubleFilter<'a' | 'b'>>>()
+        assertType<Exact<NonNullable<Filter['customUuid']>, CustomUuidFilter<'a' | 'b'>>>()
+        assertType<Exact<NonNullable<Filter['customLocalDate']>, CustomLocalDateFilter<'a' | 'b'>>>()
+        assertType<Exact<NonNullable<Filter['customLocalTime']>, CustomLocalTimeFilter<'a' | 'b'>>>()
+        assertType<Exact<NonNullable<Filter['customLocalDateTime']>, CustomLocalDateTimeFilter<'a' | 'b'>>>()
+    })
+
+    test('docs-extra:utilities-conditions/a-branded-property-counts-as-a-union', () => {
+        type Code = string & { __brand: 'code' }
+        type Filter = DynamicConditionForModel<{ code: Code; name: string; optional?: string | null }>
+        assertType<Exact<NonNullable<Filter['code']>, EqualableFilter<Code>>>()
+        assertType<Exact<NonNullable<Filter['name']>, StringFilter>>()
+        assertType<Exact<NonNullable<Filter['optional']>, StringFilter>>()
+    })
 
     test('docs:utilities-conditions/dynamic-condition-for-model', async () => {
         // doc-start

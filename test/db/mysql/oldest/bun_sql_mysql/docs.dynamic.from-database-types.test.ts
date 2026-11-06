@@ -199,4 +199,63 @@ describe(ctx.label, () => {
             { id: 2, name: 'Internal tools', company: { name: 'Acme Corp' } },
         ])
     })
+
+    test('docs-extra:from-database-types/a-group-path-picks-the-whole-group', async () => {
+        const company = tOrganization.forUseInLeftJoinAs('company')
+        const availableFields = {
+            id: tProject.id,
+            name: tProject.name,
+            company: {
+                id: company.id,
+                name: company.name
+            }
+        }
+
+        ctx.mockNext([{ id: 1, 'company.id': 1, 'company.name': 'Acme Corp' }])
+
+        const projects = await ctx.conn.selectFrom(tProject)
+            .optionalLeftOuterJoin(company).on(company.id.equals(tProject.organizationId))
+            .where(tProject.id.equals(1))
+            .select(dynamicPickPaths(availableFields, ['company'], ['id']))
+            .executeSelectMany()
+        const result: PickValuesPath<typeof availableFields, 'company' | 'id'>[] = expandTypeFromDynamicPickPaths(availableFields, ['company'], projects, ['id'])
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, company.id as \`company.id\`, company.\`name\` as \`company.name\` from project left outer join \`organization\` as company on company.id = project.organization_id where project.id = ?"`)
+        assertType<Exact<typeof result, Array<{ id: number; company?: { id: number; name: string } }>>>()
+        expect(result).toEqual([{ id: 1, company: { id: 1, name: 'Acme Corp' } }])
+    })
+
+    test('docs-extra:from-database-types/no-order-array-adds-no-order', async () => {
+        ctx.mockNext([{ id: 1 }])
+
+        const result = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id })
+            .orderByFromStringArrayIfValue(undefined)
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where id = ?"`)
+        expect(result).toEqual([{ id: 1 }])
+    })
+
+    test('docs-extra:from-database-types/an-order-by-a-column-not-picked-throws', () => {
+        const company = tOrganization.forUseInLeftJoinAs('company')
+        const availableFields = {
+            id: tProject.id,
+            name: tProject.name,
+            company: {
+                id: company.id,
+                name: company.name
+            }
+        }
+        type ProjectFields = DynamicPickPaths<typeof availableFields, 'id'>
+        type ProjectInfo<FIELDS extends ProjectFields> = PickValuesPath<typeof availableFields, FIELDS | 'id'>
+        const orderBy: OrderByForModel<ProjectInfo<ProjectFields>>[] = ['company.name asc']
+
+        expect(() => ctx.conn.selectFrom(tProject)
+            .optionalLeftOuterJoin(company).on(company.id.equals(tProject.organizationId))
+            .select(dynamicPickPaths(availableFields, ['name'], ['id']))
+            .orderByFromStringArrayIfValue(orderBy)
+        ).toThrow('ORDER_BY_COLUMN_NOT_IN_SELECT')
+    })
 })

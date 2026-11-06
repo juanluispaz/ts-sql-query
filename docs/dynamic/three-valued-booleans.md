@@ -4,74 +4,63 @@ search:
 ---
 # Booleans and three-valued logic
 
-In SQL a boolean is **three-valued**: it can be `true`, `false` or `null`. TypeScript/JavaScript booleans, in contrast, are **two-valued** (`true` / `false`).
+A boolean in JavaScript is `true` or `false`. A boolean in SQL can also be `null`, which means "unknown", and that's why it's called three-valued logic. When a column has no value, a comparison with it is neither true nor false: it's `null`, and the row is left out of the result.
 
-`ts-sql-query` deliberately keeps these two worlds apart, and the distinction matters most when a value comes from your **backend** and might be absent.
+This page answers three questions: why a comparison with null filters a row out, when to use `equals` and when to use `is`, and why `equals` doesn't accept a `null` from your code, and what the `*IfValue` methods do instead.
 
-## Three-valued logic in SQL
+## Why a comparison with null filters a row out
 
-In SQL, `AND`, `OR` and `NOT` operate on three values — `TRUE`, `FALSE` and `NULL` — and `NULL` propagates through them following these truth tables:
+A comparison with a null doesn't answer yes or no. `parent_id = 1` is `null` when `parent_id` is null, because the value is unknown. So is `parent_id <> 1`, and even `null = null`.
 
-| `AND` | `TRUE` | `FALSE` | `NULL` |
-|---|---|---|---|
-| **`TRUE`** | `TRUE` | `FALSE` | `NULL` |
-| **`FALSE`** | `FALSE` | `FALSE` | `FALSE` |
-| **`NULL`** | `NULL` | `FALSE` | `NULL` |
+A `where` keeps a row only when its condition is true. A row whose condition is false or `null` is discarded. The `on` of a join and the `having` work the same way.
 
-| `OR` | `TRUE` | `FALSE` | `NULL` |
-|---|---|---|---|
-| **`TRUE`** | `TRUE` | `TRUE` | `TRUE` |
-| **`FALSE`** | `TRUE` | `FALSE` | `NULL` |
-| **`NULL`** | `TRUE` | `NULL` | `NULL` |
+These are the results on three companies whose `parentId` is `1`, `2` and `null`:
 
-| `NOT` | |
-|---|---|
-| **`TRUE`** | `FALSE` |
-| **`FALSE`** | `TRUE` |
-| **`NULL`** | `NULL` |
+| Condition | On `1` | On `2` | On `null` | Rows kept by a `where` |
+|---|---|---|---|---|
+| `tCompany.parentId.equals(1)` | `true` | `false` | `null` | `1` |
+| `tCompany.parentId.notEquals(1)` | `false` | `true` | `null` | `2` |
+| `tCompany.parentId.equals(1).negate()` | `false` | `true` | `null` | `2` |
 
-Two rules drive everything: a comparison **involving** `NULL` evaluates to `NULL` (not `TRUE`/`FALSE`), and a `WHERE`, `ON` or `HAVING` keeps a row only when its predicate is **exactly `TRUE`** — rows where it evaluates to `FALSE` *or* `NULL` are discarded.
+The company without a parent isn't in any of the three. `equals(1)` and `notEquals(1)` together don't return all the rows, and `negate()` doesn't bring the row back, because the opposite of unknown is still unknown.
 
-### Why null behaviour can surprise you
+Most of the time this is what you want: a company without a parent isn't a child of company 1. The problem comes when you expect those rows, as in "the companies whose parent isn't company 1", which must include the ones without a parent. For that, use `isNot`, explained in the next section.
 
-Because a comparison against `NULL` evaluates to `NULL` and only `TRUE` rows survive a filter, several results are counter-intuitive even though they are *usually* what you want:
+To ask whether a column has a value, use `isNull()` and `isNotNull()`. They aren't comparisons, and their answer is always `true` or `false`.
 
-- `column = value` skips the rows where `column` is `NULL` — the comparison yields `NULL`, not `false`. Usually that's the intent, but the row is silently dropped, not "kept because it isn't equal to `value`".
-- `column <> value` **also** skips the `NULL` rows. So `WHERE active = true` and `WHERE active <> true` together do **not** cover every row: the `NULL` ones fall through both.
-- `NOT (column = value)` stays `NULL` when `column` is `NULL` — `column = value` is `NULL`, and (per the `NOT` table) `NOT NULL` is `NULL` — so the row is still excluded; negating a predicate does not turn a `NULL` result into `TRUE`.
-- `column NOT IN (1, 2, NULL)` returns **no rows at all**: the `NULL` in the list makes the whole expression `NULL` for every row.
-- A condition and its negation do not split the table into two complementary halves when nulls are present; the `NULL`-producing rows belong to neither.
+## `equals` or `is`: comparing values that may be null
 
-These are not `ts-sql-query` behaviours — they are SQL's, shared by every database. In the vast majority of queries the outcome matches what you intend (you rarely want to match a row on a column that has no value), which is why it goes unnoticed; the trap is the *occasional* query where you expected the `NULL` rows to participate. This is also why `ts-sql-query` does not let you feed a possibly-`null`/`undefined` backend value straight into a comparison — doing so would quietly inject this three-valued behaviour where you almost certainly meant "apply this filter only when I have a value". The rest of this page covers the right tools for that.
+In JavaScript, `null === null` is `true`. In SQL, `null = null` is `null`. The library has a method for each of the two meanings:
 
-## Comparing nulls: `equals` (SQL) vs `is` (JavaScript-like)
+| You write | Like | SQL in PostgreSQL | When one side is null | When both are null | Result type |
+|---|---|---|---|---|---|
+| `a.equals(b)` | `=` of SQL | `a = b` | `null` | `null` | Required if both sides are required, optional otherwise |
+| `a.notEquals(b)` | `<>` of SQL | `a <> b` | `null` | `null` | Required if both sides are required, optional otherwise |
+| `a.is(b)` | `===` of JavaScript | `a is not distinct from b` | `false` | `true` | Always required |
+| `a.isNot(b)` | `!==` of JavaScript | `a is distinct from b` | `true` | `false` | Always required |
 
-The place this surprises people most is **comparing two values that may both be `null`** — and here JavaScript and SQL flatly disagree:
+`b` can be another column or expression of the query in all of them. A value from your code is different: `equals` and `notEquals` only accept a value that isn't `null` or `undefined`, while `is` and `isNot` accept them too, and take `undefined` as `null`.
 
-- In **JavaScript**, `null === null` is `true` (and `undefined === undefined` is `true`): `null` compares equal to itself.
-- In **SQL**, `null = null` is **not** `true` — it is `null`; and so is `null <> null`. A `=` comparison can never confirm that two nulls are equal, which is why SQL has the separate `IS NULL` / `IS NOT DISTINCT FROM` operators.
+With the same three companies:
 
-`ts-sql-query` exposes **both** behaviours as distinct methods, so you pick explicitly which one you mean:
+| Condition | On `1` | On `2` | On `null` | Rows kept by a `where` |
+|---|---|---|---|---|
+| `tCompany.parentId.is(1)` | `true` | `false` | `false` | `1` |
+| `tCompany.parentId.isNot(1)` | `false` | `true` | `true` | `2`, `null` |
+| `tCompany.parentId.is(null)` | `false` | `false` | `true` | `null` |
+| `tCompany.parentId.isNot(null)` | `true` | `true` | `false` | `1`, `2` |
 
-| You write | Emitted SQL | When both sides are `null` | Result type |
-|---|---|---|---|
-| `a.equals(b)` | `a = b` | `null` | optional boolean |
-| `a.notEquals(b)` | `a <> b` | `null` | optional boolean |
-| `a.is(b)` | `a is not distinct from b` | `true` | boolean (never `null`) |
-| `a.isNot(b)` | `a is distinct from b` | `false` | boolean (never `null`) |
-
-The table shows the standard SQL for `is` / `isNot`, the one PostgreSQL receives. MySQL and MariaDB get `a <=> b` and `not (a <=> b)`, SQLite gets `a is b` and `a is not b`, Oracle gets a `decode`, and SQL Server gets `a = b` and `a <> b` when neither side can be null, or a `case` expression otherwise. SQL Server also gets `a is null` or `a is not null` when the argument is a `null` known while the query is built.
-
-- `equals` / `notEquals` follow **SQL**'s `=` / `<>`: three-valued, the result is an **optional** boolean (it may be `null`), and they take a present value — you cannot pass `null` / `undefined` to them.
-- `is` / `isNot` follow **JavaScript**'s `===` / `!==`: a **null-safe** comparison that treats `null` as equal to `null`, accepts `null` / `undefined` as the argument, and always returns a **definite** boolean — never `null`.
+Use `equals` when a row without a value must not match, which is the usual case. Use `is` when null counts as one more value, as when a variable that may be null must find the rows that have null in the column. If you already know you are looking for null, `isNull()` says it more clearly than `is(null)`.
 
 ```ts
-const maybeBig: boolean | null | undefined = null
+const parentId: number | null = null
 
-const companies = await connection.selectFrom(tCustomCompany)
-    // null-safe, JavaScript-like equality: `null` matches `null`, and the result is always a real boolean
-    .where(tCustomCompany.isBig.is(maybeBig))
-    .select({ id: tCustomCompany.id, name: tCustomCompany.name })
+const companies = await connection.selectFrom(tCompany)
+    .where(tCompany.parentId.is(parentId))
+    .select({
+        id: tCompany.id,
+        name: tCompany.name
+    })
     .executeSelectMany()
 ```
 
@@ -82,32 +71,32 @@ The executed query is:
     select 
         id as id, 
         name as name 
-    from custom_company 
-    where (is_big = 'Y') <=> ?
+    from company 
+    where parent_id <=> ?
     ```
 === "MySQL"
     ```mysql
     select 
         id as id, 
         `name` as `name` 
-    from custom_company 
-    where (is_big = 'Y') <=> ?
+    from company 
+    where parent_id <=> ?
     ```
 === "Oracle"
     ```oracle
     select 
         id as "id", 
         name as "name" 
-    from custom_company 
-    where decode(case when is_big = 'Y' then 1 else 0 end, :0, 1, 0 ) = 1
+    from company 
+    where decode(parent_id, :0, 1, 0 ) = 1
     ```
 ===+ "PostgreSQL"
     ```postgresql
     select 
         id as id, 
         name as name 
-    from custom_company 
-    where (is_big = 'Y') is not distinct 
+    from company 
+    where parent_id is not distinct 
     from $1
     ```
 === "SQLite"
@@ -115,32 +104,118 @@ The executed query is:
     select 
         id as id, 
         name as name 
-    from custom_company 
-    where (is_big = 'Y') is ?1
+    from company 
+    where parent_id is ?1
     ```
 === "SQL Server"
     ```sqlserver
     select 
         id as id, 
         name as name 
-    from custom_company 
-    where is_big is null
+    from company 
+    where parent_id is null
     ```
 
 The parameters are: `[ null ]` (on SQL Server: `[]`)
 
-Use `equals` when you want plain SQL `=` semantics over present values, and `is` when you want a total, JavaScript-like equality that copes with `null` on either side. (For the *dynamic* case — "apply this filter only if a value was provided" — use `equalsIfValue` / `isIfValue`, covered next.)
+Each database writes `is` and `isNot` in its own way: MySQL and MariaDB use `a <=> b` and `not (a <=> b)`, SQLite uses `a is b` and `a is not b`, and Oracle uses a `decode`. SQL Server uses `a = b` and `a <> b` when neither side can be null, a `case` expression otherwise, and `a is null` or `a is not null` when the argument is a null known while the query is built.
 
-## Values coming from the backend are not three-valued
-
-The library's typing for the **values you pass in from TypeScript/JavaScript** into a boolean-producing operation (a comparison such as `equals`, `greaterThan`, …) does **not** accept `boolean | null`, `boolean | undefined` or `boolean | null | undefined`. `equals(value)` requires a present, non-null value:
+The type of the result shows which answers are possible. The result of `equals` with a value follows the column: on a required column it's a required boolean, and on an optional column it's an optional one, because the database can answer `null`. The result of `is` is always required:
 
 ```ts
-const present: boolean = true
+const companies = await connection.selectFrom(tCompany)
+    .select({
+        id: tCompany.id,
+        isTheFirstCompany: tCompany.id.equals(1),
+        childOfTheFirstWithEquals: tCompany.parentId.equals(1),
+        childOfTheFirstWithIs: tCompany.parentId.is(1)
+    })
+    .executeSelectMany()
+```
 
-const companies = await connection.selectFrom(tCustomCompany)
-    .where(tCustomCompany.isBig.equals(present)) // requires a real boolean, never null/undefined
-    .select({ id: tCustomCompany.id, name: tCustomCompany.name })
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        id = ? as isTheFirstCompany, 
+        parent_id = ? as childOfTheFirstWithEquals, 
+        parent_id <=> ? as childOfTheFirstWithIs 
+    from company
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        id = ? as isTheFirstCompany, 
+        parent_id = ? as childOfTheFirstWithEquals, 
+        parent_id <=> ? as childOfTheFirstWithIs 
+    from company
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        case when id = :0 then 1 else 0 end as "isTheFirstCompany", 
+        case when parent_id = :1 then 1 when not (parent_id = :2) then 0 else null end as "childOfTheFirstWithEquals", 
+        case when decode(parent_id, :3, 1, 0 ) = 1 then 1 else 0 end as "childOfTheFirstWithIs" 
+    from company
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        id = $1 as "isTheFirstCompany", 
+        parent_id = $2 as "childOfTheFirstWithEquals", 
+        parent_id is not distinct 
+    from $3 as "childOfTheFirstWithIs" 
+    from company
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        id = ?1 as isTheFirstCompany, 
+        parent_id = ?2 as childOfTheFirstWithEquals, 
+        parent_id is ?3 as childOfTheFirstWithIs 
+    from company
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        cast(case when id = @0 then 1 else 0 end as bit) as isTheFirstCompany, 
+        cast(case when parent_id = @1 then 1 when not (parent_id = @2) then 0 else null end as bit) as childOfTheFirstWithEquals, 
+        cast(case when case when parent_id = @3 then 1 else 0 end = 1 then 1 else 0 end as bit) as childOfTheFirstWithIs 
+    from company
+    ```
+
+The parameters are: `[ 1, 1, 1 ]` (on Oracle and SQL Server: `[ 1, 1, 1, 1 ]`)
+
+The result type is:
+```tsx
+const companies: {
+    id: number;
+    isTheFirstCompany: boolean;
+    childOfTheFirstWithEquals?: boolean;
+    childOfTheFirstWithIs: boolean;
+}[]
+```
+
+## Why an optional value means a dynamic condition: the IfValue methods
+
+`equals`, `greaterThan` and the other comparisons don't accept a `null` or an `undefined` from your code. In this query, `parentId` is a `number`, and with `number | null` it wouldn't compile:
+
+```ts
+const parentId: number = 1
+
+const companies = await connection.selectFrom(tCompany)
+    .where(tCompany.parentId.equals(parentId))
+    .select({
+        id: tCompany.id,
+        name: tCompany.name
+    })
     .executeSelectMany()
 ```
 
@@ -151,65 +226,66 @@ The executed query is:
     select 
         id as id, 
         name as name 
-    from custom_company 
-    where (is_big = 'Y') = ?
+    from company 
+    where parent_id = ?
     ```
 === "MySQL"
     ```mysql
     select 
         id as id, 
         `name` as `name` 
-    from custom_company 
-    where (is_big = 'Y') = ?
+    from company 
+    where parent_id = ?
     ```
 === "Oracle"
     ```oracle
     select 
         id as "id", 
         name as "name" 
-    from custom_company 
-    where case when is_big = 'Y' then 1 else 0 end = :0
+    from company 
+    where parent_id = :0
     ```
 ===+ "PostgreSQL"
     ```postgresql
     select 
         id as id, 
         name as name 
-    from custom_company 
-    where (is_big = 'Y') = $1
+    from company 
+    where parent_id = $1
     ```
 === "SQLite"
     ```sqlite
     select 
         id as id, 
         name as name 
-    from custom_company 
-    where (is_big = 'Y') = ?1
+    from company 
+    where parent_id = ?1
     ```
 === "SQL Server"
     ```sqlserver
     select 
         id as id, 
         name as name 
-    from custom_company 
-    where cast(case when is_big = 'Y' then 1 else 0 end as bit) = @0
+    from company 
+    where parent_id = @0
     ```
 
-The parameters are: `[ true ]` (on Oracle: `[ 1 ]`)
+The parameters are: `[ 1 ]`
 
-Earlier versions of `ts-sql-query` fully modelled SQL's three-valued logic for these operations, but in practice it caused surprising behaviour from the TypeScript/JavaScript point of view (a comparison silently evaluating to `null`), so producing a boolean from a possibly-`null`/`undefined` TS value was deprecated. The reason is conceptual: **an optional value in your backend almost never means "compare against null" — it means "this condition is dynamic"** (apply it only when a value is present). That is a dynamic-query concern, not a three-valued-logic one.
+The reason is what a missing value means. When a value of your backend may be absent, such as a filter of a search form, it almost never means "compare with null". It means that this condition is dynamic: apply it only if there is a value. A comparison with null would do something else: as seen above, it's never true, so the query would return no rows and give no error.
 
-## Optional backend values are dynamic queries: the `*IfValue` methods
-
-When the value may be absent, use the `*IfValue` variant of the operation. These methods accept `value | null | undefined` and, when the value is `null`, `undefined` (or an empty string, unless the connection's `allowEmptyString` is enabled), return a **special neutral boolean** that is **reduced away before the final SQL is generated** — it is ignored inside `and`, `or`, `on` and `where`:
+The `*IfValue` methods say that. They accept `null` and `undefined`, and without a value there is no condition in the query:
 
 ```ts
-// `isBig` comes from the request and may be absent; absent means "don't filter by it"
-const isBig: boolean | null | undefined = undefined
+// It comes from the request and may be absent: absent means "don't filter by it"
+const parentId: number | null | undefined = undefined
 
-const companies = await connection.selectFrom(tCustomCompany)
-    .where(tCustomCompany.isBig.equalsIfValue(isBig)) // omitted entirely when isBig is null/undefined
-    .select({ id: tCustomCompany.id, name: tCustomCompany.name })
+const companies = await connection.selectFrom(tCompany)
+    .where(tCompany.parentId.equalsIfValue(parentId))
+    .select({
+        id: tCompany.id,
+        name: tCompany.name
+    })
     .executeSelectMany()
 ```
 
@@ -220,59 +296,74 @@ The executed query is:
     select 
         id as id, 
         name as name 
-    from custom_company
+    from company
     ```
 === "MySQL"
     ```mysql
     select 
         id as id, 
         `name` as `name` 
-    from custom_company
+    from company
     ```
 === "Oracle"
     ```oracle
     select 
         id as "id", 
         name as "name" 
-    from custom_company
+    from company
     ```
 ===+ "PostgreSQL"
     ```postgresql
     select 
         id as id, 
         name as name 
-    from custom_company
+    from company
     ```
 === "SQLite"
     ```sqlite
     select 
         id as id, 
         name as name 
-    from custom_company
+    from company
     ```
 === "SQL Server"
     ```sqlserver
     select 
         id as id, 
         name as name 
-    from custom_company
+    from company
     ```
 
 The parameters are: `[]`
 
-Because the neutral boolean is reduced, the whole condition disappears from the emitted SQL when there is no value — even when it is combined with other conditions through `and` / `or`. See [Optional conditions: the IfValue methods](../queries/dynamic-queries.md#optional-conditions-the-ifvalue-methods) for the full treatment (including the generated SQL per database) and the other dynamic-query building blocks (`onlyWhen`, `ignoreWhen`, optional joins, …).
+Without a value, these methods return the [neutral boolean](../queries/dynamic-queries.md#the-neutral-boolean), which isn't the `null` of SQL. A `null` reaches the database and makes the row be discarded. The neutral boolean never reaches it: the library removes it from the `and`, `or`, `on` or `where` it's part of, so the condition isn't written at all.
+
+So the question to ask is what the query must do when the value is missing:
+
+| When the value is `null` or `undefined`, the query must | Write |
+|---|---|
+| Not filter by it | `tCompany.parentId.equalsIfValue(x)` |
+| Return the rows that have null in the column | `tCompany.parentId.is(x)` |
+| Return no rows | `tCompany.parentId.equalsIfValue(x).falseWhenNoValue()` |
+| Use another condition | `tCompany.parentId.equalsIfValue(x).valueWhenNoValue(otherCondition)` |
+
+`isIfValue` belongs to the first row and not to the second: `isIfValue(null)` has no value, so it writes no condition and doesn't look for the nulls.
+
+[Optional conditions: the IfValue methods](../queries/dynamic-queries.md#optional-conditions-the-ifvalue-methods) has all these methods, [what counts as no value](../queries/dynamic-queries.md#what-counts-as-no-value) and how they combine.
 
 ### When the absence should mean `false` instead of being omitted
 
-Sometimes you don't want the condition dropped when there is no value — you want it applied as `false` (or `true`). End the `*IfValue` chain with `falseWhenNoValue()`, `trueWhenNoValue()` or `valueWhenNoValue(...)`:
+Sometimes a missing value must not remove the condition. For example, a user who has no company assigned must see no rows, and not all of them. End the condition with `falseWhenNoValue()`, `trueWhenNoValue()` or `valueWhenNoValue(...)`:
 
 ```ts
-const isBig: boolean | null | undefined = undefined
+const parentId: number | null | undefined = undefined
 
-const companies = await connection.selectFrom(tCustomCompany)
-    // absent value applies the condition as `false` instead of omitting it
-    .where(tCustomCompany.isBig.equalsIfValue(isBig).falseWhenNoValue())
-    .select({ id: tCustomCompany.id, name: tCustomCompany.name })
+const companies = await connection.selectFrom(tCompany)
+    .where(tCompany.parentId.equalsIfValue(parentId).falseWhenNoValue())
+    .select({
+        id: tCompany.id,
+        name: tCompany.name
+    })
     .executeSelectMany()
 ```
 
@@ -283,7 +374,7 @@ The executed query is:
     select 
         id as id, 
         name as name 
-    from custom_company 
+    from company 
     where false
     ```
 === "MySQL"
@@ -291,7 +382,7 @@ The executed query is:
     select 
         id as id, 
         `name` as `name` 
-    from custom_company 
+    from company 
     where false
     ```
 === "Oracle"
@@ -299,7 +390,7 @@ The executed query is:
     select 
         id as "id", 
         name as "name" 
-    from custom_company 
+    from company 
     where (0=1)
     ```
 ===+ "PostgreSQL"
@@ -307,7 +398,7 @@ The executed query is:
     select 
         id as id, 
         name as name 
-    from custom_company 
+    from company 
     where false
     ```
 === "SQLite"
@@ -315,7 +406,7 @@ The executed query is:
     select 
         id as id, 
         name as name 
-    from custom_company 
+    from company 
     where 0
     ```
 === "SQL Server"
@@ -323,20 +414,255 @@ The executed query is:
     select 
         id as id, 
         name as name 
-    from custom_company 
+    from company 
     where (0=1)
     ```
 
 The parameters are: `[]`
 
-## Three-valued logic still happens with database values
+## A null that comes from the database
 
-The restriction above is about **values you inject from the backend**. A `null` produced by the **database itself** is legitimate and fully modelled: reading a nullable boolean column (declared with `optionalColumn('...', 'boolean')`) gives an **optional** boolean value source, and its result is an optional property (`billable?: boolean`). Comparisons between database expressions keep SQL's three-valued semantics on the server side.
+What's above is about values from your code. A null that comes from the database is normal, and the types say where it can happen: a column declared with `optionalColumn` is optional in the result, as `tCompany.parentId` is `parentId?: number`.
 
-If you genuinely need SQL's three-valued behaviour for a comparison — for example to compare two optional database expressions and let the result be `null` — write a custom [SQL fragment](../queries/sql-fragments.md) that returns an `optional` boolean. The FAQ entry [How to compare against a null or undefined value?](../about/limitations.md#how-to-compare-against-a-null-or-undefined-value) shows exactly this pattern.
+Two expressions of the query are compared directly, even if they are optional. If any of them is optional the result is an optional boolean, and the database answers as in the tables of this page:
+
+```ts
+const companies = await connection.selectFrom(tCompany)
+    .select({
+        id: tCompany.id,
+        isItsOwnParent: tCompany.id.equals(tCompany.parentId)
+    })
+    .executeSelectMany()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        id = parent_id as isItsOwnParent 
+    from company
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        id = parent_id as isItsOwnParent 
+    from company
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        case when id = parent_id then 1 when not (id = parent_id) then 0 else null end as "isItsOwnParent" 
+    from company
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        id = parent_id as "isItsOwnParent" 
+    from company
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        id = parent_id as isItsOwnParent 
+    from company
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        cast(case when id = parent_id then 1 when not (id = parent_id) then 0 else null end as bit) as isItsOwnParent 
+    from company
+    ```
+
+The parameters are: `[]`
+
+The result type is:
+```tsx
+const companies: {
+    id: number;
+    isItsOwnParent?: boolean;
+}[]
+```
+
+An optional boolean column behaves in the same way. With `billable = this.optionalColumn('billable', 'boolean')`, `.where(tWorklog.billable)` keeps the rows where it's true, `.where(tWorklog.billable.negate())` keeps the rows where it's false, and the rows where it's null are in neither.
+
+To return `true` or `false` when the answer is `null`, you have two options, with a required result in both:
+
+| You write | On a row where `parentId` is null |
+|---|---|
+| `tCompany.parentId.equals(1).valueWhenNull(false)` | `false`, the value you pass |
+| `tCompany.parentId.is(1)` | `false`, because null isn't `1` |
+
+If you really want a comparison in the database with a value of your code that may be null, turn the value into an expression with `connection.optionalConst`. The null is sent as a parameter, and the query returns no rows:
+
+```ts
+const parentId: number | null = null
+
+const companies = await connection.selectFrom(tCompany)
+    .where(tCompany.parentId.equals(connection.optionalConst(parentId, 'int')))
+    .select({
+        id: tCompany.id,
+        name: tCompany.name
+    })
+    .executeSelectMany()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        name as name 
+    from company 
+    where parent_id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        `name` as `name` 
+    from company 
+    where parent_id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        name as "name" 
+    from company 
+    where parent_id = :0
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        name as name 
+    from company 
+    where parent_id = $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        name as name 
+    from company 
+    where parent_id = ?1
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        name as name 
+    from company 
+    where parent_id = @0
+    ```
+
+The parameters are: `[ null ]`
+
+[How to compare against a null or undefined value?](../about/limitations.md#how-to-compare-against-a-null-or-undefined-value), in the limitations page, shows the same comparison written as a [SQL fragment](../queries/sql-fragments.md).
+
+## `and`, `or` and `negate` with a null
+
+A condition can be `null`, so `and`, `or` and `negate` have to work with it. With `and`, a `false` decides the result. With `or`, a `true` decides it. If nothing decides it and there is a null, the result is `null`:
+
+| `a` | `b` | `a.and(b)` | `a.or(b)` | `a.negate()` |
+|---|---|---|---|---|
+| `true` | `true` | `true` | `true` | `false` |
+| `true` | `false` | `false` | `true` | `false` |
+| `true` | `null` | `null` | `true` | `false` |
+| `false` | `true` | `false` | `true` | `true` |
+| `false` | `false` | `false` | `false` | `true` |
+| `false` | `null` | `false` | `null` | `true` |
+| `null` | `true` | `null` | `true` | `null` |
+| `null` | `false` | `false` | `null` | `null` |
+| `null` | `null` | `null` | `null` | `null` |
+
+That's why a condition and its opposite don't always return all the rows: `tCompany.parentId.equals(1).or(tCompany.parentId.notEquals(1))` is `null` on a company without a parent, and that company isn't returned.
+
+## `notIn` with a subquery that returns a null
+
+`id not in (1, null)` means `id <> 1 and id <> null`. The second part is always `null`, so by the table above the whole condition can't be true, and the query returns no rows, whatever `id` is.
+
+A list of values from your code can't have a null, because its type doesn't allow it. A subquery on an optional column can return one. To get the companies that aren't the parent of any company, leave the nulls out of the subquery. Without its `where`, this query would return nothing as soon as one company has no parent:
+
+```ts
+const companiesThatAreParents = connection.selectFrom(tCompany)
+    .where(tCompany.parentId.isNotNull())
+    .selectOneColumn(tCompany.parentId)
+
+const companies = await connection.selectFrom(tCompany)
+    .where(tCompany.id.notIn(companiesThatAreParents))
+    .select({
+        id: tCompany.id,
+        name: tCompany.name
+    })
+    .executeSelectMany()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        name as name 
+    from company 
+    where id not in (select parent_id as result from company where parent_id is not null)
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        `name` as `name` 
+    from company 
+    where id not in (select parent_id as result from company where parent_id is not null)
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        name as "name" 
+    from company 
+    where id not in (select parent_id as "result" from company where parent_id is not null)
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        name as name 
+    from company 
+    where id not in (select parent_id as result from company where parent_id is not null)
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        name as name 
+    from company 
+    where id not in (select parent_id as result from company where parent_id is not null)
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        name as name 
+    from company 
+    where id not in (select parent_id as [result] from company where parent_id is not null)
+    ```
+
+The parameters are: `[]`
+
+`in` with the same subquery returns the rows that match: the rest are `false` or `null`, and both are discarded.
 
 ## See also
 
-- [Optional conditions: the IfValue methods](../queries/dynamic-queries.md#optional-conditions-the-ifvalue-methods) — the `*IfValue` methods and the neutral-boolean reduction in depth.
-- [How to compare against a null or undefined value?](../about/limitations.md#how-to-compare-against-a-null-or-undefined-value) — the FAQ on three-valued comparisons and the custom-fragment escape hatch.
-- [Custom booleans values](../advanced/custom-booleans-values.md) — storing booleans with non-standard values (e.g. `'Y'` / `'N'`).
+- [Optional conditions: the IfValue methods](../queries/dynamic-queries.md#optional-conditions-the-ifvalue-methods): the `*IfValue` methods and the neutral boolean in depth.
+- [How to compare against a null or undefined value?](../about/limitations.md#how-to-compare-against-a-null-or-undefined-value): the same question in the limitations page, with a SQL fragment.
+- [Custom booleans values](../advanced/custom-booleans-values.md): booleans stored with other values, such as `'Y'` and `'N'`.

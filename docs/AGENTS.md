@@ -53,7 +53,7 @@ Start with the file of the area of your task. These files are written for you: o
 | Use a transaction | [`llms-transactions.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-transactions.txt) | 13k |
 | Go beyond what the library offers: your own SQL or column type | [`llms-extending-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-extending-postgresql.txt) | 15k |
 | Let the caller choose columns, filters and order, fill a table or offer a query API from a request, write a function that returns a dynamic select, or write values with a shape | [`llms-extreme-dynamic-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-extreme-dynamic-postgresql.txt) | 20k |
-| Go deeper in dynamic queries: booleans and null, or typing them from a model | [`llms-dynamic.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-dynamic.txt) | 24k |
+| Go deeper in dynamic queries: booleans and null, or typing them from a model | [`llms-dynamic.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-dynamic.txt) | 31k |
 | Type a row of a table | [`llms-types.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-types.txt) | 5k |
 | Declare the tables and the connection | [`llms-configuration-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-configuration-postgresql.txt) | 26k |
 | Connect a driver | The page of your driver, listed in `llms.txt`, or all of them in [`llms-query-runners.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-query-runners.txt) | 31k |

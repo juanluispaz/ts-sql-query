@@ -5,11 +5,11 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import type { DynamicConditionForModel } from '../../../../../src/dynamic/condition.js'
+import type { DynamicConditionForModel, ComparableFilter, DynamicCondition, DynamicDefinitionForModel } from '../../../../../src/dynamic/condition.js'
 import type { OrderByForModel } from '../../../../../src/dynamic/orderBy.js'
 import { dynamicPickPaths, expandTypeFromDynamicPickPaths } from '../../../../../src/dynamic/pick.js'
 import type { DeepPick, DeepPickPaths } from '../../../../../src/extras/deepUtilities.js'
-import { tOrganization, tProject } from '../../domain/connection.js'
+import { tOrganization, tProject, tProjectRelease } from '../../domain/connection.js'
 import type { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -215,5 +215,150 @@ describe(ctx.label, () => {
             { id: 1, name: 'Marketing site', company: { name: 'Acme Corp' } },
             { id: 2, name: 'Internal tools', company: { name: 'Acme Corp' } },
         ])
+    })
+
+    test('docs:from-business-model/custom-types', () => {
+        // doc-start
+        type Money = number & { readonly brand: 'Money' }
+
+        interface Invoice {
+            id: number
+            total: Money
+        }
+
+        type InvoiceFilter = DynamicCondition<DynamicDefinitionForModel<Omit<Invoice, 'total'>> & { total: ['customComparable', Money] }>
+
+        const filter: InvoiceFilter = {
+            id: { equals: 1 },
+            total: { greaterThan: 100 as Money }
+        }
+        // doc-end
+
+        assertType<Exact<NonNullable<InvoiceFilter['total']>, ComparableFilter<Money>>>()
+        expect(filter.total?.greaterThan).toBe(100)
+    })
+
+    test('docs-extra:from-business-model/each-property-type-maps-to-its-filter', () => {
+        type Brand<T, NAME extends string> = T & { readonly brand: NAME }
+
+        interface Model {
+            flag: boolean
+            optionalFlag?: boolean
+            count: number
+            big: bigint
+            text: string
+            at: Date
+            status: 'active' | 'inactive'
+            level: 1 | 2
+            group: { id: number }
+            brandedString: Brand<string, 'Code'>
+            brandedNumber: Brand<number, 'Money'>
+            brandedBigint: Brand<bigint, 'Big'>
+            brandedDate: Brand<Date, 'Stamp'>
+            list: string[]
+            map: Map<string, string>
+            set: Set<string>
+            callback: () => void
+            binary: Uint8Array
+            regExp: RegExp
+            mixed: string | number
+        }
+
+        assertType<Exact<DynamicDefinitionForModel<Model>, {
+            flag: 'boolean'
+            optionalFlag: 'boolean'
+            count: 'int'
+            big: 'bigint'
+            text: 'string'
+            at: 'localDateTime'
+            status: ['enum', 'active' | 'inactive']
+            level: ['enum', 1 | 2]
+            group: { id: 'int' }
+            brandedString: ['enum', Brand<string, 'Code'>]
+            brandedNumber: ['enum', Brand<number, 'Money'>]
+            brandedBigint: 'bigint'
+            brandedDate: 'localDateTime'
+            list: never
+            map: never
+            set: never
+            callback: never
+            binary: never
+            regExp: never
+            mixed: never
+        }>>()
+    })
+
+    test('docs-extra:from-business-model/a-property-not-in-the-map-compiles-and-throws', () => {
+        interface ProjectFilterRow {
+            id: number
+            name: string
+            owner?: string
+        }
+
+        function buildCondition(filter: DynamicConditionForModel<ProjectFilterRow>) {
+            return ctx.conn.dynamicConditionFor({ id: tProject.id, name: tProject.name }).withValues(filter)
+        }
+
+        expect(() => buildCondition({ owner: { equals: 'Ann' } }))
+            .toThrow('DYNAMIC_CONDITION_UNKNOWN_COLUMN')
+    })
+
+    test('docs-extra:from-business-model/an-order-by-a-column-not-picked-throws', () => {
+        const company = tOrganization.forUseInLeftJoinAs('company')
+        const availableFields = {
+            id: tProject.id,
+            name: tProject.name,
+            company: {
+                id: company.id,
+                name: company.name
+            }
+        }
+        interface ProjectRow {
+            id: number
+            name: string
+            company?: {
+                id: number
+                name: string
+            }
+        }
+        const orderBy: OrderByForModel<ProjectRow>[] = ['company.name asc']
+
+        expect(() => ctx.conn.selectFrom(tProject)
+            .optionalLeftOuterJoin(company).on(company.id.equals(tProject.organizationId))
+            .select(dynamicPickPaths(availableFields, ['name'], ['id']))
+            .orderByFromStringArrayIfValue(orderBy)
+        ).toThrow('ORDER_BY_COLUMN_NOT_IN_SELECT')
+    })
+
+    test('docs-extra:from-business-model/a-plain-type-on-a-custom-column-has-the-operators-of-that-type', async () => {
+        interface ReleaseFilterRow {
+            id: number
+            version: string
+        }
+
+        async function filterReleases(filter: DynamicConditionForModel<ReleaseFilterRow>) {
+            const availableFields = {
+                id: tProjectRelease.id,
+                version: tProjectRelease.version
+            }
+
+            return ctx.conn.selectFrom(tProjectRelease)
+                .where(ctx.conn.dynamicConditionFor(availableFields).withValues(filter))
+                .select({ id: tProjectRelease.id })
+                .orderBy('id')
+                .executeSelectMany()
+        }
+
+        ctx.mockNext([{ id: 1 }])
+
+        const result = await filterReleases({ version: { contains: '1.2.0' } })
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where version like ('%' || :0 || '%') escape '\\' order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "1.2.0",
+          ]
+        `)
+        expect(result).toEqual([{ id: 1 }])
     })
 })

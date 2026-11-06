@@ -17,10 +17,11 @@ import {
     extractWritableColumnsFrom,
     extractWritableShapeFrom,
 } from '../../../../../src/extras/utils.js'
-import { type DynamicCondition, type DynamicConditionForModel } from '../../../../../src/dynamic/condition.js'
-import { dynamicPick, dynamicPickPaths, expandTypeFromDynamicPickPaths, type DynamicPickPaths, type PickValuesPath } from '../../../../../src/dynamic/pick.js'
+import { type DynamicCondition, type DynamicConditionForModel, type StringFilter, type DynamicDefinitionForModel } from '../../../../../src/dynamic/condition.js'
+import { dynamicPick, dynamicPickPaths, expandTypeFromDynamicPickPaths, type DynamicPickPaths, type PickValuesPath, type Pickable, type PickValuesPathProjectedAsNullable, type PickValuesPathWithAllPropertiesProjectedAsNullable, expandTypeProjectedAsNullableFromDynamicPickPaths, type PickValuesPathWithAllProperties } from '../../../../../src/dynamic/pick.js'
 import {
-    type OrderByForModel
+    type OrderByForModel,
+    type OrderByMode,
 } from '../../../../../src/dynamic/orderBy.js'
 import { deepPick, deepOmit, type DeepPick, type DeepOmit, type DeepPickPaths } from '../../../../../src/extras/deepUtilities.js'
 import { fromRef, type TableOrViewLeftJoinOf, type TableOrViewOf, type UpdatableValuesShapedAs } from '../../../../../src/extras/types.js'
@@ -176,6 +177,8 @@ void Values
 void extractColumnsFrom
 void extractWritableColumnsFrom
 void extractWritableShapeFrom
+void expandTypeProjectedAsNullableFromDynamicPickPaths
+void (null as unknown as [OrderByMode, StringFilter, DynamicDefinitionForModel<{}>, Pickable, PickValuesPathProjectedAsNullable<{}, never>, PickValuesPathWithAllPropertiesProjectedAsNullable<{}, never>, PickValuesPathWithAllProperties<{}, never>])
 void (null as unknown as UpdatableValuesShapedAs<any, any>)
 void dynamicPick
 void dynamicPickPaths

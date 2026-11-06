@@ -4,21 +4,36 @@ search:
 ---
 # Typing dynamic queries from the database types
 
-This is the **database-first** counterpart of [Typing dynamic queries from a business model](from-business-model.md). Here every helper type is derived from the **available columns** — the `availableFields` value-source map you build inside the query — using `typeof availableFields`. There is no hand-written model interface: the column map is the single source of truth, and the filter, the picked result and the order-by are all computed from it.
+A function that serves many callers receives a filter, the columns to return and an order. Its parameters need types, so that the compiler checks each call and the result has only the columns that were asked for. These types can come from two places: from the columns of the query, or from [an interface you write](from-business-model.md). This page takes them from the columns.
 
-| What the caller controls | Helper to type it | Module |
+You build one map, usually called `availableFields`: each key is a name the caller uses, and each value is a column or an expression. `typeof availableFields` gives every type the function needs.
+
+| What goes through the function | Its type | What uses it inside the function |
 |---|---|---|
-| The **filter** (a criteria object) | `DynamicCondition<typeof availableFields, Extension?>` | `ts-sql-query/dynamic/condition` |
-| The **columns** returned | `DynamicPickPaths<typeof availableFields>` + `PickValuesPath<typeof availableFields, …>` + `dynamicPickPaths` + `expandTypeFromDynamicPickPaths` | `ts-sql-query/dynamic/pick` |
-| The **ordering** | `OrderByForModel<Row>` over the computed result row | `ts-sql-query/dynamic/orderBy` |
+| The filter | `DynamicCondition<typeof availableFields>` | `connection.dynamicConditionFor(availableFields).withValues(filter)` |
+| The columns to return | `DynamicPickPaths<typeof availableFields>[]` | `dynamicPickPaths(availableFields, fields, ['id'])` |
+| The order | `OrderByForModel<Row>[]`, where `Row` is the type of a whole row | `.orderByFromStringArrayIfValue(orderBy)` |
+| The rows returned | `PickValuesPath<typeof availableFields, FIELDS>[]` | `expandTypeFromDynamicPickPaths(availableFields, fields, rows, ['id'])` |
 
-All of these are also re-exported from the root `ts-sql-query`. Each section below is a complete, self-contained function you can copy.
+The types and the functions can be imported from the root `ts-sql-query`, or from `ts-sql-query/dynamic/condition`, `ts-sql-query/dynamic/pick` and `ts-sql-query/dynamic/orderBy`. Each section below is a complete function you can copy, and the last one has the three together.
 
-Use this approach when the columns are the natural source of truth and you don't mind the column types appearing in your signatures. When you want to keep value-source types out of your public API — and type everything against a plain business interface instead — use the [model-first](from-business-model.md) variant.
+## From the columns or from an interface
+
+Both ways are only types: the SQL is built from the map and from the values received, so it's the same SQL with either of them. What changes is what you write and what the rest of your code depends on.
+
+| | From the columns | From an interface |
+|---|---|---|
+| What you write | The map | The map and the interface |
+| Where the map goes | Where the types can see it: `typeof` needs a variable outside the function, or a function that returns the map, with `ReturnType` | Inside the function |
+| When a column changes | The types change with it | You change the interface. The compiler tells you when the rows no longer fit it |
+| What the types depend on | The tables: the code that uses these types has to see their definitions | Only the interface, which you can share with code that doesn't know the tables |
+| Operators of the filter | Those of the column, custom types included | Those of the TypeScript type of the property, so [a custom type may need more](from-business-model.md#custom-types-and-values-an-interface-cant-describe) |
+
+Choose the columns when the function and its callers live with the tables, or when the columns have custom types: there is less to write and nothing to keep in step. Choose an interface when it already exists or has to be shared, like the contract of an API, or when the rest of your code shouldn't depend on the tables.
 
 ## Filtering: `DynamicCondition`
 
-Derive the [dynamic condition](utilities/conditions.md) filter type from the columns with `DynamicCondition<typeof availableFields>`. The caller passes a criteria object shaped after the fields; you forward it to `dynamicConditionFor(availableFields).withValues(...)`:
+`DynamicCondition<typeof availableFields>` is the type of the filter: each key of the map can be used with the operators of its column. You pass the filter to `dynamicConditionFor(availableFields).withValues(...)`. [Dynamic filters](filters.md) explains what a filter can do.
 
 ```ts
 import { DynamicCondition } from "ts-sql-query" // or "ts-sql-query/dynamic/condition"
@@ -119,11 +134,22 @@ The executed query is:
 
 The parameters are: `[ ' ', ' ', 'ACME', '1990-01-01T00:00:00.000Z' ]` (on SQLite: `[ ' ', ' ', 'ACME', '1990-01-01' ]`)
 
-To add custom rules, build an extension and pass its type as the second argument — `DynamicCondition<typeof availableFields, typeof extension>` — and the value as the second argument of `dynamicConditionFor(availableFields, extension)`. See the [Dynamic conditions API](../api/dynamic-conditions.md) for the extension mechanism.
+The compiler checks the filters written in your code: a key that isn't in the map, or an operator its column doesn't have, doesn't compile. A filter that arrives as data at runtime has no types, and [`withValues` checks it when it runs](filters.md#a-filter-that-is-wrong).
+
+For [rules of your own](filters.md#rules-of-your-own), pass the object with the rules as the second argument of `dynamicConditionFor(availableFields, extension)`, and its type as the second argument of the filter type: `DynamicCondition<typeof availableFields, typeof extension>`.
+
+`DynamicCondition` also accepts names of types instead of columns, as in the first example of [Dynamic filters](filters.md).
 
 ## Picking columns: `DynamicPickPaths` + `PickValuesPath`
 
-Let the caller choose **which columns** come back, typed against the field map's dotted paths. `DynamicPickPaths<typeof availableFields, 'id'>` is the set of pickable paths (with the always-included `id` excluded from the choices); `PickValuesPath<typeof availableFields, FIELDS | 'id'>` is the result type for a given selection; `dynamicPickPaths` selects them at runtime and `expandTypeFromDynamicPickPaths` re-types the rows to match:
+The caller says which columns come back, with a list of names. A property inside a group is written with its path, like `company.name`, and `company` alone means the whole group. Four pieces work together:
+
+| Piece | What it does |
+|---|---|
+| `DynamicPickPaths<typeof availableFields, 'id'>` | The names the caller can pass. The second argument leaves out the ones that are always returned, here `id` |
+| `PickValuesPath<typeof availableFields, PICKED>` | The type of a row with only the columns in `PICKED` |
+| `dynamicPickPaths(availableFields, fields, ['id'])` | Returns the map with only the columns picked, to pass to `select`. The third argument is what is always returned |
+| `expandTypeFromDynamicPickPaths(availableFields, fields, rows, ['id'])` | Gives the rows that type, and returns them as they are |
 
 ```ts
 import { dynamicPickPaths, expandTypeFromDynamicPickPaths, DynamicPickPaths, PickValuesPath } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
@@ -218,11 +244,21 @@ The executed query is:
 
 The parameters are: `[ ' ' ]`
 
-`PickValuesPath` keeps the optional properties optional and narrows nested objects to the picked paths. The `…WithAllProperties` and `…ProjectedAsNullable` variants are described on the [Dynamic picks](utilities/picks.md) utility page.
+`PickValuesPath` keeps the optional properties optional, and a group has only what was picked from it. The join of an optional table stays out of the query when [nothing needs it](picks.md#the-joins-follow-what-is-picked).
+
+[Dynamic picks](utilities/picks.md) has the variants for other cases:
+
+| To | Use |
+|---|---|
+| Keep the columns not picked in the type, as optional | `PickValuesPathWithAllProperties` |
+| Type a query that returns the optional values as null | `PickValuesPathProjectedAsNullable`, `PickValuesPathWithAllPropertiesProjectedAsNullable` and `expandTypeProjectedAsNullableFromDynamicPickPaths` |
+| Receive the pick as an object of booleans, `{ name: true }`, instead of a list | `dynamicPick` and `DynamicPick` |
 
 ## Ordering: `OrderByForModel` over the result row
 
-There is no column-derived order-by type; instead, compute the **result row** type from the columns and type the order-by against it with `OrderByForModel<Row>`:
+The type of the order receives the type of a row, not the map, so first compute the whole row with `PickValuesPath`, and pass it to `OrderByForModel`.
+
+`OrderByForModel<Row>` is one clause: the path of a property, which may be followed by a mode, like `'name'`, `'name insensitive'` or `'company.name desc nulls last'`. An order by several columns is an array of clauses. A group alone, like `company`, or an array property can't be a clause. The modes are `asc`, `desc`, each with `nulls first` or `nulls last`, and any of these, or none, followed by `insensitive`. They are exported as the type [`OrderByMode`](utilities/order-by.md#orderbymode).
 
 ```ts
 import type { OrderByForModel } from "ts-sql-query" // or "ts-sql-query/dynamic/orderBy"
@@ -319,11 +355,11 @@ The executed query is:
 
 The parameters are: `[ ' ' ]`
 
-`orderByFromString(...)` / `orderByFromStringArray(...)` keep taking a plain `string` / `string[]`, so the `OrderByForModel` typing is opt-in.
+`orderByFromStringArrayIfValue` also accepts no array at all, and then the query has no order. These methods take plain strings, so `OrderByForModel` is optional. See [Order by from a string](order-and-page.md#order-by-from-a-string).
 
-## Putting it all together
+## The filter, the columns and the order in one function
 
-A single function whose picked `fields`, `filter`, `orderBy` and returned rows are all derived from one `availableFields` column map, combining the three families:
+The types of `fields`, `filter`, `orderBy` and of the rows returned all come from the same map:
 
 ```ts
 import { dynamicPickPaths, expandTypeFromDynamicPickPaths, DynamicPickPaths, PickValuesPath } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
@@ -469,10 +505,13 @@ The executed query is:
 
 The parameters are: `[ ' ', ' ', 'ACME', 'ACME Corp' ]`
 
-The same end-to-end function — including a custom-rule extension and an optional join built through a reusable `buildAvailableFields` helper — is shown in full in [Extreme dynamic queries — From the database](dynamic-select-functions.md#from-the-database), next to its model-first twin.
+`OrderByForModel<CustomerInfo<CustomerFields>>` accepts every column of the row, but a clause can only name a column of this select: if the caller doesn't pick `company.name` and orders by it, the method throws `ORDER_BY_COLUMN_NOT_IN_SELECT`. To order by a column the caller may not pick, make it always returned, in the third argument of `dynamicPickPaths`.
+
+[Functions that return a dynamic select](dynamic-select-functions.md#from-the-database) has a larger function typed this way. Its map needs the alias of a left join, so `buildCompanyAvailableFields` returns the map and the types use `ReturnType`, and it adds rules of its own to the filter.
 
 ## See also
 
-- [Typing dynamic queries from a business model](from-business-model.md) — the model-first counterpart of this page.
-- [Dynamic conditions](utilities/conditions.md), [Dynamic picks](utilities/picks.md) and [Dynamic order by](utilities/order-by.md) — the per-module utility reference.
-- [Functions that return a dynamic select](dynamic-select-functions.md) — both approaches side by side in one worked example.
+- [Typing dynamic queries from a business model](from-business-model.md): the same function, typed from an interface.
+- [Dynamic filters](filters.md) and [Picking columns dynamically](picks.md): what the filter and the pick do.
+- [Dynamic conditions](utilities/conditions.md), [Dynamic picks](utilities/picks.md) and [Dynamic order by](utilities/order-by.md): the reference of each type.
+- [Functions that return a dynamic select](dynamic-select-functions.md): both ways side by side in one example.

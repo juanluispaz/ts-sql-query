@@ -149,7 +149,7 @@ The one shape that cannot be detected at the type level is a **plain custom obje
 
 These utilities are the recommended way to type a generic dynamic-pick helper against your **own nested business model**. When the picked fields are top-level keys, the built-in `Pick` / `keyof` are enough; when you pick fields inside nested objects through dotted paths, use `DeepPick` / `DeepPickPaths` instead.
 
-See [Utility for dynamic picks → Creating definitions based on your nested business types](../dynamic/utilities/picks.md#creating-definitions-based-on-your-nested-business-types) for a complete example that pipes a `dynamicPickPaths(...)` selection through `expandTypeFromDynamicPickPaths(...)` and returns a value typed as `DeepPick<Model, FIELDS | 'id'>` without a cast.
+See [Utility for dynamic picks → Creating definitions based on your nested business types](../dynamic/from-business-model.md#picking-columns-dynamicpickpaths-deeppick) for a complete example that pipes a `dynamicPickPaths(...)` selection through `expandTypeFromDynamicPickPaths(...)` and returns a value typed as `DeepPick<Model, FIELDS | 'id'>` without a cast.
 
 !!! note "Why a plain path-driven type"
 

@@ -239,7 +239,7 @@ If your API needs to be stricter, for example to tell the caller that `equals: n
 
 ## What the caller can use
 
-The caller can use every field of the map, with every operator of its type, so list only what they may use. A field restricted with [`allowWhen`](restricting-values.md#restrict-access-to-values) can stay in the map: the query is refused only if the filter uses it.
+The caller can use every field of the map, with every operator of its type, so list only what they may use. A field restricted with [`allowWhen`](restricting-values.md#refuse-a-query-that-uses-a-value) can stay in the map: the query is refused only if the filter uses it.
 
 ## A filter that is wrong
 
@@ -257,7 +257,7 @@ A filter parsed from JSON has its dates as text. Convert them to `Date` first: a
 
 To add a rule that no column can express, like "there is a customer whose name contains this text", pass an object as the second argument of `dynamicConditionFor`, and as the second type argument of `DynamicCondition`. Each key is the name of a rule, and it can be nested to follow the groups of the map. Its value is a function that receives the value of the filter and returns a condition. See [a function that returns a dynamic select](dynamic-select-functions.md) for a complete example.
 
-## Select using a dynamic filter with complex projections
+## A filter with nested objects
 
 When the select returns [nested objects](../queries/complex-projections.md), the filter has the same shape: a field inside a group is inside the same group in the filter, which can have its own `and`, `or` and `not`. The order uses the path of the property, like `company.name`.
 

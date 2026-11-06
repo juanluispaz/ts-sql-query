@@ -160,7 +160,7 @@ The `orderByFromString` of this example has nothing to do with the subquery: it'
 
 ## Subquery checking that rows exist
 
-`connection.exists` is true when the subquery returns at least one row, and `connection.notExists` when it returns none. Only whether there are rows matters, not the columns they have. The subquery usually refers to the row of the outer query, which is what `subSelectUsing` is for, as explained in [Inline subquery referencing outer query](#inline-subquery-referencing-outer-query).
+`connection.exists` is true when the subquery returns at least one row, and `connection.notExists` when it returns none. Only whether there are rows matters, not the columns they have. The subquery usually refers to the row of the outer query, which is what `subSelectUsing` is for, as explained in [Inline subquery referencing the outer query](#inline-subquery-referencing-the-outer-query).
 
 The companies that have at least one customer:
 
@@ -357,7 +357,7 @@ The number of rows the subquery returns decides the value:
 - **No rows:** the value is null. That's why the value of an inline subquery is optional in the result, even if the column is required in its table. Use `valueWhenNull` to give another value and make it required.
 - **More than one row:** write the subquery so this can't happen, with a condition that matches one row at most, or with an `orderBy` and `limit(1)`. The databases don't all react in the same way: PostgreSQL rejects the query, while SQLite takes the first row.
 
-## Inline subquery referencing outer query
+## Inline subquery referencing the outer query
 
 The subqueries above have a single result for the whole query. A subquery can also use the columns of the row of the outer query, like "the number of customers of **this** company"; it's known as a correlated subquery. It can't run on its own, because its result depends on the outer row: it's as if it ran once for each row of the outer query, although the database can optimize it.
 
@@ -543,7 +543,7 @@ The executed query is:
 
 The parameters are: `[]`
 
-## Inline subquery with distinct values referencing outer query
+## Inline subquery with distinct values referencing the outer query
 
 `subSelectDistinctUsing` works like `subSelectUsing`, but the subquery returns distinct rows (`select distinct`), as `selectDistinctFrom` does for a subquery that doesn't refer to the outer query.
 
@@ -624,7 +624,7 @@ const companiesWithTheLastNamesOfTheirCustomers: Promise<{
 }[]>
 ```
 
-## Using a select as a view in another select query (SQL with clause)
+## A select used as a view (the with clause)
 
 You can define a select query and use it as if it were a view in another select query. Call `forUseInQueryAs` instead of executing the query: it returns a view that you use in `selectFrom` and in the joins, and that ends up in the `with` clause of the SQL, with the name you passed. Each CTE of a query needs its own name.
 

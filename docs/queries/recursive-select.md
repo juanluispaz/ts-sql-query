@@ -8,7 +8,7 @@ A recursive select reads its own results to find more rows. It's the way to walk
 
 Don't confuse it with a join: each join goes one level further, so you need to know how many levels there are when you write the query. A recursive select keeps going until there are no more levels.
 
-The databases run it as a [Common Table Expression](cte-subqueries.md#using-a-select-as-a-view-in-another-select-query-sql-with-clause), the SQL `with` clause (`with recursive` in most of them). The result is an ordinary list of rows, not a nested structure.
+The databases run it as a [Common Table Expression](cte-subqueries.md#a-select-used-as-a-view-the-with-clause), the SQL `with` clause (`with recursive` in most of them). The result is an ordinary list of rows, not a nested structure.
 
 ## How it works
 
@@ -55,7 +55,7 @@ The `where` belongs to the starting rows. Without a `where`, every row of the ta
 
 **With or without `On`:** the `On` methods repeat your first select with the same columns, tables and joins, and add the join with the previous step; they don't repeat its `where`. Use the methods without `On` when the part that repeats is different: it has a `where` of its own, it returns a different value in a column, or it reads another table, as a graph whose links are in their own table does. Both parts must return the same columns.
 
-**With or without `All`:** see [`UNION` vs `UNION ALL`](#union-vs-union-all-inside-a-recursive-cte). `recursiveUnion` and `recursiveUnionOn` aren't offered on every database: see [the availability](#availability-in-each-database).
+**With or without `All`:** see [`UNION` vs `UNION ALL`](#union-or-union-all). `recursiveUnion` and `recursiveUnionOn` aren't offered on every database: see [the availability](#availability-in-each-database).
 
 If the join condition is made only of `*IfValue` conditions and none has a value, nothing links one level with the next, and the library throws the error `MISSING_RECURSIVE_CONDITION` ([library raised errors](../api/error-management/library-raised-errors.md)).
 
@@ -793,7 +793,7 @@ const recursiveChildrenCompany: Promise<{
 }[]>
 ```
 
-## `UNION` vs `UNION ALL` inside a recursive CTE
+## Union or union all
 
 These are the same operators of a [compound select](compound-select.md#what-each-operator-does), but here the difference decides what the walk does:
 
@@ -1168,7 +1168,7 @@ The order of the rows isn't defined unless you ask for it; in particular, don't 
 
 ## Using a recursive select in other queries
 
-- **As a view of another select:** `forUseInQueryAs`, the same as any other select. See [Using a select as a view](cte-subqueries.md#using-a-select-as-a-view-in-another-select-query-sql-with-clause).
+- **As a view of another select:** `forUseInQueryAs`, the same as any other select. See [Using a select as a view](cte-subqueries.md#a-select-used-as-a-view-the-with-clause).
 - **As a value of another select:** `forUseAsInlineQueryValue`, and `forUseAsInlineAggregatedArrayValue` to receive the rows as an array. See [Recursive query as an inline array of objects](aggregate-as-object-array.md#recursive-query-as-an-inline-array-of-objects), and its limitation when referencing an outer table.
 - **As a page:** `executeSelectPage` returns the requested rows, and the count of the whole result.
 

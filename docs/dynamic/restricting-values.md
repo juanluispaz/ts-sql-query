@@ -8,7 +8,7 @@ Which values can be seen often depends on who asks. A list can have less detail 
 
 ## Hide a value keeping the column
 
-`onlyWhenOrNull(when)` keeps the value when `when` is true, and otherwise replaces it with a null constant in the query. `ignoreWhenAsNull(when)` is the same with the boolean inverted. The query keeps its columns, so its shape doesn't depend on the user. A hidden value is a null for the rest of the query too: a filter on it can't find out what the column holds. [Ignorable expression as null](../queries/dynamic-queries.md#ignorable-expression-as-null) shows the code and the SQL. They are different from `onlyWhen` and `ignoreWhen`, which [remove a condition](../queries/dynamic-queries.md#ignorable-boolean-expression).
+`onlyWhenOrNull(when)` keeps the value when `when` is true, and otherwise replaces it with a null constant in the query. `ignoreWhenAsNull(when)` is the same with the boolean inverted. The query keeps its columns, so its shape doesn't depend on the user. A hidden value is a null for the rest of the query too: a filter on it can't find out what the column holds. [Ignorable values: onlyWhenOrNull](../queries/dynamic-queries.md#ignorable-values-onlywhenornull) shows the code and the SQL. They are different from `onlyWhen` and `ignoreWhen`, which [remove a condition](../queries/dynamic-queries.md#ignorable-conditions-onlywhen-and-ignorewhen).
 
 This is what happens with the birthday of a user who can't see it, with each way of handling it:
 
@@ -19,9 +19,9 @@ This is what happens with the birthday of a user who can't see it, with each way
 | `tCustomer.birthday.allowWhen(false, '...')` or `tCustomer.birthday.disallowWhen(true, '...')`, and the query uses it | Isn't sent | The promise is rejected |
 | The same, and the query doesn't use it, for example because it wasn't picked | Has no column for it | The row has no `birthday` |
 
-Choose `onlyWhenOrNull` when not seeing a value is normal, like a list with less detail for some roles, and the caller doesn't need to tell it apart from a customer with no birthday. Choose [`allowWhen`](#restrict-access-to-values) when asking for it is a mistake that should be noticed. All of these receive a boolean of your code, so they apply to the whole query, not to each row.
+Choose `onlyWhenOrNull` when not seeing a value is normal, like a list with less detail for some roles, and the caller doesn't need to tell it apart from a customer with no birthday. Choose [`allowWhen`](#refuse-a-query-that-uses-a-value) when asking for it is a mistake that should be noticed. All of these receive a boolean of your code, so they apply to the whole query, not to each row.
 
-## Restrict access to values
+## Refuse a query that uses a value
 
 Use this when a value can be used only under some circumstances, like a column that needs a permission. `allowWhen(when, error)`, available in every value, leaves the value as it is while `when` is true. When it's false, the value can be written in your code, but it can't be part of a query: if a query needs it, the query isn't sent to the database and you get the error. `disallowWhen(when, error)` is the same with the boolean inverted.
 

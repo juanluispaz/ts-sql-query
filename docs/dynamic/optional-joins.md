@@ -211,7 +211,7 @@ So the typical optional join goes to the row that a foreign key points to, like 
 
 ## Optional joins with a value replaced by null
 
-Optional joins go well with [`onlyWhenOrNull`](../queries/dynamic-queries.md#ignorable-expression-as-null): the properties of the result are always the same, and the join is written only if they are going to have a value.
+Optional joins go well with [`onlyWhenOrNull`](../queries/dynamic-queries.md#ignorable-values-onlywhenornull): the properties of the result are always the same, and the join is written only if they are going to have a value.
 
 ```ts
 const canSeeCompanyInfo = false
@@ -504,4 +504,4 @@ const customerWithOptionalCompany: {
 }[]
 ```
 
-When the columns are chosen by the caller, the join can depend on them too: see [Optional joins dynamically picking columns](picks.md#optional-joins-dynamically-picking-columns).
+When the columns are chosen by the caller, the join can depend on them too: see [The joins follow what is picked](picks.md#the-joins-follow-what-is-picked).

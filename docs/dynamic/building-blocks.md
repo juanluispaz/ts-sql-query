@@ -494,9 +494,9 @@ Here only `firstName` is set. See [Manipulating values to insert](../queries/ins
 
 | What varies | What to use | Where it's explained |
 |---|---|---|
-| A condition, if there is a value | `equalsIfValue`, `containsIfValue` and the rest of the `*IfValue` methods | [Easy dynamic queries](../queries/dynamic-queries.md#easy-dynamic-queries) |
+| A condition, if there is a value | `equalsIfValue`, `containsIfValue` and the rest of the `*IfValue` methods | [Optional conditions: the IfValue methods](../queries/dynamic-queries.md#optional-conditions-the-ifvalue-methods) |
 | What a condition means without a value | `trueWhenNoValue`, `falseWhenNoValue`, `valueWhenNoValue` | [When there is no value](../queries/dynamic-queries.md#when-there-is-no-value) |
-| A condition, if a flag of your code says so | `onlyWhen`, `ignoreWhen` | [Ignorable boolean expression](../queries/dynamic-queries.md#ignorable-boolean-expression) |
+| A condition, if a flag of your code says so | `onlyWhen`, `ignoreWhen` | [Ignorable conditions: onlyWhen and ignoreWhen](../queries/dynamic-queries.md#ignorable-conditions-onlywhen-and-ignorewhen) |
 | The choice between a condition and none | `connection.noValueBoolean()` | [The neutral boolean](../queries/dynamic-queries.md#the-neutral-boolean) |
 | The whole condition, as data | `connection.dynamicConditionFor` | [Dynamic filters](filters.md) |
 | A text, if there is a value | `concatIfValue`, `concatIgnoringNullIfValue`, `replaceAllIfValue`, `replaceAllInsensitiveIfValue` | [All the IfValue methods](../queries/dynamic-queries.md#all-the-ifvalue-methods) |
@@ -505,7 +505,7 @@ Here only `firstName` is set. See [Manipulating values to insert](../queries/ins
 | The joins | `optionalJoin`, `optionalInnerJoin`, `optionalLeftJoin`, `optionalLeftOuterJoin` | [Optional joins](optional-joins.md) |
 | The columns | `dynamicPick`, `dynamicPickPaths` | [Picking columns dynamically](picks.md) |
 | The value of a column, depending on the user | `onlyWhenOrNull`, `ignoreWhenAsNull` | [Hide a value keeping the column](restricting-values.md#hide-a-value-keeping-the-column) |
-| Whether a value can be used at all | `allowWhen`, `disallowWhen` | [Restrict access to values](restricting-values.md#restrict-access-to-values) |
+| Whether a value can be used at all | `allowWhen`, `disallowWhen` | [Refuse a query that uses a value](restricting-values.md#refuse-a-query-that-uses-a-value) |
 | What an insert or an update writes | `setIfValue`, `setIfSet`, `setIfNotSet`, `setIfHasValue`, `setIfHasNoValue`, each with `IfValue` and `When` variants, `setWhen`, `dynamicSet`, `dynamicValues` | [Manipulating values to insert](../queries/insert.md#manipulating-values-to-insert), [to update](../queries/update.md#manipulating-values-to-update) |
 | Which columns stay in an insert or an update | `ignoreIfSet`, `ignoreIfHasValue`, `ignoreIfHasNoValue`, `ignoreAnySetWithNoValueWhen`, `keepOnly`, with their `When` variants | The same |
 | Which writes are refused | `disallowIfSet`, `disallowIfNotSet`, `disallowIfValue`, `disallowIfNoValue`, `disallowAnyOtherSet`, with their `When` variants | The same |

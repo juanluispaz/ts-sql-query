@@ -260,7 +260,7 @@ The executed query is:
 
 The parameters are: `[]`
 
-Because the neutral boolean is reduced, the whole condition disappears from the emitted SQL when there is no value — even when it is combined with other conditions through `and` / `or`. See [Easy dynamic queries](../queries/dynamic-queries.md#easy-dynamic-queries) for the full treatment (including the generated SQL per database) and the other dynamic-query building blocks (`onlyWhen`, `ignoreWhen`, optional joins, …).
+Because the neutral boolean is reduced, the whole condition disappears from the emitted SQL when there is no value — even when it is combined with other conditions through `and` / `or`. See [Optional conditions: the IfValue methods](../queries/dynamic-queries.md#optional-conditions-the-ifvalue-methods) for the full treatment (including the generated SQL per database) and the other dynamic-query building blocks (`onlyWhen`, `ignoreWhen`, optional joins, …).
 
 ### When the absence should mean `false` instead of being omitted
 
@@ -337,6 +337,6 @@ If you genuinely need SQL's three-valued behaviour for a comparison — for exam
 
 ## See also
 
-- [Easy dynamic queries](../queries/dynamic-queries.md#easy-dynamic-queries) — the `*IfValue` methods and the neutral-boolean reduction in depth.
+- [Optional conditions: the IfValue methods](../queries/dynamic-queries.md#optional-conditions-the-ifvalue-methods) — the `*IfValue` methods and the neutral-boolean reduction in depth.
 - [How to compare against a null or undefined value?](../about/limitations.md#how-to-compare-against-a-null-or-undefined-value) — the FAQ on three-valued comparisons and the custom-fragment escape hatch.
 - [Custom booleans values](../advanced/custom-booleans-values.md) — storing booleans with non-standard values (e.g. `'Y'` / `'N'`).

@@ -8,7 +8,7 @@ An update changes the value of some columns in the rows of a table that meet a c
 
 Don't confuse it with an [insert](insert.md), which adds new rows, or with a [delete](delete.md), which removes whole rows: an update doesn't change the number of rows of the table. To insert a row or update it if it already exists, see [Update the existing row ("upsert")](insert-on-conflict.md#update-the-existing-row-upsert).
 
-## General update
+## Updating rows
 
 `update` receives the table, `set` the new values, `where` the rows to change, and `executeUpdate` runs the query. In this example, `ignoreIfSet` takes the birthday out of the update: see [Manipulating values to update](#manipulating-values-to-update).
 
@@ -98,7 +98,7 @@ The value of a column can be:
 An update without a `where` changes all the rows of the table, and it's usually a mistake that is hard to undo. The library stops it in two moments:
 
 - **When you compile:** `update(...)` doesn't offer the execute methods until you call `where` or `dynamicWhere`.
-- **When you execute:** a condition can end up empty, for example a `dynamicWhere()` with no conditions added, or a `where` with only conditions that are [ignored because they have no value](dynamic-queries.md#easy-dynamic-queries). The library then throws an error with the reason `MISSING_WHERE`, and nothing is sent to the database.
+- **When you execute:** a condition can end up empty, for example a `dynamicWhere()` with no conditions added, or a `where` with only conditions that are [ignored because they have no value](dynamic-queries.md#optional-conditions-the-ifvalue-methods). The library then throws an error with the reason `MISSING_WHERE`, and nothing is sent to the database.
 
 When changing all the rows is what you want, start the query with `updateAllowingNoWhere` instead of `update`:
 
@@ -389,7 +389,7 @@ An old value is a value like any other, so you can use it inside an expression. 
 
 ## Manipulating values to update
 
-The values to update often arrive from outside the code, with some of them missing or not allowed for the current user. Instead of building the object by hand, these methods add missing values, take out undesired values, or throw an error when a value is present.
+The values to update often arrive from outside the code, with some of them missing or not allowed for the current user. Instead of building the object by hand, these methods add missing values, take out undesired values, or throw an error when a value is present. This is one of the [dynamic capabilities](../dynamic/building-blocks.md) of the library.
 
 When you write your update query, you set the initial value calling:
 

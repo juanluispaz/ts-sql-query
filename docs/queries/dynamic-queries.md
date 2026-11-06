@@ -14,10 +14,10 @@ Each part of a query has its own way of being optional:
 
 | What depends on the run | What to use | Where it's explained |
 |---|---|---|
-| A condition applies only if there is a value | `equalsIfValue`, `containsIfValue` and the rest of the `*IfValue` methods | [Easy dynamic queries](#easy-dynamic-queries) |
+| A condition applies only if there is a value | `equalsIfValue`, `containsIfValue` and the rest of the `*IfValue` methods | [Optional conditions: the IfValue methods](#optional-conditions-the-ifvalue-methods) |
 | A condition with no value means `true`, `false` or another condition | `trueWhenNoValue`, `falseWhenNoValue`, `valueWhenNoValue` | [When there is no value](#when-there-is-no-value) |
-| A condition applies only if a flag is set, like a role | `onlyWhen`, `ignoreWhen` | [Ignorable boolean expression](#ignorable-boolean-expression) |
-| A selected value is returned only if a flag is set | `onlyWhenOrNull`, `ignoreWhenAsNull` | [Ignorable expression as null](#ignorable-expression-as-null) |
+| A condition applies only if a flag is set, like a role | `onlyWhen`, `ignoreWhen` | [Ignorable conditions: onlyWhen and ignoreWhen](#ignorable-conditions-onlywhen-and-ignorewhen) |
+| A selected value is returned only if a flag is set | `onlyWhenOrNull`, `ignoreWhenAsNull` | [Ignorable values: onlyWhenOrNull](#ignorable-values-onlywhenornull) |
 | The order comes as text, from a request | `orderByFromString`, `orderByFromStringArray` and their `IfValue` variants | [Order by from a string](#order-by-from-a-string) |
 | The limit and the offset may be absent | `limitIfValue`, `offsetIfValue` | [Optional limit and offset](../dynamic/order-and-page.md#optional-limit-and-offset) |
 | A table is joined only if the query uses it | `optionalJoin`, `optionalInnerJoin`, `optionalLeftJoin`, `optionalLeftOuterJoin` | [Optional joins](../dynamic/optional-joins.md) |
@@ -97,7 +97,7 @@ The parameters are: `[]`
 
 When what to add can't be said with these methods, because it depends on the logic of your code, you can use `if`s by [building the condition step by step](../dynamic/building-conditions.md).
 
-## Easy dynamic queries
+## Optional conditions: the IfValue methods
 
 The methods ending in `IfValue` compare with a value that may be absent. When they have no value, they return a special [**neutral boolean**](#the-neutral-boolean), which means "there is no condition here": the library removes it from the `and`s, `or`s, `on`s and `where`s it's part of. It isn't the `null` of SQL: [Booleans and three-valued logic](../dynamic/three-valued-booleans.md) explains the difference.
 
@@ -499,7 +499,7 @@ const customers: {
 }[]
 ```
 
-## Ignorable boolean expression
+## Ignorable conditions: onlyWhen and ignoreWhen
 
 `onlyWhen` and `ignoreWhen`, at the end of a condition, make it depend on a boolean of your code. When the condition doesn't apply, they return the [neutral boolean](#the-neutral-boolean), so it disappears just like an `IfValue` without a value:
 
@@ -834,7 +834,7 @@ The methods of [When there is no value](#when-there-is-no-value) make the condit
 | `...IfValue(x).falseWhenNoValue()` | The query is sent with a condition that is always false: it affects no rows, and it's not an error |
 | `...IfValue(x).trueWhenNoValue()` | The query is sent with a condition that is always true: it affects **all the rows** of the table |
 
-## Ignorable expression as null
+## Ignorable values: onlyWhenOrNull
 
 `onlyWhen` is for conditions, which can disappear from a query. A selected value can't disappear, because the result always has the same properties. `onlyWhenOrNull` and `ignoreWhenAsNull` are written at the end of any expression, and when it doesn't apply, they write a null in its place:
 

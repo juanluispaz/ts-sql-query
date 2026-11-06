@@ -191,9 +191,9 @@ The executed query is:
 
 The parameters are: `[]`
 
-The client can ask for any column of the map. If some of them need a permission, mark them with [`allowWhen`](restricting-values.md#restrict-access-to-values).
+The client can ask for any column of the map. If some of them need a permission, mark them with [`allowWhen`](restricting-values.md#refuse-a-query-that-uses-a-value).
 
-## Optional joins dynamically picking columns
+## The joins follow what is picked
 
 An [optional join](optional-joins.md) goes in the query only when the query uses the joined table. Together with a pick, what the caller asks for decides the join: if no column of `tCompany` is picked, and no condition uses it, the query doesn't join it.
 
@@ -403,7 +403,7 @@ The parameters are: `[ 12 ]`
 
     Leaving out a join can change the number of rows returned. In this example, a customer with no company isn't returned when the query has the inner join, and is returned when it doesn't. With a left join, a customer with several rows in the joined table comes several times only when the query has the join. The rows are the same with or without the join only when every row has exactly one row in the joined table, or at most one if it's a left join.
 
-## Select dynamically picking columns with complex projections
+## Picking with nested objects
 
 With [nested objects](../queries/complex-projections.md), the pick has the same shape as the select. A group with nothing picked isn't in the query, and in the result type each group and its properties are optional.
 

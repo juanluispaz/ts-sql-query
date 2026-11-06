@@ -317,7 +317,7 @@ The executed query is:
 
 The parameters are: `[ 'ohn', 'Acme' ]`
 
-This is the query of [Easy dynamic queries](../queries/dynamic-queries.md#easy-dynamic-queries), written with `if`s:
+This is the query of [Optional conditions: the IfValue methods](../queries/dynamic-queries.md#optional-conditions-the-ifvalue-methods), written with `if`s:
 
 ```ts
 const firstNameContains = 'ohn';

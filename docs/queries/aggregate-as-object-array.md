@@ -27,7 +27,7 @@ Don't confuse it with a plain join: a join repeats the company once per customer
 | Array aggregate | You need each row with its related rows, and there are few of them per row | The whole array is a single value: the database has to build it and the driver to return it, and each database limits how large a value can be |
 | A separate query | The related rows are many, need paging, or you load them only for some rows | One more round trip to the database, and you need to match the rows in your code |
 
-## Introduction
+## The functions and their forms
 
 The database builds the array: a JSON aggregate function turns the rows of each group into a single JSON value, which comes back as one column of the row. The library parses that JSON and gives you a JavaScript array, with [each value converted to its type](#how-the-values-go-through-json).
 
@@ -365,11 +365,11 @@ The parameters are: `[ 1 ]`
 
 !!! warning "Limitation"
 
-    [MySQL](../configuration/supported-databases/mysql.md), [Oracle](../configuration/supported-databases/oracle.md), and [SQL Server](../configuration/supported-databases/sqlserver.md) don't accept the `DISTINCT` quantifier inside their JSON-array aggregation function. If you try to use `aggregateAsArrayDistinct` or `aggregateAsArrayOfOneColumnDistinct` on any of these databases, you will get a compilation error. A workaround is to remove the duplicates inside a subquery created with `subSelectDistinctUsing`, as shown in [Inline subquery with distinct values referencing outer query](cte-subqueries.md#inline-subquery-with-distinct-values-referencing-outer-query).
+    [MySQL](../configuration/supported-databases/mysql.md), [Oracle](../configuration/supported-databases/oracle.md), and [SQL Server](../configuration/supported-databases/sqlserver.md) don't accept the `DISTINCT` quantifier inside their JSON-array aggregation function. If you try to use `aggregateAsArrayDistinct` or `aggregateAsArrayOfOneColumnDistinct` on any of these databases, you will get a compilation error. A workaround is to remove the duplicates inside a subquery created with `subSelectDistinctUsing`, as shown in [Inline subquery with distinct values referencing the outer query](cte-subqueries.md#inline-subquery-with-distinct-values-referencing-the-outer-query).
 
-## Query as an inline array of objects
+## An inline query as an array of objects
 
-An inline query is a subquery that returns the array for each row of the outer query. `subSelectUsing` receives the tables of the outer query that the subquery refers to, as explained in [Inline subquery referencing outer query](cte-subqueries.md#inline-subquery-referencing-outer-query). Calling `forUseAsInlineAggregatedArrayValue()` at the end gives you a value to use in the select of the outer query, which doesn't need a join or a group by.
+An inline query is a subquery that returns the array for each row of the outer query. `subSelectUsing` receives the tables of the outer query that the subquery refers to, as explained in [Inline subquery referencing the outer query](cte-subqueries.md#inline-subquery-referencing-the-outer-query). Calling `forUseAsInlineAggregatedArrayValue()` at the end gives you a value to use in the select of the outer query, which doesn't need a join or a group by.
 
 ```ts
 const aggregatedCustomersOfAcme = connection.subSelectUsing(tCompany).from(tCustomer)
@@ -549,7 +549,7 @@ const acmeCompanyWithCustomers: Promise<{
     - The `forUseAsInlineAggregatedArrayValue()` method ensures the query is correctly wrapped to preserve clauses like `ORDER BY`.
     - You can treat optional values in objects as always-required properties that allow `null` by calling `projectingOptionalValuesAsNullable()` immediately after `select(...)`.
 
-## Queries as an inline array of values
+## An inline query as an array of values
 
 When the inline query uses `selectOneColumn`, the result is an array of values. Inside the query, the name of that column for `orderBy` is `result`.
 
@@ -1144,7 +1144,7 @@ The executed query is:
 
 The parameters are: `[ 1 ]`
 
-`allowWhen` and `disallowWhen` are available too; they [throw an error](../dynamic/restricting-values.md#restrict-access-to-values) instead of leaving out the value.
+`allowWhen` and `disallowWhen` are available too; they [throw an error](../dynamic/restricting-values.md#refuse-a-query-that-uses-a-value) instead of leaving out the value.
 
 ## Optional values in the elements
 

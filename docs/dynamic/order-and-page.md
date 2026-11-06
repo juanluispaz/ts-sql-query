@@ -9,7 +9,7 @@ The order of a list and the page being shown usually come from outside your code
 | What arrives | What to use |
 |---|---|
 | The order, as text | [`orderByFromString`](#order-by-from-a-string) |
-| The order, as a list of clauses, or something that may be missing | [The variants](#the-variants) |
+| The order, as a list of clauses, or something that may be missing | [The variants of orderByFromString](#the-variants-of-orderbyfromstring) |
 | The limit and the offset, which may be missing | [`limitIfValue`, `offsetIfValue`](#optional-limit-and-offset) |
 
 What arrives as text never becomes SQL: a name is only accepted if it's a property of the select. [Queries from a request](queries-from-requests.md) puts this together with the filter, and [`OrderByForModel`](utilities/order-by.md) checks the order when compiling.
@@ -115,7 +115,7 @@ These are all the accepted forms, for a property called `name`:
 
 The words must be in that order. They mean the same as in [the order modes](../queries/select.md#the-order-modes) of `orderBy`, which explains what each one does in each database, and what `insensitive` does.
 
-### The variants
+### The variants of orderByFromString
 
 | Method | Receives | What it does |
 |---|---|---|
@@ -212,7 +212,7 @@ They can be combined with `orderBy` and with each other: each call adds its clau
 
 If you can describe the accepted order with a type, [`OrderByForModel`](utilities/order-by.md) checks it when compiling.
 
-### Errors of the order
+### An order that can't be understood
 
 A text that can't be understood is an error, and nothing is sent to the database:
 

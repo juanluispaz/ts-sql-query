@@ -131,7 +131,7 @@ The clauses are listed in the order in which a database works with them, which i
 | `having` | `having(...)` | Keeps only the groups that meet the condition: it's a `where` for the groups, and it can use aggregates like `count`. |
 | `select` | `select({...})`, `selectOneColumn(...)`, `selectCountAll()` | The values that each row of the result has, and their names. |
 | `distinct` | `selectDistinctFrom(table)` | Removes the repeated rows from the result. See [Select distinct](select.md#select-distinct). |
-| `order by` | `orderBy(...)` | The order of the rows. Without it, the database can return them in any order. See [Select with joins and order by](select.md#select-with-joins-and-order-by). |
+| `order by` | `orderBy(...)` | The order of the rows. Without it, the database can return them in any order. See [Select with joins](select.md#select-with-joins). |
 | `limit`, `offset` | `limit(...)`, `offset(...)` | How many rows to return, and how many to skip first. See [Limit and offset](select.md#limit-and-offset). |
 
 The conditions added with `and` and `or` compose as they are written, whatever the priority of `and` over `or` in SQL; the library adds the parentheses that are needed:
@@ -169,7 +169,7 @@ The order matters for three reasons:
 - **Writing the `where` at the end lets you reuse a query:** a function can return the query without the `where`, and each caller adds its own. See [How can I organize my code to reuse some queries in different places?](../about/faqs.md#how-can-i-organize-my-code-to-reuse-some-queries-in-different-places).
 - **Writing the `select` before the `groupBy` lets you refer to the columns of the select,** by [their names in the `groupBy`](aggregate-and-group-by.md#grouping-by-the-columns-of-the-select) and [in the `having`](aggregate-and-group-by.md#filtering-the-groups-by-the-columns-of-the-select).
 
-The list of all the valid orders is in [Select clauses order](select.md#select-clauses-order).
+The list of all the valid orders is in [The order of the clauses](select.md#the-order-of-the-clauses).
 
 ## Select one row
 
@@ -446,6 +446,12 @@ const customerWithNote: Promise<{
     note?: string;
 }>
 ```
+
+## Queries that depend on what arrives
+
+Everything so far has a fixed shape. A query can also change with what arrives while the program runs: a condition disappears when its value is missing, the order comes from a request, and a table is joined only if something uses it. You don't need `if`s to assemble it: see [Dynamic queries](dynamic-queries.md).
+
+It goes further than that: the filter can arrive as an object, and the caller can choose the columns that come back. See [What a dynamic query can do](../dynamic/building-blocks.md).
 
 ## Other options
 

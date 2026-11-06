@@ -6,7 +6,7 @@ search:
  
 A select reads rows from the database. This page explains what you can ask for beyond the [basic structure](basic-query-structure.md): reading from several tables, ordering the rows, removing the repeated ones, returning a part of them or a single value, and which method to use to execute the select depending on how many rows you expect.
 
-The rest of the features have their own pages: [aggregates and group by](aggregate-and-group-by.md), [compound selects](compound-select.md), [CTEs and subqueries](cte-subqueries.md), [recursive selects](recursive-select.md), [pages of rows](select-page.md) and [complex projections](complex-projections.md).
+The rest of the features have their own pages: [aggregates and group by](aggregate-and-group-by.md), [compound selects](compound-select.md), [CTEs and subqueries](cte-subqueries.md), [recursive selects](recursive-select.md), [pages of rows](select-page.md) and [complex projections](complex-projections.md). When a part of the select depends on what arrives while the program runs, like a filter or the columns to return, see [dynamic queries](dynamic-queries.md).
 
 ## The kinds of join
 
@@ -108,7 +108,7 @@ The executed query is:
 
 The parameters are: `[]`
 
-## Select with joins and order by
+## Select with joins
 
 ```ts
 const firstName = 'John';
@@ -590,7 +590,7 @@ Leaving out an inner join also changes which rows are returned: the rows that it
 `orderBy` receives one of these, followed by the [order mode](#the-order-modes):
 
 - **The name of a property of the select**, like `'firstName'`, or its path in a [complex projection](complex-projections.md), like `'company.name'`. The name is checked by the compiler. When the select has [one column](#select-one-column), the name is `'result'`.
-- **A column or an expression**, which doesn't need to be returned: see [Select ordering by a not returned column](#select-ordering-by-a-not-returned-column).
+- **A column or an expression**, which doesn't need to be returned: see [Ordering by a column that isn't returned](#ordering-by-a-column-that-isnt-returned).
 - **A [raw SQL fragment](sql-fragments.md#raw-fragments)**, for what the library has no method for.
 
 ```ts
@@ -714,7 +714,7 @@ On the databases that don't have `nulls first` or `nulls last`, the library writ
 
 `insensitive` orders the text without distinguishing upper and lower case. Whether a text is ordered that way depends on its [collation](../configuration/collations.md): with a case-sensitive one, the usual in PostgreSQL, SQLite and Oracle, the upper case letters can go together before the lower case ones, so you get `Bea, Carla, ana`, while the insensitive order is `ana, Bea, Carla`. It's written `lower(column)`, or `column collate <name>` when the connection has an [`insensitiveCollation`](../configuration/collations.md#the-tools). A database can't use a plain index on the column for an order written that way, so if the column is already case-insensitive you don't need it. In a column that isn't text, `insensitive` is ignored.
 
-## Select ordering by a not returned column
+## Ordering by a column that isn't returned
 
 `orderBy` also accepts a column or an expression, so you can order by a value that the select doesn't return:
 
@@ -969,7 +969,7 @@ const firstNames: Promise<{
 
 Order a distinct select by the properties of the select: a column that isn't returned can have several values in the row that remains, and PostgreSQL rejects the query.
 
-To do the same in a subquery that refers to the outer query, use [`subSelectDistinctUsing`](cte-subqueries.md#inline-subquery-with-distinct-values-referencing-outer-query).
+To do the same in a subquery that refers to the outer query, use [`subSelectDistinctUsing`](cte-subqueries.md#inline-subquery-with-distinct-values-referencing-the-outer-query).
 
 ## Select one column
 
@@ -1161,7 +1161,7 @@ A select can be used inside another one, as a value, in a condition or as a view
 
 See [Aggregate functions, group by and having](aggregate-and-group-by.md).
 
-## Select clauses order
+## The order of the clauses
 
 The clauses can be written in several orders, and the library generates the SQL in the order SQL requires. [The order of the clauses](basic-query-structure.md#the-order-of-the-clauses) explains why it's useful.
 

@@ -387,7 +387,7 @@ Keep in mind when you offer one:
 - **Your conditions go in the code.** The client can filter by any field of the map, with any operator of its type, and it can send an empty filter. So what it may see goes in the `where` you write, and the map lists only what it may use.
 - **A system in Java or C# sends everything.** It usually can't leave out a property, so `{ "id": { "equals": 1, "notEquals": null, "in": null } }` means `id = 1`. That's why [a filter with empty values is tolerated](filters.md#empty-values-in-a-filter).
 - **Dates arrive as text in JSON.** Convert them to `Date` before calling `withValues`: a text in a date column is rejected.
-- **A column can depend on who asks.** Mark it with [`allowWhen`](restricting-values.md#restrict-access-to-values) and it can stay in the map: the query is refused only if the client uses it.
+- **A column can depend on who asks.** Mark it with [`allowWhen`](restricting-values.md#refuse-a-query-that-uses-a-value) and it can stay in the map: the query is refused only if the client uses it.
 - **Validating more is your choice.** To tell the client that `equals: null` isn't accepted, validate the request first, with a library like Zod.
 
 ## Answering an error of the caller

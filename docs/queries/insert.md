@@ -529,7 +529,7 @@ const insertedFirstName: Promise<string>
 
 ## Manipulating values to insert
 
-When the values come from outside (a request, a form, an import), you often need to adjust them before inserting: fill in what is missing, drop what the caller can't decide, or reject the input. These methods do it as part of the query, instead of with `if`s around it. They work on the values given so far, at the moment you call them, so the order of the calls matters.
+When the values come from outside (a request, a form, an import), you often need to adjust them before inserting: fill in what is missing, drop what the caller can't decide, or reject the input. These methods do it as part of the query, instead of with `if`s around it. They work on the values given so far, at the moment you call them, so the order of the calls matters. This is one of the [dynamic capabilities](../dynamic/building-blocks.md) of the library.
 
 Two words decide what each method does:
 
@@ -865,7 +865,7 @@ const insertedCount: number
 
     The condition is only known when the query runs, so for the types a `When` variant may not happen: setting a required column only through `setWhen(...)` (or any other `When` variant) leaves it missing, and the insert can't be executed. Set the required columns with `set(...)` (or `dynamicSet(...)` followed by `set(...)`), and use the `When` variants to change them.
 
-## Manipulating values to insert (multiple)
+## Manipulating the values of several rows
 
 An insert of several rows has the same methods as [one row](#manipulating-values-to-insert), with the same meaning, but they apply to all the rows, each row on its own: `setForAllIfSet` changes the rows that have the column set and leaves the others as they are. The methods that give new values are called `setForAll...`, because `set` isn't available after `values([...])`; the ones that remove or reject columns keep their names. When a `disallow...` method fails, the error also tells which row it was (`disallowedRowIndex`).
 

@@ -10,6 +10,8 @@ A select page returns one page of rows together with the total number of rows th
 
 You may need only one of the two: `executeSelectMany()` with `limit` and `offset` returns the rows of the page without the total, and `selectCountAll()` with `executeSelectOne()` returns the total without the rows.
 
+For a table in a user interface, whose filters, order and page come from a request, see [Queries from a request](../dynamic/queries-from-requests.md).
+
 ## Limit and offset
 
 A page is defined with two numbers. The database takes the rows of the select in their order, skips the first `offset` rows, and returns at most `limit` rows.

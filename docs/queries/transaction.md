@@ -116,7 +116,7 @@ A `TsSqlQueryExecutionError` raised by `connection.transaction(fn)` can tell you
 
 - `transactionSource`: where in your code the transaction was asked for, next to `source`, where the failing query was. Both also appear in the stack of the error.
 - `rollbackError`: the rollback failed too. The error you get is still the one that caused the rollback, and this is the error of the rollback.
-- `additionalErrors`: other errors raised while the transaction was ending, like the one of an [`executeAfterNextRollback` function](#errors).
+- `additionalErrors`: other errors raised while the transaction was ending, like the one of an [`executeAfterNextRollback` function](#errors-in-these-functions).
 - `transactionError`: in an error of one of those functions, the error that caused the rollback.
 
 ## When the database rolls back the transaction
@@ -380,7 +380,7 @@ With `connection.transaction(fn)`:
 4. The `executeAfterNextCommit` functions run, in the order they were registered. **The transaction has ended**: a query there runs on its own, outside any transaction.
 5. The promise returned by `transaction(fn)` resolves with the value `fn` returned, once every `executeAfterNextCommit` function has finished.
 
-When `fn` throws an error, or an `executeBeforeNextCommit` function fails, the transaction is rolled back instead, the `executeAfterNextRollback` functions run, in the order they were registered, and the promise rejects with the error. With `commit()` and `rollback()` the same happens when you call them (see [Errors](#errors)).
+When `fn` throws an error, or an `executeBeforeNextCommit` function fails, the transaction is rolled back instead, the `executeAfterNextRollback` functions run, in the order they were registered, and the promise rejects with the error. With `commit()` and `rollback()` the same happens when you call them (see [Errors in these functions](#errors-in-these-functions)).
 
 The functions are registered for the transaction that is running when you register them, and they are discarded when it ends: the next transaction starts with none. Registering one when there is no transaction throws a `TsSqlProcessingError` with reason `NOT_IN_TRANSACTION`: these calls return no promise, so the error comes from the call itself.
 
@@ -467,9 +467,9 @@ async function registerCustomerWithPhoto(firstName: string, lastName: string, co
 }
 ```
 
-If a later step of the transaction fails, the customer isn't saved and the photo is deleted. The function runs after the rollback, outside any transaction, and its error doesn't replace the error that caused the rollback: it is attached to it (see [Errors](#errors)).
+If a later step of the transaction fails, the customer isn't saved and the photo is deleted. The function runs after the rollback, outside any transaction, and its error doesn't replace the error that caused the rollback: it is attached to it (see [Errors in these functions](#errors-in-these-functions)).
 
-### Errors
+### Errors in these functions
 
 | | Runs | When it fails |
 |---|---|---|

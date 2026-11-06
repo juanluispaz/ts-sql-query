@@ -46,7 +46,7 @@ const customizedSelect = connection.selectFrom(tCustomer)
 
 ## Does ts-sql-query support common table expressions (CTE)?
 
-Yes, you can read how to use it here: [Using a select as a view in another select query (SQL with clause)](../queries/cte-subqueries.md#using-a-select-as-a-view-in-another-select-query-sql-with-clause).
+Yes, you can read how to use it here: [A select used as a view (the with clause)](../queries/cte-subqueries.md#a-select-used-as-a-view-the-with-clause).
 
 ## How to do a left join?
 
@@ -74,7 +74,7 @@ You can see them here: [API](../api/introduction.md).
 
 ## How can I organize my code to reuse some queries in different places?
 
-You can create functions that return the prebuilt query you want to reuse; the only requirement is to omit the function's return type to allow TypeScript to infer it. Additionally, you can take advantage of [Select clauses order](../queries/select.md#select-clauses-order) that `ts-sql-query` offers. With this in mind, you will be able to postpone the where clause till the end of the query (in SQL it will be generated in the proper place). Example:
+You can create functions that return the prebuilt query you want to reuse; the only requirement is to omit the function's return type to allow TypeScript to infer it. Additionally, you can take advantage of [The order of the clauses](../queries/select.md#the-order-of-the-clauses) that `ts-sql-query` offers. With this in mind, you will be able to postpone the where clause till the end of the query (in SQL it will be generated in the proper place). Example:
 
 ```ts
 function buildNumberOfCustomersSubquery(connection: DBConnection) {

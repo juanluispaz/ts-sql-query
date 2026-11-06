@@ -74,6 +74,8 @@ A select of the id and the first name of a customer is then written `select "id"
 
 ## Instantiating the connection with the database connection
 
+The connection receives a [query runner](query-runners/index.md), which connects it to your database driver. [Which one for your database](query-runners/index.md#which-one-for-your-database) lists them all.
+
 ```ts
 import { Pool } from 'pg';
 import { PgPoolQueryRunner } from "ts-sql-query/queryRunners/PgPoolQueryRunner";

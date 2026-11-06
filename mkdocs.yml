@@ -84,9 +84,9 @@ plugins:
         'faqs-limimitations.md': 'about/faqs.md'
         'queries/select-picking-columns.md': 'dynamic/caller-decides/picks.md'
         'queries/select-using-a-dynamic-filter.md': 'dynamic/caller-decides/filters.md'
-        'query-runners/additional-query-runners.md': 'configuration/query-runners/combining-with-another-library.md'
-        'query-runners/general-purpose-query-runners.md': 'configuration/query-runners/general-purpose/InterceptorQueryRunner.md'
-        'query-runners/recommended-query-runners.md': 'configuration/connection.md'
+        'query-runners/additional-query-runners.md': 'configuration/query-runners/index.md'
+        'query-runners/general-purpose-query-runners.md': 'configuration/query-runners/index.md'
+        'query-runners/recommended-query-runners.md': 'configuration/query-runners/index.md'
         'supported-databases-with-extended-types.md': 'index.md#supported-databases'
         'supported-databases.md': 'index.md#supported-databases'
         'supported-operations.md': 'api/introduction.md'
@@ -190,6 +190,7 @@ nav:
       - PostgreSQL: configuration/supported-databases/postgresql.md
       - SQLite: configuration/supported-databases/sqlite.md
       - SQL Server: configuration/supported-databases/sqlserver.md
+    - Query runners: configuration/query-runners/index.md
     - Recommended query runners: 
       - better-sqlite3: configuration/query-runners/recommended/better-sqlite3.md
       - mariadb: configuration/query-runners/recommended/mariadb.md

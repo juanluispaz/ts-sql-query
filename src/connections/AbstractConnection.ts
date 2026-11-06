@@ -1207,7 +1207,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
 
     dynamicConditionFor<DEFINITION extends Filterable>(definition: DEFINITION): DynamicConditionExpression<DEFINITION, never>
     dynamicConditionFor<DEFINITION extends Filterable, EXTENSION extends DynamicConditionExtension>(definition: DEFINITION, extension: EXTENSION): DynamicConditionExpression<DEFINITION, EXTENSION>
-    dynamicConditionFor(definition: Filterable, extension?: any): DynamicConditionExpression<any, any> {
+    dynamicConditionFor(definition: Filterable, extension?: any): any {
         return new DynamicConditionBuilder(this.__sqlBuilder, definition, extension)
     }
 

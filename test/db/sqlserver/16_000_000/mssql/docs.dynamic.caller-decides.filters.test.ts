@@ -283,4 +283,24 @@ describe(ctx.label, () => {
         }>>()
         expect(projectWithOrganizationObject).toEqual(expected)
     })
+
+    test('docs-extra:filters/a-rule-in-a-filter-written-inline', async () => {
+        ctx.mockNext([{ id: 2 }])
+        const fields = { id: tIssue.id, title: tIssue.title }
+        const rules = { hasBody: (text: string) => tIssue.body.contains(text) }
+
+        const issues = await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(fields, rules).withValues({ hasBody: 'tokens', id: { equals: 2 } }))
+            .select({ id: tIssue.id })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where body like ('%' + @0 + '%') and id = @1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "tokens",
+            2,
+          ]
+        `)
+        expect(issues).toEqual([{ id: 2 }])
+    })
 })

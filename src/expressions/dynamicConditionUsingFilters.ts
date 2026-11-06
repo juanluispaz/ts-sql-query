@@ -223,18 +223,24 @@ type ColumnFilterWithExtension<COLUMN_FILTER, EXTENSION> =
     : Omit<COLUMN_FILTER, keyof EXTENSION> & DynamicConditionColumnExtension<EXTENSION>
 
 // RESCURSIVE type
-export type DynamicFilter<DEFINITION extends Filterable> = {
-    not?: DynamicFilter<DEFINITION>
-    and?: Array<DynamicFilter<DEFINITION> | undefined>
-    or?: Array<DynamicFilter<DEFINITION> | undefined>
+export type DynamicFilter<DEFINITION extends Filterable, EXTENSION extends DynamicConditionExtension = never> = {
+    not?: DynamicFilter<DEFINITION, EXTENSION>
+    and?: Array<DynamicFilter<DEFINITION, EXTENSION> | undefined>
+    or?: Array<DynamicFilter<DEFINITION, EXTENSION> | undefined>
 } & {
-    [KEY in UsableKeyOf<DEFINITION>]?: DEFINITION[KEY] extends AnyValueSource ? MapValueSourceToFilter<DEFINITION[KEY]> : DEFINITION[KEY] extends Filterable ? DynamicFilter<DEFINITION[KEY]> : never
-}
+    [KEY in NonReplacedField<DEFINITION, EXTENSION>]?:
+        DEFINITION[KEY] extends AnyValueSource
+        ? ColumnFilterWithExtension<MapValueSourceToFilter<DEFINITION[KEY]>, EXTENSION> : DEFINITION[KEY] extends Filterable
+        ? DynamicFilter<DEFINITION[KEY], KEY extends keyof EXTENSION ? (EXTENSION[KEY] extends DynamicConditionExtension ? EXTENSION[KEY] : never) : never>
+        : never
+} & ([EXTENSION] extends [never] ? unknown : {
+    [KEY in DynamicConditionExtensionKeys<EXTENSION>]?: EXTENSION[KEY] extends DynamicConditionRule<infer TYPE> ? TYPE : never
+})
 
 export interface DynamicConditionExpression<DEFINITION extends Filterable, EXTENSION extends DynamicConditionExtension> {
     // It is optional because some members can be optionals, another strategy will be look inside the object looking for 
     // any optional, but is provides low value
-    withValues(filter: DynamicFilter<DEFINITION>): BooleanValueSource<SourceOf<DEFINITION> | SourceOf<EXTENSION>, 'optional'>
+    withValues(filter: DynamicFilter<DEFINITION, EXTENSION>): BooleanValueSource<SourceOf<DEFINITION> | SourceOf<EXTENSION>, 'optional'>
 }
 
 type SourceOf<TYPE> = [TYPE] extends [never] ? never : GetDataToProjectSource<TYPE>

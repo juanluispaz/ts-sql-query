@@ -24,11 +24,11 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
         this.extension = extension
     }
 
-    withValues(filter: DynamicFilter<any>): BooleanValueSource<any, any> {
+    withValues(filter: DynamicFilter<any, any>): BooleanValueSource<any, any> {
         return this.processFilter(filter, this.definition, this.extension, '')
     }
 
-    processFilter(filter: DynamicFilter<any>, definition: Filterable, extension: any, prefix: string): BooleanValueSource<any, any> {
+    processFilter(filter: DynamicFilter<any, any>, definition: Filterable, extension: any, prefix: string): BooleanValueSource<any, any> {
         const definitionColumns = definition as QueryColumns
         let result: BooleanValueSource<any, any> = new SqlOperationValueSourceIfValueAlwaysNoop('required') as any
         
@@ -178,7 +178,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
         return result
     }
 
-    processAndFilter(filter: DynamicFilter<any>[], definition: Filterable, extension: any, prefix: string) {
+    processAndFilter(filter: DynamicFilter<any, any>[], definition: Filterable, extension: any, prefix: string) {
         let result: BooleanValueSource<any, any> = new SqlOperationValueSourceIfValueAlwaysNoop('required') as any
         for (let i = 0, length = filter.length; i < length; i++) {
             const condition = this.processFilter(filter[i]!, definition, extension, prefix)
@@ -187,7 +187,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
         return result
     }
 
-    processOrFilter(filter: DynamicFilter<any>[], definition: Filterable, extension: any, prefix: string) {
+    processOrFilter(filter: DynamicFilter<any, any>[], definition: Filterable, extension: any, prefix: string) {
         let result: BooleanValueSource<any, any> = new SqlOperationValueSourceIfValueAlwaysNoop('required') as any
         for (let i = 0, length = filter.length; i < length; i++) {
             const condition = this.processFilter(filter[i]!, definition, extension, prefix)

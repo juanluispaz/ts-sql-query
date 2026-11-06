@@ -148,6 +148,14 @@ function _typeNegatives() {
     // @ts-expect-error not expects a single filter
     void connection.dynamicConditionFor(moreFields).withValues({ not: [{ priority: { equals: 1 } }] })
 
+    // Rule: a rule of the extension takes its own type, in a filter written in place.
+    const issueRules = { hasBody: (text: string) => tIssue.body.contains(text) }
+    void connection.dynamicConditionFor(moreFields, issueRules).withValues({ hasBody: 'x' })
+    // @ts-expect-error a rule receives the type of its parameter
+    void connection.dynamicConditionFor(moreFields, issueRules).withValues({ hasBody: 5 })
+    // @ts-expect-error a rule that wasn't given to dynamicConditionFor
+    void connection.dynamicConditionFor(moreFields).withValues({ hasBody: 'x' })
+
     // Rule: filters nested in `and` / `or` / `not` obey the same field and data
     // type rules as the top level.
     // @ts-expect-error 'nope' is not a field of the dynamic-condition definition

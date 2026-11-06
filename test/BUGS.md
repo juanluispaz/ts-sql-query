@@ -183,5 +183,5 @@ When the fix lands:
    pending work. If the bug exposed an unsolved library gap, use
    `// TODO[LIMITATION]: see LIMITATIONS.md — <one-line>` instead.
 5. Push the changelog entry under
-   [`docs/CHANGELOG.md`](../docs/CHANGELOG.md) describing the
+   [`docs/about/changelog/v2.md`](../docs/about/changelog/v2.md) describing the
    user-visible change.

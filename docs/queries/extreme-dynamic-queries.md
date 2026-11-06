@@ -20,11 +20,11 @@ Start from what you need, and take the first row that solves it:
 | Give everyone the same columns, without the value of those a user can't see | [`onlyWhenOrNull`, `ignoreWhenAsNull`](#hide-a-value-keeping-the-column) | The caller can't tell a hidden value from a null |
 | Decide with `if`s how the conditions combine | [`dynamicBooleanExpressionUsing`](#complex-dynamic-boolean-expressions) | The condition isn't in the text of the query any more |
 | Share a condition or some columns between queries | [A function that receives the table](#bringing-a-condition-from-outside-the-query) | Generic types in the signature of the function |
-| Receive the filter as an object, from a search screen or an API ([applied here](queries-from-requests.md)) | [`dynamicConditionFor`](#select-using-a-dynamic-filter) | The caller can filter by every field you list, and a wrong filter throws |
+| Receive the filter as an object, from a search screen or an API ([applied here](../dynamic/queries-from-requests.md)) | [`dynamicConditionFor`](#select-using-a-dynamic-filter) | The caller can filter by every field you list, and a wrong filter throws |
 | Let the caller choose the columns | [`dynamicPick`, `dynamicPickPaths`](#select-dynamically-picking-columns) | The columns can disappear, so the properties are optional in the result type, and ordering depends on what was picked |
 | Return the columns the client asks for with `?fields=` | [`dynamicPickPaths`](#the-columns-the-client-asks-for) | The names are only known at run time, and the compiler can't check them |
 | Refuse a query that uses a value the user can't see | [`allowWhen`, `disallowWhen`](#restrict-access-to-values) | You have to handle the error |
-| All of it in a function of your own, with a precise result type | [Functions that return a dynamic select](dynamic-select-functions.md) | Most of the code is types |
+| All of it in a function of your own, with a precise result type | [Functions that return a dynamic select](../dynamic/dynamic-select-functions.md) | Most of the code is types |
 
 !!! warning "These patterns are rarely needed"
 
@@ -182,13 +182,13 @@ const customers = await connection.selectFrom(customer)
     .executeSelectMany();
 ```
 
-A table used in a left join is received with `TableOrViewLeftJoinOf`, as in [a function that returns a dynamic select](dynamic-select-functions.md), which builds its columns and the rules of its filter in the same way.
+A table used in a left join is received with `TableOrViewLeftJoinOf`, as in [a function that returns a dynamic select](../dynamic/dynamic-select-functions.md), which builds its columns and the rules of its filter in the same way.
 
 ## Select using a dynamic filter
 
 A dynamic filter is a condition that arrives as data: a search screen or another system sends an object that says which fields to compare and how, and the library turns it into SQL. The values go as parameters, and the names must be the ones you list, so the object can't add SQL of its own.
 
-It's the condition of a table in a user interface, or of a query API for other systems: see [Queries from a request](queries-from-requests.md) for those two cases applied, with the order and the page.
+It's the condition of a table in a user interface, or of a query API for other systems: see [Queries from a request](../dynamic/queries-from-requests.md) for those two cases applied, with the order and the page.
 
 `connection.dynamicConditionFor(fields)` receives a map: each key is the name the filter uses, and each value is the column or expression it refers to. Its method `withValues(filter)` returns the condition, which goes wherever a boolean is accepted, like a `where`.
 
@@ -411,7 +411,7 @@ The types of a filter are strict, and its execution is tolerant. The types keep 
 | `{ id: null }` | No condition on `id` |
 | `{ id: { isNull: true } }`, `{ id: { is: null } }` | The value is null |
 
-This is what [the uses of a filter](queries-from-requests.md) need. A table sends empty the filters nobody filled in. And a system written in Java or C# usually can't leave out a property: it sends all the fields of its class, with `null` in those it doesn't use, so `{ id: { equals: 1, notEquals: null, in: null } }` means `id = 1`.
+This is what [the uses of a filter](../dynamic/queries-from-requests.md) need. A table sends empty the filters nobody filled in. And a system written in Java or C# usually can't leave out a property: it sends all the fields of its class, with `null` in those it doesn't use, so `{ id: { equals: 1, notEquals: null, in: null } }` means `id = 1`.
 
 Mind the difference with the same methods in your code, which compare with what they receive: `tCustomer.id.in([])` returns no rows, and `tCustomer.id.notIn([])` returns them all.
 
@@ -431,7 +431,7 @@ A filter that comes from outside can be wrong. `withValues` throws when you call
 
 A filter parsed from JSON has its dates as text. Convert them to `Date` first: a text in a date column reaches the execute method, whose promise is rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE`.
 
-To add a rule that no column can express, like "there is a customer whose name contains this text", pass an object as the second argument of `dynamicConditionFor`, and as the second type argument of `DynamicCondition`. Each key is the name of a rule, and it can be nested to follow the groups of the map. Its value is a function that receives the value of the filter and returns a condition. See [a function that returns a dynamic select](dynamic-select-functions.md) for a complete example.
+To add a rule that no column can express, like "there is a customer whose name contains this text", pass an object as the second argument of `dynamicConditionFor`, and as the second type argument of `DynamicCondition`. Each key is the name of a rule, and it can be nested to follow the groups of the map. Its value is a function that receives the value of the filter and returns a condition. See [a function that returns a dynamic select](../dynamic/dynamic-select-functions.md) for a complete example.
 
 ## Select dynamically picking columns
 
@@ -1391,7 +1391,7 @@ See [Select dynamically picking columns](#select-dynamically-picking-columns), [
 
 ## A function that returns a dynamic select
 
-When you want a function of your own that does all of this, where the caller chooses the columns, the filter and the order, and gets a precise result type, see [Functions that return a dynamic select](dynamic-select-functions.md). It is a complete example, typed from the database and from a model of your own.
+When you want a function of your own that does all of this, where the caller chooses the columns, the filter and the order, and gets a precise result type, see [Functions that return a dynamic select](../dynamic/dynamic-select-functions.md). It is a complete example, typed from the database and from a model of your own.
 
 ## Summary and when to use these patterns
 

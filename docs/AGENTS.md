@@ -46,17 +46,29 @@ Start with the file of the area of your task. These files are written for you: o
 
 | To | Read | Tokens |
 |---|---|---|
-| Write queries: start here | [`llms-queries-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-queries-postgresql.txt), with `<database>` being `mariadb`, `mysql`, `oracle`, `postgresql`, `sqlite` or `sqlserver` | 111k |
-| Let the caller choose columns, filters and order, or write values with a shape | [`llms-extreme-dynamic-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-extreme-dynamic-postgresql.txt) | 27k |
+| Read data: start here | [`llms-queries-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-queries-postgresql.txt), with `<database>` being `mariadb`, `mysql`, `oracle`, `postgresql`, `sqlite` or `sqlserver` | 35k |
+| Use a select inside another, combine several, or walk a hierarchy | [`llms-queries-advanced-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-queries-advanced-postgresql.txt) | 11k |
+| Aggregate and group | [`llms-aggregates-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-aggregates-postgresql.txt) | 10k |
+| Write data | [`llms-mutations-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-mutations-postgresql.txt) | 24k |
+| Use a transaction | [`llms-transactions.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-transactions.txt) | 13k |
+| Go beyond what the library offers: your own SQL or column type | [`llms-extending-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-extending-postgresql.txt) | 14k |
+| Let the caller choose columns, filters and order, fill a table or offer a query API from a request, write a function that returns a dynamic select, or write values with a shape | [`llms-extreme-dynamic-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-extreme-dynamic-postgresql.txt) | 20k |
+| Go deeper in dynamic queries: booleans and null, or typing them from a model | [`llms-dynamic.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-dynamic.txt) | 15k |
 | Type a row of a table | [`llms-types.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-types.txt) | 5k |
-| Declare the tables and the connection | [`llms-configuration.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-configuration.txt) | 50k |
-| Connect a driver | [`llms-query-runners.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-query-runners.txt) | 31k |
+| Declare the tables and the connection | [`llms-configuration-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-configuration-postgresql.txt) | 26k |
+| Connect a driver | The page of your driver, listed in `llms.txt`, or all of them in [`llms-query-runners.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-query-runners.txt) | 31k |
 | Look up a method | [`llms-api.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-api.txt) | 42k |
 | Understand an error | [`llms-errors.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-errors.txt) | 17k |
+| Find what writes a SQL keyword | [`llms-keywords.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-keywords.txt) | 15k |
+| Know what the library is, and what it can't do | [`llms-general.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-general.txt) | 6k |
+| Move a project from v1 to v2 | [`llms-migrating-from-v1.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-migrating-from-v1.txt) | 9k |
+| See what changed in a version | [`llms-changelog-v2.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-changelog-v2.txt), or `llms-changelog-v1.txt` | 24k |
 
-[`llms.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms.txt) is the index of all of them, and of what isn't in any: the changelog and how the native errors of each database map to a reason.
+The files with `<database>` also come with all the databases, like `llms-queries-all.txt`, to compare them or to move code between them. Otherwise use the one of your database, which is smaller.
 
-To move a project from v1 to v2, read [Migrating from v1](about/migrating-from-v1.md): some changes don't stop compiling, and change results.
+[`llms.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms.txt) is the index of all of them, and of what isn't in any: how the native errors of each database map to a reason, and a few pages on a single topic.
+
+To move a project from v1 to v2, read [Migrating from v1](about/changelog/migrating-from-v1.md): some changes don't stop compiling, and change results.
 
 ### Coming back to a topic
 
@@ -74,6 +86,8 @@ Once you know the area, go straight to the part you need, in those files or in i
 | Filter by optional values | [Dynamic queries](queries/dynamic-queries.md), [building blocks](dynamic/building-blocks.md), [booleans and null](dynamic/three-valued-booleans.md) |
 | Write SQL the library doesn't offer | [SQL fragments](queries/sql-fragments.md) |
 | Let the caller choose columns, filters and order | [Extreme dynamic queries](queries/extreme-dynamic-queries.md), and [from a business model](dynamic/from-business-model.md) or [from the database types](dynamic/from-database-types.md) |
+| Fill a table in a user interface, or offer a query API | [Queries from a request](dynamic/queries-from-requests.md) |
+| Write a function where the caller chooses columns, filter and order | [Functions that return a dynamic select](dynamic/dynamic-select-functions.md) |
 | Write values whose properties aren't named as the columns | [Insert and update with a shape](queries/shapes.md) |
 | Type a row of a table | [Utility types](advanced/utility-types.md), [columns from an object](advanced/columns-from-object.md) |
 | Declare tables and the connection | [Connection](configuration/connection.md), [mapping](configuration/mapping.md), [column types](configuration/column-types.md) |

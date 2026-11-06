@@ -146,8 +146,6 @@ nav:
     - Transaction: queries/transaction.md
     - Dynamic queries: queries/dynamic-queries.md
     - Extreme dynamic queries: queries/extreme-dynamic-queries.md
-    - Queries from a request: queries/queries-from-requests.md
-    - Functions that return a dynamic select: queries/dynamic-select-functions.md
     - Insert and update with a shape: queries/shapes.md
     - SQL Fragments: queries/sql-fragments.md
   - Configuration:
@@ -218,6 +216,8 @@ nav:
   - Dynamic:
     - Dynamic query building blocks: dynamic/building-blocks.md
     - Booleans and three-valued logic: dynamic/three-valued-booleans.md
+    - Queries from a request: dynamic/queries-from-requests.md
+    - Functions that return a dynamic select: dynamic/dynamic-select-functions.md
     - Dynamic queries from a business model: dynamic/from-business-model.md
     - Dynamic queries from the database types: dynamic/from-database-types.md
     - Utilities:
@@ -243,8 +243,9 @@ nav:
   - About:
     - Philosophy and Design Goals: about/philosophy.md
     - For AI agents: about/ai-agents.md
-    - Migrating from v1: about/migrating-from-v1.md
     - FAQs: about/faqs.md
     - Limitations: about/limitations.md
-    - Examples: about/examples.md
-    - Change Log: CHANGELOG.md
+    - Change log:
+      - Change log of v2: about/changelog/v2.md
+      - Change log of v1: about/changelog/v1.md
+      - Migrating from v1: about/changelog/migrating-from-v1.md

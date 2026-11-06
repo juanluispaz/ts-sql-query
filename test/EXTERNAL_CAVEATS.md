@@ -319,7 +319,7 @@ matrix is extended:
   `runners.ts`.
 - `docs/keywords/*` — keyword index, not a feature surface.
 - `docs/about/*` — narrative.
-- `docs/CHANGELOG.md`, `docs/index.md` — meta.
+- `docs/about/changelog/`, `docs/index.md` — meta.
 
 `docs/advanced/synchronous-query-runners.md` is a feature page: its tests are
 `docs.advanced.synchronous-query-runners.test.ts`, in every cell, and the sync

@@ -14,7 +14,7 @@ This page lists what to change in an application that runs on `ts-sql-query` v1.
 ## Packaging and imports
 
 - **ESM only.** The CommonJS build is gone. Move your application to ESM, or load the library with a dynamic `import()`.
-- **Node.js 22 or newer** (or [Bun](../index.md)).
+- **Node.js 22 or newer** (or [Bun](../../index.md)).
 - **TypeScript**: `moduleResolution` must be `"node16"`, `"nodenext"` or `"bundler"`, because of the `exports` map.
 - **Only what the `exports` map lists can be imported.** Anything else fails with `ERR_PACKAGE_PATH_NOT_EXPORTED`. The paths the v1 documentation showed keep working, except for what this page says is removed. What was never documented doesn't:
 
@@ -31,7 +31,7 @@ This page lists what to change in an application that runs on `ts-sql-query` v1.
     `__UNSUPPORTED__` reaches the internals of the library, with no stability guarantee.
 
 - **New paths, optional.** `ts-sql-query/dynamicCondition` keeps working, and the same names are also in `ts-sql-query/dynamic/pick` and `ts-sql-query/dynamic/condition`. The cross-database symbols can also be imported from the root, `ts-sql-query`. The connections, the query runners and `IDEncrypter` stay on their own path.
-- **Dependencies.** `chained-error` and `ts-extended-types` are gone: remove any import of them from your code. The page of each query runner ([pg](../configuration/query-runners/recommended/pg.md), for example) says which driver versions it is tested on, so check yours before updating.
+- **Dependencies.** `chained-error` and `ts-extended-types` are gone: remove any import of them from your code. The page of each query runner ([pg](../../configuration/query-runners/recommended/pg.md), for example) says which driver versions it is tested on, so check yours before updating.
 
 ## What stops compiling
 
@@ -55,7 +55,7 @@ The compiler finds all of these. This section is what to write instead.
 | `QueryExecutor` from `MockQueryRunner` | `MockQueryExecutor`, same path |
 | `QueryType` from `MockQueryRunner`, `InterceptorQueryRunner` or `LoggingQueryRunner` | `QueryType` from `ts-sql-query/queryRunners/QueryRunner` |
 
-The rules of a [dynamic condition](../dynamic/utilities/conditions.md) were renamed in the same way, but [they may not stop compiling](#dynamic-conditions-coming-from-outside).
+The rules of a [dynamic condition](../../dynamic/utilities/conditions.md) were renamed in the same way, but [they may not stop compiling](#dynamic-conditions-coming-from-outside).
 
 ### Removed connections and query runners
 
@@ -63,21 +63,21 @@ The rules of a [dynamic condition](../dynamic/utilities/conditions.md) were rena
 |---|---|
 | `TypeSafePostgreSqlConnection`, `TypeSafeMySqlConnection`, ... | The connection without the prefix, like `PostgreSqlConnection`. Values are plain `number`, `string` and `Date`, not the `int`, `double`, `uuid`, `LocalDate`, ... of `ts-extended-types` |
 | `AnyDBQueryRunner`, `AnyDBPoolQueryRunner`, `LoopBackQueryRunner` | The query runner of your driver |
-| `MsNodeSqlV8QueryRunner`, `TediousQueryRunner`, `TediousPoolQueryRunner` | [`MssqlPoolQueryRunner`](../configuration/query-runners/recommended/mssql.md) |
-| `MySqlQueryRunner`, `MySqlPoolQueryRunner` | [`MySql2QueryRunner`, `MySql2PoolQueryRunner`](../configuration/query-runners/recommended/mysql2.md) |
-| `SqliteQueryRunner` | [`BetterSqlite3QueryRunner`](../configuration/query-runners/recommended/better-sqlite3.md), [`NodeSqliteQueryRunner`](../configuration/query-runners/recommended/node_sqlite.md), [`Sqlite3QueryRunner`](../configuration/query-runners/additional/sqlite3.md) (deprecated, like the `sqlite3` driver) |
-| `PrismaQueryRunner` | On PostgreSQL, the `pg` query runners, which can [share the pool and the transaction with Prisma](../configuration/query-runners/combining-with-another-library.md#example-prisma). On other databases there is no replacement that shares them |
+| `MsNodeSqlV8QueryRunner`, `TediousQueryRunner`, `TediousPoolQueryRunner` | [`MssqlPoolQueryRunner`](../../configuration/query-runners/recommended/mssql.md) |
+| `MySqlQueryRunner`, `MySqlPoolQueryRunner` | [`MySql2QueryRunner`, `MySql2PoolQueryRunner`](../../configuration/query-runners/recommended/mysql2.md) |
+| `SqliteQueryRunner` | [`BetterSqlite3QueryRunner`](../../configuration/query-runners/recommended/better-sqlite3.md), [`NodeSqliteQueryRunner`](../../configuration/query-runners/recommended/node_sqlite.md), [`Sqlite3QueryRunner`](../../configuration/query-runners/additional/sqlite3.md) (deprecated, like the `sqlite3` driver) |
+| `PrismaQueryRunner` | On PostgreSQL, the `pg` query runners, which can [share the pool and the transaction with Prisma](../../configuration/query-runners/combining-with-another-library.md#example-prisma). On other databases there is no replacement that shares them |
 
 ### Removed features
 
 | v1 | v2 |
 |---|---|
-| `compose`, `composeDeletingInternalProperty`, `composeDeletingExternalProperty`, `withOne`, `withMany`, ... `split`, `splitOptional`, `splitRequired`, `guidedSplitOptional`, `guidedSplitRequired`, and `mapForGuidedSplit`, `prefixCapitalized`, `prefixDotted`, `prefixMapFor...` | [Complex projections](../queries/complex-projections.md) or [aggregate as an object array](../queries/aggregate-as-object-array.md) |
-| Columns `'stringInt'`, `'stringDouble'`, `.asStringInt()`, `.asStringDouble()` | `'bigint'`, or [`'customInt'`, `'customDouble'`](../configuration/column-types.md); `.asInt()`, `.asBigint()`, `.asDouble()` |
+| `compose`, `composeDeletingInternalProperty`, `composeDeletingExternalProperty`, `withOne`, `withMany`, ... `split`, `splitOptional`, `splitRequired`, `guidedSplitOptional`, `guidedSplitRequired`, and `mapForGuidedSplit`, `prefixCapitalized`, `prefixDotted`, `prefixMapFor...` | [Complex projections](../../queries/complex-projections.md) or [aggregate as an object array](../../queries/aggregate-as-object-array.md) |
+| Columns `'stringInt'`, `'stringDouble'`, `.asStringInt()`, `.asStringDouble()` | `'bigint'`, or [`'customInt'`, `'customDouble'`](../../configuration/column-types.md); `.asInt()`, `.asBigint()`, `.asDouble()` |
 
 ### Types that now reject what compiled
 
-**A JavaScript value that can be `null` or `undefined`.** The overloads of the column operations that accepted one are gone, because a comparison with `null` silently matches nothing. Use the `IfValue` variant, or see [how to compare against a null value](limitations.md#how-to-compare-against-a-null-or-undefined-value).
+**A JavaScript value that can be `null` or `undefined`.** The overloads of the column operations that accepted one are gone, because a comparison with `null` silently matches nothing. Use the `IfValue` variant, or see [how to compare against a null value](../limitations.md#how-to-compare-against-a-null-or-undefined-value).
 
 ```typescriptreact
 // v1
@@ -96,8 +96,8 @@ const customers = await connection.selectFrom(tCustomer)
 
 **Aggregates, where SQL doesn't allow them:**
 
-- An aggregate function in `where`, `and`, `or`, `groupBy` or the `on` of a join. It stays allowed in `select`, `having` and `orderBy`. A custom fragment that is an aggregate has its [own builders](../queries/sql-fragments.md#aggregate-fragments), to get the same check.
-- A select with an aggregate and a column of a table, without a group by. Group by the column, or take any value of the group with [`anyValue`](../queries/aggregate-and-group-by.md#any-value-of-the-group) if it is the same in the whole group:
+- An aggregate function in `where`, `and`, `or`, `groupBy` or the `on` of a join. It stays allowed in `select`, `having` and `orderBy`. A custom fragment that is an aggregate has its [own builders](../../queries/sql-fragments.md#aggregate-fragments), to get the same check.
+- A select with an aggregate and a column of a table, without a group by. Group by the column, or take any value of the group with [`anyValue`](../../queries/aggregate-and-group-by.md#any-value-of-the-group) if it is the same in the whole group:
 
     ```ts
     const customersPerCompany = await connection.selectFrom(tCustomer)
@@ -109,13 +109,13 @@ const customers = await connection.selectFrom(tCustomer)
         .executeSelectMany()
     ```
 
-    See [grouping by every non-aggregated column](../queries/aggregate-and-group-by.md#grouping-by-every-non-aggregated-column).
+    See [grouping by every non-aggregated column](../../queries/aggregate-and-group-by.md#grouping-by-every-non-aggregated-column).
 - An aggregate of an aggregate (`connection.max(connection.count(tCustomer.id))`), except on Oracle. Aggregate over a subquery that aggregates.
 - `groupBy('name')` with a column of the select that is an aggregate.
 
 **Insert and on conflict:**
 
-- `.onConflictOnConstraint(...)` only takes a raw fragment ([docs](../queries/insert-on-conflict.md#a-conflict-on-a-named-constraint)):
+- `.onConflictOnConstraint(...)` only takes a raw fragment ([docs](../../queries/insert-on-conflict.md#a-conflict-on-a-named-constraint)):
 
     ```ts
     const inserted = await connection.insertInto(tCustomer)
@@ -125,14 +125,14 @@ const customers = await connection.selectFrom(tCustomer)
         .executeInsert()
     ```
 
-- PostgreSQL: `.onConflictDoUpdateSet(...)`, `.onConflictDoUpdateSetIfValue(...)` and `.onConflictDoUpdateDynamicSet()` without a target are gone. Use [`.onConflictOn(column).doUpdateSet(...)`](../queries/insert-on-conflict.md#update-the-existing-row-upsert).
+- PostgreSQL: `.onConflictDoUpdateSet(...)`, `.onConflictDoUpdateSetIfValue(...)` and `.onConflictDoUpdateDynamicSet()` without a target are gone. Use [`.onConflictOn(column).doUpdateSet(...)`](../../queries/insert-on-conflict.md#update-the-existing-row-upsert).
 - `executeInsertOne()` is not offered on a multi-row insert with `onConflictDoNothing()`, since the conflict can skip every row.
 - `insertInto(table).from(select)` with a column the table doesn't have.
 
 **Result types:**
 
 - `connection.average(...)` and `connection.averageDistinct(...)` always return `number`. Drop an annotation that says `bigint` or a custom type.
-- Nested projections go up to [5 levels](../queries/complex-projections.md), counting the object passed to `select`.
+- Nested projections go up to [5 levels](../../queries/complex-projections.md), counting the object passed to `select`.
 
 **Queries the database rejects, per database:**
 
@@ -146,10 +146,10 @@ const customers = await connection.selectFrom(tCustomer)
 
 ### Your own query runner, and the connection of the driver
 
-- `queryRunner.execute(fn)` calls `fn` with one argument, the connection to run statements on: a function with two parameters doesn't compile. With postgres.js and mssql, `fn` received the pool or the client, and the transaction in that second argument ([docs](../queries/transaction.md#using-the-drivers-connection-in-the-transaction)). `getCurrentNativeConnection()` returns the connection of the transaction, and `undefined` outside one.
+- `queryRunner.execute(fn)` calls `fn` with one argument, the connection to run statements on: a function with two parameters doesn't compile. With postgres.js and mssql, `fn` received the pool or the client, and the transaction in that second argument ([docs](../../queries/transaction.md#using-the-drivers-connection-in-the-transaction)). `getCurrentNativeConnection()` returns the connection of the transaction, and `undefined` outside one.
 - A class implementing `QueryRunner` has to add `createRejectedPromise`, `nestedTransactionsSupported`, `getErrorReason` and `isSqlError`, and its `createResolvedPromise` must adopt a promise it receives. A class extending `AbstractQueryRunner` inherits them, but has to import it from `__UNSUPPORTED__`.
 - `executeInTransaction(fn, ...)` no longer accepts a function returning an array, and `executeBeginTransaction`, `executeCommit`, `executeRollback` and `executeInTransaction` receive an optional `opts` at the end.
-- To log or intercept queries, prefer [`InterceptorQueryRunner`](../configuration/query-runners/general-purpose/InterceptorQueryRunner.md), which is public and needs no changes beyond the import of `QueryType`.
+- To log or intercept queries, prefer [`InterceptorQueryRunner`](../../configuration/query-runners/general-purpose/InterceptorQueryRunner.md), which is public and needs no changes beyond the import of `QueryType`.
 - `MockQueryRunner` no longer calls your function with `'isTransactionActive'`. A branch for that value doesn't compile: remove it.
 
 ## What changes silently at runtime
@@ -179,20 +179,20 @@ class DBConnection extends SqlServerConnection<'DBConnection'> {
 
 | If your database is older than | Value for that version | What the default emits and it doesn't accept |
 |---|---|---|
-| [PostgreSQL](../configuration/supported-databases/postgresql.md#compatibility-version) 18 | `17_000_000` | `oldValues()` as `returning old.column` |
-| [MySQL](../configuration/supported-databases/mysql.md#compatibility-version) 8.0.19 | `8_000_018` | `insert ... as _new_ on duplicate key update` |
+| [PostgreSQL](../../configuration/supported-databases/postgresql.md#compatibility-version) 18 | `17_000_000` | `oldValues()` as `returning old.column` |
+| [MySQL](../../configuration/supported-databases/mysql.md#compatibility-version) 8.0.19 | `8_000_018` | `insert ... as _new_ on duplicate key update` |
 | MySQL 8.0.17 | `8_000_016` | `cast(x as double)` in `.asDouble()`, `.divide(...)` and `average(...)` |
 | MySQL 8.0 | `5_007_000` | `with`, which is then written inline in the `from` |
-| [MariaDB](../configuration/supported-databases/mariadb.md#compatibility-version) 10.5 | `10_004_000` | `insert ... returning` to read the last inserted id |
+| [MariaDB](../../configuration/supported-databases/mariadb.md#compatibility-version) 10.5 | `10_004_000` | `insert ... returning` to read the last inserted id |
 | MariaDB 10.4 | `10_003_000` | `cast(x as double)` in `.asDouble()`, `.divide(...)` and `average(...)` |
 | MariaDB 10.3.3 | `10_003_002` | `value(column)` in `on duplicate key update` |
-| [SQLite](../configuration/supported-databases/sqlite.md#compatibility-version) 3.42 | `3_041_000` | `unixepoch(x, 'subsec')` |
+| [SQLite](../../configuration/supported-databases/sqlite.md#compatibility-version) 3.42 | `3_041_000` | `unixepoch(x, 'subsec')` |
 | SQLite 3.38 | `3_037_000` | `unixepoch(x)` |
 | SQLite 3.35 | `3_034_000` | `insert ... returning` to read the last inserted id |
 | SQLite 3.30 | `3_029_000` | `nulls first`, `nulls last` |
-| [SQL Server](../configuration/supported-databases/sqlserver.md#compatibility-version) 2025 | `16_000_000` | `current_date`, `json_arrayagg`, `json_object`, `substring` without a length |
+| [SQL Server](../../configuration/supported-databases/sqlserver.md#compatibility-version) 2025 | `16_000_000` | `current_date`, `json_arrayagg`, `json_object`, `substring` without a length |
 | SQL Server 2022 | `15_000_000` | `greatest`, `least` |
-| [Oracle](../configuration/supported-databases/oracle.md#compatibility-version) 23ai | `19_000_000` | `Values` written with the `values` table constructor |
+| [Oracle](../../configuration/supported-databases/oracle.md#compatibility-version) 23ai | `19_000_000` | `Values` written with the `values` table constructor |
 
 This only chooses the syntax. The changes in values and transactions below apply whatever the version.
 
@@ -222,13 +222,13 @@ const [updated, deleted] = await connection.transaction(async () => {
 })
 ```
 
-**Oracle: statements outside a transaction are committed.** v2 runs them with `autoCommit: true`. v1 passed no such option and the driver doesn't commit by default, so nothing committed them. If your code commits by hand after those statements, remove that. If you run a transaction of your own over that connection, use [`forUseInTransaction`](../configuration/query-runners/recommended/oracledb.md#inside-a-transaction-something-else-manages).
+**Oracle: statements outside a transaction are committed.** v2 runs them with `autoCommit: true`. v1 passed no such option and the driver doesn't commit by default, so nothing committed them. If your code commits by hand after those statements, remove that. If you run a transaction of your own over that connection, use [`forUseInTransaction`](../../configuration/query-runners/recommended/oracledb.md#inside-a-transaction-something-else-manages).
 
-**PostgreSQL: catching the error of a statement doesn't save the transaction.** PostgreSQL answers the commit of a failed transaction with a rollback. v1 didn't look at that answer, so `connection.transaction(...)` resolved, and nothing was saved. v2 reads it and rejects with `TRANSACTION_ERROR`, `transactionErrorType: 'transaction rolled back'`, running the after-rollback functions ([docs](../configuration/supported-databases/postgresql.md#a-statement-that-fails-inside-a-transaction)).
+**PostgreSQL: catching the error of a statement doesn't save the transaction.** PostgreSQL answers the commit of a failed transaction with a rollback. v1 didn't look at that answer, so `connection.transaction(...)` resolved, and nothing was saved. v2 reads it and rejects with `TRANSACTION_ERROR`, `transactionErrorType: 'transaction rolled back'`, running the after-rollback functions ([docs](../../configuration/supported-databases/postgresql.md#a-statement-that-fails-inside-a-transaction)).
 
-**MariaDB, MySQL, SQL Server, SQLite: a transaction the database rolled back by itself is over.** A deadlock, for example, can do this. v1 had no check for it and went on sending statements, which the database runs on their own, committed one by one. When the query runner can tell from the error, v2 rejects those statements with the same `TRANSACTION_ERROR`, without sending them. `Sqlite3QueryRunner` and `Sqlite3WasmOO1QueryRunner` can't tell ([docs](../queries/transaction.md#when-the-database-rolls-back-the-transaction)).
+**MariaDB, MySQL, SQL Server, SQLite: a transaction the database rolled back by itself is over.** A deadlock, for example, can do this. v1 had no check for it and went on sending statements, which the database runs on their own, committed one by one. When the query runner can tell from the error, v2 rejects those statements with the same `TRANSACTION_ERROR`, without sending them. `Sqlite3QueryRunner` and `Sqlite3WasmOO1QueryRunner` can't tell ([docs](../../queries/transaction.md#when-the-database-rolls-back-the-transaction)).
 
-**PostgreSQL, Oracle: a nested transaction rejects** with `NESTED_TRANSACTION_NOT_SUPPORTED`. v1 sent a second begin on PostgreSQL, and on Oracle it only counted them; the inner commit committed everything. On PostgreSQL, you can keep them by creating the query runner with `allowNestedTransactions: true` ([docs](../configuration/query-runners/recommended/pg.md)).
+**PostgreSQL, Oracle: a nested transaction rejects** with `NESTED_TRANSACTION_NOT_SUPPORTED`. v1 sent a second begin on PostgreSQL, and on Oracle it only counted them; the inner commit committed everything. On PostgreSQL, you can keep them by creating the query runner with `allowNestedTransactions: true` ([docs](../../configuration/query-runners/recommended/pg.md)).
 
 ### Queries that read or write other rows
 
@@ -241,8 +241,8 @@ v1 emitted these wrong, or did what wasn't asked. Check any code that relied on 
 - `.notEndsWith(...)` on MySQL and MariaDB was emitted as `like`, selecting the rows it should exclude.
 - `contains`, `startsWith`, `endsWith` and their variants escaped special characters of the search text wrongly: `\` on MySQL and MariaDB, `_` on SQL Server, and `\`, `%`, `_` and `[` on Oracle.
 - `subSelectDistinctUsing(...)` emitted no `distinct`.
-- MySQL, MariaDB: a column of a table in `having` is written with the name of the table. These databases took it as the column of the select with the same name, and filtered by that value. **If that column isn't in the group by, the database rejects the query** ([docs](../queries/aggregate-and-group-by.md#a-column-that-isnt-in-the-group-by-in-the-having)).
-- MySQL, MariaDB: `groupBy('alias')` of an expression with parameters is written with its position, `group by 1`. Don't add columns through `afterSelectKeyword` or `beforeColumns` in [`customizeQuery`](../queries/sql-fragments.md#customizing-a-select) in those queries.
+- MySQL, MariaDB: a column of a table in `having` is written with the name of the table. These databases took it as the column of the select with the same name, and filtered by that value. **If that column isn't in the group by, the database rejects the query** ([docs](../../queries/aggregate-and-group-by.md#a-column-that-isnt-in-the-group-by-in-the-having)).
+- MySQL, MariaDB: `groupBy('alias')` of an expression with parameters is written with its position, `group by 1`. Don't add columns through `afterSelectKeyword` or `beforeColumns` in [`customizeQuery`](../../queries/sql-fragments.md#customizing-a-select) in those queries.
 
 **Writes:**
 
@@ -261,11 +261,11 @@ v1 emitted these wrong, or did what wasn't asked. Check any code that relied on 
 
 ### Errors
 
-**Review every `catch` that handled an error of the library.** Error management is new in v2: other classes, other messages and a different `cause`, so a `catch` written for v1 keeps compiling and stops matching. Rewrite it around `error.errorReason.reason`, as the [error management](../api/error-management/overview.md) page explains:
+**Review every `catch` that handled an error of the library.** Error management is new in v2: other classes, other messages and a different `cause`, so a `catch` written for v1 keeps compiling and stops matching. Rewrite it around `error.errorReason.reason`, as the [error management](../../api/error-management/overview.md) page explains:
 
 | | v1 | v2 |
 |---|---|---|
-| Class | `ChainedError` or `Error` | [`TsSqlQueryExecutionError`, `TsSqlProcessingError`](../api/error-management/overview.md), which extend `TsSqlError` and `Error` |
+| Class | `ChainedError` or `Error` | [`TsSqlQueryExecutionError`, `TsSqlProcessingError`](../../api/error-management/overview.md), which extend `TsSqlError` and `Error` |
 | What failed | Read the message, or the error of the driver | `error.errorReason.reason`, the same on every database |
 | `error.message` | The message of the driver or the library | Starts with the reason. Read `errorReason`, don't parse the message |
 | `error.cause` | The error of the driver; in a transaction, a `ChainedError` around it | The error of the driver, once |
@@ -315,7 +315,7 @@ try {
 }
 ```
 
-The errors the library raises itself have a reason instead of a message to compare with; [the list](../api/error-management/library-raised-errors.md) has all of them:
+The errors the library raises itself have a reason instead of a message to compare with; [the list](../../api/error-management/library-raised-errors.md) has all of them:
 
 | v1 message | Reason |
 |---|---|
@@ -333,12 +333,12 @@ These give other results on purpose. A property of the connection brings back th
 
 | Database | What changes | To go back |
 |---|---|---|
-| PostgreSQL | `.minValue(...)` and `.maxValue(...)` are `NULL` when an operand is `NULL`; v1 ignored the `NULL` | [`ignoreNullInMinAndMaxValue = true`](../configuration/supported-databases/postgresql.md#minvalue-maxvalue-and-null) |
-| SQL Server | `.minValue(...)` and `.maxValue(...)` are `NULL` when an operand is `NULL`. v1's `iif(a > b, a, b)` gave `b` when `a` was `NULL`, and `NULL` when `b` was | [`ignoreNullInMinAndMaxValue = true`](../configuration/supported-databases/sqlserver.md#minvalue-maxvalue-and-null). This isn't quite v1: it emits `greatest(a, b)`, which ignores a `NULL` on either side. v1's `iif` only comes back with a `compatibilityVersion` below 2022 |
-| Oracle | `.concat(...)` is `NULL` when an operand is `NULL`. `startsWith`, `endsWith`, `contains` and their `Insensitive` variants with a `NULL` search term match no row; v1 matched them all | [`ignoreNullInConcat = true`](../configuration/supported-databases/oracle.md#concatenation-and-null), or [`.concatIgnoringNull(...)`](../configuration/supported-databases/oracle.md#concatenation-and-null) for one concatenation |
-| SQL Server, Oracle | `.replaceAll(...)` is case-sensitive even in a case-insensitive database | [`replaceCollation = ''`](../configuration/collations.md#replacecollation-sql-server-and-oracle) |
-| SQL Server | `.length()` counts trailing blanks | [`excludeTrailingBlanksInLength = true`](../configuration/supported-databases/sqlserver.md#length-and-trailing-blanks) |
-| PostgreSQL, MySQL, MariaDB | `.round()` over a floating-point value breaks ties away from zero | `usePlatformDependentRound = true` ([PostgreSQL](../configuration/supported-databases/postgresql.md#rounding-behavior), [MySQL](../configuration/supported-databases/mysql.md#rounding-behavior), [MariaDB](../configuration/supported-databases/mariadb.md#rounding-behavior)) |
+| PostgreSQL | `.minValue(...)` and `.maxValue(...)` are `NULL` when an operand is `NULL`; v1 ignored the `NULL` | [`ignoreNullInMinAndMaxValue = true`](../../configuration/supported-databases/postgresql.md#minvalue-maxvalue-and-null) |
+| SQL Server | `.minValue(...)` and `.maxValue(...)` are `NULL` when an operand is `NULL`. v1's `iif(a > b, a, b)` gave `b` when `a` was `NULL`, and `NULL` when `b` was | [`ignoreNullInMinAndMaxValue = true`](../../configuration/supported-databases/sqlserver.md#minvalue-maxvalue-and-null). This isn't quite v1: it emits `greatest(a, b)`, which ignores a `NULL` on either side. v1's `iif` only comes back with a `compatibilityVersion` below 2022 |
+| Oracle | `.concat(...)` is `NULL` when an operand is `NULL`. `startsWith`, `endsWith`, `contains` and their `Insensitive` variants with a `NULL` search term match no row; v1 matched them all | [`ignoreNullInConcat = true`](../../configuration/supported-databases/oracle.md#concatenation-and-null), or [`.concatIgnoringNull(...)`](../../configuration/supported-databases/oracle.md#concatenation-and-null) for one concatenation |
+| SQL Server, Oracle | `.replaceAll(...)` is case-sensitive even in a case-insensitive database | [`replaceCollation = ''`](../../configuration/collations.md#replacecollation-sql-server-and-oracle) |
+| SQL Server | `.length()` counts trailing blanks | [`excludeTrailingBlanksInLength = true`](../../configuration/supported-databases/sqlserver.md#length-and-trailing-blanks) |
+| PostgreSQL, MySQL, MariaDB | `.round()` over a floating-point value breaks ties away from zero | `usePlatformDependentRound = true` ([PostgreSQL](../../configuration/supported-databases/postgresql.md#rounding-behavior), [MySQL](../../configuration/supported-databases/mysql.md#rounding-behavior), [MariaDB](../../configuration/supported-databases/mariadb.md#rounding-behavior)) |
 
 <!-- doc-code-snippet-template: sqlserver -->
 ```ts
@@ -384,7 +384,7 @@ These returned a wrong value in v1, or depended on something they shouldn't. If 
 **Other:**
 
 - SQL Server, Oracle: a projected `between` whose upper bound is optional is `NULL` when that bound is `NULL`. It was `false`.
-- [`dynamicPickPaths`](../dynamic/utilities/picks.md) with a path of 3 or more levels dropped it.
+- [`dynamicPickPaths`](../../dynamic/utilities/picks.md) with a path of 3 or more levels dropped it.
 
 ### Dynamic conditions coming from outside
 
@@ -419,13 +419,13 @@ A property left in your connection class still compiles and does nothing, unless
 ### Query runners
 
 - `ConsoleLogQueryRunner`: `logResults: true` logged no results and `false` logged them, the other way round. Now `true` logs them.
-- **`BetterSqlite3QueryRunner` no longer forces `safeIntegers(true)`.** Integers come as `number`, and above the safe range [they fail](#errors). To read them as `bigint`, enable `safeIntegers` in the database ([docs](../configuration/query-runners/recommended/better-sqlite3.md)).
+- **`BetterSqlite3QueryRunner` no longer forces `safeIntegers(true)`.** Integers come as `number`, and above the safe range [they fail](#errors). To read them as `bigint`, enable `safeIntegers` in the database ([docs](../../configuration/query-runners/recommended/better-sqlite3.md)).
 - **SQL given straight to a query runner** must use the placeholders of the library. Oracle binds by name, so a placeholder is named after the index of its value (`:0`, `:1`). `BetterSqlite3QueryRunner` numbers them (`?1`, `?2`), and doesn't bind a bare `?`.
 - **`Sqlite3QueryRunner`** binds a `bigint` as a `number`, which loses precision above the safe range. In v1, the `sqlite3` driver bound `NULL` for it.
 
 ### Tests with MockQueryRunner
 
-`MockQueryRunner` now follows the transactions like a real driver: `commit`, `rollback`, `getTransactionMetadata()` and the deferred functions outside a transaction throw `NOT_IN_TRANSACTION`. Wrap those calls in a transaction ([docs](../configuration/query-runners/general-purpose/MockQueryRunner.md#transaction-state-guards)). A nested transaction still works there, so a mock doesn't show the rejection a real query runner gives.
+`MockQueryRunner` now follows the transactions like a real driver: `commit`, `rollback`, `getTransactionMetadata()` and the deferred functions outside a transaction throw `NOT_IN_TRANSACTION`. Wrap those calls in a transaction ([docs](../../configuration/query-runners/general-purpose/MockQueryRunner.md#transaction-state-guards)). A nested transaction still works there, so a mock doesn't show the rejection a real query runner gives.
 
 ## What only changes the SQL text
 

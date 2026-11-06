@@ -27,14 +27,24 @@ The files below are at `https://ts-sql-query.readthedocs.io/en/latest/<file>`:
 
 | File | For |
 |---|---|
-| `llms-queries-<database>.txt` | Writing queries: select, insert, update, delete, transactions, projections, fragments and dynamic queries. Start here |
-| `llms-extreme-dynamic-<database>.txt` | Queries whose columns, filters and order come from the caller, and writing values with a shape |
+| `llms-general.txt` | What the library is, its philosophy, frequent questions and limitations |
+| `llms-queries-<database>.txt` | Reading data: select, joins, pages, projections and dynamic queries. Start here |
+| `llms-queries-advanced-<database>.txt` | Common table expressions and subqueries, compound selects and recursive selects |
+| `llms-aggregates-<database>.txt` | Aggregate functions, group by and having |
+| `llms-mutations-<database>.txt` | Writing data: insert, insert on conflict, update and delete |
+| `llms-transactions.txt` | Transactions, what happens on an error, isolation levels and work deferred to the end of a transaction |
+| `llms-extending-<database>.txt` | Going beyond what the library offers: your own SQL with fragments, and your own column types |
+| `llms-extreme-dynamic-<database>.txt` | Queries whose columns, filters and order come from the caller, a table or a query API driven by a request, functions that return a dynamic select, and writing values with a shape |
+| `llms-dynamic.txt` | Dynamic queries in more detail: a tour of the building blocks, booleans and null, typing them from the database or a business model, and the helper types |
 | `llms-types.txt` | The types of a row of a table, and extracting columns from an object |
-| `llms-configuration.txt` | The connection, mapping, column types, time zones, collations and each database |
-| `llms-query-runners.txt` | Connecting each driver, and wrapping the query runner |
+| `llms-configuration-<database>.txt` | The connection, mapping, column types, time zones, collations and each database |
+| `llms-query-runners.txt` | Connecting each driver, and wrapping the query runner. The index also links the page of each driver |
 | `llms-api.txt` | Every method, to look up |
 | `llms-errors.txt` | The errors the library raises and their reasons |
+| `llms-keywords.txt` | A quick index: each SQL keyword, and what writes it in the library |
+| `llms-changelog-v2.txt`, `llms-changelog-v1.txt` | What changed in each version |
+| `llms-migrating-from-v1.txt` | What to change in an application on v1 |
 
-`<database>` is `mariadb`, `mysql`, `oracle`, `postgresql`, `sqlite` or `sqlserver`: a query is shown only for that database, which makes the file about a third smaller.
+`<database>` is `mariadb`, `mysql`, `oracle`, `postgresql`, `sqlite` or `sqlserver`: a query is shown only for that database, which makes the file about a third smaller. With `all` instead of a database, like `llms-queries-all.txt`, the file shows all of them: for an agent that compares databases, or moves code from one to another.
 
-The index links the rest one by one, because they are rarely read ahead: the changelog, and how the native errors of each database map to a reason.
+The index links the rest one by one, because they are rarely read ahead, like how the native errors of each database map to a reason.

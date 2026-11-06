@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """The documentation for AI agents: llms.txt and one llms-*.txt per area, so an agent pays only for the area it needs.
 
-Writing queries comes in one file per database: a query shown for six databases costs a third of what an agent
-reads, and it only needs one. Used by the website (scripts/mkdocs-llms.py, which adds them to the site) and by the
+The areas with queries come in one file per database: a query shown for six databases costs a third of what an agent
+reads, and it usually only needs one. They also come with all the databases, for an agent that compares them or moves
+code between them. Used by the website (scripts/mkdocs-llms.py, which adds them to the site) and by the
 package (`python3 scripts/llms.py --package dist`, which writes the pages to docs/ and the files to llms/).
 
 A page that belongs to no area stops the build, and so does a page with a code fence or an HTML comment left open,
@@ -14,6 +15,7 @@ import os
 import posixpath
 import re
 import sys
+import tempfile
 
 DATABASES = {
     'MariaDB': 'mariadb',
@@ -24,41 +26,81 @@ DATABASES = {
     'SQL Server': 'sqlserver',
 }
 
-# (file, title, what it's for, patterns, one file per database)
+# (file, title, what it's for, patterns, one file per database).
+# A page can be in several areas. Those with one file per database also have one with all of them.
 AREAS = [
-    ('queries', 'Writing queries', 'select, insert, update, delete, transactions, projections, fragments and dynamic queries: start here', [
-        'queries/*.md', 'dynamic/building-blocks.md', 'dynamic/three-valued-booleans.md', 'about/limitations.md', 'about/faqs.md',
+    ('general', 'General', 'what the library is, its philosophy, frequent questions and limitations', [
+        'index.md', 'about/philosophy.md', 'about/faqs.md', 'about/limitations.md',
+    ], False),
+    ('queries', 'Queries', 'reading data: select, joins, pages, projections and dynamic queries: start here', [
+        'queries/basic-query-structure.md', 'queries/select.md', 'queries/select-page.md', 'queries/complex-projections.md',
+        'queries/aggregate-as-object-array.md', 'queries/dynamic-queries.md',
+    ], True),
+    ('queries-advanced', 'Queries combining selects', 'common table expressions (with) and subqueries, compound selects (union, intersect, except) and recursive selects', [
+        'queries/cte-subqueries.md', 'queries/compound-select.md', 'queries/recursive-select.md',
+    ], True),
+    ('aggregates', 'Aggregates', 'aggregate functions, group by and having', [
+        'queries/aggregate-and-group-by.md',
+    ], True),
+    ('mutations', 'Mutations', 'writing data: insert, insert on conflict, update and delete', [
+        'queries/insert.md', 'queries/insert-on-conflict.md', 'queries/update.md', 'queries/delete.md',
+    ], True),
+    ('transactions', 'Transactions', 'transactions, what happens on an error, isolation levels and work deferred to the end of a transaction', [
+        'queries/transaction.md',
+    ], False),
+    ('extending', 'Extending the library', 'going beyond what it offers: your own SQL with fragments, and your own column types', [
+        'queries/sql-fragments.md', 'configuration/column-types.md',
     ], True),
     ('extreme-dynamic', 'Extreme dynamic queries', 'queries whose columns, filters and order come from the caller, typed from the database or from a business model, and writing values with a shape', [
-        'queries/extreme-dynamic-queries.md', 'queries/queries-from-requests.md', 'queries/dynamic-select-functions.md', 'queries/shapes.md', 'dynamic/from-*.md', 'dynamic/utilities/*.md', 'advanced/deep-utilities.md', 'advanced/tables-views-as-parameter.md',
+        'queries/extreme-dynamic-queries.md', 'dynamic/queries-from-requests.md', 'dynamic/dynamic-select-functions.md', 'queries/shapes.md',
+        'advanced/deep-utilities.md', 'advanced/tables-views-as-parameter.md',
     ], True),
+    ('dynamic', 'Dynamic queries in more detail', 'a tour of the building blocks, booleans and null, typing a dynamic query from the database or from a business model, and its helper types: it adds detail, and the main cases do not depend on it', [
+        'dynamic/building-blocks.md', 'dynamic/three-valued-booleans.md', 'dynamic/from-*.md', 'dynamic/utilities/*.md',
+    ], False),
     ('types', 'Types of tables and rows', 'the types of a row of a table and the columns extracted from an object', [
         'advanced/utility-types.md', 'advanced/columns-from-object.md',
     ], False),
     ('configuration', 'Mapping and configuration', 'the connection, tables and views, column types, time zones, collations and each database', [
         'configuration/*.md', 'configuration/supported-databases/*.md', 'advanced/custom-booleans-values.md',
-    ], False),
+    ], True),
     ('query-runners', 'Query runners', 'connecting each driver, wrapping the runner, and what it can read of each query', [
         'configuration/query-runners/**', 'advanced/query-execution-metadata.md',
     ], False),
     ('api', 'API reference', 'every method, to look up', ['api/*.md'], False),
     ('errors', 'Errors', 'the errors the library raises and their reasons', ['api/error-management/*.md'], False),
+    ('keywords', 'Keywords', 'a quick index: each SQL keyword, and what writes it in the library', ['keywords/*.md'], False),
+    ('changelog-v2', 'Change log of v2', 'what changed in each version of v2', ['about/changelog/v2.md'], False),
+    ('changelog-v1', 'Change log of v1', 'what changed in each version of v1', ['about/changelog/v1.md'], False),
+    ('migrating-from-v1', 'Migrating from v1', 'what to change in an application on ts-sql-query v1', ['about/changelog/migrating-from-v1.md'], False),
 ]
+
+# What the first line of each file says about the others
+ELSEWHERE = {
+    'queries': 'select, joins, pages, projections, dynamic queries',
+    'queries-advanced': 'with, subqueries, union, recursive',
+    'aggregates': 'aggregate functions, group by, having',
+    'mutations': 'insert, update, delete',
+    'transactions': 'transactions',
+    'extending': 'your own SQL and column types',
+    'extreme-dynamic': 'columns and filters from the caller, a table or an API driven by a request, functions that return a dynamic select, shapes',
+    'dynamic': 'more detail on dynamic queries: null, helper types',
+    'types': 'types of a row',
+    'configuration': 'connection, tables',
+    'query-runners': 'drivers',
+    'api': 'every method',
+    'errors': 'errors',
+    'keywords': 'what writes a SQL keyword',
+}
 
 # Linked one by one: a single topic, or not worth reading ahead
 PAGES = [
     ('Synchronous query runners', 'advanced/synchronous-query-runners.md', 'running queries without promises'),
     ('ID manipulation', 'advanced/id-manipulation.md', 'encrypting the ids that leave the backend'),
-    ('Migrating from v1', 'about/migrating-from-v1.md', 'what to change in an application on ts-sql-query v1'),
 ]
 OPTIONAL = [
     ('native-mappings', 'api/error-management/native-mappings/*.md', 'how a native error of each database maps to a reason, one page per database'),
-    ('Changelog', 'CHANGELOG.md', 'what changed in each version'),
-    ('keywords', 'keywords/*.md', 'the SQL keywords, and what writes each one'),
-    ('Philosophy', 'about/philosophy.md', 'why the library is the way it is'),
     ('For AI agents', 'about/ai-agents.md', 'which of these files to use'),
-    ('Examples', 'about/examples.md', 'runnable examples'),
-    ('Home', 'index.md', 'installation and a first look'),
 ]
 
 TAB = re.compile(r'^( *)===\+? "(.+)"\s*$')
@@ -197,8 +239,25 @@ def _only_database(text, database):
     return '\n'.join(out)
 
 
-def _bundle(title, summary, pages, read, base, database=None):
+def _of_database(page, slug):
+    """A page about one database only goes in the files of that database"""
+    match = re.fullmatch(r'configuration/supported-databases/(\w+)\.md', page)
+    return not match or match.group(1) == slug
+
+
+def _others(area, slug):
+    """Where the rest is, so what isn't in a file isn't taken for what the library doesn't have"""
+    names = []
+    for other, _title, _summary, _patterns, per_database in AREAS:
+        if other != area and other in ELSEWHERE:
+            names.append(f'`llms-{other}{"-" + slug if per_database else ""}.txt` ({ELSEWHERE[other]})')
+    return 'If it is not here, it may be in another file: ' + ', '.join(names) + '.'
+
+
+def _bundle(title, summary, pages, read, base, database=None, others=None):
     parts = [f'# ts-sql-query: {title}' + (f' ({database})' if database else ''), '', f'> {summary}', '']
+    if others:
+        parts += [others, '']
     for page in pages:
         text = _rebased_links(read(page), page, base)
         if database:
@@ -208,8 +267,9 @@ def _bundle(title, summary, pages, read, base, database=None):
     return '\n'.join(parts)
 
 
-def _size(text):
-    return f'about {max(1, round(len(text) / 4000))}k tokens'
+def _size(text, base):
+    """Without the base of the links, which is longer on the website: the figure is the same in the package and there"""
+    return f'about {max(1, round(len(text.replace(base, "") if base else text) / 4000))}k tokens'
 
 
 def _menu_order(root):
@@ -253,12 +313,9 @@ def generate(root, llms_dir, pages_dir, base, files_prefix, intro):
 
     area_of = {area[0]: [] for area in AREAS}
     for page in ordered:
-        # The extreme pages are the only ones of queries/ that leave that area
-        matches = [area[0] for area in AREAS if any(_matches(page, pattern) for pattern in area[3])]
-        if 'extreme-dynamic' in matches:
-            matches = ['extreme-dynamic']
-        if matches:
-            area_of[matches[0]].append(page)
+        for area in AREAS:
+            if any(_matches(page, pattern) for pattern in area[3]):
+                area_of[area[0]].append(page)
 
     listed = {page for area in area_of.values() for page in area}
     listed |= {page for _, page, _ in PAGES}
@@ -297,14 +354,24 @@ def generate(root, llms_dir, pages_dir, base, files_prefix, intro):
         if per_database:
             for database, slug in DATABASES.items():
                 name = f'llms-{area}-{slug}.txt'
-                text = _bundle(title, summary, pages_of_area, read, base, database)
+                pages_of_database = [page for page in pages_of_area if _of_database(page, slug)]
+                text = _bundle(title, summary, pages_of_database, read, base, database, _others(area, slug))
                 write(llms_dir, name, text)
-                index.append(f'- [{database}]({files_prefix}{name}): {_size(text)}')
+                index.append(f'- [{database}]({files_prefix}{name}): {_size(text, base)}')
+            name = f'llms-{area}-all.txt'
+            text = _bundle(title, summary, pages_of_area, read, base, others=_others(area, 'all'))
+            write(llms_dir, name, text)
+            index.append(f'- [All the databases, to compare them or move code between them]({files_prefix}{name}): {_size(text, base)}')
         else:
             name = f'llms-{area}.txt'
-            text = _bundle(title, summary, pages_of_area, read, base)
+            text = _bundle(title, summary, pages_of_area, read, base, others=_others(area, '<database>'))
             write(llms_dir, name, text)
-            index.append(f'- [All of it]({files_prefix}{name}): {_size(text)}')
+            index.append(f'- [All of it]({files_prefix}{name}): {_size(text, base)}')
+            if area == 'query-runners':
+                # Usually one page is what's needed
+                index += ['', 'Or only the page of your driver:', '']
+                for page in pages_of_area:
+                    index.append(f'- [{posixpath.basename(page)[:-3]}]({base}{page})')
         index.append('')
     index += ['## One topic', '']
     for title, page, summary in PAGES:
@@ -315,6 +382,44 @@ def generate(root, llms_dir, pages_dir, base, files_prefix, intro):
             name = title if '*' not in pattern else f'{title}: {posixpath.basename(page)[:-3]}'
             index.append(f'- [{name}]({base}{page}): {summary}')
     write(llms_dir, 'llms.txt', '\n'.join(index) + '\n')
+    _check_agents_figures(agents, '\n'.join(index))
+
+
+AGENTS_ROW = re.compile(r'(llms-[\w-]+?)\.txt\)[^|\n]*\| (\d+)k \|$', re.M)
+
+
+def _figures(index):
+    return {name: int(size) for name, size in re.findall(r'(llms-[\w-]+)\.txt\): about (\d+)k tokens', index)}
+
+
+def _check_agents_figures(agents, index):
+    """The figures of docs/AGENTS.md are read by the agents to choose: a small change is fine, a wrong figure isn't"""
+    figures = _figures(index)
+    stale = [
+        f'{name}: {written}k, and it is {figures[name]}k'
+        for name, written in ((match.group(1), int(match.group(2))) for match in AGENTS_ROW.finditer(agents))
+        if name in figures and abs(figures[name] - written) > max(1, figures[name] * 0.1)
+    ]
+    if stale:
+        raise ValueError(f'docs/AGENTS.md has wrong sizes, run python3 scripts/llms.py --update-agents: {stale}')
+
+
+def _update_agents(root):
+    """Writes in docs/AGENTS.md the sizes of the files it names"""
+    with tempfile.TemporaryDirectory() as folder:
+        with open(os.path.join(root, 'docs', 'AGENTS.md'), encoding='utf-8') as file:
+            agents = file.read()
+        generate_without_check = _check_agents_figures
+        globals()['_check_agents_figures'] = lambda *_: None
+        try:
+            generate(root, folder, folder, '', '', '')
+        finally:
+            globals()['_check_agents_figures'] = generate_without_check
+        with open(os.path.join(folder, 'llms.txt'), encoding='utf-8') as file:
+            figures = _figures(file.read())
+    updated = AGENTS_ROW.sub(lambda match: match.group(0).replace(f'| {match.group(2)}k |', f'| {figures[match.group(1)]}k |'), agents)
+    with open(os.path.join(root, 'docs', 'AGENTS.md'), 'w', encoding='utf-8') as file:
+        file.write(updated)
 
 
 def _agents_for_the_package(text):
@@ -324,9 +429,12 @@ def _agents_for_the_package(text):
 
 
 def main():
-    if len(sys.argv) != 3 or sys.argv[1] != '--package':
-        sys.exit('usage: llms.py --package <dist folder>')
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if sys.argv[1:] == ['--update-agents']:
+        _update_agents(root)
+        return
+    if len(sys.argv) != 3 or sys.argv[1] != '--package':
+        sys.exit('usage: llms.py --package <dist folder> | --update-agents')
     dist = sys.argv[2]
     with open(os.path.join(root, 'docs', 'AGENTS.md'), encoding='utf-8') as file:
         agents = _agents_for_the_package(_clean(file.read(), 'AGENTS.md'))

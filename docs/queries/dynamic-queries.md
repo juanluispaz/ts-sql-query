@@ -30,7 +30,7 @@ When the caller also chooses which columns the select returns, or sends the filt
 
 For a short tour of these methods, with one example each, see [Dynamic query building blocks](../dynamic/building-blocks.md).
 
-When the conditions, the order and the page come from a request, like in a table of a user interface or an API for other systems, see [Queries from a request](queries-from-requests.md).
+When the conditions, the order and the page come from a request, like in a table of a user interface or an API for other systems, see [Queries from a request](../dynamic/queries-from-requests.md).
 
 ## Declarative dynamic queries
 

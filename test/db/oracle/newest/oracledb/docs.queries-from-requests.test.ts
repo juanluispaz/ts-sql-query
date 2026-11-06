@@ -1,4 +1,4 @@
-// The examples of docs/queries/queries-from-requests.md: the rows the caller may see are decided by the code,
+// The examples of docs/dynamic/queries-from-requests.md: the rows the caller may see are decided by the code,
 // and the condition, the order and the page come from a request.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'

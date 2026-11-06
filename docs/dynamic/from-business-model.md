@@ -190,7 +190,7 @@ const result = listCustomerDirectory(connection, ['name', 'company.name'],
     ['company.name asc nulls last', 'name desc'])
 ```
 
-This is the same end-to-end function shown, side by side with its database-first twin, in [Extreme dynamic queries — From the model](../queries/dynamic-select-functions.md#from-the-model).
+This is the same end-to-end function shown, side by side with its database-first twin, in [Extreme dynamic queries — From the model](dynamic-select-functions.md#from-the-model).
 
 ## Limitations
 
@@ -203,4 +203,4 @@ Arbitrary custom condition rules (the extension passed as the second argument of
 - [Dynamic conditions](utilities/conditions.md), [Dynamic picks](utilities/picks.md) and [Dynamic order by](utilities/order-by.md) — the per-module utility reference for each exported `ts-sql-query/dynamic/*` module.
 - [Dynamic conditions API](../api/dynamic-conditions.md) — the underlying `DynamicCondition` type and the descriptor-map form `DynamicConditionForModel` builds on.
 - [Deep utilities](../advanced/deep-utilities.md) — the model-first dynamic **pick** counterpart (`DeepPickPaths` / `DeepPick`).
-- [Extreme dynamic queries — From the model](../queries/dynamic-select-functions.md#from-the-model) — the same end-to-end function next to its database-first twin.
+- [Extreme dynamic queries — From the model](dynamic-select-functions.md#from-the-model) — the same end-to-end function next to its database-first twin.

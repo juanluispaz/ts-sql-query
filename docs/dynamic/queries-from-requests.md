@@ -16,15 +16,15 @@ Nothing that comes from the request becomes SQL text: the values go as parameter
 | Part of the query | Who decides | What to use |
 |---|---|---|
 | The rows the caller is allowed to see | Your code | A normal `where`. The filter is added to it, and can't remove it |
-| Which fields can be filtered | Your code | The map you give to [`dynamicConditionFor`](extreme-dynamic-queries.md#select-using-a-dynamic-filter) |
-| The condition | The caller, inside those fields | [`withValues(filter)`](extreme-dynamic-queries.md#select-using-a-dynamic-filter) |
-| The order | The caller, among the properties of the select | [`orderByFromStringIfValue`](dynamic-queries.md#order-by-from-a-string) |
-| The page | The caller, with the maximum you set | `limit`, and [`offsetIfValue`](dynamic-queries.md#optional-limit-and-offset) |
-| The columns, if they can vary | The caller, inside the ones you list | [`dynamicPickPaths`](extreme-dynamic-queries.md#the-columns-the-client-asks-for) |
+| Which fields can be filtered | Your code | The map you give to [`dynamicConditionFor`](../queries/extreme-dynamic-queries.md#select-using-a-dynamic-filter) |
+| The condition | The caller, inside those fields | [`withValues(filter)`](../queries/extreme-dynamic-queries.md#select-using-a-dynamic-filter) |
+| The order | The caller, among the properties of the select | [`orderByFromStringIfValue`](../queries/dynamic-queries.md#order-by-from-a-string) |
+| The page | The caller, with the maximum you set | `limit`, and [`offsetIfValue`](../queries/dynamic-queries.md#optional-limit-and-offset) |
+| The columns, if they can vary | The caller, inside the ones you list | [`dynamicPickPaths`](../queries/extreme-dynamic-queries.md#the-columns-the-client-asks-for) |
 
 ## A table in a user interface
 
-The frontend sends the filters the user filled in, the column clicked and the page. The table also needs the total, to show its page controls, and [`executeSelectPage`](select-page.md) gives it:
+The frontend sends the filters the user filled in, the column clicked and the page. The table also needs the total, to show its page controls, and [`executeSelectPage`](../queries/select-page.md) gives it:
 
 ```ts
 import { DynamicCondition } from "ts-sql-query" // or "ts-sql-query/dynamic/condition"
@@ -68,7 +68,7 @@ function getCustomerTable(companyOfTheUser: number, request: CustomerTableReques
 These are the parts of that query, and what each one protects:
 
 - `companyOfTheUser` doesn't come from the request, but from the session of the user. Whatever the filter says, the user only sees the customers of that company.
-- `orderBy('id')` goes after the order of the request, so [the order leaves no ties](select-page.md#ordering-the-rows) and a row doesn't appear in two pages.
+- `orderBy('id')` goes after the order of the request, so [the order leaves no ties](../queries/select-page.md#ordering-the-rows) and a row doesn't appear in two pages.
 - `Math.min` sets a maximum of rows, whatever the request asks for.
 
 With this request, a user looking for the customers whose last name starts with `S`, ordered by first name, on the third page:
@@ -82,7 +82,7 @@ With this request, a user looking for the customers whose last name starts with 
 }
 ```
 
-The empty filter of `firstName`, a box nobody filled in, adds no condition: see [Empty values in a filter](extreme-dynamic-queries.md#empty-values-in-a-filter).
+The empty filter of `firstName`, a box nobody filled in, adds no condition: see [Empty values in a filter](../queries/extreme-dynamic-queries.md#empty-values-in-a-filter).
 
 ## A query API for other systems
 
@@ -129,9 +129,9 @@ function queryCustomers(companyOfTheClient: number, query: CustomerQuery) {
 Keep in mind when you offer one:
 
 - **Your conditions go in the code.** The client can filter by any field of the map, with any operator of its type, and it can send an empty filter. So what it may see goes in the `where` you write, and the map lists only what it may use.
-- **A system in Java or C# sends everything.** It usually can't leave out a property, so `{ "id": { "equals": 1, "notEquals": null, "in": null } }` means `id = 1`. That's why [a filter with empty values is tolerated](extreme-dynamic-queries.md#empty-values-in-a-filter).
+- **A system in Java or C# sends everything.** It usually can't leave out a property, so `{ "id": { "equals": 1, "notEquals": null, "in": null } }` means `id = 1`. That's why [a filter with empty values is tolerated](../queries/extreme-dynamic-queries.md#empty-values-in-a-filter).
 - **Dates arrive as text in JSON.** Convert them to `Date` before calling `withValues`: a text in a date column is rejected.
-- **A column can depend on who asks.** Mark it with [`allowWhen`](extreme-dynamic-queries.md#restrict-access-to-values) and it can stay in the map: the query is refused only if the client uses it.
+- **A column can depend on who asks.** Mark it with [`allowWhen`](../queries/extreme-dynamic-queries.md#restrict-access-to-values) and it can stay in the map: the query is refused only if the client uses it.
 - **Validating more is your choice.** To tell the client that `equals: null` isn't accepted, validate the request first, with a library like Zod.
 
 ## Answering an error of the caller
@@ -168,8 +168,8 @@ function isErrorOfTheCaller(error: unknown): boolean {
 
 ## More details
 
-- [Select using a dynamic filter](extreme-dynamic-queries.md#select-using-a-dynamic-filter): the operators, the groups of fields and the rules of your own.
-- [Order by from a string](dynamic-queries.md#order-by-from-a-string): the text it accepts, and how it combines with `orderBy`.
-- [Select page](select-page.md): the limit, the offset, the total, and how to avoid the count.
-- [Select dynamically picking columns](extreme-dynamic-queries.md#select-dynamically-picking-columns), when the columns vary too.
+- [Select using a dynamic filter](../queries/extreme-dynamic-queries.md#select-using-a-dynamic-filter): the operators, the groups of fields and the rules of your own.
+- [Order by from a string](../queries/dynamic-queries.md#order-by-from-a-string): the text it accepts, and how it combines with `orderBy`.
+- [Select page](../queries/select-page.md): the limit, the offset, the total, and how to avoid the count.
+- [Select dynamically picking columns](../queries/extreme-dynamic-queries.md#select-dynamically-picking-columns), when the columns vary too.
 - [Functions that return a dynamic select](dynamic-select-functions.md), to type all of this precisely in one function.

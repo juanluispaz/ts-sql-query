@@ -233,7 +233,7 @@ describe(ctx.label, () => {
         const none = await ctx.conn.selectFrom(v2)
             .select({ ordinal: v2.ordinal })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with optionalReleaseTagSampler(ordinal) as (values (cast(:0 as number))) select ordinal as "ordinal" from optionalReleaseTagSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with optionalReleaseTagSampler(ordinal) as (values (:0)) select ordinal as "ordinal" from optionalReleaseTagSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,
@@ -260,7 +260,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ d: v.d, t: v.t, ts: v.ts })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with temporalSampler(d, t, ts) as (values (cast(:0 as date), :1, cast(:2 as timestamp))) select d as "d", t as "t", ts as "ts" from temporalSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with temporalSampler(d, t, ts) as (values (:0, :1, :2)) select d as "d", t as "t", ts as "ts" from temporalSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,
@@ -322,7 +322,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ d: v.d, t: v.t, ts: v.ts })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with customTemporalSampler(d, t, ts) as (values (cast(:0 as date), :1, cast(:2 as timestamp))) select d as "d", t as "t", ts as "ts" from customTemporalSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with customTemporalSampler(d, t, ts) as (values (:0, :1, :2)) select d as "d", t as "t", ts as "ts" from customTemporalSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,
@@ -395,7 +395,7 @@ describe(ctx.label, () => {
         const none = await ctx.conn.selectFrom(v2)
             .select({ score: v2.score })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with scaledOptionalSampler(score) as (values (cast(:0 as number))) select score as "score" from scaledOptionalSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with scaledOptionalSampler(score) as (values (:0)) select score as "score" from scaledOptionalSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,

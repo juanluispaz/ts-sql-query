@@ -71,9 +71,45 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     protected bindParams(params: any[]): Record<string, any> {
         const result: Record<string, any> = {}
         for (let i = 0, length = params.length; i < length; i++) {
-            result[i] = params[i]
+            const value = params[i]
+            if (value === null || value === undefined) {
+                // oracledb binds a null without a type Oracle can use where nothing else gives it one: a row of a
+                // union (ORA-01790) or a `case :0 when 1` (ORA-00932). A null of a number, a date or a time is bound
+                // with its type.
+                const type = this.oracleDbType(getParamTypeCategoryAt(params, i))
+                if (type !== undefined) {
+                    result[i] = { val: null, type: type }
+                    continue
+                }
+            }
+            result[i] = value
         }
         return result
+    }
+    // The oracledb DbType of a value of each category, the one oracledb gives the values the library sends: a number
+    // or a bigint is a NUMBER, a boolean is sent as a number (see OracleConnection), and a Date is a TIMESTAMP, also
+    // for a localDate and a localTime (Oracle has no TIME type). A text has no DbType here: it's how oracledb binds a
+    // null.
+    private oracleDbType(typeCategory: TypeCategory | undefined): DbType | undefined {
+        switch (typeCategory) {
+            case 'boolean':
+            case 'int':
+            case 'bigint':
+            case 'customInt':
+            case 'customBigint':
+            case 'double':
+            case 'customDouble':
+                return oracleDb.DB_TYPE_NUMBER
+            case 'localDate':
+            case 'customLocalDate':
+            case 'localTime':
+            case 'customLocalTime':
+            case 'localDateTime':
+            case 'customLocalDateTime':
+                return oracleDb.DB_TYPE_TIMESTAMP
+            default:
+                return undefined
+        }
     }
     private resolveOutBindTypes(params: any[]): any[] {
         // Each RETURNING OUT bind keeps the category of the type of its column (addOutParam). Here,
@@ -86,8 +122,9 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
             if (!param || typeof param !== 'object' || param.dir !== oracleDb.BIND_OUT) {
                 continue
             }
-            const dbType = this.oracleOutBindDbType(getParamTypeCategoryAt(params, i))
-            if (dbType === undefined) {
+            const dbType = this.oracleDbType(getParamTypeCategoryAt(params, i))
+            if (dbType === undefined || dbType === oracleDb.DB_TYPE_NUMBER) {
+                // Without a type, oracledb returns an OUT number as a string, with all its digits
                 continue
             }
             if (!resolved) {
@@ -96,25 +133,6 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
             resolved[i] = { ...param, type: dbType }
         }
         return resolved ?? params
-    }
-    // The oracledb DbType to declare on a RETURNING OUT bind so a temporal column comes back as a Date
-    // instead of oracledb's default OUT-bind string form (an NLS-formatted timestamp the temporal
-    // marshallers cannot parse). A non-temporal column returns undefined: its string default marshals
-    // back fine, so it is left undeclared.
-    private oracleOutBindDbType(columnType: unknown): DbType | undefined {
-        switch (columnType) {
-            case 'localDate':
-            case 'customLocalDate':
-                return oracleDb.DB_TYPE_DATE
-            case 'localTime':
-            case 'customLocalTime':
-            case 'localDateTime':
-            case 'customLocalDateTime':
-                // Oracle has no TIME type, so a localTime is carried in a TIMESTAMP too.
-                return oracleDb.DB_TYPE_TIMESTAMP
-            default:
-                return undefined
-        }
     }
     /**
      * Oracle always runs statements inside a transaction, and oracledb doesn't commit it unless asked (its autoCommit

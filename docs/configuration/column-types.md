@@ -162,7 +162,7 @@ Each parameter of a query goes with the name of its type and its category, and t
 | `localDateTime`, `customLocalDateTime` | `::timestamp` | `datetime2` |
 | `enum`, `custom`, `customComparable` | By the value: `::int4` or `::int8` for a whole number, `::float8` for one with decimals, `::int8` for a `bigint`, and no cast otherwise | By the value, and a text always as `nvarchar` |
 
-PostgreSQL gets the cast only where it can't tell the type from the rest of the query, like a constant selected on its own (`select $1::int4 as result`) or a row of [`Values`](mapping.md#mapping-constant-values-as-view). Oracle declares it for a date or a time returned with `returning`. On MariaDB, MySQL, Oracle and SQLite, the driver sends each value as JavaScript gives it.
+PostgreSQL gets the cast only where it can't tell the type from the rest of the query, like a constant selected on its own (`select $1::int4 as result`) or a row of [`Values`](mapping.md#mapping-constant-values-as-view). Oracle declares it for a `null` of a number, a date or a time, and for a date or a time returned with `returning`: `NUMBER` or `TIMESTAMP`, as the driver sends their values. On MariaDB, MySQL and SQLite, and on Oracle for the rest, the driver sends each value as JavaScript gives it.
 
 So the category also says how big the value can be in the database: a `customInt` is a 32-bit integer, like an `int`, and a value of your own type that needs 64 bits goes in a `customBigint`; a `customDouble` is a floating point number, and an exact decimal needs [its own conversion](#custom-types).
 

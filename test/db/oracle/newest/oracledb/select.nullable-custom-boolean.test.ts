@@ -81,7 +81,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue_worklog (issue_id, work_date, activity, approved) values (:0, :1, :2, case cast(:3 as number) when 1 then 'A' when 0 then 'R' else null end)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue_worklog (issue_id, work_date, activity, approved) values (:0, :1, :2, case :3 when 1 then 'A' when 0 then 'R' else null end)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,

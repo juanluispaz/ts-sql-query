@@ -230,7 +230,7 @@ describe(ctx.label, () => {
             .orderBy('issueId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (select :0, :1 from dual union all select :2, cast(:3 as number) from dual) select issueId as "issueId", amount as "amount" from issueBilling order by "issueId""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (select :0, :1 from dual union all select :2, :3 from dual) select issueId as "issueId", amount as "amount" from issueBilling order by "issueId""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             101,
@@ -268,7 +268,7 @@ describe(ctx.label, () => {
             .orderBy('issueId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (select :0, :1 from dual union all select :2, cast(:3 as number) from dual) select issueId as "issueId", 'open' as "state" from issueBilling order by "issueId""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (select :0, :1 from dual union all select :2, :3 from dual) select issueId as "issueId", 'open' as "state" from issueBilling order by "issueId""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             101,
@@ -306,7 +306,7 @@ describe(ctx.label, () => {
             .orderBy('issueId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (select :0, :1 from dual union all select :2, cast(:3 as number) from dual) select issueId as "issueId", raw_to_uuid(null) as "billingRef" from issueBilling order by "issueId""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (select :0, :1 from dual union all select :2, :3 from dual) select issueId as "issueId", raw_to_uuid(null) as "billingRef" from issueBilling order by "issueId""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             101,
@@ -405,7 +405,7 @@ describe(ctx.label, () => {
             .orderBy('base')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (select :0, :1 from dual union all select :2, cast(:3 as number) from dual), issueBillingJoin(issueId, amount) as (select :4, :5 from dual) select issueBilling.issueId as "base", ibj.issueId as "joined" from issueBilling left join issueBillingJoin ibj on ibj.issueId = issueBilling.issueId order by "base""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (select :0, :1 from dual union all select :2, :3 from dual), issueBillingJoin(issueId, amount) as (select :4, :5 from dual) select issueBilling.issueId as "base", ibj.issueId as "joined" from issueBilling left join issueBillingJoin ibj on ibj.issueId = issueBilling.issueId order by "base""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             101,

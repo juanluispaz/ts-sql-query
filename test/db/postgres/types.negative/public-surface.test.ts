@@ -9,7 +9,7 @@ import * as compat from '../../../../src/dynamicCondition.js'
 import { deepOmit, deepPick, type DeepPick, type DeepOmit } from '../../../../src/extras/deepUtilities.js'
 import { sync } from '../../../../src/extras/sync.js'
 import { extractColumnNamesFrom, extractColumnsFrom } from '../../../../src/extras/utils.js'
-import { CustomBooleanTypeAdapter } from '../../../../src/TypeAdapter.js'
+import { CustomBooleanTypeAdapter, type DefaultTypeAdapter, type TypeAdapter, type TypeCategory } from '../../../../src/TypeAdapter.js'
 import { Values } from '../../../../src/Values.js'
 import type { DBConnection } from '../domain/connection.js'
 import { tCountry, tProject, vProjectOverview } from '../domain/connection.js'
@@ -26,6 +26,26 @@ function _typeNegatives() {
     new CustomBooleanTypeAdapter('yes', 'no')
     // @ts-expect-error a number and a string cannot be mixed
     new CustomBooleanTypeAdapter(1, 'no')
+
+    // Rule: the transforms receive the category of the type after its name, and pass it on to next.
+    void ({
+        transformValueFromDB(value, type, typeCategory, next) { return next.transformValueFromDB(value, type, typeCategory) },
+        transformValueToDB(value, type, typeCategory, next) { return next.transformValueToDB(value, type, typeCategory) },
+    } satisfies TypeAdapter)
+    void ({
+        // @ts-expect-error the third parameter is the category of the type, not next
+        transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter) { return next.transformValueFromDB(value, type, '') },
+        transformValueToDB(value, type, typeCategory, next) { return next.transformValueToDB(value, type, typeCategory) },
+    } satisfies TypeAdapter)
+    void ({
+        transformValueFromDB(value, type, _typeCategory, next) {
+            // @ts-expect-error next needs the category of the type
+            return next.transformValueFromDB(value, type)
+        },
+        transformValueToDB(value, type, typeCategory, next) { return next.transformValueToDB(value, type, typeCategory) },
+    } satisfies TypeAdapter)
+    // @ts-expect-error a category is one of the list, not the name of a type
+    void ('Money' satisfies TypeCategory)
 
     // Rule: the paths of deepPick and deepOmit are the paths of the object.
     const model = { id: 1, company: { name: 'a' } }

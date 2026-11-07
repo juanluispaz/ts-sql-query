@@ -7,6 +7,7 @@ export interface ConnectionConfiguration {
     uuidStrategy?: string
     usePlatformDependentRound?: boolean
     useLikeInsteadOfIlike?: boolean
+    sqliteRunsInApplicationTimeZone?: boolean
     excludeTrailingBlanksInLength?: boolean
     ignoreNullInMinAndMaxValue?: boolean
     minValueFunction?: string

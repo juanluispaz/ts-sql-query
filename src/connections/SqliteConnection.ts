@@ -36,6 +36,21 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
      */
     protected replaceAllInsensitiveFunction?: string
 
+    /**
+     * Says that SQLite runs in the same zone as the application, so the date functions computed
+     * by the database give what JavaScript gives for the same value. SQLite reads the zone from
+     * the C library, so set it when the process starts: changing `process.env.TZ` afterwards
+     * doesn't reach SQLite under Bun with a native driver.
+     *
+     * With it, `getTime()` reads a local text in the local zone, the other getters of a time or a
+     * date time in a UTC or numeric format read it in the local zone, and `currentDate()` in those
+     * formats returns the local day. Those expressions run slower, and SQLite doesn't accept them
+     * in a `check` or in an index. By default (`false`), those functions work in UTC.
+     *
+     * See the SQLite page of the documentation.
+     */
+    protected sqliteRunsInApplicationTimeZone: boolean = false
+
     constructor(queryRunner: QueryRunner, sqlBuilder = new SqliteSqlBuilder()) {
         super(queryRunner, sqlBuilder)
         queryRunner.useDatabase('sqlite')
@@ -463,7 +478,8 @@ function millisecondsToJulian(value: number): number {
 }
 
 function julianToMilliseconds(value: number): number {
-    return  (value - 2440587.5) * 86400000.0
+    // A Julian day in a double is only exact to some microseconds, and a Date would truncate it to the previous millisecond
+    return Math.round((value - 2440587.5) * 86400000.0)
 }
 
 function utcDateOnly(value: Date): Date {

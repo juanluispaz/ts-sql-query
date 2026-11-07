@@ -73,14 +73,14 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
     - **Date format**: *YYYY-MM-DD*. Example: `2021-09-25`
     - **Time format**: *HH:MM:SS.SSS*. Example: `18:00:00`. In JavaScript, always use *1970-01-01* as the base date when representing a time value.
     - **Date time format**: *YYYY-MM-DD HH:MM:SS.SSS*. Example: `2021-09-25 18:00:00`
-    - **Limitation**: `getTime()`, computed by the database, reads the text as if it were in UTC, so it gives another instant when the application doesn't run in UTC.
+    - **Limitation**: `getTime()`, computed by the database, reads the text as if it were in UTC, so it gives another instant when the application doesn't run in UTC, unless you set [`sqliteRunsInApplicationTimeZone`](#the-date-functions-and-the-time-zone).
 - `localdate as text using T separator`
     - Dates and time are interpreted to be in the same timezone of the running application.
     - **Column type in sqlite**: *TEXT*
     - **Date format**: *YYYY-MM-DD*. Example: `2021-09-25`
     - **Time format**: *HH:MM:SS.SSS*. Example: `18:00:00`. In JavaScript, always use *1970-01-01* as the base date when representing a time value.
     - **Date time format**: *YYYY-MM-DD***T***HH:MM:SS.SSS*. Example: `2021-09-25T18:00:00`
-    - **Limitation**: `getTime()`, computed by the database, reads the text as if it were in UTC, so it gives another instant when the application doesn't run in UTC.
+    - **Limitation**: `getTime()`, computed by the database, reads the text as if it were in UTC, so it gives another instant when the application doesn't run in UTC, unless you set [`sqliteRunsInApplicationTimeZone`](#the-date-functions-and-the-time-zone).
 - `UTC as text`
     - Dates and time are interpreted to be in the UTC timezone.
     - **Column type in sqlite**: *TEXT*
@@ -99,12 +99,14 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
     - **Date format**: *YYYY-MM-DD*. Example: `2021-09-25`. No **Z** is used here because it is not supported by sqlite.
     - **Time format**: *HH:MM:SS.SSS***Z**. Example: `18:00:00Z`. In JavaScript, always use *1970-01-01* as the base date when representing a time value.
     - **Date time format**: *YYYY-MM-DD HH:MM:SS.SSS***Z**. Example: `2021-09-25 18:00:00Z`
+    - **Limitation**: the values are compared as text, and a value without milliseconds sorts after one with milliseconds in the same second: `2024-01-14 10:00:00.500Z` comes before `2024-01-14 10:00:00Z`. So `lessThan`, `greaterThan` and `orderBy` give the wrong answer for those two values. Two values with different seconds, or that both have milliseconds, compare well. `UTC as text` and `UTC as text using T separator` don't have this limitation.
 - `UTC as text using T separator and Z timezone`:
     - Dates and time are interpreted to be in the UTC timezone.
     - **Column type in sqlite**: *TEXT*
     - **Date format**: *YYYY-MM-DD*. Example: `2021-09-25`. No **Z** is used here because it is not supported by sqlite.
     - **Time format**: *HH:MM:SS.SSS***Z**. Example: `18:00:00Z`. In JavaScript, always use *1970-01-01* as the base date when representing a time value.
     - **Date time format**: *YYYY-MM-DD***T***HH:MM:SS.SSS***Z**. Example: `2021-09-25T18:00:00Z`
+    - **Limitation**: the values are compared as text, and a value without milliseconds sorts after one with milliseconds in the same second: `2024-01-14 10:00:00.500Z` comes before `2024-01-14 10:00:00Z`. So `lessThan`, `greaterThan` and `orderBy` give the wrong answer for those two values. Two values with different seconds, or that both have milliseconds, compare well. `UTC as text` and `UTC as text using T separator` don't have this limitation.
 - `Julian day as real number`:
     - Dates and time are expressed as [Julian day](https://en.wikipedia.org/wiki/Julian_day).
     - **Column type in sqlite**: *REAL*
@@ -123,6 +125,57 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
     - **Date format**: *NNNNNNNNNNNNN*. Example: `1632528000000` (*2021-09-25*).
     - **Time format**: *NNNNNNNNNNNNN*. Example: `64800000` (*18:00:00*). This value is a number that expresses the number of milliseconds for the provided time on the first day of the calendar (*1970-01-01*). In JavaScript, always use *1970-01-01* as the base date when representing a time value.
     - **Date time format**: *NNNNNNNNNNNNN*. Example: `1632592800000` (*2021-09-25 18:00:00*)
+
+## The date functions and the time zone
+
+The date functions that the database computes, like `getTime()`, `getHours()` or `currentDate()`, work in UTC. When the process doesn't run in UTC, they can give something different from what JavaScript gives for the same value, with no error.
+
+These are the results with the process in `Europe/Madrid`, for the value `2024-01-14T23:30:15.250Z`, which there is 00:30:15 of the 15th:
+
+| Expression | Formats | JavaScript gives | By default | With `sqliteRunsInApplicationTimeZone` |
+|---|---|---|---|---|
+| `getTime()` of a date time | `localdate` | `1705275015250` | `1705278615250` | `1705275015250` |
+| `getDate()` of a date time | UTC and numeric | `15` | `14` | `15` |
+| `getHours()` of a date time | UTC and numeric | `0` | `23` | `0` |
+| `getHours()` of a time saved as 18:30 | UTC and numeric | `18` | `17` | `18` |
+| `currentDate()` | UTC and numeric | The local day | The UTC day | The local day |
+
+The option says that SQLite runs in the same zone as your application:
+
+```ts
+import { SqliteConnection } from "ts-sql-query/connections/SqliteConnection";
+
+class DBConnection extends SqliteConnection<'DBConnection'> {
+    protected override sqliteRunsInApplicationTimeZone = true
+}
+```
+
+What it changes in the SQL:
+
+| Expression | Formats | By default | With the option |
+|---|---|---|---|
+| `getTime()` | `localdate` | `round(unixepoch(x, 'subsec') * 1000)` | `round(unixepoch(x, 'utc', 'subsec') * 1000)` |
+| `getFullYear()`, `getMonth()`, `getDate()`, `getDay()`, `getHours()`, `getMinutes()`, `getSeconds()` of a date time | UTC as text, Julian day | `strftime('%H', x)` | `strftime('%H', x, 'localtime')` |
+| The same | Unix time | `strftime('%H', x, 'unixepoch')` | `strftime('%H', x, 'unixepoch', 'localtime')` |
+| `getHours()`, `getMinutes()`, `getSeconds()` of a time | UTC as text | `strftime('%H', x)` | `strftime('%H', '1970-01-01 ' \|\| x, 'localtime')` |
+| The same | Julian day | `strftime('%H', x + 2440587.5)` | `strftime('%H', x + 2440587.5, 'localtime')` |
+| The same | Unix time | `strftime('%H', x, 'unixepoch')` | `strftime('%H', x, 'unixepoch', 'localtime')` |
+| `currentDate()` | UTC and numeric | `date('now')` | `date('now', 'localtime')` |
+
+It changes nothing else, because nothing else depends on the zone: the getters of a `localDate`, which is a calendar day; the getters of a `localdate` text, which is already what the clock said; `getTime()` in the UTC and numeric formats; `getMilliseconds()`; `currentTime()` and `currentTimestamp()`.
+
+What the option costs:
+
+- Those expressions are slower: about 8 times in `getTime()`, over 300,000 rows.
+- SQLite rejects them in a `check` and in an index, because their result depends on the zone. An index on `unixepoch(x)` isn't used by `unixepoch(x, 'utc')`.
+
+Use it when you read those functions in a process that doesn't run in UTC. If the process runs in UTC, you don't need it: the results are the same.
+
+The zone must be set when the process starts, with `TZ` or in the operating system. SQLite reads it from the C library, not from JavaScript: on Node, changing `process.env.TZ` afterwards reaches SQLite, and on Bun with `bun:sqlite` it doesn't. So on Bun, in a process started in another zone, `process.env.TZ = 'UTC'` leaves the two zones different: without this option too, `currentTime()` and `currentTimestamp()` in the `localdate` formats are wrong.
+
+!!! warning "A date outside UTC-10 to UTC+13"
+
+    Outside that range, a `localDate` you read gives another day in the local getters of JavaScript, as [Time zones](../time-zones.md#localdate-and-localtime-are-not-affected) says. If you write that `Date` back, that other day is stored.
 
 ## Dealing with different date and time formats coming from the database
 

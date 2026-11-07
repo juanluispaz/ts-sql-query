@@ -232,7 +232,7 @@ Three rows deserve a second look:
 
 - **Oracle's `TIMESTAMP WITH LOCAL TIME ZONE` drifts on the other side.** It is kind 2, so the drift is expected — but it lands on the `getTime()` the database computes rather than on the `Date` you read, which makes it much harder to spot: the value you look at first is correct.
 - **SQL Server's `datetime2` agrees, and it is the one exception to the kinds.** Its driver pins the interpretation to UTC, which lines up with a server in UTC. That is immunity by coincidence of configuration rather than by design — point it at a server in another zone and it drifts like every other kind 1.
-- **SQLite's `localdate as text` has only one zone, and still drifts on `getTime()`.** The `Date` is built in your process's zone, and `getTime()` reads the text as UTC, as described on the [SQLite page](supported-databases/sqlite.md#date-and-time-strategies). The `Date` itself comes back as it was written.
+- **SQLite's `localdate as text` has only one zone, and still drifts on `getTime()`.** The `Date` is built in your process's zone, and `getTime()` reads the text as UTC. The `Date` itself comes back as it was written. Here there is something to switch on: [`sqliteRunsInApplicationTimeZone`](supported-databases/sqlite.md#the-date-functions-and-the-time-zone). In the UTC and numeric formats `getTime()` agrees, while `getHours()`, `getDate()` and the like read UTC, and that option covers them too.
 
 ## Per database
 
@@ -335,14 +335,16 @@ Which column types fall in which kind, and what the session zone does:
 
     !!! tip "SQLite has only one zone"
 
-        There is no server and no session: SQLite runs **inside your process**, so its zone *is* your process's zone, always. `datetime('now', 'localtime')` follows your `TZ`:
+        There is no server and no session: SQLite runs **inside your process**, and it takes the zone the process started with from the C library. `datetime('now', 'localtime')` follows your `TZ`:
 
         ```
         TZ=UTC             localtime = 12:37:58   utc = 12:37:58
         TZ=Europe/Madrid   localtime = 14:37:58   utc = 12:37:58
         ```
 
-        The application and the database cannot disagree, because there is only one zone. Pin your application's zone anyway — it is what keeps the *stored* text consistent across the machines that write it.
+        Set the zone when the process starts: on Bun with `bun:sqlite`, changing `process.env.TZ` afterwards changes JavaScript and not SQLite, and the two disagree. Pin your application's zone anyway — it is what keeps the *stored* text consistent across the machines that write it.
+
+        The date functions of the database work in UTC by default, so they can differ from what JavaScript gives when the process doesn't run in UTC. See [The date functions and the time zone](supported-databases/sqlite.md#the-date-functions-and-the-time-zone).
 
 === "SQL Server"
     | kind | types |
@@ -519,4 +521,4 @@ A birthday, a shop's opening time, a public holiday: the wall clock **is** the f
 
 `getTime()` mirrors `Date.prototype.getTime()`: milliseconds since the epoch, computed **by the database**, exact across the whole range a JavaScript `Date` can hold, including instants before 1970.
 
-What it cannot do is escape any of the above. On a kind 1 column it reads the value in the **database session's** zone, so if that zone and your process's disagree, `getTime()` disagrees with the `Date` you would get by selecting the same column — by the same amount, for the same reason. There is nothing to switch on in the library: align the zones, or use a column that carries its own.
+What it cannot do is escape any of the above. On a kind 1 column it reads the value in the **database session's** zone, so if that zone and your process's disagree, `getTime()` disagrees with the `Date` you would get by selecting the same column — by the same amount, for the same reason. There is nothing to switch on in the library, except on [SQLite](supported-databases/sqlite.md#the-date-functions-and-the-time-zone): align the zones, or use a column that carries its own.

@@ -87,6 +87,43 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         }
         throw new TsSqlProcessingError({ reason: 'UNKNOWN_DATA_TYPE' }, 'Unable to determine the value source type')
     }
+    /**
+     * The value and modifiers that a date function takes to read a value in the getters.
+     *
+     * A date is a calendar day, and it stays as it is. A local text is already the wall clock of the application. The
+     * rest are read in UTC, unless `sqliteRunsInApplicationTimeZone` says that SQLite runs in the zone of the
+     * application: then they are read as JavaScript reads them.
+     *
+     * A time needs a date to be moved to another zone, and on its own SQLite gives it another one than JavaScript,
+     * which uses 1970-01-01. In a Julian day, a time is the part of the day since midnight, while a Julian day starts
+     * at noon, so it needs that date anyway.
+     */
+    _dateFunctionArgument(params: any[], valueSource: ToSql): string {
+        const format = this._getValueSourceDateTimeFormat(valueSource)
+        const isTime = isValueSource(valueSource) && __isLocalTimeValueSource(__getValueSourcePrivate(valueSource))
+        const isDate = isValueSource(valueSource) && __isLocalDateValueSource(__getValueSourcePrivate(valueSource))
+        const inApplicationZone = !!this._connectionConfiguration.sqliteRunsInApplicationTimeZone
+            && !isDate
+            && format !== 'localdate as text'
+            && format !== 'localdate as text using T separator'
+        const modifier = inApplicationZone ? ", 'localtime'" : ''
+        switch (format) {
+            case 'Unix time seconds as integer':
+                return this._appendSql(valueSource, params, false) + ", 'unixepoch'" + modifier
+            case 'Unix time milliseconds as integer':
+                return this._unixMillisecondsAsDateTimeArgument(this._appendSql(valueSource, params, false)) + modifier
+            case 'Julian day as real number':
+                if (isTime) {
+                    return this._appendSqlParenthesis(valueSource, params, false) + ' + 2440587.5' + modifier
+                }
+                return this._appendSql(valueSource, params, false) + modifier
+            default:
+                if (isTime && inApplicationZone) {
+                    return "'1970-01-01 ' || " + this._appendSqlParenthesis(valueSource, params, false) + modifier
+                }
+                return this._appendSql(valueSource, params, false) + modifier
+        }
+    }
     override _appendGroupBySelectColumn(_entry: AnyValueSource, selectColumn: SelectColumnSql, _params: any[], _isOutermostQuery: boolean): string {
         // The same SQL as the select list: a numbered placeholder (?1) can be repeated, and it is the same expression
         return selectColumn.sql
@@ -293,6 +330,8 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     override _currentDate(_params: any): string {
         const dateTimeFormat = this._getDateTimeFormat('date')
+        // A date is written with the calendar of the application, whatever the format is
+        const today = this._connectionConfiguration.sqliteRunsInApplicationTimeZone ? "date('now', 'localtime')" : "date('now')"
         switch (dateTimeFormat) {
             case 'localdate as text':
             case 'localdate as text using T separator':
@@ -301,14 +340,14 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             case 'UTC as text using T separator':
             case 'UTC as text using Z timezone':
             case 'UTC as text using T separator and Z timezone':
-                return "date('now')"
+                return today
             case 'Julian day as real number':
-                return "julianday(date('now'))"
+                return 'julianday(' + today + ')'
             case 'Unix time seconds as integer':
-                return this._unixEpochSeconds("date('now')")
+                return this._unixEpochSeconds(today)
             case 'Unix time milliseconds as integer':
                 // The date has no sub-second component, so seconds * 1000 is exact
-                return '(' + this._unixEpochSeconds("date('now')") + ' * 1000)'
+                return '(' + this._unixEpochSeconds(today) + ' * 1000)'
             default:
                 throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
         }
@@ -384,12 +423,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return 'max(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
     }
     override _getDate(params: any[], valueSource: ToSql): string {
-        if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
-            return "cast(strftime('%d', " + this._appendSql(valueSource, params, false) + ", 'unixepoch') as integer)"
-        } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
-            return "cast(strftime('%d', " + this._unixMillisecondsAsDateTimeArgument(this._appendSql(valueSource, params, false)) + ") as integer)"
-        }
-        return "cast(strftime('%d', " + this._appendSql(valueSource, params, false) + ") as integer)"
+        return "cast(strftime('%d', " + this._dateFunctionArgument(params, valueSource) + ") as integer)"
     }
     override _getTime(params: any[], valueSource: ToSql): string {
         if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
@@ -397,61 +431,34 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
             return this._appendSql(valueSource, params, false)
         }
+        const format = this._getValueSourceDateTimeFormat(valueSource)
+        // A local text has no zone, and SQLite reads it as UTC unless it's told it's in the local one
+        const modifier = this._connectionConfiguration.sqliteRunsInApplicationTimeZone && (format === 'localdate as text' || format === 'localdate as text using T separator') ? ", 'utc'" : ''
         const v = this._appendSql(valueSource, params, false)
         // The 'subsec' modifier on unixepoch() was added in SQLite 3.42; older versions
         // need to go through julianday() arithmetic to preserve sub-second precision
         if (this._connectionConfiguration.compatibilityVersion >= 3_042_000) {
-            return 'round(unixepoch(' + v + ", 'subsec') * 1000)"
+            return 'round(unixepoch(' + v + modifier + ", 'subsec') * 1000)"
         }
-        return 'round((julianday(' + v + ') - 2440587.5) * 86400000.0)'
+        return 'round((julianday(' + v + modifier + ') - 2440587.5) * 86400000.0)'
     }
     override _getFullYear(params: any[], valueSource: ToSql): string {
-        if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
-            return "cast(strftime('%Y', " + this._appendSql(valueSource, params, false) + ", 'unixepoch') as integer)"
-        } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
-            return "cast(strftime('%Y', " + this._unixMillisecondsAsDateTimeArgument(this._appendSql(valueSource, params, false)) + ") as integer)"
-        }
-        return "cast(strftime('%Y', " + this._appendSql(valueSource, params, false) + ") as integer)"
+        return "cast(strftime('%Y', " + this._dateFunctionArgument(params, valueSource) + ") as integer)"
     }
     override _getMonth(params: any[], valueSource: ToSql): string {
-        if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
-            return "cast(strftime('%m', " + this._appendSql(valueSource, params, false) + ", 'unixepoch') as integer) - 1"
-        } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
-            return "cast(strftime('%m', " + this._unixMillisecondsAsDateTimeArgument(this._appendSql(valueSource, params, false)) + ") as integer) - 1"
-        }
-        return "cast(strftime('%m', " + this._appendSql(valueSource, params, false) + ") as integer) - 1"
+        return "cast(strftime('%m', " + this._dateFunctionArgument(params, valueSource) + ") as integer) - 1"
     }
     override _getDay(params: any[], valueSource: ToSql): string {
-        if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
-            return "cast(strftime('%w'," + this._appendSql(valueSource, params, false) + ", 'unixepoch') as integer)"
-        } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
-            return "cast(strftime('%w'," + this._unixMillisecondsAsDateTimeArgument(this._appendSql(valueSource, params, false)) + ") as integer)"
-        }
-        return "cast(strftime('%w'," + this._appendSql(valueSource, params, false) + ") as integer)"
+        return "cast(strftime('%w'," + this._dateFunctionArgument(params, valueSource) + ") as integer)"
     }
     override _getHours(params: any[], valueSource: ToSql): string {
-        if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
-            return "cast(strftime('%H', " + this._appendSql(valueSource, params, false) + ", 'unixepoch') as integer)"
-        } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
-            return "cast(strftime('%H', " + this._unixMillisecondsAsDateTimeArgument(this._appendSql(valueSource, params, false)) + ") as integer)"
-        }
-        return "cast(strftime('%H', " + this._appendSql(valueSource, params, false) + ") as integer)"
+        return "cast(strftime('%H', " + this._dateFunctionArgument(params, valueSource) + ") as integer)"
     }
     override _getMinutes(params: any[], valueSource: ToSql): string {
-        if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
-            return "cast(strftime('%M', " + this._appendSql(valueSource, params, false) + ", 'unixepoch') as integer)"
-        } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
-            return "cast(strftime('%M', " + this._unixMillisecondsAsDateTimeArgument(this._appendSql(valueSource, params, false)) + ") as integer)"
-        }
-        return "cast(strftime('%M', " + this._appendSql(valueSource, params, false) + ") as integer)"
+        return "cast(strftime('%M', " + this._dateFunctionArgument(params, valueSource) + ") as integer)"
     }
     override _getSeconds(params: any[], valueSource: ToSql): string {
-        if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
-            return "cast(strftime('%S', " + this._appendSql(valueSource, params, false) + ", 'unixepoch') as integer)"
-        } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
-            return "cast(strftime('%S', " + this._unixMillisecondsAsDateTimeArgument(this._appendSql(valueSource, params, false)) + ") as integer)"
-        }
-        return "cast(strftime('%S', " + this._appendSql(valueSource, params, false) + ") as integer)"
+        return "cast(strftime('%S', " + this._dateFunctionArgument(params, valueSource) + ") as integer)"
     }
     override _getMilliseconds(params: any[], valueSource: ToSql): string {
         if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {

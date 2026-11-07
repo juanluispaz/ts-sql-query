@@ -143,8 +143,7 @@ describe(ctx.label, () => {
 
     test('localDateTime roundtrip: Julian day as real number', async () => {
         const conn = ctx.withDateTimeFormat('Julian day as real number')
-        // Julian-day float arithmetic loses the trailing millisecond (.123 -> .122).
-        const expected = { v: new Date(Date.UTC(2024, 0, 15, 10, 30, 45, 122)) }
+        const expected = { v: new Date(Date.UTC(2024, 0, 15, 10, 30, 45, 123)) }
         ctx.mockNext({ v: 2460324.938022257 })
         const row = await conn.selectFromNoTable()
             .select({ v: conn.const(REF, 'localDateTime') })
@@ -324,7 +323,7 @@ describe(ctx.label, () => {
 
     test('localTime roundtrip: Julian day as real number', async () => {
         const conn = ctx.withDateTimeFormat('Julian day as real number')
-        const expected = { v: new Date(Date.UTC(1970, 0, 1, 10, 30, 45, 122)) }
+        const expected = { v: new Date(Date.UTC(1970, 0, 1, 10, 30, 45, 123)) }
         ctx.mockNext({ v: 0.43802225682884455 })
         const row = await conn.selectFromNoTable()
             .select({ v: conn.const(REF, 'localTime') })

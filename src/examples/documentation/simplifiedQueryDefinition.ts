@@ -1077,6 +1077,7 @@ interface SqliteConnectionConfiguration {
     replaceAllInsensitiveFunction?: string
     /** Protected method with the format of a date, a time or a date time. By default, 'localdate as text' */
     getDateTimeFormat(type: 'date' | 'time' | 'dateTime'): 'localdate as text' | 'localdate as text using T separator' | 'UTC as text' | 'UTC as text using T separator' | 'UTC as text using Z timezone' | 'UTC as text using T separator and Z timezone' | 'Julian day as real number' | 'Unix time seconds as integer' | 'Unix time milliseconds as integer'
+    sqliteRunsInApplicationTimeZone: boolean // Default: false
     treatUnexpectedIntegerDateTimeAsJulian: boolean // Default: false
     treatUnexpectedStringDateTimeAsUTC: boolean // Default: false
     unexpectedUnixDateTimeAreMilliseconds: boolean // Default: false

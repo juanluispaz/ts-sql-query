@@ -139,6 +139,8 @@ export interface SqliteTestContext extends TestContext<DBConnection> {
     withAllowEmptyString(): DBConnection
     /** A `DBConnection` whose `getDateTimeFormat()` is pinned to `format`. */
     withDateTimeFormat(format: SqliteDateTimeFormat): DBConnection
+    /** A `DBConnection` whose `getDateTimeFormat()` is pinned to `format`, with `sqliteRunsInApplicationTimeZone` on. */
+    withApplicationTimeZone(format: SqliteDateTimeFormat): DBConnection
     /**
      * A `DBConnection` whose `getDateTimeFormat()` is pinned to `format`
      * AND whose "unexpected value" detection flags are pinned — the
@@ -213,6 +215,13 @@ function decorateSqliteContext(
         withDateTimeFormat(format: SqliteDateTimeFormat): DBConnection {
             class C extends DBConnection {
                 protected override getDateTimeFormat(): SqliteDateTimeFormat { return format }
+            }
+            return base.withConnection(C)
+        },
+        withApplicationTimeZone(format: SqliteDateTimeFormat): DBConnection {
+            class C extends DBConnection {
+                protected override getDateTimeFormat(): SqliteDateTimeFormat { return format }
+                protected override sqliteRunsInApplicationTimeZone = true
             }
             return base.withConnection(C)
         },

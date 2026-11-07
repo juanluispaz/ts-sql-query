@@ -1,3 +1,6 @@
+import type { HasSource } from './ITableOrView.js'
+import type { DataToProject } from '../complexProjections/dataToProject.js'
+
 /*
  * Note: 
  * - DB argument is not enforced to make easier to TS process it
@@ -75,12 +78,18 @@ export type NAggregate<DB extends string /* IDB */> = `${DB}aggregate/`
 export type NAggregateFrom<SOURCE extends NSource> = NAggregate<NGetDBFrom<SOURCE>>
 /**
  * The argument of an aggregate function, when it is an aggregate itself (a nested aggregate): only Oracle accepts it
- * (and NoopDB, which accepts what any database does); everywhere else it doesn't compile
+ * (and NoopDB, which accepts what any database does); everywhere else it doesn't compile.
+ * A nested aggregate is rejected by asking it to have only sources that aren't an aggregate, instead of never: with a
+ * source still generic (a column of a reference received as TableOrViewOf without an alias) this type stays
+ * unresolved and TS requires both of its results, which that argument meets through the constraint of its source,
+ * and a nested aggregate of it doesn't
  */
 export type NNotNestedAggregate<SOURCE extends NSource, DB extends NDB> =
     string extends SOURCE ? unknown
     : NGetDBTypeFrom<DB> extends 'oracle' | 'noopDB' ? unknown
-    : NAggregate<DB> extends SOURCE ? never : unknown
+    : NAggregate<DB> extends SOURCE ? HasSource<NNotAggregate<DB>> | DataToProject<NNotAggregate<DB>> : unknown
+/** Any source of the database that isn't an aggregate */
+export type NNotAggregate<DB extends NDB> = `${DB}${NType | `${NJoinType}-${NType}`}:${any}` | NNoTableOrViewRequired<DB> | NRecursive<DB> | NCompoundable<DB> // Not ended to match any
 export type NSourceAllowingAggregate<SOURCE extends NSource> = SOURCE | NAggregateFrom<SOURCE>
 export type NSource = string // Combines all source type in table, view, values, etc.
 export type NType = 'table' | 'view' | 'values' | 'with' /* Specia types with name: */ | 'oldValues' | 'valuesForInsert'

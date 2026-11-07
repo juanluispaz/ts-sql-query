@@ -163,6 +163,150 @@ describe(ctx.label, () => {
         expect(nameOfLeftJoin(tIssue.forUseInLeftJoinAs('anyAlias'))).toBeDefined()
     })
 
+    test('docs-extra:tables-views-as-parameter/table-or-view-of-without-alias-in-a-select', async () => {
+        // The same function serves the query of the table and the query of an alias of it:
+        // project 1 has issues 1 and 2.
+        function issueCount<PROJECT extends TableOrViewOf<typeof tProject>>(connection: DBConnection, projectRef: PROJECT) {
+            const project = fromRef(tProject, projectRef)
+            return connection
+                .subSelectUsing(project)
+                .from(tIssue)
+                .where(tIssue.projectId.equals(project.id))
+                .selectCountAll()
+                .forUseAsInlineQueryValue()
+        }
+
+        ctx.mockNext({ id: 1, issueCount: 2 })
+        const row = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, issueCount: issueCount(ctx.conn, tProject) })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select count(*) as [result] from issue where project_id = project.id) as issueCount from project where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; issueCount: number }>>()
+        expect(row).toEqual({ id: 1, issueCount: 2 })
+
+        ctx.mockNext({ id: 1, issueCount: 2 })
+        const project = tProject.as('p')
+        const aliasedRow = await ctx.conn.selectFrom(project)
+            .where(project.id.equals(1))
+            .select({ id: project.id, issueCount: issueCount(ctx.conn, project) })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select p.id as id, (select count(*) as [result] from issue where project_id = p.id) as issueCount from project as p where p.id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof aliasedRow, { id: number; issueCount: number }>>()
+        expect(aliasedRow).toEqual({ id: 1, issueCount: 2 })
+    })
+
+    test('docs-extra:tables-views-as-parameter/table-or-view-of-without-alias-aggregates', async () => {
+        // The aggregates of a column of the reference, in the query of the table and of an alias of it:
+        // the ids of the projects are 1 to 4.
+        function idAggregates<PROJECT extends TableOrViewOf<typeof tProject>>(connection: DBConnection, projectRef: PROJECT) {
+            const project = fromRef(tProject, projectRef)
+            return {
+                count:   connection.count(project.id),
+                max:     connection.max(project.id),
+                sum:     connection.sum(project.id),
+                average: connection.average(project.id),
+            }
+        }
+
+        ctx.mockNext({ count: 4, max: 4, sum: 10, average: 2.5 })
+        const row = await ctx.conn.selectFrom(tProject)
+            .select(idAggregates(ctx.conn, tProject))
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(id) as [count], max(id) as [max], sum(id) as [sum], avg(cast(id as float)) as average from project"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, { count: number; max?: number; sum?: number; average?: number }>>()
+        expect(row).toEqual({ count: 4, max: 4, sum: 10, average: 2.5 })
+
+        ctx.mockNext({ count: 4, max: 4, sum: 10, average: 2.5 })
+        const project = tProject.as('p')
+        const aliasedRow = await ctx.conn.selectFrom(project)
+            .select(idAggregates(ctx.conn, project))
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(p.id) as [count], max(p.id) as [max], sum(p.id) as [sum], avg(cast(p.id as float)) as average from project as p"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof aliasedRow, { count: number; max?: number; sum?: number; average?: number }>>()
+        expect(aliasedRow).toEqual({ count: 4, max: 4, sum: 10, average: 2.5 })
+    })
+
+    test('docs-extra:tables-views-as-parameter/values-without-alias-in-a-select', async () => {
+        // The names of projects 1 and 2, with the count of their issues, from the Values without an alias.
+        class VProjectName extends Values<DBConnection, 'projectName'> {
+            id   = this.column('int')
+            name = this.column('string')
+        }
+        const projectNames = Values.create(VProjectName, 'projectName', [
+            { id: 1, name: 'Marketing site' },
+            { id: 2, name: 'Internal tools' },
+        ])
+        function issueCount<NAMES extends TableOrViewOf<typeof projectNames>>(connection: DBConnection, namesRef: NAMES) {
+            const names = fromRef(projectNames, namesRef)
+            return connection
+                .subSelectUsing(names)
+                .from(tIssue)
+                .where(tIssue.projectId.equals(names.id))
+                .selectCountAll()
+                .forUseAsInlineQueryValue()
+        }
+
+        const expected = [{ name: 'Marketing site', issues: 2 }, { name: 'Internal tools', issues: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(projectNames)
+            .select({ name: projectNames.name, issues: issueCount(ctx.conn, projectNames) })
+            .orderBy('name', 'desc')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectName as (select * from (values (@0, @1), (@2, @3)) as projectName(id, name)) select name as name, (select count(*) as [result] from issue where project_id = projectName.id) as issues from projectName order by name desc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "Marketing site",
+            2,
+            "Internal tools",
+          ]
+        `)
+        assertType<Exact<typeof rows, { name: string; issues: number }[]>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('docs-extra:tables-views-as-parameter/table-or-view-left-join-of-without-alias-in-a-select', async () => {
+        // The organization of project 1 is Acme Corp.
+        function organizationName<ORGANIZATION extends TableOrViewLeftJoinOf<typeof tOrganization>>(organizationRef: ORGANIZATION) {
+            return fromRef(tOrganization, organizationRef).name
+        }
+
+        ctx.mockNext({ id: 1, organizationName: 'Acme Corp' })
+        const organization = tOrganization.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tProject)
+            .leftJoin(organization).on(organization.id.equals(tProject.organizationId))
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, organizationName: organizationName(organization) })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, organization.name as organizationName from project left join organization on organization.id = project.organization_id where project.id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; organizationName?: string }>>()
+        expect(row).toEqual({ id: 1, organizationName: 'Acme Corp' })
+    })
+
     test('docs-extra:tables-views-as-parameter/from-ref-accepts-table-class', async () => {
         function archivedOrName<PROJECT extends TableOrViewOf<typeof tProjectRow, 'p'>>(projectRef: PROJECT) {
             const project = fromRef(TProjectRow, projectRef)

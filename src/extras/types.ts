@@ -158,11 +158,17 @@ export type TableOrViewLeftJoinOf<T extends ITableOrView<any>, ALIAS extends str
     ? ForUseInLeftJoin<NMaybyAliased<NAsLeftJoin<T[typeof source]>>>
     : ForUseInLeftJoin<NAlias<NAsLeftJoin<T[typeof source]>, ALIAS>>
 
-export function fromRef<T extends ITableOrView<any>, S extends NMaybyAliased<T[typeof source]>>(_tableOrView: T | (new (...params: any[]) => T), ref: ITableOrView<S>): FromRefBySource<T, S>
-export function fromRef<T extends ITableOrView<any>, S extends NMaybyAliased<NAsLeftJoin<T[typeof source]>>>(_tableOrView: T | (new (...params: any[]) => T), ref: ForUseInLeftJoin<S>): FromRefBySourceLeftJoin<T, S>
+export function fromRef<T extends ITableOrView<any>, S extends NMaybyAliased<T[typeof source]>, REF extends ITableOrView<S>>(_tableOrView: T | (new (...params: any[]) => T), ref: REF & ITableOrView<S>): FromRefBySource<T, SourceOfRef<S, REF>>
+export function fromRef<T extends ITableOrView<any>, S extends NMaybyAliased<NAsLeftJoin<T[typeof source]>>, REF extends ForUseInLeftJoin<S>>(_tableOrView: T | (new (...params: any[]) => T), ref: REF & ForUseInLeftJoin<S>): FromRefBySourceLeftJoin<T, SourceOfRef<S, REF>>
 export function fromRef(_tableOrView: any, ref: any): any {
     return ref as any
 }
+
+// The source of the reference. S is the one of its type, and a source ends in /. With TableOrViewOf or
+// TableOrViewLeftJoinOf without an alias, S is the pattern of every alias of the table (it doesn't end in /):
+// the reference is then a type parameter of the function, and its own source is kept, so what the function
+// builds with it has the source of the table or alias it receives, not the pattern
+type SourceOfRef<S extends NSource, REF extends HasSource<any>> = S extends `${any}/` ? S : REF[typeof source]
 
 type InferSourceFrom<T> = ({ [K in keyof T]-?: T[K] extends AnyValueSource & HasSource<infer SOURCE> ? SOURCE : never })[keyof T]
 type AllowsNoTableOrViewRequired<SOURCE extends NSource> = SOURCE | NNoTableOrViewRequiredFrom<SOURCE>

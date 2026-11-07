@@ -124,19 +124,6 @@ not run.
 `getHours()` 10 instead of 9, or the stored time is moved, it's confirmed.
 **Current workaround in the suite**: none; the suite runs in UTC.
 
-## `TableOrViewOf<typeof t>` without an alias: the value built with `fromRef` can't be selected
-
-**Where**: `TableOrViewOf` / `fromRef` in `src/extras/types.ts`; first row of the table in
-`docs/advanced/tables-views-as-parameter.md` ("`tCompany`, or an alias of it").
-**Reproduction**: in `postgres/newest/pg`, a function `<P extends TableOrViewOf<typeof tProject>>(ref: P)`
-returning `connection.subSelectUsing(fromRef(tProject, ref))…selectCountAll().forUseAsInlineQueryValue()`,
-called as `ctx.conn.selectFrom(tProject).select({ n: f(tProject) })`, fails with TS2322: the value's
-source is `…/table:TProject/${any}` (the constraint without alias), which the select of `tProject` doesn't
-accept. The same with a `Values` (`TableOrViewOf<typeof projectNames>`). With an alias
-(`TableOrViewOf<typeof tProject, 'p'>` and `tProject.as('p')`) it compiles. Already so before
-`fromRef` checked the table of the reference.
-**Current workaround in the suite**: none; the tests of the page use an alias.
-
 ## Coverage gaps carried over (not bugs — no entry to fix)
 
 These are **not** defects and there is nothing in `src/` to change. They are the

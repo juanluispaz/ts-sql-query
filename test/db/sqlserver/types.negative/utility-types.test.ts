@@ -97,6 +97,24 @@ function _tableOrViewRefs() {
         return fromRef(tOrganization, issueRef)
     }
     void _otherTableRef
+
+    function nameOf<ORGANIZATION extends TableOrViewOf<typeof tOrganization>>(organizationRef: ORGANIZATION) {
+        return fromRef(tOrganization, organizationRef).name
+    }
+    // @ts-expect-error the value is of the table without an alias, the query is of an alias of it
+    void connection.selectFrom(tOrganization.as('org')).select({ name: nameOf(tOrganization) })
+    // @ts-expect-error the value is of an alias, the query is of another alias
+    void connection.selectFrom(tOrganization.as('org')).select({ name: nameOf(tOrganization.as('other')) })
+
+    function _nestedAggregateOfARef<ORGANIZATION extends TableOrViewOf<typeof tOrganization>>(organizationRef: ORGANIZATION) {
+        const organization = fromRef(tOrganization, organizationRef)
+        void connection.max(organization.id)
+        // @ts-expect-error count(...) is an aggregate: max cannot take it, also with a reference without an alias
+        void connection.max(connection.count(organization.id))
+        // @ts-expect-error count(...) is an aggregate: an aggregated array cannot take it, also with a reference without an alias
+        void connection.aggregateAsArray({ n: connection.count(organization.id) })
+    }
+    void _nestedAggregateOfARef
 }
 
 function _deepUtilities() {

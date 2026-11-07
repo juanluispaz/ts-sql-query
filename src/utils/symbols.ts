@@ -39,6 +39,7 @@ export const anyBooleanValueSource: unique symbol = Symbol('anyBooleanValueSourc
 export const numberValueSource: unique symbol = Symbol('numberValueSource')
 export const bigintValueSource: unique symbol = Symbol('bigintValueSource')
 export const customIntValueSource: unique symbol = Symbol('customIntValueSource')
+export const customBigintValueSource: unique symbol = Symbol('customBigintValueSource')
 export const customDoubleValueSource: unique symbol = Symbol('customDoubleValueSource')
 export const stringValueSource: unique symbol = Symbol('stringValueSource')
 export const uuidValueSource: unique symbol = Symbol('uuidValueSource')

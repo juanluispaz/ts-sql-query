@@ -21,7 +21,7 @@ const convertedTypeNames = new Set<string>([
 // The type a value of each category is converted as, when its type name isn't one of the above
 const conversionTypeByCategory = new Map<string, string>([
     ['boolean', 'boolean'],
-    ['int', 'int'], ['bigint', 'bigint'], ['customInt', 'int'],
+    ['int', 'int'], ['bigint', 'bigint'], ['customInt', 'int'], ['customBigint', 'bigint'],
     ['double', 'double'], ['customDouble', 'double'],
     ['string', 'string'],
     ['uuid', 'uuid'], ['customUuid', 'uuid'],

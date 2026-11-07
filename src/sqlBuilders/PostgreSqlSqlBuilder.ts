@@ -104,6 +104,8 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         switch (columnType) {
             case 'customInt':
                 return sql + '::int4'
+            case 'customBigint':
+                return sql + '::int8'
             case 'customDouble':
                 return sql + '::float8'
             case 'customUuid':
@@ -491,7 +493,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
             if (valuePrivate.isConstValue()) {
                 return Number.isInteger(this._transformParamToDB(valuePrivate.getConstValue(), valuePrivate.__valueType, valuePrivate.__valueTypeName, valuePrivate.__typeAdapter))
             }
-            return valuePrivate.__valueType === 'int' || valuePrivate.__valueType === 'bigint' || valuePrivate.__valueType === 'customInt'
+            return valuePrivate.__valueType === 'int' || valuePrivate.__valueType === 'bigint' || valuePrivate.__valueType === 'customInt' || valuePrivate.__valueType === 'customBigint'
         }
         return false
     }

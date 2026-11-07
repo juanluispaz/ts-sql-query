@@ -5,7 +5,7 @@
  * conversion is registered.
  */
 export type TypeCategory = 'boolean'
-    | 'int' | 'bigint' | 'customInt'
+    | 'int' | 'bigint' | 'customInt' | 'customBigint'
     | 'double' | 'customDouble'
     | 'string'
     | 'uuid' | 'customUuid'

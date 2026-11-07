@@ -661,6 +661,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             case 'int':
             case 'bigint':
             case 'customInt':
+            case 'customBigint':
             case 'double':
             case 'customDouble':
                 return 'number'

@@ -3419,6 +3419,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             case 'int':
             case 'bigint':
             case 'customInt':
+            case 'customBigint':
                 return 'exact'
             default:
                 return 'unknown'
@@ -3743,7 +3744,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
     }
     _getMathArgumentType(columnType: ValueType, _columnTypeName: string, value: any): ValueType {
-        if (columnType === 'customInt' || columnType === 'customDouble') {
+        if (columnType === 'customInt' || columnType === 'customBigint' || columnType === 'customDouble') {
             return columnType
         }
         if (typeof value === 'number') {
@@ -3758,7 +3759,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return columnType
     }
     _getMathArgumentTypeName(columnType: ValueType, columnTypeName: string, value: any): string {
-        if (columnType === 'customInt' || columnType === 'customDouble') {
+        if (columnType === 'customInt' || columnType === 'customBigint' || columnType === 'customDouble') {
             return columnTypeName
         }
         if (typeof value === 'number') {

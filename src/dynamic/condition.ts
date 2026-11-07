@@ -11,6 +11,7 @@ export type {
     NumberFilter,
     BigintFilter,
     CustomIntFilter,
+    CustomBigintFilter,
     CustomDoubleFilter,
     StringFilter,
     DateFilter,

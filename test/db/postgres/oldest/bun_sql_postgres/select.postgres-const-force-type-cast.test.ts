@@ -23,6 +23,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -136,10 +137,8 @@ describe(ctx.label, () => {
         `)
     })
 
-    test('const-custom-int-small-falls-through-to-int4-cast', async () => {
-        // `customInt` is not enumerated
-        // in the type switch, so the placeholder cast is decided from
-        // `typeof valueSentToDB`. A plain int32 number routes to `::int4`.
+    test('const-custom-int-is-cast-as-int4', async () => {
+        // A `customInt` is cast as an `int`: `::int4`.
         // Realistic shape: a branded ID type tagged as `IssueId`.
         type IssueId = number & { readonly __brand: 'IssueId' }
         const id = 42 as IssueId
@@ -155,47 +154,26 @@ describe(ctx.label, () => {
         `)
     })
 
-    test('const-custom-int-large-falls-through-to-int8-cast', async () => {
-        // A `customInt` whose runtime
-        // value exceeds int32 routes to `::int8` from the same fallback
-        // ladder. 9_999_999_999 > 2^31-1 (2_147_483_647).
-        type AuditPosition = number & { readonly __brand: 'AuditPosition' }
-        const pos = 9_999_999_999 as AuditPosition
-        ctx.mockNext(pos)
-        await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const<AuditPosition, 'AuditPosition'>(pos, 'customInt', 'AuditPosition'))
+    test('const-custom-bigint-is-cast-as-int8', async () => {
+        // A `customBigint` is converted and cast as a `bigint`: `::int8`, also for a value past int32.
+        type AuditPosition = bigint & { readonly __brand: 'AuditPosition' }
+        const pos = 9_999_999_999n as AuditPosition
+        ctx.mockNext('9999999999')
+        const result = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const<AuditPosition, 'AuditPosition'>(pos, 'customBigint', 'AuditPosition'))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int8 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            9999999999,
+            9999999999n,
           ]
         `)
+        assertType<Exact<typeof result, AuditPosition>>()
+        expect(result).toBe(9_999_999_999n)
     })
 
-    test('const-custom-int-bigint-falls-through-to-int8-cast', async () => {
-        // `typeof valueSentToDB ===
-        // 'bigint'` is checked before the number ladder, so a `bigint`
-        // value on a `customInt` const routes to `::int8` even though
-        // `customInt` itself never appears in the switch.
-        type LargeCount = bigint & { readonly __brand: 'LargeCount' }
-        const c = 12345678901234n as LargeCount
-        ctx.mockNext(c)
-        await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const<LargeCount, 'LargeCount'>(c, 'customInt', 'LargeCount'))
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int8 as result"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            12345678901234n,
-          ]
-        `)
-    })
-
-    test('const-custom-double-falls-through-to-float8-cast', async () => {
-        // `customDouble` carries a
-        // non-integer number; the `Number.isInteger` branch falls into
-        // `::float8`.
+    test('const-custom-double-is-cast-as-float8', async () => {
+        // A `customDouble` is cast as a `double`: `::float8`.
         type Money = number & { readonly __brand: 'Money' }
         const amount = 19.99 as Money
         ctx.mockNext(amount)
@@ -210,11 +188,10 @@ describe(ctx.label, () => {
         `)
     })
 
-    test('const-custom-string-falls-through-without-cast', async () => {
-        // A `custom` typeName whose value is
-        // a string ends the fallback ladder at the final bare `return
-        // placeholder` — no cast appended. Realistic shape: a branded
-        // slug carried through a domain helper.
+    test('const-custom-without-category-is-not-cast', async () => {
+        // A `custom` has no category to cast by, and its value is a
+        // string: no cast. Realistic shape: a branded slug carried through
+        // a domain helper.
         type Slug = string & { readonly __brand: 'Slug' }
         const s = 'marketing-site' as Slug
         ctx.mockNext(s)
@@ -229,11 +206,8 @@ describe(ctx.label, () => {
         `)
     })
 
-    test('const-custom-localdate-falls-through-without-cast', async () => {
-        // A `customLocalDate` carries a
-        // Date object; `typeof` is `object` so the number/bigint ladder
-        // is skipped and the placeholder is emitted bare. Distinct from
-        // the enumerated `'localDate'` case (which routes to `::date`).
+    test('const-custom-localdate-is-cast-as-date', async () => {
+        // A `customLocalDate` is cast as a `localDate`: `::date`.
         type SettlementDate = Date & { readonly __brand: 'SettlementDate' }
         const d = new Date('2024-02-20T00:00:00Z') as SettlementDate
         ctx.mockNext(d)
@@ -244,6 +218,71 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-02-20T00:00:00.000Z,
+          ]
+        `)
+    })
+
+    test('const-custom-comparable-is-not-cast', async () => {
+        // A `customComparable` has no category to cast by, and its value is
+        // a string: no cast.
+        type SemVer = string & { readonly __brand: 'SemVer' }
+        const v = '1.2.0' as SemVer
+        ctx.mockNext(v)
+        await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const<SemVer, 'SemVer'>(v, 'customComparable', 'SemVer'))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "1.2.0",
+          ]
+        `)
+    })
+
+    test('const-custom-uuid-is-cast-as-uuid', async () => {
+        // A `customUuid` is cast as a `uuid`: `::uuid`.
+        type ReleaseId = string & { readonly __brand: 'ReleaseId' }
+        const id = 'c733575e-b5ba-400c-8803-3d3d4bbcd52f' as ReleaseId
+        ctx.mockNext(id)
+        await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const<ReleaseId, 'ReleaseId'>(id, 'customUuid', 'ReleaseId'))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::uuid as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "c733575e-b5ba-400c-8803-3d3d4bbcd52f",
+          ]
+        `)
+    })
+
+    test('const-custom-localtime-is-cast-as-time', async () => {
+        // A `customLocalTime` is cast as a `localTime`: `::time`.
+        type CutoffClock = Date & { readonly __brand: 'CutoffClock' }
+        const t = new Date('1970-01-01T17:00:00Z') as CutoffClock
+        ctx.mockNext(t)
+        await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const<CutoffClock, 'CutoffClock'>(t, 'customLocalTime', 'CutoffClock'))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::time as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "17:00:00",
+          ]
+        `)
+    })
+
+    test('const-custom-localdatetime-is-cast-as-timestamp', async () => {
+        // A `customLocalDateTime` is cast as a `localDateTime`: `::timestamp`.
+        type SignOffStamp = Date & { readonly __brand: 'SignOffStamp' }
+        const ts = new Date('2024-01-14T12:30:00Z') as SignOffStamp
+        ctx.mockNext(ts)
+        await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const<SignOffStamp, 'SignOffStamp'>(ts, 'customLocalDateTime', 'SignOffStamp'))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::timestamp as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-01-14T12:30:00.000Z,
           ]
         `)
     })

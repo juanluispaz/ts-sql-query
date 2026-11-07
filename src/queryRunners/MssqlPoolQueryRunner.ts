@@ -279,6 +279,7 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         localTime: TYPES.Time,
         localDateTime: TYPES.DateTime2,
         customInt: TYPES.BigInt,
+        customBigint: TYPES.BigInt,
         customDouble: TYPES.Float,
         customUuid: TYPES.UniqueIdentifier,
         customLocalDate: TYPES.Date,

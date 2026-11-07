@@ -1,14 +1,15 @@
 // What OracleDBQueryRunner does with what the Oracle SqlBuilder records on the
-// params: the data type of a RETURNING OUT bind (a temporal one is read back as
-// a Date), the OUT binds of a PL/SQL block (one row per repeated name — how a
+// params: the category of the type of a RETURNING OUT bind (a temporal one is
+// read back as a Date), the OUT binds of a PL/SQL block (one row per repeated name — how a
 // multi-row INSERT returns its ids) and the affected-row count of a PL/SQL
 // block, which Oracle doesn't report.
 
 import oracledb from 'oracledb'
 import { afterAll, beforeAll, describe, expect, test } from '../../lib/testRunner.js'
 import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
+import type { TypeCategory } from '../../../src/TypeAdapter.js'
 import { OracleDBQueryRunner } from '../../../src/queryRunners/OracleDBQueryRunner.js'
-import { setForcedAffectedRowCount, setParamType } from '../../../src/utils/queryParamsMetadata.js'
+import { setForcedAffectedRowCount } from '../../../src/utils/queryParamsMetadata.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/oracle/runners.js'
 
@@ -30,14 +31,12 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
         await db?.release()
     }, 300_000)
 
-    function insertReturningMoments(types: [string | undefined, string | undefined]): { sql: string, params: any[] } {
+    function insertReturningMoments(types: [TypeCategory, TypeCategory]): { sql: string, params: any[] } {
         const params: any[] = []
         const d = r().addParam(params, new Date(Date.UTC(2026, 9, 25)), 'localDateTime', 'localDateTime')
         const ts = r().addParam(params, new Date(Date.UTC(2026, 9, 25, 10, 30, 15)), 'localDateTime', 'localDateTime')
-        const dOut = r().addOutParam(params, 'd', 'localDate', 'localDate')
-        if (types[0]) setParamType(params, dOut, types[0])
-        const tsOut = r().addOutParam(params, 'ts', 'localDateTime', 'localDateTime')
-        if (types[1]) setParamType(params, tsOut, types[1])
+        const dOut = r().addOutParam(params, 'd', types[0], types[0])
+        const tsOut = r().addOutParam(params, 'ts', types[1], types[1])
         return { sql: `insert into rt_moment (d, ts) values (${d}, ${ts}) returning d, ts into ${dOut}, ${tsOut}`, params }
     }
 
@@ -51,7 +50,7 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
     })
 
     test('out-binds-without-a-temporal-data-type-are-strings', async () => {
-        const { sql, params } = insertReturningMoments(['string', undefined])
+        const { sql, params } = insertReturningMoments(['string', ''])
         const row = await r().executeInsertReturningOneRow(sql, params)
         expect(typeof row.d).toBe('string')
         expect(typeof row.ts).toBe('string')

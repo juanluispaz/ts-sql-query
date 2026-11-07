@@ -88,37 +88,6 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         }
         return super._appendColumnValue(value, params, isOutermostQuery)
     }
-    override _typedConst(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._withCustomTypeCast(super._typedConst(params, value, columnType, columnTypeName, typeAdapter), columnType)
-    }
-    override _typedConstForCondition(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._withCustomTypeCast(super._typedConstForCondition(params, value, columnType, columnTypeName, typeAdapter), columnType)
-    }
-    _withCustomTypeCast(sql: string, columnType: ValueType): string {
-        // The type name of a custom type means nothing to PostgreSQL, so a placeholder of a custom type no type
-        // adapter wrote a cast for (a null, a Date) takes the one of the value type it is based on; without it the
-        // parameter stays `unknown` (`extract(year from $1)`, `$1 + $2` are not unique)
-        if (!/^\$\d+$/.test(sql)) {
-            return sql
-        }
-        switch (columnType) {
-            case 'customInt':
-                return sql + '::int4'
-            case 'customBigint':
-                return sql + '::int8'
-            case 'customDouble':
-                return sql + '::float8'
-            case 'customUuid':
-                return sql + '::uuid'
-            case 'customLocalDate':
-                return sql + '::date'
-            case 'customLocalTime':
-                return sql + '::time'
-            case 'customLocalDateTime':
-                return sql + '::timestamp'
-        }
-        return sql
-    }
     override _typedOperand<T>(operand: T, otherOperands: any[], operation?: string): T {
         // A const is a parameter, `unknown` to PostgreSQL until something next to it gives it a type: a column, an
         // expression. When every other operand is a parameter too, some operations fail or compute on text

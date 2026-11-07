@@ -6,7 +6,7 @@ import { ManagedTransactionQueryRunner } from './ManagedTransactionQueryRunner.j
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from "../TsSqlError.js"
 import { getMssqlErrorReason, isMssqlError } from './connectorErrorMappers/MssqlErrorMapper.js'
 import { databaseIsolationLevel } from '../utils/transactionIsolationLevel.js'
-import { getParamType } from '../utils/queryParamsMetadata.js'
+import { getParamTypeAt, getParamTypeCategoryAt } from '../utils/queryParamsMetadata.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { setQueryParamType } from './QueryRunner.js'
 
@@ -278,7 +278,7 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         localDate: TYPES.Date,
         localTime: TYPES.Time,
         localDateTime: TYPES.DateTime2,
-        customInt: TYPES.BigInt,
+        customInt: TYPES.Int,
         customBigint: TYPES.BigInt,
         customDouble: TYPES.Float,
         customUuid: TYPES.UniqueIdentifier,
@@ -288,14 +288,21 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     } satisfies {[type in NativeValueType | 'stringInt' | 'stringDouble']: ISqlTypeFactory | undefined}
 
     protected getType(params: any[], index: number): ISqlTypeFactory {
-        const definedType = getParamType(params, '@' + index)
-        if (definedType) {
-            const type = this.predefinedTypes[definedType]
-            if (type) {
-                return type
+        // The category of the type decides the type of the parameter, then its name; a parameter added without them,
+        // like one of a query written by hand, gets a type inferred from its value
+        const typeCategory = getParamTypeCategoryAt(params, index)
+        const type = getParamTypeAt(params, index)
+        if (typeCategory || type) {
+            const byCategory = typeCategory && Object.hasOwn(this.predefinedTypes, typeCategory) ? this.predefinedTypes[typeCategory] : undefined
+            if (byCategory) {
+                return byCategory
             }
-            // Any other declared type is a custom one: what it holds is only known by the user. A text goes as
-            // text, whatever it looks like: '1.2' on a text column can't be sent as a number.
+            const byName = type && Object.hasOwn(this.predefinedTypes, type) ? this.predefinedTypes[type] : undefined
+            if (byName) {
+                return byName
+            }
+            // Any other type is a custom one (an enum, a custom or a customComparable): what it holds is only known by
+            // the user. A text goes as text, whatever it looks like: '1.2' on a text column can't be sent as a number.
             return this.inferCustomType(params[index])
         }
         return this.inferType(params[index])
@@ -327,11 +334,11 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
             return (value.length > 0 ? this.inferType(value[0]) : TYPES.NVarChar)
         } else if (value instanceof Date) {
             switch ((value as any).___type___) {
-                case 'LocalDateTime':
+                case 'localDateTime':
                     return TYPES.DateTime2
-                case 'LocalDate':
+                case 'localDate':
                     return TYPES.Date
-                case 'LocalTime':
+                case 'localTime':
                     return TYPES.Time
                 default:
                     return TYPES.DateTime2; // Maybe: TYPES.DateTimeOffset

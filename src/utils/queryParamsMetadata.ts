@@ -22,18 +22,6 @@ function getHiddenParamsProperty<T>(params: any[], name: string): T | undefined 
 }
 
 /**
- * The data type (a value type, or a custom type name) of the parameter at that placeholder, when the SqlBuilder knows
- * it: SQL Server binds the parameter with it, Oracle declares the type of a RETURNING OUT bind with it.
- */
-export function setParamType(params: any[], placeholder: string, type: string): void {
-    defineHiddenParamsProperty(params, placeholder, type)
-}
-
-export function getParamType(params: any[], placeholder: string): string | undefined {
-    return getHiddenParamsProperty(params, placeholder)
-}
-
-/**
  * Whether the insert carries a RETURNING clause; when undefined the query runner looks for it in the SQL.
  */
 export function setContainsInsertReturningClause(params: any[], value: boolean | undefined): void {

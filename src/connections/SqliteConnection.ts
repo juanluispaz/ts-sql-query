@@ -374,7 +374,7 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                 if (isNaN(result.getTime())) {
                     throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, `Invalid localDateTime value received from the db: ${value} (.getTime() returns NaN)`)
                 }
-                (result as any).___type___ = 'LocalDateTime'
+                (result as any).___type___ = 'localDateTime'
                 return result
             }
         }

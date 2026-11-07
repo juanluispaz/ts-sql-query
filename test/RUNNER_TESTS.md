@@ -140,15 +140,16 @@ its errors fails there.
 
 ## The params the SqlBuilders annotate
 
-Some runners read more than the SQL and the values: what the SqlBuilder
-recorded on the params array as non-enumerable properties — a parameter's
-data type (SQL Server binds with it; Oracle declares a RETURNING OUT bind
-with it), whether a mutation carries a returning clause, a forced
-affected-row count, the query execution name and metadata. Those are set and
-read through [`src/utils/queryParamsMetadata.ts`](../src/utils/queryParamsMetadata.ts),
-and the runner tests use the same functions to build the params the library
-would (`addTypedParam` in the contract, `setParamType`,
-`setContainsMutationReturningClause`, `setForcedAffectedRowCount`).
+Some runners read more than the SQL and the values: what is recorded on the
+params array as non-enumerable properties — the name and the category of the
+type of each parameter, kept by `addParam` and `addOutParam` (SQL Server binds
+with them; Oracle declares a RETURNING OUT bind with them), whether a mutation
+carries a returning clause, a forced affected-row count, the query execution
+name and metadata. Those are set and read through
+[`src/utils/queryParamsMetadata.ts`](../src/utils/queryParamsMetadata.ts), and
+the runner tests build the params the library would with `addParam` and
+`addOutParam` (`addTypedParam` in the contract),
+`setContainsMutationReturningClause` and `setForcedAffectedRowCount`.
 
 ## Running them
 

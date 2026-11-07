@@ -4,7 +4,7 @@ import oracleDb from 'oracledb'
 import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getOracleDBErrorReason, isOracleDBError } from './connectorErrorMappers/OracleDBErrorMapper.js'
-import { getParamType } from '../utils/queryParamsMetadata.js'
+import { getParamTypeCategoryAt } from '../utils/queryParamsMetadata.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { setQueryParamType } from './QueryRunner.js'
 
@@ -76,20 +76,17 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         return result
     }
     private resolveOutBindTypes(params: any[]): any[] {
-        // OracleSqlBuilder records each RETURNING OUT bind's column value type as a non-enumerable
-        // property on the params array keyed by the bind's placeholder (`:<index>`) — the same
-        // mechanism SqlServerSqlBuilder._appendParam uses to carry a parameter's type to its runner,
-        // non-enumerable so it never surfaces in the params snapshot. Here, only in the array handed
-        // to the driver, a temporal column's OUT bind is given its oracledb DbType. The original
-        // array — used by processOutBinds and captured for the snapshot — is left untouched; the
-        // copy is made lazily only when there is a type to resolve.
+        // Each RETURNING OUT bind keeps the category of the type of its column (addOutParam). Here,
+        // only in the array handed to the driver, a temporal column's OUT bind is given its oracledb
+        // DbType. The original array — used by processOutBinds and captured for the snapshot — is
+        // left untouched; the copy is made lazily only when there is a type to resolve.
         let resolved: any[] | undefined = undefined
         for (let i = 0, length = params.length; i < length; i++) {
             const param = params[i]
             if (!param || typeof param !== 'object' || param.dir !== oracleDb.BIND_OUT) {
                 continue
             }
-            const dbType = this.oracleOutBindDbType(getParamType(params, ':' + i))
+            const dbType = this.oracleOutBindDbType(getParamTypeCategoryAt(params, i))
             if (dbType === undefined) {
                 continue
             }

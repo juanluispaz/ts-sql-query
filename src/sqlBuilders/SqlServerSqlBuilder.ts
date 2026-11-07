@@ -2,7 +2,7 @@ import type { ToSql, SelectData, InsertData, DeleteData, UpdateData, FlatQueryCo
 import { hasToSql, flattenQueryColumns, getQueryColumn } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
-import type { AnyValueSource, IExecutableSelectQuery, __AggregatedArrayColumns, ValueType, NativeValueType } from '../expressions/values.js'
+import type { AnyValueSource, IExecutableSelectQuery, __AggregatedArrayColumns, ValueType } from '../expressions/values.js'
 import { isValueSource, __isUuidValueSource, __isBooleanValueSource, __isBooleanValueType } from '../expressions/values.js'
 import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
@@ -12,7 +12,6 @@ import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { ITable } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import { setParamType } from '../utils/queryParamsMetadata.js'
 
 export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     sqlServer: true = true
@@ -180,11 +179,6 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             return '(' + this._appendParam(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ' = 1)'
         }
         return this._appendParam(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
-    }
-    override _appendParam(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
-        // keep the data type to use in the query runner
-        setParamType(params, '@' + params.length, columnType in nativeTypedValueType ? columnType : columnTypeName)
-        return super._appendParam(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
     override _appendColumnName(column: DBColumn, params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
@@ -1726,25 +1720,6 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         result += sql[sql.length - 1]
         return result
     }
-}
-
-const nativeTypedValueType: {[type in NativeValueType]: boolean | undefined} = {
-    boolean: true,
-    int: true,
-    bigint: true,
-    double: true,
-    string: true,
-    uuid: true,
-    localDate: true,
-    localTime: true,
-    localDateTime: true,
-    customInt: true,
-    customBigint: true,
-    customDouble: true,
-    customUuid: true,
-    customLocalDate: true,
-    customLocalTime: true,
-    customLocalDateTime: true
 }
 
 // Source: https://docs.microsoft.com/en-us/sql/t-sql/language-elements/reserved-keywords-transact-sql?view=sql-server-ver15 (version: SqlServer 2019, all possible keywords combined)

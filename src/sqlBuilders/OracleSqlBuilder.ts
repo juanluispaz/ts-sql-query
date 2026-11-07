@@ -13,7 +13,6 @@ import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import { SqlOperation1ValueSource, SqlOperation1ValueSourceIfValueOrIgnore } from '../internal/ValueSourceImpl.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import { setParamType } from '../utils/queryParamsMetadata.js'
 import { __typeCategoryOf } from '../utils/typeCategory.js'
 
 export class OracleSqlBuilder extends AbstractSqlBuilder {
@@ -1218,7 +1217,6 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             const idColumnSql = this._appendSql(idColumn, params, false)
             const idColumnPrivate = __getValueSourcePrivate(idColumn)
             const placeholder = this._queryRunner.addOutParam(params, '', idColumnPrivate.__valueTypeName, __typeCategoryOf(idColumnPrivate.__valueType)) // Empty name for the out params, no special name is requiered
-            this._registerOutBindColumnType(params, placeholder, __getValueSourcePrivate(idColumn).__valueType)
             return ' returning ' + idColumnSql + ' into ' + placeholder
         }
 
@@ -1252,7 +1250,6 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             }
             const columnPrivate = __getValueSourcePrivate(columns[property]!)
             const placeholder = this._queryRunner.addOutParam(params, property, columnPrivate.__valueTypeName, __typeCategoryOf(columnPrivate.__valueType))
-            this._registerOutBindColumnType(params, placeholder, __getValueSourcePrivate(columns[property]!).__valueType)
             result += placeholder
             requireComma = true
         }
@@ -1260,17 +1257,6 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return ''
         }
         return ' returning ' + result
-    }
-    /**
-     * Record a RETURNING OUT bind's column value type as non-enumerable metadata on the params
-     * array, keyed by the bind's placeholder (`:<index>`). `OracleDBQueryRunner` reads it to declare
-     * a temporal OUT bind so the driver returns a `Date` instead of oracledb's default OUT-bind
-     * string form. This is the same mechanism `SqlServerSqlBuilder._appendParam` uses to carry a
-     * parameter's type to its runner — non-enumerable so it never surfaces in the params snapshot,
-     * and no change to the shared `addOutParam` signature.
-     */
-    private _registerOutBindColumnType(params: any[], placeholder: string, columnType: ValueType): void {
-        setParamType(params, placeholder, columnType)
     }
     override _isNull(params: any[], valueSource: ToSql): string {
         if (isColumn(valueSource)) {

@@ -9,7 +9,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../l
 import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
 import { QueryExecutionSource, TsSqlError, TsSqlProcessingError, TsSqlQueryExecutionError } from '../../../src/TsSqlError.js'
 import { ChainedQueryRunner } from '../../../src/queryRunners/ChainedQueryRunner.js'
-import { setContainsMutationReturningClause, setParamType } from '../../../src/utils/queryParamsMetadata.js'
+import { setContainsMutationReturningClause } from '../../../src/utils/queryParamsMetadata.js'
 import type { RunnerDialect } from './dialects.js'
 import { CONNECTION_FAILURES, ERROR_SCENARIOS } from './errorScenarios.js'
 import { DRIVER_NAMED_ERROR_NUMBERS, raisedErrors } from './raisedErrors.js'
@@ -78,14 +78,12 @@ const SEED: readonly { id: number, name: string, amount: number | null }[] = [
 const ALL_LEVELS = ['read uncommitted', 'read committed', 'repeatable read', 'snapshot', 'serializable'] as const
 
 /**
- * Adds a parameter declaring its data type, as the SqlBuilders do: SQL Server
- * binds it with that type instead of inferring one from the value (a null can't
- * be inferred). Harmless on the databases whose runner doesn't read it.
+ * Adds a parameter with the name and the category of its type, as the SqlBuilders do: SQL Server
+ * binds it with that type instead of inferring one from the value (a null can't be inferred).
+ * Harmless on the databases whose runner doesn't read it.
  */
-export function addTypedParam(runner: QueryRunner, params: any[], value: unknown, type: string): string {
-    const placeholder = runner.addParam(params, value, type, '')
-    setParamType(params, placeholder, type)
-    return placeholder
+export function addTypedParam(runner: QueryRunner, params: any[], value: unknown, type: 'int' | 'string'): string {
+    return runner.addParam(params, value, type, type)
 }
 
 /** Rows with their id as a number (an Oracle OUT bind returns it as a string; the library converts it later). */

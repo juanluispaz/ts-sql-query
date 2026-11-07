@@ -17,7 +17,7 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
     // insensitiveCollation = 'acs'
 
     protected override getDateTimeFormat() {
-        return 'UTC as text using T separator and Z timezone' as const
+        return 'UTC milliseconds as text using T separator and Z timezone' as const
     }
 
     bitwiseShiftLeft = this.buildFragmentWithArgs(
@@ -1669,7 +1669,7 @@ async function main() {
     result = []
     expectedResult.push(result)
     expectedQuery.push(`select id as id, first_name as firstName, last_name as lastName, birthday as birthday from customer for system_time between ?1 and ?2  where id = ?3`)
-    expectedParams.push(`["2019-01-01T00:00:00Z","2020-01-01T00:00:00Z",10]`)
+    expectedParams.push(`["2019-01-01T00:00:00.000Z","2020-01-01T00:00:00.000Z",10]`)
     expectedType.push(`selectManyRows`)
     
     /* *** Example ****************************************************************/

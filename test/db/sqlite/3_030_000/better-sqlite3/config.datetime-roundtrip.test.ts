@@ -39,8 +39,25 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    test('localDateTime roundtrip: localdate as text', async () => {
-        const conn = ctx.withDateTimeFormat('localdate as text')
+    test('localDateTime roundtrip: localdate seconds as text', async () => {
+        const conn = ctx.withDateTimeFormat('localdate seconds as text')
+        const expected = { v: new Date(Date.UTC(2024, 0, 15, 10, 30, 45, 0)) }
+        ctx.mockNext({ v: '2024-01-15 10:30:45' })
+        const row = await conn.selectFromNoTable()
+            .select({ v: conn.const(REF, 'localDateTime') })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-15 10:30:45",
+          ]
+        `)
+        assertType<Exact<typeof row, { v: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('localDateTime roundtrip: localdate milliseconds as text', async () => {
+        const conn = ctx.withDateTimeFormat('localdate milliseconds as text')
         const expected = { v: REF }
         ctx.mockNext({ v: '2024-01-15 10:30:45.123' })
         const row = await conn.selectFromNoTable()
@@ -56,8 +73,25 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('localDateTime roundtrip: localdate as text using T separator', async () => {
-        const conn = ctx.withDateTimeFormat('localdate as text using T separator')
+    test('localDateTime roundtrip: localdate seconds as text using T separator', async () => {
+        const conn = ctx.withDateTimeFormat('localdate seconds as text using T separator')
+        const expected = { v: new Date(Date.UTC(2024, 0, 15, 10, 30, 45, 0)) }
+        ctx.mockNext({ v: '2024-01-15T10:30:45' })
+        const row = await conn.selectFromNoTable()
+            .select({ v: conn.const(REF, 'localDateTime') })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-15T10:30:45",
+          ]
+        `)
+        assertType<Exact<typeof row, { v: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('localDateTime roundtrip: localdate milliseconds as text using T separator', async () => {
+        const conn = ctx.withDateTimeFormat('localdate milliseconds as text using T separator')
         const expected = { v: REF }
         ctx.mockNext({ v: '2024-01-15T10:30:45.123' })
         const row = await conn.selectFromNoTable()
@@ -73,8 +107,25 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('localDateTime roundtrip: UTC as text', async () => {
-        const conn = ctx.withDateTimeFormat('UTC as text')
+    test('localDateTime roundtrip: UTC seconds as text', async () => {
+        const conn = ctx.withDateTimeFormat('UTC seconds as text')
+        const expected = { v: new Date(Date.UTC(2024, 0, 15, 10, 30, 45, 0)) }
+        ctx.mockNext({ v: '2024-01-15 10:30:45' })
+        const row = await conn.selectFromNoTable()
+            .select({ v: conn.const(REF, 'localDateTime') })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-15 10:30:45",
+          ]
+        `)
+        assertType<Exact<typeof row, { v: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('localDateTime roundtrip: UTC milliseconds as text', async () => {
+        const conn = ctx.withDateTimeFormat('UTC milliseconds as text')
         const expected = { v: REF }
         ctx.mockNext({ v: '2024-01-15 10:30:45.123' })
         const row = await conn.selectFromNoTable()
@@ -90,8 +141,25 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('localDateTime roundtrip: UTC as text using T separator', async () => {
-        const conn = ctx.withDateTimeFormat('UTC as text using T separator')
+    test('localDateTime roundtrip: UTC seconds as text using T separator', async () => {
+        const conn = ctx.withDateTimeFormat('UTC seconds as text using T separator')
+        const expected = { v: new Date(Date.UTC(2024, 0, 15, 10, 30, 45, 0)) }
+        ctx.mockNext({ v: '2024-01-15T10:30:45' })
+        const row = await conn.selectFromNoTable()
+            .select({ v: conn.const(REF, 'localDateTime') })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-15T10:30:45",
+          ]
+        `)
+        assertType<Exact<typeof row, { v: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('localDateTime roundtrip: UTC milliseconds as text using T separator', async () => {
+        const conn = ctx.withDateTimeFormat('UTC milliseconds as text using T separator')
         const expected = { v: REF }
         ctx.mockNext({ v: '2024-01-15T10:30:45.123' })
         const row = await conn.selectFromNoTable()
@@ -107,8 +175,25 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('localDateTime roundtrip: UTC as text using Z timezone', async () => {
-        const conn = ctx.withDateTimeFormat('UTC as text using Z timezone')
+    test('localDateTime roundtrip: UTC seconds as text using Z timezone', async () => {
+        const conn = ctx.withDateTimeFormat('UTC seconds as text using Z timezone')
+        const expected = { v: new Date(Date.UTC(2024, 0, 15, 10, 30, 45, 0)) }
+        ctx.mockNext({ v: '2024-01-15 10:30:45Z' })
+        const row = await conn.selectFromNoTable()
+            .select({ v: conn.const(REF, 'localDateTime') })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-15 10:30:45Z",
+          ]
+        `)
+        assertType<Exact<typeof row, { v: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('localDateTime roundtrip: UTC milliseconds as text using Z timezone', async () => {
+        const conn = ctx.withDateTimeFormat('UTC milliseconds as text using Z timezone')
         const expected = { v: REF }
         ctx.mockNext({ v: '2024-01-15 10:30:45.123Z' })
         const row = await conn.selectFromNoTable()
@@ -124,8 +209,25 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('localDateTime roundtrip: UTC as text using T separator and Z timezone', async () => {
-        const conn = ctx.withDateTimeFormat('UTC as text using T separator and Z timezone')
+    test('localDateTime roundtrip: UTC seconds as text using T separator and Z timezone', async () => {
+        const conn = ctx.withDateTimeFormat('UTC seconds as text using T separator and Z timezone')
+        const expected = { v: new Date(Date.UTC(2024, 0, 15, 10, 30, 45, 0)) }
+        ctx.mockNext({ v: '2024-01-15T10:30:45Z' })
+        const row = await conn.selectFromNoTable()
+            .select({ v: conn.const(REF, 'localDateTime') })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-15T10:30:45Z",
+          ]
+        `)
+        assertType<Exact<typeof row, { v: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('localDateTime roundtrip: UTC milliseconds as text using T separator and Z timezone', async () => {
+        const conn = ctx.withDateTimeFormat('UTC milliseconds as text using T separator and Z timezone')
         const expected = { v: REF }
         ctx.mockNext({ v: '2024-01-15T10:30:45.123Z' })
         const row = await conn.selectFromNoTable()
@@ -198,8 +300,8 @@ describe(ctx.label, () => {
     // same `YYYY-MM-DD`; julian / unix-seconds / unix-milliseconds each
     // take their own numeric arm in both directions.
 
-    test('localDate roundtrip: localdate as text', async () => {
-        const conn = ctx.withDateTimeFormat('localdate as text')
+    test('localDate roundtrip: localdate seconds as text', async () => {
+        const conn = ctx.withDateTimeFormat('localdate seconds as text')
         const expected = { v: new Date(Date.UTC(2024, 0, 15, 10, 0, 0, 0)) }
         ctx.mockNext({ v: '2024-01-15' })
         const row = await conn.selectFromNoTable()
@@ -215,8 +317,42 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('localDate roundtrip: UTC as text', async () => {
-        const conn = ctx.withDateTimeFormat('UTC as text')
+    test('localDate roundtrip: localdate milliseconds as text', async () => {
+        const conn = ctx.withDateTimeFormat('localdate milliseconds as text')
+        const expected = { v: new Date(Date.UTC(2024, 0, 15, 10, 0, 0, 0)) }
+        ctx.mockNext({ v: '2024-01-15' })
+        const row = await conn.selectFromNoTable()
+            .select({ v: conn.const(REF, 'localDate') })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-15",
+          ]
+        `)
+        assertType<Exact<typeof row, { v: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('localDate roundtrip: UTC seconds as text', async () => {
+        const conn = ctx.withDateTimeFormat('UTC seconds as text')
+        const expected = { v: new Date(Date.UTC(2024, 0, 15, 10, 0, 0, 0)) }
+        ctx.mockNext({ v: '2024-01-15' })
+        const row = await conn.selectFromNoTable()
+            .select({ v: conn.const(REF, 'localDate') })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-15",
+          ]
+        `)
+        assertType<Exact<typeof row, { v: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('localDate roundtrip: UTC milliseconds as text', async () => {
+        const conn = ctx.withDateTimeFormat('UTC milliseconds as text')
         const expected = { v: new Date(Date.UTC(2024, 0, 15, 10, 0, 0, 0)) }
         ctx.mockNext({ v: '2024-01-15' })
         const row = await conn.selectFromNoTable()
@@ -287,8 +423,25 @@ describe(ctx.label, () => {
     // `HH:MM:SS(.fff)`; julian / unix-seconds / unix-milliseconds each take
     // their own numeric arm.
 
-    test('localTime roundtrip: localdate as text', async () => {
-        const conn = ctx.withDateTimeFormat('localdate as text')
+    test('localTime roundtrip: localdate seconds as text', async () => {
+        const conn = ctx.withDateTimeFormat('localdate seconds as text')
+        const expected = { v: new Date(Date.UTC(1970, 0, 1, 10, 30, 45, 0)) }
+        ctx.mockNext({ v: '10:30:45' })
+        const row = await conn.selectFromNoTable()
+            .select({ v: conn.const(REF, 'localTime') })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "10:30:45",
+          ]
+        `)
+        assertType<Exact<typeof row, { v: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('localTime roundtrip: localdate milliseconds as text', async () => {
+        const conn = ctx.withDateTimeFormat('localdate milliseconds as text')
         const expected = { v: new Date(Date.UTC(1970, 0, 1, 10, 30, 45, 123)) }
         ctx.mockNext({ v: '10:30:45.123' })
         const row = await conn.selectFromNoTable()
@@ -304,8 +457,25 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('localTime roundtrip: UTC as text using Z timezone', async () => {
-        const conn = ctx.withDateTimeFormat('UTC as text using Z timezone')
+    test('localTime roundtrip: UTC seconds as text using Z timezone', async () => {
+        const conn = ctx.withDateTimeFormat('UTC seconds as text using Z timezone')
+        const expected = { v: new Date(Date.UTC(1970, 0, 1, 10, 30, 45, 0)) }
+        ctx.mockNext({ v: '10:30:45Z' })
+        const row = await conn.selectFromNoTable()
+            .select({ v: conn.const(REF, 'localTime') })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "10:30:45Z",
+          ]
+        `)
+        assertType<Exact<typeof row, { v: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('localTime roundtrip: UTC milliseconds as text using Z timezone', async () => {
+        const conn = ctx.withDateTimeFormat('UTC milliseconds as text using Z timezone')
         const expected = { v: new Date(Date.UTC(1970, 0, 1, 10, 30, 45, 123)) }
         ctx.mockNext({ v: '10:30:45.123Z' })
         const row = await conn.selectFromNoTable()
@@ -395,7 +565,7 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: a real sqlite engine in a text format returns a string, never an integer, so the `treatUnexpectedIntegerDateTimeAsJulian` auto-detect arm is only reachable via the mock.
     test('localDateTime decode: unexpected integer under text format is read as Julian when flagged', async () => {
         ctx.mockOnlyConnection()
-        const conn = ctx.withDateTimeFlags('localdate as text', { treatUnexpectedIntegerDateTimeAsJulian: true })
+        const conn = ctx.withDateTimeFlags('localdate milliseconds as text', { treatUnexpectedIntegerDateTimeAsJulian: true })
         const expected = { v: new Date(Date.UTC(2024, 0, 15, 12, 0, 0, 0)) }
         ctx.mockNext({ v: 2460325 })
         const row = await conn.selectFromNoTable()
@@ -408,7 +578,7 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: a real sqlite engine in a text format returns a string, never an integer, so the `unexpectedUnixDateTimeAreMilliseconds` auto-detect arm is only reachable via the mock.
     test('localDateTime decode: unexpected integer under text format is read as unix-ms when flagged', async () => {
         ctx.mockOnlyConnection()
-        const conn = ctx.withDateTimeFlags('localdate as text', { unexpectedUnixDateTimeAreMilliseconds: true })
+        const conn = ctx.withDateTimeFlags('localdate milliseconds as text', { unexpectedUnixDateTimeAreMilliseconds: true })
         const expected = { v: REF }
         ctx.mockNext({ v: 1705314645123 })
         const row = await conn.selectFromNoTable()
@@ -421,7 +591,7 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: a real sqlite engine never returns a boolean for a localDate column, so this defensive type guard is only reachable via the mock.
     test('localDate decode: a non-date, non-string, non-number value is rejected', async () => {
         ctx.mockOnlyConnection()
-        const conn = ctx.withDateTimeFormat('localdate as text')
+        const conn = ctx.withDateTimeFormat('localdate milliseconds as text')
         ctx.mockNext({ v: true })
         let caught: unknown
         try {
@@ -437,7 +607,7 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: a real sqlite engine never returns an unparseable date string, so this defensive NaN guard is only reachable via the mock.
     test('localDate decode: an unparseable string is rejected', async () => {
         ctx.mockOnlyConnection()
-        const conn = ctx.withDateTimeFormat('localdate as text')
+        const conn = ctx.withDateTimeFormat('localdate milliseconds as text')
         ctx.mockNext({ v: 'not-a-date' })
         let caught: unknown
         try {
@@ -453,7 +623,7 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: a real sqlite engine never returns an unparseable time string, so this defensive NaN guard is only reachable via the mock.
     test('localTime decode: an unparseable string is rejected', async () => {
         ctx.mockOnlyConnection()
-        const conn = ctx.withDateTimeFormat('localdate as text')
+        const conn = ctx.withDateTimeFormat('localdate milliseconds as text')
         ctx.mockNext({ v: 'not-a-time' })
         let caught: unknown
         try {
@@ -469,7 +639,7 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: a real sqlite engine never returns a boolean for a localDateTime column, so this defensive type guard is only reachable via the mock.
     test('localDateTime decode: a non-date, non-string, non-number value is rejected', async () => {
         ctx.mockOnlyConnection()
-        const conn = ctx.withDateTimeFormat('localdate as text')
+        const conn = ctx.withDateTimeFormat('localdate milliseconds as text')
         ctx.mockNext({ v: true })
         let caught: unknown
         try {
@@ -487,7 +657,7 @@ describe(ctx.label, () => {
     // injection and run identically in both modes.
 
     test('localDate encode: an invalid Date is rejected', async () => {
-        const conn = ctx.withDateTimeFormat('localdate as text')
+        const conn = ctx.withDateTimeFormat('localdate milliseconds as text')
         let caught: unknown
         try {
             await conn.selectFromNoTable()
@@ -500,7 +670,7 @@ describe(ctx.label, () => {
     })
 
     test('localTime encode: an invalid Date is rejected', async () => {
-        const conn = ctx.withDateTimeFormat('localdate as text')
+        const conn = ctx.withDateTimeFormat('localdate milliseconds as text')
         let caught: unknown
         try {
             await conn.selectFromNoTable()
@@ -513,7 +683,7 @@ describe(ctx.label, () => {
     })
 
     test('localDateTime encode: an invalid Date is rejected', async () => {
-        const conn = ctx.withDateTimeFormat('localdate as text')
+        const conn = ctx.withDateTimeFormat('localdate milliseconds as text')
         let caught: unknown
         try {
             await conn.selectFromNoTable()
@@ -527,8 +697,25 @@ describe(ctx.label, () => {
 
     // The `UTC as text` format writes a localTime WITHOUT the trailing `Z`
     // its `using Z timezone` sibling adds — a distinct encode/decode pair.
-    test('localTime roundtrip: UTC as text', async () => {
-        const conn = ctx.withDateTimeFormat('UTC as text')
+    test('localTime roundtrip: UTC seconds as text', async () => {
+        const conn = ctx.withDateTimeFormat('UTC seconds as text')
+        const expected = { v: new Date(Date.UTC(1970, 0, 1, 10, 30, 45, 0)) }
+        ctx.mockNext({ v: '10:30:45' })
+        const row = await conn.selectFromNoTable()
+            .select({ v: conn.const(REF, 'localTime') })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as v"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "10:30:45",
+          ]
+        `)
+        assertType<Exact<typeof row, { v: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('localTime roundtrip: UTC milliseconds as text', async () => {
+        const conn = ctx.withDateTimeFormat('UTC milliseconds as text')
         const expected = { v: new Date(Date.UTC(1970, 0, 1, 10, 30, 45, 123)) }
         ctx.mockNext({ v: '10:30:45.123' })
         const row = await conn.selectFromNoTable()
@@ -548,7 +735,7 @@ describe(ctx.label, () => {
     // zero-pad ladder: it needs exactly one leading zero, where 123 needs
     // none and 7 needs two.
     test('localTime roundtrip: UTC as text with two-digit milliseconds', async () => {
-        const conn = ctx.withDateTimeFormat('UTC as text')
+        const conn = ctx.withDateTimeFormat('UTC milliseconds as text')
         const expected = { v: new Date(Date.UTC(1970, 0, 1, 10, 30, 45, 45)) }
         ctx.mockNext({ v: '10:30:45.045' })
         const row = await conn.selectFromNoTable()
@@ -681,21 +868,21 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: under a text date-format a real sqlite round-trips the const to a string, never the injected integer, so this number-branch auto-detect is only reachable via the mock.
     test('localDate decode: integer under text format auto-detected as julian when flagged', async () => {
         ctx.mockOnlyConnection()
-        const conn = ctx.withDateTimeFlags('localdate as text', { treatUnexpectedIntegerDateTimeAsJulian: true })
+        const conn = ctx.withDateTimeFlags('localdate milliseconds as text', { treatUnexpectedIntegerDateTimeAsJulian: true })
         expect(await decodeUnexpected(conn, 'localDate', 2460325)).toEqual(new Date(Date.UTC(2024, 0, 15, 10, 0, 0, 0)))
     })
 
     // NOT-APPLICABLE: under a text date-format a real sqlite round-trips the const to a string, never the injected integer, so this number-branch auto-detect is only reachable via the mock.
     test('localDate decode: integer under text format auto-detected as unix-ms when flagged', async () => {
         ctx.mockOnlyConnection()
-        const conn = ctx.withDateTimeFlags('localdate as text', { unexpectedUnixDateTimeAreMilliseconds: true })
+        const conn = ctx.withDateTimeFlags('localdate milliseconds as text', { unexpectedUnixDateTimeAreMilliseconds: true })
         expect(await decodeUnexpected(conn, 'localDate', 1705320000000)).toEqual(new Date(Date.UTC(2024, 0, 15, 10, 0, 0, 0)))
     })
 
     // NOT-APPLICABLE: under a text date-format a real sqlite round-trips the const to a string, never the injected integer, so this number-branch auto-detect is only reachable via the mock.
     test('localDate decode: integer under text format defaults to unix-seconds', async () => {
         ctx.mockOnlyConnection()
-        const conn = ctx.withDateTimeFormat('localdate as text')
+        const conn = ctx.withDateTimeFormat('localdate milliseconds as text')
         expect(await decodeUnexpected(conn, 'localDate', 1705320000)).toEqual(new Date(Date.UTC(2024, 0, 15, 10, 0, 0, 0)))
     })
 
@@ -710,7 +897,7 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: under a text date-format a real sqlite round-trips the const to a string, never the injected number, so this number-branch auto-detect is only reachable via the mock.
     test('localTime decode: real number under text format auto-detected as julian when flagged', async () => {
         ctx.mockOnlyConnection()
-        const conn = ctx.withDateTimeFlags('localdate as text', { treatUnexpectedIntegerDateTimeAsJulian: true })
+        const conn = ctx.withDateTimeFlags('localdate milliseconds as text', { treatUnexpectedIntegerDateTimeAsJulian: true })
         expect(await decodeUnexpected(conn, 'localTime', 0.5)).toEqual(new Date(Date.UTC(1970, 0, 1, 12, 0, 0, 0)))
         expect(await decodeUnexpected(conn, 'localTime', 2460324.5)).toEqual(new Date(Date.UTC(1970, 0, 1, 0, 0, 0, 0)))
         expect(await decodeUnexpected(conn, 'localTime', -5)).toEqual(new Date(Date.UTC(1970, 0, 1, 12, 0, 0, 0)))
@@ -719,14 +906,14 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: under a text date-format a real sqlite round-trips the const to a string, never the injected integer, so this number-branch auto-detect is only reachable via the mock.
     test('localTime decode: integer under text format auto-detected as unix-ms when flagged', async () => {
         ctx.mockOnlyConnection()
-        const conn = ctx.withDateTimeFlags('localdate as text', { unexpectedUnixDateTimeAreMilliseconds: true })
+        const conn = ctx.withDateTimeFlags('localdate milliseconds as text', { unexpectedUnixDateTimeAreMilliseconds: true })
         expect(await decodeUnexpected(conn, 'localTime', 37845123)).toEqual(new Date(Date.UTC(1970, 0, 1, 10, 30, 45, 123)))
     })
 
     // NOT-APPLICABLE: under a text date-format a real sqlite round-trips the const to a string, never the injected integer, so this number-branch auto-detect is only reachable via the mock.
     test('localTime decode: integer and numeric string under text format default to unix-seconds', async () => {
         ctx.mockOnlyConnection()
-        const conn = ctx.withDateTimeFormat('localdate as text')
+        const conn = ctx.withDateTimeFormat('localdate milliseconds as text')
         expect(await decodeUnexpected(conn, 'localTime', 37845)).toEqual(new Date(Date.UTC(1970, 0, 1, 10, 30, 45, 0)))
         expect(await decodeUnexpected(conn, 'localTime', '37845')).toEqual(new Date(Date.UTC(1970, 0, 1, 10, 30, 45, 0)))
     })
@@ -740,7 +927,7 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: under a text date-format a real sqlite round-trips the const to a string, never the injected integer, so this number-branch auto-detect is only reachable via the mock.
     test('localDateTime decode: integer and numeric string under text format default to unix-seconds', async () => {
         ctx.mockOnlyConnection()
-        const conn = ctx.withDateTimeFormat('localdate as text')
+        const conn = ctx.withDateTimeFormat('localdate milliseconds as text')
         expect(await decodeUnexpected(conn, 'localDateTime', 1705314645)).toEqual(new Date(Date.UTC(2024, 0, 15, 10, 30, 45, 0)))
         expect(await decodeUnexpected(conn, 'localDateTime', '1705314645')).toEqual(new Date(Date.UTC(2024, 0, 15, 10, 30, 45, 0)))
     })
@@ -769,7 +956,7 @@ describe(ctx.label, () => {
     const DATETIME_1030 = new Date(Date.UTC(2024, 0, 15, 10, 30, 45, 0))
 
     test('localDate decode: datetime text under localdate-as-text keeps only the date', async () => {
-        const conn = ctx.withDateTimeFormat('localdate as text')
+        const conn = ctx.withDateTimeFormat('localdate milliseconds as text')
         expect(await decodeText(conn, 'localDate', '2024-01-15 23:30:45')).toEqual(DATE_15)
     })
 
@@ -790,19 +977,19 @@ describe(ctx.label, () => {
     })
 
     test('localDate decode: datetime text under the UTC text formats keeps only the date', async () => {
-        const plain = ctx.withDateTimeFormat('UTC as text')
+        const plain = ctx.withDateTimeFormat('UTC milliseconds as text')
         expect(await decodeText(plain, 'localDate', '2024-01-15 23:30:45')).toEqual(DATE_15)
-        const tSeparated = ctx.withDateTimeFormat('UTC as text using T separator')
+        const tSeparated = ctx.withDateTimeFormat('UTC milliseconds as text using T separator')
         expect(await decodeText(tSeparated, 'localDate', '2024-01-15T23:30:45')).toEqual(DATE_15)
     })
 
     test('localTime decode: datetime text under localdate-as-text keeps only the time', async () => {
-        const conn = ctx.withDateTimeFormat('localdate as text')
+        const conn = ctx.withDateTimeFormat('localdate milliseconds as text')
         expect(await decodeText(conn, 'localTime', '2024-01-15 10:30:45')).toEqual(TIME_1030)
     })
 
     test('localTime decode: datetime text with an offset is shifted to UTC', async () => {
-        const conn = ctx.withDateTimeFormat('localdate as text')
+        const conn = ctx.withDateTimeFormat('localdate milliseconds as text')
         expect(await decodeText(conn, 'localTime', '2024-01-15 10:30:45+02:00')).toEqual(new Date(Date.UTC(1970, 0, 1, 8, 30, 45, 0)))
     })
 
@@ -817,7 +1004,7 @@ describe(ctx.label, () => {
     })
 
     test('localTime decode: datetime text under UTC-as-text keeps only the time', async () => {
-        const conn = ctx.withDateTimeFormat('UTC as text')
+        const conn = ctx.withDateTimeFormat('UTC milliseconds as text')
         expect(await decodeText(conn, 'localTime', '2024-01-15 10:30:45')).toEqual(TIME_1030)
     })
 

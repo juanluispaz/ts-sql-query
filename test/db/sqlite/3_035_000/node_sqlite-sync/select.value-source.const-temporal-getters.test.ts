@@ -67,9 +67,9 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%H', ?1) as integer) as h, cast(strftime('%M', ?2) as integer) as m, cast(strftime('%S', ?3) as integer) as s"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "12:34:56",
-            "12:34:56",
-            "12:34:56",
+            "12:34:56.000",
+            "12:34:56.000",
+            "12:34:56.000",
           ]
         `)
         assertType<Exact<typeof rows, Array<{ h: number; m: number; s: number }>>>()
@@ -94,10 +94,10 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', ?1) as integer) as y, cast(strftime('%m', ?2) as integer) - 1 as mo, cast(strftime('%H', ?3) as integer) as h, round((julianday(?4) - 2440587.5) * 86400000.0) as t"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-15 12:34:56",
-            "2024-01-15 12:34:56",
-            "2024-01-15 12:34:56",
-            "2024-01-15 12:34:56",
+            "2024-01-15 12:34:56.000",
+            "2024-01-15 12:34:56.000",
+            "2024-01-15 12:34:56.000",
+            "2024-01-15 12:34:56.000",
           ]
         `)
         assertType<Exact<typeof rows, Array<{ y: number; mo: number; h: number; t: number }>>>()
@@ -127,10 +127,10 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select round((julianday(?1) - 2440587.5) * 86400000.0) as pre, round((julianday(?2) - 2440587.5) * 86400000.0) as eve, round((julianday(?3) - 2440587.5) * 86400000.0) as sub, round((julianday(?4) - 2440587.5) * 86400000.0) as far"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "1969-12-30 12:00:00",
-            "1969-12-31 12:00:00",
+            "1969-12-30 12:00:00.000",
+            "1969-12-31 12:00:00.000",
             "1969-12-30 12:00:00.500",
-            "3002-01-01 00:00:00",
+            "3002-01-01 00:00:00.000",
           ]
         `)
         assertType<Exact<typeof rows, Array<{ pre: number; eve: number; sub: number; far: number }>>>()
@@ -153,7 +153,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(round(strftime('%f', ?1) * 1000) as integer) % 1000 as ms"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "12:34:56",
+            "12:34:56.000",
           ]
         `)
         assertType<Exact<typeof rows, Array<{ ms: number }>>>()
@@ -181,11 +181,11 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%d', ?1) as integer) as d, cast(strftime('%w',?2) as integer) as dow, cast(strftime('%M', ?3) as integer) as m, cast(strftime('%S', ?4) as integer) as s, cast(round(strftime('%f', ?5) * 1000) as integer) % 1000 as ms"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-15 12:34:56",
-            "2024-01-15 12:34:56",
-            "2024-01-15 12:34:56",
-            "2024-01-15 12:34:56",
-            "2024-01-15 12:34:56",
+            "2024-01-15 12:34:56.000",
+            "2024-01-15 12:34:56.000",
+            "2024-01-15 12:34:56.000",
+            "2024-01-15 12:34:56.000",
+            "2024-01-15 12:34:56.000",
           ]
         `)
         assertType<Exact<typeof rows, Array<{ d: number; dow: number; m: number; s: number; ms: number }>>>()
@@ -348,8 +348,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', ifnull(signed_off_at, ?1)) as integer) as vwn, cast(strftime('%Y', nullif(signed_off_at, ?2)) as integer) as nif, cast(strftime('%Y', signed_off_at) as integer) as rio, cast(strftime('%Y', signed_off_at) as integer) as own, cast(strftime('%Y', signed_off_at) as integer) as ign from project_release where id = ?3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2000-01-01 00:00:00",
-            "1999-01-01 00:00:00",
+            "2000-01-01 00:00:00.000",
+            "1999-01-01 00:00:00.000",
             1,
           ]
         `)
@@ -411,10 +411,10 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%H', ?1) as integer) as h, cast(strftime('%M', ?2) as integer) as m, cast(strftime('%S', ?3) as integer) as s, cast(round(strftime('%f', ?4) * 1000) as integer) % 1000 as ms"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "12:34:56",
-            "12:34:56",
-            "12:34:56",
-            "12:34:56",
+            "12:34:56.000",
+            "12:34:56.000",
+            "12:34:56.000",
+            "12:34:56.000",
           ]
         `)
         assertType<Exact<typeof rows, Array<{ h?: number; m?: number; s?: number; ms?: number }>>>()
@@ -450,15 +450,15 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', ?1) as integer) as y, cast(strftime('%m', ?2) as integer) - 1 as mo, cast(strftime('%d', ?3) as integer) as d, cast(strftime('%w',?4) as integer) as dow, cast(strftime('%H', ?5) as integer) as h, cast(strftime('%M', ?6) as integer) as m, cast(strftime('%S', ?7) as integer) as s, cast(round(strftime('%f', ?8) * 1000) as integer) % 1000 as ms, round((julianday(?9) - 2440587.5) * 86400000.0) as t"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-15 12:34:56",
-            "2024-01-15 12:34:56",
-            "2024-01-15 12:34:56",
-            "2024-01-15 12:34:56",
-            "2024-01-15 12:34:56",
-            "2024-01-15 12:34:56",
-            "2024-01-15 12:34:56",
-            "2024-01-15 12:34:56",
-            "2024-01-15 12:34:56",
+            "2024-01-15 12:34:56.000",
+            "2024-01-15 12:34:56.000",
+            "2024-01-15 12:34:56.000",
+            "2024-01-15 12:34:56.000",
+            "2024-01-15 12:34:56.000",
+            "2024-01-15 12:34:56.000",
+            "2024-01-15 12:34:56.000",
+            "2024-01-15 12:34:56.000",
+            "2024-01-15 12:34:56.000",
           ]
         `)
         assertType<Exact<typeof rows, Array<{

@@ -5,11 +5,11 @@
 -- equivalent to postgres `setval()` is needed.
 
 -- created_at carries explicit, distinct timestamps (instead of the
--- CURRENT_TIMESTAMP default) so localDateTime equality / membership / range
+-- default of the column) so localDateTime equality / membership / range
 -- comparisons on tOrganization.createdAt are deterministic.
 INSERT INTO organization (id, name, plan, verified, created_at) VALUES
-    (1, 'Acme Corp', 'pro',  'Y', '2023-06-15 08:00:00'),
-    (2, 'Globex Ltd', 'free', 'N', '2023-09-20 14:30:00');
+    (1, 'Acme Corp', 'pro',  'Y', '2023-06-15 08:00:00.000'),
+    (2, 'Globex Ltd', 'free', 'N', '2023-09-20 14:30:00.000');
 
 INSERT INTO app_user (id, email, full_name, verified) VALUES
     (1, 'ada@acme.test',    'Ada Lovelace', 'Y'),
@@ -21,7 +21,7 @@ INSERT INTO project (id, organization_id, name, slug, published) VALUES
     (2, 1, 'Internal tools',  'tools',      'f'),
     (3, 2, 'Public API',      'public-api', 't');
 INSERT INTO project (id, organization_id, name, slug, published, archived_at) VALUES
-    (4, 2, 'Legacy app', 'legacy', 'f', CURRENT_TIMESTAMP);
+    (4, 2, 'Legacy app', 'legacy', 'f', strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime'));
 
 -- Issues 1 and 2 carry a uuid `external_ref` (TEXT here); 3 and 4 leave it
 -- NULL. The two uuids differ in every substring the insensitive-`like` tests
@@ -43,18 +43,18 @@ INSERT INTO country (code, name, region) VALUES
 -- (minutes/duration NULL, billable false); 3 has an undecided billable
 -- flag (NULL boolean). Date/time values are fixed (no CURRENT_*).
 INSERT INTO issue_worklog (id, issue_id, work_date, started_at, minutes, duration_ms, billable, activity, approved, billed_amount, invoiced, cost_cents) VALUES
-    (1, 1, '2024-03-04', '09:15:00',   90, 5400000, 1,    'coding', 'A', 200, 1, 100),
-    (2, 2, '2024-03-05', '14:00:00', NULL,    NULL, 0,    'review', 'R', 50, 0, 100),
-    (3, 1, '2024-03-06', '10:30:00',   30, 1800000, NULL, 'meeting', NULL, 200, 1, 400);
+    (1, 1, '2024-03-04', '09:15:00.000',   90, 5400000, 1,    'coding', 'A', 200, 1, 100),
+    (2, 2, '2024-03-05', '14:00:00.000', NULL,    NULL, 0,    'review', 'R', 50, 0, 100),
+    (3, 1, '2024-03-06', '10:30:00.000',   30, 1800000, NULL, 'meeting', NULL, 200, 1, 400);
 
 -- Releases. `notes` is a generated column, so it is never inserted.
 INSERT INTO project_release (id, project_id, version, channel, signing_key, released_on, cutoff_time, signed_off_at, published_at, is_signed, download_count, avg_rating) VALUES
-    (1, 1, '1.2.0',        'stable', '0a8f9c1e-1111-4222-8333-444455556666', '2024-01-15', '17:00:00', '2024-01-14 12:30:00', '2024-01-16 09:00:00', 1, 4200000042, 4.5),
-    (2, 1, '1.3.0-beta.1', 'beta',   NULL,                                   '2024-02-20', '18:30:00', NULL, '2024-02-21 10:00:00', NULL, NULL, NULL),
-    (3, 2, '0.9.0',        'canary', '7b3e9d20-2222-4c55-9b66-dddd00009999', '2024-03-01', '16:00:00', '2024-02-28 09:00:00', '2024-03-02 11:00:00', 0, 100, 3.0);
+    (1, 1, '1.2.0',        'stable', '0a8f9c1e-1111-4222-8333-444455556666', '2024-01-15', '17:00:00.000', '2024-01-14 12:30:00.000', '2024-01-16 09:00:00.000', 1, 4200000042, 4.5),
+    (2, 1, '1.3.0-beta.1', 'beta',   NULL,                                   '2024-02-20', '18:30:00.000', NULL, '2024-02-21 10:00:00.000', NULL, NULL, NULL),
+    (3, 2, '0.9.0',        'canary', '7b3e9d20-2222-4c55-9b66-dddd00009999', '2024-03-01', '16:00:00.000', '2024-02-28 09:00:00.000', '2024-03-02 11:00:00.000', 0, 100, 3.0);
 
 INSERT INTO project_review (id, project_id, reviewer_code, score, review_date, review_time) VALUES
-    (1, 1, 'R-7A2', 850, '2024-05-20', '14:30:45');
+    (1, 1, 'R-7A2', 850, '2024-05-20', '14:30:45.000');
 
 INSERT INTO webhook_event (issue_id, event_type) VALUES (1, 'created'), (2, 'updated');
 INSERT INTO calendar_year (year_value, year_label) VALUES (2023, 'FY2023'), (2024, 'FY2024');
@@ -67,14 +67,14 @@ INSERT INTO ledger_entry (amount, memo, discount) VALUES (250, 70, 30);
 -- release_draft: draft 1 sets all three optional typed columns; draft 2 leaves
 -- stage/channel/min_version NULL so the Nullable family hits the real NULL branch.
 INSERT INTO release_draft (id, title, stage, channel, min_version, budget, target_day, cutoff) VALUES
-    (1, 'Alpha cut', 'candidate', 'beta', '1.0.0', 1500.5, '2024-07-10', '08:30:00'),
+    (1, 'Alpha cut', 'candidate', 'beta', '1.0.0', 1500.5, '2024-07-10', '08:30:00.000'),
     (2, 'Nightly build', NULL, NULL, NULL, NULL, NULL, NULL);
 
 -- col_matrix: one driver-stable row. m_uuid TEXT (plain string, 'string'
 -- uuidStrategy), m_bool INTEGER (1). Temporal seeds mirror
 -- select.column-factory-types.test.ts.
 INSERT INTO col_matrix (id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m_time, m_datetime, m_str) VALUES
-    (1, 42, 5000, 3.5, 1, '0a8f9c1e-1111-4222-8333-444455556666', '2024-03-04', '09:15:00', '2024-01-14 12:30:00', 'hello');
+    (1, 42, 5000, 3.5, 1, '0a8f9c1e-1111-4222-8333-444455556666', '2024-03-04', '09:15:00.000', '2024-01-14 12:30:00.000', 'hello');
 -- temporal_precision: a sub-millisecond instant a JS Date cannot express.
 -- getSeconds() reads 59, getMilliseconds() reads 999.
 INSERT INTO temporal_precision (id, micro_stamp) VALUES

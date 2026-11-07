@@ -27,52 +27,100 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    test('format: localdate as text', async () => {
-        const conn = ctx.withDateTimeFormat('localdate as text')
+    test('format: localdate seconds as text', async () => {
+        const conn = ctx.withDateTimeFormat('localdate seconds as text')
         await conn.selectFromNoTable()
             .select({ d: conn.currentDate(), t: conn.currentTime(), ts: conn.currentTimestamp() })
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select date('now', 'localtime') as d, time('now', 'localtime') as t, datetime('now', 'localtime') as ts"`)
     })
 
-    test('format: localdate as text using T separator', async () => {
-        const conn = ctx.withDateTimeFormat('localdate as text using T separator')
+    test('format: localdate milliseconds as text', async () => {
+        const conn = ctx.withDateTimeFormat('localdate milliseconds as text')
+        await conn.selectFromNoTable()
+            .select({ d: conn.currentDate(), t: conn.currentTime(), ts: conn.currentTimestamp() })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date('now', 'localtime') as d, strftime('%H:%M:%f', 'now', 'localtime') as t, strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime') as ts"`)
+    })
+
+    test('format: localdate seconds as text using T separator', async () => {
+        const conn = ctx.withDateTimeFormat('localdate seconds as text using T separator')
         await conn.selectFromNoTable()
             .select({ d: conn.currentDate(), t: conn.currentTime(), ts: conn.currentTimestamp() })
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select date('now', 'localtime') as d, time('now', 'localtime') as t, strftime('%Y-%m-%dT%H:%M:%S', 'now', 'localtime') as ts"`)
     })
 
-    test('format: UTC as text', async () => {
-        const conn = ctx.withDateTimeFormat('UTC as text')
+    test('format: localdate milliseconds as text using T separator', async () => {
+        const conn = ctx.withDateTimeFormat('localdate milliseconds as text using T separator')
+        await conn.selectFromNoTable()
+            .select({ d: conn.currentDate(), t: conn.currentTime(), ts: conn.currentTimestamp() })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date('now', 'localtime') as d, strftime('%H:%M:%f', 'now', 'localtime') as t, strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') as ts"`)
+    })
+
+    test('format: UTC seconds as text', async () => {
+        const conn = ctx.withDateTimeFormat('UTC seconds as text')
         await conn.selectFromNoTable()
             .select({ d: conn.currentDate(), t: conn.currentTime(), ts: conn.currentTimestamp() })
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select date('now') as d, time('now') as t, datetime('now') as ts"`)
     })
 
-    test('format: UTC as text using T separator', async () => {
-        const conn = ctx.withDateTimeFormat('UTC as text using T separator')
+    test('format: UTC milliseconds as text', async () => {
+        const conn = ctx.withDateTimeFormat('UTC milliseconds as text')
+        await conn.selectFromNoTable()
+            .select({ d: conn.currentDate(), t: conn.currentTime(), ts: conn.currentTimestamp() })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date('now') as d, strftime('%H:%M:%f', 'now') as t, strftime('%Y-%m-%d %H:%M:%f', 'now') as ts"`)
+    })
+
+    test('format: UTC seconds as text using T separator', async () => {
+        const conn = ctx.withDateTimeFormat('UTC seconds as text using T separator')
         await conn.selectFromNoTable()
             .select({ d: conn.currentDate(), t: conn.currentTime(), ts: conn.currentTimestamp() })
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select date('now') as d, time('now') as t, strftime('%Y-%m-%dT%H:%M:%S', 'now') as ts"`)
     })
 
-    test('format: UTC as text using Z timezone', async () => {
-        const conn = ctx.withDateTimeFormat('UTC as text using Z timezone')
+    test('format: UTC milliseconds as text using T separator', async () => {
+        const conn = ctx.withDateTimeFormat('UTC milliseconds as text using T separator')
         await conn.selectFromNoTable()
             .select({ d: conn.currentDate(), t: conn.currentTime(), ts: conn.currentTimestamp() })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date('now') as d, (time('now') || 'Z') as t, strftime('%Y-%m-%d %H:%M:%SZ', 'now') as ts"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date('now') as d, strftime('%H:%M:%f', 'now') as t, strftime('%Y-%m-%dT%H:%M:%f', 'now') as ts"`)
     })
 
-    test('format: UTC as text using T separator and Z timezone', async () => {
-        const conn = ctx.withDateTimeFormat('UTC as text using T separator and Z timezone')
+    test('format: UTC seconds as text using Z timezone', async () => {
+        const conn = ctx.withDateTimeFormat('UTC seconds as text using Z timezone')
         await conn.selectFromNoTable()
             .select({ d: conn.currentDate(), t: conn.currentTime(), ts: conn.currentTimestamp() })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date('now') as d, (time('now') || 'Z') as t, strftime('%Y-%m-%dT%H:%M:%SZ', 'now') as ts"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date('now') as d, strftime('%H:%M:%SZ', 'now') as t, strftime('%Y-%m-%d %H:%M:%SZ', 'now') as ts"`)
+    })
+
+    test('format: UTC milliseconds as text using Z timezone', async () => {
+        const conn = ctx.withDateTimeFormat('UTC milliseconds as text using Z timezone')
+        await conn.selectFromNoTable()
+            .select({ d: conn.currentDate(), t: conn.currentTime(), ts: conn.currentTimestamp() })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date('now') as d, strftime('%H:%M:%fZ', 'now') as t, strftime('%Y-%m-%d %H:%M:%fZ', 'now') as ts"`)
+    })
+
+    test('format: UTC seconds as text using T separator and Z timezone', async () => {
+        const conn = ctx.withDateTimeFormat('UTC seconds as text using T separator and Z timezone')
+        await conn.selectFromNoTable()
+            .select({ d: conn.currentDate(), t: conn.currentTime(), ts: conn.currentTimestamp() })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date('now') as d, strftime('%H:%M:%SZ', 'now') as t, strftime('%Y-%m-%dT%H:%M:%SZ', 'now') as ts"`)
+    })
+
+    test('format: UTC milliseconds as text using T separator and Z timezone', async () => {
+        const conn = ctx.withDateTimeFormat('UTC milliseconds as text using T separator and Z timezone')
+        await conn.selectFromNoTable()
+            .select({ d: conn.currentDate(), t: conn.currentTime(), ts: conn.currentTimestamp() })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date('now') as d, strftime('%H:%M:%fZ', 'now') as t, strftime('%Y-%m-%dT%H:%M:%fZ', 'now') as ts"`)
     })
 
     test('format: Julian day as real number', async () => {

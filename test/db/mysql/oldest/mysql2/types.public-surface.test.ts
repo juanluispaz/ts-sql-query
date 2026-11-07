@@ -412,8 +412,12 @@ describe(ctx.label, () => {
     /*
     test('sqlite-date-time-format-types', () => {
         assertType<Exact<SqliteDateTimeFormat,
-            | 'localdate as text' | 'localdate as text using T separator'
-            | 'UTC as text' | 'UTC as text using T separator' | 'UTC as text using Z timezone' | 'UTC as text using T separator and Z timezone'
+            | 'localdate seconds as text' | 'localdate milliseconds as text'
+            | 'localdate seconds as text using T separator' | 'localdate milliseconds as text using T separator'
+            | 'UTC seconds as text' | 'UTC milliseconds as text'
+            | 'UTC seconds as text using T separator' | 'UTC milliseconds as text using T separator'
+            | 'UTC seconds as text using Z timezone' | 'UTC milliseconds as text using Z timezone'
+            | 'UTC seconds as text using T separator and Z timezone' | 'UTC milliseconds as text using T separator and Z timezone'
             | 'Julian day as real number' | 'Unix time seconds as integer' | 'Unix time milliseconds as integer'>>()
         assertType<Exact<SqliteDateTimeFormatType, 'date' | 'time' | 'dateTime'>>()
     })

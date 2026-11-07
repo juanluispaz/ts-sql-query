@@ -470,8 +470,8 @@ interface PostgreSqlConnectionConfiguration {
 interface SqliteConnectionConfiguration {
     uuidStrategy: 'string' | 'uuid-extension' // Default: 'uuid-extension'
     replaceAllInsensitiveFunction?: string
-    /** Protected method with the format of a date, a time or a date time. By default, 'localdate as text' */
-    getDateTimeFormat(type: 'date' | 'time' | 'dateTime'): 'localdate as text' | 'localdate as text using T separator' | 'UTC as text' | 'UTC as text using T separator' | 'UTC as text using Z timezone' | 'UTC as text using T separator and Z timezone' | 'Julian day as real number' | 'Unix time seconds as integer' | 'Unix time milliseconds as integer'
+    /** Protected method with the format of a date, a time or a date time. By default, 'localdate milliseconds as text' */
+    getDateTimeFormat(type: 'date' | 'time' | 'dateTime'): 'localdate seconds as text' | 'localdate milliseconds as text' | 'localdate seconds as text using T separator' | 'localdate milliseconds as text using T separator' | 'UTC seconds as text' | 'UTC milliseconds as text' | 'UTC seconds as text using T separator' | 'UTC milliseconds as text using T separator' | 'UTC seconds as text using Z timezone' | 'UTC milliseconds as text using Z timezone' | 'UTC seconds as text using T separator and Z timezone' | 'UTC milliseconds as text using T separator and Z timezone' | 'Julian day as real number' | 'Unix time seconds as integer' | 'Unix time milliseconds as integer'
     treatUnexpectedIntegerDateTimeAsJulian: boolean // Default: false
     treatUnexpectedStringDateTimeAsUTC: boolean // Default: false
     unexpectedUnixDateTimeAreMilliseconds: boolean // Default: false

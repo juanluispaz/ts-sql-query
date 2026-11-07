@@ -225,14 +225,14 @@ Every row below was measured the same way: **the database in UTC** (which is how
 | Oracle `TIMESTAMP WITH TIME ZONE` | 4 | agree | **agree** |
 | SQL Server `datetime2` | 1 | agree | **agree** — see below |
 | SQL Server `datetimeoffset` | 4 | agree | **agree** |
-| SQLite `UTC as text`, Unix time and Julian day formats | — | agree | **agree** |
-| SQLite `localdate as text` formats (the default) | 1 | agree | **drifts** — the *SQL* is wrong |
+| SQLite `UTC` text, Unix time and Julian day formats | — | agree | **agree** |
+| SQLite `localdate` text formats (the default) | 1 | agree | **drifts** — the *SQL* is wrong |
 
 Three rows deserve a second look:
 
 - **Oracle's `TIMESTAMP WITH LOCAL TIME ZONE` drifts on the other side.** It is kind 2, so the drift is expected — but it lands on the `getTime()` the database computes rather than on the `Date` you read, which makes it much harder to spot: the value you look at first is correct.
 - **SQL Server's `datetime2` agrees, and it is the one exception to the kinds.** Its driver pins the interpretation to UTC, which lines up with a server in UTC. That is immunity by coincidence of configuration rather than by design — point it at a server in another zone and it drifts like every other kind 1.
-- **SQLite's `localdate as text` has only one zone, and still drifts on `getTime()`.** The `Date` is built in your process's zone, and `getTime()` reads the text as UTC. The `Date` itself comes back as it was written. Here there is something to switch on: [`sqliteRunsInApplicationTimeZone`](supported-databases/sqlite.md#the-date-functions-and-the-time-zone). In the UTC and numeric formats `getTime()` agrees, while `getHours()`, `getDate()` and the like read UTC, and that option covers them too.
+- **SQLite's `localdate` text formats have only one zone, and still drifts on `getTime()`.** The `Date` is built in your process's zone, and `getTime()` reads the text as UTC. The `Date` itself comes back as it was written. Here there is something to switch on: [`sqliteRunsInApplicationTimeZone`](supported-databases/sqlite.md#the-date-functions-and-the-time-zone). In the UTC and numeric formats `getTime()` agrees, while `getHours()`, `getDate()` and the like read UTC, and that option covers them too.
 
 ## Per database
 
@@ -331,7 +331,7 @@ Which column types fall in which kind, and what the session zone does:
     ```
 
 === "SQLite"
-    SQLite has **no temporal types at all** — a date is text, a number, or an integer, and *you* choose which. In ts-sql-query that choice is `getDateTimeFormat()`; see [SQLite → Working with Date and Time](supported-databases/sqlite.md#working-with-date-and-time). The `UTC as text` strategies pin every value to UTC by convention; the `localdate as text` ones are kind 1.
+    SQLite has **no temporal types at all** — a date is text, a number, or an integer, and *you* choose which. In ts-sql-query that choice is `getDateTimeFormat()`; see [SQLite → Working with Date and Time](supported-databases/sqlite.md#working-with-date-and-time). The `UTC` text strategies pin every value to UTC by convention; the `localdate` ones are kind 1.
 
     !!! tip "SQLite has only one zone"
 

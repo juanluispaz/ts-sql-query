@@ -138,10 +138,10 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as lt, ?2 as ldt, ?3 as clt, ?4 as cldt"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "17:00:00",
-            "2024-01-14 12:30:00",
-            "17:00:00",
-            "2024-01-14 12:30:00",
+            "17:00:00.000",
+            "2024-01-14 12:30:00.000",
+            "17:00:00.000",
+            "2024-01-14 12:30:00.000",
           ]
         `)
         assertType<Exact<typeof row, {

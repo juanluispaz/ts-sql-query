@@ -382,7 +382,7 @@ describe(ctx.label, () => {
                 1,
                 "mktg-site",
                 "Marketing site v2",
-                "2024-06-01 12:00:00",
+                "2024-06-01 12:00:00.000",
               ]
             `)
             assertType<Exact<typeof row, { id: number; archived: boolean } | null>>()
@@ -416,7 +416,7 @@ describe(ctx.label, () => {
                 1,
                 "mktg-site",
                 "Marketing site v2",
-                "2024-06-01 12:00:00",
+                "2024-06-01 12:00:00.000",
               ]
             `)
             assertType<Exact<typeof row, { id: number; archived: boolean } | null>>()

@@ -8,12 +8,18 @@ import { SqliteConnection } from '../../../../src/connections/SqliteConnection.j
 import type { SqliteDateTimeFormat } from '../../../../src/connections/SqliteConfiguration.js'
 
 const formats: SqliteDateTimeFormat[] = [
-    'localdate as text',
-    'localdate as text using T separator',
-    'UTC as text',
-    'UTC as text using T separator',
-    'UTC as text using Z timezone',
-    'UTC as text using T separator and Z timezone',
+    'localdate seconds as text',
+    'localdate milliseconds as text',
+    'localdate seconds as text using T separator',
+    'localdate milliseconds as text using T separator',
+    'UTC seconds as text',
+    'UTC milliseconds as text',
+    'UTC seconds as text using T separator',
+    'UTC milliseconds as text using T separator',
+    'UTC seconds as text using Z timezone',
+    'UTC milliseconds as text using Z timezone',
+    'UTC seconds as text using T separator and Z timezone',
+    'UTC milliseconds as text using T separator and Z timezone',
     'Julian day as real number',
     'Unix time seconds as integer',
     'Unix time milliseconds as integer',
@@ -54,7 +60,7 @@ driver.exec('create table moment(id integer primary key, on_date, at_time, at)')
 class DBConnection extends SqliteConnection<'DBConnection'> {
     protected override sqliteRunsInApplicationTimeZone = useOption
     protected override compatibilityVersion = compatibilityVersion
-    format: SqliteDateTimeFormat = 'localdate as text'
+    format: SqliteDateTimeFormat = 'localdate milliseconds as text'
     protected override getDateTimeFormat(): SqliteDateTimeFormat {
         return this.format
     }
@@ -88,7 +94,7 @@ const connection = new DBConnection(driver.runner)
 for (const format of formats) {
     connection.format = format
     // The formats that only keep seconds can't compare the milliseconds
-    const milliseconds = format === 'Unix time seconds as integer' ? 0 : 250
+    const milliseconds = format.includes(' seconds ') ? 0 : 250
     for (const at of instants) {
         driver.exec('delete from moment')
         await connection.insertInto(tMoment).set({ id: 1, onDate, atTime, at }).executeInsert()

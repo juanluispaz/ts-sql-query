@@ -53,7 +53,7 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "LEGACY",
-            "1990-01-01 00:00:00",
+            "1990-01-01 00:00:00.000",
           ]
         `)
         assertType<Exact<typeof result, ProjectFilterRow[]>>()

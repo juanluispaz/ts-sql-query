@@ -44,8 +44,8 @@ describe(ctx.label, () => {
                 "stable",
                 "11111111-2222-4333-8444-555566667777",
                 "2024-06-01",
-                "18:00:00",
-                "2024-06-01 09:00:00",
+                "18:00:00.000",
+                "2024-06-01 09:00:00.000",
               ]
             `)
             assertType<Exact<typeof inserted, number>>()
@@ -82,7 +82,7 @@ describe(ctx.label, () => {
               [
                 1,
                 "2024-03-10",
-                "08:30:00",
+                "08:30:00.000",
                 120,
                 7200000n,
                 true,
@@ -196,7 +196,7 @@ describe(ctx.label, () => {
                 "3.0.0",
                 "canary",
                 "2024-07-01",
-                "12:00:00",
+                "12:00:00.000",
               ]
             `)
             assertType<Exact<typeof channel, ReleaseChannel>>()
@@ -226,7 +226,7 @@ describe(ctx.label, () => {
                 "R-9",
                 85,
                 "2024-07-01",
-                "09:30:00",
+                "09:30:00.000",
               ]
             `)
             assertType<Exact<typeof inserted, number>>()

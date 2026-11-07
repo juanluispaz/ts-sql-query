@@ -28,7 +28,7 @@ CREATE TABLE organization (
     -- `verified` flag stored as Y/N so the connection.ts mapping can
     -- exercise CustomBooleanTypeAdapter on a real seed column.
     verified VARCHAR(1) NOT NULL DEFAULT 'N',
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime'))
 );
 
 CREATE TABLE app_user (
@@ -38,7 +38,7 @@ CREATE TABLE app_user (
     -- `verified` stored as Y/N — same CustomBooleanTypeAdapter mapping
     -- as organization.verified so cross-table comparisons need no remap.
     verified VARCHAR(1) NOT NULL DEFAULT 'N',
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime'))
 );
 
 CREATE TABLE project (
@@ -51,7 +51,7 @@ CREATE TABLE project (
     -- so column-vs-column comparisons hit the remap-with-case branch.
     published VARCHAR(1) NOT NULL DEFAULT 'f',
     archived_at DATETIME,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime')),
     UNIQUE (organization_id, slug)
 );
 
@@ -65,8 +65,8 @@ CREATE TABLE issue (
     priority INTEGER NOT NULL,
     assignee_id INTEGER REFERENCES app_user(id),
     parent_id INTEGER REFERENCES issue(id),
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime')),
+    updated_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime')),
     -- New-type columns exercising AbstractConnection value marshalling:
     -- bigint (view_count), double (estimated_hours), uuid (external_ref).
     view_count INTEGER NOT NULL DEFAULT 0,
@@ -159,7 +159,7 @@ CREATE TABLE project_release (
     cutoff_time TIME NOT NULL,
     signed_off_at DATETIME,
     -- REQUIRED customLocalDateTime twin of signed_off_at.
-    published_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    published_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime')),
     is_signed INTEGER,
     download_count INTEGER,
     avg_rating REAL,
@@ -262,12 +262,12 @@ CREATE TABLE release_draft (
     bracket_version VARCHAR(32) NOT NULL DEFAULT '2.0.0',
     bracket_channel VARCHAR(16) NOT NULL DEFAULT 'stable',
     bracket_activity VARCHAR(16) NOT NULL DEFAULT 'coding',
-    shifted_stamp DATETIME NOT NULL DEFAULT '2024-06-01 10:00:00',
+    shifted_stamp DATETIME NOT NULL DEFAULT '2024-06-01 10:00:00.000',
     shifted_count BIGINT NOT NULL DEFAULT 5000,
     shifted_rating DOUBLE NOT NULL DEFAULT 4.5,
     bracket_signing_key TEXT NOT NULL DEFAULT '00000000-0000-4000-8000-000000000000',
     shifted_release_day DATE NOT NULL DEFAULT '2025-03-01',
-    shifted_cutoff TIME NOT NULL DEFAULT '09:00:00'
+    shifted_cutoff TIME NOT NULL DEFAULT '09:00:00.000'
 );
 
 -- col_matrix: one plain, NOT NULL column per base kind. Every

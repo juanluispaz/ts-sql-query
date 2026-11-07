@@ -33,7 +33,7 @@ describe(ctx.label, () => {
         const rows = sync(ctx.conn.selectFromNoTable()
             .select({ now: ctx.conn.currentDateTime() })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datetime('now', 'localtime') as now"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime') as now"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ now: Date }>>>()
         if (ctx.realDbEnabled) {
@@ -201,7 +201,7 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at <= datetime('now', 'localtime') order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at <= strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime') order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         // Both seeded orgs were created before "now".

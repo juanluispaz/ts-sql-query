@@ -43,8 +43,8 @@ describe('SQLite and the zone of the application', () => {
 
     test('without the option, in another zone, the date functions work in UTC', () => {
         const mismatches = run('Europe/Madrid', 'without-option')
-        expect(mismatches).toContain('localdate as text 2024-01 getTime: 1705278615250 / 1705275015250')
-        expect(mismatches).toContain('UTC as text 2024-01 getHours: 23 / 0')
+        expect(mismatches).toContain('localdate milliseconds as text 2024-01 getTime: 1705278615250 / 1705275015250')
+        expect(mismatches).toContain('UTC milliseconds as text 2024-01 getHours: 23 / 0')
         expect(mismatches).toContain('Unix time milliseconds as integer 2024-01 getDate: 14 / 15')
     }, 60_000)
 })

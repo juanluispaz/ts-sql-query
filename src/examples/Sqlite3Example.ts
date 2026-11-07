@@ -16,7 +16,7 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
     protected override uuidStrategy = 'string' as const
 
     protected override getDateTimeFormat(_type: SqliteDateTimeFormatType): SqliteDateTimeFormat {
-        return 'UTC as text'
+        return 'UTC milliseconds as text'
     }
     
     increment(i: number) {

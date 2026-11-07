@@ -482,7 +482,7 @@ describe(ctx.label, () => {
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "2026-09-09",
-                "07:05:00",
+                "07:05:00.000",
                 1,
               ]
             `)
@@ -521,8 +521,8 @@ describe(ctx.label, () => {
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "2026-04-04",
-                "22:10:00",
-                "2026-04-05 06:20:00",
+                "22:10:00.000",
+                "2026-04-05 06:20:00.000",
                 1,
               ]
             `)
@@ -559,7 +559,7 @@ describe(ctx.label, () => {
             expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_review set review_time = ?1 where id = ?2 returning review_time as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
-                "13:45:00",
+                "13:45:00.000",
                 1,
               ]
             `)

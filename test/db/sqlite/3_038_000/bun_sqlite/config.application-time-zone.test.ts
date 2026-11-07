@@ -38,28 +38,52 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    test('with the option: localdate as text', () => {
-        expect(withOption('localdate as text')).toMatchInlineSnapshot(`"select round((julianday(?1, 'utc') - 2440587.5) * 86400000.0) as time, cast(strftime('%Y', ?2) as integer) as fullYear, cast(strftime('%w',?3) as integer) as day, cast(strftime('%H', ?4) as integer) as hours, cast(strftime('%H', ?5) as integer) as timeHours, cast(strftime('%M', ?6) as integer) as timeMinutes, cast(strftime('%d', ?7) as integer) as dateDate, date('now', 'localtime') as today"`)
+    test('with the option: localdate seconds as text', () => {
+        expect(withOption('localdate seconds as text')).toMatchInlineSnapshot(`"select round((julianday(?1, 'utc') - 2440587.5) * 86400000.0) as time, cast(strftime('%Y', ?2) as integer) as fullYear, cast(strftime('%w',?3) as integer) as day, cast(strftime('%H', ?4) as integer) as hours, cast(strftime('%H', ?5) as integer) as timeHours, cast(strftime('%M', ?6) as integer) as timeMinutes, cast(strftime('%d', ?7) as integer) as dateDate, date('now', 'localtime') as today"`)
     })
 
-    test('with the option: localdate as text using T separator', () => {
-        expect(withOption('localdate as text using T separator')).toMatchInlineSnapshot(`"select round((julianday(?1, 'utc') - 2440587.5) * 86400000.0) as time, cast(strftime('%Y', ?2) as integer) as fullYear, cast(strftime('%w',?3) as integer) as day, cast(strftime('%H', ?4) as integer) as hours, cast(strftime('%H', ?5) as integer) as timeHours, cast(strftime('%M', ?6) as integer) as timeMinutes, cast(strftime('%d', ?7) as integer) as dateDate, date('now', 'localtime') as today"`)
+    test('with the option: localdate milliseconds as text', () => {
+        expect(withOption('localdate milliseconds as text')).toMatchInlineSnapshot(`"select round((julianday(?1, 'utc') - 2440587.5) * 86400000.0) as time, cast(strftime('%Y', ?2) as integer) as fullYear, cast(strftime('%w',?3) as integer) as day, cast(strftime('%H', ?4) as integer) as hours, cast(strftime('%H', ?5) as integer) as timeHours, cast(strftime('%M', ?6) as integer) as timeMinutes, cast(strftime('%d', ?7) as integer) as dateDate, date('now', 'localtime') as today"`)
     })
 
-    test('with the option: UTC as text', () => {
-        expect(withOption('UTC as text')).toMatchInlineSnapshot(`"select round((julianday(?1) - 2440587.5) * 86400000.0) as time, cast(strftime('%Y', ?2, 'localtime') as integer) as fullYear, cast(strftime('%w',?3, 'localtime') as integer) as day, cast(strftime('%H', ?4, 'localtime') as integer) as hours, cast(strftime('%H', '1970-01-01 ' || ?5, 'localtime') as integer) as timeHours, cast(strftime('%M', '1970-01-01 ' || ?6, 'localtime') as integer) as timeMinutes, cast(strftime('%d', ?7) as integer) as dateDate, date('now', 'localtime') as today"`)
+    test('with the option: localdate seconds as text using T separator', () => {
+        expect(withOption('localdate seconds as text using T separator')).toMatchInlineSnapshot(`"select round((julianday(?1, 'utc') - 2440587.5) * 86400000.0) as time, cast(strftime('%Y', ?2) as integer) as fullYear, cast(strftime('%w',?3) as integer) as day, cast(strftime('%H', ?4) as integer) as hours, cast(strftime('%H', ?5) as integer) as timeHours, cast(strftime('%M', ?6) as integer) as timeMinutes, cast(strftime('%d', ?7) as integer) as dateDate, date('now', 'localtime') as today"`)
     })
 
-    test('with the option: UTC as text using T separator', () => {
-        expect(withOption('UTC as text using T separator')).toMatchInlineSnapshot(`"select round((julianday(?1) - 2440587.5) * 86400000.0) as time, cast(strftime('%Y', ?2, 'localtime') as integer) as fullYear, cast(strftime('%w',?3, 'localtime') as integer) as day, cast(strftime('%H', ?4, 'localtime') as integer) as hours, cast(strftime('%H', '1970-01-01 ' || ?5, 'localtime') as integer) as timeHours, cast(strftime('%M', '1970-01-01 ' || ?6, 'localtime') as integer) as timeMinutes, cast(strftime('%d', ?7) as integer) as dateDate, date('now', 'localtime') as today"`)
+    test('with the option: localdate milliseconds as text using T separator', () => {
+        expect(withOption('localdate milliseconds as text using T separator')).toMatchInlineSnapshot(`"select round((julianday(?1, 'utc') - 2440587.5) * 86400000.0) as time, cast(strftime('%Y', ?2) as integer) as fullYear, cast(strftime('%w',?3) as integer) as day, cast(strftime('%H', ?4) as integer) as hours, cast(strftime('%H', ?5) as integer) as timeHours, cast(strftime('%M', ?6) as integer) as timeMinutes, cast(strftime('%d', ?7) as integer) as dateDate, date('now', 'localtime') as today"`)
     })
 
-    test('with the option: UTC as text using Z timezone', () => {
-        expect(withOption('UTC as text using Z timezone')).toMatchInlineSnapshot(`"select round((julianday(?1) - 2440587.5) * 86400000.0) as time, cast(strftime('%Y', ?2, 'localtime') as integer) as fullYear, cast(strftime('%w',?3, 'localtime') as integer) as day, cast(strftime('%H', ?4, 'localtime') as integer) as hours, cast(strftime('%H', '1970-01-01 ' || ?5, 'localtime') as integer) as timeHours, cast(strftime('%M', '1970-01-01 ' || ?6, 'localtime') as integer) as timeMinutes, cast(strftime('%d', ?7) as integer) as dateDate, date('now', 'localtime') as today"`)
+    test('with the option: UTC seconds as text', () => {
+        expect(withOption('UTC seconds as text')).toMatchInlineSnapshot(`"select round((julianday(?1) - 2440587.5) * 86400000.0) as time, cast(strftime('%Y', ?2, 'localtime') as integer) as fullYear, cast(strftime('%w',?3, 'localtime') as integer) as day, cast(strftime('%H', ?4, 'localtime') as integer) as hours, cast(strftime('%H', '1970-01-01 ' || ?5, 'localtime') as integer) as timeHours, cast(strftime('%M', '1970-01-01 ' || ?6, 'localtime') as integer) as timeMinutes, cast(strftime('%d', ?7) as integer) as dateDate, date('now', 'localtime') as today"`)
     })
 
-    test('with the option: UTC as text using T separator and Z timezone', () => {
-        expect(withOption('UTC as text using T separator and Z timezone')).toMatchInlineSnapshot(`"select round((julianday(?1) - 2440587.5) * 86400000.0) as time, cast(strftime('%Y', ?2, 'localtime') as integer) as fullYear, cast(strftime('%w',?3, 'localtime') as integer) as day, cast(strftime('%H', ?4, 'localtime') as integer) as hours, cast(strftime('%H', '1970-01-01 ' || ?5, 'localtime') as integer) as timeHours, cast(strftime('%M', '1970-01-01 ' || ?6, 'localtime') as integer) as timeMinutes, cast(strftime('%d', ?7) as integer) as dateDate, date('now', 'localtime') as today"`)
+    test('with the option: UTC milliseconds as text', () => {
+        expect(withOption('UTC milliseconds as text')).toMatchInlineSnapshot(`"select round((julianday(?1) - 2440587.5) * 86400000.0) as time, cast(strftime('%Y', ?2, 'localtime') as integer) as fullYear, cast(strftime('%w',?3, 'localtime') as integer) as day, cast(strftime('%H', ?4, 'localtime') as integer) as hours, cast(strftime('%H', '1970-01-01 ' || ?5, 'localtime') as integer) as timeHours, cast(strftime('%M', '1970-01-01 ' || ?6, 'localtime') as integer) as timeMinutes, cast(strftime('%d', ?7) as integer) as dateDate, date('now', 'localtime') as today"`)
+    })
+
+    test('with the option: UTC seconds as text using T separator', () => {
+        expect(withOption('UTC seconds as text using T separator')).toMatchInlineSnapshot(`"select round((julianday(?1) - 2440587.5) * 86400000.0) as time, cast(strftime('%Y', ?2, 'localtime') as integer) as fullYear, cast(strftime('%w',?3, 'localtime') as integer) as day, cast(strftime('%H', ?4, 'localtime') as integer) as hours, cast(strftime('%H', '1970-01-01 ' || ?5, 'localtime') as integer) as timeHours, cast(strftime('%M', '1970-01-01 ' || ?6, 'localtime') as integer) as timeMinutes, cast(strftime('%d', ?7) as integer) as dateDate, date('now', 'localtime') as today"`)
+    })
+
+    test('with the option: UTC milliseconds as text using T separator', () => {
+        expect(withOption('UTC milliseconds as text using T separator')).toMatchInlineSnapshot(`"select round((julianday(?1) - 2440587.5) * 86400000.0) as time, cast(strftime('%Y', ?2, 'localtime') as integer) as fullYear, cast(strftime('%w',?3, 'localtime') as integer) as day, cast(strftime('%H', ?4, 'localtime') as integer) as hours, cast(strftime('%H', '1970-01-01 ' || ?5, 'localtime') as integer) as timeHours, cast(strftime('%M', '1970-01-01 ' || ?6, 'localtime') as integer) as timeMinutes, cast(strftime('%d', ?7) as integer) as dateDate, date('now', 'localtime') as today"`)
+    })
+
+    test('with the option: UTC seconds as text using Z timezone', () => {
+        expect(withOption('UTC seconds as text using Z timezone')).toMatchInlineSnapshot(`"select round((julianday(?1) - 2440587.5) * 86400000.0) as time, cast(strftime('%Y', ?2, 'localtime') as integer) as fullYear, cast(strftime('%w',?3, 'localtime') as integer) as day, cast(strftime('%H', ?4, 'localtime') as integer) as hours, cast(strftime('%H', '1970-01-01 ' || ?5, 'localtime') as integer) as timeHours, cast(strftime('%M', '1970-01-01 ' || ?6, 'localtime') as integer) as timeMinutes, cast(strftime('%d', ?7) as integer) as dateDate, date('now', 'localtime') as today"`)
+    })
+
+    test('with the option: UTC milliseconds as text using Z timezone', () => {
+        expect(withOption('UTC milliseconds as text using Z timezone')).toMatchInlineSnapshot(`"select round((julianday(?1) - 2440587.5) * 86400000.0) as time, cast(strftime('%Y', ?2, 'localtime') as integer) as fullYear, cast(strftime('%w',?3, 'localtime') as integer) as day, cast(strftime('%H', ?4, 'localtime') as integer) as hours, cast(strftime('%H', '1970-01-01 ' || ?5, 'localtime') as integer) as timeHours, cast(strftime('%M', '1970-01-01 ' || ?6, 'localtime') as integer) as timeMinutes, cast(strftime('%d', ?7) as integer) as dateDate, date('now', 'localtime') as today"`)
+    })
+
+    test('with the option: UTC seconds as text using T separator and Z timezone', () => {
+        expect(withOption('UTC seconds as text using T separator and Z timezone')).toMatchInlineSnapshot(`"select round((julianday(?1) - 2440587.5) * 86400000.0) as time, cast(strftime('%Y', ?2, 'localtime') as integer) as fullYear, cast(strftime('%w',?3, 'localtime') as integer) as day, cast(strftime('%H', ?4, 'localtime') as integer) as hours, cast(strftime('%H', '1970-01-01 ' || ?5, 'localtime') as integer) as timeHours, cast(strftime('%M', '1970-01-01 ' || ?6, 'localtime') as integer) as timeMinutes, cast(strftime('%d', ?7) as integer) as dateDate, date('now', 'localtime') as today"`)
+    })
+
+    test('with the option: UTC milliseconds as text using T separator and Z timezone', () => {
+        expect(withOption('UTC milliseconds as text using T separator and Z timezone')).toMatchInlineSnapshot(`"select round((julianday(?1) - 2440587.5) * 86400000.0) as time, cast(strftime('%Y', ?2, 'localtime') as integer) as fullYear, cast(strftime('%w',?3, 'localtime') as integer) as day, cast(strftime('%H', ?4, 'localtime') as integer) as hours, cast(strftime('%H', '1970-01-01 ' || ?5, 'localtime') as integer) as timeHours, cast(strftime('%M', '1970-01-01 ' || ?6, 'localtime') as integer) as timeMinutes, cast(strftime('%d', ?7) as integer) as dateDate, date('now', 'localtime') as today"`)
     })
 
     test('with the option: Julian day as real number', () => {
@@ -75,7 +99,7 @@ describe(ctx.label, () => {
     })
 
     test('without the option the UTC formats read in UTC', () => {
-        expect(dateFunctions(ctx.withDateTimeFormat('UTC as text'))).toMatchInlineSnapshot(`"select round((julianday(?1) - 2440587.5) * 86400000.0) as time, cast(strftime('%Y', ?2) as integer) as fullYear, cast(strftime('%w',?3) as integer) as day, cast(strftime('%H', ?4) as integer) as hours, cast(strftime('%H', ?5) as integer) as timeHours, cast(strftime('%M', ?6) as integer) as timeMinutes, cast(strftime('%d', ?7) as integer) as dateDate, date('now') as today"`)
+        expect(dateFunctions(ctx.withDateTimeFormat('UTC milliseconds as text'))).toMatchInlineSnapshot(`"select round((julianday(?1) - 2440587.5) * 86400000.0) as time, cast(strftime('%Y', ?2) as integer) as fullYear, cast(strftime('%w',?3) as integer) as day, cast(strftime('%H', ?4) as integer) as hours, cast(strftime('%H', ?5) as integer) as timeHours, cast(strftime('%M', ?6) as integer) as timeMinutes, cast(strftime('%d', ?7) as integer) as dateDate, date('now') as today"`)
     })
 
     test('a time in a Julian day reads the hours of the day', async () => {

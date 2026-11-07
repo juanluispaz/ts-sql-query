@@ -42,7 +42,7 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
     // insensitiveCollation = 'acs'
 
     protected override getDateTimeFormat() {
-        return 'UTC as text using T separator and Z timezone' as const
+        return 'UTC milliseconds as text using T separator and Z timezone' as const
     }
 
     bitwiseShiftLeft = this.buildFragmentWithArgs(

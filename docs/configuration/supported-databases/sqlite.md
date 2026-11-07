@@ -53,9 +53,9 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
     protected override getDateTimeFormat(type: SqliteDateTimeFormatType): SqliteDateTimeFormat {
         switch(type) {
             case 'date':
-                return 'localdate as text'
+                return 'localdate milliseconds as text'
             case 'time':
-                return 'UTC as text'
+                return 'UTC milliseconds as text'
             case 'dateTime':
                 return 'Unix time seconds as integer'
         }
@@ -67,46 +67,42 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
 
 ## Date and time strategies
 
-- `localdate as text`: *(default strategy)*
-    - Dates and time are interpreted to be in the same timezone of the running application.
-    - **Column type in sqlite**: *TEXT*
-    - **Date format**: *YYYY-MM-DD*. Example: `2021-09-25`
-    - **Time format**: *HH:MM:SS.SSS*. Example: `18:00:00`. In JavaScript, always use *1970-01-01* as the base date when representing a time value.
-    - **Date time format**: *YYYY-MM-DD HH:MM:SS.SSS*. Example: `2021-09-25 18:00:00`
-    - **Limitation**: `getTime()`, computed by the database, reads the text as if it were in UTC, so it gives another instant when the application doesn't run in UTC, unless you set [`sqliteRunsInApplicationTimeZone`](#the-date-functions-and-the-time-zone).
-- `localdate as text using T separator`
-    - Dates and time are interpreted to be in the same timezone of the running application.
-    - **Column type in sqlite**: *TEXT*
-    - **Date format**: *YYYY-MM-DD*. Example: `2021-09-25`
-    - **Time format**: *HH:MM:SS.SSS*. Example: `18:00:00`. In JavaScript, always use *1970-01-01* as the base date when representing a time value.
-    - **Date time format**: *YYYY-MM-DD***T***HH:MM:SS.SSS*. Example: `2021-09-25T18:00:00`
-    - **Limitation**: `getTime()`, computed by the database, reads the text as if it were in UTC, so it gives another instant when the application doesn't run in UTC, unless you set [`sqliteRunsInApplicationTimeZone`](#the-date-functions-and-the-time-zone).
-- `UTC as text`
-    - Dates and time are interpreted to be in the UTC timezone.
-    - **Column type in sqlite**: *TEXT*
-    - **Date format**: *YYYY-MM-DD*. Example: `2021-09-25`
-    - **Time format**: *HH:MM:SS.SSS*. Example: `18:00:00`. In JavaScript, always use *1970-01-01* as the base date when representing a time value.
-    - **Date time format**: *YYYY-MM-DD HH:MM:SS.SSS*. Example: `2021-09-25 18:00:00`
-- `UTC as text using T separator`:
-    - Dates and time are interpreted to be in the UTC timezone.
-    - **Column type in sqlite**: *TEXT*
-    - **Date format**: *YYYY-MM-DD*. Example: `2021-09-25`
-    - **Time format**: *HH:MM:SS.SSS*. Example: `18:00:00`. In JavaScript, always use *1970-01-01* as the base date when representing a time value.
-    - **Date time format**: *YYYY-MM-DD***T***HH:MM:SS.SSS*. Example: `2021-09-25T18:00:00`
-- `UTC as text using Z timezone`:
-    - Dates and time are interpreted to be in the UTC timezone.
-    - **Column type in sqlite**: *TEXT*
-    - **Date format**: *YYYY-MM-DD*. Example: `2021-09-25`. No **Z** is used here because it is not supported by sqlite.
-    - **Time format**: *HH:MM:SS.SSS***Z**. Example: `18:00:00Z`. In JavaScript, always use *1970-01-01* as the base date when representing a time value.
-    - **Date time format**: *YYYY-MM-DD HH:MM:SS.SSS***Z**. Example: `2021-09-25 18:00:00Z`
-    - **Limitation**: the values are compared as text, and a value without milliseconds sorts after one with milliseconds in the same second: `2024-01-14 10:00:00.500Z` comes before `2024-01-14 10:00:00Z`. So `lessThan`, `greaterThan` and `orderBy` give the wrong answer for those two values. Two values with different seconds, or that both have milliseconds, compare well. `UTC as text` and `UTC as text using T separator` don't have this limitation.
-- `UTC as text using T separator and Z timezone`:
-    - Dates and time are interpreted to be in the UTC timezone.
-    - **Column type in sqlite**: *TEXT*
-    - **Date format**: *YYYY-MM-DD*. Example: `2021-09-25`. No **Z** is used here because it is not supported by sqlite.
-    - **Time format**: *HH:MM:SS.SSS***Z**. Example: `18:00:00Z`. In JavaScript, always use *1970-01-01* as the base date when representing a time value.
-    - **Date time format**: *YYYY-MM-DD***T***HH:MM:SS.SSS***Z**. Example: `2021-09-25T18:00:00Z`
-    - **Limitation**: the values are compared as text, and a value without milliseconds sorts after one with milliseconds in the same second: `2024-01-14 10:00:00.500Z` comes before `2024-01-14 10:00:00Z`. So `lessThan`, `greaterThan` and `orderBy` give the wrong answer for those two values. Two values with different seconds, or that both have milliseconds, compare well. `UTC as text` and `UTC as text using T separator` don't have this limitation.
+SQLite has no types for dates and times: a value is a text or a number, and the strategy says which. A `localDate` is a calendar day in every strategy: it's written as the application reads it, in its own zone, so `2021-09-25` stays the 25th.
+
+### Strategies as text
+
+The text strategies differ in four things: the zone, the separator between the date and the time, a `Z` at the end, and the precision. These are the values they write for 18:00:00.250 of 2021-09-25, with the application in UTC:
+
+| Strategy | Date time | Time | Zone |
+|---|---|---|---|
+| `localdate seconds as text` | `2021-09-25 18:00:00` | `18:00:00` | The application's |
+| `localdate milliseconds as text` *(default)* | `2021-09-25 18:00:00.250` | `18:00:00.250` | The application's |
+| `localdate seconds as text using T separator` | `2021-09-25T18:00:00` | `18:00:00` | The application's |
+| `localdate milliseconds as text using T separator` | `2021-09-25T18:00:00.250` | `18:00:00.250` | The application's |
+| `UTC seconds as text` | `2021-09-25 18:00:00` | `18:00:00` | UTC |
+| `UTC milliseconds as text` | `2021-09-25 18:00:00.250` | `18:00:00.250` | UTC |
+| `UTC seconds as text using T separator` | `2021-09-25T18:00:00` | `18:00:00` | UTC |
+| `UTC milliseconds as text using T separator` | `2021-09-25T18:00:00.250` | `18:00:00.250` | UTC |
+| `UTC seconds as text using Z timezone` | `2021-09-25 18:00:00Z` | `18:00:00Z` | UTC |
+| `UTC milliseconds as text using Z timezone` | `2021-09-25 18:00:00.250Z` | `18:00:00.250Z` | UTC |
+| `UTC seconds as text using T separator and Z timezone` | `2021-09-25T18:00:00Z` | `18:00:00Z` | UTC |
+| `UTC milliseconds as text using T separator and Z timezone` | `2021-09-25T18:00:00.250Z` | `18:00:00.250Z` | UTC |
+
+The date is always `2021-09-25`, with no `Z`, because SQLite doesn't accept one after a date alone. The column type is *TEXT*. In JavaScript, always use *1970-01-01* as the date of a time value.
+
+A strategy writes all its values with the same width: with `seconds`, never with decimals; with `milliseconds`, always with three, also when they are `.000`. SQLite compares these values as text, and two widths in the same column would compare wrong: `10:00:00.500Z` sorts before `10:00:00Z`, because a dot sorts before a `Z`.
+
+How to choose the precision:
+
+- **`milliseconds`** keeps the milliseconds of a `Date`. `currentTimestamp()` and `currentTime()` have them too.
+- **`seconds`** writes what SQLite's own functions write: `UTC seconds as text` is the text of `current_timestamp` and `datetime('now')`. Choose it when other code writes in the same columns, like a `default current_timestamp` in the schema, a trigger or another tool. The milliseconds of a `Date` are dropped when it's written, and a value compared with a column is dropped to the second too, as in `Unix time seconds as integer`.
+
+Reading accepts any of these texts in any of these strategies, with decimals or without, and with a `Z` or without.
+
+The strategies that read the zone of the application have a limitation: `getTime()`, computed by the database, reads the text as if it were in UTC, so it gives another instant when the application doesn't run in UTC, unless you set [`sqliteRunsInApplicationTimeZone`](#the-date-functions-and-the-time-zone).
+
+### Strategies as numbers
+
 - `Julian day as real number`:
     - Dates and time are expressed as [Julian day](https://en.wikipedia.org/wiki/Julian_day).
     - **Column type in sqlite**: *REAL*
@@ -125,6 +121,32 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
     - **Date format**: *NNNNNNNNNNNNN*. Example: `1632528000000` (*2021-09-25*).
     - **Time format**: *NNNNNNNNNNNNN*. Example: `64800000` (*18:00:00*). This value is a number that expresses the number of milliseconds for the provided time on the first day of the calendar (*1970-01-01*). In JavaScript, always use *1970-01-01* as the base date when representing a time value.
     - **Date time format**: *NNNNNNNNNNNNN*. Example: `1632592800000` (*2021-09-25 18:00:00*)
+
+### Values generated by the database
+
+A value that SQLite writes on its own, like the `default` of a column or a trigger, must have the text of the strategy, or the rows don't compare well with the ones the library writes. These are the expressions that `currentDate()`, `currentTime()` and `currentTimestamp()` use. In a `default`, write them between parentheses: `created_at text default (strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime'))`.
+
+| Strategy | Date time | Time |
+|---|---|---|
+| `localdate seconds as text` | `datetime('now', 'localtime')` | `time('now', 'localtime')` |
+| `localdate milliseconds as text` | `strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime')` | `strftime('%H:%M:%f', 'now', 'localtime')` |
+| `localdate seconds as text using T separator` | `strftime('%Y-%m-%dT%H:%M:%S', 'now', 'localtime')` | `time('now', 'localtime')` |
+| `localdate milliseconds as text using T separator` | `strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime')` | `strftime('%H:%M:%f', 'now', 'localtime')` |
+| `UTC seconds as text` | `datetime('now')`, or `current_timestamp` | `time('now')` |
+| `UTC milliseconds as text` | `strftime('%Y-%m-%d %H:%M:%f', 'now')` | `strftime('%H:%M:%f', 'now')` |
+| `UTC seconds as text using T separator` | `strftime('%Y-%m-%dT%H:%M:%S', 'now')` | `time('now')` |
+| `UTC milliseconds as text using T separator` | `strftime('%Y-%m-%dT%H:%M:%f', 'now')` | `strftime('%H:%M:%f', 'now')` |
+| `UTC seconds as text using Z timezone` | `strftime('%Y-%m-%d %H:%M:%SZ', 'now')` | `strftime('%H:%M:%SZ', 'now')` |
+| `UTC milliseconds as text using Z timezone` | `strftime('%Y-%m-%d %H:%M:%fZ', 'now')` | `strftime('%H:%M:%fZ', 'now')` |
+| `UTC seconds as text using T separator and Z timezone` | `strftime('%Y-%m-%dT%H:%M:%SZ', 'now')` | `strftime('%H:%M:%SZ', 'now')` |
+| `UTC milliseconds as text using T separator and Z timezone` | `strftime('%Y-%m-%dT%H:%M:%fZ', 'now')` | `strftime('%H:%M:%fZ', 'now')` |
+| `Julian day as real number` | `julianday('now')` | `julianday(strftime('1970-01-01 %H:%M:%f', 'now')) - julianday('1970-01-01')` |
+| `Unix time seconds as integer` | `unixepoch('now')` | `unixepoch(strftime('1970-01-01 %H:%M:%S', 'now'))` |
+| `Unix time milliseconds as integer` | `cast(unixepoch('now', 'subsec') * 1000 as integer)` | `cast(unixepoch(strftime('1970-01-01 %H:%M:%f', 'now'), 'subsec') * 1000 as integer)` |
+
+`current_timestamp` only fits `UTC seconds as text`: in the `localdate` strategies it writes the UTC clock, which is read as the local one, and in the numeric ones it writes a text. `unixepoch()` is from SQLite 3.38 and `'subsec'` from 3.42.
+
+For a date, the library writes the day of the application: `date('now', 'localtime')`. `currentDate()` gives that day in the `localdate` strategies; in the others it gives the UTC day unless you set [`sqliteRunsInApplicationTimeZone`](#the-date-functions-and-the-time-zone).
 
 ## The date functions and the time zone
 
@@ -155,9 +177,9 @@ What it changes in the SQL:
 | Expression | Formats | By default | With the option |
 |---|---|---|---|
 | `getTime()` | `localdate` | `round(unixepoch(x, 'subsec') * 1000)` | `round(unixepoch(x, 'utc', 'subsec') * 1000)` |
-| `getFullYear()`, `getMonth()`, `getDate()`, `getDay()`, `getHours()`, `getMinutes()`, `getSeconds()` of a date time | UTC as text, Julian day | `strftime('%H', x)` | `strftime('%H', x, 'localtime')` |
+| `getFullYear()`, `getMonth()`, `getDate()`, `getDay()`, `getHours()`, `getMinutes()`, `getSeconds()` of a date time | UTC text, Julian day | `strftime('%H', x)` | `strftime('%H', x, 'localtime')` |
 | The same | Unix time | `strftime('%H', x, 'unixepoch')` | `strftime('%H', x, 'unixepoch', 'localtime')` |
-| `getHours()`, `getMinutes()`, `getSeconds()` of a time | UTC as text | `strftime('%H', x)` | `strftime('%H', '1970-01-01 ' \|\| x, 'localtime')` |
+| `getHours()`, `getMinutes()`, `getSeconds()` of a time | UTC text | `strftime('%H', x)` | `strftime('%H', '1970-01-01 ' \|\| x, 'localtime')` |
 | The same | Julian day | `strftime('%H', x + 2440587.5)` | `strftime('%H', x + 2440587.5, 'localtime')` |
 | The same | Unix time | `strftime('%H', x, 'unixepoch')` | `strftime('%H', x, 'unixepoch', 'localtime')` |
 | `currentDate()` | UTC and numeric | `date('now')` | `date('now', 'localtime')` |

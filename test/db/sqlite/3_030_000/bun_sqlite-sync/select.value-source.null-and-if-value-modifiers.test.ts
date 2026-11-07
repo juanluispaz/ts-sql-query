@@ -382,7 +382,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(started_at, ?1) as t from issue_worklog where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "08:00:00",
+            "08:00:00.000",
             1,
           ]
         `)
@@ -449,7 +449,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(signed_off_at, ?1) as x from project_release where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2099-01-01 00:00:00",
+            "2099-01-01 00:00:00.000",
             2,
           ]
         `)
@@ -534,7 +534,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(created_at, ?1) as d, ifnull(created_at, created_at) as d2 from organization where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2099-01-01 00:00:00",
+            "2099-01-01 00:00:00.000",
             1,
           ]
         `)
@@ -593,7 +593,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(started_at, ?1) as t, nullif(started_at, started_at) as t2 from issue_worklog where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "08:00:00",
+            "08:00:00.000",
             1,
           ]
         `)
@@ -621,7 +621,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(cutoff_time, ?1) as t, nullif(cutoff_time, cutoff_time) as t2 from project_release where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "16:00:00",
+            "16:00:00.000",
             1,
           ]
         `)
@@ -650,7 +650,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(signed_off_at, ?1) as x, nullif(signed_off_at, signed_off_at) as x2 from project_release where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2099-01-01 00:00:00",
+            "2099-01-01 00:00:00.000",
             1,
           ]
         `)
@@ -1538,7 +1538,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(cutoff_time, ?1) as x from project_release where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "08:00:00",
+            "08:00:00.000",
             1,
           ]
         `)
@@ -1559,7 +1559,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(created_at, ?1) as d from organization where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2000-01-01 00:00:00",
+            "2000-01-01 00:00:00.000",
             1,
           ]
         `)

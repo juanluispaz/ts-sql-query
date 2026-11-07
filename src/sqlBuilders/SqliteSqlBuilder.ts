@@ -104,8 +104,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         const isDate = isValueSource(valueSource) && __isLocalDateValueSource(__getValueSourcePrivate(valueSource))
         const inApplicationZone = !!this._connectionConfiguration.sqliteRunsInApplicationTimeZone
             && !isDate
-            && format !== 'localdate as text'
-            && format !== 'localdate as text using T separator'
+            && !isLocalTextFormat(format)
         const modifier = inApplicationZone ? ", 'localtime'" : ''
         switch (format) {
             case 'Unix time seconds as integer':
@@ -333,13 +332,19 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         // A date is written with the calendar of the application, whatever the format is
         const today = this._connectionConfiguration.sqliteRunsInApplicationTimeZone ? "date('now', 'localtime')" : "date('now')"
         switch (dateTimeFormat) {
-            case 'localdate as text':
-            case 'localdate as text using T separator':
+            case 'localdate seconds as text':
+            case 'localdate milliseconds as text':
+            case 'localdate seconds as text using T separator':
+            case 'localdate milliseconds as text using T separator':
                 return "date('now', 'localtime')"
-            case 'UTC as text':
-            case 'UTC as text using T separator':
-            case 'UTC as text using Z timezone':
-            case 'UTC as text using T separator and Z timezone':
+            case 'UTC seconds as text':
+            case 'UTC milliseconds as text':
+            case 'UTC seconds as text using T separator':
+            case 'UTC milliseconds as text using T separator':
+            case 'UTC seconds as text using Z timezone':
+            case 'UTC milliseconds as text using Z timezone':
+            case 'UTC seconds as text using T separator and Z timezone':
+            case 'UTC milliseconds as text using T separator and Z timezone':
                 return today
             case 'Julian day as real number':
                 return 'julianday(' + today + ')'
@@ -355,15 +360,24 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     override _currentTime(_params: any): string {
         const dateTimeFormat = this._getDateTimeFormat('time')
         switch (dateTimeFormat) {
-            case 'localdate as text':
-            case 'localdate as text using T separator':
+            case 'localdate seconds as text':
+            case 'localdate seconds as text using T separator':
                 return "time('now', 'localtime')"
-            case 'UTC as text':
-            case 'UTC as text using T separator':
+            case 'localdate milliseconds as text':
+            case 'localdate milliseconds as text using T separator':
+                return "strftime('%H:%M:%f', 'now', 'localtime')"
+            case 'UTC seconds as text':
+            case 'UTC seconds as text using T separator':
                 return "time('now')"
-            case 'UTC as text using Z timezone':
-            case 'UTC as text using T separator and Z timezone':
-                return "(time('now') || 'Z')"
+            case 'UTC milliseconds as text':
+            case 'UTC milliseconds as text using T separator':
+                return "strftime('%H:%M:%f', 'now')"
+            case 'UTC seconds as text using Z timezone':
+            case 'UTC seconds as text using T separator and Z timezone':
+                return "strftime('%H:%M:%SZ', 'now')"
+            case 'UTC milliseconds as text using Z timezone':
+            case 'UTC milliseconds as text using T separator and Z timezone':
+                return "strftime('%H:%M:%fZ', 'now')"
             case 'Julian day as real number':
                 return "(julianday(strftime('1970-01-01 %H:%M:%f', 'now')) - julianday('1970-01-01'))"
             case 'Unix time seconds as integer':
@@ -377,18 +391,30 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     override _currentTimestamp(_params: any): string {
         const dateTimeFormat = this._getDateTimeFormat('dateTime')
         switch (dateTimeFormat) {
-            case 'localdate as text':
+            case 'localdate seconds as text':
                 return "datetime('now', 'localtime')"
-            case 'localdate as text using T separator':
+            case 'localdate milliseconds as text':
+                return "strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime')"
+            case 'localdate seconds as text using T separator':
                 return "strftime('%Y-%m-%dT%H:%M:%S', 'now', 'localtime')"
-            case 'UTC as text':
+            case 'localdate milliseconds as text using T separator':
+                return "strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime')"
+            case 'UTC seconds as text':
                 return "datetime('now')"
-            case 'UTC as text using T separator':
+            case 'UTC milliseconds as text':
+                return "strftime('%Y-%m-%d %H:%M:%f', 'now')"
+            case 'UTC seconds as text using T separator':
                 return "strftime('%Y-%m-%dT%H:%M:%S', 'now')"
-            case 'UTC as text using Z timezone':
+            case 'UTC milliseconds as text using T separator':
+                return "strftime('%Y-%m-%dT%H:%M:%f', 'now')"
+            case 'UTC seconds as text using Z timezone':
                 return "strftime('%Y-%m-%d %H:%M:%SZ', 'now')"
-            case 'UTC as text using T separator and Z timezone':
+            case 'UTC milliseconds as text using Z timezone':
+                return "strftime('%Y-%m-%d %H:%M:%fZ', 'now')"
+            case 'UTC seconds as text using T separator and Z timezone':
                 return "strftime('%Y-%m-%dT%H:%M:%SZ', 'now')"
+            case 'UTC milliseconds as text using T separator and Z timezone':
+                return "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')"
             case 'Julian day as real number':
                 return "julianday('now')"
             case 'Unix time seconds as integer':
@@ -433,7 +459,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         }
         const format = this._getValueSourceDateTimeFormat(valueSource)
         // A local text has no zone, and SQLite reads it as UTC unless it's told it's in the local one
-        const modifier = this._connectionConfiguration.sqliteRunsInApplicationTimeZone && (format === 'localdate as text' || format === 'localdate as text using T separator') ? ", 'utc'" : ''
+        const modifier = this._connectionConfiguration.sqliteRunsInApplicationTimeZone && isLocalTextFormat(format) ? ", 'utc'" : ''
         const v = this._appendSql(valueSource, params, false)
         // The 'subsec' modifier on unixepoch() was added in SQLite 3.42; older versions
         // need to go through julianday() arithmetic to preserve sub-second precision
@@ -551,6 +577,11 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             return 'json_group_array(json_object(' + result + '))'
         }
     }
+}
+
+function isLocalTextFormat(format: SqliteDateTimeFormat): boolean {
+    return format === 'localdate seconds as text' || format === 'localdate milliseconds as text'
+        || format === 'localdate seconds as text using T separator' || format === 'localdate milliseconds as text using T separator'
 }
 
 // Source: https://www.sqlite.org/lang_keywords.html (version: 3.30.1)

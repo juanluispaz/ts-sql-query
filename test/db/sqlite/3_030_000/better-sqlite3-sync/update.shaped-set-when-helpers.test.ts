@@ -246,7 +246,7 @@ describe(ctx.label, () => {
             expect(trueParams).toMatchInlineSnapshot(`
               [
                 "Base name",
-                "2024-03-03 00:00:00",
+                "2024-03-03 00:00:00.000",
                 2,
               ]
             `)
@@ -288,7 +288,7 @@ describe(ctx.label, () => {
             expect(trueParams).toMatchInlineSnapshot(`
               [
                 "Base name",
-                "2024-04-04 00:00:00",
+                "2024-04-04 00:00:00.000",
                 2,
               ]
             `)

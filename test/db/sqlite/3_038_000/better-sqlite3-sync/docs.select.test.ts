@@ -765,7 +765,7 @@ describe(ctx.label, () => {
         ctx.mockNext(expected)
         const connection = ctx.conn
 
-        const result = await connection.selectFrom(tIssue)
+        const result = sync(connection.selectFrom(tIssue)
             .select({
                 id: tIssue.id,
             })
@@ -774,7 +774,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .orderingSiblingsOnly()
             .where(tIssue.priority.greaterThan(1))
-            .executeSelectMany()
+            .executeSelectMany())
 
         expect(ctx.lastSql).toMatchInlineSnapshot()
         expect(ctx.lastParams).toMatchInlineSnapshot()

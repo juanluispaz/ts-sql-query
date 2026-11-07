@@ -114,7 +114,7 @@ describe(ctx.label, () => {
 
             // doc-start
             const oldProjectValues = tProject.oldValues()
-            const updatedNames = await connection.update(tProject)
+            const updatedNames = sync(connection.update(tProject)
                 .set({
                     name: 'Marketing site (v2)',
                 })
@@ -123,7 +123,7 @@ describe(ctx.label, () => {
                     oldName: oldProjectValues.name,
                     newName: tProject.name,
                 })
-                .executeUpdateOne()
+                .executeUpdateOne())
             // doc-end
 
             expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -554,13 +554,13 @@ describe(ctx.label, () => {
             const connection = ctx.conn
 
             // doc-start
-            const updatedCount = await connection.update(tIssue)
+            const updatedCount = sync(connection.update(tIssue)
                 .innerJoin(tProject).on(tIssue.projectId.equals(tProject.id))
                 .set({
                     title: tIssue.title.concat(' - ').concat(tProject.name),
                 })
                 .where(tProject.name.containsInsensitive('Public'))
-                .executeUpdate()
+                .executeUpdate())
             // doc-end
 
             expect(ctx.lastSql).toMatchInlineSnapshot()

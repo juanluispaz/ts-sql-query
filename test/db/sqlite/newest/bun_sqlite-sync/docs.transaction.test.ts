@@ -348,9 +348,9 @@ describe(ctx.label, () => {
         await ctx.withReseed(async () => {
             // doc-start
             const result = await connection.transaction(async () => {
-                return await connection.selectFromNoTable()
+                return sync(connection.selectFromNoTable()
                     .selectOneColumn(connection.const(1, 'int'))
-                    .executeSelectOne()
+                    .executeSelectOne())
             }, connection.isolationLevel('snapshot', 'read only'))
             // doc-end
 
@@ -387,10 +387,10 @@ describe(ctx.label, () => {
         await ctx.withReseed(async () => {
             // doc-start
             const organizations = await connection.transaction(async () => {
-                return await connection.selectFrom(tOrganization)
+                return sync(connection.selectFrom(tOrganization)
                     .select({ id: tOrganization.id, name: tOrganization.name })
                     .orderBy('id')
-                    .executeSelectMany()
+                    .executeSelectMany())
             }, connection.isolationLevel('read only'))
             // doc-end
 
@@ -411,7 +411,7 @@ describe(ctx.label, () => {
 
         await ctx.withReseed(async () => {
             await connection.transaction(async () => {
-                await connection.insertInto(tOrganization).set({ name: 'Top Organization', plan: 'free' }).executeInsert()
+                sync(connection.insertInto(tOrganization).set({ name: 'Top Organization', plan: 'free' }).executeInsert())
             }, connection.isolationLevel('read only')).catch((e: unknown) => { caught = e })
         })
 

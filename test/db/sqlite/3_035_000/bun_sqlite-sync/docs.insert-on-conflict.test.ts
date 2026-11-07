@@ -296,14 +296,14 @@ describe(ctx.label, () => {
             const connection = ctx.conn
 
             // doc-start
-            const insertedCount = await connection.insertInto(tProject).set({
+            const insertedCount = sync(connection.insertInto(tProject).set({
                     organizationId: 1,
                     slug:           'mktg-site',
                     name:           'Marketing web',
                 })
                 .onConflictOnConstraint(connection.rawFragment`project_organization_id_slug_key`)
                 .doNothing()
-                .executeInsert()
+                .executeInsert())
             // doc-end
 
             expect(ctx.lastSql).toMatchInlineSnapshot()

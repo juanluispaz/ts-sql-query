@@ -296,10 +296,10 @@ describe(ctx.label, () => {
         const connection = ctx.conn
 
         await ctx.withRollback(async () => {
-            await connection.update(tIssue).set({ parentId: 1 }).where(tIssue.id.in([2, 3])).executeUpdate()
+            sync(connection.update(tIssue).set({ parentId: 1 }).where(tIssue.id.in([2, 3])).executeUpdate())
 
             // doc-start
-            const descendants = await connection.selectFrom(tIssue)
+            const descendants = sync(connection.selectFrom(tIssue)
                 .select({
                     id:       tIssue.id,
                     title:    tIssue.title,
@@ -311,7 +311,7 @@ describe(ctx.label, () => {
                 })
                 .orderBy('title')
                 .orderingSiblingsOnly()
-                .executeSelectMany()
+                .executeSelectMany())
             // doc-end
 
             expect(ctx.lastSql).toMatchInlineSnapshot()

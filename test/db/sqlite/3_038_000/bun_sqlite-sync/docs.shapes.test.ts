@@ -162,7 +162,7 @@ describe(ctx.label, () => {
                 organizationName: 'Acme Inc.',
             }
 
-            const updatedCount = await connection.update(tProject)
+            const updatedCount = sync(connection.update(tProject)
                 .innerJoin(tOrganization).on(tProject.organizationId.equals(tOrganization.id))
                 .shapedAs({
                     projectName:      tProject.name,
@@ -171,7 +171,7 @@ describe(ctx.label, () => {
                 })
                 .set(projectNameAndOrganizationName)
                 .where(tProject.id.equals(projectNameAndOrganizationName.id))
-                .executeUpdate()
+                .executeUpdate())
             // doc-end
 
             expect(ctx.lastSql).toMatchInlineSnapshot()

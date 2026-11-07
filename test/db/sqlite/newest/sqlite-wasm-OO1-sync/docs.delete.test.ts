@@ -101,11 +101,11 @@ describe(ctx.label, () => {
             const connection = ctx.conn
 
             // doc-start
-            const deletePublicApiIssues = await connection.deleteFrom(tIssue)
+            const deletePublicApiIssues = sync(connection.deleteFrom(tIssue)
                 .using(tProject)
                 .where(tIssue.projectId.equals(tProject.id))
                 .and(tProject.name.containsInsensitive('PUBLIC'))
-                .executeDelete()
+                .executeDelete())
             // doc-end
 
             expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -135,11 +135,11 @@ describe(ctx.label, () => {
                 status: 'closed',
             }])
 
-            const deleteIssue = await connection.deleteFrom(tIssue)
+            const deleteIssue = sync(connection.deleteFrom(tIssue)
                 .using(issueForDelete)
                 .where(tIssue.title.equals(issueForDelete.title))
                 .and(tIssue.status.equals(issueForDelete.status))
-                .executeDelete()
+                .executeDelete())
             // doc-end
 
             expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -231,10 +231,10 @@ describe(ctx.label, () => {
             const connection = ctx.conn
 
             // doc-start
-            const deletedCount = await connection.deleteFrom(tIssue)
+            const deletedCount = sync(connection.deleteFrom(tIssue)
                 .innerJoin(tProject).on(tIssue.projectId.equals(tProject.id))
                 .where(tProject.name.containsInsensitive('Public'))
-                .executeDelete()
+                .executeDelete())
             // doc-end
 
             expect(ctx.lastSql).toMatchInlineSnapshot()

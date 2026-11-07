@@ -235,8 +235,8 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         return !!this.transaction
     }
     addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
-        const index = params.length
         setQueryParamType(params, params.length, type, typeCategory)
+        const index = params.length
         params.push(value)
         return '@' + index
     }

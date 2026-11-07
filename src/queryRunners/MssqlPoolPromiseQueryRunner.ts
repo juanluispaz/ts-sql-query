@@ -28,8 +28,8 @@ export class MssqlPoolPromiseQueryRunner extends ManagedTransactionPoolQueryRunn
         return super.getCurrentNativeConnection() as any
     }
     addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
-        const index = params.length
         setQueryParamType(params, params.length, type, typeCategory)
+        const index = params.length
         params.push(value)
         return '@' + index
     }

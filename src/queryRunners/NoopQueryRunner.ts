@@ -137,6 +137,7 @@ export class NoopQueryRunner implements QueryRunner {
         return this.promise.resolve()
     }
     addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
+        setQueryParamType(params, params.length, type, typeCategory)
         const index = params.length
         let result
         switch (this.database) {
@@ -164,13 +165,12 @@ export class NoopQueryRunner implements QueryRunner {
             default:
                 throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database: this.database }, 'Unknown database ' + this.database)
         }
-        setQueryParamType(params, params.length, type, typeCategory)
         params.push(value)
         return result
     }
     addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory): string {
-        const index = params.length
         setQueryParamType(params, params.length, type, typeCategory)
+        const index = params.length
         params.push({ out_param_with_name: name })
         return ':' + index
     }

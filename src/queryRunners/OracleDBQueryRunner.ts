@@ -154,15 +154,15 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         return !!this.config?.forUseInTransaction
     }
     addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
-        const index = params.length
         setQueryParamType(params, params.length, type, typeCategory)
+        const index = params.length
         params.push(value)
         return ':' + index
     }
     override addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory): string {
+        setQueryParamType(params, params.length, type, typeCategory)
         const index = params.length
         if (name) {
-            setQueryParamType(params, params.length, type, typeCategory)
             params.push({dir: oracleDb.BIND_OUT, as: name})
         } else {
             params.push({dir: oracleDb.BIND_OUT})

@@ -282,6 +282,13 @@ def _menu_order(root):
     return re.findall(r'^\s*- (?:[^\n]*?: )?"?([\w./-]+\.md)"?\s*$', nav, re.M)
 
 
+def _menu_titles(root):
+    """The title of each page in the site's menu"""
+    with open(os.path.join(root, 'mkdocs.yml'), encoding='utf-8') as file:
+        nav = file.read().split('\nnav:\n', 1)[1]
+    return {page: title.strip('"') for title, page in re.findall(r'^\s*- ([^\n]+?): "?([\w./-]+\.md)"?\s*$', nav, re.M)}
+
+
 def generate(root, llms_dir, pages_dir, base, files_prefix, intro):
     """Writes the files to llms_dir and a clean copy of each page to pages_dir.
 
@@ -312,6 +319,7 @@ def generate(root, llms_dir, pages_dir, base, files_prefix, intro):
         write(pages_dir, page, read(page))
 
     menu = _menu_order(root)
+    titles = _menu_titles(root)
     ordered = [page for page in menu if page in pages] + [page for page in pages if page not in menu]
 
     area_of = {area[0]: [] for area in AREAS}
@@ -374,7 +382,7 @@ def generate(root, llms_dir, pages_dir, base, files_prefix, intro):
                 # Usually one page is what's needed
                 index += ['', 'Or only the page of your driver:', '']
                 for page in pages_of_area:
-                    index.append(f'- [{posixpath.basename(page)[:-3]}]({base}{page})')
+                    index.append(f'- [{titles.get(page, posixpath.basename(page)[:-3])}]({base}{page})')
         index.append('')
     index += ['## One topic', '']
     for title, page, summary in PAGES:
@@ -439,6 +447,7 @@ def main():
     if len(sys.argv) != 3 or sys.argv[1] != '--package':
         sys.exit('usage: llms.py --package <dist folder> | --update-agents')
     dist = sys.argv[2]
+    os.makedirs(dist, exist_ok=True)
     with open(os.path.join(root, 'docs', 'AGENTS.md'), encoding='utf-8') as file:
         agents = _agents_for_the_package(_clean(file.read(), 'AGENTS.md'))
     with open(os.path.join(dist, 'AGENTS.md'), 'w', encoding='utf-8') as file:

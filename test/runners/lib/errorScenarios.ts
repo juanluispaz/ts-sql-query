@@ -143,20 +143,11 @@ const postgresScenarios: readonly ErrorScenario[] = [
     },
     {
         name: 'transaction-whose-failed-statement-was-caught',
-        onlyRunners: ['PgQueryRunner', 'PgPoolQueryRunner', 'PgLiteQueryRunner', 'BunSqlPostgresQueryRunner'],
+        onlyRunners: ['PgQueryRunner', 'PgPoolQueryRunner', 'PgLiteQueryRunner', 'BunSqlPostgresQueryRunner', 'PostgresQueryRunner'],
         run: ({ runner }) => runner.executeInTransaction(async () => {
             await runner.executeInsert(`insert into rt_probe (id, name) values (1, 'dup')`).catch(() => undefined)
         }, runner),
         expected: { reason: 'TRANSACTION_ERROR', transactionErrorType: 'transaction rolled back' },
-    },
-    {
-        // postgres.js begins and commits the transaction, and rejects with the error of the statement that failed
-        name: 'transaction-whose-failed-statement-was-caught-rejects-with-its-error',
-        onlyRunners: ['PostgresQueryRunner'],
-        run: ({ runner }) => runner.executeInTransaction(async () => {
-            await runner.executeInsert(`insert into rt_probe (id, name) values (1, 'dup')`).catch(() => undefined)
-        }, runner),
-        expected: { reason: 'SQL_CONSTRAINT_VIOLATED', constraintType: 'unique' },
     },
     {
         // A statement after the transaction of postgres.js was rolled back with its rollback() isn't sent, and the

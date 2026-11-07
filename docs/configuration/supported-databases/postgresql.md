@@ -58,7 +58,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
 ## A statement that fails inside a transaction
 
-On PostgreSQL, a statement that fails inside a transaction leaves the whole transaction failed, even if your code catches the error and goes on: the statements that follow are rejected, and at the commit the database rolls the transaction back. `ts-sql-query` reports the transaction as failed, with the `errorReason` `TRANSACTION_ERROR` (`transactionErrorType: 'transaction rolled back'`) and the error of the statement that failed in `error.cause.cause`, and with `connection.transaction(...)` the after-rollback functions run instead of the after-commit ones. With `PostgresQueryRunner`, `connection.transaction(...)` leaves the transaction to postgres.js, which rolls it back and rejects with the error of the statement that failed:
+On PostgreSQL, a statement that fails inside a transaction leaves the whole transaction failed, even if your code catches the error and goes on: the statements that follow are rejected, and at the commit the database rolls the transaction back. `ts-sql-query` reports the transaction as failed, with the `errorReason` `TRANSACTION_ERROR` (`transactionErrorType: 'transaction rolled back'`) and the error of the statement that failed in `error.cause.cause`, and with `connection.transaction(...)` the after-rollback functions run instead of the after-commit ones:
 
 ```ts
 await connection.transaction(async () => {

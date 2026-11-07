@@ -141,11 +141,13 @@ describe.skipIf(!isRealDbEnabled('postgres', 'docker', 'newest', 'postgres'))('P
 
     test('transaction-function-with-a-failed-statement-sends-nothing-more', async () => {
         const r = runner()
-        // postgres.js rolls the transaction back and rejects with the error of the statement that failed
+        // The transaction fails as rolled back by the database, caused by the statement that failed, and postgres.js
+        // rolls it back
         const error = await rejectionOf(r.executeInTransaction(async () => {
             await r.executeInsert('insert into rt_rolled_back (id) values (1)').catch(() => undefined)
         }, r))
-        expect(r.getErrorReason(error).reason).toBe('SQL_CONSTRAINT_VIOLATED')
+        expect(r.getErrorReason(error)).toEqual({ reason: 'TRANSACTION_ERROR', transactionErrorType: 'transaction rolled back' })
+        expect(r.getErrorReason((error as Error).cause).reason).toBe('SQL_CONSTRAINT_VIOLATED')
         expect(r.isTransactionActive()).toBe(false)
         expect(notices).toEqual([])
         // The connection went back to the pool: the query runner works on

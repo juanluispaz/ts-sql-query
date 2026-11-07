@@ -179,15 +179,22 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
         } catch (error) {
             return this.createRejectedPromise(error)
         }
-        // postgres.js begins and commits the transaction; when one of its statements failed, it rolls the transaction
-        // back and rejects with that error, instead of committing it
+        // postgres.js begins and commits the transaction. When one of its statements failed, PostgreSQL would answer
+        // the commit with ROLLBACK: the transaction fails with that, caused by the statement that failed, as the
+        // transactions of the other query runners, and postgres.js rolls it back
         const callback = (transaction: TransactionSql) => {
             if (this.transaction || this.lowLevelTransaction) {
                 return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'FORBIDDEN_CONCURRENT_USAGE' }, 'Forbidden concurrent usage of the query runner was detected when it tried to start a transaction'))
             }
             this.transaction = transaction
             let result = fn()
-            return result.finally(() => {
+            return result.then((value) => {
+                const error = this.transactionOutcome.failureOfTheTransaction()
+                if (error) {
+                    throw error
+                }
+                return value
+            }).finally(() => {
                 this.transaction = undefined
                 this.transactionOutcome.transactionEnded()
             })

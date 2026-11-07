@@ -71,15 +71,16 @@ function getKnownPostgresJsDriverErrorReasonWithoutNumber(error: PostgresJsError
             return { reason: 'INVALID_CONFIGURATION', name: 'target_session_attrs', value: targetSessionAttrs[1] }
         }
 
+        const channelBinding = /^channel_binding (.+) is not supported$/.exec(message)
+        if (channelBinding) {
+            return { reason: 'INVALID_CONFIGURATION', name: 'channel_binding', value: channelBinding[1] }
+        }
+
         switch (message) {
             case '.stream has been renamed to .forEach':
                 return { reason: 'SQL_INTERNAL_ERROR', databaseErrorMessage, errorType: 'api misuse' }
             case 'Missing publication names':
                 return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage, parameterErrorType: 'missing' }
-        }
-
-        if (message.startsWith('Malformed subscribe pattern: ')) {
-            return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage, parameterErrorType: 'invalid value' }
         }
 
         return undefined
@@ -89,6 +90,9 @@ function getKnownPostgresJsDriverErrorReasonWithoutNumber(error: PostgresJsError
         case 'CONNECTION_DESTROYED':
         case 'CONNECTION_CLOSED':
         case 'CONNECTION_ENDED':
+        // The server didn't answer the cancel of a query, and the connection is destroyed: it comes as the cause of
+        // CONNECTION_DESTROYED (or of QUERY_TIMEOUT)
+        case 'CANCEL_UNANSWERED':
             return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorMessage, errorType: 'connection lost' }
         case '57014':
             if (isPostgresJsQueryCancelledMessage(message)) {
@@ -106,23 +110,67 @@ function getKnownPostgresJsDriverErrorReasonWithoutNumber(error: PostgresJsError
         case 'ESOCKETTIMEDOUT':
             return { reason: 'SQL_TIMEOUT', databaseErrorCode: code, databaseErrorMessage, timeoutType: 'connection' }
         case 'UNDEFINED_VALUE':
+        // A helper (sql(object), sql(rows)) given no columns
+        case 'NO_COLUMNS':
             return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage, parameterErrorType: 'invalid value' }
+        case 'NO_PARTS':
+            // sql.identifier() with no part
+            return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage, parameterErrorType: 'missing' }
+        case 'BATCH_NOT_ARRAY':
+        case 'BATCH_NOT_QUERY':
+            // sql.batch(...) given something else than an array of queries
+            return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage, parameterErrorType: 'invalid type' }
         case 'MAX_PARAMETERS_EXCEEDED':
             // postgres.js refuses 65534 parameters or more, although its message says that 65534 is the maximum
             return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode: code, databaseErrorMessage, resourceType: 'parameters', limit: 65533 }
         case 'NOT_TAGGED_CALL':
             return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage, parameterErrorType: 'invalid binding' }
+        case 'TYPE_NOT_FOUND':
+            // A custom type of the `types` option, given by name, that the database doesn't have (or can't be looked
+            // up, with fetch_types: false)
+            return { reason: 'SQL_OBJECT_NOT_FOUND', databaseErrorCode: code, databaseErrorMessage }
         case 'UNSAFE_TRANSACTION':
+        // A savepoint (sql.begin inside sql.begin) given another mode than its transaction's, or prepared
+        case 'NESTED_TRANSACTION_MODE':
             return { reason: 'TRANSACTION_ERROR', databaseErrorCode: code, databaseErrorMessage, transactionErrorType: 'unsupported operation' }
+        case 'TRANSACTION_ROLLED_BACK':
+            // The commit of sql.begin(...) answered ROLLBACK, or a query of a transaction rolled back with sql.rollback()
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode: code, databaseErrorMessage, transactionErrorType: 'transaction rolled back' }
         case 'COPY_IN_PROGRESS':
             return { reason: 'FORBIDDEN_CONCURRENT_USAGE', databaseErrorCode: code, databaseErrorMessage }
         case 'SASL_SIGNATURE_MISMATCH':
+        case 'SASL_NONCE_MISMATCH':
+        case 'SASL_MECHANISM_NOT_SUPPORTED':
+        case 'CHANNEL_BINDING_REQUIRED':
+        case 'AUTHENTICATION_INCOMPLETE':
         case 'AUTH_TYPE_NOT_IMPLEMENTED':
             return { reason: 'SQL_AUTHENTICATION_ERROR', databaseErrorCode: code, databaseErrorMessage }
         case 'CONNECT_TIMEOUT':
+        // Waited longer than queue_timeout for a connection of the pool
+        case 'QUEUE_TIMEOUT':
             return { reason: 'SQL_TIMEOUT', databaseErrorCode: code, databaseErrorMessage, timeoutType: 'connection' }
+        case 'QUERY_TIMEOUT':
+            // Longer than query_timeout: postgres.js cancels the query, and the cancel is its cause
+            return { reason: 'SQL_TIMEOUT', databaseErrorCode: code, databaseErrorMessage, timeoutType: 'statement' }
+        case 'SSL_NOT_SUPPORTED':
+        case 'SSL_NEGOTIATION_NOT_SUPPORTED':
+        case 'TLS_HANDSHAKE_FAILED':
+        // A connection parameter (user, database, application_name, ...) with a NUL character
+        case 'NUL_CHARACTER':
+            return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorMessage, errorType: 'invalid connection configuration' }
         case 'MESSAGE_NOT_SUPPORTED':
             return { reason: 'SQL_FEATURE_NOT_SUPPORTED', databaseErrorCode: code, databaseErrorMessage }
+        case 'PROTOCOL_ERROR':
+            // A message of the server with an invalid length; it closes the connection, and comes as the cause of
+            // CONNECTION_CLOSED
+        case 'STATEMENT_PENDING':
+            // A prepared statement used before the server described it
+            return { reason: 'SQL_INTERNAL_ERROR', databaseErrorCode: code, databaseErrorMessage, errorType: 'engine internal' }
+        case 'ARRAY_REMOVED':
+        case 'BATCH_EXECUTED':
+        case 'BATCH_UNSUPPORTED':
+            // sql.array() (removed in postgres.js 4), a query of sql.batch(...) already run, or one that can't go in a batch
+            return { reason: 'SQL_INTERNAL_ERROR', databaseErrorCode: code, databaseErrorMessage, errorType: 'api misuse' }
     }
 
     if (isPostgresJsInvalidConnectionConfigurationCode(code)) {

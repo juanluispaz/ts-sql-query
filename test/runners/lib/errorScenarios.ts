@@ -159,6 +159,24 @@ const postgresScenarios: readonly ErrorScenario[] = [
         expected: { reason: 'SQL_CONSTRAINT_VIOLATED', constraintType: 'unique' },
     },
     {
+        // A statement after the transaction of postgres.js was rolled back with its rollback() isn't sent, and the
+        // transaction rejects with that refusal
+        name: 'statement-after-the-driver-rolled-back-the-transaction',
+        onlyRunners: ['PostgresQueryRunner'],
+        run: ({ runner }) => runner.executeInTransaction(async () => {
+            await runner.execute(transaction => (transaction as { rollback(): Promise<void> }).rollback())
+            await runner.executeSelectManyRows('select 1')
+        }, runner),
+        expected: { reason: 'TRANSACTION_ERROR', transactionErrorType: 'transaction rolled back', databaseErrorCode: 'TRANSACTION_ROLLED_BACK' },
+    },
+    {
+        // postgres.js refuses a begin sent on a connection of its pool, outside sql.begin or sql.reserve
+        name: 'begin-on-a-connection-of-the-pool',
+        onlyRunners: ['PostgresQueryRunner'],
+        run: mutation('begin'),
+        expected: { reason: 'TRANSACTION_ERROR', transactionErrorType: 'unsupported operation', databaseErrorCode: 'UNSAFE_TRANSACTION' },
+    },
+    {
         name: 'duplicate-primary-key',
         run: mutation(`insert into rt_probe (id, name) values (1, 'dup')`),
         expected: { reason: 'SQL_CONSTRAINT_VIOLATED', constraintType: 'unique', constraintName: 'rt_probe_pkey', tableName: 'rt_probe', databaseErrorNumber: '23505' },

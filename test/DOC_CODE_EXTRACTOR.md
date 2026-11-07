@@ -41,6 +41,7 @@ For the navigation map see [`README.md`](./README.md); for `test/lib/` see
 bun run codegen:doc-code      # regenerate the test/db/<db>/newest/documentation/ cells
 npm run codegen:doc-code      # same, via tsx
 bun run codegen               # umbrella: codegen:doc-code (what CI runs)
+bun run docs:sql-tabs <page.md>…  # write the SQL tabs + parameters of the ```ts blocks that run a query and show none (--help)
 ```
 
 Wrapper: [`scripts/codegen-doc-code.sh`](../scripts/codegen-doc-code.sh)

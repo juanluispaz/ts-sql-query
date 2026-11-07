@@ -141,6 +141,14 @@ more memory**. The preflight makes the shortfall obvious and the warmup softens
 the peak, but neither manufactures RAM the host doesn't have, so a short host is
 stopped up front rather than allowed to fail slowly.
 
+### Flaky docker runs on macOS
+
+On Apple Silicon the SQL Server, Oracle and MySQL 5.7 images run emulated
+as amd64 (see the notes in [`lib/dockerImages.ts`](./lib/dockerImages.ts)),
+so they are slower and more fragile there. A docker failure seen only on
+macOS is environmental until proven otherwise: rerun the test alone, and
+take the Linux CI as the reference.
+
 ## Narrowing the docker scope
 
 Container reuse cuts the *startup* tax. `--docker newest` cuts the *matrix*
@@ -236,7 +244,10 @@ Pick a **pinned** image whose engine version matches the folder; it may be a
 different repo/tag. If it is a **new repository** not already matched, add its
 prefix to [`tests-stop-containers.sh`](../scripts/tests-stop-containers.sh) (the
 existing `postgres:` / `mysql:` / `mariadb` / `mcr.microsoft.com/mssql/server` /
-`gvenzl/oracle-xe` prefixes already cover their older tags). Then verify with
+`gvenzl/oracle-xe` prefixes already cover their older tags). The tier's cells are made by
+copying `newest`, editing what the version doesn't offer and baking (see
+[`NEW_DATABASE.md` § Adding a compatibility version](./NEW_DATABASE.md#adding-a-compatibility-version)).
+Then verify with
 `bun run tests <db>/<version>/<connector> --docker --docker-version closest`;
 the runner logs `[docker-version] <db>: using <image>` when the container starts.
 

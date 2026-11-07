@@ -206,6 +206,12 @@ A new `<compatibilityVersion>` folder under an existing database:
 
 7. **Audit + typecheck + tests**.
 
+8. **Real-validate each new cell** on an engine of its version:
+   `bun run tests '<db>/<new-version>/<connector>' --docker --docker-version closest`
+   (one connector at a time; `--wasm` for the WASM cells). Classify each real
+   failure by its cause before marking it (see
+   [`LIMITATIONS.md` § The decision rule](./LIMITATIONS.md#the-decision-rule)).
+
 ## Mirror cells from EXTERNAL_CAVEATS
 
 When wiring a new database, connector or version, the dialect-specific

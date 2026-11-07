@@ -1069,15 +1069,12 @@ narrowing_runner_flags() {
     esac
 }
 
-# Coverage scope defaults live in bunfig.toml (`coveragePathIgnorePatterns`)
-# for bun and in vitest.config.ts (`test.coverage.exclude`) for vitest.
-# Both runners read their own config file natively; we don't need to
-# duplicate the patterns here because we don't provide a CLI override
-# for the scope (bun ignores `--config=<path>` for coverage settings,
-# so a CLI override would only ever apply to one of the two runners
-# and that asymmetry isn't worth the complexity). To narrow scope ad
-# hoc, agents edit bunfig.toml / vitest.config.ts directly, or use
-# `tests <coord>` which already restricts to a single cell.
+# The default coverage scope (`--coverage-scope library`) lives in bunfig.toml
+# (`coveragePathIgnorePatterns`) for bun and in vitest.config.ts
+# (`test.coverage.exclude`) for vitest, which both runners read natively. For
+# the other scopes (`runners`, `mappers`, `all`), bun gets a generated bunfig
+# (write_scoped_bunfig above) and vitest reads TS_SQL_QUERY_COVERAGE_SCOPE in
+# vitest.config.ts.
 
 # Wipe ./.test-report/ so previous artifacts don't contaminate the
 # next run, then recreate it empty. All test-report output lives

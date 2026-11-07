@@ -275,6 +275,9 @@
         "tests:where-is:check": "bash scripts/tests-where-is-check.sh",
         "tests:stop-containers": "bash scripts/tests-stop-containers.sh",
         "tests:reopen": "bash scripts/tests-reopen.sh",
+        "tests:propagate": "bash scripts/tests-propagate.sh",
+        "tests:mark": "bash scripts/tests-mark.sh",
+        "tests:sync-transform": "bash scripts/tests-sync-transform.sh",
         "test:fastest": "bash scripts/tests.sh --native none",
         "test:fast": "bash scripts/tests.sh",
         "test:no-docker": "bash scripts/tests.sh --wasm",
@@ -298,7 +301,8 @@
         "dist-alpha": "npm run build && cp LICENSE.md package.json README.md dist && python3 -B scripts/llms.py --package dist && cd dist && npm stage publish --tag alpha",
         "dist-beta": "npm run build && cp LICENSE.md package.json README.md dist && python3 -B scripts/llms.py --package dist && cd dist && npm stage publish --tag beta",
         "docs": "mkdocs serve",
-        "docs:check": "mkdocs build --strict --site-dir \"$(mktemp -d)\""
+        "docs:check": "mkdocs build --strict --site-dir \"$(mktemp -d)\"",
+        "docs:sql-tabs": "bash scripts/docs-sql-tabs.sh"
     },
     "repository": {
         "type": "git",

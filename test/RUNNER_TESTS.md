@@ -42,6 +42,19 @@ mssql upgrade removes those internals, and
 `does-not-outlive-a-transaction-the-server-aborted` fails when the fix stops
 working for any reason.
 
+The same holds for any new fix that relies on driver internals: it comes
+with a test of those internals, so a driver upgrade that removes them fails
+loudly.
+
+Bun SQL traps the tests already account for:
+
+- The Bun SQL runners check the `Bun.SQL` instance they are given: its
+  adapter must be the one the runner speaks, and the MySQL runner needs
+  `foundRows: true` (`general/BunSqlConfiguration.test.ts`).
+- `Bun.SQL` connects on the first query, not when it is created.
+- Its row arrays carry extra properties (`count`, `command`): spread them
+  before comparing with `toEqual`.
+
 ## The engines
 
 A docker-backed runner test gets its engine from the same lifecycle the cells

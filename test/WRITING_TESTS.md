@@ -5,9 +5,12 @@ not normative — the rules live in [`DESIGN.md`](./DESIGN.md); this doc
 shows how to apply them.
 
 - [Anatomy of a test file](#anatomy-of-a-test-file)
+- [What a test comment says](#what-a-test-comment-says)
 - [Updating snapshots](#updating-snapshots)
 - [Real-DB validation of one cell](#real-db-validation-of-one-cell)
 - [Adding a test](#adding-a-test)
+- [Propagating a test to every cell](#propagating-a-test-to-every-cell)
+- [Engine traps worth knowing](#engine-traps-worth-knowing)
 - [Negative type tests](#negative-type-tests)
 - [Type-checking the test matrix](#type-checking-the-test-matrix)
 - [Testing a runtime guard that is also typed at compile time](#testing-a-runtime-guard-that-is-also-typed-at-compile-time)
@@ -79,6 +82,23 @@ For mutating tests (INSERT / UPDATE / DELETE), wrap the body in
 `connection.transaction(...)` use `ctx.withReseed`. Full contract in
 [`TEST_LIB.md` § Mutation safety contract](./TEST_LIB.md#testcontextts--mutation-safety-contract).
 
+## What a test comment says
+
+A comment in a test is for whoever maintains that test. It says:
+
+- the scenario: what the query does and why this case matters;
+- the data: the seed rows or the mock value it relies on, and the result it
+  expects;
+- for a marker, the reason in this cell's own dialect.
+
+It never says:
+
+- anything about other cells, other files or other databases;
+- how many cells have the test;
+- `src/` paths with line numbers;
+- audit or round ids, or the history of a bug;
+- a defence of the test or of the type.
+
 ## Updating snapshots
 
 Whenever the library's emitted SQL or params change, refresh snapshots:
@@ -109,6 +129,10 @@ instead of churning every snapshot after it.
 
 Review the diff before committing — a snapshot change is real signal that
 the emitted SQL has changed.
+
+The mock and the real engine see the same SQL: the SqlBuilder emits it before
+the runner is involved. So bake in mock mode (no `--docker`), and use
+`--docker` to validate the values.
 
 ## Real-DB validation of one cell
 
@@ -204,6 +228,12 @@ re-validate" loop benefits the most. Full flag reference in
    version); comment out (do not delete) when the test does not apply.
    The commented body must be the **full canonical** per
    [`DESIGN.md` § Full-canonical-body discipline](./DESIGN.md#full-canonical-body).
+   Tools (each has `--help`, with its pitfalls): `bun run tests:propagate seed|all <file>`
+   carries the tests added or changed since HEAD from the reference cells to the
+   others (snapshots emptied, markers kept, `-sync` cells rewritten) and prints
+   what to bake; `bun run tests:mark <coord> --not-applicable '<reason>' --test
+   '<name>'` comments a test out under its marker (`--unmark` brings it back);
+   `bun run tests:sync-transform <coord>` rewrites `await` into `sync()` in `-sync` cells.
 
 8. **If the test is the suite's counterpart of a documentation example, prefix
    `docs:`** and mark that part with `// doc-start` / `// doc-end`. See
@@ -226,6 +256,46 @@ re-validate" loop benefits the most. Full flag reference in
    The rare irreducible case takes a `// tests-audit-disable-next-line
    <rule> -- <reason>` with the reason mandatory — see
    [`TESTS_AUDIT.md` § Suppress a finding](./TESTS_AUDIT.md).
+
+## Propagating a test to every cell
+
+- **Bake in one pass** with a glob:
+  `bun run tests '*/*/*/<file>.test.ts' --update-snapshots`. See
+  [`CLI.md` § Coord patterns](./CLI.md#coord-patterns).
+- **A new test goes at the end of the file**, in every cell.
+- **Real before `NOT-APPLICABLE`.** If the call compiles in a cell, the test
+  runs there, with that dialect's snapshot. Don't weaken a fixture to save an
+  import; add the import.
+- **Only `tsc` checks types.** The runners strip types, so `assertType`, a
+  `never` and a `@ts-expect-error` are checked by `bun run validate:tests`,
+  never by `bun run tests`.
+- **In the `-sync` cells**, `sync()` replaces `await`, and
+  `await expect(x).rejects…` becomes `expect(() => sync(x)).toThrow('REASON')`.
+  A copied `await` passes silently there.
+- **On-conflict bodies differ per dialect.** PostgreSQL and SQLite use
+  `onConflictOn(...).doUpdateSet(...)`; MySQL and MariaDB use the bare
+  `onConflictDoUpdateSet(...)`. A verbatim copy doesn't compile. See
+  [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md).
+- **Before marking a test `NOT-APPLICABLE` because of the connector**, read
+  `docs/configuration/query-runners/recommended/<connector>.md` and the
+  connector's example in `src/examples/`: the setup they show may make the
+  test runnable.
+
+## Engine traps worth knowing
+
+Facts that make a test fail on a real engine although the SQL is right:
+
+- **Ordered comparisons on a uuid** (`between`, `lessThan`, …) are not
+  portable. SQL Server orders `uniqueidentifier` with the last group most
+  significant. On Oracle the bounds don't bracket the stored text.
+- **SQL Server returns a uuid in upper case.**
+- **A recursive `with` whose result should be only the anchor** uses a
+  recursive arm that never matches (for example `id = parent.id + 1000`). On
+  Oracle a cycle fails even with a depth limit (see
+  [`ENGINE_SUPPORT.md`](./ENGINE_SUPPORT.md)).
+- **Oracle refuses a read only transaction** that reads a table created or
+  changed moments before (ORA-01466). See
+  [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md).
 
 ## Negative type tests
 
@@ -443,6 +513,9 @@ Whenever a runtime assertion is involved — `expect(rows).toEqual(...)`,
 after commit — the table needs to exist in the seed. Reach for the
 shared-domain extension.
 
+**Prefer a new table to a new column**: a new column ripples to every test
+that lists the columns of its table (see step 4 below).
+
 **Checklist**:
 
 1. **Pick a name that fits the domain semantically.** "verified",
@@ -463,7 +536,16 @@ shared-domain extension.
      the data-only reset, or the per-test reseed leaves its rows behind.
    - `test/db/<db>/domain/connection.ts` — declare the column on the
      `Table` subclass (and add the `CustomBooleanTypeAdapter` import etc.
-     as needed).
+     as needed). A new custom `typeName` also goes in `baseTypeForCustom`
+     in each of the six connections.
+
+   Per-dialect details: each `schema.sql` drops its objects in its own
+   form (`DROP … IF EXISTS`; on SQL Server `IF OBJECT_ID(…) IS NOT NULL
+   DROP …`; on Oracle a `BEGIN EXECUTE IMMEDIATE 'DROP …'; EXCEPTION WHEN
+   OTHERS THEN NULL; END;`). On SQL Server, inserting explicit ids needs
+   `SET IDENTITY_INSERT <table> ON` / `OFF` around the rows. On PostgreSQL,
+   `seed.sql` realigns each serial with `setval(...)` after the explicit
+   ids.
 4. **Fix the shape-asserting doc-tests.** Adding a column ripples to
    `docs.advanced.utility-types.test.ts` (`ColumnKeys`, `WritableColumnKeys`,
    `WritableShapeFor`, `AutogeneratedIdColumnKeys` unions need the new key)
@@ -722,10 +804,15 @@ behaviour was documented on.
 
 ## When a test surfaces a bug in `src/`
 
-**Division of labor.** The agent writing or porting tests detects bugs and
-hands them off; a separate fixing agent diagnoses and patches `src/`.
-Mixing both roles breaks the test agent's breadth-first momentum and
-produces shallow analysis. This split is not optional.
+**The practice.** A bug found while testing is fixed in `src/` directly, with
+a test that fails before the fix and passes after on the engine where it
+happened, and a changelog entry if the bug existed in a published version.
+Ask the maintainer first when the fix changes behaviour that a test fixes on
+purpose or that the docs promise. [`BUGS.md`](./BUGS.md) holds only what is
+found and left for later.
+
+**An `INTERNAL` reason is a library bug.** A `TsSqlError` with reason
+`INTERNAL` on a composition the types allow is a defect, not a limitation.
 
 Before triaging, **ask the index, not `grep`**. The same lookup answers
 three different questions in one report — paste the output into the
@@ -764,7 +851,7 @@ bun run tests:where-is --search-pattern-summary '<shared-token>'
 (Past near-miss: nearly re-introduced `AllowsNoTableOrViewRequired` by
 hand.) Full guide in [`CODE_SEARCH.md` § "This tool vs. textual search"](./CODE_SEARCH.md#this-tool-vs-textual-search).
 
-**Test author's checklist** (this is all you do when you find a suspect):
+**Triage checklist** (for every suspect, whether you fix it now or leave it):
 
 1. Two-minute triage — four buckets, four first-class reason markers
    (full distinction in [`LIMITATIONS.md` § The decision
@@ -793,13 +880,14 @@ hand.) Full guide in [`CODE_SEARCH.md` § "This tool vs. textual search"](./CODE
      paragraph in [`BUGS.md`](./BUGS.md) — enough to reproduce, no deeper.
 2. Leave the suite green (assert current wrong behaviour, or block-comment
    per the symmetry rule with the full canonical body).
-3. Keep going with the next test. **Do not pause to read `src/`.**
+3. Fix it now (see "The practice" above), or leave the entry in `BUGS.md`
+   and keep going with the next test.
 
-**Not the test author's job — delegated to the fixing agent:**
+**What fixing a bug includes** (now, or when an entry is picked up later):
 
 - Root-cause diagnosis (reading `src/queryBuilders/...`, `src/sqlBuilders/...`).
 - Categorising the bug shape (the common shapes are listed in
-  [`BUGS.md` § Common bug shapes](./BUGS.md#common-bug-shapes-for-the-fixing-agent)).
+  [`BUGS.md` § Common bug shapes](./BUGS.md#common-bug-shapes)).
 - Writing the fix in `src/`.
 - Writing the matching negative-type test under
   `test/db/<db>/types.negative/` that locks the new (narrower) public
@@ -811,7 +899,7 @@ hand.) Full guide in [`CODE_SEARCH.md` § "This tool vs. textual search"](./CODE
 **Worked example.** This suite
 flagged `PostgreSqlConnection.onConflictDoUpdateSet` accepting the bare
 upsert form that PostgreSQL rejects → entry in `BUGS.md` plus `TODO[BUG]`
-in the postgres cells. The fixing agent removed the methods from
+in the postgres cells. The fix removed the methods from
 `PostgreSqlConnection` typing, added negative-type tests in
 `test/db/postgres/types.negative/insert.test.ts`, closed the `BUGS.md`
 entry, and converted the wrap reasons in this suite to `// NOT-APPLICABLE: …`

@@ -91,6 +91,16 @@ The test that separates the two: **who decides the data type of that position?**
   queries. The fix is always to pick the type that fits the value, never to
   reject the value.
 
+Two cases that are often misfiled:
+
+- **`allowNestedTransactions` on a runner that doesn't support it** is
+  `NOT-APPLICABLE`: it is a capability of the runner. A savepoint is a
+  different feature, not a way to close it.
+- **A false `NOT-APPLICABLE`** shows as a commented body that would compile in
+  that cell, with an empty `toMatchInlineSnapshot()` because it never ran
+  there. If the call is typed in that dialect, the test runs live (or gets the
+  marker of its real cause).
+
 `NOT-APPLICABLE` and `NOT-SUPPORTED` are **first-class categories, not
 sub-tags of TODO** (no `// TODO[NOT-APPLICABLE]` — "TODO" implies pending
 work, which is wrong for a permanent boundary). For `NOT-APPLICABLE` the
@@ -129,6 +139,9 @@ when the index isn't built.
   [MariaDB](../docs/configuration/supported-databases/mariadb.md) and
   [SQLite](../docs/configuration/supported-databases/sqlite.md) accept
   forms where some non-aggregated columns are omitted from GROUP BY.
+  MySQL only within limits: `ONLY_FULL_GROUP_BY`, in the default `sql_mode`
+  since 5.7.5, rejects a non-grouped column unless it is functionally
+  dependent on the grouped ones. MariaDB and SQLite accept it by default.
 
 A select with an aggregate and no group by at all is detected at compile
 time (a column that refers to a table and is not aggregated makes the
@@ -167,6 +180,13 @@ The existing `docs:aggregate-and-group-by/group-by-expressions` and
 `docs:select/with-clause` tests follow the conservative shape; do the
 same in any new aggregate test.
 
+
+## `select({})` compiles and sends invalid SQL
+
+A select with an empty object compiles and sends `select  from <table>`,
+which no database accepts. The maintainer decided not to reject it in the
+types: it would add complexity to types that are already complex, for little
+value. Don't write a test that expects a compile error for it.
 
 ## The library does not auto-rewrite a misplaced aggregate predicate into HAVING
 

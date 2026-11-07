@@ -164,6 +164,14 @@ commented out in `test/db/oracle/newest/oracledb/docs.transaction.test.ts`.
 When adding a new Oracle cell, either keep the test commented or write
 a single-arg Oracle-friendly variant.
 
+### Oracle — a read only transaction refuses a table changed moments before
+
+Oracle rejects a read only transaction that reads a table created or
+changed moments before, with ORA-01466. The read only tests on Oracle select
+without a table (`selectFromNoTable()` in
+`docs:transaction/access-mode`, `select 1 from dual` in the runner
+contract).
+
 ### SQL Server — no INSERT ... ON CONFLICT
 
 Same list of commented tests as Oracle in `test/db/sqlserver/newest/mssql/docs.insert.test.ts`:

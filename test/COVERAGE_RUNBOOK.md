@@ -212,6 +212,22 @@ After applying these filters, the in-scope file list often shrinks to
 6-12 files with material uncov, not the 30+ the raw `lines%` sort
 suggests.
 
+**Uncovered is not dead.** Never delete code in `src/` because no test
+reaches it. The TypeScript types are erased at runtime, and a value can
+come from JavaScript, from JSON or through `any`: a guard that no typed
+input reaches is defence against those. Classify it as defensive and keep
+it; a cleanup is a separate proposal the maintainer reviews (see
+[`DEFERRED.md`](./DEFERRED.md)).
+
+**"Invalid SQL" doesn't make a walker branch unreachable.** The
+introspection walkers (`__hasAggregation`, `__isAllowed`) never execute the
+query, so an aggregate placed where the SQL would be invalid still reaches
+them, through a `rawFragment` or a scalar subquery made with
+`forUseAsInlineQueryValue()`. Test those branches with `queryHasAggregation`
+/ `isQueryAllowed` from
+[`lib/queryIntrospection.ts`](./lib/queryIntrospection.ts), building the
+query without executing it (see `has-aggregation.sql-invalid-positions.test.ts`).
+
 ## Pre-proposal pre-flight
 
 For every file that survives §3, run **five** grep passes before proposing
@@ -540,10 +556,11 @@ Once the canonical is GREEN/YELLOW, propagate via a small `cp` script (or
    [`ANTIPATTERNS.md` § Stub as commented test](./ANTIPATTERNS.md#2-stub-as-commented-test)
    and [`LIMITATIONS.md`](./LIMITATIONS.md) for the marker comparison.
 
-3. **Bake snapshots per cell**:
+3. **Bake snapshots** in one pass over every cell:
    ```bash
-   bun run tests '<db>/<version>/<connector>/<file>.test.ts' --update-snapshots
+   bun run tests '*/*/*/<file>.test.ts' --update-snapshots
    ```
+   or one cell at a time with `'<db>/<version>/<connector>/<file>.test.ts'`.
 
 4. **Apply the EXTERNAL_CAVEATS re-wrap list from §4.5 / §7.** Block-comment
    the relevant tests in the affected cells with the canonical body
@@ -558,8 +575,9 @@ Once the canonical is GREEN/YELLOW, propagate via a small `cp` script (or
    `.returning(...)`): write the FULL
    canonical body inside `/* */`, not a stub. The reason header is
    `// NOT-APPLICABLE: <dialect-feature>` (these are deliberate dialect
-   boundaries, not pending work) and points to the supporting cell whose
-   body is being mirrored.
+   boundaries, not pending work). The reason describes this cell's own
+   dialect only; it names no other cell, file or database (see
+   [`WRITING_TESTS.md` § What a test comment says](./WRITING_TESTS.md#what-a-test-comment-says)).
 
 6. **Audit symmetry**:
    ```bash

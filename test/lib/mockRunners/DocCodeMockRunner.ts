@@ -19,6 +19,28 @@ import { expect } from '../testRunner.js'
 import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
 import type { DatabaseType, QueryType } from '../../../src/queryRunners/QueryRunner.js'
 import { SynchronousPromise } from 'synchronous-promise';
+import { appendFileSync } from 'node:fs'
+import { inspect } from 'node:util'
+
+// `docs:sql-tabs` (test/lib/authoring/docSqlTabs.ts) writes the SQL tabs of the
+// docs from what the snippets send: it puts a placeholder fence holding
+// `@@<id>@@` after each snippet and runs these tests with this variable naming a
+// file. A test whose expected SQL holds a placeholder then appends to that file
+// the database, the SQL and the parameters its snippet sent, instead of asserting.
+const SQL_TABS_LOG = process.env['DOC_CODE_SQL_TABS_LOG']
+
+function recordForSqlTabs(runner: DocCodeMockRunner, expected: readonly string[]): boolean {
+    if (!SQL_TABS_LOG) return false
+    const id = /@@(.+?)@@/.exec(expected.join(' '))?.[1]
+    if (id === undefined) return false
+    appendFileSync(SQL_TABS_LOG, JSON.stringify({
+        id,
+        database: runner.database,
+        sqls: runner.history,
+        params: runner.paramsHistory.map(p => inspect(p, { breakLength: Infinity, depth: 10 })),
+    }) + '\n')
+    return true
+}
 
 /**
  * Collapse the whitespace the docs add for readability (line breaks + indentation)
@@ -96,6 +118,8 @@ export class DocCodeMockRunner extends MockQueryRunner {
     /** Every query's SQL, in execution order — for snippets that run more than one
      *  statement (e.g. `executeSelectPage()` emits a data query then a count). */
     readonly history: string[] = []
+    /** The params of each query of `history`. */
+    readonly paramsHistory: unknown[][] = []
     private readonly primed: unknown[] = []
 
     constructor(database: DatabaseType = 'noopDB') {
@@ -104,6 +128,7 @@ export class DocCodeMockRunner extends MockQueryRunner {
             self.lastSql = query
             self.lastParams = params
             self.history.push(query)
+            self.paramsHistory.push([...params])
             return self.primed.length ? self.primed.shift() : heuristicResult(type)
         }, { database, promise: SynchronousPromise })
         self = this
@@ -115,6 +140,7 @@ export class DocCodeMockRunner extends MockQueryRunner {
         this.lastSql = ''
         this.lastParams = []
         this.history.length = 0
+        this.paramsHistory.length = 0
         this.primed.length = 0
     }
 
@@ -128,6 +154,7 @@ export class DocCodeMockRunner extends MockQueryRunner {
      *  asserted text reads identically to the db-matrix snapshots; the wrapping
      *  double-quotes are dropped before comparing. */
     assertSql(expected: string): void {
+        if (recordForSqlTabs(this, [expected])) return
         expect(normalizeSql(this.lastSql)).toBe(normalizeSql(unwrapSnapshot(expected)))
     }
 
@@ -136,6 +163,7 @@ export class DocCodeMockRunner extends MockQueryRunner {
      *  SynchronousPromise, so every chained query has executed (and recorded its
      *  SQL) by the time the snippet body returns, even without an `await`. */
     assertSqls(expected: readonly string[]): void {
+        if (recordForSqlTabs(this, expected)) return
         expect(this.history.map(normalizeSql)).toEqual(expected.map((e) => normalizeSql(unwrapSnapshot(e))))
     }
 }

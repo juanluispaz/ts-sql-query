@@ -181,6 +181,7 @@ the agent consuming them.
 | Want | Read |
 |---|---|
 | Bugs in `src/` the suite has surfaced | [`BUGS.md`](./BUGS.md) |
+| Work the maintainer decided to do later | [`DEFERRED.md`](./DEFERRED.md) |
 | Deliberate gaps in `src/` (not bugs — declared limitations we could close) | [`LIMITATIONS.md`](./LIMITATIONS.md) |
 | What the engine / this engine version / its build / the driver cannot run (permanent, not our backlog) | [`ENGINE_SUPPORT.md`](./ENGINE_SUPPORT.md) |
 | How a per-dialect / per-driver caveat is wired today (which tests it disables, which workaround is already in the runner) | [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md) |

@@ -152,6 +152,11 @@ Otherwise, narrow stays the default.
 
 Orthogonal — combine freely (except for the [Forbidden combinations](#forbidden-combinations)).
 
+A new mode is a flag of [`scripts/tests.sh`](../scripts/tests.sh) (as
+`--use-bun` / `--use-node` are), never an environment variable to prefix the
+command with. One existing exception: `VITEST_MAIN_HEAP_MB` (the heap of
+the main vitest process, see [Coverage](#coverage)) has no flag.
+
 | Flag | What it does | Default |
 |---|---|---|
 | **Axis 1 — participation (what RUNS; excludes, never mocks)** | | |
@@ -433,6 +438,12 @@ script vets the string against a strict whitelist (alphanumerics,
 `. _ / -`, and the pattern chars themselves) and asks bash to expand braces
 + globs in one shot. Anything outside that vocabulary is rejected before
 any expansion runs.
+
+A brace with a single name (`postgres/*/{pg}`) is not a brace for bash: it
+stays literal and matches nothing. Write the plain path (`postgres/*/pg`).
+
+To bake a file in every cell in one pass, glob all three levels:
+`bun run tests '*/*/*/<file>.test.ts' --update-snapshots`.
 
 An unmatched glob/brace expansion is an error (nullglob), not a silent
 zero-test run. A coord that literally names a version folder other than

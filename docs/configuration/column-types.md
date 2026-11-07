@@ -145,6 +145,27 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
 When only one column needs its own conversion, use a [type adapter](#type-adapters) in that column. When the conversion is generic, see [Global type adapter](#global-type-adapter).
 
+## How a value is sent to the database
+
+Each parameter of a query goes with the name of its type and its category, and the category decides which SQL type it has in the databases where the library declares one:
+
+| Category | PostgreSQL cast, where the query needs one | SQL Server parameter type |
+|---|---|---|
+| `boolean` | `::bool` | `bit` |
+| `int`, `customInt` | `::int4` | `int` |
+| `bigint`, `customBigint` | `::int8` | `bigint` |
+| `double`, `customDouble` | `::float8` | `float` |
+| `string` | `::text` | `nvarchar` |
+| `uuid`, `customUuid` | `::uuid` | `uniqueidentifier` |
+| `localDate`, `customLocalDate` | `::date` | `date` |
+| `localTime`, `customLocalTime` | `::time` | `time` |
+| `localDateTime`, `customLocalDateTime` | `::timestamp` | `datetime2` |
+| `enum`, `custom`, `customComparable` | By the value: `::int4` or `::int8` for a whole number, `::float8` for one with decimals, `::int8` for a `bigint`, and no cast otherwise | By the value, and a text always as `nvarchar` |
+
+PostgreSQL gets the cast only where it can't tell the type from the rest of the query, like a constant selected on its own (`select $1::int4 as result`) or a row of [`Values`](mapping.md#mapping-constant-values-as-view). Oracle declares it for a date or a time returned with `returning`. On MariaDB, MySQL, Oracle and SQLite, the driver sends each value as JavaScript gives it.
+
+So the category also says how big the value can be in the database: a `customInt` is a 32-bit integer, like an `int`, and a value of your own type that needs 64 bits goes in a `customBigint`; a `customDouble` is a floating point number, and an exact decimal needs [its own conversion](#custom-types).
+
 ## Type adapters
 
 A type adapter controls how the value of one column is sent to the database and received from it. It goes as the last argument of the column definition.

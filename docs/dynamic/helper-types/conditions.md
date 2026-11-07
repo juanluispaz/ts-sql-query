@@ -252,6 +252,7 @@ This table has every filter and the name of the type it belongs to. A column or 
 | `EqualableFilter<T>` | `['enum', T]`, `['custom', T]` | Those of `NullableFilter`, and `equals`, `notEquals`, `is`, `isNot`, `in`, `notIn` |
 | `ComparableFilter<T>` | `['customComparable', T]` | Those of `EqualableFilter<T>`, and `lessThan`, `greaterThan`, `lessOrEqual`, `greaterOrEqual` |
 | `CustomIntFilter<T>` | `['customInt', T]` | Those of `ComparableFilter<T>` |
+| `CustomBigintFilter<T>` | `['customBigint', T]` | Those of `ComparableFilter<T>` |
 | `CustomDoubleFilter<T>` | `['customDouble', T]` | Those of `ComparableFilter<T>` |
 | `CustomLocalDateFilter<T>` | `['customLocalDate', T]` | Those of `ComparableFilter<T>` |
 | `CustomLocalTimeFilter<T>` | `['customLocalTime', T]` | Those of `ComparableFilter<T>` |

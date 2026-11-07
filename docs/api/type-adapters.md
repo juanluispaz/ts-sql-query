@@ -20,7 +20,7 @@ Each transformation receives the name of the type and its category. The category
 
 ```typescript
 type TypeCategory = 'boolean'
-    | 'int' | 'bigint' | 'customInt'
+    | 'int' | 'bigint' | 'customInt' | 'customBigint'
     | 'double' | 'customDouble'
     | 'string'
     | 'uuid' | 'customUuid'

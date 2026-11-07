@@ -392,6 +392,30 @@ interface CustomIntValueSource<T, TYPE_NAME> extends ComparableValueSource<T, TY
 
 ```typescript
 /**
+ * Represents a custom bigint
+ */
+interface CustomBigintValueSource<T, TYPE_NAME> extends ComparableValueSource<T, TYPE_NAME> {
+    abs(): this
+    ceil(): this
+    floor(): this
+    round(): this
+    sign(): NumberValueSource
+    /**
+     * This function establishes a minimum value for the current value, that means the biggest value must be returned
+     */
+    minValue(value: T | this): this
+    /**
+     * This function establishes a maximum value for the current value, that means the smallest value must be returned
+     */
+    maxValue(value: T | this): this
+    add(value: T | this): this
+    subtract(value: T | this): this
+    modulo(value: T | this): this
+}
+```
+
+```typescript
+/**
  * Represents a custom double
  */
 interface CustomDoubleValueSource<T, TYPE_NAME> extends ComparableValueSource<T, TYPE_NAME> {

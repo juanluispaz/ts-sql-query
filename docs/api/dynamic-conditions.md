@@ -37,6 +37,7 @@ type FilterType = DynamicCondition<{
     myCustom: ['custom', MyCustomType]
     myCustomComparable: ['customComparable', MyCustomComparableType]
     myCustomInt: ['customInt', MyCustomType]
+    myCustomBigint: ['customBigint', MyCustomType]
     myCustomDouble: ['customDouble', MyCustomType]
     myCustomUuid: ['customUuid', MyCustomType]
     myCustomLocalDate: ['customLocalDate', MyCustomType]
@@ -65,6 +66,7 @@ type FilterType = {
     myCustom?: EqualableFilter<MyCustomType>
     myCustomComparable?: ComparableFilter<MyCustomComparableType>
     myCustomInt?: CustomIntFilter<MyCustomType>
+    myCustomBigint?: CustomBigintFilter<MyCustomType>
     myCustomDouble?: CustomDoubleFilter<MyCustomType>
     myCustomUuid?: CustomUuidFilter<MyCustomType>
     myCustomLocalDate?: CustomLocalDateFilter<MyCustomType>
@@ -212,6 +214,7 @@ interface DateFilter extends ComparableFilter<Date> { }
 interface TimeFilter extends ComparableFilter<Date> { }
 interface DateTimeFilter extends ComparableFilter<Date> { }
 interface CustomIntFilter<TYPE> extends ComparableFilter<TYPE> { }
+interface CustomBigintFilter<TYPE> extends ComparableFilter<TYPE> { }
 interface CustomDoubleFilter<TYPE> extends ComparableFilter<TYPE> { }
 interface CustomLocalDateFilter<TYPE> extends ComparableFilter<TYPE> { }
 interface CustomLocalTimeFilter<TYPE> extends ComparableFilter<TYPE> { }

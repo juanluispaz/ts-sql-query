@@ -641,7 +641,7 @@ A very long text has a limit on some databases: MySQL and MariaDB cut it, by def
     | `stringConcatDistinct(value)`, with or without a separator | Not offered |
     | `anyValue(value)` | Not offered |
 
-Whole numbers are `int`, `bigint` and `customInt` values. They are cast so that the average keeps its fraction on every database: `average` of `1`, `2` and `4` is `2.3333...`, and not `2`.
+Whole numbers are `int`, `bigint`, `customInt` and `customBigint` values. They are cast so that the average keeps its fraction on every database: `average` of `1`, `2` and `4` is `2.3333...`, and not `2`.
 
 ## Aggregates without a group by
 

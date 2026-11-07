@@ -22,6 +22,7 @@ The same types are used for a [constant](../queries/basic-query-structure.md) an
 | `localTime`                     | `Date`               | Time without date                                                 |
 | `localDateTime`                 | `Date`               | Date with time                                                    |
 | `customInt`                     | *custom*             | Your type, with the operations of `int`                           |
+| `customBigint`                  | *custom*             | Your type, with the operations of `bigint`                        |
 | `customDouble`                  | *custom*             | Your type, with the operations of `double`                        |
 | `customUuid`                    | *custom*             | Your type, with the operations of `uuid`                          |
 | `customLocalDate`               | *custom*             | Your type, with the operations of `localDate`                     |
@@ -44,6 +45,7 @@ this.column('ColumnName', 'localDate')
 this.column('ColumnName', 'localTime')
 this.column('ColumnName', 'localDateTime')
 this.column<MyIntType>('ColumnName', 'customInt', 'MyIntTypeName')
+this.column<MyBigintType>('ColumnName', 'customBigint', 'MyBigintTypeName')
 this.column<MyDoubleType>('ColumnName', 'customDouble', 'MyDoubleTypeName')
 this.column<MyUuidType>('ColumnName', 'customUuid', 'MyUuidTypeName')
 this.column<MyDateType>('ColumnName', 'customLocalDate', 'MyDateTypeName')
@@ -84,11 +86,12 @@ Choose by the values your code handles, not only by the type of the column in th
 
 ## Custom types
 
-A custom type (`customInt`, `customDouble`, `customUuid`, `customLocalDate`, `customLocalTime`, `customLocalDateTime`, `enum`, `custom` and `customComparable`) gives a column your own TypeScript type, and its name (the last argument of the column, like `'Cents'`) identifies it. The first word of the type is its category: it says which operations the column offers in a query, and how its values are converted.
+A custom type (`customInt`, `customBigint`, `customDouble`, `customUuid`, `customLocalDate`, `customLocalTime`, `customLocalDateTime`, `enum`, `custom` and `customComparable`) gives a column your own TypeScript type, and its name (the last argument of the column, like `'Cents'`) identifies it. The first word of the type is its category: it says which operations the column offers in a query, and how its values are converted.
 
 | Category | Its values are converted as |
 |---|---|
 | `customInt` | `int` |
+| `customBigint` | `bigint` |
 | `customDouble` | `double` |
 | `customUuid` | `uuid` |
 | `customLocalDate` | `localDate` |

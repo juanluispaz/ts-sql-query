@@ -1,6 +1,6 @@
 # `test/` — wall-time benchmarks
 
-Reference numbers for the `test/` matrix (now **~383k tests / ~23.7k files**, see
+Reference numbers for the `test/` matrix (now **~428k tests / ~27.9k files**, see
 [Latest measurements](#latest-measurements)) under each invocation regime, on a 12-logical-core reference machine (macOS, warm reused
 containers when docker is involved), measured one run at a time. Use when picking
 a workflow. The bun and vitest columns are **not** an identical-workload
@@ -29,17 +29,16 @@ it's on).
 
 ## Latest measurements
 
-Measured 2026-11-05 under Bun, on the full matrix including the query-runner tests
-(**398,901 tests, 24,857 files**). The other tables of this file are dated runs at
-the matrix size each one states: use them to compare regimes and runtimes, and
-this one for the current cost.
+Measured 2026-11-07 under Bun, on the full matrix including the query-runner tests
+(**428,004 tests, 27,852 files**; 419,688 pass and 8,316 are skipped). The other tables of this file are dated runs at the matrix size each
+one states: use them to compare regimes and runtimes, and this one for the current cost.
 
 | Invocation | Selection | Wall |
 |---|---|---|
-| `bun run tests` (mocked main pass) | 398,901 tests / 24,857 files | **11 s** |
-| `bun run tests --wasm`, the sequential WASM unit | 58,932 tests / 3,664 files | **34 s** |
-| `bun run tests --docker --wasm`, its main pass (cold containers) | the full matrix | **788 s (~13 min)** |
-| `npm run tests -- --run-connectors native` (Node) | 192,925 tests pass | **51 s** |
+| `bun run tests` (mocked main pass) | 428,004 tests / 27,852 files | **12 s** |
+| `bun run tests --wasm`, the sequential WASM unit | 63,360 tests / 4,114 files | **38 s** |
+| `bun run tests --docker --wasm`, its main pass (cold containers, measured 2026-11-05 on 24,857 files) | the full matrix | **788 s (~13 min)** |
+| `npm run tests -- --run-connectors native` (Node) | 208,165 tests pass | **22 s** |
 
 ## The one lever that matters: no per-file isolation
 

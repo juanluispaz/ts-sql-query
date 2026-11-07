@@ -284,6 +284,7 @@ nav:
     - Transaction Keywords: keywords/transaction.md
   - About:
     - Philosophy and Design Goals: about/philosophy.md
+    - How it's tested: about/testing.md
     - For AI agents: about/ai-agents.md
     - FAQs: about/faqs.md
     - Limitations: about/limitations.md

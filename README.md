@@ -1,30 +1,164 @@
 # ts-sql-query <!-- omit in toc -->
 
 [![npm](https://img.shields.io/npm/v/ts-sql-query.svg)](https://npm.im/ts-sql-query)
+[![sponsor](https://img.shields.io/badge/sponsor-GitHub-ff69b4?logo=githubsponsors)](https://github.com/sponsors/juanluispaz)
 
-ts-sql-query is a type-safe query builder that provides a way to build dynamic SQL queries in a type-safe way, that means, the TypeScript compiler verifies the queries. 
+`ts-sql-query` is a type-safe SQL query builder for TypeScript. You write the query in TypeScript, the compiler checks it, and the library sends that query to the database.
 
-Type-safe SQL means the mistakes writting a query will be detected during the compilation time. With ts-sql-query you don't need to be affraid of change the database, the problems caused by the change will be detected during compilation time.
+The compiler checks each query against the tables and views you map in your code: a column that doesn't exist, a comparison between different data types or a function your database doesn't have is a compilation error. When you change the mapping of a table, it points to every query that no longer fits.
 
-ts-sql-query supports MariaDB, MySql, Oracle, PostgreSql, Sqlite and SqlServer. Note: this is not an ORM, and the most probably is you don't need one.
+`ts-sql-query` is **not** an ORM: there are no entities or a model layer between your code and the SQL.
 
-ts-sql-query supports [Node.js](https://nodejs.org/) and [Bun](https://bun.com).
+It supports MariaDB, MySQL, Oracle, PostgreSQL, SQLite and SQL Server, on [Node.js](https://nodejs.org/) and [Bun](https://bun.com).
 
-![](docs/demo.gif)
+![](https://raw.githubusercontent.com/juanluispaz/ts-sql-query/master/docs/demo.gif)
 
-# Summary <!-- omit in toc -->
+**Documentation: <https://ts-sql-query.readthedocs.io/>**
 
+# Contents <!-- omit in toc -->
+
+- [Why use it?](#why-use-it)
+- [A query](#a-query)
+- [Dynamic queries](#dynamic-queries)
+- [Supported databases and drivers](#supported-databases-and-drivers)
+- [How it's tested](#how-its-tested)
 - [Install](#install)
 - [Documentation](#documentation)
-- [Examples](#examples)
-- [Why?](#why)
-- [Basic queries structure](#basic-queries-structure)
-  - [Select one row](#select-one-row)
-  - [Other options](#other-options)
-- [Dynamic queries](#dynamic-queries)
-- [See more](#see-more)
+- [Working on ts-sql-query](#working-on-ts-sql-query)
 - [Related projects](#related-projects)
 - [License](#license)
+
+## Why use it?
+
+- **You see the SQL you get.** The code follows the structure of the query, and each query you execute is one query in the database. The only method that sends two is [`executeSelectPage`](https://ts-sql-query.readthedocs.io/en/latest/queries/select-page/): the rows and the total.
+- **The result has a type without writing it.** The type of each row comes from the select, and a column that can be null is optional.
+- **Queries that vary stay one query.** See [Dynamic queries](#dynamic-queries).
+- **No SQL text is assembled from your values.** Values go to the database as parameters.
+- **Tested on the real databases.** The queries are checked on PostgreSQL, MySQL, MariaDB, Oracle, SQL Server and SQLite, in several versions and with each driver: the SQL, the parameters, the type of the result and the rows that come back. See [How it's tested](#how-its-tested).
+
+For the principles behind the library, see [Philosophy and design goals](https://ts-sql-query.readthedocs.io/en/latest/about/philosophy/).
+
+## A query
+
+```ts
+const customerId = 10;
+
+const customerWithId = await connection.selectFrom(tCustomer)
+    .where(tCustomer.id.equals(customerId))
+    .select({
+        id: tCustomer.id,
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName,
+        birthday: tCustomer.birthday
+    })
+    .executeSelectOne();
+```
+
+The executed query, on PostgreSQL, is:
+
+```sql
+select id as id, first_name as "firstName", last_name as "lastName", birthday as birthday
+from customer
+where id = $1
+```
+
+The parameters are: `[ 10 ]`
+
+The result type is:
+
+```ts
+const customerWithId: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    birthday?: Date;
+}
+```
+
+`executeSelectOne` expects exactly one row: when there is none, the promise rejects. `executeSelectNoneOrOne` returns `null` instead, and `executeSelectMany` returns all the rows. See [Basic query structure](https://ts-sql-query.readthedocs.io/en/latest/queries/basic-query-structure/).
+
+## Dynamic queries
+
+A search form, a table with filters, an API that other systems query: what these queries have to do is only known when they run. They are usually assembled with `if`s and pieces of SQL, so the code stops looking like the query it builds, and the types can't follow the result.
+
+In `ts-sql-query` you write one query with every part that can vary, and the library writes the SQL with only what applies:
+
+- A condition without a value disappears from the query: `tCustomer.firstName.containsIfValue(firstName)`.
+- A whole filter can arrive as an object, as in the body of a request, limited to the columns you list: `connection.dynamicConditionFor`.
+- The order can arrive as text, and it can only name properties of the select: `orderByFromString`. The page can be missing: `limitIfValue`, `offsetIfValue`.
+- The caller can choose the columns (`dynamicPick`), and a join that no chosen column needs is left out of the query (`optionalJoin`).
+- A function of yours can return exactly the type of what the caller asked for.
+- Inserts and updates set only what has a value (`setIfValue`), and an update that ends up without a `where` isn't sent.
+
+```ts
+const firstNameContains = 'ohn';
+const lastNameContains = null;
+const searchOrderBy = 'name insensitive, birthday asc nulls last';
+
+const searchedCustomers = await connection.selectFrom(tCustomer)
+    .where(
+        tCustomer.firstName.containsIfValue(firstNameContains)
+            .or(tCustomer.lastName.containsIfValue(lastNameContains))
+    )
+    .select({
+        id: tCustomer.id,
+        name: tCustomer.firstName.concat(' ').concat(tCustomer.lastName),
+        birthday: tCustomer.birthday
+    })
+    .orderByFromString(searchOrderBy)
+    .executeSelectMany();
+```
+
+The executed query, on PostgreSQL, is:
+
+```sql
+select id as id, first_name || $1 || last_name as name, birthday as birthday
+from customer
+where first_name like ('%' || $2 || '%')
+order by lower(first_name || $1 || last_name), birthday asc nulls last
+```
+
+The parameters are: `[ ' ', 'ohn' ]`
+
+The result type is:
+
+```ts
+const searchedCustomers: {
+    id: number;
+    name: string;
+    birthday?: Date;
+}[]
+```
+
+The condition on the last name had no value, so it's not in the query. No extra query is sent to find anything out, and a value from a request never becomes SQL text. See [What a dynamic query can do](https://ts-sql-query.readthedocs.io/en/latest/dynamic/building-blocks/), which shows one query growing through all of this and lists everything on offer.
+
+## Supported databases and drivers
+
+| Database | Drivers |
+|---|---|
+| [MariaDB](https://ts-sql-query.readthedocs.io/en/latest/configuration/supported-databases/mariadb/) | `mariadb`, Bun SQL |
+| [MySQL](https://ts-sql-query.readthedocs.io/en/latest/configuration/supported-databases/mysql/) | `mysql2`, Bun SQL |
+| [Oracle](https://ts-sql-query.readthedocs.io/en/latest/configuration/supported-databases/oracle/) | `oracledb` |
+| [PostgreSQL](https://ts-sql-query.readthedocs.io/en/latest/configuration/supported-databases/postgresql/) | `pg`, `postgres`, Bun SQL, PGlite |
+| [SQLite](https://ts-sql-query.readthedocs.io/en/latest/configuration/supported-databases/sqlite/) | `better-sqlite3`, `node:sqlite`, `bun:sqlite`, Bun SQL, sqlite-wasm, `sqlite3` |
+| [SQL Server](https://ts-sql-query.readthedocs.io/en/latest/configuration/supported-databases/sqlserver/) | `mssql` |
+
+`ts-sql-query` uses one dialect, inspired by SQLite and PostgreSQL with names adapted to JavaScript, and writes the SQL of the database you connect to. Each database page says what it offers and what it doesn't, and [Query runners](https://ts-sql-query.readthedocs.io/en/latest/configuration/query-runners/) tells how to connect with each driver.
+
+## How it's tested
+
+The tests run on 81 combinations of a database, a version and a driver, which share 5,384 tests: more than 419,000 tests in all. Each one checks the SQL, the parameters, the exact type of the result and the rows that come back, and the same test runs against the real database and against a mock. Besides the queries, 4,347 forms of using the library are checked to be compilation errors, each query runner is tested on its own against its database, and every example of the documentation compiles.
+
+| Database | Versions |
+|---|---|
+| PostgreSQL | 17 and 18, and PGlite |
+| MySQL | 5.7, 8.0 and 26.10 |
+| MariaDB | 10.3, 10.4, 10.5 and 13.0 |
+| Oracle | 21 XE and 23 Free |
+| SQL Server | 2019, 2022 and 2025 |
+| SQLite | The SQL for 3.29, 3.30, 3.35, 3.38 and the newest version |
+
+See [How it's tested](https://ts-sql-query.readthedocs.io/en/latest/about/testing/) for what each test looks at, and some of the behaviours of the databases and of JavaScript that the library handles.
 
 ## Install
 
@@ -102,145 +236,23 @@ Anything imported through `__UNSUPPORTED__/` may change, break or disappear in a
 
 ## Documentation
 
-See the documentation at: https://ts-sql-query.readthedocs.io/
+The documentation is at <https://ts-sql-query.readthedocs.io/>. To start, see [Basic query structure](https://ts-sql-query.readthedocs.io/en/latest/queries/basic-query-structure/) and [Defining the connection](https://ts-sql-query.readthedocs.io/en/latest/configuration/connection/); to upgrade, [Migrating from v1](https://ts-sql-query.readthedocs.io/en/latest/about/changelog/migrating-from-v1/) and the [change log](https://ts-sql-query.readthedocs.io/en/latest/about/changelog/v2/).
 
-For AI agents, the package includes the documentation of its version (`AGENTS.md`, `llms/` and `docs/`), and the website offers [`llms.txt`](https://ts-sql-query.readthedocs.io/llms.txt), with one file per area and per database.
+For AI agents, the package includes the documentation of its version (`AGENTS.md`, `llms/` and `docs/`), and the website offers [`llms.txt`](https://ts-sql-query.readthedocs.io/llms.txt), with one file per area and per database. See [For AI agents](https://ts-sql-query.readthedocs.io/en/latest/about/ai-agents/).
 
-## Examples
+## Working on ts-sql-query
 
-You can find a complete example using ts-sql-query with PostgreSQL in the file [PgExample.ts](https://github.com/juanluispaz/ts-sql-query/blob/master/src/examples/PgExample.ts). You can browse the [examples folder](https://github.com/juanluispaz/ts-sql-query/tree/master/src/examples) to see an example for each supported database using different ways to connect to it.
+The project runs on Node.js 22 or newer and on Bun. After cloning:
 
-## Why?
-
-There are many libraries available in JavaScript/TypeScript that allows querying a SQL database, but they are typically:
-
-- ORM doesn't allow to take advantage of the full potential of the database.
-- String concatenation utilities in the way of query builders.
-- Utilities designed without have type-safe criteria.
-- Utilities not designed to write dynamic queries in an easy way.
-
-ts-sql-query addresses these inconveniences, providing you with a library that allows you to query the database in a type-safe way, with SQL in mind, and with many helpers to create dynamic queries.
-
-## Basic queries structure
-
-### Select one row
-
-```ts
-const customerId = 10;
-
-const customerWithId = connection.selectFrom(tCustomer)
-    .where(tCustomer.id.equals(customerId))
-    .select({
-        id: tCustomer.id,
-        firstName: tCustomer.firstName,
-        lastName: tCustomer.lastName,
-        birthday: tCustomer.birthday
-    })
-    .executeSelectOne();
+```sh
+$ bun install && bun run codegen
 ```
 
-The executed query is:
-```sql
-select id as id, first_name as firstName, last_name as lastName, birthday as birthday 
-from customer 
-where id = $1
-```
+- `bun run validate` type-checks the library, and `bun run validate:tests` the tests.
+- `bun run tests` runs the whole matrix of tests against the mock, in seconds. `bun run tests --docker --wasm` runs it against the real databases, which needs Docker.
+- `bun run docs` serves the documentation and `bun run docs:check` builds it in strict mode; both need `mkdocs`, with the packages of `docs/requirements.txt`.
 
-The parameters are: `[ 10 ]`
-
-The result type is:
-```ts
-const customerWithId: Promise<{
-    id: number;
-    firstName: string;
-    lastName: string;
-    birthday?: Date;
-}>
-```
-
-The `executeSelectOne` returns one result, but if it is not found in the database an exception will be thrown. If you want to return the result when it is found or null when it is not found you must use the `executeSelectNoneOrOne` method.
-
-### Other options
-
-You can execute the query using:
-
-- `executeSelectNoneOrOne(): Promise<RESULT | null>`: Execute the select query that returns one o no result from the database
-- `executeSelectOne(): Promise<RESULT>`: Execute the select query that returns one result from the database. If no result is returned by the database an exception will be thrown.
-- `executeSelectMany(): Promise<RESULT[]>`: Execute the select query that returns zero or many results from the database
-- `executeSelectPage(): Promise<{ data: RESULT[], count: number }>`: Execute the select query that returns zero or many results from the database. Select page execute the query twice, the first one to get the data from the database and the second one to get the count of all data without the limit and the offset.
-- `executeSelectPage<EXTRAS extends {}>(extras: EXTRAS): Promise<{ data: RESULT[], count: number } & EXTRAS>`: Execute the select query as a select page, but allows to include extra properties to will be resulting object. If the object provided by argument includes the property count, the query that count the data will be omitted and this value will be used. If the object provided by argument includes the property data, the query that extract the data will be omitted and this value will be used.
-
-## Dynamic queries
-
-ts-sql-query offers many commodity methods with name ended with `IfValue` to build dynamic queries; these methods allow to be ignored when the values specified by argument are `null` or `undefined` or an empty string (only when the `allowEmptyString` flag in the connection is not set to true, that is the default behaviour). When these methods are used in operations that return booleans value, ts-sql-query is smart enough to omit the operation when it is required, even when the operation is part of complex composition with `and`s and `or`s.
-
-When you realize an insert or update, you can:
-
-- set a column value conditionally using the method `setIfValue`
-- replace a previously set value during the construction of the query using  the method `setIfSet` or the method `setIfSetIfValue`
-- set a value if it was not previously set during the construction of the query using the method `setIfNotSet` or the method `setIfNotSetIfValue`
-- ignore a previously set value using the method `ignoreIfSet`
-- don't worry if you end with an update or delete with no where, you will get an error instead of update or delete all rows. You can allow explicitly having an update or delete with no where if you create it using the method `updateAllowingNoWhere` or `deleteAllowingNoWhereFrom` respectively
-
-When you realize a select, you can:
-
-- specify in your order by clause that the order must be case insensitive when the column type is string (ignored otherwise). To do it, add `insensitive` at the end of the ordering criteria/mode
-- add a dynamic `order by` provided by the user without risk of SQL injection and without exposing the internal structure of the database. To build a dynamic `order by` use the method `orderByFromString` with the usual order by syntax (and with the possibility to use the insensitive extension), but using as column's name the name of the property in the resulting object
-- You can apply `order by`, `limit` and `offset` optionally calling `orderByFromStringIfValue`, `limitIfValue` and `offsetIfValue`
-
-Additionally, you can:
-
-- create a boolean expression that only applies if a certain condition is met, calling the `onlyWhen` method in the boolean expression. The `ignoreWhen` method does the opposite.
-- create an expression that only applies if a certain condition is met; otherwise, the value will be null, calling the `onlyWhenOrNull` method in the expression. The `ignoreWhenAsNull` method does the opposite.
-- create a dynamic boolean expression that you can use in a where (by example), calling the `dynamicBooleanExpresionUsing` method in the connection object.
-- create a custom boolean condition from criteria object that you can use in a where (by example), calling the `dynamicConditionFor` method in the connection object. This functionality is useful when creating a complex search & filtering functionality in the user interface, where the user can apply a different combination of constraints.
-- create a query where it is possible to pick the columns to be returned by the query.
-- define an optional join in a select query. That join only must be included in the final query if the table involved in the join is used in the final query. For example, a column of the joined table was picked or used in a dynamic where.
-
-```ts
-const firstNameContains = 'ohn';
-const lastNameContains = null;
-const birthdayIs = null;
-const searchOrderBy = 'name insensitive, birthday asc nulls last';
-
-const searchedCustomers = connection.selectFrom(tCustomer)
-    .where(
-                tCustomer.firstName.containsIfValue(firstNameContains)
-            .or(tCustomer.lastName.containsIfValue(lastNameContains))
-        ).and(
-            tCustomer.birthday.equalsIfValue(birthdayIs)
-        )
-    .select({
-        id: tCustomer.id,
-        name: tCustomer.firstName.concat(' ').concat(tCustomer.lastName),
-        birthday: tCustomer.birthday
-    })
-    .orderByFromString(searchOrderBy)
-    .executeSelectMany();
-```
-
-The executed query is:
-```sql
-select id as id, first_name || $1 || last_name as name, birthday as birthday 
-from customer 
-where first_name like ('%' || $2 || '%') 
-order by lower(name), birthday asc nulls last
-```
-
-The parameters are: `[ ' ', 'ohn' ]`
-
-The result type is:
-```ts
-const customerWithId: Promise<{
-    id: number;
-    name: string;
-    birthday?: Date;
-}[]>
-```
-
-## See more
-
-See more information at: https://ts-sql-query.readthedocs.io/
+The same scripts work with `npm run`. See [`test/README.md`](https://github.com/juanluispaz/ts-sql-query/blob/master/test/README.md) for how the tests are organized and run, and [`CLAUDE.md`](https://github.com/juanluispaz/ts-sql-query/blob/master/CLAUDE.md) for the conventions of the project.
 
 ## Related projects
 
@@ -248,4 +260,4 @@ See more information at: https://ts-sql-query.readthedocs.io/
 
 ## License
 
-MIT
+[MIT](https://github.com/juanluispaz/ts-sql-query/blob/master/LICENSE.md)

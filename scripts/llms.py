@@ -29,8 +29,8 @@ DATABASES = {
 # (file, title, what it's for, patterns, one file per database).
 # A page can be in several areas. Those with one file per database also have one with all of them.
 AREAS = [
-    ('general', 'General', 'what the library is, its philosophy, frequent questions and limitations', [
-        'index.md', 'about/philosophy.md', 'about/faqs.md', 'about/limitations.md',
+    ('general', 'General', 'what the library is, its philosophy, how it is tested, frequent questions and limitations', [
+        'index.md', 'about/philosophy.md', 'about/testing.md', 'about/faqs.md', 'about/limitations.md',
     ], False),
     ('queries', 'Queries', 'reading data: select, joins, pages, projections and dynamic queries: start here', [
         'queries/basic-query-structure.md', 'queries/select.md', 'queries/select-page.md', 'queries/complex-projections.md',

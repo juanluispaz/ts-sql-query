@@ -27,7 +27,7 @@ The files below are at `https://ts-sql-query.readthedocs.io/en/latest/<file>`:
 
 | File | For |
 |---|---|
-| `llms-general.txt` | What the library is, its philosophy, frequent questions and limitations |
+| `llms-general.txt` | What the library is, its philosophy, how it is tested, frequent questions and limitations |
 | `llms-queries-<database>.txt` | Reading data: select, joins, pages, projections and dynamic queries. Start here |
 | `llms-queries-advanced-<database>.txt` | Common table expressions and subqueries, compound selects and recursive selects |
 | `llms-aggregates-<database>.txt` | Aggregate functions, group by and having |

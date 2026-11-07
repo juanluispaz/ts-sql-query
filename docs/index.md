@@ -41,6 +41,7 @@ The compiler checks each query against the tables and views you map in your code
 - **The result has a type without writing it.** The type of each row comes from the select, and a column that can be null is optional.
 - **Queries that vary stay one query.** See the next section.
 - **No SQL text is assembled from your values.** Values go to the database as parameters.
+- **Tested on the real databases.** The queries are checked on PostgreSQL, MySQL, MariaDB, Oracle, SQL Server and SQLite, in several versions and with each driver: the SQL, the parameters, the type of the result and the rows that come back. See [How it's tested](about/testing.md).
 
 For more details on the principles behind the library, see [Philosophy and Design Goals](about/philosophy.md).
 

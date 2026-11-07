@@ -3101,6 +3101,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
     // " escape '\\'". Dialects that build a different LIKE shape (SQL Server) override
     // the individual predicates instead of relying on this hook.
     _likeEscape = ''
+    // How the insensitive LIKE predicates below write the name of the collation. A dialect that must quote it overrides this.
+    _collationName(collation: string): string {
+        return collation
+    }
     _like(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
     }
@@ -3110,7 +3114,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _likeInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation + this._likeEscape
+            return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' collate ' + this._collationName(collation) + this._likeEscape
         } else if (collation === '') {
             return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
         } else {
@@ -3120,7 +3124,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _notLikeInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation + this._likeEscape
+            return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' collate ' + this._collationName(collation) + this._likeEscape
         } else if (collation === '') {
             return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
         } else {
@@ -3185,7 +3189,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _startsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._likePatternStartingWith(params, value, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation + this._likeEscape
+            return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._likePatternStartingWith(params, value, columnType, columnTypeName, typeAdapter, false) + ' collate ' + this._collationName(collation) + this._likeEscape
         } else if (collation === '') {
             return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._likePatternStartingWith(params, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
         } else {
@@ -3195,7 +3199,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _notStartsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._likePatternStartingWith(params, value, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation + this._likeEscape
+            return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._likePatternStartingWith(params, value, columnType, columnTypeName, typeAdapter, false) + ' collate ' + this._collationName(collation) + this._likeEscape
         } else if (collation === '') {
             return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._likePatternStartingWith(params, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
         } else {
@@ -3205,7 +3209,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _endsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._likePatternEndingWith(params, value, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation + this._likeEscape
+            return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._likePatternEndingWith(params, value, columnType, columnTypeName, typeAdapter, false) + ' collate ' + this._collationName(collation) + this._likeEscape
         } else if (collation === '') {
             return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._likePatternEndingWith(params, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
         } else {
@@ -3215,7 +3219,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _notEndsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._likePatternEndingWith(params, value, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation + this._likeEscape
+            return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._likePatternEndingWith(params, value, columnType, columnTypeName, typeAdapter, false) + ' collate ' + this._collationName(collation) + this._likeEscape
         } else if (collation === '') {
             return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._likePatternEndingWith(params, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
         } else {
@@ -3231,7 +3235,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _containsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._likePatternContaining(params, value, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation + this._likeEscape
+            return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._likePatternContaining(params, value, columnType, columnTypeName, typeAdapter, false) + ' collate ' + this._collationName(collation) + this._likeEscape
         } else if (collation === '') {
             return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._likePatternContaining(params, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
         } else {
@@ -3241,7 +3245,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _notContainsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._likePatternContaining(params, value, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation + this._likeEscape
+            return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._likePatternContaining(params, value, columnType, columnTypeName, typeAdapter, false) + ' collate ' + this._collationName(collation) + this._likeEscape
         } else if (collation === '') {
             return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._likePatternContaining(params, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
         } else {

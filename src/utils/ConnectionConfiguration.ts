@@ -6,6 +6,7 @@ export interface ConnectionConfiguration {
     compatibilityVersion: number
     uuidStrategy?: string
     usePlatformDependentRound?: boolean
+    useLikeInsteadOfIlike?: boolean
     excludeTrailingBlanksInLength?: boolean
     ignoreNullInMinAndMaxValue?: boolean
     minValueFunction?: string

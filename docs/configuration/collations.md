@@ -170,7 +170,7 @@ The `*Insensitive` operations compare without distinguishing upper and lower cas
 - The `IfValue` version of each of them, like `containsInsensitiveIfValue`
 - In an order, the [`insensitive` mode](../queries/select.md): `.orderBy('name', 'insensitive')`
 
-By default they are written calling `lower(...)` on both sides. On PostgreSQL, the ones that use `like` are written with `ilike` instead. Setting **`insensitiveCollation`** on the connection adds a `… collate <name>` clause, which lets you do more than case folding — accent-insensitive, or language-specific rules — by naming a collation the engine ships. The [Per database](#per-database) tabs list the case- and accent-insensitive collation names for each engine (and, for PostgreSQL, the collation you must create first).
+By default they are written calling `lower(...)` on both sides. On PostgreSQL, the ones that use `like` are written with `ilike` instead, unless you set `useLikeInsteadOfIlike`. Setting **`insensitiveCollation`** on the connection adds a `… collate <name>` clause, which lets you do more than case folding — accent-insensitive, or language-specific rules — by naming a collation the engine ships. The [Per database](#per-database) tabs list the case- and accent-insensitive collation names for each engine (and, for PostgreSQL, the collation you must create first).
 
 Three states:
 
@@ -188,7 +188,24 @@ Three states:
     | Nondeterministic (`deterministic = false`) | Ignores case | PostgreSQL rejects it: `nondeterministic collations are not supported for ILIKE` |
     | Deterministic, like `und-x-icu` | Follows the collation, so it distinguishes case | Ignores case, with the rules of the collation |
 
-    Leave it unset unless you need what a collation adds, and use only the operations that collation can serve.
+    To write those operations with `like`, set `useLikeInsteadOfIlike` on the connection. It's `false` by default, and they use `ilike`. The option works with or without `insensitiveCollation`:
+
+    | `insensitiveCollation` | Default | With `useLikeInsteadOfIlike` |
+    |---|---|---|
+    | A name | `x ilike y collate "name"` | `x like y collate "name"`. The collation decides: if it distinguishes case, so do those operations |
+    | `''` | `x ilike y` ignores case | `x like y`. The collation of the column decides |
+    | Unset | `x ilike y` ignores case | `lower(x) like lower(y)` ignores case |
+
+    So it's the way to use a nondeterministic collation in every operation. PostgreSQL accepts `like` with one from version 18; PostgreSQL 17 rejects it, as it does `ilike`.
+
+    ```typescriptreact
+    import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
+
+    class DBConnection extends PostgreSqlConnection<'DBConnection'> {
+        protected override insensitiveCollation = 'case_insensitive'
+        protected override useLikeInsteadOfIlike = true
+    }
+    ```
 
 ### `.collate()` — force a collation per value
 

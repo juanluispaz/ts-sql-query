@@ -1069,6 +1069,7 @@ interface PostgreSqlConnectionConfiguration {
     ignoreNullInMinAndMaxValue: boolean // Default: false
     minValueFunction?: string
     maxValueFunction?: string
+    useLikeInsteadOfIlike: boolean // Default: false
 }
 
 interface SqliteConnectionConfiguration {

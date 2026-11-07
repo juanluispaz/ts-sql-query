@@ -518,6 +518,10 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // marshalling of its own.
         return 'round((' + this._appendSql(valueSource, params, false) + ')::numeric)'
     }
+    override _collationName(collation: string): string {
+        // PostgreSQL folds an unquoted name to lowercase, and `und-x-icu` isn't valid without the quotes.
+        return '"' + collation + '"'
+    }
     override _equalsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
@@ -539,6 +543,9 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         }
     }
     override _likeInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        if (this._connectionConfiguration.useLikeInsteadOfIlike) {
+            return super._likeInsensitive(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+        }
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + ' ilike ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' collate "' + collation + '"'
@@ -547,6 +554,9 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         }
     }
     override _notLikeInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        if (this._connectionConfiguration.useLikeInsteadOfIlike) {
+            return super._notLikeInsensitive(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+        }
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + ' not ilike ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' collate "' + collation + '"'
@@ -555,6 +565,9 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         }
     }
     override _startsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        if (this._connectionConfiguration.useLikeInsteadOfIlike) {
+            return super._startsWithInsensitive(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+        }
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + ' ilike (' +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " || '%')" + ' collate "' + collation + '"'
@@ -563,6 +576,9 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         }
     }
     override _notStartsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        if (this._connectionConfiguration.useLikeInsteadOfIlike) {
+            return super._notStartsWithInsensitive(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+        }
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + ' not ilike (' +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " || '%')" + ' collate "' + collation + '"'
@@ -571,6 +587,9 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         }
     }
     override _endsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        if (this._connectionConfiguration.useLikeInsteadOfIlike) {
+            return super._endsWithInsensitive(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+        }
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + " ilike ('%' || " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + ') collate "' + collation + '"'
@@ -579,6 +598,9 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         }
     }
     override _notEndsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        if (this._connectionConfiguration.useLikeInsteadOfIlike) {
+            return super._notEndsWithInsensitive(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+        }
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + " not ilike ('%' || " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + ') collate "' + collation + '"'
@@ -587,6 +609,9 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         }
     }
     override _containsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        if (this._connectionConfiguration.useLikeInsteadOfIlike) {
+            return super._containsInsensitive(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+        }
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + " ilike ('%' || " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " || '%')" + ' collate "' + collation + '"'
@@ -595,6 +620,9 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         }
     }
     override _notContainsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        if (this._connectionConfiguration.useLikeInsteadOfIlike) {
+            return super._notContainsInsensitive(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+        }
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + " not ilike ('%' || " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " || '%')" + ' collate "' + collation + '"'

@@ -59,6 +59,17 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
     protected usePlatformDependentRound: boolean = false
 
     /**
+     * Writes the insensitive operations with a pattern (`likeInsensitive`, `containsInsensitive`...) with `like` instead
+     * of `ilike`. By default they use `ilike`. What they do depends on `insensitiveCollation`:
+     * - A name: `x like y collate "name"`. The collation decides, so one that distinguishes case distinguishes it here too.
+     * - `''`: `x like y`. The collation of the column decides.
+     * - Unset: `lower(x) like lower(y)`. They still ignore case.
+     *
+     * PostgreSQL rejects `ilike` with a nondeterministic collation, and accepts `like` with one from PostgreSQL 18.
+     */
+    protected useLikeInsteadOfIlike: boolean = false
+
+    /**
      * Keep PostgreSQL's native NULL handling for `.minValue(x)` / `.maxValue(x)`.
      *
      * PostgreSQL's `least(a, b)` / `greatest(a, b)` **ignore** a NULL operand and

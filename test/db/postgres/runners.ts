@@ -68,6 +68,8 @@ export interface PostgresTestContext extends TestContext<DBConnection> {
     readonly exampleCollationForInsensitiveEquality: string
     /** A `DBConnection` whose `insensitiveCollation` is pinned to `collation`. */
     withInsensitiveCollation(collation: string | undefined): DBConnection
+    /** A `DBConnection` with `useLikeInsteadOfIlike` on and `insensitiveCollation` pinned to `collation`. */
+    withLikeInsteadOfIlike(collation: string | undefined): DBConnection
     /** A `DBConnection` with `allowEmptyString` enabled (empty strings kept, not mapped to null). */
     withAllowEmptyString(): DBConnection
     /** A `DBConnection` with `ignoreNullInMinAndMaxValue` enabled (keeps native least/greatest NULL-ignoring semantics). */
@@ -106,6 +108,13 @@ function decoratePostgresContext(
         // identifier here.
         exampleInsensitiveCollation: 'und-x-icu',
         exampleCollationForInsensitiveEquality: 'case_insensitive',
+        withLikeInsteadOfIlike(collation: string | undefined): DBConnection {
+            class C extends DBConnection {
+                protected override insensitiveCollation: string | undefined = collation
+                protected override useLikeInsteadOfIlike = true
+            }
+            return base.withConnection(C)
+        },
         withInsensitiveCollation(collation: string | undefined): DBConnection {
             class C extends DBConnection {
                 protected override insensitiveCollation: string | undefined = collation

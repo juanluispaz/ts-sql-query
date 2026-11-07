@@ -156,6 +156,13 @@ that leaves connectors of the dialect behind does not make the gap a
 
 
 
+### PostgreSQL rejects a pattern with a nondeterministic collation
+
+`ilike` with a nondeterministic collation is rejected on every version, and `like` until PostgreSQL 17:
+`nondeterministic collations are not supported for ILIKE` and `… for LIKE`. Checked on real PostgreSQL 17 and 18. So
+`useLikeInsteadOfIlike` with such a collation works from PostgreSQL 18, and that test is `NOT-SUPPORTED` on
+`postgres/oldest`. Without a collation the option needs no version: `lower(x) like lower(y)` runs on all of them.
+
 ### SQLite's `%` operator truncates floating-point operands to integers
 
 SQLite's modulo operator converts **both** operands to integers before the

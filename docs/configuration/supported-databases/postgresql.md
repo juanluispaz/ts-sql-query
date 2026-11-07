@@ -113,6 +113,19 @@ PostgreSQL has a native `uuid` data type (available since PostgreSQL 8.3, presen
 
 PostgreSQL's default collation is case- and accent-**sensitive** (deterministic) — the JavaScript-sensible default, so no configuration is needed unless you want the insensitive direction. The plain string operations follow the configured collation; the `*Insensitive` operations force case-insensitivity over it. To go insensitive, PostgreSQL uses native `ILIKE` for `LIKE`, and — for equality / `DISTINCT` / `GROUP BY` — a **non-deterministic** ICU collation you create once and name in `insensitiveCollation` or `.collate('<name>')`. PostgreSQL has no session collation, so the column / database collation or a per-expression `COLLATE` (`.collate()`) is how you retarget a comparison. See the dedicated [Collations & case sensitivity](../collations.md) page and the [PostgreSQL tab](../collations.md#per-database) for the `CREATE COLLATION … (deterministic = false)` recipe.
 
+The insensitive operations with a pattern, like `containsInsensitive`, are written with `ilike` by default. PostgreSQL rejects `ilike` with a nondeterministic collation, so to use one in those operations set `useLikeInsteadOfIlike` on the connection, which writes them with `like` (PostgreSQL accepts it from version 18):
+
+```typescriptreact
+import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
+
+class DBConnection extends PostgreSqlConnection<'DBConnection'> {
+    protected override insensitiveCollation = 'case_insensitive'
+    protected override useLikeInsteadOfIlike = true
+}
+```
+
+With the option and no `insensitiveCollation`, they are written with `lower(x) like lower(y)`, which also ignores case. [On PostgreSQL, one collation can't serve every operation](../collations.md#insensitivecollation-force-the-insensitive-direction-connection-wide) has what each combination does.
+
 ## Rounding behavior
 
 PostgreSQL has two overloads of its native `round` function — `round(numeric)` and `round(double precision)` — with **different tie-breaking rules**. Per the [PostgreSQL manual](https://www.postgresql.org/docs/current/functions-math.html#FUNCTIONS-MATH-FUNC-TABLE):

@@ -836,9 +836,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof ids, number[]>>()
-        // TODO[BUG]: see BUGS.md — a localDate read and sent back doesn't find its row: the time of the Date is sent too
-        if (!ctx.realDbEnabled) expect(ids).toEqual([1])
-        else expect(ids).toEqual([])
+        expect(ids).toEqual([1])
     })
 
 })

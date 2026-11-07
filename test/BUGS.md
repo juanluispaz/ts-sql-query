@@ -82,8 +82,8 @@ MySQL, MariaDB, Oracle and PostgreSQL); the decode puts a read `localDate` at 10
 **Reproduction**: `local-date-read-back-matches-its-row` in `select.date-ops.test.ts`: read `workDate` of
 worklog 1 (`2024-03-04`, read as `2024-03-04T10:00:00.000Z`) and filter `workDate.equals(read)`. On real
 engines it finds no row on MySQL 26.10, 8.0 and 5.7 (`mysql2` and Bun SQL), MariaDB 13.0, 10.5, 10.4 and 10.3
-(`mariadb` and Bun SQL), Oracle 23 and 21 (`oracledb`) and PostgreSQL 18 and 17 with `postgres`; `pg`, Bun SQL
-for PostgreSQL, PGlite, SQL Server and SQLite find it. The driver sends the `Date` with its time, and the
+(`mariadb` and Bun SQL), Oracle 23 and 21 (`oracledb`); `pg`, `postgres` (since postgres.js 4, which takes a `Date` sent to a `date` as
+UTC), Bun SQL for PostgreSQL, PGlite, SQL Server and SQLite find it. The driver sends the `Date` with its time, and the
 database compares the `DATE` with a date time. On Oracle, inserting that value stores `2024-03-04 10:00:00`
 in the `DATE`; oracledb binds a `Date` with the local wall clock, so `new Date('2024-03-04')` from a process
 in `Europe/Madrid` is stored at 01:00 (seen with `to_char` on a bind).
@@ -96,8 +96,8 @@ shown in logs, `MockQueryRunner` and the `params` snapshots changes (a text inst
 "The parameters are" lines of the docs and the expectations of `src/examples/documentation`.
 **Current workaround in the suite**: the test asserts `[]` on the real engines of those cells, with
 `TODO[BUG]`; in mock it asserts `[1]`.
-**To decide per driver, not per database**: the drivers of one database differ (`pg` finds the row
-today, `postgres` doesn't), so a fix chosen per database must not make a driver that works worse; the
+**To decide per driver, not per database**: the drivers of one database differ (on PostgreSQL, `pg`
+found the row and `postgres` didn't, until postgres.js 4), so a fix chosen per database must not make a driver that works worse; the
 form sent has to be checked for each driver of the database, in more than one zone.
 
 ## A `localDate` read through a driver that delivers midnight UTC is the previous day west of UTC

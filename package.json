@@ -336,7 +336,7 @@
         "mysql2": "^3.24.6",
         "oracledb": "^26.0.0",
         "pg": "^8.23.1",
-        "postgres": "^3.4.9",
+        "postgres": "^4.1.0",
         "sqlite3": "^6.0.1",
         "synchronous-promise": "^2.0.18",
         "testcontainers": "^12.2.1",

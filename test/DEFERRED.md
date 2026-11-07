@@ -89,7 +89,6 @@ Each entry says what it is, why it waits, and what is already known.
 - **Prisma 8 final:**
   [`docs/configuration/query-runners/combining-with-another-library.md`](../docs/configuration/query-runners/combining-with-another-library.md)
   cites `@prisma/orm-postgres` `8.0.0-rc.22`; re-check it on the final release.
-- **postgres.js 4:** the project depends on `postgres` `^3.4.9`.
 - **mkdocs-material:** it announces its end of life on 2027-05-05.
 - **mkdocs-redirects 1.2.3:** it warns about `properdocs` when it runs from the
   `mkdocs` executable.

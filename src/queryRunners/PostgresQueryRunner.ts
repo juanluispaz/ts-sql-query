@@ -17,7 +17,7 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
     protected override readonly transactionOutcome = new PostgresTransactionOutcome()
 
     /** connection: the client of a pool, a connection reserved from it, or a transaction begun with it */
-    constructor(connection: Sql | TransactionSql) {
+    constructor(connection: Sql | TransactionSql | ReservedSql) {
         super()
         // Only a pool client is asked to reserve or begin (see givenConnection)
         this.connection = connection as Sql

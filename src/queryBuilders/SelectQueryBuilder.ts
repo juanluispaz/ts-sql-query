@@ -1198,6 +1198,9 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         }
         return this
     }
+    // The library never adds columns to a group by the user wrote (not even those PostgreSQL accepts because the
+    // primary key of their table is grouped, which SQL Server and Oracle reject): this method is the explicit way to
+    // group by every non-aggregated column of the select on every database
     groupByNonAggregatedColumns(): any {
         this.__finishJoinHaving()
         this.__invalidateQuery()

@@ -154,9 +154,9 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
         params.push(value)
         return '$' + params.length
     }
-    // transaction(fn) is begun and committed by the driver, so a wrapper can't see those statements and must emit them
-    // itself. On a reserved connection the transaction goes through executeBeginTransaction and executeCommit.
-    override lowLevelTransactionManagementSupported(): boolean {
+    // The driver begins and commits a transaction by itself, in the function it receives. On a reserved connection it
+    // can't, and the transaction goes through executeBeginTransaction and executeCommit.
+    override executeInTransactionCallsBeginAndCommit(): boolean {
         return this.givenConnection === 'reserved'
     }
     override executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {

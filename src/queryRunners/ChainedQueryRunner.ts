@@ -138,6 +138,9 @@ export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
     lowLevelTransactionManagementSupported(): boolean {
         return this.queryRunner.lowLevelTransactionManagementSupported()
     }
+    executeInTransactionCallsBeginAndCommit(): boolean {
+        return this.queryRunner.executeInTransactionCallsBeginAndCommit()
+    }
     nestedTransactionsSupported(): boolean {
         return this.queryRunner.nestedTransactionsSupported()
     }

@@ -241,9 +241,11 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
         })
     }
     override executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
-        if (!this.queryRunner.lowLevelTransactionManagementSupported()) {
+        if (!this.queryRunner.executeInTransactionCallsBeginAndCommit()) {
             // Emulate beginTransaction, commit and rollback to see in logs
+            let begun = false
             return this.queryRunner.executeInTransaction(() => {
+                begun = true
                 const query: string = ''
                 const params: any[] = opts || []
                 const playload = this.onQuery('beginTransaction', query, params)
@@ -260,6 +262,10 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
                 }
                 return r
             }, (e) => {
+                if (!begun) {
+                    // The transaction was refused: there is nothing to roll back
+                    throw e
+                }
                 try {
                     const query: string = ''
                     const params: any[] = opts || []

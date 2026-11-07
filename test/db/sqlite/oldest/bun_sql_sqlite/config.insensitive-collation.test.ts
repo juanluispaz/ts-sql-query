@@ -343,4 +343,33 @@ const conn = ctx.withReplaceAllInsensitiveFunction('ci_replace')
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(a_1_.result) from (select name as result from project where organization_id = organization.id order by result asc) as a_1_) as names from organization where id = ?1"`)
     })
+
+    test('collation: the operations with a pattern ignore case', async () => {
+        const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
+        const expected = [{ id: 1 }]
+
+        for (const condition of [
+            tIssue.title.containsInsensitive('HERO'),
+            tIssue.title.startsWithInsensitive('UPDATE'),
+            tIssue.title.endsWithInsensitive('COPY'),
+            tIssue.title.likeInsensitive('UPDATE%'),
+        ]) {
+            ctx.mockNext(expected)
+            const rows = await collated.selectFrom(tIssue).where(condition).select({ id: tIssue.id }).executeSelectMany()
+            expect(rows).toEqual(expected)
+        }
+    })
+
+    test('collation: the equality ignores case', async () => {
+        const collated = ctx.withInsensitiveCollation(ctx.exampleCollationForInsensitiveEquality)
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+
+        const rows = await collated.selectFrom(tIssue)
+            .where(tIssue.title.equalsInsensitive('UPDATE HERO COPY'))
+            .select({ id: tIssue.id })
+            .executeSelectMany()
+
+        expect(rows).toEqual(expected)
+    })
 })

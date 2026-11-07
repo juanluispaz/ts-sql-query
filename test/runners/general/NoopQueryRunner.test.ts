@@ -124,4 +124,14 @@ describe('NoopQueryRunner', () => {
 
         expect(page).toEqual({ data: [], count: 0 })
     })
+
+    test('begin-transaction-on-a-query-runner-without-low-level-transactions', async () => {
+        class DBConnection extends SqliteConnection<'DBConnection'> {}
+        class OnlyFunctionsRunner extends NoopQueryRunner {
+            override lowLevelTransactionManagementSupported(): boolean { return false }
+        }
+        const connection = new DBConnection(new OnlyFunctionsRunner())
+
+        expect(reasonOf(await rejectionOf(connection.beginTransaction()))).toBe('LOW_LEVEL_TRANSACTION_NOT_SUPPORTED')
+    })
 })

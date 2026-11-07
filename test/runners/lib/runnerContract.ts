@@ -810,6 +810,7 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
             expect(await rejectionOf(runner.createRejectedPromise(failure))).toBe(failure)
             expect(runner.isMocked()).toBe(false)
             expect(typeof runner.lowLevelTransactionManagementSupported()).toBe('boolean')
+            expect(typeof runner.executeInTransactionCallsBeginAndCommit()).toBe('boolean')
             expect(runner.nestedTransactionsSupported()).toBe(!!opts.nestedTransactions)
         })
 

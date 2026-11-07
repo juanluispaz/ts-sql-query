@@ -33,7 +33,7 @@ describe(ctx.label, () => {
             .where(tAppUser.email.equalsInsensitive('ada'))
             .select({ id: tAppUser.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email = $1 collate "C""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email = $1 collate "und-x-icu""`)
 
         const empty = ctx.withInsensitiveCollation('')
         await empty.selectFrom(tAppUser)
@@ -49,7 +49,7 @@ describe(ctx.label, () => {
             .where(tAppUser.email.notEqualsInsensitive('ada'))
             .select({ id: tAppUser.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email <> $1 collate "C""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email <> $1 collate "und-x-icu""`)
 
         const empty = ctx.withInsensitiveCollation('')
         await empty.selectFrom(tAppUser)
@@ -65,7 +65,7 @@ describe(ctx.label, () => {
             .where(tAppUser.email.likeInsensitive('ad%'))
             .select({ id: tAppUser.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email like $1 collate "C""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email ilike $1 collate "und-x-icu""`)
 
         const empty = ctx.withInsensitiveCollation('')
         await empty.selectFrom(tAppUser)
@@ -81,7 +81,7 @@ describe(ctx.label, () => {
             .where(tAppUser.email.notLikeInsensitive('ad%'))
             .select({ id: tAppUser.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not like $1 collate "C""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not ilike $1 collate "und-x-icu""`)
 
         const empty = ctx.withInsensitiveCollation('')
         await empty.selectFrom(tAppUser)
@@ -97,7 +97,7 @@ describe(ctx.label, () => {
             .where(tAppUser.email.startsWithInsensitive('ad'))
             .select({ id: tAppUser.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email like ($1 || '%') collate "C""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email ilike ($1 || '%') collate "und-x-icu""`)
 
         const empty = ctx.withInsensitiveCollation('')
         await empty.selectFrom(tAppUser)
@@ -113,7 +113,7 @@ describe(ctx.label, () => {
             .where(tAppUser.email.notStartsWithInsensitive('ad'))
             .select({ id: tAppUser.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not like ($1 || '%') collate "C""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not ilike ($1 || '%') collate "und-x-icu""`)
 
         const empty = ctx.withInsensitiveCollation('')
         await empty.selectFrom(tAppUser)
@@ -129,7 +129,7 @@ describe(ctx.label, () => {
             .where(tAppUser.email.endsWithInsensitive('@acme.test'))
             .select({ id: tAppUser.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email like ('%' || $1) collate "C""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email ilike ('%' || $1) collate "und-x-icu""`)
 
         const empty = ctx.withInsensitiveCollation('')
         await empty.selectFrom(tAppUser)
@@ -145,7 +145,7 @@ describe(ctx.label, () => {
             .where(tAppUser.email.notEndsWithInsensitive('@acme.test'))
             .select({ id: tAppUser.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not like ('%' || $1) collate "C""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not ilike ('%' || $1) collate "und-x-icu""`)
 
         const empty = ctx.withInsensitiveCollation('')
         await empty.selectFrom(tAppUser)
@@ -161,7 +161,7 @@ describe(ctx.label, () => {
             .where(tAppUser.email.containsInsensitive('cme'))
             .select({ id: tAppUser.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email like ('%' || $1 || '%') collate "C""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email ilike ('%' || $1 || '%') collate "und-x-icu""`)
 
         const empty = ctx.withInsensitiveCollation('')
         await empty.selectFrom(tAppUser)
@@ -177,7 +177,7 @@ describe(ctx.label, () => {
             .where(tAppUser.email.notContainsInsensitive('cme'))
             .select({ id: tAppUser.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not like ('%' || $1 || '%') collate "C""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not ilike ('%' || $1 || '%') collate "und-x-icu""`)
 
         const empty = ctx.withInsensitiveCollation('')
         await empty.selectFrom(tAppUser)
@@ -200,13 +200,13 @@ describe(ctx.label, () => {
             .where(tAppUser.email.startsWithInsensitive(tAppUser.fullName))
             .select({ id: tAppUser.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email like (replace(replace(replace(full_name, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') collate "C""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email ilike (replace(replace(replace(full_name, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') collate "und-x-icu""`)
 
         await collated.selectFrom(tAppUser)
             .where(tAppUser.email.containsInsensitive(tAppUser.fullName))
             .select({ id: tAppUser.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email like ('%' || replace(replace(replace(full_name, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') collate "C""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email ilike ('%' || replace(replace(replace(full_name, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') collate "und-x-icu""`)
 
         const empty = ctx.withInsensitiveCollation('')
         await empty.selectFrom(tAppUser)
@@ -226,19 +226,19 @@ describe(ctx.label, () => {
             .where(tIssue.externalRef.asString().startsWithInsensitive('0a8f'))
             .select({ id: tIssue.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref::text like ($1 || '%') collate "C""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref::text ilike ($1 || '%') collate "und-x-icu""`)
 
         await collated.selectFrom(tIssue)
             .where(tIssue.externalRef.asString().containsInsensitive('1111'))
             .select({ id: tIssue.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref::text like ('%' || $1 || '%') collate "C""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref::text ilike ('%' || $1 || '%') collate "und-x-icu""`)
 
         await collated.selectFrom(tIssue)
             .where(tIssue.externalRef.asString().endsWithInsensitive('6666'))
             .select({ id: tIssue.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref::text like ('%' || $1) collate "C""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref::text ilike ('%' || $1) collate "und-x-icu""`)
 
         const empty = ctx.withInsensitiveCollation('')
         await empty.selectFrom(tIssue)
@@ -268,19 +268,19 @@ describe(ctx.label, () => {
             .where(tIssue.externalRef.asString().notStartsWithInsensitive('0a8f'))
             .select({ id: tIssue.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref::text not like ($1 || '%') collate "C""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref::text not ilike ($1 || '%') collate "und-x-icu""`)
 
         await collated.selectFrom(tIssue)
             .where(tIssue.externalRef.asString().notContainsInsensitive('1111'))
             .select({ id: tIssue.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref::text not like ('%' || $1 || '%') collate "C""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref::text not ilike ('%' || $1 || '%') collate "und-x-icu""`)
 
         await collated.selectFrom(tIssue)
             .where(tIssue.externalRef.asString().notEndsWithInsensitive('6666'))
             .select({ id: tIssue.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref::text not like ('%' || $1) collate "C""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref::text not ilike ('%' || $1) collate "und-x-icu""`)
 
         const empty = ctx.withInsensitiveCollation('')
         await empty.selectFrom(tIssue)
@@ -308,7 +308,7 @@ describe(ctx.label, () => {
                     .forUseAsInlineAggregatedArrayValue(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ((select json_agg(a_1_.result) from (select name as result from project where organization_id = organization.id order by name collate "C" asc) as a_1_))::text as names from organization where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ((select json_agg(a_1_.result) from (select name as result from project where organization_id = organization.id order by name collate "und-x-icu" asc) as a_1_))::text as names from organization where id = $1"`)
 
         const empty = ctx.withInsensitiveCollation('')
         await empty.selectFrom(tOrganization)
@@ -324,4 +324,36 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ((select json_agg(a_1_.result) from (select name as result from project where organization_id = organization.id order by result asc) as a_1_))::text as names from organization where id = $1"`)
     })
+
+    test('collation: the operations with a pattern ignore case', async () => {
+        const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
+        const expected = [{ id: 1 }]
+
+        for (const condition of [
+            tIssue.title.containsInsensitive('HERO'),
+            tIssue.title.startsWithInsensitive('UPDATE'),
+            tIssue.title.endsWithInsensitive('COPY'),
+            tIssue.title.likeInsensitive('UPDATE%'),
+        ]) {
+            ctx.mockNext(expected)
+            const rows = await collated.selectFrom(tIssue).where(condition).select({ id: tIssue.id }).executeSelectMany()
+            expect(rows).toEqual(expected)
+        }
+    })
+
+    // NOT-APPLICABLE: pglite's bundled ICU does not case-fold a non-deterministic collation.
+    /*
+    test('collation: the equality ignores case', async () => {
+        const collated = ctx.withInsensitiveCollation(ctx.exampleCollationForInsensitiveEquality)
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+
+        const rows = await collated.selectFrom(tIssue)
+            .where(tIssue.title.equalsInsensitive('UPDATE HERO COPY'))
+            .select({ id: tIssue.id })
+            .executeSelectMany()
+
+        expect(rows).toEqual(expected)
+    })
+    */
 })

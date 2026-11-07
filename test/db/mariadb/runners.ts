@@ -58,6 +58,8 @@ export interface MariaDBTestContext extends TestContext<DBConnection> {
      * `Latin1_General_CI_AS`).
      */
     readonly exampleInsensitiveCollation: string
+    // A collation with which the equality ignores case
+    readonly exampleCollationForInsensitiveEquality: string
     /** A `DBConnection` whose `insensitiveCollation` is pinned to `collation`. */
     withInsensitiveCollation(collation: string | undefined): DBConnection
     /** A `DBConnection` whose `uuidStrategy` is pinned to `strategy`. */
@@ -75,6 +77,7 @@ export interface MariaDBTestContext extends TestContext<DBConnection> {
 function decorateMariaDBContext(base: TestContext<DBConnection>): MariaDBTestContext {
     return Object.assign(base, {
         exampleInsensitiveCollation: 'utf8mb4_general_ci',
+        exampleCollationForInsensitiveEquality: 'utf8mb4_general_ci',
         withInsensitiveCollation(collation: string | undefined): DBConnection {
             class C extends DBConnection {
                 protected override insensitiveCollation: string | undefined = collation

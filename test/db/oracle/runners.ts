@@ -59,6 +59,8 @@ export interface OracleTestContext extends TestContext<DBConnection> {
      * `Latin1_General_CI_AS`).
      */
     readonly exampleInsensitiveCollation: string
+    // A collation with which the equality ignores case
+    readonly exampleCollationForInsensitiveEquality: string
     /** A `DBConnection` whose `insensitiveCollation` is pinned to `collation`. */
     withInsensitiveCollation(collation: string | undefined): DBConnection
     /**
@@ -88,6 +90,7 @@ export interface OracleTestContext extends TestContext<DBConnection> {
 function decorateOracleContext(base: TestContext<DBConnection>): OracleTestContext {
     return Object.assign(base, {
         exampleInsensitiveCollation: 'BINARY_CI',
+        exampleCollationForInsensitiveEquality: 'BINARY_CI',
         withInsensitiveCollation(collation: string | undefined): DBConnection {
             class C extends DBConnection {
                 protected override insensitiveCollation: string | undefined = collation

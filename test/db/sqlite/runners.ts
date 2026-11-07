@@ -121,6 +121,8 @@ export interface SqliteTestContext extends TestContext<DBConnection> {
      * `Latin1_General_CI_AS`).
      */
     readonly exampleInsensitiveCollation: string
+    // A collation with which the equality ignores case
+    readonly exampleCollationForInsensitiveEquality: string
     /** A `DBConnection` whose `insensitiveCollation` is pinned to `collation`. */
     withInsensitiveCollation(collation: string | undefined): DBConnection
     /**
@@ -182,6 +184,7 @@ function decorateSqliteContext(
 ): SqliteTestContext {
     return Object.assign(base, {
         exampleInsensitiveCollation: 'NOCASE',
+        exampleCollationForInsensitiveEquality: 'NOCASE',
         ...(createExactIntegerConnection ? { withSafeIntegers: createExactIntegerConnection } : {}),
         withInsensitiveCollation(collation: string | undefined): DBConnection {
             class C extends DBConnection {

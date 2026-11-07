@@ -183,6 +183,9 @@ export class SwitchableQueryRunner implements QueryRunner {
     lowLevelTransactionManagementSupported(): boolean {
         return this.target.lowLevelTransactionManagementSupported()
     }
+    executeInTransactionCallsBeginAndCommit(): boolean {
+        return this.target.executeInTransactionCallsBeginAndCommit()
+    }
     nestedTransactionsSupported(): boolean {
         return this.target.nestedTransactionsSupported()
     }

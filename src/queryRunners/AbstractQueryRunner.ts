@@ -292,6 +292,9 @@ export abstract class AbstractQueryRunner implements QueryRunner {
     lowLevelTransactionManagementSupported(): boolean {
         return true
     }
+    executeInTransactionCallsBeginAndCommit(): boolean {
+        return true
+    }
     nestedTransactionsSupported(): boolean {
         return false
     }

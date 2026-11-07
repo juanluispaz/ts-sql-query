@@ -41,7 +41,7 @@ describe(ctx.label, () => {
             .select({ id: tAppUser.id, fullName: tAppUser.fullName })
             .orderBy(tAppUser.fullName, 'insensitive')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, full_name as "fullName" from app_user order by app_user.full_name collate "C""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, full_name as "fullName" from app_user order by app_user.full_name collate "und-x-icu""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
@@ -55,7 +55,7 @@ describe(ctx.label, () => {
             .select({ id: tAppUser.id, fullName: tAppUser.fullName })
             .orderBy(tAppUser.fullName, 'asc nulls first insensitive')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, full_name as "fullName" from app_user order by app_user.full_name collate "C" asc nulls first"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, full_name as "fullName" from app_user order by app_user.full_name collate "und-x-icu" asc nulls first"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
@@ -66,7 +66,7 @@ describe(ctx.label, () => {
             .select({ id: tAppUser.id, fullName: tAppUser.fullName })
             .orderBy(tAppUser.fullName, 'desc insensitive')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, full_name as "fullName" from app_user order by app_user.full_name collate "C" desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, full_name as "fullName" from app_user order by app_user.full_name collate "und-x-icu" desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
@@ -147,7 +147,7 @@ describe(ctx.label, () => {
             .union(collated.selectFrom(tIssue).select({ label: tIssue.title }))
             .orderBy('label', 'asc insensitive')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as label from project union select title as label from issue) as o_1_ order by label collate "C" asc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as label from project union select title as label from issue) as o_1_ order by label collate "und-x-icu" asc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)

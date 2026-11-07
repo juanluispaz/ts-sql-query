@@ -134,8 +134,6 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 }
 ```
 
-On PostgreSQL, the operations with a pattern, like `containsInsensitive`, are written with `like … collate` when the connection has a collation, and a nondeterministic collation with `like` needs PostgreSQL 18: PostgreSQL 17 rejects it.
-
 Set it to the **empty string** (`''`) to write the operation with no `lower()` and no collate, when your column or database is already case-insensitive.
 
 !!! tip "The full guide is the Collations page"

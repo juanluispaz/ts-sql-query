@@ -178,6 +178,18 @@ Three states:
 - **`''`** (empty string) → emit the bare operation with no `lower()` and no collate. Use this when your **column/database is already case-insensitive**: it produces leaner, index-usable SQL (fewer `lower()` calls) with the same result.
 - **unset** (the default) → `lower(a) … lower(b)`, or `ilike` on PostgreSQL.
 
+!!! warning "On PostgreSQL, one collation can't serve every operation"
+
+    The operations with a pattern are written with `ilike`, and the equality with `=`. They need different kinds of collation, and the connection has only one:
+
+    | `insensitiveCollation` | `equalsInsensitive` | `containsInsensitive` and the others with a pattern |
+    |---|---|---|
+    | Unset, the default | Ignores case | Ignores case |
+    | Nondeterministic (`deterministic = false`) | Ignores case | PostgreSQL rejects it: `nondeterministic collations are not supported for ILIKE` |
+    | Deterministic, like `und-x-icu` | Follows the collation, so it distinguishes case | Ignores case, with the rules of the collation |
+
+    Leave it unset unless you need what a collation adds, and use only the operations that collation can serve.
+
 ### `.collate()` — force a collation per value
 
 `.collate('<name>')` is a **method on any string value source** — a column, a `const`, or any string expression. It emits `<expr> collate <name>` (parenthesised automatically when embedded in a larger expression) and returns a string value source of the same type, so you can chain it into either operand of a comparison, a projected / grouped / ordered column, or a `replaceAll` argument. It forces a specific collation on **that one expression** — case-sensitive, case-insensitive, or a language-specific one — paying the index cost (below) only there. The name is a static collation identifier (SQL requires it — a collation is not a runtime value), so it is passed as a string.

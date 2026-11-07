@@ -288,6 +288,9 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
 
     beginTransaction(isolationLevel?: TransactionIsolationLevel<DB>): Promise<void> {
         const source = new QueryExecutionSource('Query executed at')
+        if (!this.queryRunner.lowLevelTransactionManagementSupported()) {
+            return this.queryRunner.createRejectedPromise(new TsSqlQueryExecutionError(source, { reason: 'LOW_LEVEL_TRANSACTION_NOT_SUPPORTED' }, 'This query runner only supports a transaction with connection.transaction(fn)'))
+        }
         if (this.isTransactionActive() && !this.queryRunner.nestedTransactionsSupported()) {
             return this.queryRunner.createRejectedPromise(new TsSqlQueryExecutionError(source, { reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, 'Nested transactions not supported'))
         }

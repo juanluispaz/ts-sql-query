@@ -23,7 +23,7 @@ function mock(fail = false): MockQueryRunner {
 }
 
 class ManagedMock extends MockQueryRunner {
-    override lowLevelTransactionManagementSupported(): boolean { return false }
+    override executeInTransactionCallsBeginAndCommit(): boolean { return false }
     override executeInTransaction<T>(fn: () => Promise<T>): Promise<T> { return fn() }
 }
 
@@ -113,6 +113,19 @@ describe('LoggingQueryRunner', () => {
             'query beginTransaction  [] bigint', 'result beginTransaction undefined true',
             'query rollback  [] bigint', 'result rollback undefined true',
         ])
+    })
+
+    test('a-transaction-refused-before-it-begins-shows-no-rollback', async () => {
+        class RefusingMock extends MockQueryRunner {
+            override executeInTransactionCallsBeginAndCommit(): boolean { return false }
+            override executeInTransaction<T>(): Promise<T> { return Promise.reject(new Error('refused')) }
+        }
+        const { logger, events } = recordingLogger(['onQuery', 'onQueryResult'])
+        const runner = new LoggingQueryRunner(logger, new RefusingMock(() => undefined, 'postgreSql'))
+
+        await rejectionOf(runner.executeInTransaction(async () => 'r', runner))
+
+        expect(events).toEqual([])
     })
 
     test('execute-in-transaction-without-low-level-transactions-and-no-callbacks', async () => {

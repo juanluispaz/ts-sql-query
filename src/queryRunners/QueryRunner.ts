@@ -60,7 +60,14 @@ export interface QueryRunner {
     createRejectedPromise<RESULT = any>(error: any): Promise<RESULT>
     executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]>
     isMocked(): boolean
+    /** Whether connection.beginTransaction(), commit() and rollback() can be used, as separate calls. */
     lowLevelTransactionManagementSupported(): boolean
+    /**
+     * Whether executeInTransaction goes through executeBeginTransaction, executeCommit and executeRollback of the
+     * outermost query runner. When the driver begins and ends the transaction by itself, in a function it receives, a
+     * wrapper doesn't see those statements, and it must show them itself.
+     */
+    executeInTransactionCallsBeginAndCommit(): boolean
     nestedTransactionsSupported(): boolean
     getErrorReason(error: unknown): TsSqlErrorReason
     isSqlError(error: unknown): boolean

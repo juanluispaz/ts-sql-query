@@ -325,6 +325,35 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(name order by name asc) from project where organization_id = organization.id) as char) as names from organization where id = ?"`)
     })
 
+    test('collation: the operations with a pattern ignore case', async () => {
+        const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
+        const expected = [{ id: 1 }]
+
+        for (const condition of [
+            tIssue.title.containsInsensitive('HERO'),
+            tIssue.title.startsWithInsensitive('UPDATE'),
+            tIssue.title.endsWithInsensitive('COPY'),
+            tIssue.title.likeInsensitive('UPDATE%'),
+        ]) {
+            ctx.mockNext(expected)
+            const rows = await collated.selectFrom(tIssue).where(condition).select({ id: tIssue.id }).executeSelectMany()
+            expect(rows).toEqual(expected)
+        }
+    })
+
+    test('collation: the equality ignores case', async () => {
+        const collated = ctx.withInsensitiveCollation(ctx.exampleCollationForInsensitiveEquality)
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+
+        const rows = await collated.selectFrom(tIssue)
+            .where(tIssue.title.equalsInsensitive('UPDATE HERO COPY'))
+            .select({ id: tIssue.id })
+            .executeSelectMany()
+
+        expect(rows).toEqual(expected)
+    })
+
     test('collation: inline aggregated array ordered by a value source insensitive', async () => {
         // The insensitive ordering is a value source (not a projected alias), so
         // the collate suffix lands on that expression inside the aggregate. Org 1's

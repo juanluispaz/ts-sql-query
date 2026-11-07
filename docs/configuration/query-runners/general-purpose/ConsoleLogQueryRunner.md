@@ -50,4 +50,4 @@ interface ConsoleLogQueryRunnerOpts {
 
 !!! info
 
-    In case the provided query runner doesn't support low-level transaction management, synthetic `beginTransaction`, `commit`, and `rollback` statements will be emitted to allow you to see them in the log.
+    When the driver begins and commits the transaction by itself, as `postgres` and Bun SQL do in `connection.transaction(...)`, synthetic `beginTransaction`, `commit`, and `rollback` statements will be emitted to allow you to see them in the log.

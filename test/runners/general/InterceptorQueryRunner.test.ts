@@ -144,7 +144,7 @@ describe('InterceptorQueryRunner', () => {
         // A runner managing transactions itself: the interceptor still reports
         // begin and commit / rollback around the body.
         class ManagedMock extends MockQueryRunner {
-            override lowLevelTransactionManagementSupported(): boolean { return false }
+            override executeInTransactionCallsBeginAndCommit(): boolean { return false }
             override executeInTransaction<T>(fn: () => Promise<T>): Promise<T> { return fn() }
         }
         const inner = new ManagedMock(() => undefined, 'postgreSql')

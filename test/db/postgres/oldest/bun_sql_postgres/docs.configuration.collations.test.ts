@@ -21,7 +21,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where (full_name collate "C") = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where (full_name collate "und-x-icu") = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Ada Lovelace",

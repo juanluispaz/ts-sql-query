@@ -287,29 +287,29 @@ const conn = ctx.withReplaceAllInsensitiveFunction('ci_replace')
         // The empty-collation arm keeps the same shape with no collate suffix,
         // exactly as the positive trio does.
         const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
-        await collated.selectFrom(tIssue)
+        sync(collated.selectFrom(tIssue)
             .where(tIssue.externalRef.asString().notStartsWithInsensitive('0a8f'))
             .select({ id: tIssue.id })
-            .executeSelectMany()
+            .executeSelectMany())
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref not like (?1 || '%') collate NOCASE escape '\\'"`)
 
-        await collated.selectFrom(tIssue)
+        sync(collated.selectFrom(tIssue)
             .where(tIssue.externalRef.asString().notContainsInsensitive('1111'))
             .select({ id: tIssue.id })
-            .executeSelectMany()
+            .executeSelectMany())
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref not like ('%' || ?1 || '%') collate NOCASE escape '\\'"`)
 
-        await collated.selectFrom(tIssue)
+        sync(collated.selectFrom(tIssue)
             .where(tIssue.externalRef.asString().notEndsWithInsensitive('6666'))
             .select({ id: tIssue.id })
-            .executeSelectMany()
+            .executeSelectMany())
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref not like ('%' || ?1) collate NOCASE escape '\\'"`)
 
         const empty = ctx.withInsensitiveCollation('')
-        await empty.selectFrom(tIssue)
+        sync(empty.selectFrom(tIssue)
             .where(tIssue.externalRef.asString().notContainsInsensitive('1111'))
             .select({ id: tIssue.id })
-            .executeSelectMany()
+            .executeSelectMany())
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref not like ('%' || ?1 || '%') escape '\\'"`)
     })
 
@@ -320,7 +320,7 @@ const conn = ctx.withReplaceAllInsensitiveFunction('ci_replace')
         // collation set to '' it falls back to the plain ordering (no collate).
         // The exact per-dialect emission is pinned by the snapshot below.
         const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
-        await collated.selectFrom(tOrganization)
+        sync(collated.selectFrom(tOrganization)
             .where(tOrganization.id.equals(1))
             .select({
                 id:    tOrganization.id,
@@ -330,11 +330,11 @@ const conn = ctx.withReplaceAllInsensitiveFunction('ci_replace')
                     .orderBy('result', 'asc insensitive')
                     .forUseAsInlineAggregatedArrayValue(),
             })
-            .executeSelectMany()
+            .executeSelectMany())
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(a_1_.result) from (select name as result from project where organization_id = organization.id order by name collate NOCASE asc) as a_1_) as names from organization where id = ?1"`)
 
         const empty = ctx.withInsensitiveCollation('')
-        await empty.selectFrom(tOrganization)
+        sync(empty.selectFrom(tOrganization)
             .where(tOrganization.id.equals(1))
             .select({
                 id:    tOrganization.id,
@@ -344,7 +344,36 @@ const conn = ctx.withReplaceAllInsensitiveFunction('ci_replace')
                     .orderBy('result', 'asc insensitive')
                     .forUseAsInlineAggregatedArrayValue(),
             })
-            .executeSelectMany()
+            .executeSelectMany())
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(a_1_.result) from (select name as result from project where organization_id = organization.id order by result asc) as a_1_) as names from organization where id = ?1"`)
+    })
+
+    test('collation: the operations with a pattern ignore case', async () => {
+        const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
+        const expected = [{ id: 1 }]
+
+        for (const condition of [
+            tIssue.title.containsInsensitive('HERO'),
+            tIssue.title.startsWithInsensitive('UPDATE'),
+            tIssue.title.endsWithInsensitive('COPY'),
+            tIssue.title.likeInsensitive('UPDATE%'),
+        ]) {
+            ctx.mockNext(expected)
+            const rows = sync(collated.selectFrom(tIssue).where(condition).select({ id: tIssue.id }).executeSelectMany())
+            expect(rows).toEqual(expected)
+        }
+    })
+
+    test('collation: the equality ignores case', async () => {
+        const collated = ctx.withInsensitiveCollation(ctx.exampleCollationForInsensitiveEquality)
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+
+        const rows = sync(collated.selectFrom(tIssue)
+            .where(tIssue.title.equalsInsensitive('UPDATE HERO COPY'))
+            .select({ id: tIssue.id })
+            .executeSelectMany())
+
+        expect(rows).toEqual(expected)
     })
 })

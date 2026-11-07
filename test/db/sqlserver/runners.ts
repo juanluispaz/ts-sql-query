@@ -58,6 +58,8 @@ export interface SqlServerTestContext extends TestContext<DBConnection> {
      * `Latin1_General_CI_AS`).
      */
     readonly exampleInsensitiveCollation: string
+    // A collation with which the equality ignores case
+    readonly exampleCollationForInsensitiveEquality: string
     /** A `DBConnection` whose `insensitiveCollation` is pinned to `collation`. */
     withInsensitiveCollation(collation: string | undefined): DBConnection
     /** A `DBConnection` with `allowEmptyString` enabled (empty strings kept, not mapped to null). */
@@ -81,6 +83,7 @@ export interface SqlServerTestContext extends TestContext<DBConnection> {
 function decorateSqlServerContext(base: TestContext<DBConnection>): SqlServerTestContext {
     return Object.assign(base, {
         exampleInsensitiveCollation: 'Latin1_General_CI_AS',
+        exampleCollationForInsensitiveEquality: 'Latin1_General_CI_AS',
         withInsensitiveCollation(collation: string | undefined): DBConnection {
             class C extends DBConnection {
                 protected override insensitiveCollation: string | undefined = collation

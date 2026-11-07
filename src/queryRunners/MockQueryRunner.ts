@@ -562,6 +562,9 @@ export class MockQueryRunner implements QueryRunner {
     lowLevelTransactionManagementSupported(): boolean {
         return true
     }
+    executeInTransactionCallsBeginAndCommit(): boolean {
+        return true
+    }
     nestedTransactionsSupported(): boolean {
         return true
     }

@@ -653,7 +653,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id, ref: tIssue.externalRef.asString() })
             .orderBy('ref', 'insensitive')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, external_ref::text as ref from issue where external_ref is not null order by external_ref::text collate "C""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, external_ref::text as ref from issue where external_ref is not null order by external_ref::text collate "und-x-icu""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ id: number; ref?: string }>>>()
         expect(result).toEqual(expected)
@@ -671,7 +671,7 @@ describe(ctx.label, () => {
                 nl: collated.const('x', 'string').notLikeInsensitive(tIssue.externalRef.asString()),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 = external_ref::text collate "C" as eq, $2 <> external_ref::text collate "C" as ne, $3 like external_ref::text collate "C" as lk, $4 not like external_ref::text collate "C" as nl from issue where id = $5"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 = external_ref::text collate "und-x-icu" as eq, $2 <> external_ref::text collate "und-x-icu" as ne, $3 ilike external_ref::text collate "und-x-icu" as lk, $4 not ilike external_ref::text collate "und-x-icu" as nl from issue where id = $5"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "x",
@@ -706,7 +706,7 @@ describe(ctx.label, () => {
                 notContains: collated.const('x', 'string').notContainsInsensitive(tIssue.externalRef.asString()),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 like (replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') collate "C" as starts, $2 not like (replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') collate "C" as "notStarts", $3 like ('%' || replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_')) collate "C" as ends, $4 not like ('%' || replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_')) collate "C" as "notEnds", $5 like ('%' || replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') collate "C" as contains, $6 not like ('%' || replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') collate "C" as "notContains" from issue where id = $7"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 ilike (replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') collate "und-x-icu" as starts, $2 not ilike (replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') collate "und-x-icu" as "notStarts", $3 ilike ('%' || replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_')) collate "und-x-icu" as ends, $4 not ilike ('%' || replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_')) collate "und-x-icu" as "notEnds", $5 ilike ('%' || replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') collate "und-x-icu" as contains, $6 not ilike ('%' || replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') collate "und-x-icu" as "notContains" from issue where id = $7"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "x",

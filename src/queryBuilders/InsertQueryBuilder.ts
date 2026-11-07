@@ -99,7 +99,9 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: idColumnPrivate.__valueTypeName }, e)
                         }
                     }
-                    if (!this.__onConflictDoNothing && !this.__onConflictUpdateWhere) {
+                    // Without a conflict to skip the row, an id is always returned: a do nothing, a where of the
+                    // update or an update left with no column (sent as a do nothing) give null for a skipped row
+                    if (!this.__onConflictDoNothing && !this.__onConflictUpdateWhere && !this.__sqlBuilder._isInsertOnConflictUpdateSetEmpty(this)) {
                         if (result === undefined) {
                             throw new TsSqlProcessingError({ reason: 'NO_RESULT' }, 'No result returned by the database')
                         } else if (result === null) {

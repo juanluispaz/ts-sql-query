@@ -229,11 +229,11 @@ END string_util;
 
 -- Constant-returning functions, one per remaining executeFunction return kind.
 -- Oracle has no TIME type (localTime rides in a TIMESTAMP) and no SQL boolean
--- (booleans are NUMBER 0/1). ret_uuid returns the string form.
+-- (booleans are NUMBER 0/1). ret_uuid returns the uuid as it is stored, RAW(16).
 
 CREATE OR REPLACE FUNCTION ret_flag(p_id IN NUMBER) RETURN NUMBER AS BEGIN RETURN 1; END;
 
-CREATE OR REPLACE FUNCTION ret_uuid(p_id IN NUMBER) RETURN VARCHAR2 AS BEGIN RETURN '0a8f9c1e-1111-4222-8333-444455556666'; END;
+CREATE OR REPLACE FUNCTION ret_uuid(p_id IN NUMBER) RETURN RAW AS BEGIN RETURN HEXTORAW('0A8F9C1E111142228333444455556666'); END;
 
 CREATE OR REPLACE FUNCTION ret_day(p_id IN NUMBER) RETURN DATE AS BEGIN RETURN DATE '2024-02-03'; END;
 
@@ -360,8 +360,7 @@ FROM col_matrix;
 
 -- Zero-arg function per base value kind. Custom kinds reuse the
 -- base-kind function. One PL/SQL block per line (blank-line separated, matching
--- the other functions). m_uuid is RAW(16); cm_uuid converts it to the hyphenated
--- string via the built-in RAW_TO_UUID (inverse of the seed's UUID_TO_RAW). Oracle
+-- the other functions). m_uuid is RAW(16), and cm_uuid returns it as it is stored. Oracle
 -- has no TIME/native boolean: localTime rides in TIMESTAMP, boolean in NUMBER 0/1.
 
 CREATE OR REPLACE FUNCTION cm_int RETURN NUMBER AS v NUMBER; BEGIN SELECT m_int INTO v FROM col_matrix WHERE id = 1; RETURN v; END;
@@ -372,7 +371,7 @@ CREATE OR REPLACE FUNCTION cm_double RETURN BINARY_DOUBLE AS v BINARY_DOUBLE; BE
 
 CREATE OR REPLACE FUNCTION cm_bool RETURN NUMBER AS v NUMBER; BEGIN SELECT m_bool INTO v FROM col_matrix WHERE id = 1; RETURN v; END;
 
-CREATE OR REPLACE FUNCTION cm_uuid RETURN VARCHAR2 AS v VARCHAR2(36); BEGIN SELECT RAW_TO_UUID(m_uuid) INTO v FROM col_matrix WHERE id = 1; RETURN v; END;
+CREATE OR REPLACE FUNCTION cm_uuid RETURN RAW AS v RAW(16); BEGIN SELECT m_uuid INTO v FROM col_matrix WHERE id = 1; RETURN v; END;
 
 CREATE OR REPLACE FUNCTION cm_date RETURN DATE AS v DATE; BEGIN SELECT m_date INTO v FROM col_matrix WHERE id = 1; RETURN v; END;
 

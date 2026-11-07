@@ -310,7 +310,7 @@ On **Oracle** the forced collation is fully configurable: `insensitiveCollation`
 
 !!! note "`REGEXP_REPLACE` version floor"
 
-    On MySQL, `regexp_replace` needs MySQL 8.0.4 or newer: MySQL 5.7 rejects the query. On MariaDB it needs 10.0.5 or newer.
+    On MySQL, `regexp_replace` needs MySQL 8.0.4 or newer: MySQL 5.7 rejects the query. On MariaDB it needs 10.0.5 or newer, according to the release notes of MariaDB 10.0.5.
 
 #### SQLite: register a UDF, or accept the case-sensitive fallback
 

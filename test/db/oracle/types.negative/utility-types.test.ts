@@ -87,6 +87,16 @@ function _tableOrViewRefs() {
     const organization = fromRef(tOrganization, tOrganization.as('org'))
     // @ts-expect-error the recovered reference has the columns of its table only
     void organization.title
+
+    // @ts-expect-error a reference of another table isn't a reference of this one
+    fromRef(tOrganization, tIssue.as('org'))
+    // @ts-expect-error a left join reference of another table isn't a reference of this one
+    fromRef(tOrganization, tIssue.forUseInLeftJoin())
+    function _otherTableRef<ISSUE extends TableOrViewOf<typeof tIssue>>(issueRef: ISSUE) {
+        // @ts-expect-error the type parameter is a reference of another table
+        return fromRef(tOrganization, issueRef)
+    }
+    void _otherTableRef
 }
 
 function _deepUtilities() {

@@ -91,3 +91,10 @@ async function main() {
     connection // ...
 }
 ```
+
+## Options of the query runner
+
+The second argument of `BunSqliteQueryRunner`, optional, is an object of type `BunSqliteQueryRunnerConfig`, exported from `ts-sql-query/queryRunners/BunSqliteQueryRunner`:
+
+- **`promise`**: another `Promise` provider, for [synchronous query execution](../../../advanced/synchronous-query-runners.md).
+- **`forUseInTransaction`**: the connection is already in a transaction that something else began and ends; see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages).

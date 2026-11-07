@@ -122,6 +122,49 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    test('exists-with-and-or-exists-with-and', async () => {
+        // Projects with an open issue of priority 3 (project 2) or a closed issue of
+        // priority 2 (project 3). The `and` of each subquery stays inside its `exists`.
+        const expected = [
+            { id: 2, name: 'Internal tools' },
+            { id: 3, name: 'Public API' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .where(ctx.conn.exists(
+                ctx.conn.subSelectUsing(tProject)
+                    .from(tIssue)
+                    .where(tIssue.projectId.equals(tProject.id))
+                    .and(tIssue.status.equals('open'))
+                    .and(tIssue.priority.equals(3))
+                    .selectOneColumn(tIssue.id)
+            ).or(ctx.conn.exists(
+                ctx.conn.subSelectUsing(tProject)
+                    .from(tIssue)
+                    .where(tIssue.projectId.equals(tProject.id))
+                    .and(tIssue.status.equals('closed'))
+                    .and(tIssue.priority.equals(2))
+                    .selectOneColumn(tIssue.id)
+            )))
+            .select({ id: tProject.id, name: tProject.name })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where exists(select id as result from issue where project_id = project.id and status = $1 and priority = $2) or exists(select id as result from issue where project_id = project.id and status = $3 and priority = $4) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "open",
+            3,
+            "closed",
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            id:   number
+            name: string
+        }>>>()
+        expect(result).toEqual(expected)
+    })
+
     test('sub-select-using-two-correlated-tables', async () => {
         // subSelectUsing with TWO correlated outer tables (tOrganization +
         // tProject): the subquery counts issues in the joined project, gated by

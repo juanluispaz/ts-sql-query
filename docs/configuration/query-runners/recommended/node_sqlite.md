@@ -22,11 +22,12 @@ This runner provides integration with Node.js' built-in [`node:sqlite`](https://
     | Runtime | What it needs |
     |---|---|
     | **Node 26** | Nothing |
-    | **Node 24** | Launch Node with `--experimental-sqlite` |
-    | **Node 22** | Launch Node with `--experimental-sqlite`. `DatabaseSync.function()` isn't there, so you can't [register the functions for UUIDs](#nodesqlite-and-uuids); the rest of the queries work |
+    | **Node 24** | Nothing |
+    | **Node 22.13 or newer** | Nothing |
+    | **Node 22.5 to 22.12** | Launch Node with `--experimental-sqlite`. `DatabaseSync.function()` isn't there, so you can't [register the functions for UUIDs](#nodesqlite-and-uuids); the rest of the queries work |
     | **Bun 1.4 or newer** | Nothing: it has its own implementation, with `function()` |
 
-    To launch with the flag: `node --experimental-sqlite app.js`, or `NODE_OPTIONS=--experimental-sqlite tsx app.ts`.
+    To launch with the flag: `node --experimental-sqlite app.js`, or `NODE_OPTIONS=--experimental-sqlite tsx app.ts`. From Node 22.13 the flag isn't needed. Node 22 and 24 write a warning that the module is experimental; Node 26 doesn't.
 
 !!! tip
 
@@ -119,3 +120,10 @@ async function main() {
     connection // ...
 }
 ```
+
+## Options of the query runner
+
+The second argument of `NodeSqliteQueryRunner`, optional, is an object of type `NodeSqliteQueryRunnerConfig`, exported from `ts-sql-query/queryRunners/NodeSqliteQueryRunner`:
+
+- **`promise`**: another `Promise` provider, for [synchronous query execution](../../../advanced/synchronous-query-runners.md).
+- **`forUseInTransaction`**: the connection is already in a transaction that something else began and ends; see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages).

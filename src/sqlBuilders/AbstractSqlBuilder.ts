@@ -532,14 +532,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
             return arrayResult + ')'
         }
-        const adaptedValue = this._transformParamToDB(value, columnType, columnTypeName, typeAdapter)
+        const adaptedValue = this._transformParamToDB(value, columnType, columnTypeName, typeAdapter, params)
         return '(' + this._appendParam(adaptedValue, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ')'
     }
     _appendValue(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (hasToSql(value)) {
             return this._appendSql(value, params, forceTypeCast)
         }
-        const adaptedValue = this._transformParamToDB(value, columnType, columnTypeName, typeAdapter)
+        const adaptedValue = this._transformParamToDB(value, columnType, columnTypeName, typeAdapter, params)
         return this._appendParam(adaptedValue, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
     _appendValueParenthesis(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
@@ -573,7 +573,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (hasToSql(value)) {
             return this._appendConditionSql(value, params, forceTypeCast)
         }
-        const adaptedValue = this._transformParamToDB(value, columnType, columnTypeName, typeAdapter)
+        const adaptedValue = this._transformParamToDB(value, columnType, columnTypeName, typeAdapter, params)
         return this._appendConditionParam(adaptedValue, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
     _appendConditionValueParenthesis(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
@@ -588,11 +588,19 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return this._appendConditionValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
-    _transformParamToDB(value: any, _columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): any {
-        if (typeAdapter) {
-            return typeAdapter.transformValueToDB(value, columnTypeName, this._defaultTypeAdapter)
-        } else {
-            return this._defaultTypeAdapter.transformValueToDB(value, columnTypeName)
+    _transformParamToDB(value: any, _columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, params?: any[]): any {
+        try {
+            if (typeAdapter) {
+                return typeAdapter.transformValueToDB(value, columnTypeName, this._defaultTypeAdapter)
+            } else {
+                return this._defaultTypeAdapter.transformValueToDB(value, columnTypeName)
+            }
+        } catch (e) {
+            // The value would be the next parameter: an invalid one tells which of them it is
+            if (params && e instanceof TsSqlError && e.errorReason.reason === 'INVALID_VALUE_TO_SEND_TO_DATABASE' && e.errorReason.paramIndex === undefined) {
+                e.errorReason.paramIndex = params.length
+            }
+            throw e
         }
     }
     _appendParam(value: any, params: any[], _columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
@@ -722,7 +730,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 if (valueSql) {
                     valueSql += ', '
                 }
-                valueSql += this._appendValueForColumn(column, value[columnName], params, false)
+                valueSql += this._appendSetValue(columnName, i, column, value[columnName], params, false, withValues.__name)
             }
             valuesSql += this._withValuesRowConstructorKeyword() + '(' + valueSql + ')'
         }
@@ -757,11 +765,15 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _buildInlineSelect(query: SelectData, params: any[]): string {
         const oldWithGeneratedFinished = this._isWithGeneratedFinished(params)
         const oldGenerateExternalWith = this._generateExternalWith(params)
+        // The and / or of the inner where belong to the inner query: an or around
+        // `exists(select … where a and b)` must not see them as its own operand's
+        const oldResultingOperation = this._getResultingOperation(params)
         this._setGenerateExternalWith(params, true)
         this._setWithGeneratedFinished(params, false)
         const result = this._buildSelectWithColumnsInfo(query, params, {}, false)
         this._setWithGeneratedFinished(params, oldWithGeneratedFinished)
         this._setGenerateExternalWith(params, oldGenerateExternalWith)
+        this._setResultingOperation(params, oldResultingOperation)
         return result
     }
     _buildSelect(query: SelectData, params: any[]): string {
@@ -1905,16 +1917,17 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return null
     }
     /**
-     * The value of a property in a set: an invalid value tells the property, and the row
-     * when several rows are inserted, as the values received from the database do.
+     * The value of a property in a set or in a row of a `Values`: an invalid value tells the
+     * property, and the row when there are several, as the values received from the database do.
      */
-    _appendSetValue(columnPath: string, rowIndex: number | undefined, column: DBColumn, value: any, params: any[]): string {
+    _appendSetValue(columnPath: string, rowIndex: number | undefined, column: DBColumn, value: any, params: any[], forceTypeCast: boolean = false, valuesName?: string): string {
         try {
-            return this._appendValueForColumn(column, value, params, false)
+            return this._appendValueForColumn(column, value, params, forceTypeCast)
         } catch (e) {
             if (e instanceof TsSqlError && e.errorReason.reason === 'INVALID_VALUE_TO_SEND_TO_DATABASE') {
                 e.errorReason.columnPath = columnPath
                 e.errorReason.rowIndex = rowIndex
+                e.errorReason.valuesName = valuesName
             }
             throw e
         }
@@ -4083,9 +4096,17 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         return result + ')'
     }
-    _buildCallFunction(params: any[], functionName: string, functionParams: AnyValueSource[]): string {
+    /*
+     * The function is selected as any other value of a select, so its result is converted by its type as a column is
+     * (`_appendColumnValue`): the uuid of a database that doesn't store it as text is read as text, as its parameters
+     * are sent in the form it's stored
+     */
+    _buildCallFunction(params: any[], functionCall: AnyValueSource): string {
+        return 'select ' + this._appendColumnValue(functionCall, params, true)
+    }
+    _appendFunctionCall(params: any[], functionName: string, functionParams: AnyValueSource[]): string {
         const forceTypeCast = this._forceTypeCastInCallArguments()
-        let result = 'select ' + this._escape(functionName, false) + '('
+        let result = this._escape(functionName, false) + '('
         if (functionParams.length > 0) {
             result += this._appendSql(functionParams[0]!, params, forceTypeCast)
 

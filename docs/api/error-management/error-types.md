@@ -88,7 +88,7 @@ try {
 | `MAXIMUM_ROWS_EXCEEDED` | `count`, `max` |
 | `MORE_THAN_ONE_ROW` | `count` |
 | `NO_RESULT` | none |
-| `INVALID_VALUE_TO_SEND_TO_DATABASE` | `value`, `typeName`, optional `rowIndex`, optional `columnPath` |
+| `INVALID_VALUE_TO_SEND_TO_DATABASE` | `value`, `typeName`, optional `paramIndex`, optional `rowIndex`, optional `columnPath`, optional `valuesName` |
 | `INVALID_VALUE_RECEIVED_FROM_DATABASE` | `value`, `typeName`, optional `rowIndex`, optional `columnPath` |
 | `MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE` | `value`, `typeName`, optional `rowIndex`, optional `columnPath` |
 | `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` | `value`, `typeName`, optional `rowIndex`, optional `columnPath` |

@@ -181,7 +181,7 @@ describe(ctx.label, () => {
     test('uuid-required', async () => {
         ctx.mockNext(UUID)
         const v = await ctx.conn.callCmUuid()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cm_uuid() from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select raw_to_uuid(cm_uuid()) from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, string>>()
         expect(v).toBe(UUID)
@@ -189,7 +189,7 @@ describe(ctx.label, () => {
     test('uuid-optional', async () => {
         ctx.mockNext(UUID)
         const v = await ctx.conn.callCmUuidOpt()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cm_uuid() from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select raw_to_uuid(cm_uuid()) from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, string | null>>()
         expect(v).toBe(UUID)
@@ -197,7 +197,7 @@ describe(ctx.label, () => {
     test('uuid-required-adapter', async () => {
         ctx.mockNext(UUID)
         const v = await ctx.conn.callCmUuidAdapter()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cm_uuid() from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select raw_to_uuid(cm_uuid()) from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, string>>()
         expect(v).toBe(BRACKET_UUID)
@@ -205,7 +205,7 @@ describe(ctx.label, () => {
     test('uuid-optional-adapter', async () => {
         ctx.mockNext(UUID)
         const v = await ctx.conn.callCmUuidOptAdapter()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cm_uuid() from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select raw_to_uuid(cm_uuid()) from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, string | null>>()
         expect(v).toBe(BRACKET_UUID)
@@ -490,7 +490,7 @@ describe(ctx.label, () => {
     test('custom-uuid-required', async () => {
         ctx.mockNext(UUID)
         const v = await ctx.conn.callCmCustomUuid()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cm_uuid() from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select raw_to_uuid(cm_uuid()) from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, string>>()
         expect(v).toBe(UUID)
@@ -498,7 +498,7 @@ describe(ctx.label, () => {
     test('custom-uuid-optional', async () => {
         ctx.mockNext(UUID)
         const v = await ctx.conn.callCmCustomUuidOpt()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cm_uuid() from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select raw_to_uuid(cm_uuid()) from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, string | null>>()
         expect(v).toBe(UUID)
@@ -506,7 +506,7 @@ describe(ctx.label, () => {
     test('custom-uuid-required-adapter', async () => {
         ctx.mockNext(UUID)
         const v = await ctx.conn.callCmCustomUuidAdapter()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cm_uuid() from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select raw_to_uuid(cm_uuid()) from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, string>>()
         expect(v).toBe(BRACKET_UUID)
@@ -514,7 +514,7 @@ describe(ctx.label, () => {
     test('custom-uuid-optional-adapter', async () => {
         ctx.mockNext(UUID)
         const v = await ctx.conn.callCmCustomUuidOptAdapter()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cm_uuid() from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select raw_to_uuid(cm_uuid()) from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, string | null>>()
         expect(v).toBe(BRACKET_UUID)

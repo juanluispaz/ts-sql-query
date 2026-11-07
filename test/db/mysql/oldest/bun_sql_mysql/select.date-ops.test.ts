@@ -815,4 +815,30 @@ describe(ctx.label, () => {
         }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('local-date-read-back-matches-its-row', async () => {
+        // A localDate read from the database (2024-03-04, the work date of worklog 1)
+        // finds its row when it's sent back: only the date is compared.
+        ctx.mockNext(new Date(Date.UTC(2024, 2, 4, 10, 0, 0)))
+        const workDate = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .selectOneColumn(tIssueWorklog.workDate)
+            .executeSelectOne()
+        ctx.mockNext([1])
+        const ids = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.workDate.equals(workDate))
+            .selectOneColumn(tIssueWorklog.id)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as result from issue_worklog where work_date = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-03-04T10:00:00.000Z,
+          ]
+        `)
+        assertType<Exact<typeof ids, number[]>>()
+        // TODO[BUG]: see BUGS.md — a localDate read and sent back doesn't find its row: the time of the Date is sent too
+        if (!ctx.realDbEnabled) expect(ids).toEqual([1])
+        else expect(ids).toEqual([])
+    })
+
 })

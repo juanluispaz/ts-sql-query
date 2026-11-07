@@ -6,6 +6,8 @@ search:
 
 This API allows you to define and use constant values as if they were a virtual table or view in your queries. These values can be used to simulate joins with static data, define fragments, or structure expressions that act like inline tables. The API supports different types of fields, including nullable and non-nullable values, as well as custom and virtual columns.
 
+A class of values doesn't declare a constructor: the one it inherits receives the name and an `OpaqueValues`, a type exported from `ts-sql-query` that only `Values.create` gives, so an instance is always created with `Values.create(...)`.
+
 ```typescript
 interface Values {
     /** Defines an alias for the view to be used in select queries */

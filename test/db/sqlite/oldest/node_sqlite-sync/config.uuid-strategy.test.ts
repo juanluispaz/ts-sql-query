@@ -31,6 +31,7 @@
 // assertion of interest is the SqlBuilder shape, not engine execution.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
 import { tIssue, tProject } from '../../domain/connection.js'
@@ -97,6 +98,22 @@ describe(ctx.label, () => {
             "123e4567-e89b-12d3-a456-426614174000",
           ]
         `)
+    })
+
+    test('uuid-strategy: executeFunction returning a uuid reads it with uuid_str on uuid-extension', async () => {
+        // The function returns the uuid as it is stored (a blob); executeFunction reads it
+        // as a column of a select is read, with `uuid_str(...)` around the call.
+        const conn = ctx.withUuidStrategy('uuid-extension')
+        ctx.mockNext(UUID_VALUE)
+        const value = sync(conn.uuidAsBlob(UUID_VALUE))
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select uuid_str(uuid_blob(?1))"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "123e4567-e89b-12d3-a456-426614174000",
+          ]
+        `)
+        assertType<Exact<typeof value, string>>()
+        expect(value).toBe(UUID_VALUE)
     })
 
     test('uuid-strategy: outermost-column projection on string strategy emits raw bind', async () => {

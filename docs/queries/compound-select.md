@@ -161,7 +161,7 @@ const allDataWithName: Promise<{
 
 !!! warning
 
-    The selects must have the same properties, with the same name and a compatible type; if not, the query doesn't compile.
+    The selects must have the same properties, with the same name, the same type of value and the same optionality; if not, the query doesn't compile. A property that is optional in one select and required in another is rejected: make both optional with `asOptional()`, or both required with `valueWhenNull(...)`.
 
 ## Ordering the combined result
 

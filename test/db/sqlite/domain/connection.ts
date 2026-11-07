@@ -135,6 +135,12 @@ export class DBConnection extends SqliteConnection<'DBConnection'> {
     // both of which opt in via `ctx.withUuidStrategy('uuid-extension')`.
     protected override uuidStrategy: 'string' | 'uuid-extension' = 'string'
 
+    // `uuid_blob` (registered by the harness, like the uuid extension) returns the
+    // uuid as the 'uuid-extension' strategy stores it: a blob of 16 bytes
+    uuidAsBlob(uuid: string) {
+        return this.executeFunction('uuid_blob', [this.const(uuid, 'string')], 'uuid', 'required')
+    }
+
     // The `VIssueBilling` values view in `with-values.advanced.test.ts`
     // declares custom types without a per-column `TypeAdapter`: `IssueId`
     // (customInt), `Money` (customDouble) and `BillingRef` (customUuid).

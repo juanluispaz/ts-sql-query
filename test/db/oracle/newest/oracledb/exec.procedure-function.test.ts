@@ -338,7 +338,7 @@ describe(ctx.label, () => {
         // VARCHAR(36) (string strategy), so the value passes through unchanged.
         ctx.mockNext('0a8f9c1e-1111-4222-8333-444455556666')
         const value = await ctx.conn.callRetUuid(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_uuid(:0) from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select raw_to_uuid(ret_uuid(:0)) from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -352,7 +352,7 @@ describe(ctx.label, () => {
         // ret_uuid with the 'optional' flag → `string | null`.
         ctx.mockNext('0a8f9c1e-1111-4222-8333-444455556666')
         const value = await ctx.conn.callRetUuidOptional(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_uuid(:0) from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select raw_to_uuid(ret_uuid(:0)) from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -540,7 +540,7 @@ describe(ctx.label, () => {
         // uuid string.
         ctx.mockNext('0a8f9c1e-1111-4222-8333-444455556666')
         const value = await ctx.conn.callRetCustomUuid(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_uuid(:0) from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select raw_to_uuid(ret_uuid(:0)) from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -554,7 +554,7 @@ describe(ctx.label, () => {
         // ret_uuid read as customUuid with the 'optional' flag → `string | null`.
         ctx.mockNext('0a8f9c1e-1111-4222-8333-444455556666')
         const value = await ctx.conn.callRetCustomUuidOptional(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_uuid(:0) from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select raw_to_uuid(ret_uuid(:0)) from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

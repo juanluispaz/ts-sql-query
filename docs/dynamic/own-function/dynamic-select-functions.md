@@ -453,19 +453,19 @@ The executed query is:
     from company 
     where 
         (
-            (exists(
+            exists(
                 select id as result 
                 from customer 
                 where 
                         company_id = company.id 
                     and lower(concat(first_name, ?, last_name)) like concat('%', lower(?), '%')
-            )) or (exists(
+            ) or exists(
                 select id as result 
                 from customer 
                 where 
                         company_id = company.id 
                     and birthday = ?
-            ))
+            )
         ) and parent_id = ?
     ```
 === "MySQL"
@@ -476,19 +476,19 @@ The executed query is:
     from company 
     where 
         (
-            (exists(
+            exists(
                 select id as result 
                 from customer 
                 where 
                         company_id = company.id 
                     and lower(concat(first_name, ?, last_name)) like concat('%', lower(?), '%')
-            )) or (exists(
+            ) or exists(
                 select id as result 
                 from customer 
                 where 
                         company_id = company.id 
                     and birthday = ?
-            ))
+            )
         ) and parent_id = ?
     ```
 === "Oracle"
@@ -499,19 +499,19 @@ The executed query is:
     from company 
     where 
         (
-            (exists(
+            exists(
                 select id as "result" 
                 from customer 
                 where 
                         company_id = company.id 
                     and lower(first_name || :0 || last_name) like lower('%' || :1 || '%') escape '\'
-            )) or (exists(
+            ) or exists(
                 select id as "result" 
                 from customer 
                 where 
                         company_id = company.id 
                     and birthday = :2
-            ))
+            )
         ) and parent_id = :3
     ```
 ===+ "PostgreSQL"
@@ -522,19 +522,19 @@ The executed query is:
     from company 
     where 
         (
-            (exists(
+            exists(
                 select id as result 
                 from customer 
                 where 
                         company_id = company.id 
                     and (first_name || $1 || last_name) ilike ('%' || $2 || '%')
-            )) or (exists(
+            ) or exists(
                 select id as result 
                 from customer 
                 where 
                         company_id = company.id 
                     and birthday = $3
-            ))
+            )
         ) and parent_id = $4
     ```
 === "SQLite"
@@ -545,19 +545,19 @@ The executed query is:
     from company 
     where 
         (
-            (exists(
+            exists(
                 select id as result 
                 from customer 
                 where 
                         company_id = company.id 
                     and lower(first_name || ?1 || last_name) like lower('%' || ?2 || '%') escape '\'
-            )) or (exists(
+            ) or exists(
                 select id as result 
                 from customer 
                 where 
                         company_id = company.id 
                     and birthday = ?3
-            ))
+            )
         ) and parent_id = ?4
     ```
 === "SQL Server"
@@ -568,19 +568,19 @@ The executed query is:
     from company 
     where 
         (
-            (exists(
+            exists(
                 select id as [result] 
                 from customer 
                 where 
                         company_id = company.id 
                     and lower(first_name + @0 + last_name) like lower('%' + @1 + '%')
-            )) or (exists(
+            ) or exists(
                 select id as [result] 
                 from customer 
                 where 
                         company_id = company.id 
                     and birthday = @2
-            ))
+            )
         ) and parent_id = @3
     ```
 

@@ -693,7 +693,7 @@ const result: Promise<void>
 
 ## Calling a function of the database
 
-`executeFunction` is also a protected method of the connection. It receives the name of the function, its parameters, the [type](column-types.md) of the result, and `'required'` or `'optional'`: with `'optional'` the result can be `null`. On SQLite, a function exists only if you register it in the driver.
+`executeFunction` is also a protected method of the connection. It receives the name of the function, its parameters, the [type](column-types.md) of the result, and `'required'` or `'optional'`: with `'optional'` the result can be `null`. The result is read as a column of that type is read: a `uuid` comes back as text even when the database stores it in binary (MySQL, Oracle and SQLite with their default strategies), so the function returns it in the form the column stores it. On SQLite, a function exists only if you register it in the driver.
 
 ```ts
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";

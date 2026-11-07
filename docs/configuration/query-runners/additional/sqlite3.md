@@ -76,3 +76,9 @@ async function main() {
     connection // ...
 }
 ```
+
+## Options of the query runner
+
+The second argument of `Sqlite3QueryRunner`, optional, is an object of type `Sqlite3QueryRunnerConfig`, exported from `ts-sql-query/queryRunners/Sqlite3QueryRunner`, with one option:
+
+- **`forUseInTransaction`**: the connection is already in a transaction that something else began and ends; see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages).

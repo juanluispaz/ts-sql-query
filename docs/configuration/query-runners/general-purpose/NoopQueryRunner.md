@@ -44,7 +44,7 @@ async function main() {
 
 ## Options
 
-The constructor receives the name of a database, or an object with these options:
+The constructor receives the name of a database, or an object of type `NoopQueryRunnerConfig`, exported from `ts-sql-query/queryRunners/NoopQueryRunner`, with these options:
 
 - **`database`**: the database to write the SQL for. A connection sets it to its own database when you create it, so you only need this to use the query runner without a connection.
 - **`promise`**: another `Promise` provider, for [synchronous query execution](../../../advanced/synchronous-query-runners.md).

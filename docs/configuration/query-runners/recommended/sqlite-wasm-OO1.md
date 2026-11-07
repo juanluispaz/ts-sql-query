@@ -100,3 +100,10 @@ async function main(db: Database) {
     connection // ...
 }
 ```
+
+## Options of the query runner
+
+The second argument of `Sqlite3WasmOO1QueryRunner`, optional, is an object of type `Sqlite3WasmOO1QueryRunnerConfig`, exported from `ts-sql-query/queryRunners/Sqlite3WasmOO1QueryRunner`:
+
+- **`promise`**: another `Promise` provider, for [synchronous query execution](../../../advanced/synchronous-query-runners.md).
+- **`forUseInTransaction`**: the connection is already in a transaction that something else began and ends; see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages).

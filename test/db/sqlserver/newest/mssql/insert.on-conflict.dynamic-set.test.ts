@@ -804,7 +804,7 @@ describe(ctx.label, () => {
 
             expect(ctx.lastSql).toMatchInlineSnapshot()
             expect(ctx.lastParams).toMatchInlineSnapshot()
-            assertType<Exact<typeof id, number>>()
+            assertType<Exact<typeof id, number | null>>()
             expect(typeof id).toBe('number')
             if (!ctx.realDbEnabled) expect(id).toBe(1001)
             else expect(id).toBeGreaterThan(4) // seed reserves project ids 1-4
@@ -839,29 +839,47 @@ describe(ctx.label, () => {
     */
     // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE)
     /*
-    test('empty-on-conflict-update-set-degrade-on-colliding-row-throws-mandatory-value-not-received', async () => {
-        // Emptying the update-set degrades the statement to `… do nothing`, and the row
-        // COLLIDES (org 1, 'mktg-site' — the seed row) so it is suppressed. The degrade
-        // still types the returningLastInsertedId result as a NON-null `number`, but the
-        // suppressed row returns no id, so the guard throws
-        // MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE. The control twin below (a plain
-        // onConflictDoNothing, typed `number | null`) resolves null instead.
+    test('empty-on-conflict-update-set-degrade-on-colliding-row-resolves-null', async () => {
+        // Emptying the update-set degrades the statement to its conflict no-op, and the row
+        // COLLIDES (org 1, 'mktg-site' — the seed row) so it is suppressed: no id comes back,
+        // and the result is null, as the type `number | null` says, like a plain
+        // onConflictDoNothing (the control twin below).
         ctx.mockNext(null)
         await ctx.withRollback(async () => {
-            let caught: unknown
-            try {
-                await ctx.conn.insertInto(tProject)
-                    .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
-                    .onConflictOn(tProject.organizationId, tProject.slug)
-                    .doUpdateDynamicSet({ archivedAt: null })
-                    .ignoreAnySetWithNoValue()
-                    .returningLastInsertedId()
-                    .executeInsert()
-            } catch (e) { caught = e }
+            const id = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateDynamicSet({ archivedAt: null })
+                .ignoreAnySetWithNoValue()
+                .returningLastInsertedId()
+                .executeInsert()
             expect(ctx.lastSql).toMatchInlineSnapshot()
             expect(ctx.lastParams).toMatchInlineSnapshot()
-            expect(caught instanceof TsSqlError ? caught.errorReason.reason : caught)
-                .toBe('MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE')
+            assertType<Exact<typeof id, number | null>>()
+            expect(id).toBeNull()
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE)
+    /*
+    test('update-set-emptied-by-ignore-any-set-with-no-value-on-colliding-row-resolves-null', async () => {
+        // A doUpdateSet whose only value is dropped by ignoreAnySetWithNoValue() is left with
+        // no column, as a dynamic set can be: on the colliding seed row the id is null, and
+        // the type says `number | null`.
+        ctx.mockNext(null)
+        await ctx.withRollback(async () => {
+            const id = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSet({ archivedAt: null })
+                .ignoreAnySetWithNoValue()
+                .returningLastInsertedId()
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof id, number | null>>()
+            expect(id).toBeNull()
         })
     })
     */
@@ -869,7 +887,7 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('conflict-do-nothing-returning-last-inserted-id-on-colliding-row-resolves-null', async () => {
-        // The control twin for the degrade throw above: a plain
+        // The control twin for the degrade above: a plain
         // `onConflictDoNothing().returningLastInsertedId()` on the SAME colliding row
         // types the result `number | null`, so the suppressed row resolves to null
         // rather than throwing.

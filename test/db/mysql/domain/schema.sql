@@ -200,9 +200,10 @@ DROP FUNCTION IF EXISTS ret_activity;
 DROP FUNCTION IF EXISTS ret_channel;
 DROP FUNCTION IF EXISTS ret_semver;
 -- Constant-returning functions, one per remaining executeFunction return kind.
--- boolean rides in TINYINT(1); ret_uuid returns the string form (not BINARY).
+-- boolean rides in TINYINT(1); ret_uuid returns the uuid as the 'binary' strategy
+-- stores it, BINARY(16), as a column does.
 CREATE FUNCTION ret_flag(p_id INT) RETURNS TINYINT(1) DETERMINISTIC RETURN 1;
-CREATE FUNCTION ret_uuid(p_id INT) RETURNS CHAR(36) DETERMINISTIC RETURN '0a8f9c1e-1111-4222-8333-444455556666';
+CREATE FUNCTION ret_uuid(p_id INT) RETURNS BINARY(16) DETERMINISTIC RETURN UNHEX('0a8f9c1e111142228333444455556666');
 CREATE FUNCTION ret_day(p_id INT) RETURNS DATE DETERMINISTIC RETURN DATE '2024-02-03';
 CREATE FUNCTION ret_clock(p_id INT) RETURNS TIME DETERMINISTIC RETURN TIME '14:25:36';
 CREATE FUNCTION ret_activity(p_id INT) RETURNS VARCHAR(16) DETERMINISTIC RETURN 'coding';
@@ -308,8 +309,7 @@ FROM col_matrix;
 -- value (executeFunction return-kind + trailing-adapter
 -- fan-out, exercised by `exec.function-value-kinds.test.ts`). Custom kinds reuse
 -- the base-kind function. Declared AFTER col_matrix (the body reads it). m_uuid
--- is BINARY(16) (UUID_TO_BIN), so cm_uuid returns the CHAR(36) string form via
--- BIN_TO_UUID to match ret_uuid's string strategy.
+-- is BINARY(16) (UUID_TO_BIN), and cm_uuid returns it as it is stored.
 DROP FUNCTION IF EXISTS cm_int;
 DROP FUNCTION IF EXISTS cm_bigint;
 DROP FUNCTION IF EXISTS cm_double;
@@ -323,7 +323,7 @@ CREATE FUNCTION cm_int() RETURNS INT DETERMINISTIC RETURN (SELECT m_int FROM col
 CREATE FUNCTION cm_bigint() RETURNS BIGINT DETERMINISTIC RETURN (SELECT m_bigint FROM col_matrix WHERE id = 1);
 CREATE FUNCTION cm_double() RETURNS DOUBLE DETERMINISTIC RETURN (SELECT m_double FROM col_matrix WHERE id = 1);
 CREATE FUNCTION cm_bool() RETURNS TINYINT(1) DETERMINISTIC RETURN (SELECT m_bool FROM col_matrix WHERE id = 1);
-CREATE FUNCTION cm_uuid() RETURNS CHAR(36) DETERMINISTIC RETURN (SELECT BIN_TO_UUID(m_uuid) FROM col_matrix WHERE id = 1);
+CREATE FUNCTION cm_uuid() RETURNS BINARY(16) DETERMINISTIC RETURN (SELECT m_uuid FROM col_matrix WHERE id = 1);
 CREATE FUNCTION cm_date() RETURNS DATE DETERMINISTIC RETURN (SELECT m_date FROM col_matrix WHERE id = 1);
 CREATE FUNCTION cm_time() RETURNS TIME DETERMINISTIC RETURN (SELECT m_time FROM col_matrix WHERE id = 1);
 CREATE FUNCTION cm_datetime() RETURNS DATETIME DETERMINISTIC RETURN (SELECT m_datetime FROM col_matrix WHERE id = 1);

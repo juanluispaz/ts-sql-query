@@ -36,7 +36,7 @@ async function main() {
 }
 ```
 
-The function receives these arguments, and what it returns is the result of the statement:
+The function, of type `MockQueryExecutor` (exported from `ts-sql-query/queryRunners/MockQueryRunner`), receives these arguments, and what it returns is the result of the statement:
 
 - **`type: QueryType`**: type of the query to be executed. The `QueryType` is defined as:
 
@@ -53,7 +53,7 @@ type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | '
 ```
 
 - **`query: string`**: the SQL to be executed.
-- **`params: any[]`**: the parameters of the query.
+- **`params: any[]`**: the parameters of the query. For `beginTransaction`, `commit` and `rollback`, the options of the transaction, as described in [the functions of `LoggingQueryRunner`](LoggingQueryRunner.md#the-functions-of-the-logger).
 - **`index: number`**: how many statements the query runner received before this one: `0` for the first, `1` for the second, and so on.
 
 The statements of a transaction reach your function too, and count in `index`: `beginTransaction`, `commit` and `rollback`, with the SQL `begin transaction`, `commit` and `rollback`. So a query inside `connection.transaction(...)` has index `1` when it's the first one, and `executeSelectPage` calls it twice, for the rows and for the count.

@@ -214,3 +214,11 @@ async function main(oracleConnection: oracledb.Connection) {
     await oracleConnection.commit();
 }
 ```
+
+## Options of the query runner
+
+The second argument of `OracleDBQueryRunner`, optional, is an object of type `OracleDBQueryRunnerConfig`, exported from `ts-sql-query/queryRunners/OracleDBQueryRunner`, with one option:
+
+- **`forUseInTransaction`**: the connection is in a transaction that something else manages; see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages).
+
+`OracleDBPoolQueryRunner` and `OracleDBPoolPromiseQueryRunner` have no options.

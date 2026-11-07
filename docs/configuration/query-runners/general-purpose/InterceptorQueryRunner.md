@@ -80,7 +80,7 @@ type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | '
 ```
 
 - **`query: string`**: the SQL query to be executed. It will be empty for `beginTransaction`, `commit`, or `rollback`.
-- **`params: any[]`**: parameters received by the query.
+- **`params: any[]`**: parameters received by the query. For `beginTransaction`, `commit` and `rollback` they're the options of the transaction: for `beginTransaction`, a `BeginTransactionOpts`, `[isolationLevel, accessMode]`, as the query runner receives them (the level is `undefined` when only the access mode is given, and the array is empty without either); for `commit` and `rollback`, a `CommitOpts` or `RollbackOpts`, empty after `connection.beginTransaction()`, and with the same values as the begin inside `connection.transaction(fn, level)`. These types are exported from `ts-sql-query/queryRunners/QueryRunner`.
 - **`result: any`**: (only in `onQueryResult`) result of the execution of the query.
 - **`error: any`**: (only in `onQueryError`) error that happened executing the query.
 - **`payload`**: (only in `onQueryResult` or `onQueryError`) payload data created by the `onQuery` function.

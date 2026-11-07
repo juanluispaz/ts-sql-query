@@ -13,9 +13,9 @@ A function that builds a part of a query, like a subquery or a condition, may ne
 | `tCompany.forUseInLeftJoin()`, or an alias of it | `TableOrViewLeftJoinOf<typeof tCompany>` |
 | `tCompany.forUseInLeftJoinAs('company')` | `TableOrViewLeftJoinOf<typeof tCompany, 'company'>` |
 
-The first argument is the table or view, and the second one, optional, is its alias.
+The first argument is the table or view, and the second one, optional, is its alias. A [`Values`](../api/constant-values-view.md) works the same way: `TableOrViewOf<typeof projectNames, 'names'>` for `projectNames.as('names')`, and `fromRef(projectNames, ref)` or `fromRef(VProjectName, ref)` with its class.
 
-These types are only a reference: they don't have the columns. To reach them, `fromRef` converts the reference into the table. Its first argument is the table or view (or its class), and the second one is the reference. At run time it returns the reference as it is.
+These types are only a reference: they don't have the columns. To reach them, `fromRef` converts the reference into the table. Its first argument is the table or view (or its class), and the second one is the reference. At run time it returns the reference as it is. The reference must be of that table or view: with a reference of another one, the call doesn't compile.
 
 <!-- doc-code-snippet-result: { id: 10, name: 'ACME', numberOfCustomers: 3 } -->
 ```ts

@@ -254,4 +254,75 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; overview?: { name: string; nameUpper: string; archivedAt?: Date } }>>()
         expect(row).toEqual({ id: 1 })
     })
+
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    /*
+    test('docs-extra:tables-views-as-parameter/values-ref', async () => {
+        // A Values is passed as a parameter as a table or a view is: the names of
+        // projects 1 and 2, with the count of their issues.
+        class VProjectName extends Values<DBConnection, 'projectName'> {
+            id   = this.column('int')
+            name = this.column('string')
+        }
+        const projectNames = Values.create(VProjectName, 'projectName', [
+            { id: 1, name: 'Marketing site' },
+            { id: 2, name: 'Internal tools' },
+        ])
+        function issueCount<NAMES extends TableOrViewOf<typeof projectNames, 'names'>>(connection: DBConnection, namesRef: NAMES) {
+            const names = fromRef(projectNames, namesRef)
+            return connection
+                .subSelectUsing(names)
+                .from(tIssue)
+                .where(tIssue.projectId.equals(names.id))
+                .selectOneColumn(connection.countAll())
+                .forUseAsInlineQueryValue()
+                .valueWhenNull(0)
+        }
+
+        const expected = [{ name: 'Marketing site', issues: 2 }, { name: 'Internal tools', issues: 1 }]
+        ctx.mockNext(expected)
+        const aliased = projectNames.as('names')
+        const rows = await ctx.conn.selectFrom(aliased)
+            .select({ name: aliased.name, issues: issueCount(ctx.conn, aliased) })
+            .orderBy('name', 'desc')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof rows, { name: string; issues: number }[]>>()
+        expect(rows).toEqual(expected)
+    })
+    */
+
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
+    /*
+    test('docs-extra:tables-views-as-parameter/values-left-join-ref', async () => {
+        // The same with the Values prepared for a left join: projects 3 and 4 have no name in it.
+        class VProjectName extends Values<DBConnection, 'projectName'> {
+            id   = this.column('int')
+            name = this.column('string')
+        }
+        const projectNames = Values.create(VProjectName, 'projectName', [
+            { id: 1, name: 'Marketing site' },
+            { id: 2, name: 'Internal tools' },
+        ])
+        function nameOf<NAMES extends TableOrViewLeftJoinOf<typeof projectNames, 'names'>>(namesRef: NAMES) {
+            return fromRef(projectNames, namesRef).name
+        }
+
+        const expected = [{ id: 1, name: 'Marketing site' }, { id: 2, name: 'Internal tools' }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(expected)
+        const names = projectNames.forUseInLeftJoinAs('names')
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(names).on(names.id.equals(tProject.id))
+            .select({ id: tProject.id, name: nameOf(names) })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof rows, { id: number; name?: string }[]>>()
+        expect(rows).toEqual(expected)
+    })
+    */
 })

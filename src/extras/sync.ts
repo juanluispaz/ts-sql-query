@@ -7,9 +7,9 @@ import { TsSqlProcessingError } from '../TsSqlError.js'
  * When used with a promise implementation that resolves synchronously (and does
  * not defer `.then` execution) — typically [`synchronous-promise`](https://www.npmjs.com/package/synchronous-promise)
  * combined with a synchronous database query runner such as `BetterSqlite3QueryRunner`,
- * `NodeSqliteQueryRunner`, `BunSqliteQueryRunner`, `Sqlite3WasmOO1QueryRunner` or
- * `PgLiteQueryRunner` — this allows interacting with `ts-sql-query` in a fully
- * synchronous style.
+ * `NodeSqliteQueryRunner`, `BunSqliteQueryRunner` or `Sqlite3WasmOO1QueryRunner`
+ * (PGlite is asynchronous, so `PgLiteQueryRunner` can't be used with it) — this
+ * allows interacting with `ts-sql-query` in a fully synchronous style.
  *
  * The promise passed to `sync()` must be truly synchronous; if it has not
  * resolved (or rejected) by the time `.then(...)` returns, this function throws

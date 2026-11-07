@@ -121,3 +121,12 @@ async function main(mysql2Connection: Connection) {
     connection // ...
 }
 ```
+
+## Options of the query runner
+
+The second argument of `MySql2QueryRunner`, optional, is the name of the database or an object of type `MySql2QueryRunnerConfig`, exported from `ts-sql-query/queryRunners/MySql2QueryRunner`:
+
+- **`database`**: the database to write the SQL for, `'mariaDB'` or `'mySql'`. A connection sets it to its own database when you create it, so you only need it to use the query runner without a connection.
+- **`forUseInTransaction`**: the connection is already in a transaction that something else began and ends; see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages).
+
+`MySql2PoolQueryRunner` receives only the name of the database as its second argument, `'mySql'` by default.

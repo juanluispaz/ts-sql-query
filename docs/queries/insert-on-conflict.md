@@ -715,7 +715,7 @@ const updatedCustomer: {
 
 ## Updating only the values that have a value
 
-`onConflictDoUpdateSetIfValue(...)` (and `doUpdateSetIfValue(...)` after choosing the conflict) only updates the columns whose value is not `null`, `undefined`, an empty string (unless the connection allows empty strings) or an empty array; the others keep their current value. It's useful when the values come from outside and a missing one must not overwrite what the row already has. If no column has a value, there is nothing to update, and the clause does nothing on a conflict.
+`onConflictDoUpdateSetIfValue(...)` (and `doUpdateSetIfValue(...)` after choosing the conflict) only updates the columns whose value is not `null`, `undefined`, an empty string (unless the connection allows empty strings) or an empty array; the others keep their current value. It's useful when the values come from outside and a missing one must not overwrite what the row already has. If no column has a value, there is nothing to update, and a conflicting row is neither inserted nor updated (see [When nothing is left to update](#when-nothing-is-left-to-update)).
 
 === "MariaDB"
     ```ts
@@ -992,6 +992,16 @@ The result type is:
 ```tsx
 const affectedCount: number
 ```
+
+## When nothing is left to update
+
+When no column is left to update (every value given to `onConflictDoUpdateSetIfValue(...)` or `doUpdateSetIfValue(...)` is empty, or `ignoreAnySetWithNoValue()` removes every value of a dynamic update), the library doesn't send an empty update: it turns the clause into its do-nothing form, `on conflict do nothing` on PostgreSQL and SQLite (keeping the conflict you chose) and `insert ignore` on MariaDB and MySQL. A row without conflict is inserted as usual; a conflicting row is neither inserted nor updated, so `executeInsert()` returns `0` for it.
+
+What you get back for a conflicting row is what a do nothing gives:
+
+- `returningLastInsertedId()` is typed `number | null` after `onConflictDoUpdateSetIfValue(...)`, `doUpdateSetIfValue(...)`, `onConflictDoUpdateDynamicSet(...)`, `doUpdateDynamicSet(...)`, and after a method that can drop values from the update (`ignoreIfSet`, `keepOnly`, `ignoreIfHasValue`, `ignoreIfHasNoValue`, `ignoreAnySetWithNoValue` and their `*When` forms); a conflicting row gives `null` when the update was left with no column. A row inserted gives its id.
+- `returning(...)` or `returningOneColumn(...)` with `executeInsertOne()` rejects with `NO_RESULT`; with `executeInsertNoneOrOne()` it gives `null`. When every value can be empty and you ask for columns back, use `executeInsertNoneOrOne()`.
+
 ## Choosing the conflict
 
 On [PostgreSQL](../configuration/supported-databases/postgresql.md) and [SQLite](../configuration/supported-databases/sqlite.md) you can say which conflict the clause handles; any other conflict still raises an error. The columns must be those of a unique key of the table; otherwise the database raises an error even when the row conflicts with nothing. When an insert can break several unique keys, this lets you treat each as what it means: a repeated name is the same customer, while a repeated email can be a mistake that must fail. On [MariaDB](../configuration/supported-databases/mariadb.md) and [MySQL](../configuration/supported-databases/mysql.md) the clause handles any unique-key violation, so there is nothing to choose.

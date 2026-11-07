@@ -95,3 +95,12 @@ async function main(mariaDBConnection: Connection) {
     connection // ...
 }
 ```
+
+## Options of the query runner
+
+The second argument of `MariaDBQueryRunner`, optional, is the name of the database or an object of type `MariaDBQueryRunnerConfig`, exported from `ts-sql-query/queryRunners/MariaDBQueryRunner`:
+
+- **`database`**: the database to write the SQL for, `'mariaDB'` or `'mySql'`. A connection sets it to its own database when you create it, so you only need it to use the query runner without a connection.
+- **`forUseInTransaction`**: the connection is already in a transaction that something else began and ends; see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages).
+
+`MariaDBPoolQueryRunner` receives only the name of the database as its second argument, `'mariaDB'` by default.

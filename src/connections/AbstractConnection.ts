@@ -14,7 +14,7 @@ import { InsertQueryBuilder } from '../queryBuilders/InsertQueryBuilder.js'
 import { UpdateQueryBuilder } from '../queryBuilders/UpdateQueryBuilder.js'
 import { DeleteQueryBuilder } from '../queryBuilders/DeleteQueryBuilder.js'
 import { __getValueSourcePrivate, Argument } from '../expressions/values.js'
-import { SqlOperationStatic0ValueSource, SqlOperationStatic1ValueSource, AggregateFunctions0ValueSource, AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource, SqlOperationConstValueSource, SqlOperationValueSourceIfValueAlwaysNoop, SqlOperationStaticBooleanValueSource, TableOrViewRawFragmentValueSource, AggregateValueAsArrayValueSource } from '../internal/ValueSourceImpl.js'
+import { SqlOperationStatic0ValueSource, SqlOperationStatic1ValueSource, AggregateFunctions0ValueSource, AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource, SqlOperationConstValueSource, SqlOperationValueSourceIfValueAlwaysNoop, SqlOperationStaticBooleanValueSource, TableOrViewRawFragmentValueSource, AggregateValueAsArrayValueSource, FunctionCallValueSource } from '../internal/ValueSourceImpl.js'
 import { SelectQueryBuilder } from '../queryBuilders/SelectQueryBuilder.js'
 import { TsSqlError, TsSqlProcessingError, TsSqlQueryExecutionError, QueryExecutionSource } from '../TsSqlError.js'
 import { FragmentQueryBuilder, FragmentFunctionBuilder, FragmentFunctionBuilderIfValue, FragmentFunctionBuilderMaybeOptional } from '../queryBuilders/FragmentQueryBuilder.js'
@@ -717,14 +717,17 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         const source = new QueryExecutionSource('Query executed at')
         let query: string | undefined
         try {
+            // The value type of the result (like 'customUuid'), and the name of its type (the type name for a custom type)
+            const valueType = returnType
             if (typeof adapter === 'string') {
                 returnType = required
                 required = adapter
             } else {
                 adapter2 = adapter
             }
+            const functionCall = new FunctionCallValueSource(functionName, params as AnyValueSource[], valueType as ValueType, returnType, required === 'optional' ? 'optional' : 'required', adapter2)
             const queryParams: any[] = []
-            query = this.__sqlBuilder._buildCallFunction(queryParams, functionName, params)
+            query = this.__sqlBuilder._buildCallFunction(queryParams, functionCall)
             __setQueryMetadata(source, queryParams)
             return this.__sqlBuilder._queryRunner.executeFunction(query, queryParams).then((value) => {
                 let result

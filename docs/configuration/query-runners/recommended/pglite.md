@@ -64,3 +64,10 @@ When the transaction began with a query on the database (`db.query('begin')`), c
 ## Nested transactions
 
 A transaction that begins inside another one is rejected, unless you create the query runner with `new PgLiteQueryRunner(db, { allowNestedTransactions: true })`. PostgreSQL doesn't nest them: see [what this option does](../../../queries/transaction.md#nested-transactions).
+
+## Options of the query runner
+
+The second argument of `PgLiteQueryRunner`, optional, is an object of type `PgLiteQueryRunnerConfig`, exported from `ts-sql-query/queryRunners/PgLiteQueryRunner`:
+
+- **`allowNestedTransactions`**: see [Nested transactions](#nested-transactions).
+- **`forUseInTransaction`**: the connection is already in a transaction that something else began and ends; see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages).

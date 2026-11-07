@@ -310,7 +310,7 @@ Which column types fall in which kind, and what the session zone does:
         Being kind 2, it drifts — but not where you would look. The driver sets the session zone from **your process's** zone, so the `Date` you read comes out right and the `getTime()` the database computes comes out wrong:
 
         ```
-        TZ=Europe/Madrid   value.getTime() = 1705235400000   epoch = 1705242600000   drifts
+        TZ=Europe/Madrid   value.getTime() = 1705235400000   epoch = 1705239000000   drifts
         ```
 
         `TIMESTAMP WITH TIME ZONE` (kind 4) carries its own zone and is unaffected.

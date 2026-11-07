@@ -1857,6 +1857,23 @@ export class FragmentValueSource extends ValueSourceImpl {
     }
 }
 
+/**
+ * The call of a function of the database whose result `executeFunction` reads: it is selected as any other value of a
+ * select, so the result is converted by its type as a column is (like the uuid of a database that stores it in binary)
+ */
+export class FunctionCallValueSource extends ValueSourceImpl {
+    __functionName: string
+    __functionParams: AnyValueSource[]
+    constructor(functionName: string, functionParams: AnyValueSource[], valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+        super(valueType, valueTypeName, optionalType, typeAdapter)
+        this.__functionName = functionName
+        this.__functionParams = functionParams
+    }
+    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
+        return sqlBuilder._appendFunctionCall(params, this.__functionName, this.__functionParams)
+    }
+}
+
 export class ValueSourceFromBuilder extends ValueSourceImpl {
     __builder: (fragmentBuilder: FragmentQueryBuilder) => AnyValueSource
     __fragmentBuilder: FragmentQueryBuilder

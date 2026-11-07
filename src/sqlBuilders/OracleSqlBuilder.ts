@@ -618,7 +618,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 if (valueSql) {
                     valueSql += ', '
                 }
-                valueSql += this._appendValueForColumn(column, value[columnName], params, false)
+                valueSql += this._appendSetValue(columnName, i, column, value[columnName], params, false, withValues.__name)
             }
             valuesSql += 'select ' + valueSql + ' from dual'
         }
@@ -1439,17 +1439,8 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
         return result + '); end;'
     }
-    override _buildCallFunction(params: any[], functionName: string, functionParams: AnyValueSource[]): string {
-        let result = 'select ' + this._escape(functionName, false) + '('
-        if (functionParams.length > 0) {
-            result += this._appendSql(functionParams[0]!, params, false)
-
-            for (let i = 1, length = functionParams.length; i < length; i++) {
-                result += ', ' + this._appendSql(functionParams[i]!, params, false)
-            }
-        }
-
-        return result + ') from dual'
+    override _buildCallFunction(params: any[], functionCall: AnyValueSource): string {
+        return super._buildCallFunction(params, functionCall) + ' from dual'
     }
     override _stringConcat(params: any[], separator: string | undefined, value: any): string {
         if (separator === undefined || separator === null) {

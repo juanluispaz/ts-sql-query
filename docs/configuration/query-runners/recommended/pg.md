@@ -111,3 +111,10 @@ async function main(pgConnection: PoolClient) {
 A transaction that begins inside another one is rejected. Both query runners accept the option `allowNestedTransactions`, which sends its `begin` and its `commit` or `rollback` to the database: `new PgPoolQueryRunner(pool, { allowNestedTransactions: true })` or `new PgQueryRunner(pgConnection, { allowNestedTransactions: true })`.
 
 PostgreSQL doesn't nest them: see [what this option does](../../../queries/transaction.md#nested-transactions).
+
+## Options of the query runner
+
+The second argument of the query runners, optional, is an object of options:
+
+- `PgPoolQueryRunner` takes a `PgPoolQueryRunnerConfig`, exported from `ts-sql-query/queryRunners/PgPoolQueryRunner`, with **`allowNestedTransactions`** (see [Nested transactions](#nested-transactions)).
+- `PgQueryRunner` takes a `PgQueryRunnerConfig`, exported from `ts-sql-query/queryRunners/PgQueryRunner`, with **`allowNestedTransactions`** and **`forUseInTransaction`** (see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages)).

@@ -158,8 +158,8 @@ export type TableOrViewLeftJoinOf<T extends ITableOrView<any>, ALIAS extends str
     ? ForUseInLeftJoin<NMaybyAliased<NAsLeftJoin<T[typeof source]>>>
     : ForUseInLeftJoin<NAlias<NAsLeftJoin<T[typeof source]>, ALIAS>>
 
-export function fromRef<T extends ITableOrView<any>, S extends NSource>(_tableOrView: T | (new (...params: any[]) => T), ref: ITableOrView<S>): FromRefBySource<T, S>
-export function fromRef<T extends ITableOrView<any>, S extends NSource>(_tableOrView: T | (new (...params: any[]) => T), ref: ForUseInLeftJoin<S>): FromRefBySourceLeftJoin<T, S>
+export function fromRef<T extends ITableOrView<any>, S extends NMaybyAliased<T[typeof source]>>(_tableOrView: T | (new (...params: any[]) => T), ref: ITableOrView<S>): FromRefBySource<T, S>
+export function fromRef<T extends ITableOrView<any>, S extends NMaybyAliased<NAsLeftJoin<T[typeof source]>>>(_tableOrView: T | (new (...params: any[]) => T), ref: ForUseInLeftJoin<S>): FromRefBySourceLeftJoin<T, S>
 export function fromRef(_tableOrView: any, ref: any): any {
     return ref as any
 }

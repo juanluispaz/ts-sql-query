@@ -42,18 +42,18 @@ import { ctx } from './setup.js'
 // The same conditional adapter the shared fixtures carry, declared here for the
 // `Values` views below (a `Values` subclass is declared where it is used).
 const scaledByTypeName: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        const v = next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory)
         if ((type === 'Cents' || type === 'Money') && typeof v === 'number') {
             return v / 100
         }
         return v
     },
-    transformValueToDB(value, type, next) {
+    transformValueToDB(value, type, typeCategory, next) {
         if ((type === 'Cents' || type === 'Money') && typeof value === 'number') {
-            return next.transformValueToDB(value * 100, type)
+            return next.transformValueToDB(value * 100, type, typeCategory)
         }
-        return next.transformValueToDB(value, type)
+        return next.transformValueToDB(value, type, typeCategory)
     },
 }
 
@@ -1216,7 +1216,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(billing)
             .selectOneColumn(billing.cents.add(9))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with derivedBilling(cents, money) as (values ($1::int4, $2::int4)) select cents + $3 as result from derivedBilling"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with derivedBilling(cents, money) as (values ($1::int4, $2::float8)) select cents + $3 as result from derivedBilling"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             500,
@@ -1238,7 +1238,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(billing)
             .selectOneColumn(billing.money.add(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with derivedBilling(cents, money) as (values ($1::int4, $2::int4)) select money + $3 as result from derivedBilling"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with derivedBilling(cents, money) as (values ($1::int4, $2::float8)) select money + $3 as result from derivedBilling"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             500,
@@ -1260,7 +1260,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(billing)
             .select({ derived: billing.cents.add(9) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with derivedBillingOpt(cents, money) as (values ($1::int4, $2::int4)) select cents + $3 as derived from derivedBillingOpt"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with derivedBillingOpt(cents, money) as (values ($1::int4, $2::float8)) select cents + $3 as derived from derivedBillingOpt"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             500,
@@ -1281,7 +1281,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(billing)
             .select({ derived: billing.money.add(1) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with derivedBillingOpt(cents, money) as (values ($1::int4, $2::int4)) select money + $3 as derived from derivedBillingOpt"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with derivedBillingOpt(cents, money) as (values ($1::int4, $2::float8)) select money + $3 as derived from derivedBillingOpt"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             500,

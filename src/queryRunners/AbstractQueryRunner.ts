@@ -2,6 +2,7 @@ import type { QueryRunner, DatabaseType, BeginTransactionOpts, CommitOpts, Rollb
 import type { TsSqlErrorReason } from "../TsSqlError.js"
 import { TsSqlError, TsSqlProcessingError } from "../TsSqlError.js"
 import { getContainsInsertReturningClause, getContainsMutationReturningClause, getForcedAffectedRowCount } from '../utils/queryParamsMetadata.js'
+import type { TypeCategory } from '../TypeAdapter.js'
 
 export abstract class AbstractQueryRunner implements QueryRunner {
     abstract readonly database: DatabaseType
@@ -280,8 +281,8 @@ export abstract class AbstractQueryRunner implements QueryRunner {
     abstract executeCommit(opts?: CommitOpts): Promise<void>
     abstract executeRollback(opts?: RollbackOpts): Promise<void>
     abstract isTransactionActive(): boolean
-    abstract addParam(params: any[], value: any): string
-    addOutParam(_params: any[], _name: string): string {
+    abstract addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string
+    addOutParam(_params: any[], _name: string, _type: string, _typeCategory: TypeCategory): string {
         throw new TsSqlProcessingError({ reason: 'OUT_PARAMS_NOT_SUPPORTED' }, 'Unsupported output parameters')
     }
     abstract executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts?: BeginTransactionOpts): Promise<T>

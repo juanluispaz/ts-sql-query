@@ -6,6 +6,8 @@ import type { BeginTransactionOpts, DatabaseType } from './QueryRunner.js'
 import { SQL, type TransactionSQL } from 'bun'
 import { getBunSqlMySqlErrorReason, isBunSqlMySqlAnyError } from './connectorErrorMappers/BunSqlMySqlErrorMapper.js'
 import { isTransactionOpenAfterMySqlError } from '../utils/mySqlTransactionRollback.js'
+import type { TypeCategory } from '../TypeAdapter.js'
+import { setQueryParamType } from './QueryRunner.js'
 
 export class BunSqlMySqlQueryRunner extends AbstractBunSqlQueryRunner {
     constructor(connection: SQL, database: 'mySql' | 'mariaDB' = 'mySql') {
@@ -46,7 +48,8 @@ export class BunSqlMySqlQueryRunner extends AbstractBunSqlQueryRunner {
     protected override isTransactionOpenInTheDatabase(error: unknown): boolean | undefined {
         return isTransactionOpenAfterMySqlError(this.getErrorReason(error))
     }
-    override addParam(params: any[], value: any): string {
+    override addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
+        setQueryParamType(params, params.length, type, typeCategory)
         params.push(value)
         return '?'
     }

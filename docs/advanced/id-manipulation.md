@@ -31,9 +31,9 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     // Two strings of 16 chars of [A-Za-z0-9] that work as passwords
     private encrypter = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c');
 
-    protected override transformValueFromDB(value: unknown, type: string): unknown {
+    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
         if (type === 'encryptedID') {
-            const id = super.transformValueFromDB(value, 'bigint');
+            const id = super.transformValueFromDB(value, 'bigint', 'bigint');
             if (typeof id === 'bigint') {
                 return this.encrypter.encrypt(id);
             } else {
@@ -41,21 +41,21 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
                 return id;
             }
         }
-        return super.transformValueFromDB(value, type);
+        return super.transformValueFromDB(value, type, typeCategory);
     }
-    protected override transformValueToDB(value: unknown, type: string): unknown {
+    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
         if (type === 'encryptedID') {
             if (value === null || value === undefined) {
                 // In case of null or undefined send null to the database
                 return null;
             } else if (typeof value === 'string') {
                 const id = this.encrypter.decrypt(value);
-                return super.transformValueToDB(id, 'bigint');
+                return super.transformValueToDB(id, 'bigint', 'bigint');
             } else {
                 throw new Error('Invalid id: ' + value);
             }
         }
-        return super.transformValueToDB(value, type);
+        return super.transformValueToDB(value, type, typeCategory);
     }
 }
 ```
@@ -127,9 +127,9 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     // Two strings of 16 chars of [A-Za-z0-9] that work as passwords
     private encrypter = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c');
 
-    protected override transformValueFromDB(value: unknown, type: string): unknown {
+    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
         if (type.startsWith('ID_')) {
-            const id = super.transformValueFromDB(value, 'bigint');
+            const id = super.transformValueFromDB(value, 'bigint', 'bigint');
             if (typeof id === 'bigint') {
                 const prefix = type.substring(3) // 'ID_'.length
                 return this.encrypter.encrypt(id, prefix);
@@ -138,9 +138,9 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
                 return id;
             }
         }
-        return super.transformValueFromDB(value, type);
+        return super.transformValueFromDB(value, type, typeCategory);
     }
-    protected override transformValueToDB(value: unknown, type: string): unknown {
+    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
         if (type.startsWith('ID_')) {
             if (value === null || value === undefined) {
                 // In case of null or undefined send null to the database
@@ -148,12 +148,12 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
             } else if (typeof value === 'string') {
                 const prefix = type.substring(3) // 'ID_'.length
                 const id = this.encrypter.decrypt(value, prefix);
-                return super.transformValueToDB(id, 'bigint');
+                return super.transformValueToDB(id, 'bigint', 'bigint');
             } else {
                 throw new Error('Invalid id: ' + value);
             }
         }
-        return super.transformValueToDB(value, type);
+        return super.transformValueToDB(value, type, typeCategory);
     }
 }
 ```

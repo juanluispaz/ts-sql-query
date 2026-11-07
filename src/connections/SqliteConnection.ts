@@ -13,6 +13,8 @@ import { source, valueType } from '../utils/symbols.js'
 import { AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource, AggregateValueAsArrayValueSource } from '../internal/ValueSourceImpl.js'
 import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { SameDB } from '../utils/ITableOrView.js'
+import type { TypeCategory } from '../TypeAdapter.js'
+import { __conversionType } from '../utils/typeCategory.js'
 
 export abstract class SqliteConnection<NAME extends string> extends AbstractConnection<NConnection<'sqlite', NAME>> {
 
@@ -115,11 +117,12 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
     protected treatUnexpectedStringDateTimeAsUTC: boolean = false
     protected unexpectedUnixDateTimeAreMilliseconds: boolean = false
 
-    protected override transformValueFromDB(value: unknown, type: string): unknown {
+    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
+        const conversionType = __conversionType(type, typeCategory)
         if (value === undefined || value == null) {
-            return super.transformValueFromDB(value, type)
+            return super.transformValueFromDB(value, type, typeCategory)
         }
-        switch (type) {
+        switch (conversionType) {
             case 'localDate': {
                 if (typeof value === 'string') {
                     const valueAsNumber = +value
@@ -375,13 +378,14 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                 return result
             }
         }
-        return super.transformValueFromDB(value, type)
+        return super.transformValueFromDB(value, type, typeCategory)
     }
-    protected override transformValueToDB(value: unknown, type: string): unknown {
+    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
+        const conversionType = __conversionType(type, typeCategory)
         if (value === undefined || value == null) {
-            return super.transformValueToDB(value, type)
+            return super.transformValueToDB(value, type, typeCategory)
         }
-        switch (type) {
+        switch (conversionType) {
             case 'localDate':
                 if (value instanceof Date && !isNaN(value.getTime())) {
                     const dateTimeFormat = this.getDateTimeFormat('date')
@@ -495,7 +499,7 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                 }
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, `Invalid localDateTime value to send to the db: ${value} (type ${typeof value})`)
         }
-        return super.transformValueToDB(value, type)
+        return super.transformValueToDB(value, type, typeCategory)
     }
 }
 

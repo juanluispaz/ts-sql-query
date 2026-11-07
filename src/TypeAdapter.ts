@@ -1,13 +1,30 @@
+/**
+ * The category of the type of a value: the first argument of a column, like `'customInt'` in
+ * `column('id', 'customInt', 'MyIntTypeName')`, or `''` when it isn't known. The transforms receive it with the name
+ * of the type, and a custom type is converted as the type of its category (`customInt` as an `int`) unless its
+ * conversion is registered.
+ */
+export type TypeCategory = 'boolean'
+    | 'int' | 'bigint' | 'customInt'
+    | 'double' | 'customDouble'
+    | 'string'
+    | 'uuid' | 'customUuid'
+    | 'localDate' | 'customLocalDate'
+    | 'localTime' | 'customLocalTime'
+    | 'localDateTime' | 'customLocalDateTime'
+    | 'enum' | 'custom' | 'customComparable'
+    | ''
+
 export interface DefaultTypeAdapter {
-    transformValueFromDB(value: unknown, type: string): unknown
-    transformValueToDB(value: unknown, type: string): unknown
-    transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown): string
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
+    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown): string
 }
 
 export interface TypeAdapter {
-    transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
-    transformValueToDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
-    transformPlaceholder?(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown
+    transformPlaceholder?(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string
 }
 
 export class CustomBooleanTypeAdapter implements TypeAdapter {
@@ -21,26 +38,26 @@ export class CustomBooleanTypeAdapter implements TypeAdapter {
         this.falseValue = falseValue
     }
 
-    transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown {
-        return next.transformValueFromDB(value, type)
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+        return next.transformValueFromDB(value, type, typeCategory)
     }
 
-    transformValueToDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown {
-        return next.transformValueToDB(value, type)
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+        return next.transformValueToDB(value, type, typeCategory)
     }
 }
 
 export class ForceTypeCast implements TypeAdapter {
 
-    transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown {
-        return next.transformValueFromDB(value, type)
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+        return next.transformValueFromDB(value, type, typeCategory)
     }
 
-    transformValueToDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown {
-        return next.transformValueToDB(value, type)
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+        return next.transformValueToDB(value, type, typeCategory)
     }
 
-    transformPlaceholder(placeholder: string, type: string, _forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string {
-        return next.transformPlaceholder(placeholder, type, true, valueSentToDB)
+    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, _forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string {
+        return next.transformPlaceholder(placeholder, type, typeCategory, true, valueSentToDB)
     }
 }

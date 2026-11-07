@@ -3,7 +3,8 @@ import { MockQueryRunner } from '../../../../../src/queryRunners/MockQueryRunner
 import { OracleConnection } from '../../../../../src/connections/OracleConnection.js'
 import { DocCodeMockRunner } from '../../../../lib/mockRunners/DocCodeMockRunner.js'
 import { Table } from '../../../../../src/Table.js'
-import { CustomBooleanTypeAdapter } from '../../../../../src/TypeAdapter.js'
+import { CustomBooleanTypeAdapter, type TypeCategory } from '../../../../../src/TypeAdapter.js'
+export type { TypeCategory }
 import { View } from '../../../../../src/View.js'
 import { Values } from '../../../../../src/Values.js'
 

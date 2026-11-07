@@ -5,6 +5,8 @@ import type { Database } from 'bun:sqlite'
 import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from "../TsSqlError.js"
 import { getBunSqliteErrorReason, isBunSqliteError } from './connectorErrorMappers/BunSqliteErrorMapper.js'
+import type { TypeCategory } from '../TypeAdapter.js'
+import { setQueryParamType } from './QueryRunner.js'
 
 export interface BunSqliteQueryRunnerConfig {
     promise?: PromiseProvider | undefined
@@ -96,8 +98,9 @@ export class BunSqliteQueryRunner extends SqlTransactionQueryRunner {
         }
         return super.executeBeginTransaction(opts)
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
         if (typeof value === 'boolean') {
+            setQueryParamType(params, params.length, type, typeCategory)
             params.push(Number(value))
         } else {
             params.push(value)

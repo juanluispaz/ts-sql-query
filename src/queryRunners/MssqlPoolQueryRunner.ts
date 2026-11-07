@@ -7,6 +7,8 @@ import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from "../TsSq
 import { getMssqlErrorReason, isMssqlError } from './connectorErrorMappers/MssqlErrorMapper.js'
 import { databaseIsolationLevel } from '../utils/transactionIsolationLevel.js'
 import { getParamType } from '../utils/queryParamsMetadata.js'
+import type { TypeCategory } from '../TypeAdapter.js'
+import { setQueryParamType } from './QueryRunner.js'
 
 const { TYPES, ISOLATION_LEVEL } = mssql
 
@@ -232,8 +234,9 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     isTransactionActive(): boolean {
         return !!this.transaction
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
         const index = params.length
+        setQueryParamType(params, params.length, type, typeCategory)
         params.push(value)
         return '@' + index
     }

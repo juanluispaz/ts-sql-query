@@ -4,6 +4,8 @@ import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQue
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getMySql2ErrorReason, isMySql2Error } from './connectorErrorMappers/MySql2ErrorMapper.js'
 import { isTransactionOpenAfterMySqlError } from '../utils/mySqlTransactionRollback.js'
+import type { TypeCategory } from '../TypeAdapter.js'
+import { setQueryParamType } from './QueryRunner.js'
 
 
 export interface MySql2QueryRunnerConfig {
@@ -127,7 +129,8 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
             })
         })
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
+        setQueryParamType(params, params.length, type, typeCategory)
         params.push(value)
         return '?'
     }

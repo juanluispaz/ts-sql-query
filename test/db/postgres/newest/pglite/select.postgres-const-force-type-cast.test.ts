@@ -240,7 +240,7 @@ describe(ctx.label, () => {
         await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const<SettlementDate, 'SettlementDate'>(d, 'customLocalDate', 'SettlementDate'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::date as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-02-20T00:00:00.000Z,

@@ -140,7 +140,7 @@ describe('MockQueryRunner', () => {
         test(`params-on-${database}`, () => {
             const runner = new MockQueryRunner(() => undefined, database)
             const params: any[] = []
-            expect([runner.addParam(params, 'a'), runner.addParam(params, 'b')]).toEqual([first, second])
+            expect([runner.addParam(params, 'a', 'string', 'string'), runner.addParam(params, 'b', 'string', 'string')]).toEqual([first, second])
             expect(params).toEqual(['a', 'b'])
             expect(runner.database).toBe(database)
         })
@@ -150,18 +150,18 @@ describe('MockQueryRunner', () => {
         const runner = new MockQueryRunner(() => undefined)
         runner.useDatabase('dbase' as any)
         let error: unknown
-        try { runner.addParam([], 1) } catch (e) { error = e }
+        try { runner.addParam([], 1, 'int', 'int') } catch (e) { error = e }
         expect(reasonOf(error)).toBe('UNSUPPORTED_DATABASE')
     })
 
     test('out-params', () => {
         const oracle = new MockQueryRunner(() => undefined, { database: 'oracle' })
         const params: any[] = []
-        expect(oracle.addOutParam(params, 'id')).toBe(':0')
-        expect(oracle.addOutParam(params, '')).toBe(':1')
+        expect(oracle.addOutParam(params, 'id', 'int', 'int')).toBe(':0')
+        expect(oracle.addOutParam(params, '', 'int', 'int')).toBe(':1')
         expect(params).toEqual([{ dir: 3003, as: 'id' }, { dir: 3003 }])
         let error: unknown
-        try { new MockQueryRunner(() => undefined).addOutParam([], 'id') } catch (e) { error = e }
+        try { new MockQueryRunner(() => undefined).addOutParam([], 'id', 'int', 'int') } catch (e) { error = e }
         expect(reasonOf(error)).toBe('OUT_PARAMS_NOT_SUPPORTED')
     })
 

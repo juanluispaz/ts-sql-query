@@ -240,7 +240,7 @@ describe(ctx.label, () => {
         await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const<SettlementDate, 'SettlementDate'>(d, 'customLocalDate', 'SettlementDate'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::date as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-02-20T00:00:00.000Z,
@@ -276,7 +276,7 @@ describe(ctx.label, () => {
         await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const<ReleaseId, 'ReleaseId'>(id, 'customUuid', 'ReleaseId'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::uuid as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "c733575e-b5ba-400c-8803-3d3d4bbcd52f",
@@ -295,7 +295,7 @@ describe(ctx.label, () => {
         await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const<CutoffClock, 'CutoffClock'>(t, 'customLocalTime', 'CutoffClock'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::time as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "17:00:00",
@@ -312,7 +312,7 @@ describe(ctx.label, () => {
         await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const<SignOffStamp, 'SignOffStamp'>(ts, 'customLocalDateTime', 'SignOffStamp'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::timestamp as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-14T12:30:00.000Z,

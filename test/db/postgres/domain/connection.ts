@@ -7,66 +7,66 @@ import { PostgreSqlConnection } from '../../../../src/connections/PostgreSqlConn
 import type { QueryRunner } from '../../../../src/queryRunners/QueryRunner.js'
 import { Table } from '../../../../src/Table.js'
 import { View } from '../../../../src/View.js'
-import { CustomBooleanTypeAdapter, type TypeAdapter } from '../../../../src/TypeAdapter.js'
+import { CustomBooleanTypeAdapter, type TypeAdapter, type TypeCategory } from '../../../../src/TypeAdapter.js'
 
 const verifiedAdapter  = new CustomBooleanTypeAdapter('Y', 'N')
 // A trailing TypeAdapter for virtualColumnFromFragment that brackets the read
 // value so the adapter's effect is observable in the result.
 const bracketAdapter: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        const v = next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory)
         return typeof v === 'string' ? '[' + v + ']' : v
     },
-    transformValueToDB(value, type, next) {
-        return next.transformValueToDB(value, type)
+    transformValueToDB(value, type, typeCategory, next) {
+        return next.transformValueToDB(value, type, typeCategory)
     },
 }
 // Observable per-column TypeAdapter for a NON-boolean int column: the DB stores
 // the score as a fixed-point value scaled ×10; the app sees the unscaled number
 // (read ÷10, write ×10).
 const scaledTenthAdapter: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        const v = next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory)
         return typeof v === 'number' ? v / 10 : v
     },
-    transformValueToDB(value, type, next) {
-        return next.transformValueToDB(typeof value === 'number' ? value * 10 : value, type)
+    transformValueToDB(value, type, typeCategory, next) {
+        return next.transformValueToDB(typeof value === 'number' ? value * 10 : value, type, typeCategory)
     },
 }
 // Numeric observable TypeAdapter: shifts a numeric value by a fixed offset so
 // the adapter's effect is visible in a numeric result (read +1000, write -1000).
 // Used by callEstimatedTotalOffset (executeFunction) and issueIdSeqOffset (sequence).
 const plusOffsetAdapter: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        const v = next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory)
         return typeof v === 'number' ? v + 1000 : v
     },
-    transformValueToDB(value, type, next) {
-        return next.transformValueToDB(typeof value === 'number' ? value - 1000 : value, type)
+    transformValueToDB(value, type, typeCategory, next) {
+        return next.transformValueToDB(typeof value === 'number' ? value - 1000 : value, type, typeCategory)
     },
 }
 // Bigint observable TypeAdapter: read +1000n / write -1000n (the bigint sibling
 // of plusOffsetAdapter, whose number-only guard would pass a bigint through
 // unchanged). Used by the bigint + adapter Table column shiftedCount.
 const plusThousandBigintAdapter: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        const v = next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory)
         return typeof v === 'bigint' ? v + 1000n : v
     },
-    transformValueToDB(value, type, next) {
-        return next.transformValueToDB(typeof value === 'bigint' ? value - 1000n : value, type)
+    transformValueToDB(value, type, typeCategory, next) {
+        return next.transformValueToDB(typeof value === 'bigint' ? value - 1000n : value, type, typeCategory)
     },
 }
 // Temporal observable TypeAdapter: shifts a Date +1 hour on read / -1 hour on
 // write, so the adapter's effect is visible in a temporal result. Used by the
 // customLocalDateTime + adapter Table column shiftedStamp.
 const shiftHourAdapter: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        const v = next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory)
         return v instanceof Date ? new Date(v.getTime() + 3600000) : v
     },
-    transformValueToDB(value, type, next) {
-        return next.transformValueToDB(value instanceof Date ? new Date(value.getTime() - 3600000) : value, type)
+    transformValueToDB(value, type, typeCategory, next) {
+        return next.transformValueToDB(value instanceof Date ? new Date(value.getTime() - 3600000) : value, type, typeCategory)
     },
 }
 // Observable trailing adapters for the executeFunction return-kind fan-out
@@ -77,41 +77,41 @@ const shiftHourAdapter: TypeAdapter = {
 // delegates to next (the function has no bound value to shift). String kinds
 // reuse bracketAdapter and temporal kinds reuse shiftHourAdapter above.
 const fnNumberTimesTen: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        const v = next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory)
         return typeof v === 'number' ? v * 10 : v
     },
-    transformValueToDB(value, type, next) {
-        return next.transformValueToDB(value, type)
+    transformValueToDB(value, type, typeCategory, next) {
+        return next.transformValueToDB(value, type, typeCategory)
     },
 }
 const fnBigintTimesTen: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        const v = next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory)
         return typeof v === 'bigint' ? v * 10n : v
     },
-    transformValueToDB(value, type, next) {
-        return next.transformValueToDB(value, type)
+    transformValueToDB(value, type, typeCategory, next) {
+        return next.transformValueToDB(value, type, typeCategory)
     },
 }
 const fnBoolNegate: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        const v = next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory)
         return typeof v === 'boolean' ? !v : v
     },
-    transformValueToDB(value, type, next) {
-        return next.transformValueToDB(value, type)
+    transformValueToDB(value, type, typeCategory, next) {
+        return next.transformValueToDB(value, type, typeCategory)
     },
 }
 // Lowercase-then-bracket a uuid string on read; lowercasing first keeps the
 // assertion stable across engines that echo a uuid in a different case.
 const fnUuidBracket: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        const v = next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory)
         return typeof v === 'string' ? '[' + v.toLowerCase() + ']' : v
     },
-    transformValueToDB(value, type, next) {
-        return next.transformValueToDB(value, type)
+    transformValueToDB(value, type, typeCategory, next) {
+        return next.transformValueToDB(value, type, typeCategory)
     },
 }
 const publishedAdapter = new CustomBooleanTypeAdapter('t', 'f')
@@ -135,18 +135,18 @@ export type ReleaseTag = number & { readonly __brand: 'ReleaseTag' }
 // placeholder and the value read back both record which data type the expression
 // actually carried.
 const scaledByTypeName: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        const v = next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory)
         if ((type === 'Cents' || type === 'Money' || type === 'ReleaseTag') && typeof v === 'number') {
             return v / 100
         }
         return v
     },
-    transformValueToDB(value, type, next) {
+    transformValueToDB(value, type, typeCategory, next) {
         if ((type === 'Cents' || type === 'Money' || type === 'ReleaseTag') && typeof value === 'number') {
-            return next.transformValueToDB(value * 100, type)
+            return next.transformValueToDB(value * 100, type, typeCategory)
         }
-        return next.transformValueToDB(value, type)
+        return next.transformValueToDB(value, type, typeCategory)
     },
 }
 
@@ -190,11 +190,11 @@ export class DBConnection extends PostgreSqlConnection<'DBConnection'> {
             default:           return type
         }
     }
-    protected override transformValueFromDB(value: unknown, type: string): unknown {
-        return super.transformValueFromDB(value, DBConnection.baseTypeForCustom(type))
+    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
+        return super.transformValueFromDB(value, DBConnection.baseTypeForCustom(type), typeCategory)
     }
-    protected override transformValueToDB(value: unknown, type: string): unknown {
-        return super.transformValueToDB(value, DBConnection.baseTypeForCustom(type))
+    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
+        return super.transformValueToDB(value, DBConnection.baseTypeForCustom(type), typeCategory)
     }
 
     // Public wrappers around the `protected` `executeProcedure` /
@@ -1741,48 +1741,48 @@ export const vColMatrix = new class VColMatrix extends View<DBConnection, 'VColM
 // `transformValueToDB` delegates to `next`, so writes/placeholders are untouched.
 // The adapters are local to keep this block self-contained + verbatim per dialect.
 const colMatrixNumberX10: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        const v = next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory)
         return typeof v === 'number' ? v * 10 : v
     },
-    transformValueToDB(value, type, next) { return next.transformValueToDB(value, type) },
+    transformValueToDB(value, type, typeCategory, next) { return next.transformValueToDB(value, type, typeCategory) },
 }
 const colMatrixBigintX10: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        const v = next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory)
         return typeof v === 'bigint' ? v * 10n : v
     },
-    transformValueToDB(value, type, next) { return next.transformValueToDB(value, type) },
+    transformValueToDB(value, type, typeCategory, next) { return next.transformValueToDB(value, type, typeCategory) },
 }
 const colMatrixBoolNegate: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        const v = next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory)
         return typeof v === 'boolean' ? !v : v
     },
-    transformValueToDB(value, type, next) { return next.transformValueToDB(value, type) },
+    transformValueToDB(value, type, typeCategory, next) { return next.transformValueToDB(value, type, typeCategory) },
 }
 const colMatrixStringBracket: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        const v = next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory)
         return typeof v === 'string' ? '[' + v + ']' : v
     },
-    transformValueToDB(value, type, next) { return next.transformValueToDB(value, type) },
+    transformValueToDB(value, type, typeCategory, next) { return next.transformValueToDB(value, type, typeCategory) },
 }
 // uuid reads are lowercased before bracketing so the assertion is stable on
 // engines that may echo a uuid in a different case (e.g. SQL Server).
 const colMatrixUuidBracket: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        const v = next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory)
         return typeof v === 'string' ? '[' + v.toLowerCase() + ']' : v
     },
-    transformValueToDB(value, type, next) { return next.transformValueToDB(value, type) },
+    transformValueToDB(value, type, typeCategory, next) { return next.transformValueToDB(value, type, typeCategory) },
 }
 const colMatrixShiftHour: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        const v = next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory)
         return v instanceof Date ? new Date(v.getTime() + 3600000) : v
     },
-    transformValueToDB(value, type, next) { return next.transformValueToDB(value, type) },
+    transformValueToDB(value, type, typeCategory, next) { return next.transformValueToDB(value, type, typeCategory) },
 }
 
 

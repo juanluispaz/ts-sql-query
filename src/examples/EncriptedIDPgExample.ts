@@ -12,6 +12,7 @@ import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
 import { IDEncrypter } from '../extras/IDEncrypter.js'
 import { Values } from '../Values.js'
 import { TsSqlProcessingError } from '../TsSqlError.js';
+import type { TypeCategory } from '../TypeAdapter.js'
 
 process.env.TZ = 'UTC'
 
@@ -26,9 +27,9 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
     // PasswordEncrypter requires two strings of 16 chars of [A-Za-z0-9] working as passwords for the encrypt process
     private encrypter = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c')
-    protected override transformValueFromDB(value: unknown, type: string): unknown {
+    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
         if (type === 'encryptedID') {
-            const id = super.transformValueFromDB(value, 'bigint')
+            const id = super.transformValueFromDB(value, 'bigint', 'bigint')
             if (typeof id === 'bigint') {
                 return this.encrypter.encrypt(id)
             } else {
@@ -36,21 +37,21 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
                 return id
             }
         }
-        return super.transformValueFromDB(value, type)
+        return super.transformValueFromDB(value, type, typeCategory)
     }
-    protected override transformValueToDB(value: unknown, type: string): unknown {
+    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
         if (type === 'encryptedID') {
             if (value === null || value === undefined) {
                 // In case of null or undefined send null to the database
                 return null
             } else if (typeof value === 'string') {
                 const id = this.encrypter.decrypt(value)
-                return super.transformValueToDB(id, 'bigint')
+                return super.transformValueToDB(id, 'bigint', 'bigint')
             } else {
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid id: ' + value)
             }
         }
-        return super.transformValueToDB(value, type)
+        return super.transformValueToDB(value, type, typeCategory)
     }
 }
 

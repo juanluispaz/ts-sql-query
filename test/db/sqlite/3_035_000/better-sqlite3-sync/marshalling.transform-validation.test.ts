@@ -48,12 +48,12 @@ function reasonOf(e: unknown): string | undefined {
 // double beyond `Number.MAX_SAFE_INTEGER` can be carried as a string. The base
 // type of the const the adapter wraps is irrelevant; the literal is hard-coded.
 const stringIntAdapter: TypeAdapter = {
-    transformValueFromDB(value, _type, next) { return next.transformValueFromDB(value, 'stringInt') },
-    transformValueToDB(value, _type, next) { return next.transformValueToDB(value, 'stringInt') },
+    transformValueFromDB(value, _type, typeCategory, next) { return next.transformValueFromDB(value, 'stringInt', typeCategory) },
+    transformValueToDB(value, _type, typeCategory, next) { return next.transformValueToDB(value, 'stringInt', typeCategory) },
 }
 const stringDoubleAdapter: TypeAdapter = {
-    transformValueFromDB(value, _type, next) { return next.transformValueFromDB(value, 'stringDouble') },
-    transformValueToDB(value, _type, next) { return next.transformValueToDB(value, 'stringDouble') },
+    transformValueFromDB(value, _type, typeCategory, next) { return next.transformValueFromDB(value, 'stringDouble', typeCategory) },
+    transformValueToDB(value, _type, typeCategory, next) { return next.transformValueToDB(value, 'stringDouble', typeCategory) },
 }
 
 describe(ctx.label, () => {
@@ -696,8 +696,8 @@ describe(ctx.label, () => {
         // reroutes DECODE to 'aggregatedArray' (encode stays 'string' so building
         // the const param doesn't throw first).
         const aggAdapter: TypeAdapter = {
-            transformValueFromDB(value, _type, next) { return next.transformValueFromDB(value, 'aggregatedArray') },
-            transformValueToDB(value, _type, next) { return next.transformValueToDB(value, 'string') },
+            transformValueFromDB(value, _type, typeCategory, next) { return next.transformValueFromDB(value, 'aggregatedArray', typeCategory) },
+            transformValueToDB(value, _type, _typeCategory, next) { return next.transformValueToDB(value, 'string', 'string') },
         }
         expect(await fromDbReason(ctx.conn.const('x', 'string', aggAdapter), 1)).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
     })

@@ -4,6 +4,8 @@ import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSq
 import { AbstractBunSqlQueryRunner } from './AbstractBunSqlQueryRunner.js'
 import { SQL, type TransactionSQL } from 'bun'
 import { getBunSqlSqliteErrorReason, isBunSqlSqliteError } from './connectorErrorMappers/BunSqlSqliteErrorMapper.js'
+import type { TypeCategory } from '../TypeAdapter.js'
+import { setQueryParamType } from './QueryRunner.js'
 
 export class BunSqlSqliteQueryRunner extends AbstractBunSqlQueryRunner {
     constructor(connection: SQL) {
@@ -44,7 +46,8 @@ export class BunSqlSqliteQueryRunner extends AbstractBunSqlQueryRunner {
         // same absence the RETURNING path reports) when nothing was inserted.
         return sql.unsafe(query, params).then((result) => result.count === 0 ? null : result.lastInsertRowid)
     }
-    override addParam(params: any[], value: any): string {
+    override addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
+        setQueryParamType(params, params.length, type, typeCategory)
         params.push(value)
         return '?' + params.length
     }

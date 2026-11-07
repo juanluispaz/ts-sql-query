@@ -99,24 +99,25 @@ The best place to register it is the connection, so it applies everywhere that t
 A typical case is a type that the database holds as a type the library knows, like an int with a TypeScript brand. Then you can call `super` with that type, and the library handles the value in the same way, with the same checks:
 
 ```ts
+import type { TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
-    protected override transformValueFromDB(value: unknown, type: string) {
+    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory) {
         if (type === 'MyIntTypeName') {
-            return super.transformValueFromDB(value, 'int');
+            return super.transformValueFromDB(value, 'int', 'int');
         }
-        return super.transformValueFromDB(value, type);
+        return super.transformValueFromDB(value, type, typeCategory);
     }
-    protected override transformValueToDB(value: unknown, type: string) {
+    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory) {
         if (type === 'MyIntTypeName') {
-            return super.transformValueToDB(value, 'int');
+            return super.transformValueToDB(value, 'int', 'int');
         }
-        return super.transformValueToDB(value, type);
+        return super.transformValueToDB(value, type, typeCategory);
     }
-    protected override transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown): string {
+    protected override transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown): string {
         if (type === 'MyIntTypeName') {
-            return super.transformPlaceholder(placeholder, 'int', forceTypeCast, valueSentToDB);
+            return super.transformPlaceholder(placeholder, 'int', 'int', forceTypeCast, valueSentToDB);
         }
-        return super.transformPlaceholder(placeholder, type, forceTypeCast, valueSentToDB);
+        return super.transformPlaceholder(placeholder, type, typeCategory, forceTypeCast, valueSentToDB);
     }
 }
 ```
@@ -130,7 +131,7 @@ A type adapter controls how the value of one column is sent to the database and 
 For example, to store an RGB colour as three bytes in the database and handle it in your application as an object with the properties `r`, `g` and `b`:
 
 ```ts
-import { type DefaultTypeAdapter, type TypeAdapter } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
+import { type DefaultTypeAdapter, type TypeAdapter, type TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
 
 interface RgbColor {r: number, g: number, b: number}
 
@@ -142,34 +143,34 @@ function isRgbColor(value: any): value is RgbColor {
 }
 
 class RgbColorTypeAdapter implements TypeAdapter {
-    transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown {
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
         if (type === 'RgbColor' && value) {
             if (value instanceof Uint8Array && value.length == 3) {
                 return {r: value[0], g: value[1], b: value[2]};
             }
             throw new Error(`Cannot decode database value ${value} (type ${typeof value}) as RgbColor`);
         }
-        return next.transformValueFromDB(value, type);
+        return next.transformValueFromDB(value, type, typeCategory);
     }
 
-    transformValueToDB(value: RgbColor, type: string, next: DefaultTypeAdapter): unknown {
+    transformValueToDB(value: RgbColor, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
         if (type === 'RgbColor' && value) {
             if (isRgbColor(value)) {
                 return Uint8Array.of(value.r, value.g, value.b);
             }
             throw new Error(`Cannot encode value ${value} for database`);
         }
-        return next.transformValueToDB(value, type)
+        return next.transformValueToDB(value, type, typeCategory)
     }
 
     // Optional
-    transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string {
+    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string {
         // You can force a type cast in the query if you want. With this code, the parameter in the SQL will look like $1::bytea
         // By default, in PostgreSQL only, a type cast is generated when forceTypeCast is true
         if (type === 'RgbColor') {
             return placeholder + '::bytea'
         }
-        return next.transformPlaceholder(placeholder, type, forceTypeCast, valueSentToDB)
+        return next.transformPlaceholder(placeholder, type, typeCategory, forceTypeCast, valueSentToDB)
     }
 }
 ```
@@ -198,6 +199,7 @@ this.column<RgbColor>('ColumnName', 'custom', 'RgbColor', new RgbColorTypeAdapte
 When the same conversion applies to every column of a type, write it in the connection object, so it isn't repeated in each column definition:
 
 ```ts
+import type { TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
 interface RgbColor {r: number, g: number, b: number}
 
 function isRgbColor(value: any): value is RgbColor {
@@ -208,31 +210,31 @@ function isRgbColor(value: any): value is RgbColor {
 }
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
-    protected override transformValueFromDB(value: unknown, type: string) {
+    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory) {
         if (type === 'RgbColor' && value) {
             if (value instanceof Uint8Array && value.length == 3) {
                 return { r: value[0], g: value[1], b: value[2] };
             }
             throw new Error(`Cannot decode database value ${value} (type ${typeof value}) as RgbColor`);
         }
-        return super.transformValueFromDB(value, type);
+        return super.transformValueFromDB(value, type, typeCategory);
     }
-    protected override transformValueToDB(value: unknown, type: string) {
+    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory) {
         if (type === 'RgbColor' && value) {
             if (isRgbColor(value)) {
                 return Uint8Array.of(value.r, value.g, value.b);
             }
             throw new Error(`Cannot encode value ${value} for database`);
         }
-        return super.transformValueToDB(value, type);
+        return super.transformValueToDB(value, type, typeCategory);
     }   
-    protected override transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown): string {
+    protected override transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown): string {
         // You can force a type cast in the query if you want. With this code, the parameter in the SQL will look like $1::bytea
         // By default, in PostgreSql only, a type cast is generated when forceTypeCast is true
         if (type === 'RgbColor') {
             return placeholder + '::bytea'
         }
-        return super.transformPlaceholder(placeholder, type, forceTypeCast, valueSentToDB)
+        return super.transformPlaceholder(placeholder, type, typeCategory, forceTypeCast, valueSentToDB)
     }
 }
 ```

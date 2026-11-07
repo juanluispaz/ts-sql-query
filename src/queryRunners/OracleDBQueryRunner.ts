@@ -5,6 +5,8 @@ import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQue
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getOracleDBErrorReason, isOracleDBError } from './connectorErrorMappers/OracleDBErrorMapper.js'
 import { getParamType } from '../utils/queryParamsMetadata.js'
+import type { TypeCategory } from '../TypeAdapter.js'
+import { setQueryParamType } from './QueryRunner.js'
 
 export interface OracleDBQueryRunnerConfig {
     /** The connection is in a transaction that something else manages, and that something else ends: the statements don't commit, and none begins, commits or rolls back through this query runner */
@@ -151,14 +153,16 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         // the transaction of the connection is not this query runner's to commit or roll back
         return !!this.config?.forUseInTransaction
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
         const index = params.length
+        setQueryParamType(params, params.length, type, typeCategory)
         params.push(value)
         return ':' + index
     }
-    override addOutParam(params: any[], name: string): string {
+    override addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory): string {
         const index = params.length
         if (name) {
+            setQueryParamType(params, params.length, type, typeCategory)
             params.push({dir: oracleDb.BIND_OUT, as: name})
         } else {
             params.push({dir: oracleDb.BIND_OUT})

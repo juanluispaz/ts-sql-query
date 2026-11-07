@@ -2,15 +2,16 @@
 // `src/queryRunners/Sqlite3WasmOO1QueryRunner.ts`. See ./README.md.
 
 import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
+import type { TypeCategory } from '../../../src/TypeAdapter.js'
 
 export class MockSqlite3WasmOO1QueryRunner extends MockQueryRunner {
     // Sqlite3WasmOO1QueryRunner.addParam coerces `boolean` to `1`/`0`
     // before pushing, because the WASM OO1 API only binds primitives
     // SQLite recognises natively.
-    override addParam(params: any[], value: any): string {
+    override addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
         if (typeof value === 'boolean') {
-            return super.addParam(params, Number(value))
+            return super.addParam(params, Number(value), type, typeCategory)
         }
-        return super.addParam(params, value)
+        return super.addParam(params, value, type, typeCategory)
     }
 }

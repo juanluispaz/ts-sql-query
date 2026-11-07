@@ -3,6 +3,8 @@ import type { ConnectionPool, Transaction } from 'mssql'
 import { MssqlPoolQueryRunner } from './MssqlPoolQueryRunner.js'
 import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
 import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
+import type { TypeCategory } from '../TypeAdapter.js'
+import { setQueryParamType } from './QueryRunner.js'
 
 export class MssqlPoolPromiseQueryRunner extends ManagedTransactionPoolQueryRunner {
     readonly database: DatabaseType
@@ -25,8 +27,9 @@ export class MssqlPoolPromiseQueryRunner extends ManagedTransactionPoolQueryRunn
     override getCurrentNativeConnection(): Transaction | undefined {
         return super.getCurrentNativeConnection() as any
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
         const index = params.length
+        setQueryParamType(params, params.length, type, typeCategory)
         params.push(value)
         return '@' + index
     }

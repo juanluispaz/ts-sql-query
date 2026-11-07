@@ -9,7 +9,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { CustomBooleanTypeAdapter, ForceTypeCast, type DefaultTypeAdapter, type TypeAdapter } from '../../../../../src/TypeAdapter.js'
+import { CustomBooleanTypeAdapter, ForceTypeCast, type DefaultTypeAdapter, type TypeAdapter, type TypeCategory } from '../../../../../src/TypeAdapter.js'
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection, tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
@@ -21,11 +21,11 @@ import { ctx } from './setup.js'
 // `transformPlaceholder` to this adapter — the regression test below pins that.
 class CastingBooleanAdapter extends CustomBooleanTypeAdapter {
     constructor() { super('Y', 'N') }
-    transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string {
+    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string {
         if (type === 'boolean') {
             return placeholder + '::boolean'
         }
-        return next.transformPlaceholder(placeholder, type, forceTypeCast, valueSentToDB)
+        return next.transformPlaceholder(placeholder, type, typeCategory, forceTypeCast, valueSentToDB)
     }
 }
 const castingBool = new CastingBooleanAdapter()
@@ -44,13 +44,13 @@ const tOrgCastingBool = new class TOrgCastingBool extends Table<DBConnection, 'T
 // observably different from both the default (no cast) and `ForceTypeCast`
 // (which only sets forceTypeCast = true and defers to the default placeholder).
 const castVarchar64: TypeAdapter = {
-    transformValueFromDB(value, type, next) { return next.transformValueFromDB(value, type) },
-    transformValueToDB(value, type, next) { return next.transformValueToDB(value, type) },
-    transformPlaceholder(placeholder, type, forceTypeCast, valueSentToDB, next) {
+    transformValueFromDB(value, type, typeCategory, next) { return next.transformValueFromDB(value, type, typeCategory) },
+    transformValueToDB(value, type, typeCategory, next) { return next.transformValueToDB(value, type, typeCategory) },
+    transformPlaceholder(placeholder, type, typeCategory, forceTypeCast, valueSentToDB, next) {
         if (type === 'string') {
             return placeholder + '::varchar(64)'
         }
-        return next.transformPlaceholder(placeholder, type, forceTypeCast, valueSentToDB)
+        return next.transformPlaceholder(placeholder, type, typeCategory, forceTypeCast, valueSentToDB)
     },
 }
 

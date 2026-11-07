@@ -16,7 +16,7 @@ import { sync } from '../../../../../src/extras/sync.js'
 import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from '../../../../../src/connections/SqliteConfiguration.js'
 import { Table } from '../../../../../src/Table.js'
 import { QueryExecutionSource, TsSqlError, TsSqlProcessingError, TsSqlQueryExecutionError, type TsSqlDatabaseErrorCode, type TsSqlDatabaseErrorNumber, type TsSqlErrorReason, type TsSqlInternalErrorReason } from '../../../../../src/TsSqlError.js'
-import { CustomBooleanTypeAdapter, ForceTypeCast, type DefaultTypeAdapter, type TypeAdapter } from '../../../../../src/TypeAdapter.js'
+import { CustomBooleanTypeAdapter, ForceTypeCast, type DefaultTypeAdapter, type TypeAdapter, type TypeCategory } from '../../../../../src/TypeAdapter.js'
 import { Values, type OpaqueValues } from '../../../../../src/Values.js'
 import { View } from '../../../../../src/View.js'
 import { type DBConnection, tCountry, tIssue, tOrganization } from '../../domain/connection.js'
@@ -38,15 +38,15 @@ interface Model {
 // type adapter's delegation.
 class RecordingAdapter implements DefaultTypeAdapter {
     calls: string[] = []
-    transformValueFromDB(value: unknown, type: string): unknown {
+    transformValueFromDB(value: unknown, type: string, _typeCategory: TypeCategory): unknown {
         this.calls.push(JSON.stringify(['from', value, type]))
         return 'from-result'
     }
-    transformValueToDB(value: unknown, type: string): unknown {
+    transformValueToDB(value: unknown, type: string, _typeCategory: TypeCategory): unknown {
         this.calls.push(JSON.stringify(['to', value, type]))
         return 'to-result'
     }
-    transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown): string {
+    transformPlaceholder(placeholder: string, type: string, _typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown): string {
         this.calls.push(JSON.stringify(['placeholder', placeholder, type, forceTypeCast, valueSentToDB]))
         return 'placeholder-result'
     }
@@ -273,8 +273,8 @@ describe(ctx.label, () => {
         assertType<Exact<typeof byNumber.falseValue, number | string>>()
 
         const next = new RecordingAdapter()
-        expect(byString.transformValueFromDB('yes', 'boolean', next)).toBe('from-result')
-        expect(byString.transformValueToDB(true, 'boolean', next)).toBe('to-result')
+        expect(byString.transformValueFromDB('yes', 'boolean', 'boolean', next)).toBe('from-result')
+        expect(byString.transformValueToDB(true, 'boolean', 'boolean', next)).toBe('to-result')
         expect(next.calls).toEqual([['from', 'yes', 'boolean'], ['to', true, 'boolean']].map((call) => JSON.stringify(call)))
         const asTypeAdapter: TypeAdapter = byString
         expect(asTypeAdapter.transformPlaceholder).toBeUndefined()
@@ -283,9 +283,9 @@ describe(ctx.label, () => {
     test('force-type-cast-delegates-and-forces-the-cast', () => {
         const adapter = new ForceTypeCast()
         const next = new RecordingAdapter()
-        expect(adapter.transformValueFromDB(1, 'int', next)).toBe('from-result')
-        expect(adapter.transformValueToDB(2, 'int', next)).toBe('to-result')
-        expect(adapter.transformPlaceholder('$1', 'int', false, 3, next)).toBe('placeholder-result')
+        expect(adapter.transformValueFromDB(1, 'int', 'int', next)).toBe('from-result')
+        expect(adapter.transformValueToDB(2, 'int', 'int', next)).toBe('to-result')
+        expect(adapter.transformPlaceholder('$1', 'int', 'int', false, 3, next)).toBe('placeholder-result')
         expect(next.calls).toEqual([['from', 1, 'int'], ['to', 2, 'int'], ['placeholder', '$1', 'int', true, 3]].map((call) => JSON.stringify(call)))
     })
 

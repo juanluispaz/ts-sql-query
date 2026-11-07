@@ -5,6 +5,8 @@ import { PostgresTransactionOutcome } from '../utils/postgresTransactionOutcome.
 import type { BeginTransactionOpts, DatabaseType, QueryRunner } from './QueryRunner.js'
 import type { Sql, ReservedSql, TransactionSql } from 'postgres'
 import { getPostgresJsErrorReason, isPostgresJsError } from './connectorErrorMappers/PostgresErrorMapper.js'
+import type { TypeCategory } from '../TypeAdapter.js'
+import { setQueryParamType } from './QueryRunner.js'
 
 export class PostgresQueryRunner extends SqlTransactionQueryRunner {
     database: DatabaseType
@@ -150,7 +152,8 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
     override isTransactionActive(): boolean {
         return !!this.transaction || !!this.lowLevelTransaction || super.isTransactionActive()
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
+        setQueryParamType(params, params.length, type, typeCategory)
         params.push(value)
         return '$' + params.length
     }

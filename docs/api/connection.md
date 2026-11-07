@@ -356,11 +356,11 @@ interface Connection {
     compatibilityVersion: number
 
     /** Protected method that transforms the values received from the database */
-    transformValueFromDB(value: unknown, type: string): unknown
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
     /** Protected method that transforms the values sent to the database */
-    transformValueToDB(value: unknown, type: string): unknown
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
     /** Protected method that customizes the value placeholder in the query */
-    transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown): string
+    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown): string
 
     /** Protected method that returns true if the provided string is a reserved keyword */
     isReservedKeyword(word: string): boolean

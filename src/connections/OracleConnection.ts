@@ -10,6 +10,8 @@ import { AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource } fro
 import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
+import type { TypeCategory } from '../TypeAdapter.js'
+import { __conversionType } from '../utils/typeCategory.js'
 
 export abstract class OracleConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'oracle', NAME>> {
 
@@ -143,12 +145,13 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
         return [level] as any
     }
 
-    protected override transformValueToDB(value: unknown, type: string): unknown {
-        if (type === 'boolean' && typeof value === 'boolean') {
+    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
+        const conversionType = __conversionType(type, typeCategory)
+        if (conversionType === 'boolean' && typeof value === 'boolean') {
             // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number#number_coercion
             return Number(value);
         }
-        if (type === 'localTime' && value instanceof Date && !isNaN(value.getTime())) {
+        if (conversionType === 'localTime' && value instanceof Date && !isNaN(value.getTime())) {
             // Oracle has no TIME type, so a localTime is carried in a TIMESTAMP
             // anchored at 1970-01-01 (the same anchor used when reading it back).
             // The default marshalling sends a bare 'HH24:MI:SS' string, which
@@ -157,6 +160,6 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
             // oracledb send it as a TIMESTAMP, exactly like localDateTime already does.
             return new Date(1970, 0, 1, value.getHours(), value.getMinutes(), value.getSeconds(), value.getMilliseconds())
         }
-        return super.transformValueToDB(value, type)
+        return super.transformValueToDB(value, type, typeCategory)
     }
 }

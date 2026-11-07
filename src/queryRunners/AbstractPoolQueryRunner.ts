@@ -2,6 +2,7 @@ import type { BeginTransactionOpts, CommitOpts, DatabaseType, QueryRunner, Rollb
 import type { TsSqlErrorReason } from "../TsSqlError.js"
 import { TsSqlError, TsSqlProcessingError } from "../TsSqlError.js"
 import { databaseIsolationLevel } from '../utils/transactionIsolationLevel.js'
+import type { TypeCategory } from '../TypeAdapter.js'
 
 export abstract class AbstractPoolQueryRunner implements QueryRunner {
     abstract readonly database: DatabaseType
@@ -172,8 +173,8 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
         }
         return this.currentQueryRunner.getCurrentNativeConnection()
     }
-    abstract addParam(params: any[], value: any): string
-    addOutParam(_params: any[], _name: string): string {
+    abstract addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string
+    addOutParam(_params: any[], _name: string, _type: string, _typeCategory: TypeCategory): string {
         throw new TsSqlProcessingError({ reason: 'OUT_PARAMS_NOT_SUPPORTED' }, 'Unsupported output parameters')
     }
 

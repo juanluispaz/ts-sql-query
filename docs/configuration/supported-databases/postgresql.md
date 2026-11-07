@@ -84,15 +84,17 @@ PostgreSQL may be unable to work out the type of a parameter in a query, which o
 
 ```ts
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
+import type { TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     protected override transformPlaceholder(
         placeholder: string,
         type: string,
+        typeCategory: TypeCategory,
         _forceTypeCast: boolean,
         valueSentToDB: unknown
     ): string {
-        return super.transformPlaceholder(placeholder, type, true, valueSentToDB)
+        return super.transformPlaceholder(placeholder, type, typeCategory, true, valueSentToDB)
     }
 }
 ```

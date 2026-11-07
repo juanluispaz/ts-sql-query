@@ -75,7 +75,7 @@ describe('NoopQueryRunner', () => {
         test(`params-on-${database}`, () => {
             const runner = new NoopQueryRunner(database)
             const params: any[] = []
-            expect([runner.addParam(params, 'a'), runner.addParam(params, 'b')]).toEqual([first, second])
+            expect([runner.addParam(params, 'a', 'string', 'string'), runner.addParam(params, 'b', 'string', 'string')]).toEqual([first, second])
             expect(runner.database).toBe(database)
         })
     }
@@ -84,13 +84,13 @@ describe('NoopQueryRunner', () => {
         const runner = new NoopQueryRunner()
         runner.useDatabase('dbase' as any)
         let error: unknown
-        try { runner.addParam([], 1) } catch (e) { error = e }
+        try { runner.addParam([], 1, 'int', 'int') } catch (e) { error = e }
         expect(reasonOf(error)).toBe('UNSUPPORTED_DATABASE')
     })
 
     test('out-params', () => {
         const params: any[] = []
-        expect(new NoopQueryRunner().addOutParam(params, 'id')).toBe(':0')
+        expect(new NoopQueryRunner().addOutParam(params, 'id', 'int', 'int')).toBe(':0')
         expect(params).toEqual([{ out_param_with_name: 'id' }])
     })
 

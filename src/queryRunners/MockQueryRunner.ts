@@ -1,5 +1,7 @@
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, PromiseProvider, QueryRunner, QueryType, RollbackOpts } from './QueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
+import type { TypeCategory } from '../TypeAdapter.js'
+import { setQueryParamType } from './QueryRunner.js'
 
 export type MockQueryExecutor = (type: QueryType, query: string, params: any[], index: number) => any
 
@@ -480,7 +482,7 @@ export class MockQueryRunner implements QueryRunner {
             return this.promise.reject(e)
         }
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
         const index = params.length
         let result
         switch (this.database) {
@@ -508,15 +510,17 @@ export class MockQueryRunner implements QueryRunner {
             default:
                 throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database: this.database }, 'Unknown database ' + this.database)
         }
+        setQueryParamType(params, params.length, type, typeCategory)
         params.push(value)
         return result
     }
-    addOutParam(params: any[], name: string): string {
+    addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory): string {
         if (this.database !== 'oracle') {
             throw new TsSqlProcessingError({ reason: 'OUT_PARAMS_NOT_SUPPORTED' }, 'Unsupported output parameters')
         }
         const index = params.length
         if (name) {
+            setQueryParamType(params, params.length, type, typeCategory)
             params.push({dir: 3003 /*oracledb.BIND_OUT*/, as: name}) // See https://github.com/oracle/node-oracledb/blob/master/lib/oracledb.js
         } else {
             params.push({dir: 3003 /*oracledb.BIND_OUT*/}) // See https://github.com/oracle/node-oracledb/blob/master/lib/oracledb.js

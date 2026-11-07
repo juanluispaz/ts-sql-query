@@ -27,12 +27,12 @@ const UUID_V = '0a8f9c1e-1111-4222-8333-444455556666'
 // result; it defines no `transformPlaceholder`, so the emitted placeholder is
 // unchanged.
 const bracketAdapter: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        const v = next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory)
         return typeof v === 'string' ? '[' + v + ']' : v
     },
-    transformValueToDB(value, type, next) {
-        return next.transformValueToDB(value, type)
+    transformValueToDB(value, type, typeCategory, next) {
+        return next.transformValueToDB(value, type, typeCategory)
     },
 }
 
@@ -106,7 +106,7 @@ describe(ctx.label, () => {
                 cu: ctx.conn.optionalConst<string, 'SigningKey'>(UUID_V, 'customUuid', 'SigningKey'),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int4 as ci, $2::float8 as cd, $3 as cu"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int4 as ci, $2::float8 as cd, $3::uuid as cu"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             7,
@@ -135,7 +135,7 @@ describe(ctx.label, () => {
                 cldt: ctx.conn.optionalConst<Date, 'SignOffStamp'>(ldt, 'customLocalDateTime', 'SignOffStamp'),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::time as lt, $2::timestamp as ldt, $3 as clt, $4 as cldt"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::time as lt, $2::timestamp as ldt, $3::time as clt, $4::timestamp as cldt"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "17:00:00",
@@ -175,7 +175,7 @@ describe(ctx.label, () => {
         const cld = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst<Date, 'ReleaseDay'>(null, 'customLocalDate', 'ReleaseDay'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::date as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,

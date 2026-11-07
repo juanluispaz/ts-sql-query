@@ -14,6 +14,7 @@ import { asAlwaysIfValueSource, isValueSource, __getValueSourcePrivate } from '.
 import { __addWiths } from '../utils/ITableOrView.js'
 import { AbstractQueryBuilder, __setQueryMetadata } from './AbstractQueryBuilder.js'
 import type { RawFragment } from '../utils/RawFragment.js'
+import { __typeCategoryOf } from '../utils/typeCategory.js'
 
 // one implement ommited intentionally to don't confuse TypeScript
 
@@ -88,9 +89,9 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     let result
                     try {
                         if (typeAdapter) {
-                            result = typeAdapter.transformValueFromDB(value, idColumnPrivate.__valueTypeName, this.__sqlBuilder._defaultTypeAdapter)
+                            result = typeAdapter.transformValueFromDB(value, idColumnPrivate.__valueTypeName, __typeCategoryOf(idColumnPrivate.__valueType), this.__sqlBuilder._defaultTypeAdapter)
                         } else {
-                            result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, idColumnPrivate.__valueTypeName)
+                            result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, idColumnPrivate.__valueTypeName, __typeCategoryOf(idColumnPrivate.__valueType))
                         }
                     } catch(e) {
                         if (e instanceof TsSqlError) {
@@ -121,6 +122,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     const idColumnPrivate = __getColumnPrivate(idColumn)
                     const typeAdapter = idColumnPrivate.__typeAdapter
                     const columnTypeName = idColumnPrivate.__valueTypeName
+                    const columnTypeCategory = __typeCategoryOf(idColumnPrivate.__valueType)
                     const defaultTypeAdapter = this.__sqlBuilder._defaultTypeAdapter
                     if (typeAdapter) {
                         const length = rows.length
@@ -129,7 +131,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                             const row = rows[index]
                             let result
                             try {
-                                result = typeAdapter.transformValueFromDB(row, columnTypeName, defaultTypeAdapter)
+                                result = typeAdapter.transformValueFromDB(row, columnTypeName, columnTypeCategory, defaultTypeAdapter)
                             } catch(e) {
                                 if (e instanceof TsSqlError) {
                                     if (e.errorReason.reason === 'INVALID_VALUE_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE') {
@@ -153,7 +155,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                             const row = rows[index]
                             let result
                             try {
-                                result = defaultTypeAdapter.transformValueFromDB(row, columnTypeName)
+                                result = defaultTypeAdapter.transformValueFromDB(row, columnTypeName, columnTypeCategory)
                             } catch(e) {
                                 if (e instanceof TsSqlError) {
                                     if (e.errorReason.reason === 'INVALID_VALUE_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE') {

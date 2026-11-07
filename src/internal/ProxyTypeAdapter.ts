@@ -1,4 +1,4 @@
-import type { DefaultTypeAdapter, TypeAdapter } from '../TypeAdapter.js'
+import type { DefaultTypeAdapter, TypeAdapter, TypeCategory } from '../TypeAdapter.js'
 
 export class ProxyTypeAdapter implements TypeAdapter {
     typeAdapter: TypeAdapter
@@ -7,19 +7,19 @@ export class ProxyTypeAdapter implements TypeAdapter {
         this.typeAdapter = typeAdapter
     }
 
-    transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown {
-        return this.typeAdapter.transformValueFromDB(value, type, next)
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+        return this.typeAdapter.transformValueFromDB(value, type, typeCategory, next)
     }
 
-    transformValueToDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown {
-        return this.typeAdapter.transformValueToDB(value, type, next)
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+        return this.typeAdapter.transformValueToDB(value, type, typeCategory, next)
     }
 
-    transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string {
+    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string {
         if (this.typeAdapter.transformPlaceholder) {
-            return this.typeAdapter.transformPlaceholder(placeholder, type, forceTypeCast, valueSentToDB, next)
+            return this.typeAdapter.transformPlaceholder(placeholder, type, typeCategory, forceTypeCast, valueSentToDB, next)
         }
-        return next.transformPlaceholder(placeholder, type, forceTypeCast, valueSentToDB)
+        return next.transformPlaceholder(placeholder, type, typeCategory, forceTypeCast, valueSentToDB)
     }
 }
 

@@ -6,9 +6,12 @@
 // generic `MockQueryRunner` does for sqlite.
 
 import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
+import { setQueryParamType } from '../../../src/queryRunners/QueryRunner.js'
+import type { TypeCategory } from '../../../src/TypeAdapter.js'
 
 export class MockBunSqlSqliteQueryRunner extends MockQueryRunner {
-    override addParam(params: any[], value: any): string {
+    override addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
+        setQueryParamType(params, params.length, type, typeCategory)
         params.push(value)
         return '?' + params.length
     }

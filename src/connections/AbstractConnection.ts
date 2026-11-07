@@ -6,7 +6,7 @@ import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDat
 import type { NoTableOrViewRequired, ITableOrView, ITable, SameDB, HasSource, ForUseInLeftJoin, AnyTableOrView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery } from '../expressions/select.js'
-import type { TypeAdapter, DefaultTypeAdapter } from '../TypeAdapter.js'
+import type { TypeAdapter, DefaultTypeAdapter, TypeCategory } from '../TypeAdapter.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import type { IConnection } from '../utils/IConnection.js'
 import type { BooleanFragmentExpression, NumberFragmentExpression, StringFragmentExpression, LocalDateFragmentExpression, LocalTimeFragmentExpression, LocalDateTimeFragmentExpression, EqualableFragmentExpression, ComparableFragmentExpression, FragmentBuilder0, FragmentBuilder1, FragmentBuilder2, FragmentBuilder3, FragmentBuilder4, FragmentBuilder5, FragmentBuilder0IfValue, FragmentBuilder1IfValue, FragmentBuilder2IfValue, FragmentBuilder3IfValue, FragmentBuilder4IfValue, FragmentBuilder5IfValue, BigintFragmentExpression, UuidFragmentExpression, CustomIntFragmentExpression, CustomDoubleFragmentExpression, CustomUuidFragmentExpression, CustomLocalDateFragmentExpression, CustomLocalTimeFragmentExpression, CustomLocalDateTimeFragmentExpression, FragmentBuilderMaybeOptional0, FragmentBuilderMaybeOptional1, FragmentBuilderMaybeOptional2, FragmentBuilderMaybeOptional3, FragmentBuilderMaybeOptional4, FragmentBuilderMaybeOptional5 } from '../expressions/fragment.js'
@@ -30,6 +30,7 @@ import type { NAggregate, NDB, NNoTableOrViewRequired, NNotNestedAggregate, NSou
 import type { DataToProject, GetDataToProjectSource } from '../complexProjections/dataToProject.js'
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
+import { __conversionType, __typeCategoryOf } from '../utils/typeCategory.js'
 
 export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements IConnection<DB> {
     [connection]!: DB
@@ -733,9 +734,9 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 let result
                 try {
                     if (adapter2) {
-                        result = adapter2.transformValueFromDB(value, returnType, this.__sqlBuilder._defaultTypeAdapter)
+                        result = adapter2.transformValueFromDB(value, returnType, __typeCategoryOf(valueType as ValueType), this.__sqlBuilder._defaultTypeAdapter)
                     } else {
-                        result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, returnType)
+                        result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, returnType, __typeCategoryOf(valueType as ValueType))
                     }
                 } catch(e) {
                     if (e instanceof TsSqlError) {
@@ -1217,7 +1218,8 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         return new DynamicConditionBuilder(this.__sqlBuilder, definition, extension)
     }
 
-    protected transformValueFromDB(value: unknown, type: string): unknown {
+    protected transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
+        const conversionType = __conversionType(type, typeCategory)
         if (value === undefined) {
             return null
         }
@@ -1227,7 +1229,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         if (value === '' && !this.allowEmptyString) {
             return null
         }
-        switch (type) {
+        switch (conversionType) {
             case 'boolean':
                 if (typeof value === 'boolean') {
                     return value
@@ -1488,7 +1490,8 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 return value
         }
     }
-    protected transformValueToDB(value: unknown, type: string): unknown {
+    protected transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
+        const conversionType = __conversionType(type, typeCategory)
         if (value === undefined) {
             return null
         }
@@ -1498,7 +1501,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         if (value === '' && !this.allowEmptyString) {
             return null
         }
-        switch (type) {
+        switch (conversionType) {
             case 'boolean':
                 if (typeof value === 'boolean') {
                     return value
@@ -1611,7 +1614,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         }
     }
 
-    protected transformPlaceholder(placeholder: string, _type: string, _forceTypeCast: boolean, _valueSentToDB: unknown): string {
+    protected transformPlaceholder(placeholder: string, _type: string, _typeCategory: TypeCategory, _forceTypeCast: boolean, _valueSentToDB: unknown): string {
         return placeholder
     }
 

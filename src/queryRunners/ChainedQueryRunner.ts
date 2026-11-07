@@ -1,5 +1,6 @@
 import type { TsSqlErrorReason } from '../TsSqlError.js'
 import type { QueryRunner, DatabaseType, BeginTransactionOpts, CommitOpts, RollbackOpts } from './QueryRunner.js'
+import type { TypeCategory } from '../TypeAdapter.js'
 
 export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
     readonly queryRunner: T
@@ -117,11 +118,11 @@ export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
     executeConnectionConfiguration(query: string, params: any[] = []): Promise<void> {
         return this.queryRunner.executeConnectionConfiguration(query, params)
     }
-    addParam(params: any[], value: any): string {
-        return this.queryRunner.addParam(params, value)
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
+        return this.queryRunner.addParam(params, value, type, typeCategory)
     }
-    addOutParam(params: any[], name: string): string {
-        return this.queryRunner.addOutParam(params, name)
+    addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory): string {
+        return this.queryRunner.addOutParam(params, name, type, typeCategory)
     }
     createResolvedPromise<RESULT>(result: RESULT | PromiseLike<RESULT>): Promise<RESULT> {
         return this.queryRunner.createResolvedPromise(result)

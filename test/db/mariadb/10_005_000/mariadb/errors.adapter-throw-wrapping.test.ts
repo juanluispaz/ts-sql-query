@@ -26,8 +26,8 @@ const rejectingAdapter: TypeAdapter = {
         if (typeof value === 'string' || typeof value === 'number') seenByAdapter.push(value)
         throw adapterFailure
     },
-    transformValueToDB(value, type, next) {
-        return next.transformValueToDB(value, type)
+    transformValueToDB(value, type, typeCategory, next) {
+        return next.transformValueToDB(value, type, typeCategory)
     },
 }
 

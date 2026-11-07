@@ -15,11 +15,11 @@ import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
 
 const jsonAdapter: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        return typeof value === 'string' ? JSON.parse(value) : next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        return typeof value === 'string' ? JSON.parse(value) : next.transformValueFromDB(value, type, typeCategory)
     },
-    transformValueToDB(value, type, next) {
-        return value === null || value === undefined ? next.transformValueToDB(value, type) : JSON.stringify(value)
+    transformValueToDB(value, type, typeCategory, next) {
+        return value === null || value === undefined ? next.transformValueToDB(value, type, typeCategory) : JSON.stringify(value)
     },
 }
 

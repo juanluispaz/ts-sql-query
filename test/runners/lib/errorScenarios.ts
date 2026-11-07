@@ -427,7 +427,7 @@ const postgresScenarios: readonly ErrorScenario[] = [
         name: 'parameter-of-unknown-type',
         run: ({ runner }) => {
             const params: any[] = []
-            return runner.executeSelectManyRows(`select ${runner.addParam(params, null)} is null`, params)
+            return runner.executeSelectManyRows(`select ${runner.addParam(params, null, '', '')} is null`, params)
         },
         expected: { reason: 'SQL_INVALID_SQL_STATEMENT', statementErrorType: 'type mismatch' },
     },

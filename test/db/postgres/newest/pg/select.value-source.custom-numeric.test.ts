@@ -1155,7 +1155,7 @@ describe(ctx.label, () => {
                 niv: money.nullIfValue(0 as Money),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce($1::int4, $2) as vwn, nullif($3::int4, $4) as niv from issue where id = $5"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce($1::float8, $2) as vwn, nullif($3::float8, $4) as niv from issue where id = $5"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             8,

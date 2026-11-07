@@ -24,12 +24,12 @@ class VKindSampler extends Values<DBConnection, 'kindSampler'> {
 // `column(type, adapter)` (adapter-object) arm below. Declared inline: it
 // needs no domain fixture.
 const scaledTenthAdapter: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        const v = next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory)
         return typeof v === 'number' ? v / 10 : v
     },
-    transformValueToDB(value, type, next) {
-        return next.transformValueToDB(typeof value === 'number' ? value * 10 : value, type)
+    transformValueToDB(value, type, typeCategory, next) {
+        return next.transformValueToDB(typeof value === 'number' ? value * 10 : value, type, typeCategory)
     },
 }
 
@@ -49,12 +49,12 @@ class VBoolAdapterSampler extends Values<DBConnection, 'boolAdapterSampler'> {
 // `column(type, typeName, adapter)` arm below. Declared inline: it needs no
 // domain fixture, and the domain's own equivalent adapter is not exported.
 const plusOffsetAdapter: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        const v = next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory)
         return typeof v === 'number' ? v + 1000 : v
     },
-    transformValueToDB(value, type, next) {
-        return next.transformValueToDB(typeof value === 'number' ? value - 1000 : value, type)
+    transformValueToDB(value, type, typeCategory, next) {
+        return next.transformValueToDB(typeof value === 'number' ? value - 1000 : value, type, typeCategory)
     },
 }
 
@@ -71,12 +71,12 @@ class VBrandedSampler extends Values<DBConnection, 'brandedSampler'> {
 // passthrough) for the virtualColumnFromFragment trailing-adapter arm below.
 // Declared inline; the domain's own equivalent adapter is not exported.
 const bracketAdapter: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        const v = next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory)
         return typeof v === 'string' ? '[' + v + ']' : v
     },
-    transformValueToDB(value, type, next) {
-        return next.transformValueToDB(value, type)
+    transformValueToDB(value, type, typeCategory, next) {
+        return next.transformValueToDB(value, type, typeCategory)
     },
 }
 
@@ -474,11 +474,11 @@ describe(ctx.label, () => {
     // pinned above (scaledTenth / customBoolean / plusOffset / bracket), so these
     // fan-out cells isolate the per-kind overload + adapter dispatch path alone.
     const passthroughAdapter: TypeAdapter = {
-        transformValueFromDB(value, type, next) {
-            return next.transformValueFromDB(value, type)
+        transformValueFromDB(value, type, typeCategory, next) {
+            return next.transformValueFromDB(value, type, typeCategory)
         },
-        transformValueToDB(value, type, next) {
-            return next.transformValueToDB(value, type)
+        transformValueToDB(value, type, typeCategory, next) {
+            return next.transformValueToDB(value, type, typeCategory)
         },
     }
 

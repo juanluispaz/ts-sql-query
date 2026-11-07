@@ -822,11 +822,11 @@ interface Connection {
     compatibilityVersion: number
 
     /** Protected method that transforms the values received from the database */
-    transformValueFromDB(value: unknown, type: string): unknown
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
     /** Protected method that transforms the values sent to the database */
-    transformValueToDB(value: unknown, type: string): unknown
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
     /** Protected method that customizes the value placeholder in the query */
-    transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown): string
+    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown): string
 
     /** Protected method that returns true if the provided string is a reserved keyword */
     isReservedKeyword(word: string): boolean
@@ -2545,16 +2545,27 @@ type CompoundableSubquery = SelectExpression
 
 
 
+type TypeCategory = 'boolean'
+    | 'int' | 'bigint' | 'customInt'
+    | 'double' | 'customDouble'
+    | 'string'
+    | 'uuid' | 'customUuid'
+    | 'localDate' | 'customLocalDate'
+    | 'localTime' | 'customLocalTime'
+    | 'localDateTime' | 'customLocalDateTime'
+    | 'enum' | 'custom' | 'customComparable'
+    | ''
+
 interface TypeAdapter {
-    transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
-    transformValueToDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
-    transformPlaceholder?(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown
+    transformPlaceholder?(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string
 }
 
 interface DefaultTypeAdapter {
-    transformValueFromDB(value: unknown, type: string): unknown
-    transformValueToDB(value: unknown, type: string): unknown
-    transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown): string
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
+    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown): string
 }
 
 declare class CustomBooleanTypeAdapter implements TypeAdapter {
@@ -2565,21 +2576,21 @@ declare class CustomBooleanTypeAdapter implements TypeAdapter {
     constructor(trueValue: string, falseValue: string)
     // CustomBooleanTypeAdapter's constructor implementation ...
 
-    transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown
     // CustomBooleanTypeAdapter's transformValueFromDB implementation ...
 
-    transformValueToDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown
     // CustomBooleanTypeAdapter's transformValueToDB implementation ...
 }
 
 declare class ForceTypeCast implements TypeAdapter {
-    transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown
     // ForceTypeCast's transformValueFromDB implementation ...
 
-    transformValueToDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown
     // ForceTypeCast's transformValueToDB implementation ...
 
-    transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string
+    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string
     // ForceTypeCast's transformPlaceholder implementation ...
 }
 

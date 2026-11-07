@@ -3,6 +3,8 @@ import type { Pool, PoolConnection } from 'mariadb'
 import { MariaDBQueryRunner } from './MariaDBQueryRunner.js'
 import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
 import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
+import type { TypeCategory } from '../TypeAdapter.js'
+import { setQueryParamType } from './QueryRunner.js'
 
 export class MariaDBPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     readonly database: DatabaseType
@@ -28,7 +30,8 @@ export class MariaDBPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     override getCurrentNativeConnection(): PoolConnection | undefined {
         return super.getCurrentNativeConnection() as PoolConnection | undefined
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
+        setQueryParamType(params, params.length, type, typeCategory)
         params.push(value)
         return '?'
     }

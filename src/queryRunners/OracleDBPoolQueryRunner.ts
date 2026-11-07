@@ -4,6 +4,8 @@ import oracledb from 'oracledb'
 import { OracleDBQueryRunner } from './OracleDBQueryRunner.js'
 import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
 import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
+import type { TypeCategory } from '../TypeAdapter.js'
+import { setQueryParamType } from './QueryRunner.js'
 
 export class OracleDBPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     readonly database: DatabaseType
@@ -26,14 +28,16 @@ export class OracleDBPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     override getCurrentNativeConnection(): Connection | undefined {
         return super.getCurrentNativeConnection() as Connection | undefined
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
         const index = params.length
+        setQueryParamType(params, params.length, type, typeCategory)
         params.push(value)
         return ':' + index
     }
-    override addOutParam(params: any[], name: string): string {
+    override addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory): string {
         const index = params.length
         if (name) {
+            setQueryParamType(params, params.length, type, typeCategory)
             params.push({dir: oracledb.BIND_OUT, as: name})
         } else {
             params.push({dir: oracledb.BIND_OUT})

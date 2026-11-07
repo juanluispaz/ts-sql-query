@@ -14,7 +14,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { Table } from '../../../../../src/Table.js'
-import type { TypeAdapter, DefaultTypeAdapter } from '../../../../../src/TypeAdapter.js'
+import type { TypeAdapter, DefaultTypeAdapter, TypeCategory } from '../../../../../src/TypeAdapter.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -22,13 +22,13 @@ const fromDBCalls: Array<{ type: string }> = []
 const toDBCalls:   Array<{ type: string }> = []
 
 const loggingAdapter: TypeAdapter = {
-    transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown {
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
         fromDBCalls.push({ type })
-        return next.transformValueFromDB(value, type)
+        return next.transformValueFromDB(value, type, typeCategory)
     },
-    transformValueToDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown {
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
         toDBCalls.push({ type })
-        return next.transformValueToDB(value, type)
+        return next.transformValueToDB(value, type, typeCategory)
     },
 }
 

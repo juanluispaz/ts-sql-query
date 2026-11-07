@@ -8,7 +8,7 @@ export { Table } from './Table.js'
 export { View } from './View.js'
 
 export { CustomBooleanTypeAdapter, ForceTypeCast } from './TypeAdapter.js'
-export type { DefaultTypeAdapter, TypeAdapter } from './TypeAdapter.js'
+export type { DefaultTypeAdapter, TypeAdapter, TypeCategory } from './TypeAdapter.js'
 
 export { Values } from './Values.js'
 export type { OpaqueValues } from './Values.js'

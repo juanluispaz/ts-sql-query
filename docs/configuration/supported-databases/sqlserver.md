@@ -108,10 +108,11 @@ In SQL Server, UUIDs are stored in columns of type `uniqueidentifier`, which pre
 
 ```ts
 import { SqlServerConnection } from "ts-sql-query/connections/SqlServerConnection";
+import type { TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
 
 class DBConnection extends SqlServerConnection<'DBConnection'> { 
-    protected override transformValueFromDB(value: unknown, type: string): unknown {
-        const result = super.transformValueFromDB(value, type);
+    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
+        const result = super.transformValueFromDB(value, type, typeCategory);
         if (result && type === 'uuid') {
             return (result as string).toLowerCase();
         }

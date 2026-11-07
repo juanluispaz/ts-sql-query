@@ -3,6 +3,8 @@ import type { Pool, PoolClient } from 'pg'
 import { PgQueryRunner } from './PgQueryRunner.js'
 import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
 import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
+import type { TypeCategory } from '../TypeAdapter.js'
+import { setQueryParamType } from './QueryRunner.js'
 
 export interface PgPoolQueryRunnerConfig {
     allowNestedTransactions?: boolean | undefined
@@ -31,7 +33,8 @@ export class PgPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     override getCurrentNativeConnection(): PoolClient | undefined {
         return super.getCurrentNativeConnection() as PoolClient | undefined
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
+        setQueryParamType(params, params.length, type, typeCategory)
         params.push(value)
         return '$' + params.length
     }

@@ -22,6 +22,7 @@ import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { RawFragment } from '../utils/RawFragment.js'
 import { TsSqlError, TsSqlProcessingError } from '../TsSqlError.js'
 import { getContainsInsertReturningClause, setContainsInsertReturningClause, setContainsMutationReturningClause, setForcedAffectedRowCount } from '../utils/queryParamsMetadata.js'
+import { __typeCategoryOf } from '../utils/typeCategory.js'
 
 /** A column of the select list as it was written, for the group by that refers to it */
 // `name`: the alias of the column; `paramsStart` / `paramsEnd`: the range of the params the column's SQL consumed
@@ -588,12 +589,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return this._appendConditionValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
-    _transformParamToDB(value: any, _columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, params?: any[]): any {
+    _transformParamToDB(value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, params?: any[]): any {
         try {
             if (typeAdapter) {
-                return typeAdapter.transformValueToDB(value, columnTypeName, this._defaultTypeAdapter)
+                return typeAdapter.transformValueToDB(value, columnTypeName, __typeCategoryOf(columnType), this._defaultTypeAdapter)
             } else {
-                return this._defaultTypeAdapter.transformValueToDB(value, columnTypeName)
+                return this._defaultTypeAdapter.transformValueToDB(value, columnTypeName, __typeCategoryOf(columnType))
             }
         } catch (e) {
             // The value would be the next parameter: an invalid one tells which of them it is
@@ -603,12 +604,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
             throw e
         }
     }
-    _appendParam(value: any, params: any[], _columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
-        const placeholder = this._queryRunner.addParam(params, value)
+    _appendParam(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+        const typeCategory = __typeCategoryOf(columnType)
+        const placeholder = this._queryRunner.addParam(params, value, columnTypeName, typeCategory)
         if (typeAdapter && typeAdapter.transformPlaceholder) {
-            return typeAdapter.transformPlaceholder(placeholder, columnTypeName, forceTypeCast, value, this._defaultTypeAdapter)
+            return typeAdapter.transformPlaceholder(placeholder, columnTypeName, typeCategory, forceTypeCast, value, this._defaultTypeAdapter)
         } else {
-            return this._defaultTypeAdapter.transformPlaceholder(placeholder, columnTypeName, forceTypeCast, value)
+            return this._defaultTypeAdapter.transformPlaceholder(placeholder, columnTypeName, typeCategory, forceTypeCast, value)
         }
     }
     _appendConditionParam(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
@@ -3560,11 +3562,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // Transform an uuid to string
         return this._appendSqlParenthesis(valueSource, params, false)
     }
-    _asNullValue(_params: any[], _columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _asNullValue(_params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (typeAdapter && typeAdapter.transformPlaceholder) {
-            return typeAdapter.transformPlaceholder('null', columnTypeName, false, null, this._defaultTypeAdapter)
+            return typeAdapter.transformPlaceholder('null', columnTypeName, __typeCategoryOf(columnType), false, null, this._defaultTypeAdapter)
         } else {
-            return this._defaultTypeAdapter.transformPlaceholder('null', columnTypeName, false, null)
+            return this._defaultTypeAdapter.transformPlaceholder('null', columnTypeName, __typeCategoryOf(columnType), false, null)
         }
     }
     // Oracle recursive

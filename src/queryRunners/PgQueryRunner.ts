@@ -4,6 +4,8 @@ import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
 import { PostgresTransactionOutcome } from '../utils/postgresTransactionOutcome.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getPgErrorReason, isPgError } from './connectorErrorMappers/PgErrorMapper.js'
+import type { TypeCategory } from '../TypeAdapter.js'
+import { setQueryParamType } from './QueryRunner.js'
 
 export interface PgQueryRunnerConfig {
     allowNestedTransactions?: boolean | undefined
@@ -60,7 +62,8 @@ export class PgQueryRunner extends SqlTransactionQueryRunner {
         }
         return super.executeBeginTransaction(opts)
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
+        setQueryParamType(params, params.length, type, typeCategory)
         params.push(value)
         return '$' + params.length
     }

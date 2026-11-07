@@ -14,6 +14,7 @@ import { __getValueSourcePrivate } from '../expressions/values.js'
 import { SqlOperation1ValueSource, SqlOperation1ValueSourceIfValueOrIgnore } from '../internal/ValueSourceImpl.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { setParamType } from '../utils/queryParamsMetadata.js'
+import { __typeCategoryOf } from '../utils/typeCategory.js'
 
 export class OracleSqlBuilder extends AbstractSqlBuilder {
     oracle: true = true
@@ -1214,7 +1215,8 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         if (idColumn) {
             this._setContainsInsertReturningClause(params, true)
             const idColumnSql = this._appendSql(idColumn, params, false)
-            const placeholder = this._queryRunner.addOutParam(params, '') // Empty name for the out params, no special name is requiered
+            const idColumnPrivate = __getValueSourcePrivate(idColumn)
+            const placeholder = this._queryRunner.addOutParam(params, '', idColumnPrivate.__valueTypeName, __typeCategoryOf(idColumnPrivate.__valueType)) // Empty name for the out params, no special name is requiered
             this._registerOutBindColumnType(params, placeholder, __getValueSourcePrivate(idColumn).__valueType)
             return ' returning ' + idColumnSql + ' into ' + placeholder
         }
@@ -1247,7 +1249,8 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             if (requireComma) {
                 result += ', '
             }
-            const placeholder = this._queryRunner.addOutParam(params, property)
+            const columnPrivate = __getValueSourcePrivate(columns[property]!)
+            const placeholder = this._queryRunner.addOutParam(params, property, columnPrivate.__valueTypeName, __typeCategoryOf(columnPrivate.__valueType))
             this._registerOutBindColumnType(params, placeholder, __getValueSourcePrivate(columns[property]!).__valueType)
             result += placeholder
             requireComma = true

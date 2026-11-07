@@ -3,6 +3,8 @@ import type { Database } from 'better-sqlite3'
 import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from "../TsSqlError.js"
 import { getBetterSqlite3ErrorReason, isBetterSqlite3Error } from './connectorErrorMappers/BetterSqlite3ErrorMapper.js'
+import type { TypeCategory } from '../TypeAdapter.js'
+import { setQueryParamType } from './QueryRunner.js'
 
 export interface BetterSqlite3QueryRunnerConfig {
     promise?: PromiseProvider
@@ -94,8 +96,9 @@ export class BetterSqlite3QueryRunner extends SqlTransactionQueryRunner {
         }
         return super.executeBeginTransaction(opts)
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
         if (typeof value === 'boolean') {
+            setQueryParamType(params, params.length, type, typeCategory)
             params.push(Number(value))
         } else {
             params.push(value)

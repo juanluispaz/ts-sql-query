@@ -10,6 +10,7 @@ import type { AnyValueSource, ValueType, __AggregatedArrayColumns } from '../exp
 import { __getValueSourcePrivate, __isBooleanValueSource, isValueSource } from '../expressions/values.js'
 import { isDefault } from '../expressions/Default.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
+import { __typeCategoryOf } from '../utils/typeCategory.js'
 
 export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     postgreSql: true = true
@@ -426,11 +427,11 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // the user opt-in.
         return this._minAndMaxValueBetweenTwoValuesPoisoningNull(params, valueSource, value, columnType, columnTypeName, typeAdapter, this._connectionConfiguration.minValueFunction, 'greatest')
     }
-    override _asNullValue(_params: any[], _columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _asNullValue(_params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (typeAdapter && typeAdapter.transformPlaceholder) {
-            return typeAdapter.transformPlaceholder('null', columnTypeName, true, null, this._defaultTypeAdapter)
+            return typeAdapter.transformPlaceholder('null', columnTypeName, __typeCategoryOf(columnType), true, null, this._defaultTypeAdapter)
         } else {
-            return this._defaultTypeAdapter.transformPlaceholder('null', columnTypeName, true, null)
+            return this._defaultTypeAdapter.transformPlaceholder('null', columnTypeName, __typeCategoryOf(columnType), true, null)
         }
     }
     override _modulo(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {

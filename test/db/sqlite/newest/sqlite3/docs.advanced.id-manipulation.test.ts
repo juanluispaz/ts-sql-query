@@ -13,33 +13,34 @@ import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import type { TypeCategory } from '../../../../../src/TypeAdapter.js'
 
 class EncryptedIdConnection extends DBConnection {
     private encrypter = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c')
 
-    protected override transformValueFromDB(value: unknown, type: string): unknown {
+    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
         if (type === 'encryptedID') {
-            const id = super.transformValueFromDB(value, 'bigint')
+            const id = super.transformValueFromDB(value, 'bigint', 'bigint')
             if (typeof id === 'bigint') {
                 return this.encrypter.encrypt(id)
             } else {
                 return id
             }
         }
-        return super.transformValueFromDB(value, type)
+        return super.transformValueFromDB(value, type, typeCategory)
     }
-    protected override transformValueToDB(value: unknown, type: string): unknown {
+    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
         if (type === 'encryptedID') {
             if (value === null || value === undefined) {
                 return null
             } else if (typeof value === 'string') {
                 const id = this.encrypter.decrypt(value)
-                return super.transformValueToDB(id, 'bigint')
+                return super.transformValueToDB(id, 'bigint', 'bigint')
             } else {
                 throw new Error('Invalid id: ' + value)
             }
         }
-        return super.transformValueToDB(value, type)
+        return super.transformValueToDB(value, type, typeCategory)
     }
 }
 
@@ -59,9 +60,9 @@ const tEncryptedIssue = new class TEncryptedIssue extends Table<DBConnection, 'T
 class GloballyEncryptedIdConnection extends DBConnection {
     private encrypter = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c')
 
-    protected override transformValueFromDB(value: unknown, type: string): unknown {
+    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
         if (type.startsWith('ID_')) {
-            const id = super.transformValueFromDB(value, 'bigint')
+            const id = super.transformValueFromDB(value, 'bigint', 'bigint')
             if (typeof id === 'bigint') {
                 const prefix = type.substring(3)
                 return this.encrypter.encrypt(id, prefix)
@@ -69,21 +70,21 @@ class GloballyEncryptedIdConnection extends DBConnection {
                 return id
             }
         }
-        return super.transformValueFromDB(value, type)
+        return super.transformValueFromDB(value, type, typeCategory)
     }
-    protected override transformValueToDB(value: unknown, type: string): unknown {
+    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
         if (type.startsWith('ID_')) {
             if (value === null || value === undefined) {
                 return null
             } else if (typeof value === 'string') {
                 const prefix = type.substring(3)
                 const id = this.encrypter.decrypt(value, prefix)
-                return super.transformValueToDB(id, 'bigint')
+                return super.transformValueToDB(id, 'bigint', 'bigint')
             } else {
                 throw new Error('Invalid id: ' + value)
             }
         }
-        return super.transformValueToDB(value, type)
+        return super.transformValueToDB(value, type, typeCategory)
     }
 }
 

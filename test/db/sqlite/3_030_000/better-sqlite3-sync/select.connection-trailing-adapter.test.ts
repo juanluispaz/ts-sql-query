@@ -11,7 +11,7 @@
 // (numeric `* 10`, uuid lowercase-bracket).
 //
 // How the adapter is observed: `__transformValueFromDB` runs the adapter's
-// `transformValueFromDB(value, type, next)` on the value coming from the
+// `transformValueFromDB(value, type, '', next)` on the value coming from the
 // DB. In mock mode that value is exactly what `ctx.mockNext(...)` queues —
 // so each test queues the RAW value and asserts the TRANSFORMED value; the
 // single unconditional `expect(...).toEqual(transformed)` validates the
@@ -38,35 +38,35 @@ const UUID_LOWER = '0a8f9c1e-1111-4222-8333-444455556666'
 // sent verbatim; no `transformPlaceholder` => the emitted placeholder/cast is
 // unchanged (the snapshot records the cell's cast).
 const intTimesTen: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        const v = next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory)
         return typeof v === 'number' ? v * 10 : v
     },
-    transformValueToDB(value, type, next) {
-        return next.transformValueToDB(value, type)
+    transformValueToDB(value, type, typeCategory, next) {
+        return next.transformValueToDB(value, type, typeCategory)
     },
 }
 
 // Same shape as `intTimesTen`, kept separate so each kind reads its own
 // adapter (the double marshaller also yields a `number`).
 const doubleTimesTen: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        const v = next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory)
         return typeof v === 'number' ? v * 10 : v
     },
-    transformValueToDB(value, type, next) {
-        return next.transformValueToDB(value, type)
+    transformValueToDB(value, type, typeCategory, next) {
+        return next.transformValueToDB(value, type, typeCategory)
     },
 }
 
 // The bigint marshaller yields a `bigint`; multiply by `10n`.
 const bigintTimesTen: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        const v = next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory)
         return typeof v === 'bigint' ? v * 10n : v
     },
-    transformValueToDB(value, type, next) {
-        return next.transformValueToDB(value, type)
+    transformValueToDB(value, type, typeCategory, next) {
+        return next.transformValueToDB(value, type, typeCategory)
     },
 }
 
@@ -74,12 +74,12 @@ const bigintTimesTen: TypeAdapter = {
 // it. Lowercasing first keeps the assertion stable across engines that echo a
 // uuid in a different case (e.g. SQL Server can return it uppercased).
 const uuidBracket: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        const v = next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory)
         return typeof v === 'string' ? '[' + v.toLowerCase() + ']' : v
     },
-    transformValueToDB(value, type, next) {
-        return next.transformValueToDB(value, type)
+    transformValueToDB(value, type, typeCategory, next) {
+        return next.transformValueToDB(value, type, typeCategory)
     },
 }
 
@@ -87,12 +87,12 @@ const uuidBracket: TypeAdapter = {
 // on a boolean const is observable. `transformValueToDB` delegates to `next`,
 // so the const boolean is sent verbatim and the placeholder/cast is unchanged.
 const boolNegate: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        const v = next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory)
         return typeof v === 'boolean' ? !v : v
     },
-    transformValueToDB(value, type, next) {
-        return next.transformValueToDB(value, type)
+    transformValueToDB(value, type, typeCategory, next) {
+        return next.transformValueToDB(value, type, typeCategory)
     },
 }
 
@@ -102,12 +102,12 @@ const boolNegate: TypeAdapter = {
 // uuid / boolean adapters above. `transformValueToDB` delegates to `next`, so
 // the const Date is sent verbatim and the placeholder/cast is unchanged.
 const shiftHourFromDb: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        const v = next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory)
         return v instanceof Date ? new Date(v.getTime() + 3600000) : v
     },
-    transformValueToDB(value, type, next) {
-        return next.transformValueToDB(value, type)
+    transformValueToDB(value, type, typeCategory, next) {
+        return next.transformValueToDB(value, type, typeCategory)
     },
 }
 
@@ -117,12 +117,12 @@ const shiftHourFromDb: TypeAdapter = {
 // observable. `transformValueToDB` delegates to `next`, so the value is sent
 // verbatim and the emitted placeholder/cast is unchanged.
 const stringBracket: TypeAdapter = {
-    transformValueFromDB(value, type, next) {
-        const v = next.transformValueFromDB(value, type)
+    transformValueFromDB(value, type, typeCategory, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory)
         return typeof v === 'string' ? '[' + v + ']' : v
     },
-    transformValueToDB(value, type, next) {
-        return next.transformValueToDB(value, type)
+    transformValueToDB(value, type, typeCategory, next) {
+        return next.transformValueToDB(value, type, typeCategory)
     },
 }
 

@@ -27,7 +27,7 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
     // The base type SQL Server bound the parameter with.
     async function boundAs(value: unknown, type?: string): Promise<string> {
         const params: any[] = []
-        const placeholder = runner!.addParam(params, value)
+        const placeholder = runner!.addParam(params, value, type ?? '', '')
         if (type) setParamType(params, placeholder, type)
         return await runner!.executeSelectOneColumnOneRow(`select cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30))`, params)
     }
@@ -53,7 +53,7 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
     test('a-null-without-a-data-type', async () => {
         for (const value of [null, undefined]) {
             const params: any[] = []
-            const placeholder = runner!.addParam(params, value)
+            const placeholder = runner!.addParam(params, value, '', '')
             expect(await runner!.executeSelectOneColumnOneRow(`select case when ${placeholder} is null then 1 else 0 end`, params)).toBe(1)
         }
     })

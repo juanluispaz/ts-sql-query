@@ -1,5 +1,6 @@
 import type { TsSqlErrorReason, QueryExecutionSource } from "../TsSqlError.js"
-import { getQueryExecutionMetadataOf, getQueryExecutionSourceOf, isSelectPageCountQueryParams } from '../utils/queryParamsMetadata.js'
+import type { TypeCategory } from '../TypeAdapter.js'
+import { getParamTypeAt, getParamTypeCategoryAt, getQueryExecutionMetadataOf, getQueryExecutionSourceOf, isSelectPageCountQueryParams, setParamTypeAt } from '../utils/queryParamsMetadata.js'
 
 export interface QueryRunner {
     readonly database: DatabaseType
@@ -49,8 +50,12 @@ export interface QueryRunner {
     isTransactionActive(): boolean
     executeDatabaseSchemaModification(query: string, params?: any[]): Promise<void>
     executeConnectionConfiguration(query: string, params?: any[]): Promise<void>
-    addParam(params: any[], value: any): string
-    addOutParam(params: any[], name: string): string
+    /**
+     * Adds the value to the params and returns its placeholder. A query runner that adds it keeps its type with
+     * `setQueryParamType`, at the index of the value; one that delegates to another passes the type on.
+     */
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string
+    addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory): string
     // Resolves a value that may or may not already be a promise into a promise
     // on this runner's configured provider — like `Promise.resolve`, it adopts a
     // thenable and wraps a plain value, both yielding `Promise<RESULT>`. Keeping
@@ -106,6 +111,23 @@ export type BeginTransactionOpts = [transactionLevel?: 'read uncommitted' | 'rea
 export type CommitOpts = []
 export type RollbackOpts = []
 
+/**
+ * Keeps the type name and the type category of the parameter at that index of the params: the query runner calls it
+ * when it adds the parameter, in `addParam` and `addOutParam`.
+ */
+export function setQueryParamType(params: any[], index: number, type: string, typeCategory: TypeCategory): void {
+    setParamTypeAt(params, index, type, typeCategory)
+}
+/** The type name of the parameter at that index, or undefined when it was added without it */
+export function getQueryParamType(query: string, params: any[], index: number): string | undefined {
+    query
+    return getParamTypeAt(params, index)
+}
+/** The type category of the parameter at that index, or undefined when it was added without it */
+export function getQueryParamTypeCategory(query: string, params: any[], index: number): TypeCategory | undefined {
+    query
+    return getParamTypeCategoryAt(params, index)
+}
 export function getQueryExecutionName(query: string, params: any[]): string | undefined {
     query
     return getQueryExecutionMetadataOf(params)?.queryExecutionName

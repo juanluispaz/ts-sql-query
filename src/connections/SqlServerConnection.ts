@@ -5,6 +5,8 @@ import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
 import type { TransactionIsolationLevel } from './AbstractConnection.js'
 import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
+import type { TypeCategory } from '../TypeAdapter.js'
+import { __conversionType } from '../utils/typeCategory.js'
 
 export abstract class SqlServerConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'sqlServer', NAME>> {
 
@@ -121,8 +123,9 @@ export abstract class SqlServerConnection<NAME extends string> extends AbstractA
         return new DefaultImpl()
     }
 
-    protected override transformValueToDB(value: unknown, type: string): unknown {
-        if (type === 'localTime' && value instanceof Date && !isNaN(value.getTime())) {
+    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
+        const conversionType = __conversionType(type, typeCategory)
+        if (conversionType === 'localTime' && value instanceof Date && !isNaN(value.getTime())) {
             // A localTime parameter is bound as the driver's TIME type, whose
             // validator only accepts a Date — the default 'HH:MI:SS' string is
             // rejected with EPARAM "Invalid time". Bind the Date directly; the
@@ -130,6 +133,6 @@ export abstract class SqlServerConnection<NAME extends string> extends AbstractA
             // exactly as localDate / localDateTime already bind their Date values.
             return value
         }
-        return super.transformValueToDB(value, type)
+        return super.transformValueToDB(value, type, typeCategory)
     }
 }

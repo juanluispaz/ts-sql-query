@@ -1,4 +1,5 @@
-import { isSelectPageCountQuery } from './QueryRunner.js'
+import { isSelectPageCountQuery, setQueryParamType } from './QueryRunner.js'
+import type { TypeCategory } from '../TypeAdapter.js'
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, PromiseProvider, QueryRunner, RollbackOpts } from './QueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js';
 
@@ -135,7 +136,7 @@ export class NoopQueryRunner implements QueryRunner {
     executeConnectionConfiguration(_query: string, _params: any[] = []): Promise<void> {
         return this.promise.resolve()
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
         const index = params.length
         let result
         switch (this.database) {
@@ -163,11 +164,13 @@ export class NoopQueryRunner implements QueryRunner {
             default:
                 throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database: this.database }, 'Unknown database ' + this.database)
         }
+        setQueryParamType(params, params.length, type, typeCategory)
         params.push(value)
         return result
     }
-    addOutParam(params: any[], name: string): string {
+    addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory): string {
         const index = params.length
+        setQueryParamType(params, params.length, type, typeCategory)
         params.push({ out_param_with_name: name })
         return ':' + index
     }

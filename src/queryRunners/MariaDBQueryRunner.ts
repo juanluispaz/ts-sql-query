@@ -4,6 +4,8 @@ import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQue
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getMariaDbErrorReason, isMariaDbError } from './connectorErrorMappers/MariaDBErrorMapper.js'
 import { isTransactionOpenAfterMySqlError } from '../utils/mySqlTransactionRollback.js'
+import type { TypeCategory } from '../TypeAdapter.js'
+import { setQueryParamType } from './QueryRunner.js'
 
 type UpsertResult = {
     affectedRows: number
@@ -84,7 +86,8 @@ export class MariaDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     doRollback(_opts: RollbackOpts): Promise<void> {
         return this.connection.rollback()
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
+        setQueryParamType(params, params.length, type, typeCategory)
         params.push(value)
         return '?'
     }

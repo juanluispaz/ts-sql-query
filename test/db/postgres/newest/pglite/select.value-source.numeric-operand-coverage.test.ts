@@ -347,7 +347,7 @@ describe(ctx.label, () => {
                 c:  tIssueWorklog.costCents.onlyWhenOrNull(false),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, null as c from issue_worklog where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, null::int4 as c from issue_worklog where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

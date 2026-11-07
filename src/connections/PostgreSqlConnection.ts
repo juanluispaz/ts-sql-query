@@ -13,6 +13,8 @@ import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
+import type { TypeCategory } from '../TypeAdapter.js'
+import { __conversionType } from '../utils/typeCategory.js'
 
 export abstract class PostgreSqlConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'postgreSql', NAME>> {
 
@@ -141,12 +143,13 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
         return [level] as any
     }
 
-    protected override transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown): string {
+    protected override transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown): string {
+        const conversionType = __conversionType(type, typeCategory)
         if (!forceTypeCast) {
-            return super.transformPlaceholder(placeholder, type, forceTypeCast, valueSentToDB)
+            return super.transformPlaceholder(placeholder, type, typeCategory, forceTypeCast, valueSentToDB)
         }
 
-        switch (type) {
+        switch (conversionType) {
             case 'boolean':
                 return placeholder + '::bool'
             case 'int':

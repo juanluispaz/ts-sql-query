@@ -65,7 +65,7 @@ import {
 import { deepPick, deepOmit, type DeepPick, type DeepOmit, type DeepPickPaths } from '../../../../../src/extras/deepUtilities.js'
 
 import { fromRef, type TableOrViewLeftJoinOf, type TableOrViewOf } from '../../../../../src/extras/types.js'
-import { type DefaultTypeAdapter, type TypeAdapter } from '../../../../../src/TypeAdapter.js'
+import { type DefaultTypeAdapter, type TypeAdapter, type TypeCategory } from '../../../../../src/TypeAdapter.js'
 
 import { Pool } from 'pg';
 import { PgPoolQueryRunner } from '../../../../../src/queryRunners/PgPoolQueryRunner.js'
@@ -334,6 +334,7 @@ void function(
     _tovo: TableOrViewOf<any>,
     _dta: DefaultTypeAdapter,
     _ta: TypeAdapter,
+    _tc: TypeCategory,
     _dc: DynamicCondition<any>
 ) {}
 

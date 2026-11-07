@@ -9,6 +9,7 @@ import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
+import type { TypeCategory } from '../../../../../src/TypeAdapter.js'
 
 interface RgbColor { r: number, g: number, b: number }
 
@@ -21,29 +22,29 @@ function toHexPair(value: number): string {
 }
 
 class RgbColorConnection extends DBConnection {
-    protected override transformValueFromDB(value: unknown, type: string) {
+    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory) {
         if (type === 'RgbColor' && value) {
             if (typeof value === 'string' && value.length === 7) {
                 return { r: parseInt(value.slice(1, 3), 16), g: parseInt(value.slice(3, 5), 16), b: parseInt(value.slice(5, 7), 16) }
             }
             throw new Error(`Cannot decode database value ${String(value)} (type ${typeof value}) as RgbColor`)
         }
-        return super.transformValueFromDB(value, type)
+        return super.transformValueFromDB(value, type, typeCategory)
     }
-    protected override transformValueToDB(value: unknown, type: string) {
+    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory) {
         if (type === 'RgbColor' && value) {
             if (typeof value === 'object' && isRgbColor(value)) {
                 return `#${toHexPair(value.r)}${toHexPair(value.g)}${toHexPair(value.b)}`
             }
             throw new Error(`Cannot encode value ${String(value)} for database`)
         }
-        return super.transformValueToDB(value, type)
+        return super.transformValueToDB(value, type, typeCategory)
     }
-    protected override transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown): string {
+    protected override transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown): string {
         if (type === 'RgbColor') {
             return 'cast(' + placeholder + ' as text)'
         }
-        return super.transformPlaceholder(placeholder, type, forceTypeCast, valueSentToDB)
+        return super.transformPlaceholder(placeholder, type, typeCategory, forceTypeCast, valueSentToDB)
     }
 }
 

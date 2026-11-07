@@ -117,7 +117,7 @@ describe(ctx.label, () => {
     test('a-transform-value-to-db-of-the-application-arrives-as-it-is', async () => {
         const applicationError = new ApplicationError('cannot encode')
         const adapter: TypeAdapter = {
-            transformValueFromDB: (value, type, next) => next.transformValueFromDB(value, type),
+            transformValueFromDB: (value, type, typeCategory, next) => next.transformValueFromDB(value, type, typeCategory),
             transformValueToDB: () => { throw applicationError },
         }
         const caught = await rejectionOf(() => ctx.conn.selectFrom(tProject)
@@ -130,8 +130,8 @@ describe(ctx.label, () => {
     test('a-transform-placeholder-of-the-application-arrives-as-it-is', async () => {
         const applicationError = new ApplicationError('cannot write the placeholder')
         const adapter: TypeAdapter = {
-            transformValueFromDB: (value, type, next) => next.transformValueFromDB(value, type),
-            transformValueToDB: (value, type, next) => next.transformValueToDB(value, type),
+            transformValueFromDB: (value, type, typeCategory, next) => next.transformValueFromDB(value, type, typeCategory),
+            transformValueToDB: (value, type, typeCategory, next) => next.transformValueToDB(value, type, typeCategory),
             transformPlaceholder: () => { throw applicationError },
         }
         const caught = await rejectionOf(() => ctx.conn.selectFrom(tProject)

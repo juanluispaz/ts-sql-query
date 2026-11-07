@@ -6,6 +6,7 @@
  */
 
 import type { QueryExecutionSource } from '../TsSqlError.js'
+import type { TypeCategory } from '../TypeAdapter.js'
 
 function defineHiddenParamsProperty(params: any[], name: string, value: unknown): void {
     Object.defineProperty(params, name, {
@@ -103,4 +104,31 @@ export function setSelectPageCountQuery(params: any[]): void {
 
 export function isSelectPageCountQueryParams(params: any[]): boolean {
     return !!getHiddenParamsProperty(params, '$isSelectPageCountQuery')
+}
+
+/**
+ * The type name and the type category of the parameter at that index of the params, kept by the query runner when it
+ * adds the parameter, in two arrays aligned with the params. A parameter added without them leaves a hole.
+ */
+export function setParamTypeAt(params: any[], index: number, type: string, typeCategory: TypeCategory): void {
+    let types = getHiddenParamsProperty<string[]>(params, '$paramTypes')
+    if (!types) {
+        types = []
+        defineHiddenParamsProperty(params, '$paramTypes', types)
+    }
+    let typeCategories = getHiddenParamsProperty<TypeCategory[]>(params, '$paramTypeCategories')
+    if (!typeCategories) {
+        typeCategories = []
+        defineHiddenParamsProperty(params, '$paramTypeCategories', typeCategories)
+    }
+    types[index] = type
+    typeCategories[index] = typeCategory
+}
+
+export function getParamTypeAt(params: any[], index: number): string | undefined {
+    return getHiddenParamsProperty<string[]>(params, '$paramTypes')?.[index]
+}
+
+export function getParamTypeCategoryAt(params: any[], index: number): TypeCategory | undefined {
+    return getHiddenParamsProperty<TypeCategory[]>(params, '$paramTypeCategories')?.[index]
 }

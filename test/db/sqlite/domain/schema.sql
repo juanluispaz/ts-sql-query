@@ -1,6 +1,10 @@
 -- Schema for the shared "project management" domain, sqlite dialect.
 -- Idempotent: tests run setup against a fresh database each variant, but
 -- having DROP IF EXISTS lets you re-apply by hand for debugging.
+--
+-- A date time is text with milliseconds, as the default strategy 'localdate milliseconds as text' writes it. The
+-- defaults write the UTC clock, without 'localtime': the suite runs the application in UTC (test/lib/setupTimezone.ts),
+-- and under Bun that doesn't reach SQLite, which would keep the zone of the machine.
 
 DROP VIEW IF EXISTS release_overview;
 DROP VIEW IF EXISTS project_overview;
@@ -28,7 +32,7 @@ CREATE TABLE organization (
     -- `verified` flag stored as Y/N so the connection.ts mapping can
     -- exercise CustomBooleanTypeAdapter on a real seed column.
     verified VARCHAR(1) NOT NULL DEFAULT 'N',
-    created_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime'))
+    created_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now'))
 );
 
 CREATE TABLE app_user (
@@ -38,7 +42,7 @@ CREATE TABLE app_user (
     -- `verified` stored as Y/N — same CustomBooleanTypeAdapter mapping
     -- as organization.verified so cross-table comparisons need no remap.
     verified VARCHAR(1) NOT NULL DEFAULT 'N',
-    created_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime'))
+    created_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now'))
 );
 
 CREATE TABLE project (
@@ -51,7 +55,7 @@ CREATE TABLE project (
     -- so column-vs-column comparisons hit the remap-with-case branch.
     published VARCHAR(1) NOT NULL DEFAULT 'f',
     archived_at DATETIME,
-    created_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime')),
+    created_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now')),
     UNIQUE (organization_id, slug)
 );
 
@@ -65,8 +69,8 @@ CREATE TABLE issue (
     priority INTEGER NOT NULL,
     assignee_id INTEGER REFERENCES app_user(id),
     parent_id INTEGER REFERENCES issue(id),
-    created_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime')),
-    updated_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime')),
+    created_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now')),
+    updated_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now')),
     -- New-type columns exercising AbstractConnection value marshalling:
     -- bigint (view_count), double (estimated_hours), uuid (external_ref).
     view_count INTEGER NOT NULL DEFAULT 0,
@@ -159,7 +163,7 @@ CREATE TABLE project_release (
     cutoff_time TIME NOT NULL,
     signed_off_at DATETIME,
     -- REQUIRED customLocalDateTime twin of signed_off_at.
-    published_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime')),
+    published_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now')),
     is_signed INTEGER,
     download_count INTEGER,
     avg_rating REAL,

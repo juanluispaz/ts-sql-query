@@ -21,7 +21,7 @@ INSERT INTO project (id, organization_id, name, slug, published) VALUES
     (2, 1, 'Internal tools',  'tools',      'f'),
     (3, 2, 'Public API',      'public-api', 't');
 INSERT INTO project (id, organization_id, name, slug, published, archived_at) VALUES
-    (4, 2, 'Legacy app', 'legacy', 'f', strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime'));
+    (4, 2, 'Legacy app', 'legacy', 'f', strftime('%Y-%m-%d %H:%M:%f', 'now'));
 
 -- Issues 1 and 2 carry a uuid `external_ref` (TEXT here); 3 and 4 leave it
 -- NULL. The two uuids differ in every substring the insensitive-`like` tests

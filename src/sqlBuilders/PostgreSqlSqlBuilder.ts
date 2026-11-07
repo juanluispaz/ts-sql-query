@@ -240,7 +240,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
                 if (valueSql) {
                     valueSql += ', '
                 }
-                valueSql += this._appendSetValue(columnName, i, column, value[columnName], params, true, withValues.__name)
+                valueSql += this._appendSetValue(columnName, i, column, value[columnName], params, true)
             }
             valuesSql += '(' + valueSql + ')'
         }

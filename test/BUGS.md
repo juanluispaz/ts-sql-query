@@ -96,6 +96,33 @@ shown in logs, `MockQueryRunner` and the `params` snapshots changes (a text inst
 "The parameters are" lines of the docs and the expectations of `src/examples/documentation`.
 **Current workaround in the suite**: the test asserts `[]` on the real engines of those cells, with
 `TODO[BUG]`; in mock it asserts `[1]`.
+**To decide per driver, not per database**: the drivers of one database differ (`pg` finds the row
+today, `postgres` doesn't), so a fix chosen per database must not make a driver that works worse; the
+form sent has to be checked for each driver of the database, in more than one zone.
+
+## A `localDate` read through a driver that delivers midnight UTC is the previous day west of UTC
+
+**Status**: confirmed on PGlite; inferred for `postgres` and `mssql`/tedious from their code (they build
+the `Date` of a `DATE` at midnight UTC).
+**Where**: the `localDate` decode in `AbstractConnection.transformValueFromDB` takes the local date of
+the `Date` the driver gives (`getFullYear`/`getMonth`/`getDate`).
+**Reproduction**: PGlite, a table with `d date` = `2024-03-04`, the process launched with
+`TZ=America/New_York`: the driver gives `2024-03-04T00:00:00.000Z`, the library reads
+`2024-03-03T10:00:00.000Z` (`getDate()` 3), and inserting that value back stores `2024-03-03`. With
+`TZ=UTC` and `TZ=Europe/Madrid` it reads and stores `2024-03-04`.
+**Probe that settles the inferred ones**: the same read and write back through `PostgresQueryRunner`
+and `MssqlPoolQueryRunner` on their engines, in a process spawned with `TZ=America/New_York`.
+**Current workaround in the suite**: none; the suite runs in UTC, where the two readings agree.
+
+## `localTime` on SQL Server travels in UTC (tedious `useUTC`), so it reads off outside UTC
+
+**Status**: inferred from the code of tedious (`useUTC` is `true` by default for `time` values);
+not run.
+**Where**: `localTime` with `MssqlPoolQueryRunner` (tedious); `getHours()` of the value read.
+**Reproduction / probe**: in `sqlserver/newest/mssql`, read a `time` column with `09:15:00` (worklog 1,
+`started_at`) and send one back, in a process spawned with `TZ=Europe/Madrid`: if the value read gives
+`getHours()` 10 instead of 9, or the stored time is moved, it's confirmed.
+**Current workaround in the suite**: none; the suite runs in UTC.
 
 ## `TableOrViewOf<typeof t>` without an alias: the value built with `fromRef` can't be selected
 

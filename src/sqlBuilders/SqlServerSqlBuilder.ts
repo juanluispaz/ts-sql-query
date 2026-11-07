@@ -245,7 +245,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                 if (valueSql) {
                     valueSql += ', '
                 }
-                valueSql += this._appendSetValue(columnName, i, column, value[columnName], params, false, withValues.__name)
+                valueSql += this._appendSetValue(columnName, i, column, value[columnName], params)
             }
             valuesSql += '(' + valueSql + ')'
         }

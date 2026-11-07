@@ -1,7 +1,7 @@
-// An invalid value says where it is: in a set, `columnPath` has the property, with the
-// name used in a shape, and `rowIndex` has the row when several are inserted; in a row
-// of a `Values`, `valuesName` has its name too; `paramIndex` is the position, from 0,
-// the value would have in the parameters of the query.
+// An invalid value says where it is: in a set, `tableName` has the table, `columnPath` the
+// property, with the name used in a shape, and `rowIndex` the row when several are
+// inserted; in a row of a `Values`, `tableName` has its name; `paramIndex` is the
+// position, from 0, the value would have in the parameters of the query.
 // Nothing reaches the database: the value is refused while the query is built.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
@@ -22,7 +22,7 @@ function rejectionOf(run: () => Promise<unknown>) {
 
 function positionOf(e: unknown) {
     if (e instanceof TsSqlQueryExecutionError && e.errorReason.reason === 'INVALID_VALUE_TO_SEND_TO_DATABASE') {
-        return { columnPath: e.errorReason.columnPath, rowIndex: e.errorReason.rowIndex, valuesName: e.errorReason.valuesName, paramIndex: e.errorReason.paramIndex }
+        return { columnPath: e.errorReason.columnPath, rowIndex: e.errorReason.rowIndex, tableName: e.errorReason.tableName, paramIndex: e.errorReason.paramIndex }
     }
     return undefined
 }
@@ -48,7 +48,7 @@ describe(ctx.label, () => {
             "columnPath": "title",
             "paramIndex": 2,
             "rowIndex": undefined,
-            "valuesName": undefined,
+            "tableName": "issue",
           }
         `)
     })
@@ -62,7 +62,7 @@ describe(ctx.label, () => {
             "columnPath": "title",
             "paramIndex": 2,
             "rowIndex": undefined,
-            "valuesName": undefined,
+            "tableName": "issue",
           }
         `)
     })
@@ -78,7 +78,7 @@ describe(ctx.label, () => {
             "columnPath": "projectName",
             "paramIndex": 1,
             "rowIndex": undefined,
-            "valuesName": undefined,
+            "tableName": "project",
           }
         `)
     })
@@ -92,7 +92,7 @@ describe(ctx.label, () => {
             "columnPath": "title",
             "paramIndex": 7,
             "rowIndex": 1,
-            "valuesName": undefined,
+            "tableName": "issue",
           }
         `)
     })
@@ -111,7 +111,7 @@ describe(ctx.label, () => {
             "columnPath": "projectName",
             "paramIndex": 4,
             "rowIndex": 1,
-            "valuesName": undefined,
+            "tableName": "project",
           }
         `)
     })
@@ -126,7 +126,7 @@ describe(ctx.label, () => {
             "columnPath": "title",
             "paramIndex": 0,
             "rowIndex": undefined,
-            "valuesName": undefined,
+            "tableName": "issue",
           }
         `)
     })
@@ -142,7 +142,7 @@ describe(ctx.label, () => {
             "columnPath": "name",
             "paramIndex": 0,
             "rowIndex": undefined,
-            "valuesName": undefined,
+            "tableName": "issue",
           }
         `)
     })
@@ -158,7 +158,7 @@ describe(ctx.label, () => {
             "columnPath": "title",
             "paramIndex": 5,
             "rowIndex": undefined,
-            "valuesName": undefined,
+            "tableName": "issue",
           }
         `)
     })
@@ -174,7 +174,7 @@ describe(ctx.label, () => {
             "columnPath": undefined,
             "paramIndex": 1,
             "rowIndex": undefined,
-            "valuesName": undefined,
+            "tableName": undefined,
           }
         `)
     })
@@ -192,7 +192,7 @@ describe(ctx.label, () => {
             "columnPath": "title",
             "paramIndex": 3,
             "rowIndex": 1,
-            "valuesName": "issueTitle",
+            "tableName": "issueTitle",
           }
         `)
     })

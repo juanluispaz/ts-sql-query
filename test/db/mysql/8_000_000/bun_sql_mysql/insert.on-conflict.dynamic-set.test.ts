@@ -992,31 +992,6 @@ describe(ctx.label, () => {
 
     // NOT-APPLICABLE: MySQL has no RETURNING
     /*
-    test('empty-on-conflict-update-set-degrades-preserving-returning-one-column-one-throws-no-result', async () => {
-        // The `executeInsertOne()` shape: the degrade suppresses the colliding row, so the
-        // scalar-returning statement produces zero rows and the exactly-one contract throws
-        // NO_RESULT.
-        ctx.mockNext(undefined)
-        await ctx.withRollback(async () => {
-            let caught: unknown
-            try {
-                await ctx.conn.insertInto(tProject)
-                    .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
-                    .onConflictOn(tProject.organizationId, tProject.slug)
-                    .doUpdateDynamicSet({ archivedAt: null })
-                    .ignoreAnySetWithNoValue()
-                    .returningOneColumn(tProject.id)
-                    .executeInsertOne()
-            } catch (e) { caught = e }
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
-            expect(caught instanceof TsSqlError ? caught.errorReason.reason : caught).toBe('NO_RESULT')
-        })
-    })
-    */
-
-    // NOT-APPLICABLE: MySQL has no RETURNING
-    /*
     test('empty-on-conflict-update-set-degrades-preserving-returning-under-shaped', async () => {
         // A SHAPED insert (`shapedAs({...}).set({...})` on renamed keys) with an empty-degrade
         // and a trailing RETURNING: `doUpdateSetIfValue({arch:undefined})` (arch → archived_at)

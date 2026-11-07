@@ -60,18 +60,18 @@ export interface CustomizableExecutableInsertFromSelect</*in|out*/ TABLE extends
     returning: ReturningFromSelectFnType<TABLE, USING>
     returningOneColumn: ReturningOneColumnFromSelectFnType<TABLE, USING>
     onConflictDoNothing: OnConflictDoNothingFnType<TABLE, USING, CustomizableExecutableInsertFromSelectOnConflictOptional<TABLE, USING>>
-    onConflictDoUpdateDynamicSet: OnConflictDoUpdateDynamicSetWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableInsertFromSelectOnConflict<TABLE, USING>, CustomizableExecutableInsertFromSelectOnConflictOptional<TABLE, USING>>
+    onConflictDoUpdateDynamicSet: OnConflictDoUpdateDynamicSetWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableInsertFromSelectOnConflictOptional<TABLE, USING>, CustomizableExecutableInsertFromSelectOnConflictOptional<TABLE, USING>>
     onConflictDoUpdateSet: OnConflictDoUpdateSetWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableInsertFromSelectOnConflict<TABLE, USING>, CustomizableExecutableInsertFromSelectOnConflictOptional<TABLE, USING>>
-    onConflictDoUpdateSetIfValue: OnConflictDoUpdateSetIfValueWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableInsertFromSelectOnConflict<TABLE, USING>, CustomizableExecutableInsertFromSelectOnConflictOptional<TABLE, USING>>
+    onConflictDoUpdateSetIfValue: OnConflictDoUpdateSetIfValueWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableInsertFromSelectOnConflictOptional<TABLE, USING>, CustomizableExecutableInsertFromSelectOnConflictOptional<TABLE, USING>>
     onConflictOn: OnConflictOnColumnFnType<TABLE, USING, OnConflictDoInsertFromSelect<TABLE, USING, SHAPE>>
     onConflictOnConstraint: OnConflictOnConstraintFnType<TABLE, USING, OnConflictDoInsertFromSelect<TABLE, USING, SHAPE>>
 }
 
 export interface OnConflictDoInsertFromSelect</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>, /*in|out*/ SHAPE> {
     doNothing: OnConflictDoNothingFnType<TABLE, USING, CustomizableExecutableInsertFromSelectOnConflictOptional<TABLE, USING>>
-    doUpdateDynamicSet: OnConflictDoUpdateDynamicSetFnType<TABLE, USING, SHAPE, CustomizableExecutableInsertFromSelectOnConflict<TABLE, USING>, CustomizableExecutableInsertFromSelectOnConflictOptional<TABLE, USING>>
+    doUpdateDynamicSet: OnConflictDoUpdateDynamicSetFnType<TABLE, USING, SHAPE, CustomizableExecutableInsertFromSelectOnConflictOptional<TABLE, USING>, CustomizableExecutableInsertFromSelectOnConflictOptional<TABLE, USING>>
     doUpdateSet: OnConflictDoUpdateSetFnType<TABLE, USING, SHAPE, CustomizableExecutableInsertFromSelectOnConflict<TABLE, USING>, CustomizableExecutableInsertFromSelectOnConflictOptional<TABLE, USING>>
-    doUpdateSetIfValue: OnConflictDoUpdateSetIfValueFnType<TABLE, USING, SHAPE, CustomizableExecutableInsertFromSelectOnConflict<TABLE, USING>, CustomizableExecutableInsertFromSelectOnConflictOptional<TABLE, USING>>
+    doUpdateSetIfValue: OnConflictDoUpdateSetIfValueFnType<TABLE, USING, SHAPE, CustomizableExecutableInsertFromSelectOnConflictOptional<TABLE, USING>, CustomizableExecutableInsertFromSelectOnConflictOptional<TABLE, USING>>
 }
 
 export interface CustomizableExecutableSimpleInsertOnConflict</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends CustomizableExecutableInsert<TABLE, USING> {
@@ -94,34 +94,23 @@ export interface CustomizableExecutableSimpleInsertOnConflictOptional</*in|out*/
     returningOneColumn: ReturningOneColumnOptionalFnType<TABLE, USING>
 }
 
-// The update of a conflict that can be left with no column to update (`doUpdateSetIfValue`, `doUpdateDynamicSet`, or after
-// a method that drops values) is sent as a do nothing, so the id of a conflicting row can be missing, as after doNothing
-export interface CustomizableExecutableSimpleInsertOnConflictMayDoNothing</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends CustomizableExecutableInsert<TABLE, USING> {
-    returningLastInsertedId: OnConflictReturningLastInsertedIdOptionalType<TABLE, USING>
-    returning: ReturningFnType<TABLE, USING>
-    returningOneColumn: ReturningOneColumnFnType<TABLE, USING>
-}
-
-type OnConflictMayDoNothing<TABLE extends HasSource<any>, USING extends HasSource<any>, NEXT> =
-    NEXT extends CustomizableExecutableSimpleInsertOnConflict<TABLE, USING> ? CustomizableExecutableSimpleInsertOnConflictMayDoNothing<TABLE, USING> : NEXT
-
 export interface CustomizableExecutableSimpleInsert</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>, /*in|out*/ SHAPE> extends CustomizableExecutableInsert<TABLE, USING> {
     returningLastInsertedId: ReturningLastInsertedIdType<TABLE, USING>
     returning: ReturningFnType<TABLE, USING>
     returningOneColumn: ReturningOneColumnFnType<TABLE, USING>
     onConflictDoNothing: OnConflictDoNothingFnType<TABLE, USING, CustomizableExecutableSimpleInsertOnConflictOptional<TABLE, USING>>
-    onConflictDoUpdateDynamicSet: OnConflictDoUpdateDynamicSetWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableSimpleInsertOnConflictMayDoNothing<TABLE, USING>, CustomizableExecutableSimpleInsertOnConflictOptional<TABLE, USING>>
+    onConflictDoUpdateDynamicSet: OnConflictDoUpdateDynamicSetWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableSimpleInsertOnConflictOptional<TABLE, USING>, CustomizableExecutableSimpleInsertOnConflictOptional<TABLE, USING>>
     onConflictDoUpdateSet: OnConflictDoUpdateSetWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableSimpleInsertOnConflict<TABLE, USING>, CustomizableExecutableSimpleInsertOnConflictOptional<TABLE, USING>>
-    onConflictDoUpdateSetIfValue: OnConflictDoUpdateSetIfValueWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableSimpleInsertOnConflictMayDoNothing<TABLE, USING>, CustomizableExecutableSimpleInsertOnConflictOptional<TABLE, USING>>
+    onConflictDoUpdateSetIfValue: OnConflictDoUpdateSetIfValueWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableSimpleInsertOnConflictOptional<TABLE, USING>, CustomizableExecutableSimpleInsertOnConflictOptional<TABLE, USING>>
     onConflictOn: OnConflictOnColumnFnType<TABLE, USING, OnConflictDoSimpleInsert<TABLE, USING, SHAPE>>
     onConflictOnConstraint: OnConflictOnConstraintFnType<TABLE, USING, OnConflictDoSimpleInsert<TABLE, USING, SHAPE>>
 }
 
 export interface OnConflictDoSimpleInsert</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>, /*in|out*/ SHAPE> {
     doNothing: OnConflictDoNothingFnType<TABLE, USING, CustomizableExecutableSimpleInsertOnConflictOptional<TABLE, USING>>
-    doUpdateDynamicSet: OnConflictDoUpdateDynamicSetFnType<TABLE, USING, SHAPE, CustomizableExecutableSimpleInsertOnConflictMayDoNothing<TABLE, USING>, CustomizableExecutableSimpleInsertOnConflictOptional<TABLE, USING>>
+    doUpdateDynamicSet: OnConflictDoUpdateDynamicSetFnType<TABLE, USING, SHAPE, CustomizableExecutableSimpleInsertOnConflictOptional<TABLE, USING>, CustomizableExecutableSimpleInsertOnConflictOptional<TABLE, USING>>
     doUpdateSet: OnConflictDoUpdateSetFnType<TABLE, USING, SHAPE, CustomizableExecutableSimpleInsertOnConflict<TABLE, USING>, CustomizableExecutableSimpleInsertOnConflictOptional<TABLE, USING>>
-    doUpdateSetIfValue: OnConflictDoUpdateSetIfValueFnType<TABLE, USING, SHAPE, CustomizableExecutableSimpleInsertOnConflictMayDoNothing<TABLE, USING>, CustomizableExecutableSimpleInsertOnConflictOptional<TABLE, USING>>
+    doUpdateSetIfValue: OnConflictDoUpdateSetIfValueFnType<TABLE, USING, SHAPE, CustomizableExecutableSimpleInsertOnConflictOptional<TABLE, USING>, CustomizableExecutableSimpleInsertOnConflictOptional<TABLE, USING>>
 }
 
 export interface CustomizableExecutableMultipleInsertOnConflict</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends CustomizableExecutableInsert<TABLE, USING> {
@@ -141,18 +130,18 @@ export interface CustomizableExecutableMultipleInsert</*in|out*/ TABLE extends H
     returning: ReturningFnType<TABLE, USING>
     returningOneColumn: ReturningOneColumnFnType<TABLE, USING>
     onConflictDoNothing: OnConflictDoNothingFnType<TABLE, USING, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>>
-    onConflictDoUpdateDynamicSet: OnConflictDoUpdateDynamicSetWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableMultipleInsertOnConflict<TABLE, USING>, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>>
+    onConflictDoUpdateDynamicSet: OnConflictDoUpdateDynamicSetWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>>
     onConflictDoUpdateSet: OnConflictDoUpdateSetWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableMultipleInsertOnConflict<TABLE, USING>, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>>
-    onConflictDoUpdateSetIfValue: OnConflictDoUpdateSetIfValueWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableMultipleInsertOnConflict<TABLE, USING>, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>>
+    onConflictDoUpdateSetIfValue: OnConflictDoUpdateSetIfValueWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>>
     onConflictOn: OnConflictOnColumnFnType<TABLE, USING, OnConflictDoMultipleInsert<TABLE, USING, SHAPE>>
     onConflictOnConstraint: OnConflictOnConstraintFnType<TABLE, USING, OnConflictDoMultipleInsert<TABLE, USING, SHAPE>>
 }
 
 export interface OnConflictDoMultipleInsert</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>, /*in|out*/ SHAPE> {
     doNothing: OnConflictDoNothingFnType<TABLE, USING, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>>
-    doUpdateDynamicSet: OnConflictDoUpdateDynamicSetFnType<TABLE, USING, SHAPE, CustomizableExecutableMultipleInsertOnConflict<TABLE, USING>, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>>
+    doUpdateDynamicSet: OnConflictDoUpdateDynamicSetFnType<TABLE, USING, SHAPE, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>>
     doUpdateSet: OnConflictDoUpdateSetFnType<TABLE, USING, SHAPE, CustomizableExecutableMultipleInsertOnConflict<TABLE, USING>, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>>
-    doUpdateSetIfValue: OnConflictDoUpdateSetIfValueFnType<TABLE, USING, SHAPE, CustomizableExecutableMultipleInsertOnConflict<TABLE, USING>, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>>
+    doUpdateSetIfValue: OnConflictDoUpdateSetIfValueFnType<TABLE, USING, SHAPE, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>>
 }
 
 export interface ExecutableInsertExpression</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends CustomizableExecutableSimpleInsert<TABLE, USING, undefined> {
@@ -786,16 +775,16 @@ export interface InsertOnConflictSetsExpression</*in|out*/ TABLE extends HasSour
     setIfSetIfValue(columns: OnConflictOptionalUpdateSets<TABLE, USING, undefined>): InsertOnConflictSetsExpression<TABLE, USING, NEXT, NEXT_WHERE> & NEXT
     setIfNotSet(columns: OnConflictUpdateSets<TABLE, USING, undefined>): InsertOnConflictSetsExpression<TABLE, USING, NEXT, NEXT_WHERE> & NEXT
     setIfNotSetIfValue(columns: OnConflictOptionalUpdateSets<TABLE, USING, undefined>): InsertOnConflictSetsExpression<TABLE, USING, NEXT, NEXT_WHERE> & NEXT
-    ignoreIfSet(...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, USING, OnConflictMayDoNothing<TABLE, USING, NEXT>, NEXT_WHERE> & OnConflictMayDoNothing<TABLE, USING, NEXT>
-    keepOnly(...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, USING, OnConflictMayDoNothing<TABLE, USING, NEXT>, NEXT_WHERE> & OnConflictMayDoNothing<TABLE, USING, NEXT>
+    ignoreIfSet(...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, USING, NEXT_WHERE, NEXT_WHERE> & NEXT_WHERE
+    keepOnly(...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, USING, NEXT_WHERE, NEXT_WHERE> & NEXT_WHERE
 
     setIfHasValue(columns: OnConflictUpdateSets<TABLE, USING, undefined>): InsertOnConflictSetsExpression<TABLE, USING, NEXT, NEXT_WHERE> & NEXT
     setIfHasValueIfValue(columns: OnConflictOptionalUpdateSets<TABLE, USING, undefined>): InsertOnConflictSetsExpression<TABLE, USING, NEXT, NEXT_WHERE> & NEXT
     setIfHasNoValue(columns: OnConflictUpdateSets<TABLE, USING, undefined>): InsertOnConflictSetsExpression<TABLE, USING, NEXT, NEXT_WHERE> & NEXT
     setIfHasNoValueIfValue(columns: OnConflictOptionalUpdateSets<TABLE, USING, undefined>): InsertOnConflictSetsExpression<TABLE, USING, NEXT, NEXT_WHERE> & NEXT
-    ignoreIfHasValue(...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, USING, OnConflictMayDoNothing<TABLE, USING, NEXT>, NEXT_WHERE> & OnConflictMayDoNothing<TABLE, USING, NEXT>
-    ignoreIfHasNoValue(...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, USING, OnConflictMayDoNothing<TABLE, USING, NEXT>, NEXT_WHERE> & OnConflictMayDoNothing<TABLE, USING, NEXT>
-    ignoreAnySetWithNoValue(): InsertOnConflictSetsExpression<TABLE, USING, OnConflictMayDoNothing<TABLE, USING, NEXT>, NEXT_WHERE> & OnConflictMayDoNothing<TABLE, USING, NEXT>
+    ignoreIfHasValue(...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, USING, NEXT_WHERE, NEXT_WHERE> & NEXT_WHERE
+    ignoreIfHasNoValue(...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, USING, NEXT_WHERE, NEXT_WHERE> & NEXT_WHERE
+    ignoreAnySetWithNoValue(): InsertOnConflictSetsExpression<TABLE, USING, NEXT_WHERE, NEXT_WHERE> & NEXT_WHERE
 
     disallowIfSet(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, USING, NEXT, NEXT_WHERE> & NEXT
     disallowIfSet(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, USING, NEXT, NEXT_WHERE> & NEXT
@@ -814,16 +803,16 @@ export interface InsertOnConflictSetsExpression</*in|out*/ TABLE extends HasSour
     setIfSetIfValueWhen(when: boolean, columns: OnConflictOptionalUpdateSets<TABLE, USING, undefined>): InsertOnConflictSetsExpression<TABLE, USING, NEXT, NEXT_WHERE> & NEXT
     setIfNotSetWhen(when: boolean, columns: OnConflictUpdateSets<TABLE, USING, undefined>): InsertOnConflictSetsExpression<TABLE, USING, NEXT, NEXT_WHERE> & NEXT
     setIfNotSetIfValueWhen(when: boolean, columns: OnConflictOptionalUpdateSets<TABLE, USING, undefined>): InsertOnConflictSetsExpression<TABLE, USING, NEXT, NEXT_WHERE> & NEXT
-    ignoreIfSetWhen(when: boolean, ...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, USING, OnConflictMayDoNothing<TABLE, USING, NEXT>, NEXT_WHERE> & OnConflictMayDoNothing<TABLE, USING, NEXT>
-    keepOnlyWhen(when: boolean, ...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, USING, OnConflictMayDoNothing<TABLE, USING, NEXT>, NEXT_WHERE> & OnConflictMayDoNothing<TABLE, USING, NEXT>
+    ignoreIfSetWhen(when: boolean, ...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, USING, NEXT_WHERE, NEXT_WHERE> & NEXT_WHERE
+    keepOnlyWhen(when: boolean, ...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, USING, NEXT_WHERE, NEXT_WHERE> & NEXT_WHERE
 
     setIfHasValueWhen(when: boolean, columns: OnConflictUpdateSets<TABLE, USING, undefined>): InsertOnConflictSetsExpression<TABLE, USING, NEXT, NEXT_WHERE> & NEXT
     setIfHasValueIfValueWhen(when: boolean, columns: OnConflictOptionalUpdateSets<TABLE, USING, undefined>): InsertOnConflictSetsExpression<TABLE, USING, NEXT, NEXT_WHERE> & NEXT
     setIfHasNoValueWhen(when: boolean, columns: OnConflictUpdateSets<TABLE, USING, undefined>): InsertOnConflictSetsExpression<TABLE, USING, NEXT, NEXT_WHERE> & NEXT
     setIfHasNoValueIfValueWhen(when: boolean, columns: OnConflictOptionalUpdateSets<TABLE, USING, undefined>): InsertOnConflictSetsExpression<TABLE, USING, NEXT, NEXT_WHERE> & NEXT
-    ignoreIfHasValueWhen(when: boolean, ...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, USING, OnConflictMayDoNothing<TABLE, USING, NEXT>, NEXT_WHERE> & OnConflictMayDoNothing<TABLE, USING, NEXT>
-    ignoreIfHasNoValueWhen(when: boolean, ...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, USING, OnConflictMayDoNothing<TABLE, USING, NEXT>, NEXT_WHERE> & OnConflictMayDoNothing<TABLE, USING, NEXT>
-    ignoreAnySetWithNoValueWhen(when: boolean): InsertOnConflictSetsExpression<TABLE, USING, OnConflictMayDoNothing<TABLE, USING, NEXT>, NEXT_WHERE> & OnConflictMayDoNothing<TABLE, USING, NEXT>
+    ignoreIfHasValueWhen(when: boolean, ...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, USING, NEXT_WHERE, NEXT_WHERE> & NEXT_WHERE
+    ignoreIfHasNoValueWhen(when: boolean, ...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, USING, NEXT_WHERE, NEXT_WHERE> & NEXT_WHERE
+    ignoreAnySetWithNoValueWhen(when: boolean): InsertOnConflictSetsExpression<TABLE, USING, NEXT_WHERE, NEXT_WHERE> & NEXT_WHERE
 
     disallowIfSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, USING, NEXT, NEXT_WHERE> & NEXT
     disallowIfSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, USING, NEXT, NEXT_WHERE> & NEXT
@@ -848,16 +837,16 @@ export interface ShapedInsertOnConflictSetsExpression</*in|out*/ TABLE extends H
     setIfSetIfValue(columns: OnConflictOptionalUpdateSets<TABLE, USING, SHAPE>): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT, NEXT_WHERE> & NEXT
     setIfNotSet(columns: OnConflictUpdateSets<TABLE, USING, SHAPE>): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT, NEXT_WHERE> & NEXT
     setIfNotSetIfValue(columns: OnConflictOptionalUpdateSets<TABLE, USING, SHAPE>): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT, NEXT_WHERE> & NEXT
-    ignoreIfSet(...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, OnConflictMayDoNothing<TABLE, USING, NEXT>, NEXT_WHERE> & OnConflictMayDoNothing<TABLE, USING, NEXT>
-    keepOnly(...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, OnConflictMayDoNothing<TABLE, USING, NEXT>, NEXT_WHERE> & OnConflictMayDoNothing<TABLE, USING, NEXT>
+    ignoreIfSet(...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT_WHERE, NEXT_WHERE> & NEXT_WHERE
+    keepOnly(...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT_WHERE, NEXT_WHERE> & NEXT_WHERE
 
     setIfHasValue(columns: OnConflictUpdateSets<TABLE, USING, SHAPE>): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT, NEXT_WHERE> & NEXT
     setIfHasValueIfValue(columns: OnConflictOptionalUpdateSets<TABLE, USING, SHAPE>): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT, NEXT_WHERE> & NEXT
     setIfHasNoValue(columns: OnConflictUpdateSets<TABLE, USING, SHAPE>): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT, NEXT_WHERE> & NEXT
     setIfHasNoValueIfValue(columns: OnConflictOptionalUpdateSets<TABLE, USING, SHAPE>): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT, NEXT_WHERE> & NEXT
-    ignoreIfHasValue(...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, OnConflictMayDoNothing<TABLE, USING, NEXT>, NEXT_WHERE> & OnConflictMayDoNothing<TABLE, USING, NEXT>
-    ignoreIfHasNoValue(...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, OnConflictMayDoNothing<TABLE, USING, NEXT>, NEXT_WHERE> & OnConflictMayDoNothing<TABLE, USING, NEXT>
-    ignoreAnySetWithNoValue(): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, OnConflictMayDoNothing<TABLE, USING, NEXT>, NEXT_WHERE> & OnConflictMayDoNothing<TABLE, USING, NEXT>
+    ignoreIfHasValue(...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT_WHERE, NEXT_WHERE> & NEXT_WHERE
+    ignoreIfHasNoValue(...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT_WHERE, NEXT_WHERE> & NEXT_WHERE
+    ignoreAnySetWithNoValue(): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT_WHERE, NEXT_WHERE> & NEXT_WHERE
 
     disallowIfSet(errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT, NEXT_WHERE> & NEXT
     disallowIfSet(error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT, NEXT_WHERE> & NEXT
@@ -876,16 +865,16 @@ export interface ShapedInsertOnConflictSetsExpression</*in|out*/ TABLE extends H
     setIfSetIfValueWhen(when: boolean, columns: OnConflictOptionalUpdateSets<TABLE, USING, SHAPE>): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT, NEXT_WHERE> & NEXT
     setIfNotSetWhen(when: boolean, columns: OnConflictUpdateSets<TABLE, USING, SHAPE>): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT, NEXT_WHERE> & NEXT
     setIfNotSetIfValueWhen(when: boolean, columns: OnConflictOptionalUpdateSets<TABLE, USING, SHAPE>): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT, NEXT_WHERE> & NEXT
-    ignoreIfSetWhen(when: boolean, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, OnConflictMayDoNothing<TABLE, USING, NEXT>, NEXT_WHERE> & OnConflictMayDoNothing<TABLE, USING, NEXT>
-    keepOnlyWhen(when: boolean, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, OnConflictMayDoNothing<TABLE, USING, NEXT>, NEXT_WHERE> & OnConflictMayDoNothing<TABLE, USING, NEXT>
+    ignoreIfSetWhen(when: boolean, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT_WHERE, NEXT_WHERE> & NEXT_WHERE
+    keepOnlyWhen(when: boolean, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT_WHERE, NEXT_WHERE> & NEXT_WHERE
 
     setIfHasValueWhen(when: boolean, columns: OnConflictUpdateSets<TABLE, USING, SHAPE>): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT, NEXT_WHERE> & NEXT
     setIfHasValueIfValueWhen(when: boolean, columns: OnConflictOptionalUpdateSets<TABLE, USING, SHAPE>): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT, NEXT_WHERE> & NEXT
     setIfHasNoValueWhen(when: boolean, columns: OnConflictUpdateSets<TABLE, USING, SHAPE>): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT, NEXT_WHERE> & NEXT
     setIfHasNoValueIfValueWhen(when: boolean, columns: OnConflictOptionalUpdateSets<TABLE, USING, SHAPE>): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT, NEXT_WHERE> & NEXT
-    ignoreIfHasValueWhen(when: boolean, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, OnConflictMayDoNothing<TABLE, USING, NEXT>, NEXT_WHERE> & OnConflictMayDoNothing<TABLE, USING, NEXT>
-    ignoreIfHasNoValueWhen(when: boolean, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, OnConflictMayDoNothing<TABLE, USING, NEXT>, NEXT_WHERE> & OnConflictMayDoNothing<TABLE, USING, NEXT>
-    ignoreAnySetWithNoValueWhen(when: boolean): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, OnConflictMayDoNothing<TABLE, USING, NEXT>, NEXT_WHERE> & OnConflictMayDoNothing<TABLE, USING, NEXT>
+    ignoreIfHasValueWhen(when: boolean, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT_WHERE, NEXT_WHERE> & NEXT_WHERE
+    ignoreIfHasNoValueWhen(when: boolean, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT_WHERE, NEXT_WHERE> & NEXT_WHERE
+    ignoreAnySetWithNoValueWhen(when: boolean): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT_WHERE, NEXT_WHERE> & NEXT_WHERE
 
     disallowIfSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT, NEXT_WHERE> & NEXT
     disallowIfSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, USING, SHAPE, NEXT, NEXT_WHERE> & NEXT

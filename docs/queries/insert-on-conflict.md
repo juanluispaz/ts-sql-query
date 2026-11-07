@@ -1000,7 +1000,7 @@ When no column is left to update (every value given to `onConflictDoUpdateSetIfV
 What you get back for a conflicting row is what a do nothing gives:
 
 - `returningLastInsertedId()` is typed `number | null` after `onConflictDoUpdateSetIfValue(...)`, `doUpdateSetIfValue(...)`, `onConflictDoUpdateDynamicSet(...)`, `doUpdateDynamicSet(...)`, and after a method that can drop values from the update (`ignoreIfSet`, `keepOnly`, `ignoreIfHasValue`, `ignoreIfHasNoValue`, `ignoreAnySetWithNoValue` and their `*When` forms); a conflicting row gives `null` when the update was left with no column. A row inserted gives its id.
-- `returning(...)` or `returningOneColumn(...)` with `executeInsertOne()` rejects with `NO_RESULT`; with `executeInsertNoneOrOne()` it gives `null`. When every value can be empty and you ask for columns back, use `executeInsertNoneOrOne()`.
+- `returning(...)` and `returningOneColumn(...)` offer `executeInsertNoneOrOne()`, which gives `null` for that row, and `executeInsertMany()`, but not `executeInsertOne()`, as after a do nothing.
 
 ## Choosing the conflict
 

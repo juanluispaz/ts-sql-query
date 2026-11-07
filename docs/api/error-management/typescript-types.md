@@ -78,8 +78,8 @@ type TsSqlErrorReason =
     | /** Detected invalid value to send to the database that doesn't match with the expected type */
       { reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: unknown, typeName: string, 
         rowIndex?: number | undefined, columnPath?: string | undefined,
-        /** The name given to `Values.create` when the value is in one of its rows */
-        valuesName?: string | undefined,
+        /** The table the value of a set goes to, or the `Values` of the row, by its name in the database */
+        tableName?: string | undefined,
         /** The position, from 0, the value would have in the parameters of the query */
         paramIndex?: number | undefined }
     | /** Detected invalid value received from the database that doesn't match with the expected type */

@@ -19,7 +19,6 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { TsSqlError } from '../../../../../src/TsSqlError.js'
 import { tAppUser, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -1003,33 +1002,6 @@ describe(ctx.label, () => {
             `)
             assertType<Exact<typeof ids, number[]>>()
             expect(ids).toEqual(expected)
-        })
-    })
-
-    test('empty-on-conflict-update-set-degrades-preserving-returning-one-column-one-throws-no-result', async () => {
-        // The `executeInsertOne()` shape: the degrade suppresses the colliding row, so the
-        // scalar-returning statement produces zero rows and the exactly-one contract throws
-        // NO_RESULT.
-        ctx.mockNext(undefined)
-        await ctx.withRollback(async () => {
-            let caught: unknown
-            try {
-                await ctx.conn.insertInto(tProject)
-                    .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
-                    .onConflictDoUpdateDynamicSet({ archivedAt: null })
-                    .ignoreAnySetWithNoValue()
-                    .returningOneColumn(tProject.id)
-                    .executeInsertOne()
-            } catch (e) { caught = e }
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert ignore into project (organization_id, slug, name) values (?, ?, ?) returning id as result"`)
-            expect(ctx.lastParams).toMatchInlineSnapshot(`
-              [
-                1,
-                "mktg-site",
-                "ignored",
-              ]
-            `)
-            expect(caught instanceof TsSqlError ? caught.errorReason.reason : caught).toBe('NO_RESULT')
         })
     })
 

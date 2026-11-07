@@ -155,6 +155,29 @@ function _typeNegatives() {
         .onConflictDoNothing().returning({ id: tOrganization.id })
         // @ts-expect-error executeInsertOne is dropped on the optional-returning (onConflictDoNothing) path
         .executeInsertOne()
+    // Same rule when the update of the conflict can be left with no column: it is sent as a do nothing,
+    // so a conflicting row gives none back (doUpdateSetIfValue, doUpdateDynamicSet, and the methods that drop
+    // values). Controls: the NoneOrOne arm, and a doUpdateSet that keeps its values, which does expose it.
+    void connection.insertInto(tOrganization).values({ name: 'x', plan: 'free' })
+        .onConflictOn(tOrganization.name).doUpdateSetIfValue({ plan: 'pro' }).returning({ id: tOrganization.id }).executeInsertNoneOrOne()
+    void connection.insertInto(tOrganization).values({ name: 'x', plan: 'free' })
+        .onConflictOn(tOrganization.name).doUpdateSet({ plan: 'pro' }).returning({ id: tOrganization.id }).executeInsertOne()
+    void connection.insertInto(tOrganization).values({ name: 'x', plan: 'free' })
+        .onConflictOn(tOrganization.name).doUpdateSetIfValue({ plan: 'pro' }).returning({ id: tOrganization.id })
+        // @ts-expect-error executeInsertOne is dropped when the update can be left with no column (SetIfValue)
+        .executeInsertOne()
+    void connection.insertInto(tOrganization).values({ name: 'x', plan: 'free' })
+        .onConflictOn(tOrganization.name).doUpdateDynamicSet({ plan: 'pro' }).returningOneColumn(tOrganization.id)
+        // @ts-expect-error executeInsertOne is dropped when the update can be left with no column (DynamicSet)
+        .executeInsertOne()
+    void connection.insertInto(tOrganization).values({ name: 'x', plan: 'free' })
+        .onConflictOn(tOrganization.name).doUpdateSet({ plan: 'pro' }).ignoreAnySetWithNoValue().returning({ id: tOrganization.id })
+        // @ts-expect-error executeInsertOne is dropped after a method that can drop every value of the update
+        .executeInsertOne()
+    void connection.insertInto(tOrganization).values({ name: 'x', plan: 'free' })
+        .onConflictOn(tOrganization.name).doUpdateSet({ plan: 'pro' }).keepOnly().returningOneColumn(tOrganization.id)
+        // @ts-expect-error executeInsertOne is dropped after a method that can drop every value of the update
+        .executeInsertOne()
 
     // Rule: INSERT's `ignoreIfHasValue` /
     // `ignoreIfHasNoValue` accept only OPTIONAL columns

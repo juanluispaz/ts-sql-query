@@ -730,7 +730,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 if (valueSql) {
                     valueSql += ', '
                 }
-                valueSql += this._appendSetValue(columnName, i, column, value[columnName], params, false, withValues.__name)
+                valueSql += this._appendSetValue(columnName, i, column, value[columnName], params)
             }
             valuesSql += this._withValuesRowConstructorKeyword() + '(' + valueSql + ')'
         }
@@ -1918,16 +1918,17 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     /**
      * The value of a property in a set or in a row of a `Values`: an invalid value tells the
-     * property, and the row when there are several, as the values received from the database do.
+     * table, the property, and the row when there are several, as the values received from the database do.
      */
-    _appendSetValue(columnPath: string, rowIndex: number | undefined, column: DBColumn, value: any, params: any[], forceTypeCast: boolean = false, valuesName?: string): string {
+    _appendSetValue(columnPath: string, rowIndex: number | undefined, column: DBColumn, value: any, params: any[], forceTypeCast: boolean = false): string {
         try {
             return this._appendValueForColumn(column, value, params, forceTypeCast)
         } catch (e) {
             if (e instanceof TsSqlError && e.errorReason.reason === 'INVALID_VALUE_TO_SEND_TO_DATABASE') {
                 e.errorReason.columnPath = columnPath
                 e.errorReason.rowIndex = rowIndex
-                e.errorReason.valuesName = valuesName
+                // The name in the database of the table, view or values the value goes to, as a database error names it
+                e.errorReason.tableName = __getTableOrViewPrivate(__getColumnPrivate(column).__tableOrView).__name
             }
             throw e
         }

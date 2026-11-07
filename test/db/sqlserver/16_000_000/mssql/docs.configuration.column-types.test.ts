@@ -53,6 +53,8 @@ const tOrganizationColor = new class TOrganizationColor extends Table<DBConnecti
     constructor() { super('organization') }
 }()
 
+type Units = number & { readonly __brand: 'Units' }
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -91,4 +93,37 @@ describe(ctx.label, () => {
             expect(organization).toEqual({ id: 1, color })
         })
     })
+
+    test('docs:column-types/custom-type-converted-as-its-category', async () => {
+        // The SQL gives both values as text: the customInt is converted as an int, the custom arrives as it comes
+        ctx.mockNext({ units: '42', tag: '42' })
+        const row = await ctx.conn.selectFromNoTable()
+            .select({
+                units: ctx.conn.fragmentWithType<Units, 'Units'>('customInt', 'Units', 'required').sql`'42'`,
+                tag: ctx.conn.fragmentWithType<string, 'Tag'>('custom', 'Tag', 'required').sql`'42'`,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select '42' as units, '42' as tag"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, { units: Units; tag: string }>>()
+        expect(row).toEqual({ units: 42, tag: '42' })
+    })
+
+    // TODO[LIMITATION]: SQL Server: the runner binds a customDouble as Float, so an exact decimal loses digits (deferred, see test/DEFERRED.md)
+    /*
+    test('docs:column-types/exact-decimal-kept-as-text', async () => {
+        const amount = '12345678901234567890.123456789' as ExactDecimal
+        ctx.mockNext('12345678901234567890.123456789')
+        const connection = ctx.withConnection(ExactDecimalConnection)
+        // doc-start
+        const result = await connection.selectFromNoTable()
+            .selectOneColumn(connection.const<ExactDecimal, 'ExactDecimal'>(amount, 'customDouble', 'ExactDecimal'))
+            .executeSelectOne()
+        // doc-end
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof result, ExactDecimal>>()
+        expect(result).toBe('12345678901234567890.123456789')
+    })
+    */
 })

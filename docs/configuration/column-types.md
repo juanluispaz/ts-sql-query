@@ -71,7 +71,7 @@ Choose by the values your code handles, not only by the type of the column in th
 | A whole number that fits in a JavaScript `number` | `int` | Reading a number past `Number.MAX_SAFE_INTEGER` is rejected with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`, instead of giving you a rounded value. Sending a number with decimals is rejected too. |
 | A whole number that can be larger, like a 64-bit counter | `bigint` | The value in your code is a `bigint`. Some drivers round large integers unless you configure them: see the [query runner](query-runners/index.md#which-one-for-your-database) of your driver. The query is rejected rather than giving you a rounded value. |
 | A number with decimals, when a JavaScript `number` is enough | `double` | The value becomes a `number`, whatever the column is. A `decimal` column with more digits than a `number` holds loses them. |
-| A decimal number that must stay exact, like money | `customDouble` | With your own type for it, and the [conversion registered](#custom-types). The library doesn't convert it, so you receive what the driver gives. |
+| A decimal number that must stay exact, like money | `customDouble` | With your own type for it, and its [conversion registered](#custom-types): without it, the value is converted as a `double` and loses the digits a `number` doesn't hold. |
 | Text | `string` | An empty string [has no value](connection.md#allowing-empty-string) by default. |
 | True or false | `boolean` | Oracle and SQL Server store it as a number or a bit, with `0` and `1`. For other representations, like `'Y'` and `'N'`, see [Custom booleans values](../advanced/custom-booleans-values.md). |
 | A UUID | `uuid` | It's a `string` in your code, and how it's stored depends on the database, as in the tip above. |
@@ -79,50 +79,68 @@ Choose by the values your code handles, not only by the type of the column in th
 | A time with no date, like an opening time | `localTime` | A `Date`: read it with `getHours`, `getMinutes` and `getSeconds`. |
 | A date with time, like the moment something happened | `localDateTime` | A `Date`. This is the type for a column that stores an instant too, like `timestamptz` on PostgreSQL. Which zone it's read in is in [Time zones](time-zones.md). |
 | One of a fixed list of values | `enum` | With a union of your values as its TypeScript type. |
-| A value your code gives a type of its own, like an id with a TypeScript brand | The `custom...` type with the operations it needs | With the [conversion registered](#custom-types). |
+| A value your code gives a type of its own, like an id with a TypeScript brand | The `custom...` type with the operations it needs | It's converted as the type of its [category](#custom-types), like a `customInt` as an `int`. |
 | A value that only your code understands, like a JSON document | `custom`, or `customComparable` if the database can order it | With the [conversion registered](#custom-types). |
 
 ## Custom types
 
-A custom type (`customInt`, `customDouble`, `customUuid`, `customLocalDate`, `customLocalTime`, `customLocalDateTime`, `enum`, `custom` and `customComparable`) gives a column your own TypeScript type, and its name (the last argument of the column, like `'MyIntTypeName'`) identifies it. The first word of the type only says which operations the column offers in a query; the library knows nothing about what your type contains, so it doesn't convert its values.
+A custom type (`customInt`, `customDouble`, `customUuid`, `customLocalDate`, `customLocalTime`, `customLocalDateTime`, `enum`, `custom` and `customComparable`) gives a column your own TypeScript type, and its name (the last argument of the column, like `'Cents'`) identifies it. The first word of the type is its category: it says which operations the column offers in a query, and how its values are converted.
+
+| Category | Its values are converted as |
+|---|---|
+| `customInt` | `int` |
+| `customDouble` | `double` |
+| `customUuid` | `uuid` |
+| `customLocalDate` | `localDate` |
+| `customLocalTime` | `localTime` |
+| `customLocalDateTime` | `localDateTime` |
+| `enum`, `custom` and `customComparable` | Not converted: the value is returned as it comes |
+
+So an int with a TypeScript brand needs nothing else; its values are checked and converted as those of an `int`:
+
+```typescriptreact
+type Cents = number & { readonly __brand: 'Cents' }
+
+costCents = this.column<Cents>('cost_cents', 'customInt', 'Cents')
+```
 
 !!! important
 
-    Register how each custom type is converted, also `customInt` and `customDouble`. Without it, the value is returned as it comes, and that depends on where it comes from: from a plain column you get what the driver gives, which can be different in each driver, and from [an array aggregate](../queries/aggregate-as-object-array.md#how-the-values-go-through-json) you get what is in the JSON. A number there is its text, so that no digit is lost, and it's the conversion that decides what to do with it.
+    Register the conversion of an `enum`, a `custom` or a `customComparable`, and of a custom type whose values in your code aren't those of its category, like an exact decimal kept as text in a `customDouble`. Without it, an `enum`, a `custom` or a `customComparable` is returned as it comes, and that depends on where it comes from: from a plain column you get what the driver gives, which can be different in each driver, and from [an array aggregate](../queries/aggregate-as-object-array.md#how-the-values-go-through-json) you get what is in the JSON. A number there is its text, so that no digit is lost, and it's the conversion that decides what to do with it.
 
-The best place to register it is the connection, so it applies everywhere that type is used. These are the three methods to implement, and all of them receive the name of the type:
+The best place to register it is the connection, so it applies everywhere that type is used. These are the three methods to implement, and all of them receive the name of the type and its category:
 
 - `transformValueFromDB`: converts a value that comes from the database.
 - `transformValueToDB`: converts a value that is sent to the database.
-- `transformPlaceholder`: changes how the parameter is written in the SQL, like adding a cast. PostgreSQL needs a cast in some positions, and the library only writes it for the types it knows.
+- `transformPlaceholder`: changes how the parameter is written in the SQL, like adding a cast. PostgreSQL needs a cast in some positions, and the library writes it for the types it knows and for the categories it converts.
 
-A typical case is a type that the database holds as a type the library knows, like an int with a TypeScript brand. Then you can call `super` with that type, and the library handles the value in the same way, with the same checks:
+For example, an exact decimal kept as text, so that no digit is lost: it's read as the text the database gives, and on PostgreSQL its parameter is cast as `numeric`, not as the `float8` of a `double`:
 
 ```ts
 import type { TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory) {
-        if (type === 'MyIntTypeName') {
-            return super.transformValueFromDB(value, 'int', 'int');
+        if (type === 'ExactDecimal' && value !== null && value !== undefined) {
+            return String(value);
         }
         return super.transformValueFromDB(value, type, typeCategory);
     }
     protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory) {
-        if (type === 'MyIntTypeName') {
-            return super.transformValueToDB(value, 'int', 'int');
+        if (type === 'ExactDecimal') {
+            return value;
         }
         return super.transformValueToDB(value, type, typeCategory);
     }
     protected override transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown): string {
-        if (type === 'MyIntTypeName') {
-            return super.transformPlaceholder(placeholder, 'int', 'int', forceTypeCast, valueSentToDB);
+        if (type === 'ExactDecimal' && forceTypeCast) {
+            return placeholder + '::numeric';
         }
         return super.transformPlaceholder(placeholder, type, typeCategory, forceTypeCast, valueSentToDB);
     }
 }
 ```
 
-When the value needs a conversion of its own, write it there: see [Global type adapter](#global-type-adapter). If only one column needs it, use a [type adapter](#type-adapters) in that column.
+When only one column needs its own conversion, use a [type adapter](#type-adapters) in that column. When the conversion is generic, see [Global type adapter](#global-type-adapter).
 
 ## Type adapters
 

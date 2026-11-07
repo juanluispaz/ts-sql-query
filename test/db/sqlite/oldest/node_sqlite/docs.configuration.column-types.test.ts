@@ -53,6 +53,31 @@ const tOrganizationColor = new class TOrganizationColor extends Table<DBConnecti
     constructor() { super('organization') }
 }()
 
+type ExactDecimal = string & { readonly __brand: 'ExactDecimal' }
+
+class ExactDecimalConnection extends DBConnection {
+    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory) {
+        if (type === 'ExactDecimal' && value !== null && value !== undefined) {
+            return String(value)
+        }
+        return super.transformValueFromDB(value, type, typeCategory)
+    }
+    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory) {
+        if (type === 'ExactDecimal') {
+            return value
+        }
+        return super.transformValueToDB(value, type, typeCategory)
+    }
+    protected override transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown): string {
+        if (type === 'ExactDecimal' && forceTypeCast) {
+            return placeholder + '::numeric'
+        }
+        return super.transformPlaceholder(placeholder, type, typeCategory, forceTypeCast, valueSentToDB)
+    }
+}
+
+type Units = number & { readonly __brand: 'Units' }
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -90,5 +115,39 @@ describe(ctx.label, () => {
             assertType<Exact<typeof organization, { id: number; color: RgbColor }>>()
             expect(organization).toEqual({ id: 1, color })
         })
+    })
+
+    test('docs:column-types/custom-type-converted-as-its-category', async () => {
+        // The SQL gives both values as text: the customInt is converted as an int, the custom arrives as it comes
+        ctx.mockNext({ units: '42', tag: '42' })
+        const row = await ctx.conn.selectFromNoTable()
+            .select({
+                units: ctx.conn.fragmentWithType<Units, 'Units'>('customInt', 'Units', 'required').sql`'42'`,
+                tag: ctx.conn.fragmentWithType<string, 'Tag'>('custom', 'Tag', 'required').sql`'42'`,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select '42' as units, '42' as tag"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, { units: Units; tag: string }>>()
+        expect(row).toEqual({ units: 42, tag: '42' })
+    })
+
+    test('docs:column-types/exact-decimal-kept-as-text', async () => {
+        const amount = '12345678901234567890.123456789' as ExactDecimal
+        ctx.mockNext('12345678901234567890.123456789')
+        const connection = ctx.withConnection(ExactDecimalConnection)
+        // doc-start
+        const result = await connection.selectFromNoTable()
+            .selectOneColumn(connection.const<ExactDecimal, 'ExactDecimal'>(amount, 'customDouble', 'ExactDecimal'))
+            .executeSelectOne()
+        // doc-end
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "12345678901234567890.123456789",
+          ]
+        `)
+        assertType<Exact<typeof result, ExactDecimal>>()
+        expect(result).toBe('12345678901234567890.123456789')
     })
 })

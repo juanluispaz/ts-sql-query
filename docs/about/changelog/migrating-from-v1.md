@@ -145,6 +145,37 @@ const customers = await connection.selectFrom(tCustomer)
 | SQLite | `stringConcatDistinct(value, separator)`; `connection.default()` | `stringConcatDistinct(value)`; omit the column |
 | Oracle | `.orderingSiblingsOnly()` after the `.orderBy(...)` of a compound query | |
 
+### Type adapters and the transforms of the connection
+
+`transformValueFromDB`, `transformValueToDB` and `transformPlaceholder` receive the category of the type, the first argument of the column like `'customInt'`, after the name of the type. A type adapter written for v1 doesn't compile, and neither does an override of the connection that calls `super`: add the parameter and pass it on. When your rule changes the type, pass the category of the new one:
+
+In v1:
+
+```typescriptreact
+protected override transformValueToDB(value: unknown, type: string): unknown {
+    if (type === 'MyIntTypeName') {
+        return super.transformValueToDB(value, 'int');
+    }
+    return super.transformValueToDB(value, type);
+}
+```
+
+In v2:
+
+```ts
+import type { TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
+class DBConnection extends PostgreSqlConnection<'DBConnection'> {
+    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
+        if (type === 'MyIntTypeName') {
+            return super.transformValueToDB(value, 'int', 'int');
+        }
+        return super.transformValueToDB(value, type, typeCategory);
+    }
+}
+```
+
+A rule like this one, that only sends a `customInt` to `int`, is no longer needed: a custom type is converted as the type of its category (see [Custom types are converted as their category](#custom-types-are-converted-as-their-category)). `TypeCategory` is exported from `ts-sql-query` and from `ts-sql-query/TypeAdapter`.
+
 ### Your own query runner, and the connection of the driver
 
 - `queryRunner.execute(fn)` calls `fn` with one argument, the connection to run statements on: a function with two parameters doesn't compile. With postgres.js and mssql, `fn` received the pool or the client, and the transaction in that second argument ([docs](../../queries/transaction.md#using-the-drivers-connection-in-the-transaction)). `getCurrentNativeConnection()` returns the connection of the transaction, and `undefined` outside one.
@@ -152,6 +183,7 @@ const customers = await connection.selectFrom(tCustomer)
 - `executeInTransaction(fn, ...)` no longer accepts a function returning an array, and `executeBeginTransaction`, `executeCommit`, `executeRollback` and `executeInTransaction` receive an optional `opts` at the end.
 - To log or intercept queries, prefer [`InterceptorQueryRunner`](../../configuration/query-runners/general-purpose/InterceptorQueryRunner.md), which is public and needs no changes beyond the import of `QueryType`.
 - `MockQueryRunner` no longer calls your function with `'isTransactionActive'`. A branch for that value doesn't compile: remove it.
+- `addParam(params, value, type, typeCategory)` and `addOutParam(params, name, type, typeCategory)` receive the name of the type and its category. A query runner that forwards them to another doesn't compile until it passes them on, and neither does code that calls them to build its own SQL. A query runner that adds the value keeps them with `setQueryParamType(params, index, type, typeCategory)`, from `ts-sql-query/queryRunners/QueryRunner`, so that `getQueryParamType` and `getQueryParamTypeCategory` can read them.
 
 ## What changes silently at runtime
 
@@ -166,6 +198,7 @@ Everything in this section compiles. These are the changes that alter a result, 
 7. **Corrected functions give another value.** [Values, corrected](#values-corrected).
 8. **A filter coming from JSON with an old rule fails.** [Dynamic conditions](#dynamic-conditions-coming-from-outside).
 9. **An old property in your connection class is ignored.** [Properties](#properties-of-the-connection-that-no-longer-exist).
+10. **A custom type without its conversion arrives converted.** [Custom types are converted as their category](#custom-types-are-converted-as-their-category).
 
 ### Set the version of your database
 
@@ -386,6 +419,10 @@ These returned a wrong value in v1, or depended on something they shouldn't. If 
 
 - SQL Server, Oracle: a projected `between` whose upper bound is optional is `NULL` when that bound is `NULL`. It was `false`.
 - [`dynamicPickPaths`](../../dynamic/helper-types/picks.md) with a path of 3 or more levels dropped it.
+
+### Custom types are converted as their category
+
+A `customInt`, `customDouble`, `customUuid`, `customLocalDate`, `customLocalTime` or `customLocalDateTime` whose conversion you didn't register was returned as the driver gave it, or as text from an array aggregate. It's now converted as an `int`, a `double`, a `uuid` or the type of its date or time, with the same checks: a number past `Number.MAX_SAFE_INTEGER` in a `customInt` is rejected, and an exact decimal kept as text in a `customDouble` becomes a `number` and loses the digits a `number` doesn't hold. On PostgreSQL, the parameter of these types gets the cast of its category where the library writes one, like `$1::float8` for a `customDouble`. To keep a value as it comes, register its conversion: see [Custom types](../../configuration/column-types.md#custom-types). An `enum`, a `custom` and a `customComparable` are not converted, as before.
 
 ### SQLite: the precision of the dates and times as text
 

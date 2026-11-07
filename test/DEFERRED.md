@@ -14,6 +14,20 @@ Each entry says what it is, why it waits, and what is already known.
 - **Known:** [`docs/api/value-expressions.md`](../docs/api/value-expressions.md)
   is consistent with that: it lists no `multiply` or `divide` for a bigint.
 
+## `customDouble` and exact decimals
+
+- **What:** a `customDouble` that holds an exact decimal kept as text, like
+  money read from `numeric` or `decimal`.
+- **Why deferred:** a `customDouble` is converted as a `double`, and on
+  PostgreSQL its parameter is cast as `::float8`; both round an exact decimal.
+  For now that case is the user's: they register the conversion of the type,
+  and its `transformPlaceholder` on PostgreSQL. On SQL Server the query runner
+  binds a `customDouble` as `Float`, and there is no way to change it: the test
+  `docs:column-types/exact-decimal-kept-as-text` is marked there.
+- **Known:** `::numeric` as the PostgreSQL cast of a `customDouble` would keep
+  both uses exact (a `number` with a type of its own, and an exact decimal);
+  not measured on a real engine.
+
 ## Splitting an insert by the parameter limit of each engine
 
 - **What:** split a multi-row insert into several statements when it would pass

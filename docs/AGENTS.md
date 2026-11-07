@@ -51,7 +51,7 @@ Start with the file of the area of your task. These files are written for you: o
 | Aggregate and group | [`llms-aggregates-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-aggregates-postgresql.txt) | 11k |
 | Write data | [`llms-mutations-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-mutations-postgresql.txt) | 25k |
 | Use a transaction | [`llms-transactions.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-transactions.txt) | 13k |
-| Go beyond what the library offers: your own SQL or column type | [`llms-extending-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-extending-postgresql.txt) | 15k |
+| Go beyond what the library offers: your own SQL or column type | [`llms-extending-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-extending-postgresql.txt) | 16k |
 | Go into the detail of a dynamic query: order and page from a request, optional joins, booleans and null, or a condition built with `if`s | [`llms-dynamic-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-dynamic-postgresql.txt) | 10k |
 | Let the caller choose columns, filters and order, fill a table or offer a query API from a request, hide or refuse values, or write values with a shape | [`llms-extreme-dynamic-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-extreme-dynamic-postgresql.txt) | 15k |
 | Write a function that returns a dynamic select, and type it | [`llms-dynamic-functions-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-dynamic-functions-postgresql.txt) | 21k |
@@ -62,8 +62,8 @@ Start with the file of the area of your task. These files are written for you: o
 | Understand an error | [`llms-errors.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-errors.txt) | 22k |
 | Find what writes a SQL keyword | [`llms-keywords.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-keywords.txt) | 12k |
 | Know what the library is, and what it can't do | [`llms-general.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-general.txt) | 8k |
-| Move a project from v1 to v2 | [`llms-migrating-from-v1.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-migrating-from-v1.txt) | 10k |
-| See what changed in a version | [`llms-changelog-v2.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-changelog-v2.txt), or `llms-changelog-v1.txt` | 25k |
+| Move a project from v1 to v2 | [`llms-migrating-from-v1.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-migrating-from-v1.txt) | 11k |
+| See what changed in a version | [`llms-changelog-v2.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-changelog-v2.txt), or `llms-changelog-v1.txt` | 26k |
 
 The files with `<database>` also come with all the databases, like `llms-queries-all.txt`, to compare them or to move code between them. Otherwise use the one of your database, which is smaller.
 

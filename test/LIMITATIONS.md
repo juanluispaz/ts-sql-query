@@ -23,7 +23,11 @@ sit down and close.
 
 ## Custom types inside an array aggregate need their conversion
 
-The JSON of an array aggregate is parsed keeping every number as its text, so that no precision is lost, and it's the transformation of the type that converts it. A custom type must register that conversion, the best place being the connection; calling `super` with a type the library knows is the typical case, not the only one. Without it, a number arrives in the array as text, while a plain select gives what the driver gives. This applies also to `customInt` and `customDouble`, which could need nothing registered: that ergonomics is a limitation of the current implementation. The domain of the tests registers it through `baseTypeForCustom`.
+The JSON of an array aggregate is parsed keeping every number as its text, so that no precision is lost, and it's the transformation of the type that converts it. A `customInt`, `customDouble`, `customUuid` or `customLocal*` is converted as the type of its category, so it needs nothing registered; an `enum`, a `custom` or a `customComparable` must register its conversion, the best place being the connection. Without it, a number arrives in the array as text, while a plain select gives what the driver gives. The domain of the tests registers it through `baseTypeForCustom`.
+
+## A `customDouble` holding an exact decimal
+
+A `customDouble` is converted as a `double`, cast as `::float8` on PostgreSQL and bound as `Float` on SQL Server, so an exact decimal kept as text loses digits. On PostgreSQL the user can register its conversion and its `transformPlaceholder`; on SQL Server the query runner gives no way to bind it with another type. Deferred by the maintainer: see [`DEFERRED.md`](./DEFERRED.md).
 
 ## The golden rule: no closing a gap with a query of its own
 

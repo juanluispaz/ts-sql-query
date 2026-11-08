@@ -595,6 +595,7 @@ export function createOracleDBPoolTestContext(spec: OracleTestSpec): OracleTestC
 
     return decorateOracleContext(createTestContext<DBConnection>({
         label: spec.label,
+        mockQueryRunner: 'OracleDBPoolQueryRunner',
         canonicalForDocs: spec.canonicalForDocs,
         compatibilityVersion: spec.compatibilityVersion,
         database: 'oracle',

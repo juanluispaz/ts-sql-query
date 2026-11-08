@@ -23,7 +23,7 @@
 //                              still runs — and still asserts — in every mode.
 
 import type { BeginTransactionOpts, DatabaseType, PromiseProvider, QueryRunner } from '../../src/queryRunners/QueryRunner.js'
-import { MockQueryRunner, type MockQueryExecutor, type MockQueryRunnerConfig } from '../../src/queryRunners/MockQueryRunner.js'
+import { MockQueryRunner, type QueryRunnerName } from '../../src/queryRunners/MockQueryRunner.js'
 import { CaptureInterceptor } from './captureInterceptor.js'
 import { FaultInjectingQueryRunner, type FaultInjectingQueryRunnerOptions } from './FaultInjectingQueryRunner.js'
 import { SwitchableQueryRunner } from './switchableRunner.js'
@@ -224,15 +224,6 @@ export interface TestContext<CONN> {
     withReseed(fn: () => Promise<void>): Promise<void>
 }
 
-/**
- * Constructor signature shared by `MockQueryRunner` and every
- * connector-specialised subclass under `test/lib/mockRunners/`. The
- * specialised classes only override behaviour (e.g. `addParam` for the
- * SQLite connectors that coerce `boolean` to `0`/`1`) — never the
- * constructor — so they all share this shape.
- */
-export type MockRunnerClass = new (executor: MockQueryExecutor, config: MockQueryRunnerConfig) => MockQueryRunner
-
 export interface TestContextOptions<CONN> {
     label: string
     canonicalForDocs?: boolean | undefined
@@ -252,14 +243,13 @@ export interface TestContextOptions<CONN> {
      */
     createRealRunner?: ((forceNew?: boolean) => Promise<{ runner: QueryRunner; shutdown(): Promise<void> }>) | undefined
     /**
-     * Optional connector-specialised mock class. Falls back to
-     * `MockQueryRunner` when not provided. Use this when the real
-     * connector applies an observable param transformation (e.g. the
-     * SQLite runners that coerce `boolean` to `0`/`1` inside
-     * `addParam`) so the mock pass captures the same param shape as
-     * the real pass — tests then assert one snapshot for both modes.
+     * The query runner of the cell, which the mock imitates (`MockQueryRunnerConfig.queryRunner`): its parameters get
+     * the placeholder, the cast and the value the real one gives them, so the mock pass captures the same SQL and
+     * params as the real pass, and tests assert one snapshot for both modes. The database's placeholders without it.
      */
-    mockRunnerClass?: MockRunnerClass | undefined
+    mockQueryRunner?: QueryRunnerName | undefined
+    /** The typesByName of the cell's runner, for a mock that imitates pg or Bun SQL on PostgreSQL */
+    mockTypesByName?: { readonly [typeName: string]: string } | undefined
     /** Optional one-shot seed step run during `up()` after the real runner is created. */
     onUp?: ((realInterceptor: CaptureInterceptor) => Promise<void>) | undefined
     /**
@@ -335,12 +325,13 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
     // only "data query" calls (selects/inserts/updates/deletes/function)
     // consume from `mockQueue`, and use FIFO `shift()` so the queue index
     // stays decoupled from the runner's index.
-    const MockClass = opts.mockRunnerClass ?? MockQueryRunner
-    const mockRunner = new MockClass((type, _query, _params) => {
+    const mockRunner = new MockQueryRunner((type, _query, _params) => {
         if (NON_CONSUMING_TYPES.has(type)) return undefined
         return mockQueue.shift()
     }, {
         database: opts.database,
+        ...(opts.mockQueryRunner ? { queryRunner: opts.mockQueryRunner } : {}),
+        ...(opts.mockTypesByName ? { typesByName: opts.mockTypesByName } : {}),
         // Sync cells hand results back through SynchronousPromise so `sync()`
         // can unwrap them in the mock loop; every other cell omits it (native
         // Promise). Conditional spread because `exactOptionalPropertyTypes`

@@ -11,6 +11,7 @@ import { sync } from '../../../../src/extras/sync.js'
 import { extractColumnNamesFrom, extractColumnsFrom } from '../../../../src/extras/utils.js'
 import { CustomBooleanTypeAdapter, type DefaultTypeAdapter, type TypeAdapter, type TypeCategory } from '../../../../src/TypeAdapter.js'
 import { getQueryConnectionConfiguration, type ConnectionConfiguration, type QueryResultColumn } from '../../../../src/queryRunners/QueryRunner.js'
+import { MockQueryRunner } from '../../../../src/queryRunners/MockQueryRunner.js'
 import { tCountry } from '../domain/connection.js'
 
 function _typeNegatives() {
@@ -33,6 +34,13 @@ function _typeNegatives() {
     resultColumn.type = 'bigint'
     // @ts-expect-error the category of a result column is one of the list
     void ({ name: 'id', path: 'id', type: 'int', typeCategory: 'number' } satisfies QueryResultColumn)
+    // Rule: the mock imitates a query runner of the library by the name of its class.
+    new MockQueryRunner(() => undefined, { queryRunner: 'PostgresQueryRunner' })
+    new MockQueryRunner(() => undefined, { queryRunner: 'MySql2QueryRunner', database: 'mariaDB' })
+    // @ts-expect-error not a query runner of the library
+    new MockQueryRunner(() => undefined, { queryRunner: 'postgres' })
+    // @ts-expect-error a wrapper adds no parameter of its own
+    new MockQueryRunner(() => undefined, { queryRunner: 'InterceptorQueryRunner' })
     // Rule: both values of a custom boolean have the same data type.
     new CustomBooleanTypeAdapter(1, 0)
     new CustomBooleanTypeAdapter('yes', 'no')

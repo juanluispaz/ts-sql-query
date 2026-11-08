@@ -21,7 +21,7 @@ import { getWithData, hasWithData } from './SqlBuilder.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { RawFragment } from '../utils/RawFragment.js'
 import { TsSqlError, TsSqlProcessingError } from '../TsSqlError.js'
-import { getContainsInsertReturningClause, setContainsInsertReturningClause, setContainsMutationReturningClause, setForcedAffectedRowCount } from '../utils/queryParamsMetadata.js'
+import { getContainsInsertReturningClause, setContainsInsertReturningClause, setContainsMutationReturningClause, setForcedAffectedRowCount, setParamValueForColumnAt } from '../utils/queryParamsMetadata.js'
 import { __typeCategoryOf } from '../utils/typeCategory.js'
 
 /** A column of the select list as it was written, for the group by that refers to it */
@@ -673,42 +673,16 @@ export class AbstractSqlBuilder implements SqlBuilder {
         } else {
             forceTypeCast = this._defaultTypeAdapter.forceTypeCast(columnTypeName, typeCategory, value, forceTypeCast)
         }
+        if (this._isAssigningValueToColumn(params)) {
+            setParamValueForColumnAt(params, params.length)
+        }
         let placeholder = this._queryRunner.addParam(params, value, columnTypeName, typeCategory, forceTypeCast)
         if (typeAdapter && typeAdapter.transformPlaceholder) {
             placeholder = typeAdapter.transformPlaceholder(placeholder, columnTypeName, typeCategory, value, this._defaultTypeAdapter)
         } else {
             placeholder = this._defaultTypeAdapter.transformPlaceholder(placeholder, columnTypeName, typeCategory, value)
         }
-        if (columnType === 'customDecimal') {
-            return this._appendCustomDecimalParam(placeholder, value, params, columnTypeName)
-        }
         return placeholder
-    }
-    /**
-     * The placeholder of a customDecimal parameter, with the value sent to the database (the one the type adapter gave,
-     * whatever the type of the user is). A database that computes or compares a text in double precision casts it to a
-     * decimal with the digits of the value, and one whose decimals can't hold the value rejects it.
-     */
-    _appendCustomDecimalParam(placeholder: string, _value: unknown, _params: any[], _columnTypeName: string): string {
-        return placeholder
-    }
-    /**
-     * The digits of the text of a customDecimal: its precision and scale as a decimal type counts them (`-0012.50` is
-     * decimal(4, 2)) and its significant digits (`0.0120` has 2); undefined when it isn't a plain decimal.
-     */
-    _customDecimalDigitsOf(text: unknown): { precision: number, scale: number, significantDigits: number } | undefined {
-        const match = typeof text === 'string' ? /^-?0*(\d*)(?:\.(\d+))?$/.exec(text) : null
-        if (!match) {
-            return undefined
-        }
-        const integerDigits = match[1]!
-        const decimals = match[2] ?? ''
-        const significant = (integerDigits + decimals).replace(/^0+/, '').replace(/0+$/, '')
-        return { precision: Math.max(integerDigits.length, 1) + decimals.length, scale: decimals.length, significantDigits: significant.length }
-    }
-    /** Rejects the customDecimal parameter just added (the last of the params), which the decimals of the database can't hold */
-    _rejectCustomDecimalParam(sent: unknown, params: any[], columnTypeName: string, widestDecimal: string): never {
-        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: sent, typeName: columnTypeName, paramIndex: params.length - 1 }, 'Invalid customDecimal value to send to the db: ' + sent + ' doesn\'t fit the widest decimal of the database, ' + widestDecimal)
     }
     /**
      * A value assigned to a column of a table (an insert or the set of an update) takes the type of the column; a value
@@ -2149,8 +2123,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return sql
         }
         const columnPrivate = __getColumnPrivate(column)
-        // A customDecimal value given for a column of a table takes the type of the column, not the one of its parameter
-        if (columnPrivate.__valueType !== 'customDecimal' || hasToSql(value) || __getTableOrViewPrivate(columnPrivate.__tableOrView).__type === 'values') {
+        // A value given for a column of a table takes the type of the column, not the one of its parameter: its parameter
+        // is marked so (see isQueryParamValueForColumn), which a query runner may use not to cast it
+        if (hasToSql(value) || __getTableOrViewPrivate(columnPrivate.__tableOrView).__type === 'values') {
             return this._appendValue(value, params, columnPrivate.__valueType, columnPrivate.__valueTypeName, columnPrivate.__typeAdapter, forceTypeCast)
         }
         const oldAssigningValueToColumn = this._isAssigningValueToColumn(params)

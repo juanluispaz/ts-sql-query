@@ -5,7 +5,7 @@ import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSq
 import { getMySql2ErrorReason, isMySql2Error } from './connectorErrorMappers/MySql2ErrorMapper.js'
 import { isTransactionOpenAfterMySqlError } from '../utils/mySqlTransactionRollback.js'
 import type { TypeCategory } from '../TypeAdapter.js'
-import { setQueryParamType } from './QueryRunner.js'
+import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 
 
 export interface MySql2QueryRunnerConfig {
@@ -130,9 +130,8 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
         })
     }
     addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
-        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
-        params.push(value)
-        return '?'
+        // The same binding MockQueryRunner uses to imitate this query runner
+        return queryRunnerParamBindings.MySql2QueryRunner(params, value, type, typeCategory, forceTypeCast)
     }
     override getErrorReason(error: unknown): TsSqlErrorReason {
         return MySql2QueryRunner.getErrorReason(error, this.database)

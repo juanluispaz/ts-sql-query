@@ -30,7 +30,7 @@ test cells that type-check the examples and assert their SQL via mock) see
 - [`dockerImages.ts`, `dockerPreflight.ts`, `dockerVersionGuard.ts` — docker images and guards](#dockerimagests-dockerpreflightts-dockerversionguardts--docker-images-and-guards)
 - [`coords.ts` — matrix coordinates](#coordsts--matrix-coordinates)
 - [`coverage/` — bun coverage post-processors](#coverage--bun-coverage-post-processors)
-- [`mockRunners/` — connector-specialised mocks](#mockrunners--connector-specialised-mocks)
+- [`mockRunners/` — the mock of the doc SQL tests](#mockrunners--the-mock-of-the-doc-sql-tests)
 - [The tools with their own document](#the-tools-with-their-own-document)
 
 ## `testContext.ts` — `ctx` API surface
@@ -421,35 +421,23 @@ Both are invoked by `scripts/tests.sh` when bun is the runner. Under vitest
 the V8 byte-range coverage path replaces all of this; see
 [`CLI.md` § Coverage](./CLI.md#coverage) for which reporter to pick.
 
-## `mockRunners/` — connector-specialised mocks
+## `mockRunners/` — the mock of the doc SQL tests
 
-Each file is a `MockQueryRunner` subclass that mirrors **one** real
-`QueryRunner` from `src/queryRunners/`, narrowed to the slice that observably
-differs from the generic mock. Used by `test/db/<db>/runners.ts` so the
-params captured by `CaptureInterceptor` are identical between mock and real
-modes — test bodies do not need `if (ctx.realDbEnabled) ... else ...`
-branches just to satisfy a snapshot that depends on a driver's internal
-massage.
-
-Full conventions and when to add a sibling: [`mockRunners/README.md`](./lib/mockRunners/README.md).
-
-Today's divergences are in `addParam`: `boolean → int` coercion in four SQLite
-runners (`MockBetterSqlite3QueryRunner`, `MockBunSqliteQueryRunner`,
-`MockNodeSqliteQueryRunner`, `MockSqlite3WasmOO1QueryRunner`). `MockBunSqlSqliteQueryRunner` and
-`MockBunSqlPostgresQueryRunner` behave as the generic mock does, kept on disk so a
-future quirk is a one-file edit. Only these connectors have one; every other
-connector uses the generic mock.
-
-Wire from a cell factory via the `mockRunnerClass` option of `createTestContext`
-in [`testContext.ts`](./lib/testContext.ts):
+The cells don't subclass `MockQueryRunner` any more: each factory in `test/db/<db>/runners.ts` passes the name of its
+real runner in the `mockQueryRunner` option of `createTestContext` (and `mockTypesByName` for pg / Bun SQL), so the
+public `MockQueryRunner` adds every parameter with the same function the real runner's `addParam` calls
+(`src/utils/queryRunnerParams.ts`), and the params `CaptureInterceptor` records are identical in mock and real modes:
 
 ```ts
 createTestContext({
     /* … */
-    mockRunnerClass: MockBunSqliteQueryRunner,
+    mockQueryRunner: 'BunSqliteQueryRunner',
     /* … */
 })
 ```
+
+The folder keeps only `DocCodeMockRunner.ts`, the mock the documentation SQL tests use; see
+[`mockRunners/README.md`](./lib/mockRunners/README.md).
 
 ## The tools with their own document
 

@@ -21,11 +21,6 @@ import { fileURLToPath } from 'node:url'
 import type { SqliteDateTimeFormat } from '../../../src/connections/SqliteConfiguration.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { createTestContext, type TestContext } from '../../lib/testContext.js'
-import { MockBetterSqlite3QueryRunner } from '../../lib/mockRunners/MockBetterSqlite3QueryRunner.js'
-import { MockBunSqlSqliteQueryRunner } from '../../lib/mockRunners/MockBunSqlSqliteQueryRunner.js'
-import { MockBunSqliteQueryRunner } from '../../lib/mockRunners/MockBunSqliteQueryRunner.js'
-import { MockNodeSqliteQueryRunner } from '../../lib/mockRunners/MockNodeSqliteQueryRunner.js'
-import { MockSqlite3WasmOO1QueryRunner } from '../../lib/mockRunners/MockSqlite3WasmOO1QueryRunner.js'
 import { parse as uuidParse, stringify as uuidStringify, v7 as uuidv7 } from 'uuid'
 import { SynchronousPromise } from 'synchronous-promise'
 import { DBConnection } from './domain/connection.js'
@@ -431,7 +426,7 @@ export function createBunSqliteTestContext(spec: BunSqliteTestSpec, sync = false
         compatibilityVersion: spec.compatibilityVersion,
         database: 'sqlite',
         realDbEnabled,
-        mockRunnerClass: MockBunSqliteQueryRunner,
+        mockQueryRunner: 'BunSqliteQueryRunner',
         ...(sync ? { promiseProvider: SynchronousPromise } : {}),
         async createRealRunner() {
             const { BunSqliteQueryRunner } = await import('../../../src/queryRunners/BunSqliteQueryRunner.js')
@@ -516,7 +511,7 @@ export function createBunSqlSqliteTestContext(spec: BunSqliteTestSpec): SqliteTe
         compatibilityVersion: spec.compatibilityVersion,
         database: 'sqlite',
         realDbEnabled,
-        mockRunnerClass: MockBunSqlSqliteQueryRunner,
+        mockQueryRunner: 'BunSqlSqliteQueryRunner',
         async createRealRunner() {
             const { BunSqlSqliteQueryRunner } = await import('../../../src/queryRunners/BunSqlSqliteQueryRunner.js')
             const sql = await getOrCreateBunSqlSqliteDb()
@@ -602,7 +597,7 @@ export function createBetterSqlite3TestContext(spec: SqliteTestSpec, sync = fals
         compatibilityVersion: spec.compatibilityVersion,
         database: 'sqlite',
         realDbEnabled,
-        mockRunnerClass: MockBetterSqlite3QueryRunner,
+        mockQueryRunner: 'BetterSqlite3QueryRunner',
         ...(sync ? { promiseProvider: SynchronousPromise } : {}),
         async createRealRunner() {
             const { BetterSqlite3QueryRunner } = await import('../../../src/queryRunners/BetterSqlite3QueryRunner.js')
@@ -675,7 +670,7 @@ export function createNodeSqliteTestContext(spec: SqliteTestSpec, sync = false):
         compatibilityVersion: spec.compatibilityVersion,
         database: 'sqlite',
         realDbEnabled,
-        mockRunnerClass: MockNodeSqliteQueryRunner,
+        mockQueryRunner: 'NodeSqliteQueryRunner',
         ...(sync ? { promiseProvider: SynchronousPromise } : {}),
         async createRealRunner() {
             const { NodeSqliteQueryRunner } = await import('../../../src/queryRunners/NodeSqliteQueryRunner.js')
@@ -798,7 +793,7 @@ export function createSqliteWasmOO1TestContext(spec: SqliteTestSpec, sync = fals
         compatibilityVersion: spec.compatibilityVersion,
         database: 'sqlite',
         realDbEnabled,
-        mockRunnerClass: MockSqlite3WasmOO1QueryRunner,
+        mockQueryRunner: 'Sqlite3WasmOO1QueryRunner',
         timeoutMs: 30_000,
         ...(sync ? { promiseProvider: SynchronousPromise } : {}),
         async createRealRunner() {

@@ -5,9 +5,9 @@ import { PostgresTransactionOutcome } from '../utils/postgresTransactionOutcome.
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getPgLiteErrorReason, isPgLiteError } from './connectorErrorMappers/PgLiteErrorMapper.js'
 import type { TypeCategory } from '../TypeAdapter.js'
-import { setQueryParamType } from './QueryRunner.js'
 import { getParamForceTypeCastAt, getParamTypeAt, getParamTypeCategoryAt } from '../utils/queryParamsMetadata.js'
 import { postgreSqlParamType } from '../utils/postgreSqlParamTypes.js'
+import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 
 export interface PgLiteQueryRunnerConfig {
     allowNestedTransactions?: boolean | undefined
@@ -95,10 +95,8 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
         return super.executeBeginTransaction(opts)
     }
     addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
-        // PGlite sends the parameter with its type (see queryOptions): the placeholder needs no cast
-        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
-        params.push(value)
-        return '$' + params.length
+        // The same binding MockQueryRunner uses to imitate this query runner
+        return queryRunnerParamBindings.PgLiteQueryRunner(params, value, type, typeCategory, forceTypeCast)
     }
     override nestedTransactionsSupported(): boolean {
         return !!this.config?.allowNestedTransactions

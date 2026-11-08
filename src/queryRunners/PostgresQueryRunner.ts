@@ -6,9 +6,9 @@ import type { BeginTransactionOpts, DatabaseType, QueryRunner } from './QueryRun
 import type { Sql, ReservedSql, TransactionSql, Parameter } from 'postgres'
 import { getPostgresJsErrorReason, isPostgresJsError } from './connectorErrorMappers/PostgresErrorMapper.js'
 import type { TypeCategory } from '../TypeAdapter.js'
-import { setQueryParamType } from './QueryRunner.js'
 import { getParamForceTypeCastAt, getParamTypeAt, getParamTypeCategoryAt } from '../utils/queryParamsMetadata.js'
 import { postgreSqlParamType } from '../utils/postgreSqlParamTypes.js'
+import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 
 export interface PostgresQueryRunnerConfig {
     /**
@@ -208,10 +208,8 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
         return !!this.transaction || !!this.lowLevelTransaction || super.isTransactionActive()
     }
     addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
-        // postgres.js sends the parameter with its type (see driverParams): the placeholder needs no cast
-        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
-        params.push(value)
-        return '$' + params.length
+        // The same binding MockQueryRunner uses to imitate this query runner
+        return queryRunnerParamBindings.PostgresQueryRunner(params, value, type, typeCategory, forceTypeCast)
     }
     // The driver begins and commits a transaction by itself, in the function it receives. On a reserved connection it
     // can't, and the transaction goes through executeBeginTransaction and executeCommit.

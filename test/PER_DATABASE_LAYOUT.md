@@ -107,7 +107,7 @@ returns a `TestContext<DBConnection>`. Each factory wires:
 - The `realDbEnabled` decision via
   `isRealDbEnabled(database, requires, version?, connector?)` in
   [`backends.ts`](./lib/backends.ts).
-- Optional `mockRunnerClass` for connector-specialised mocks
+- `mockQueryRunner`, the name of the cell's real runner, which the mock imitates
   ([`mockRunners/`](./lib/mockRunners/README.md)).
 - `onReseed` (restore the seeded baseline against the runner's native handle:
   `reset.sql` + `seed.sql`, or `schema.sql` + `seed.sql` on SQLite).

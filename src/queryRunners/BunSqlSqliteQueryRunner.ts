@@ -5,7 +5,7 @@ import { AbstractBunSqlQueryRunner } from './AbstractBunSqlQueryRunner.js'
 import { SQL, type TransactionSQL } from 'bun'
 import { getBunSqlSqliteErrorReason, isBunSqlSqliteError } from './connectorErrorMappers/BunSqlSqliteErrorMapper.js'
 import type { TypeCategory } from '../TypeAdapter.js'
-import { setQueryParamType } from './QueryRunner.js'
+import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 
 export class BunSqlSqliteQueryRunner extends AbstractBunSqlQueryRunner {
     constructor(connection: SQL) {
@@ -47,9 +47,8 @@ export class BunSqlSqliteQueryRunner extends AbstractBunSqlQueryRunner {
         return sql.unsafe(query, params).then((result) => result.count === 0 ? null : result.lastInsertRowid)
     }
     override addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
-        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
-        params.push(value)
-        return '?' + params.length
+        // The same binding MockQueryRunner uses to imitate this query runner
+        return queryRunnerParamBindings.BunSqlSqliteQueryRunner(params, value, type, typeCategory, forceTypeCast)
     }
     override getErrorReason(error: unknown): TsSqlErrorReason {
         return BunSqlSqliteQueryRunner.getErrorReason(error)

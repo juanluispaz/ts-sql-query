@@ -7,7 +7,7 @@ import { SQL, type TransactionSQL } from 'bun'
 import { getBunSqlMySqlErrorReason, isBunSqlMySqlAnyError } from './connectorErrorMappers/BunSqlMySqlErrorMapper.js'
 import { isTransactionOpenAfterMySqlError } from '../utils/mySqlTransactionRollback.js'
 import type { TypeCategory } from '../TypeAdapter.js'
-import { setQueryParamType } from './QueryRunner.js'
+import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 
 export class BunSqlMySqlQueryRunner extends AbstractBunSqlQueryRunner {
     constructor(connection: SQL, database: 'mySql' | 'mariaDB' = 'mySql') {
@@ -49,9 +49,8 @@ export class BunSqlMySqlQueryRunner extends AbstractBunSqlQueryRunner {
         return isTransactionOpenAfterMySqlError(this.getErrorReason(error))
     }
     override addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
-        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
-        params.push(value)
-        return '?'
+        // The same binding MockQueryRunner uses to imitate this query runner
+        return queryRunnerParamBindings.BunSqlMySqlQueryRunner(params, value, type, typeCategory, forceTypeCast)
     }
     override createBeginTransactionOptions(opts: BeginTransactionOpts): string | undefined {
         // MySQL/MariaDB only accept the access mode in START TRANSACTION; the isolation

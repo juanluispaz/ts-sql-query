@@ -395,6 +395,7 @@ export function createMySql2PoolTestContext(spec: MySqlTestSpec): MySqlTestConte
 
     return decorateMySqlContext(createTestContext<DBConnection>({
         label: spec.label,
+        mockQueryRunner: 'MySql2PoolQueryRunner',
         canonicalForDocs: spec.canonicalForDocs,
         compatibilityVersion: spec.compatibilityVersion,
         database: 'mySql',
@@ -473,6 +474,7 @@ export function createBunSqlMySqlTestContext(spec: MySqlTestSpec): MySqlTestCont
 
     return decorateMySqlContext(createTestContext<DBConnection>({
         label: spec.label,
+        mockQueryRunner: 'BunSqlMySqlQueryRunner',
         canonicalForDocs: spec.canonicalForDocs,
         compatibilityVersion: spec.compatibilityVersion,
         database: 'mySql',

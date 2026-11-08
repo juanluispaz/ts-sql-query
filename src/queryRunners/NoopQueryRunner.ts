@@ -1,8 +1,8 @@
 import { isSelectPageCountQuery, setQueryParamType } from './QueryRunner.js'
+import { databaseParamBinding } from '../utils/queryRunnerParams.js'
 import type { TypeCategory } from '../TypeAdapter.js'
-import { postgreSqlPlaceholder } from '../utils/postgreSqlParamTypes.js'
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, PromiseProvider, QueryRunner, RollbackOpts } from './QueryRunner.js'
-import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js';
+import { TsSqlError, type TsSqlErrorReason } from '../TsSqlError.js';
 
 export interface NoopQueryRunnerConfig {
     database?: DatabaseType
@@ -138,37 +138,8 @@ export class NoopQueryRunner implements QueryRunner {
         return this.promise.resolve()
     }
     addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
-        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
-        const index = params.length
-        let result
-        switch (this.database) {
-            case 'mariaDB':
-                result = '?'
-                break
-            case 'mySql':
-                result = '?'
-                break
-            case 'noopDB':
-                result = '$' + index
-                break
-            case 'oracle':
-                result = ':' + index
-                break
-            case 'postgreSql':
-                // With the cast PgQueryRunner writes
-                result = postgreSqlPlaceholder(index, value, type, typeCategory, forceTypeCast)
-                break
-            case 'sqlite':
-                result = '?' + (index + 1)
-                break
-            case 'sqlServer':
-                result = '@' + index
-                break
-            default:
-                throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database: this.database }, 'Unknown database ' + this.database)
-        }
-        params.push(value)
-        return result
+        // The placeholders of the database, as MockQueryRunner writes them
+        return databaseParamBinding(this.database)(params, value, type, typeCategory, forceTypeCast)
     }
     addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
         setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)

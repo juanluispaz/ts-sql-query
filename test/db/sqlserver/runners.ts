@@ -491,6 +491,7 @@ export function createMssqlPoolTestContext(spec: MssqlTestSpec): SqlServerTestCo
 
     return decorateSqlServerContext(createTestContext<DBConnection>({
         label: spec.label,
+        mockQueryRunner: 'MssqlPoolQueryRunner',
         canonicalForDocs: spec.canonicalForDocs,
         compatibilityVersion: spec.compatibilityVersion,
         database: 'sqlServer',

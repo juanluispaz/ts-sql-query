@@ -13,25 +13,6 @@ import { SqlOperation1ValueSource, SqlOperation1ValueSourceIfValueOrIgnore } fro
 import { TsSqlProcessingError } from '../TsSqlError.js'
 
 export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
-    /**
-     * A customDecimal parameter is text, and the database computes with a text in double precision, and compares it
-     * in double precision in an `in` or a `between`: it is cast to a decimal with the digits of the value. A value
-     * beyond the widest decimal of the database (65 digits, 30 of them decimals) is rejected: the cast would give
-     * 999…9 without an error, and without it the database would compute in double precision; no column can hold it.
-     */
-    override _appendCustomDecimalParam(placeholder: string, value: unknown, params: any[], columnTypeName: string): string {
-        const digits = this._customDecimalDigitsOf(value)
-        if (!digits) {
-            return placeholder
-        }
-        if (digits.precision > 65 || digits.scale > 30) {
-            this._rejectCustomDecimalParam(value, params, columnTypeName, 'decimal(65, 30)')
-        }
-        if (this._isAssigningValueToColumn(params)) {
-            return placeholder
-        }
-        return 'cast(' + placeholder + ' as decimal(' + digits.precision + ', ' + digits.scale + '))'
-    }
     override _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean, needsGrouping: boolean): string {
         if (needsGrouping) {
             // MySQL 5.7 and MariaDB 10.3 don't accept a compound in parentheses as an operand of another one

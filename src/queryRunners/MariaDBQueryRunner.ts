@@ -5,7 +5,7 @@ import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSq
 import { getMariaDbErrorReason, isMariaDbError } from './connectorErrorMappers/MariaDBErrorMapper.js'
 import { isTransactionOpenAfterMySqlError } from '../utils/mySqlTransactionRollback.js'
 import type { TypeCategory } from '../TypeAdapter.js'
-import { setQueryParamType } from './QueryRunner.js'
+import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 
 type UpsertResult = {
     affectedRows: number
@@ -87,9 +87,8 @@ export class MariaDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         return this.connection.rollback()
     }
     addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
-        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
-        params.push(value)
-        return '?'
+        // The same binding MockQueryRunner uses to imitate this query runner
+        return queryRunnerParamBindings.MariaDBQueryRunner(params, value, type, typeCategory, forceTypeCast)
     }
     override getErrorReason(error: unknown): TsSqlErrorReason {
         return MariaDBQueryRunner.getErrorReason(error, this.database)

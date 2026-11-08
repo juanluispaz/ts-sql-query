@@ -195,7 +195,7 @@ the agent consuming them.
 | The mutation safety contract (`withRollback` / `withCommit` / `withReseed`) | [`TEST_LIB.md` § Mutation safety contract](./TEST_LIB.md#testcontextts--mutation-safety-contract) |
 | How the code index is built / how to modify the indexer or searcher (schema, extractors, queries) | [`lib/codeIndexer/CODE_INDEXER.md`](./lib/codeIndexer/CODE_INDEXER.md), [`lib/codeSearcher/CODE_SEARCHER.md`](./lib/codeSearcher/CODE_SEARCHER.md) |
 | The `tests:audit` tool — symmetry check + anti-cheat content rules, the severity model, the `tests-audit-disable-*` suppression | [`lib/audit/AUDIT.md`](./lib/audit/AUDIT.md) |
-| Connector-specialised mocks (when a real runner transforms params) | [`lib/mockRunners/README.md`](./lib/mockRunners/README.md) |
+| How the mock of a cell imitates its real runner | [`lib/mockRunners/README.md`](./lib/mockRunners/README.md) |
 | Docker container reuse, schema/seed revalidation, per-worker DBs | [`ENGINE_LIFECYCLE.md`](./ENGINE_LIFECYCLE.md) |
 | The WASM lifecycle (pglite, sqlite-wasm-OO1) | [`ENGINE_LIFECYCLE.md` § WASM lifecycle](./ENGINE_LIFECYCLE.md#wasm-lifecycle) |
 
@@ -225,7 +225,7 @@ test/
 │   ├── docCodeExtractor/                 ← doc snippet → matrix test cell: type-check + mock SQL (DOC_CODE_EXTRACTOR.md)
 │   ├── codeIndexer/                      ← builds the queryable SQLite code map (tests:index, CODE_INDEXER.md)
 │   ├── codeSearcher/                     ← searches that map: where-is a symbol (tests:where-is, CODE_SEARCHER.md)
-│   └── mockRunners/                      ← connector-specialised mocks + DocCodeMockRunner.ts (the doc SQL tests' mock)
+│   └── mockRunners/                      ← DocCodeMockRunner.ts (the doc SQL tests' mock)
 ├── runners/                              ← query-runner tests, outside the matrix (RUNNER_TESTS.md)
 ├── templates/                            ← doc-code templates (DOC_CODE_EXTRACTOR.md)
 └── db/<database>/<compatibilityVersion>/<connector>/

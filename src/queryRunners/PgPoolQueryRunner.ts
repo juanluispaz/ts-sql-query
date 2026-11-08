@@ -4,8 +4,7 @@ import { PgQueryRunner } from './PgQueryRunner.js'
 import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
 import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import type { TypeCategory } from '../TypeAdapter.js'
-import { setQueryParamType } from './QueryRunner.js'
-import { postgreSqlPlaceholder } from '../utils/postgreSqlParamTypes.js'
+import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 
 export interface PgPoolQueryRunnerConfig {
     allowNestedTransactions?: boolean | undefined
@@ -40,11 +39,8 @@ export class PgPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
         return super.getCurrentNativeConnection() as PoolClient | undefined
     }
     addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
-        // pg can't send a parameter with its type: the type goes as a cast in the placeholder
-        const index = params.length
-        setQueryParamType(params, index, type, typeCategory, forceTypeCast)
-        params.push(value)
-        return postgreSqlPlaceholder(index, value, type, typeCategory, forceTypeCast, this.config?.typesByName)
+        // The same binding MockQueryRunner uses to imitate this query runner
+        return queryRunnerParamBindings.PgPoolQueryRunner(params, value, type, typeCategory, forceTypeCast, this.config?.typesByName)
     }
     protected createQueryRunner(): Promise<QueryRunner> {
         return this.pool.connect().then(connection => new PgQueryRunner(connection, this.config))

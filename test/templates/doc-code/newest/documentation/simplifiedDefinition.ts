@@ -87,7 +87,9 @@ void function(
 
 type DatabaseType = any
 type PromiseProvider = any
+type QueryRunnerName = any
 void function(
     _dt: DatabaseType,
-    _pp: PromiseProvider
+    _pp: PromiseProvider,
+    _qrn: QueryRunnerName
 ) {}

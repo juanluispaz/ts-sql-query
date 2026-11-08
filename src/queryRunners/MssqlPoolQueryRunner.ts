@@ -8,7 +8,7 @@ import { getMssqlErrorReason, isMssqlError } from './connectorErrorMappers/Mssql
 import { databaseIsolationLevel } from '../utils/transactionIsolationLevel.js'
 import { getParamTypeAt, getParamTypeCategoryAt } from '../utils/queryParamsMetadata.js'
 import type { TypeCategory } from '../TypeAdapter.js'
-import { setQueryParamType } from './QueryRunner.js'
+import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 
 const { TYPES, ISOLATION_LEVEL } = mssql
 
@@ -246,10 +246,8 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         return !!this.transaction
     }
     addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
-        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
-        const index = params.length
-        params.push(value)
-        return '@' + index
+        // The same binding MockQueryRunner uses to imitate this query runner
+        return queryRunnerParamBindings.MssqlPoolQueryRunner(params, value, type, typeCategory, forceTypeCast)
     }
     override getErrorReason(error: unknown): TsSqlErrorReason {
         return MssqlPoolQueryRunner.getErrorReason(error)

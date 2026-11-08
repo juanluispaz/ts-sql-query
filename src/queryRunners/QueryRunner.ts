@@ -1,6 +1,6 @@
 import type { TsSqlErrorReason, QueryExecutionSource } from "../TsSqlError.js"
 import type { TypeCategory } from '../TypeAdapter.js'
-import { getParamForceTypeCastAt, getParamTypeAt, getParamTypeCategoryAt, getQueryConnectionConfigurationOf, getQueryExecutionMetadataOf, getQueryExecutionSourceOf, getQueryResultColumnsOf, isSelectPageCountQueryParams, setParamTypeAt } from '../utils/queryParamsMetadata.js'
+import { getParamForceTypeCastAt, isParamValueForColumnAt, getParamTypeAt, getParamTypeCategoryAt, getQueryConnectionConfigurationOf, getQueryExecutionMetadataOf, getQueryExecutionSourceOf, getQueryResultColumnsOf, isSelectPageCountQueryParams, setParamTypeAt } from '../utils/queryParamsMetadata.js'
 
 export interface QueryRunner {
     readonly database: DatabaseType
@@ -138,6 +138,15 @@ export function getQueryParamTypeCategory(query: string, params: any[], index: n
 export function getQueryParamForceTypeCast(query: string, params: any[], index: number): boolean | undefined {
     query
     return getParamForceTypeCastAt(params, index)
+}
+/**
+ * Whether the parameter at that index is the value given to a column of a table, in the values of an insert or the
+ * set of an update, where the column gives it its type; false for a parameter elsewhere, or added by a query the
+ * library didn't build
+ */
+export function isQueryParamValueForColumn(query: string, params: any[], index: number): boolean {
+    query
+    return isParamValueForColumnAt(params, index)
 }
 /**
  * The configuration of the connection that executes a query: the connection itself, as its SQL builder reads it, so

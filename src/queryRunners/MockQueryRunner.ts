@@ -1,13 +1,33 @@
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, PromiseProvider, QueryRunner, QueryType, RollbackOpts } from './QueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import type { TypeCategory } from '../TypeAdapter.js'
-import { postgreSqlPlaceholder } from '../utils/postgreSqlParamTypes.js'
 import { setQueryParamType } from './QueryRunner.js'
+import { databaseParamBinding, queryRunnerDatabases, queryRunnerParamBindings, type ParamBinding } from '../utils/queryRunnerParams.js'
 
 export type MockQueryExecutor = (type: QueryType, query: string, params: any[], index: number) => any
 
+/** The query runners of the library that talk to a database, by the name of their class */
+export type QueryRunnerName =
+    | 'BetterSqlite3QueryRunner' | 'BunSqliteQueryRunner' | 'NodeSqliteQueryRunner' | 'BunSqlSqliteQueryRunner' | 'Sqlite3WasmOO1QueryRunner'
+    | 'PgQueryRunner' | 'PgPoolQueryRunner' | 'BunSqlPostgresQueryRunner' | 'PostgresQueryRunner' | 'PgLiteQueryRunner'
+    | 'MySql2QueryRunner' | 'MySql2PoolQueryRunner' | 'BunSqlMySqlQueryRunner' | 'MariaDBQueryRunner' | 'MariaDBPoolQueryRunner'
+    | 'MssqlPoolQueryRunner' | 'MssqlPoolPromiseQueryRunner'
+    | 'OracleDBQueryRunner' | 'OracleDBPoolQueryRunner' | 'OracleDBPoolPromiseQueryRunner'
+
 export interface MockQueryRunnerConfig {
+    /** The database; with queryRunner, the default one of that query runner when omitted */
     database?: DatabaseType
+    /**
+     * The query runner of the library whose parameters the mock imitates: it adds each parameter as that query runner
+     * does (the placeholder, the cast in it and the value sent), so your function receives the SQL and the params the
+     * real query runner would send. Without it, the mock writes the placeholders of the database.
+     */
+    queryRunner?: QueryRunnerName
+    /**
+     * The typesByName of pg or Bun SQL on PostgreSQL, when queryRunner is one of them: the PostgreSQL type written as
+     * the cast of a parameter, by its type name
+     */
+    typesByName?: { readonly [typeName: string]: string }
     promise?: PromiseProvider
     /**
      * Customize how thrown errors that are NOT `TsSqlError` instances
@@ -63,13 +83,34 @@ export class MockQueryRunner implements QueryRunner {
     readonly database: DatabaseType
     readonly promise: PromiseProvider
     private readonly isSqlErrorFn: (error: unknown) => boolean
+    private readonly paramBinding: ParamBinding
+    private readonly typesByName: { readonly [typeName: string]: string } | undefined
+    private readonly queryRunnerName: QueryRunnerName | undefined
 
     constructor(queryExecutor: MockQueryExecutor, databaseOrConfig: DatabaseType | MockQueryRunnerConfig = 'noopDB') {
         this.queryExecutor = queryExecutor
         if (typeof databaseOrConfig === 'string') {
             databaseOrConfig = { database: databaseOrConfig }
         }
-        this.database = databaseOrConfig.database || 'noopDB'
+        const queryRunner = databaseOrConfig.queryRunner
+        this.queryRunnerName = queryRunner
+        if (queryRunner) {
+            const binding = queryRunnerParamBindings[queryRunner]
+            if (!binding) {
+                throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'Unknown query runner to imitate: ' + queryRunner)
+            }
+            const databases = queryRunnerDatabases[queryRunner]
+            this.database = databaseOrConfig.database || databases[0]!
+            if (!databases.includes(this.database)) {
+                throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database: this.database }, queryRunner + ' doesn\'t support the database ' + this.database)
+            }
+            this.paramBinding = binding
+        } else {
+            this.database = databaseOrConfig.database || 'noopDB'
+            // Resolved when a parameter is added: an unknown database fails there, as before
+            this.paramBinding = (...args) => databaseParamBinding(this.database)(...args)
+        }
+        this.typesByName = databaseOrConfig.typesByName
         this.promise = databaseOrConfig.promise || Promise
         const userIsSqlError = databaseOrConfig.isSqlError
         this.isSqlErrorFn = userIsSqlError
@@ -91,6 +132,9 @@ export class MockQueryRunner implements QueryRunner {
     }
 
     useDatabase(database: DatabaseType): void {
+        if (this.queryRunnerName && !queryRunnerDatabases[this.queryRunnerName].includes(database)) {
+            throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database }, 'Unsupported database: ' + database + '. ' + this.queryRunnerName + ', which the mock imitates, doesn\'t support it')
+        }
         // @ts-ignore
         this.database = database
     }
@@ -484,37 +528,7 @@ export class MockQueryRunner implements QueryRunner {
         }
     }
     addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
-        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
-        const index = params.length
-        let result
-        switch (this.database) {
-            case 'mariaDB':
-                result = '?'
-                break
-            case 'mySql':
-                result = '?'
-                break
-            case 'noopDB':
-                result = '$' + index
-                break
-            case 'oracle':
-                result = ':' + index
-                break
-            case 'postgreSql':
-                // With the cast PgQueryRunner writes
-                result = postgreSqlPlaceholder(index, value, type, typeCategory, forceTypeCast)
-                break
-            case 'sqlite':
-                result = '?' + (index + 1)
-                break
-            case 'sqlServer':
-                result = '@' + index
-                break
-            default:
-                throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database: this.database }, 'Unknown database ' + this.database)
-        }
-        params.push(value)
-        return result
+        return this.paramBinding(params, value, type, typeCategory, forceTypeCast, this.typesByName)
     }
     addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
         setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)

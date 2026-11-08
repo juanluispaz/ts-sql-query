@@ -7,6 +7,7 @@ import { getOracleDBErrorReason, isOracleDBError } from './connectorErrorMappers
 import { getParamTypeAt, getParamTypeCategoryAt } from '../utils/queryParamsMetadata.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { getQueryResultColumns, setQueryParamType } from './QueryRunner.js'
+import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 
 export interface OracleDBQueryRunnerConfig {
     /** The connection is in a transaction that something else manages, and that something else ends: the statements don't commit, and none begins, commits or rolls back through this query runner */
@@ -212,10 +213,8 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         return !!this.config?.forUseInTransaction
     }
     addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
-        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
-        const index = params.length
-        params.push(value)
-        return ':' + index
+        // The same binding MockQueryRunner uses to imitate this query runner
+        return queryRunnerParamBindings.OracleDBQueryRunner(params, value, type, typeCategory, forceTypeCast)
     }
     override addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
         setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)

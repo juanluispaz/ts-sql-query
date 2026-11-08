@@ -364,6 +364,7 @@ export function createMariaDBPoolTestContext(spec: MariaDBTestSpec): MariaDBTest
 
     return decorateMariaDBContext(createTestContext<DBConnection>({
         label: spec.label,
+        mockQueryRunner: 'MariaDBPoolQueryRunner',
         canonicalForDocs: spec.canonicalForDocs,
         compatibilityVersion: spec.compatibilityVersion,
         database: 'mariaDB',
@@ -436,6 +437,7 @@ export function createBunSqlMariaDBTestContext(spec: MariaDBTestSpec): MariaDBTe
 
     return decorateMariaDBContext(createTestContext<DBConnection>({
         label: spec.label,
+        mockQueryRunner: 'BunSqlMySqlQueryRunner',
         canonicalForDocs: spec.canonicalForDocs,
         compatibilityVersion: spec.compatibilityVersion,
         database: 'mariaDB',

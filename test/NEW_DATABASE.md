@@ -155,13 +155,11 @@ above:
    subsection of
    [`EXTERNAL_CAVEATS.md` § Dialect-specific notes](./EXTERNAL_CAVEATS.md).
 
-7. **Specialised mock?** If the connector's real runner applies an
-   observable transformation in `addParam` (or `addOutParam`, or any
-   `execute*`) that the generic `MockQueryRunner` doesn't replicate, add a
-   sibling under `test/lib/mockRunners/` and wire it via the
-   `mockRunnerClass` option in the factory. See
-   [`test/lib/mockRunners/README.md`](./lib/mockRunners/README.md) for the
-   convention.
+7. **The mock of the cell.** Pass the name of the connector's real runner in the `mockQueryRunner` option of the
+   factory: the mock adds parameters exactly as that runner does. A new runner adds its name to `QueryRunnerName`
+   (`src/queryRunners/MockQueryRunner.ts`) and its binding to `queryRunnerParamBindings`
+   (`src/utils/queryRunnerParams.ts`), which its own `addParam` calls. See
+   [`test/lib/mockRunners/README.md`](./lib/mockRunners/README.md).
 
 8. **Runner tests.** Add `test/runners/<database>/<Runner>.test.ts` — see
    [`RUNNER_TESTS.md` § Adding a runner](./RUNNER_TESTS.md#adding-a-runner).

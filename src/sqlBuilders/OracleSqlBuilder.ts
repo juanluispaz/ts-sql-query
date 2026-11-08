@@ -628,17 +628,6 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // Avoid automatically uppercase identifiers by oracle
         return this._forceAsIdentifier(name)
     }
-    /**
-     * The number of the database keeps 38 significant digits: a customDecimal with more would be rounded in a
-     * computation without an error, and no column can hold it, so it is rejected
-     */
-    override _appendCustomDecimalParam(placeholder: string, value: unknown, params: any[], columnTypeName: string): string {
-        const digits = this._customDecimalDigitsOf(value)
-        if (digits && digits.significantDigits > 38) {
-            this._rejectCustomDecimalParam(value, params, columnTypeName, 'a number of 38 significant digits')
-        }
-        return placeholder
-    }
     override _appendParam(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (__isUuidValueType(columnType) && this._uuidUsesRawFunctions()) {
             return 'uuid_to_raw(' + super._appendParam(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ')'

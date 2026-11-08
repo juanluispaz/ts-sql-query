@@ -7,13 +7,12 @@
 import postgres from 'postgres'
 
 import { createPgTestContext, oidTypesByName } from '../../runners.js'
-import { MockPostgresQueryRunner } from '../../../../lib/mockRunners/MockPostgresQueryRunner.js'
 import { PostgresQueryRunner } from '../../../../../src/queryRunners/PostgresQueryRunner.js'
 
 export const ctx = createPgTestContext({
     label: 'newest / postgres',
     compatibilityVersion: Number.POSITIVE_INFINITY,
-    mockRunnerClass: MockPostgresQueryRunner,
+    mockQueryRunner: 'PostgresQueryRunner',
     async createRealRunner(uri) {
         const sql = postgres(uri)
         return {

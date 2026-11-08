@@ -4,7 +4,7 @@ import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from "../TsSqlError.js"
 import { getBetterSqlite3ErrorReason, isBetterSqlite3Error } from './connectorErrorMappers/BetterSqlite3ErrorMapper.js'
 import type { TypeCategory } from '../TypeAdapter.js'
-import { setQueryParamType } from './QueryRunner.js'
+import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 
 export interface BetterSqlite3QueryRunnerConfig {
     promise?: PromiseProvider
@@ -97,13 +97,8 @@ export class BetterSqlite3QueryRunner extends SqlTransactionQueryRunner {
         return super.executeBeginTransaction(opts)
     }
     addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
-        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
-        if (typeof value === 'boolean') {
-            params.push(Number(value))
-        } else {
-            params.push(value)
-        }
-        return '?' + params.length
+        // The same binding MockQueryRunner uses to imitate this query runner
+        return queryRunnerParamBindings.BetterSqlite3QueryRunner(params, value, type, typeCategory, forceTypeCast)
     }
     /**
      * The params as better-sqlite3 binds them: an array binds only the anonymous `?` parameters, so the numbered `?NNN`

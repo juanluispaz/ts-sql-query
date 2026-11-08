@@ -7,6 +7,7 @@
 import { afterAll, beforeAll, describe, expect, test } from '../../lib/testRunner.js'
 import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
 import type { TypeCategory } from '../../../src/TypeAdapter.js'
+import { TsSqlError } from '../../../src/TsSqlError.js'
 import { MssqlPoolQueryRunner } from '../../../src/queryRunners/MssqlPoolQueryRunner.js'
 import { MssqlPoolPromiseQueryRunner } from '../../../src/queryRunners/MssqlPoolPromiseQueryRunner.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
@@ -164,6 +165,26 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
         const params: any[] = []
         const placeholder = declared.addParam(params, exactDecimal, 'ExactDecimal', 'customDouble', false)
         expect(await declared.executeSelectOneRow(`select ${placeholder} as v, cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30)) as boundAs`, params)).toEqual({ v: exactDecimal, boundAs: 'nvarchar' })
+    })
+
+    test('customDecimal/hand-written-sql-adds-two-parameters-as-numbers', async () => {
+        // Bound as nvarchar, two parameters would be concatenated as text: each is cast to a decimal with its digits
+        const params: any[] = []
+        const first = runner!.addParam(params, exactDecimal, 'Amount', 'customDecimal', false)
+        const second = runner!.addParam(params, '0.0000000001', 'Amount', 'customDecimal', false)
+        expect([first, second]).toEqual(['cast(@0 as decimal(30, 10))', 'cast(@1 as decimal(11, 10))'])
+        expect(await runner!.executeSelectOneColumnOneRow(`select cast(${first} + ${second} as nvarchar(50))`, params)).toBe('12345678901234567890.1234567892')
+    })
+
+    test('customDecimal/hand-written-sql-rejects-a-value-beyond-38-digits', () => {
+        const params: any[] = []
+        let error: unknown
+        try {
+            runner!.addParam(params, '1'.repeat(39), 'Amount', 'customDecimal', false)
+        } catch (e) {
+            error = e
+        }
+        expect(error instanceof TsSqlError ? error.errorReason : undefined).toEqual({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: '1'.repeat(39), typeName: 'Amount', paramIndex: 0 })
     })
 
     test('a-statement-without-a-result-set', async () => {

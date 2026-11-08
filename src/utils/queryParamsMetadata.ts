@@ -134,6 +134,24 @@ export function getParamForceTypeCastAt(params: any[], index: number): boolean |
 }
 
 /**
+ * Marks the parameter at that index as the value given to a column of a table, in the values of an insert or the set
+ * of an update: the column gives it its type. Written by the query builder before it asks the query runner to add the
+ * parameter; a parameter elsewhere has no mark.
+ */
+export function setParamValueForColumnAt(params: any[], index: number): void {
+    let valuesForColumn = getHiddenParamsProperty<boolean[]>(params, '$paramValuesForColumn')
+    if (!valuesForColumn) {
+        valuesForColumn = []
+        defineHiddenParamsProperty(params, '$paramValuesForColumn', valuesForColumn)
+    }
+    valuesForColumn[index] = true
+}
+
+export function isParamValueForColumnAt(params: any[], index: number): boolean {
+    return getHiddenParamsProperty<boolean[]>(params, '$paramValuesForColumn')?.[index] === true
+}
+
+/**
  * The columns of the result of the query, in the order of its select list; an empty array when the query returns no
  * columns. Undefined for a query the library didn't build.
  */

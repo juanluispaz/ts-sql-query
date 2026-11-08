@@ -4,7 +4,7 @@ import { MssqlPoolQueryRunner, type MssqlPoolQueryRunnerConfig } from './MssqlPo
 import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
 import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import type { TypeCategory } from '../TypeAdapter.js'
-import { setQueryParamType } from './QueryRunner.js'
+import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 
 export interface MssqlPoolPromiseQueryRunnerConfig {
     /** See MssqlPoolQueryRunnerConfig */
@@ -35,10 +35,8 @@ export class MssqlPoolPromiseQueryRunner extends ManagedTransactionPoolQueryRunn
         return super.getCurrentNativeConnection() as any
     }
     addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
-        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
-        const index = params.length
-        params.push(value)
-        return '@' + index
+        // The same binding MockQueryRunner uses to imitate this query runner
+        return queryRunnerParamBindings.MssqlPoolPromiseQueryRunner(params, value, type, typeCategory, forceTypeCast)
     }
     protected override validateTransactionOpts(opts: BeginTransactionOpts): void {
         super.validateTransactionOpts(opts)

@@ -4,7 +4,7 @@ import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getSqlite3WasmOO1ErrorReason, isSqlite3WasmOO1Error } from './connectorErrorMappers/Sqlite3WasmOO1ErrorMapper.js'
 import type { TypeCategory } from '../TypeAdapter.js'
-import { setQueryParamType } from './QueryRunner.js'
+import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 
 export interface Sqlite3WasmOO1QueryRunnerConfig {
     promise?: PromiseProvider | undefined
@@ -90,21 +90,11 @@ export class Sqlite3WasmOO1QueryRunner extends SqlTransactionQueryRunner {
         return super.executeBeginTransaction(opts)
     }
     addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
-        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
-        if (typeof value === 'boolean') {
-            params.push(Number(value))
-        } else if (typeof value === 'number' && Number.isInteger(value) && (value >= 2 ** 63 || value < -(2 ** 63))) {
-            // sqlite-wasm binds a number that is an integer as a 64-bit integer, and one beyond that range would wrap
-            // without an error (1e20 → 7766279631452241920); its text converted to a real keeps the value
-            params.push(String(value))
-            return 'cast(?' + params.length + ' as real)'
-        } else {
-            params.push(value)
-        }
-        return '?' + params.length
-    }    
+        // The same binding MockQueryRunner uses to imitate this query runner
+        return queryRunnerParamBindings.Sqlite3WasmOO1QueryRunner(params, value, type, typeCategory, forceTypeCast)
+    }
     override createResolvedPromise<RESULT>(result: RESULT | PromiseLike<RESULT>): Promise<RESULT> {
-        return this.promise.resolve(result) 
+        return this.promise.resolve(result)
     }
     override createRejectedPromise<RESULT = any>(error: any): Promise<RESULT> {
         return this.promise.reject(error)

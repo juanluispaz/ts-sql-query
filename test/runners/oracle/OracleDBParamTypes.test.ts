@@ -7,6 +7,7 @@
 import oracledb from 'oracledb'
 import { afterAll, beforeAll, describe, expect, test } from '../../lib/testRunner.js'
 import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
+import { TsSqlError } from '../../../src/TsSqlError.js'
 import { OracleDBQueryRunner } from '../../../src/queryRunners/OracleDBQueryRunner.js'
 import { OracleDBPoolQueryRunner } from '../../../src/queryRunners/OracleDBPoolQueryRunner.js'
 import { OracleDBPoolPromiseQueryRunner } from '../../../src/queryRunners/OracleDBPoolPromiseQueryRunner.js'
@@ -81,5 +82,22 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
         } finally {
             await pool.close(0)
         }
+    })
+})
+
+describe('OracleDBQueryRunner: a customDecimal parameter in hand-written SQL', () => {
+    test('a-value-beyond-38-significant-digits-is-rejected', () => {
+        // The number of the database keeps 38 significant digits: the runner rejects it before anything is sent, so
+        // no connection is needed
+        const runner = new OracleDBQueryRunner({} as oracledb.Connection)
+        const params: any[] = []
+        let error: unknown
+        try {
+            runner.addParam(params, '0.' + '1'.repeat(39), 'Amount', 'customDecimal', false)
+        } catch (e) {
+            error = e
+        }
+        expect(error instanceof TsSqlError ? error.errorReason : undefined).toEqual({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: '0.' + '1'.repeat(39), typeName: 'Amount', paramIndex: 0 })
+        expect(runner.addParam(params, '0.' + '1'.repeat(38), 'Amount', 'customDecimal', false)).toBe(':0')
     })
 })

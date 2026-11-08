@@ -5,8 +5,7 @@ import { PostgresTransactionOutcome } from '../utils/postgresTransactionOutcome.
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getPgErrorReason, isPgError } from './connectorErrorMappers/PgErrorMapper.js'
 import type { TypeCategory } from '../TypeAdapter.js'
-import { setQueryParamType } from './QueryRunner.js'
-import { postgreSqlPlaceholder } from '../utils/postgreSqlParamTypes.js'
+import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 
 export interface PgQueryRunnerConfig {
     allowNestedTransactions?: boolean | undefined
@@ -69,11 +68,8 @@ export class PgQueryRunner extends SqlTransactionQueryRunner {
         return super.executeBeginTransaction(opts)
     }
     addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
-        // pg can't send a parameter with its type: the type goes as a cast in the placeholder
-        const index = params.length
-        setQueryParamType(params, index, type, typeCategory, forceTypeCast)
-        params.push(value)
-        return postgreSqlPlaceholder(index, value, type, typeCategory, forceTypeCast, this.config?.typesByName)
+        // The same binding MockQueryRunner uses to imitate this query runner
+        return queryRunnerParamBindings.PgQueryRunner(params, value, type, typeCategory, forceTypeCast, this.config?.typesByName)
     }
     override nestedTransactionsSupported(): boolean {
         return !!this.config?.allowNestedTransactions

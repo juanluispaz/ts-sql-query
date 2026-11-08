@@ -1,12 +1,15 @@
 // The decimal strategies of SqliteConnection other than the default 'decimal-functions' (covered by
-// select.custom-decimal). exact_amount.price holds 1.50, -0.25, 0.00, no price and 1234.56 in rows 1 to 5, as text.
+// select.custom-decimal), and what every strategy does with the distinct values. exact_amount.price holds 1.50, -0.25,
+// 0.00, no price and 1234.56 in rows 1 to 5, as text, and exact_amount.amount two values of 30 digits in rows 1 and 5;
+// the tests add 1.5, 9, 10, -0.00 and -1 as rows 6 to 10.
 //
-//   - 'text': plain SQL. Equality compares the texts, a range and an order by compare the numbers the texts are in
-//     floating point, and the library rejects a query with the arithmetic of a customDecimal, which SQLite would
-//     compute in floating point.
-//   - 'decimal-extension': only the functions of SQLite's decimal extension (registered for this connector in
-//     test/db/sqlite/runners.ts for the connectors that can register functions): arithmetic, sum and every comparison are exact; order by, min, max, group by and
-//     distinct compare the texts.
+//   - 'text': plain SQL. Equality compares the numbers by their normal form (1.5 and 1.50 are the same), a range,
+//     min, max and an order by compare the numbers in SQL, and an arithmetic result would be a floating point number,
+//     so the library rejects it.
+//   - 'decimal-extension': only the functions of SQLite's decimal extension (registered in test/db/sqlite/runners.ts
+//     for the connectors that can register functions; Bun SQL's SQLite can't, so here they run on the mock): arithmetic, sum and every comparison with them; order by, min, max, group by and
+//     distinct compare the numbers in SQL.
+// In every strategy a group of numbers equal with different scales gives one of their texts.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -24,41 +27,115 @@ const tExactAmount = new class TExactAmount extends Table<DBConnection, 'TExactA
     constructor() { super('exact_amount') }
 }()
 
+// The number of a text, to compare a value whose scale is the one of any row of its group
+function asNumber(value: string | null | undefined): number | null {
+    return value === null || value === undefined ? null : Number(value)
+}
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    test('decimal-strategy: text compares a range and orders as floating point numbers', async () => {
-        const conn = ctx.withDecimalStrategy('text')
-        ctx.mockNext([2, 3, 1, 5])
-        const ids = await conn.selectFrom(tExactAmount)
-            .where(tExactAmount.price.greaterThan('-1' as Amount))
-            .selectOneColumn(tExactAmount.id)
-            .orderBy(tExactAmount.price)
-            .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as result from exact_amount where cast(price as real) > cast(?1 as real) order by cast(exact_amount.price as real)"`)
-        assertType<Exact<typeof ids, number[]>>()
-        expect(ids).toEqual([2, 3, 1, 5])
-    })
+    async function addRows(conn: DBConnection) {
+        await conn.insertInto(tExactAmount).values([
+            { id: 6, price: '1.5' as Amount },
+            { id: 7, price: '9' as Amount },
+            { id: 8, price: '10' as Amount },
+            { id: 9, price: '-0.00' as Amount },
+            { id: 10, price: '-1' as Amount },
+        ]).executeInsert()
+    }
 
-    test('decimal-strategy: text equality compares the texts', async () => {
-        const conn = ctx.withDecimalStrategy('text')
-        ctx.mockNext([])
-        ctx.mockNext([1])
-        // The price of row 1 is the text 1.50
-        const otherScale = await conn.selectFrom(tExactAmount)
-            .where(tExactAmount.price.equals('1.5' as Amount))
-            .selectOneColumn(tExactAmount.id)
-            .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as result from exact_amount where price = ?1"`)
-        const sameText = await conn.selectFrom(tExactAmount)
-            .where(tExactAmount.price.equals('1.50' as Amount))
-            .selectOneColumn(tExactAmount.id)
-            .executeSelectMany()
-        expect(otherScale).toEqual([])
-        expect(sameText).toEqual([1])
-    })
+    for (const strategy of ['text', 'decimal-extension'] as const) {
+        test('decimal-strategy: ' + strategy + ' compares the numbers', async () => {
+            const conn = ctx.withDecimalStrategy(strategy)
+            if (strategy === 'decimal-extension') {
+                // MOCK-ONLY: Bun SQL's SQLite can't register functions, and the decimal strategy 'decimal-extension'
+                // writes decimal_cmp
+                ctx.mockOnlyConnection()
+            }
+            ctx.mockNext(5)
+            ctx.mockNext([1, 6])
+            ctx.mockNext([3, 8, 9])
+            ctx.mockNext([5, 8])
+            ctx.mockNext([1, 2, 3, 6, 9, 10])
+            ctx.mockNext([1, 6])
+            ctx.mockNext([1, 2, 3])
+            ctx.mockNext([1, 5])
+            ctx.mockNext([1, 6])
+            ctx.mockNext([2, 3, 5, 7, 8, 9, 10])
+            await ctx.withRollback(async () => {
+                await addRows(conn)
+                const equal = await conn.selectFrom(tExactAmount).where(tExactAmount.price.equals('1.5' as Amount)).selectOneColumn(tExactAmount.id).orderBy(tExactAmount.id).executeSelectMany()
+                const inList = await conn.selectFrom(tExactAmount).where(tExactAmount.price.in(['10.0' as Amount, '-0' as Amount])).selectOneColumn(tExactAmount.id).orderBy(tExactAmount.id).executeSelectMany()
+                const greater = await conn.selectFrom(tExactAmount).where(tExactAmount.price.greaterThan('9.5' as Amount)).selectOneColumn(tExactAmount.id).orderBy(tExactAmount.id).executeSelectMany()
+                const between = await conn.selectFrom(tExactAmount).where(tExactAmount.price.between('-1' as Amount, '1.5' as Amount)).selectOneColumn(tExactAmount.id).orderBy(tExactAmount.id).executeSelectMany()
+                const is = await conn.selectFrom(tExactAmount).where(tExactAmount.price.is('1.50' as Amount)).selectOneColumn(tExactAmount.id).orderBy(tExactAmount.id).executeSelectMany()
+                // 30 digits: they differ beyond the 15 that a floating point number keeps
+                const lessWide = await conn.selectFrom(tExactAmount).where(tExactAmount.amount.lessThan('12345678901234567890.1234567892' as Amount)).selectOneColumn(tExactAmount.id).orderBy(tExactAmount.id).executeSelectMany()
+                const greaterWide = await conn.selectFrom(tExactAmount).where(tExactAmount.amount.greaterThan('12345678901234567890.1234567890' as Amount)).selectOneColumn(tExactAmount.id).orderBy(tExactAmount.id).executeSelectMany()
+                const inQuery = await conn.selectFrom(tExactAmount)
+                    .where(tExactAmount.price.in(conn.subSelectUsing(tExactAmount).from(tExactAmount).where(tExactAmount.id.equals(6)).selectOneColumn(tExactAmount.price)))
+                    .selectOneColumn(tExactAmount.id).orderBy(tExactAmount.id).executeSelectMany()
+                const notInQuery = await conn.selectFrom(tExactAmount)
+                    .where(tExactAmount.price.notIn(conn.subSelectUsing(tExactAmount).from(tExactAmount).where(tExactAmount.id.equals(6)).selectOneColumn(tExactAmount.price)))
+                    .selectOneColumn(tExactAmount.id).orderBy(tExactAmount.id).executeSelectMany()
+                assertType<Exact<typeof equal, number[]>>()
+                expect(equal).toEqual([1, 6])
+                expect(inList).toEqual([3, 8, 9])
+                expect(greater).toEqual([5, 8])
+                expect(between).toEqual([1, 2, 3, 6, 9, 10])
+                expect(is).toEqual([1, 6])
+                expect(lessWide).toEqual([1, 2, 3])
+                expect(greaterWide).toEqual([1, 5])
+                expect(inQuery).toEqual([1, 6])
+                expect(notInQuery).toEqual([2, 3, 5, 7, 8, 9, 10])
+            })
+        })
+
+        test('decimal-strategy: ' + strategy + ' orders, groups and removes duplicates as numbers', async () => {
+            const conn = ctx.withDecimalStrategy(strategy)
+            if (strategy === 'decimal-extension') {
+                // MOCK-ONLY: Bun SQL's SQLite can't register functions, and the decimal strategy 'decimal-extension'
+                // writes decimal_cmp
+                ctx.mockOnlyConnection()
+            }
+            ctx.mockNext(5)
+            ctx.mockNext([4, 10, 2, 3, 9, 1, 6, 7, 8, 5])
+            ctx.mockNext([5, 8, 7, 1, 6, 3, 9, 2, 10, 4])
+            ctx.mockNext([{ price: null, rows: 1 }, { price: '-1', rows: 1 }, { price: '-0.25', rows: 1 }, { price: '0.00', rows: 2 }, { price: '1.50', rows: 2 }, { price: '9', rows: 1 }, { price: '10', rows: 1 }, { price: '1234.56', rows: 1 }])
+            ctx.mockNext([null, '-1', '-0.25', '0.00', '1.50', '9', '10', '1234.56'])
+            ctx.mockNext({ smallest: '-1', largest: '1234.56', distinctPrices: 7 })
+            ctx.mockNext(['0.00', '1.50'])
+            await ctx.withRollback(async () => {
+                await addRows(conn)
+                const ascending = await conn.selectFrom(tExactAmount).selectOneColumn(tExactAmount.id).orderBy(tExactAmount.price).orderBy(tExactAmount.id).executeSelectMany()
+                const descending = await conn.selectFrom(tExactAmount).selectOneColumn(tExactAmount.id).orderBy(tExactAmount.price, 'desc').orderBy(tExactAmount.id).executeSelectMany()
+                const groups = await conn.selectFrom(tExactAmount)
+                    .select({ price: tExactAmount.price, rows: conn.countAll() })
+                    .groupBy('price')
+                    .orderBy('price')
+                    .executeSelectMany()
+                const distinct = await conn.selectDistinctFrom(tExactAmount).selectOneColumn(tExactAmount.price).orderBy('result').executeSelectMany()
+                const extremes = await conn.selectFrom(tExactAmount)
+                    .select({ smallest: conn.min(tExactAmount.price), largest: conn.max(tExactAmount.price), distinctPrices: conn.countDistinct(tExactAmount.price) })
+                    .executeSelectOne()
+                const union = await conn.selectFrom(tExactAmount).where(tExactAmount.id.in([1, 3])).selectOneColumn(tExactAmount.price)
+                    .union(conn.selectFrom(tExactAmount).where(tExactAmount.id.in([6, 9])).selectOneColumn(tExactAmount.price))
+                    .orderBy('result')
+                    .executeSelectMany()
+                expect(ascending).toEqual([4, 10, 2, 3, 9, 1, 6, 7, 8, 5])
+                expect(descending).toEqual([5, 8, 7, 1, 6, 3, 9, 2, 10, 4])
+                expect(groups.map(group => ({ price: asNumber(group.price), rows: group.rows }))).toEqual([
+                    { price: null, rows: 1 }, { price: -1, rows: 1 }, { price: -0.25, rows: 1 }, { price: 0, rows: 2 }, { price: 1.5, rows: 2 }, { price: 9, rows: 1 }, { price: 10, rows: 1 }, { price: 1234.56, rows: 1 },
+                ])
+                expect(distinct.map(asNumber)).toEqual([null, -1, -0.25, 0, 1.5, 9, 10, 1234.56])
+                expect(extremes).toEqual({ smallest: '-1', largest: '1234.56', distinctPrices: 7 })
+                expect(union.map(asNumber)).toEqual([0, 1.5])
+            })
+        })
+    }
 
     test('decimal-strategy: text rejects the arithmetic of a customDecimal before sending the query', async () => {
         const conn = ctx.withDecimalStrategy('text')
@@ -80,17 +157,17 @@ describe(ctx.label, () => {
             reasons.push(ctx.history.length - sent)
         }
         expect(reasons).toEqual([{ reason: 'UNSUPPORTED_QUERY' }, 0, { reason: 'UNSUPPORTED_QUERY' }, 0, { reason: 'UNSUPPORTED_QUERY' }, 0, { reason: 'UNSUPPORTED_QUERY' }, 0])
-        // A column alone is read as it is
-        ctx.mockNext('1.50')
-        const price = await conn.selectFrom(tExactAmount).where(tExactAmount.id.equals(1)).selectOneColumn(tExactAmount.price).executeSelectOne()
-        expect(price).toBe('1.50')
+        // A column alone is read as it is, and its absolute value is its text without the minus sign
+        ctx.mockNext({ price: '0.25', positive: '0.25' })
+        const row = await conn.selectFrom(tExactAmount).where(tExactAmount.id.equals(2)).select({ price: tExactAmount.price.abs().abs(), positive: tExactAmount.price.abs() }).executeSelectOne()
+        expect(row).toEqual({ price: '0.25', positive: '0.25' })
     })
 
     test('decimal-strategy: decimal-extension computes and compares with the extension functions', async () => {
+        const conn = ctx.withDecimalStrategy('decimal-extension')
         // MOCK-ONLY: Bun SQL's SQLite can't register functions, and the decimal strategy 'decimal-extension' writes
         // decimal_add, decimal_sum and decimal_cmp
         ctx.mockOnlyConnection()
-        const conn = ctx.withDecimalStrategy('decimal-extension')
         ctx.mockNext({ next: '12345678901234567890.1234567892', total: '1235.81' })
         ctx.mockNext([1])
         const row = await conn.selectFrom(tExactAmount)
@@ -110,34 +187,43 @@ describe(ctx.label, () => {
         expect(ids).toEqual([1])
     })
 
-    test('decimal-strategy: decimal-extension orders and groups by the texts', async () => {
-        // MOCK-ONLY: Bun SQL's SQLite can't register functions, and the decimal strategy 'decimal-extension' writes
-        // decimal_add, decimal_sum and decimal_cmp
+    test('decimal-strategy: every strategy rejects a distinct select of groups with a customDecimal', async () => {
+        const reasons: (TsSqlErrorReason | string)[] = []
+        for (const strategy of ['text', 'decimal-extension', 'decimal-functions'] as const) {
+            const conn = ctx.withDecimalStrategy(strategy)
+            try {
+                await conn.selectDistinctFrom(tExactAmount).select({ price: tExactAmount.price, rows: conn.countAll() }).groupBy('price').executeSelectMany()
+                reasons.push('sent')
+            } catch (e) {
+                reasons.push(e instanceof TsSqlError ? e.errorReason : String(e))
+            }
+        }
+        expect(reasons).toEqual([{ reason: 'UNSUPPORTED_QUERY' }, { reason: 'UNSUPPORTED_QUERY' }, { reason: 'UNSUPPORTED_QUERY' }])
+    })
+
+    test('decimal-strategy: the distinct aggregates count every number once', async () => {
+        const conn = ctx.withDecimalStrategy('decimal-functions')
+        // MOCK-ONLY: Bun SQL's SQLite can't register functions, and the decimal strategy 'decimal-functions' writes
+        // decimal_sum
         ctx.mockOnlyConnection()
-        const conn = ctx.withDecimalStrategy('decimal-extension')
-        ctx.mockNext(1)
-        ctx.mockNext([2, 3, 6, 1, 5])
-        ctx.mockNext([{ price: '1.50', rows: 1 }, { price: '1.5', rows: 1 }])
+        ctx.mockNext(5)
+        ctx.mockNext({ distinctPrices: 7, prices: '1253.81', mean: 179.115714285714, list: '["-1","-0.25","0","1.5","9","10","1234.56"]' })
         await ctx.withRollback(async () => {
-            await conn.insertInto(tExactAmount).set({ id: 6, price: '1.5' as Amount }).executeInsert()
-            const ids = await conn.selectFrom(tExactAmount)
-                .where(tExactAmount.price.isNotNull())
-                .selectOneColumn(tExactAmount.id)
-                .orderBy(tExactAmount.price)
-                .orderBy(tExactAmount.id)
-                .executeSelectMany()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as result from exact_amount where price is not null order by exact_amount.price, exact_amount.id"`)
-            const groups = await conn.selectFrom(tExactAmount)
-                .where(tExactAmount.id.in([1, 6]))
-                .select({ price: tExactAmount.price, rows: conn.countAll() })
-                .groupBy('price')
-                .orderBy('price', 'desc')
-                .executeSelectMany()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select price as price, count(*) as "rows" from exact_amount where id in (?1, ?2) group by price order by price desc"`)
-            // The texts in byte order: 1.5 is before 1.50, and 1.50 before 1234.56, as numbers too
-            expect(ids).toEqual([2, 3, 6, 1, 5])
-            // 1.50 and 1.5 are two groups: they are different texts
-            expect(groups).toEqual([{ price: '1.50', rows: 1 }, { price: '1.5', rows: 1 }])
+            await addRows(conn)
+            const row = await conn.selectFrom(tExactAmount)
+                .select({
+                    distinctPrices: conn.countDistinct(tExactAmount.price),
+                    prices: conn.sumDistinct(tExactAmount.price),
+                    mean: conn.averageDistinct(tExactAmount.price),
+                    list: conn.aggregateAsArrayOfOneColumnDistinct(tExactAmount.price),
+                })
+                .executeSelectOne()
+            expect({
+                distinctPrices: row.distinctPrices,
+                prices: asNumber(row.prices),
+                mean: row.mean === undefined ? undefined : Math.round(row.mean * 1e6) / 1e6,
+                list: row.list.map(asNumber).sort((a, b) => (a ?? 0) - (b ?? 0)),
+            }).toEqual({ distinctPrices: 7, prices: 1253.81, mean: 179.115714, list: [-1, -0.25, 0, 1.5, 9, 10, 1234.56] })
         })
     })
 })

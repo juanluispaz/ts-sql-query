@@ -210,7 +210,7 @@ decimal extension (ext/misc/decimal.c), and Bun SQL can't register functions.
 `'decimal-functions'`, with the functions of `test/db/sqlite/decimalFunctions.ts`
 registered by `test/db/sqlite/runners.ts`; the `bun_sql_sqlite` cells run the
 tests that write those functions with `ctx.mockOnlyConnection()`.
-`config.decimal-strategy.test.ts` covers `'text'` and `'decimal-extension'`.
+`config.decimal-strategy.test.ts` covers `'text'`, `'decimal-extension'` and the distinct aggregates of every strategy.
 
 ### SQLite RETURNING can only reference the table being modified, not a FROM/JOIN-ed column
 

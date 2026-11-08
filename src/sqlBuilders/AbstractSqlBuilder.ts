@@ -1486,7 +1486,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 orderByColumns += ', '
             }
             const order = entry.order
-            if (!order) {
+            const ownTerms = this._appendOrderByEntryTerms(entry, query, params)
+            if (ownTerms !== undefined) {
+                orderByColumns += ownTerms
+            } else if (!order) {
                 orderByColumns += this._appendOrderByColumnAlias(entry, query, params)
             } else switch (order) {
                 case 'asc':
@@ -1532,6 +1535,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
         } else {
             return ' order by ' + orderByColumns
         }
+    }
+    /**
+     * The terms of the order by for an entry that a dialect orders by several expressions of its own, with the
+     * ordering of the entry already applied to each of them; undefined to order it by one expression, as usual
+     */
+    _appendOrderByEntryTerms(_entry: OrderByEntry, _query: SelectData, _params: any[]): string | undefined {
+        return undefined
     }
     _appendOrderByColumnAlias(entry: OrderByEntry, query: SelectData, params: any[]): string {
         const expression = entry.expression

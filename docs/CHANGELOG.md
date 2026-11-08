@@ -1,5 +1,32 @@
 # Change Log
 
+## v1.69.0 (?? ??? 2026)
+
+**Changes**:
+
+- Deprecate defining custom types (`customInt`, `customDouble`, `customUuid`, `customLocalDate`, `customLocalTime`, `customLocalDateTime`, `enum`, `custom` and `customComparable`) providing only one generic argument; provide the type name as second generic argument too, matching the `typeName` argument (e.g. `this.column<MyType, 'MyTypeName'>('ColumnName', 'custom', 'MyTypeName')`). It applies to table, view and values columns, `const`, `optionalConst`, `executeFunction`, `fragmentWithType`, `arg`, `valueArg` and `sequence`.
+- Deprecate returning an array of promises in a transaction (`transaction`, `executeInTransaction` and `createAllPromise`); use an async function that awaits each query. In ts-sql-query v2 an array is returned as the result without waiting for it: the transaction commits even if a query fails.
+- Deprecate `TypeSafeDynamicCondition`; use `DynamicCondition` instead.
+- Deprecate `TyeSafeConnection` and `TyeUnsafeConnection`; use `Connection` instead.
+- Deprecate the database-specific base connections (`AbstractPostgreSqlConnection`, `AbstractMySqlConnection`, `AbstractMariaDBConnection`, `AbstractMySqlMariaDBConnection`, `AbstractOracleConnection`, `AbstractSqlServerConnection`, `AbstractSqliteConnection` and `AbstractNoopDBConnection`); extend `PostgreSqlConnection`, `MySqlConnection`, etc. instead.
+- Deprecate `PromiseBasedQueryRunner`, `PromiseBasedPoolQueryRunner`, `PromiseBasedWithSqlTransactionQueryRunner` and `PromiseBasedAbstractQueryRunner`; extend `ManagedTransactionQueryRunner`, `ManagedTransactionPoolQueryRunner`, `SqlTransactionQueryRunner` or `AbstractQueryRunner` instead, implementing `createResolvedPromise` yourself.
+- Deprecate `PrismaQueryRunner`; it will be removed in ts-sql-query v2 because Prisma no longer offers the API it is built on. On PostgreSQL, use `PgPoolQueryRunner` over the pool Prisma uses.
+- Deprecate `Sqlite3QueryRunner` due [sqlite3](https://www.npmjs.com/package/sqlite3) driver was deprecated by its maintainers; use `BetterSqlite3QueryRunner` or `Sqlite3WasmOO1QueryRunner` instead. ts-sql-query v2 also offers `NodeSqliteQueryRunner` (Node's built-in `node:sqlite`, Node 22.13+), `BunSqliteQueryRunner` (`bun:sqlite`) and `BunSqlSqliteQueryRunner` (Bun SQL, Bun 1.4.4+).
+- Deprecate `processOutBinds`, an internal helper of the Oracle query runners.
+- Deprecate the `lessOrEquals`, `lessOrEqualsIfValue`, `greaterOrEquals` and `greaterOrEqualsIfValue` rules of a dynamic condition due to a typo in their names; use `lessOrEqual`, `lessOrEqualIfValue`, `greaterOrEqual` and `greaterOrEqualIfValue` instead.
+- Add `PickValuesPathWithAllProperties` and `PickValuesPathWithAllPropertiesProjectedAsNullable`, and deprecate `PickValuesPathWitAllProperties` and `PickValuesPathWitAllPropertiesProjectedAsNullable` due to a typo in their names.
+- Add `MockQueryExecutor` and deprecate `QueryExecutor` (in `MockQueryRunner`).
+- Export `QueryType` and `PromiseProvider` from `ts-sql-query/queryRunners/QueryRunner`.
+
+**Bug fixes**:
+
+- The `lessOrEqual`, `lessOrEqualIfValue`, `greaterOrEqual` and `greaterOrEqualIfValue` rules of a dynamic condition were accepted at runtime but missing from its type.
+- Fix wrong or misplaced deprecation messages in `greaterOrEqualsIfValue`, `between`, `notBetween`, `notLike`, `notEqualsInsensitive`, `concat` and `roundn`.
+
+**Documentation changes**:
+
+- Custom type examples in the column types documentation now provide the type name as second generic argument.
+
 ## v1.68.0 (14 Jun 2026)
 
 **Changes**:

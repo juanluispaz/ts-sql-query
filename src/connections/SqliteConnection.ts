@@ -3,7 +3,7 @@ import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { SqliteSqlBuilder } from '../sqlBuilders/SqliteSqlBuilder.js'
 import type { AggregatedArrayColumns, SourceOfAggregatedArray } from './AbstractConnection.js'
 import { AbstractConnection } from './AbstractConnection.js'
-import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from './SqliteConfiguration.js'
+import type { SqliteDateTimeFormat, SqliteDateTimeFormatType, SqliteDecimalStrategy } from './SqliteConfiguration.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { AggregatedArrayValueSource, AggregatedArrayValueSourceProjectableAsNullable, IStringValueSource, IValueSource, StringValueSource , RemapValueSourceTypeWithOptionalType} from '../expressions/values.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
@@ -21,25 +21,26 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
     protected uuidStrategy: 'string' | 'uuid-extension' = 'uuid-extension'
 
     /**
-     * How a `customDecimal` is computed, compared and ordered. SQLite has no exact decimal type: a `customDecimal`
-     * lives in a `TEXT` column (of a `STRICT` table, so SQLite doesn't turn it into a floating point number).
+     * How a `customDecimal` is stored, computed, compared and ordered. SQLite has no exact decimal type: a
+     * `customDecimal` lives in a `TEXT` column (of a `STRICT` table, so SQLite doesn't turn it into a floating point
+     * number). Every strategy is exact: an operation it can't do exactly is rejected when the query is built.
      *
-     * - `'decimal-functions'` (the default): everything is exact. The library writes the functions of the `decimal`
-     *   extension of SQLite (`decimal_add`, `decimal_sub`, `decimal_mul`, `decimal_sum` and `decimal_cmp`) and three
-     *   of its own: `tsq_decimal_key` (a text that orders as the number, for the order by, the group by and
-     *   `distinct`), and the aggregates `tsq_decimal_min` and `tsq_decimal_max`. Register them on the connection: the
-     *   page of each connector gives them in JavaScript.
-     * - `'decimal-extension'`: only the functions of the `decimal` extension, so the extension loaded on the
-     *   connection is enough. Computing and comparing are exact; the order by, `min`, `max`, the group by and
-     *   `distinct` work on the text.
-     * - `'text'`: plain SQL. A comparison of order (`<`, `>`, `between`) and the order by compare the value converted
-     *   to a floating point number, exact up to about 15 significant digits; an equality compares the text; an
-     *   addition, a multiplication or a sum is computed in floating point, and its result is rejected with
-     *   `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`.
+     * - `'decimal-extension and tsq-functions'`: the functions of the `decimal` extension of SQLite (`decimal_add`,
+     *   `decimal_sub`, `decimal_mul`, `decimal_sum` and `decimal_cmp`, written in C when the extension is loaded),
+     *   plain SQL for the order by, `min`, `max` and the grouping, and functions of the library (`tsq_`) for what the
+     *   extension doesn't have: `ceil`, `floor`, `round`, `roundn` and `modulo`.
+     * - `'decimal-functions'`: the functions of the `decimal` extension and the ones of the library for the order by,
+     *   the grouping, `min` and `max` (`tsq_decimal_key`, `tsq_decimal_min`, `tsq_decimal_max`).
+     * - `'text'`: plain SQL, no function to register; the arithmetic, the sums and the roundings are rejected.
+     *
+     * Each has a canonical text variant (`'… with canonical text'`, and `'canonical text'` for `'text'`), the default
+     * being `'decimal-extension and tsq-functions with canonical text'`: the library writes every value in its
+     * canonical text (`007.50` as `7.5`, `-0.00` as `0`) and takes the values stored as written so, which compare,
+     * group and remove duplicates as their text. The values read come back so (`1.50` is read as `1.5`).
      *
      * See the SQLite page of the documentation.
      */
-    protected decimalStrategy: 'text' | 'decimal-extension' | 'decimal-functions' = 'decimal-functions'
+    protected decimalStrategy: SqliteDecimalStrategy = 'decimal-extension and tsq-functions with canonical text'
 
     /**
      * Name of a scalar SQL function to call for `.replaceAllInsensitive(...)`.

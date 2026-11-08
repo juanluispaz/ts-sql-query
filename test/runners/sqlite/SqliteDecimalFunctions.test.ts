@@ -1,4 +1,4 @@
-// The JavaScript functions the documentation gives for the `decimal-extension` decimal strategy (registered for the
+// The JavaScript functions the documentation gives for the decimal strategies with functions (registered for the
 // SQLite cells in test/db/sqlite/runners.ts) give the results of SQLite's decimal extension: the extension is built
 // from extensions/decimal.c (ext/misc/decimal.c of SQLite 3.53.0) and loaded on better-sqlite3, and the same
 // queries run against it and against the JavaScript functions. Without a C compiler, or without the headers of

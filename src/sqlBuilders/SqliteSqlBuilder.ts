@@ -7,9 +7,28 @@ import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.j
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { DBColumn } from '../utils/Column.js'
 import { isColumn } from '../utils/Column.js'
-import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from '../connections/SqliteConfiguration.js'
+import type { SqliteDateTimeFormat, SqliteDateTimeFormatType, SqliteDecimalStrategy } from '../connections/SqliteConfiguration.js'
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
+import { FragmentValueSource, InlineSelectValueSource, SqlOperationConstValueSource, TableOrViewRawFragmentValueSource } from '../internal/ValueSourceImpl.js'
+
+/**
+ * The canonical text of a decimal: no zeros before the integer part ('0' when it is zero), none at the end of the
+ * fraction, and no minus sign for a zero (`007.50` is `7.5`, `-0.00` is `0`, `.5` is `0.5`). A text that isn't a plain
+ * decimal is left as it is.
+ */
+export function canonicalDecimalText(text: string): string {
+    const match = /^(-?)0*(\d*)(?:\.(\d*?)0*)?$/.exec(text)
+    if (!match) {
+        return text
+    }
+    const integer = match[2] || '0'
+    const fraction = match[3] || ''
+    if (integer === '0' && fraction === '') {
+        return '0'
+    }
+    return match[1] + integer + (fraction ? '.' + fraction : '')
+}
 
 export class SqliteSqlBuilder extends AbstractSqlBuilder {
     sqlite: true = true
@@ -23,19 +42,73 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return this._connectionConfiguration.uuidStrategy as any || 'uuid-extension'
     }
     /** How a customDecimal is computed and compared (`decimalStrategy`) */
-    _getDecimalStrategy(): 'text' | 'decimal-extension' | 'decimal-functions' {
-        return this._connectionConfiguration.decimalStrategy as any || 'decimal-functions'
+    _getDecimalStrategy(): SqliteDecimalStrategy {
+        return this._connectionConfiguration.decimalStrategy as SqliteDecimalStrategy | undefined || 'decimal-extension and tsq-functions with canonical text'
     }
-    /** The decimal extension's functions compute and compare (`decimal-extension` and `decimal-functions`) */
-    _usesDecimalExtensionFunctions(): boolean {
-        return this._getDecimalStrategy() !== 'text'
+    /** The strategy without its canonical text variant: 'text', 'decimal-functions' or 'decimal-extension and tsq-functions' */
+    _getDecimalBaseStrategy(): 'text' | 'decimal-functions' | 'decimal-extension and tsq-functions' {
+        const strategy = this._getDecimalStrategy()
+        if (strategy === 'canonical text') {
+            return 'text'
+        }
+        return strategy.replace(' with canonical text', '') as 'text' | 'decimal-functions' | 'decimal-extension and tsq-functions'
     }
     /**
-     * With the decimal strategy 'text', SQLite computes with a text in floating point, so no arithmetic of a customDecimal
-     * is exact: the query is rejected instead of writing a result that has lost digits
+     * A canonical text variant: the library writes every customDecimal in its canonical text (see canonicalDecimalText)
+     * and takes the values stored as written so, which compare and group as their text
+     */
+    _isCanonicalDecimalText(): boolean {
+        const strategy = this._getDecimalStrategy()
+        return strategy === 'canonical text' || strategy.endsWith(' with canonical text')
+    }
+    /** The decimal extension's functions compute and compare (every strategy but 'text' and 'canonical text') */
+    _usesDecimalExtensionFunctions(): boolean {
+        return this._getDecimalBaseStrategy() !== 'text'
+    }
+    /** The functions of the library order, group, and give min and max ('decimal-functions' and its canonical variant) */
+    _usesDecimalKeyFunctions(): boolean {
+        return this._getDecimalBaseStrategy() === 'decimal-functions'
+    }
+    /**
+     * With the decimal strategies 'text' and 'canonical text', SQLite computes with a text in floating point, so no
+     * arithmetic of a customDecimal is exact: the query is rejected instead of writing a result that has lost digits
      */
     _rejectDecimalArithmeticAsText(operation: string): never {
-        throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'The ' + operation + ' of a customDecimal is not exact with the decimal strategy \'text\' of SQLite: use the decimal strategy \'decimal-functions\' or \'decimal-extension\'')
+        throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'The ' + operation + ' of a customDecimal is not exact with the decimal strategy \'' + this._getDecimalStrategy() + '\' of SQLite: use a decimal strategy with functions, like \'decimal-extension and tsq-functions with canonical text\'')
+    }
+    /**
+     * A customDecimal whose text is canonical in a canonical text variant: a column (stored so), a constant or a value
+     * (sent so), or the value of a query (whose select list gives it so). Any other expression (a computation, a
+     * fragment) may give another text of the same number
+     */
+    _isCanonicalDecimalSource(value: unknown): boolean {
+        return !isValueSource(value) || isColumn(value) || value instanceof SqlOperationConstValueSource || value instanceof InlineSelectValueSource
+    }
+    /**
+     * In a canonical text variant, the SQL of a customDecimal turned into its canonical text when it may not be, the
+     * expression computed once, in a subquery; otherwise the SQL as it is. The result of a function of the decimal
+     * extension or of the library has no zeros before its integer part, so only the zeros at the end of its fraction and
+     * the sign of a zero go; a fragment can be any text, which gets its normal form. Only a text is turned: anything
+     * else (a floating point number) reaches the reading of the value as it is, which rejects it
+     */
+    _canonicalDecimalSql(value: unknown, sql: string): string {
+        if (!this._isCanonicalDecimalText() || this._isCanonicalDecimalSource(value)) {
+            return sql
+        }
+        if (value instanceof FragmentValueSource || value instanceof TableOrViewRawFragmentValueSource) {
+            return "(select case when typeof(tsq_v) = 'text' and tsq_v not glob '*[^0-9.-]*' then " + this._decimalNormalForm('tsq_v') + ' else tsq_v end from (select ' + sql + ' as tsq_v))'
+        }
+        return "(select case when typeof(tsq_v) <> 'text' then tsq_v when instr(tsq_v, '.') = 0 then (case when tsq_v = '-0' then '0' else tsq_v end) when rtrim(rtrim(tsq_v, '0'), '.') in ('-0', '-', '') then '0' else rtrim(rtrim(tsq_v, '0'), '.') end from (select " + sql + ' as tsq_v))'
+    }
+    /**
+     * A text of a customDecimal that is the same for the values equal as numbers: in a canonical text variant, the
+     * canonical text (the SQL as it is for a column, a constant or a value); otherwise, the normal form
+     */
+    _decimalComparableText(value: unknown, sql: string): string {
+        if (this._isCanonicalDecimalText()) {
+            return this._canonicalDecimalSql(value, sql)
+        }
+        return this._decimalNormalForm(sql)
     }
     _isCustomDecimal(value: unknown): boolean {
         return isValueSource(value) && __getValueSourcePrivate(value).__valueType === 'customDecimal'
@@ -63,6 +136,19 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         const exponent = '(case when ' + integer + " <> '' then length(" + integer + ') else length(ltrim(' + fraction + ", '0')) - length(" + fraction + ') end)'
         const negative = 'substr(' + sql + ", 1, 1) = '-'"
         return { integer, fraction, digits, exponent, negative }
+    }
+    /**
+     * The parts of a canonical text of a customDecimal (see canonicalDecimalText), shorter to compute: its significant
+     * digits (with the zeros at the end of the integer part, which compare the same), where the point goes, and whether
+     * it has a minus sign; a zero is '0'
+     */
+    _decimalCanonicalParts(sql: string): { digits: string, exponent: string, negative: string, zero: string } {
+        const absolute = 'ltrim(' + sql + ", '-')"
+        const digits = "ltrim(replace(" + absolute + ", '.', ''), '0')"
+        const exponent = '(case when substr(' + absolute + ", 1, 2) = '0.' then length(ltrim(substr(" + absolute + ", 3), '0')) - length(substr(" + absolute + ', 3)) else instr(' + absolute + " || '.', '.') - 1 end)"
+        const negative = 'substr(' + sql + ", 1, 1) = '-'"
+        const zero = sql + " = '0'"
+        return { digits, exponent, negative, zero }
     }
     /** The text of the number of a customDecimal, the same for the values equal as numbers: `001.50` is `1.5`, `-0.00` is `0` */
     _decimalNormalForm(sql: string): string {
@@ -94,8 +180,8 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
      * significant digits, ascending for the positive numbers and descending for the negative ones; a descending order
      * turns every term around. The nulls go where the ordering says, by the first term.
      */
-    _decimalOrderByTerms(sql: string, descending: boolean, nulls: '' | ' nulls first' | ' nulls last'): string {
-        const parts = this._decimalParts(sql)
+    _decimalOrderByTerms(sql: string, descending: boolean, nulls: '' | ' nulls first' | ' nulls last', canonical: boolean): string {
+        const parts = canonical ? this._decimalCanonicalParts(sql) : this._decimalParts(sql)
         const direction = descending ? ' desc' : ' asc'
         const opposite = descending ? ' asc' : ' desc'
         let nullsTerm = ''
@@ -105,7 +191,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             nulls = ''
         }
         // A zero has no digits nor place of the point, whatever its sign: the equal numbers are equal in every term
-        const sign = this._decimalSign(sql)
+        const sign = canonical ? '(case when ' + sql + ' is null then null when ' + (parts as { zero: string }).zero + ' then 0 when ' + parts.negative + ' then -1 else 1 end)' : this._decimalSign(sql)
         return nullsTerm + sign + direction + nulls
             + ', (case when ' + sign + ' = 1 then ' + parts.exponent + ' end)' + direction
             + ', (case when ' + sign + ' = -1 then ' + parts.exponent + ' end)' + opposite
@@ -118,8 +204,8 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
      * one of the largest magnitude, or else the non negative one of the smallest key (a zero before any positive
      * number), and the other way round for the largest. The value is what follows the digits and the space of the key.
      */
-    _decimalMinOrMax(kind: 'min' | 'max', sql: string): string {
-        const parts = this._decimalParts(sql)
+    _decimalMinOrMax(kind: 'min' | 'max', sql: string, canonical: boolean): string {
+        const parts = canonical ? this._decimalCanonicalParts(sql) : this._decimalParts(sql)
         const negativeNotZero = parts.negative + ' and ' + parts.digits + " <> ''"
         const magnitude = "printf('%010d', " + parts.exponent + ' + 500000000) || ' + parts.digits + " || ' ' || " + sql
         const notNegative = '(case when ' + parts.digits + " = '' then '1 ' || " + sql + " else '2' || " + magnitude + ' end)'
@@ -177,10 +263,10 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
      * with the decimal strategy 'text', by their normal forms (`1.5` and `1.50` are the same)
      */
     _decimalEquality(operator: '=' | '<>', params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        if (this._usesDecimalExtensionFunctions()) {
+        if (this._usesDecimalExtensionFunctions() && !this._isCanonicalDecimalText()) {
             return this._decimalCompare(params, valueSource, value, columnType, columnTypeName, typeAdapter) + ' ' + operator + ' 0'
         }
-        return this._decimalNormalForm(this._appendSql(valueSource, params, false)) + ' ' + operator + ' ' + this._decimalNormalForm(this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false))
+        return this._decimalComparableText(valueSource, this._appendSql(valueSource, params, false)) + ' ' + operator + ' ' + this._decimalComparableText(value, this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false))
     }
     override _equals(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (columnType === 'customDecimal') {
@@ -229,10 +315,14 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
                 return undefined
             }
             const first = this._appendSql(valueSource, params, false)
-            if (this._usesDecimalExtensionFunctions()) {
+            if (this._usesDecimalExtensionFunctions() && !this._isCanonicalDecimalText()) {
                 return '(' + value.map(item => this._decimalCmpSql(first, this._appendValue(item, params, columnType, columnTypeName, typeAdapter, false)) + (not ? ' <> 0' : ' = 0')).join(not ? ' and ' : ' or ') + ')'
             }
-            return this._decimalNormalForm(first) + (not ? ' not in (' : ' in (') + value.map(item => this._decimalNormalForm(this._appendValue(item, params, columnType, columnTypeName, typeAdapter, false))).join(', ') + ')'
+            return this._decimalComparableText(valueSource, first) + (not ? ' not in (' : ' in (') + value.map(item => this._decimalComparableText(item, this._appendValue(item, params, columnType, columnTypeName, typeAdapter, false))).join(', ') + ')'
+        }
+        if (hasToSql(value) && this._isCanonicalDecimalText()) {
+            // The select list of the query gives the canonical texts
+            return this._decimalComparableText(valueSource, this._appendSql(valueSource, params, false)) + (not ? ' not in ' : ' in ') + '(' + this._appendSql(value, params, false) + ')'
         }
         if (hasToSql(value)) {
             const alias = 'q_' + this._generateUnique() + '_'
@@ -320,20 +410,20 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         }
         if (this._isCustomDecimal(value) && this._usesDecimalExtensionFunctions()) {
             const sql = this._appendSql(value, params, false)
-            return 'case when count(' + sql + ') = 0 then null else decimal_sum(distinct ' + this._decimalNormalForm(sql) + ') end'
+            return 'case when count(' + sql + ') = 0 then null else decimal_sum(distinct ' + this._decimalComparableText(value, sql) + ') end'
         }
         return super._sumDistinct(params, value)
     }
     override _countDistinct(params: any[], value: any): string {
         if (this._isCustomDecimal(value)) {
-            return 'count(distinct ' + this._decimalGroupingKeySql(this._appendSql(value, params, false)) + ')'
+            return 'count(distinct ' + this._decimalGroupingKeySql(value, this._appendSql(value, params, false)) + ')'
         }
         return super._countDistinct(params, value)
     }
     override _averageDistinct(params: any[], value: any): string {
         if (this._isCustomDecimal(value)) {
             // avg reads the text of each distinct number as a number
-            return 'avg(distinct ' + this._decimalNormalForm(this._appendSql(value, params, false)) + ')'
+            return 'avg(distinct ' + this._decimalComparableText(value, this._appendSql(value, params, false)) + ')'
         }
         return super._averageDistinct(params, value)
     }
@@ -356,7 +446,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     /** With the decimal strategy 'decimal-functions', a customDecimal is ordered by its key, whose text orders as the number does */
     override _appendOrderByColumnAlias(entry: OrderByEntry, query: SelectData, params: any[]): string {
-        if (this._isOrderByDecimalAsReal(params) || this._getDecimalStrategy() !== 'decimal-functions' || !this._isDecimalOrderByEntry(entry, query)) {
+        if (this._isOrderByDecimalAsReal(params) || !this._usesDecimalKeyFunctions() || !this._isDecimalOrderByEntry(entry, query)) {
             return super._appendOrderByColumnAlias(entry, query, params)
         }
         this._setOrderByDecimalAsReal(params, true)
@@ -367,11 +457,11 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         }
     }
     /**
-     * With the decimal strategies 'text' and 'decimal-extension', a customDecimal is ordered as the number by terms
+     * Without the functions of the library for the order, a customDecimal is ordered as the number by terms
      * written in SQL (see _decimalOrderByTerms), the ordering of the entry applied to them
      */
     override _appendOrderByEntryTerms(entry: OrderByEntry, query: SelectData, params: any[]): string | undefined {
-        if (this._isOrderByDecimalAsReal(params) || this._getDecimalStrategy() === 'decimal-functions' || !this._isDecimalOrderByEntry(entry, query)) {
+        if (this._isOrderByDecimalAsReal(params) || this._usesDecimalKeyFunctions() || !this._isDecimalOrderByEntry(entry, query)) {
             return undefined
         }
         const order = entry.order || ''
@@ -381,7 +471,11 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         const nulls = order.includes('nulls first') ? ' nulls first' : order.includes('nulls last') ? ' nulls last' : ''
         this._setOrderByDecimalAsReal(params, true)
         try {
-            return this._decimalOrderByTerms(this._appendOrderByColumnForExpression(entry, query, params), order.startsWith('desc'), nulls)
+            // In a canonical text variant the text ordered is canonical: a column of the select list, a column, a
+            // constant or a value
+            const expression = entry.expression
+            const canonical = this._isCanonicalDecimalText() && (typeof expression === 'string' || this._isCanonicalDecimalSource(expression))
+            return this._decimalOrderByTerms(this._appendOrderByColumnForExpression(entry, query, params), order.startsWith('desc'), nulls, canonical)
         } finally {
             this._setOrderByDecimalAsReal(params, false)
         }
@@ -399,19 +493,19 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
      */
     override _min(params: any[], value: any): string {
         if (this._isCustomDecimal(value)) {
-            if (this._getDecimalStrategy() === 'decimal-functions') {
+            if (this._usesDecimalKeyFunctions()) {
                 return 'tsq_decimal_min(' + this._appendSql(value, params, false) + ')'
             }
-            return this._decimalMinOrMax('min', this._appendSql(value, params, false))
+            return this._decimalMinOrMax('min', this._appendSql(value, params, false), this._isCanonicalDecimalText() && this._isCanonicalDecimalSource(value))
         }
         return super._min(params, value)
     }
     override _max(params: any[], value: any): string {
         if (this._isCustomDecimal(value)) {
-            if (this._getDecimalStrategy() === 'decimal-functions') {
+            if (this._usesDecimalKeyFunctions()) {
                 return 'tsq_decimal_max(' + this._appendSql(value, params, false) + ')'
             }
-            return this._decimalMinOrMax('max', this._appendSql(value, params, false))
+            return this._decimalMinOrMax('max', this._appendSql(value, params, false), this._isCanonicalDecimalText() && this._isCanonicalDecimalSource(value))
         }
         return super._max(params, value)
     }
@@ -422,9 +516,9 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     _decimalIs(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const first = this._appendSql(valueSource, params, false)
         const second = this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false)
-        if (!this._usesDecimalExtensionFunctions()) {
-            // The normal forms are null for a null, and is compares the nulls too
-            return this._decimalNormalForm(first) + ' is ' + this._decimalNormalForm(second)
+        if (!this._usesDecimalExtensionFunctions() || this._isCanonicalDecimalText()) {
+            // The comparable texts are null for a null, and is compares the nulls too
+            return this._decimalComparableText(valueSource, first) + ' is ' + this._decimalComparableText(value, second)
         }
         const firstCanBeNull = this._canBeNull(valueSource)
         const secondCanBeNull = this._canBeNull(value)
@@ -445,7 +539,8 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     override _buildCompoundCore(query: CompoundSelectData, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean): string {
         const operator = query.__compoundOperator
         const removesDuplicates = operator === 'union' || operator === 'intersect' || operator === 'except' || operator === 'minus'
-        if (!removesDuplicates) {
+        if (!removesDuplicates || this._isCanonicalDecimalText()) {
+            // In a canonical text variant each select list gives the canonical texts, which the operator compares
             return super._buildCompoundCore(query, params, columnsForInsert, isOutermostQuery)
         }
         const columns: FlatQueryColumns = {}
@@ -460,7 +555,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         const firstAlias = 'c_' + this._generateUnique() + '_'
         const key = (property: string, alias: string) => {
             const column = alias + '.' + this._appendColumnAlias(property, params)
-            return this._isCustomDecimal(columns[property]) ? this._decimalGroupingKeySql(column) : column
+            return this._isCustomDecimal(columns[property]) ? this._decimalGroupingKeySql(undefined, column) : column
         }
         let selectColumns = ''
         let groupBy = ''
@@ -488,16 +583,16 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return 'select ' + selectColumns + ' from (' + first + ') as ' + firstAlias + ' where ' + (operator === 'intersect' ? '' : 'not ') + 'exists (select 1 from (' + second + ') as ' + secondAlias + ' where ' + sameRow + ') group by ' + groupBy
     }
     /**
-     * abs, ceil, floor, round, roundn and modulo of a customDecimal: with 'decimal-functions', the functions of the
-     * library (tsq_); abs, otherwise, without the minus sign of the text; for the rest no other emission is exact
+     * abs, ceil, floor, round, roundn and modulo of a customDecimal: with the strategies with functions, the functions
+     * of the library (tsq_), which the decimal extension doesn't have; abs, without functions of the library, without
+     * the minus sign of the text; with 'text' and 'canonical text' no other emission is exact
      */
     _decimalOperationNotExact(operation: string): never {
-        throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'The ' + operation + ' of a customDecimal is not exact with the decimal strategy \'' + this._getDecimalStrategy() + '\' of SQLite: use the decimal strategy \'decimal-functions\'')
+        throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'The ' + operation + ' of a customDecimal is not exact with the decimal strategy \'' + this._getDecimalStrategy() + '\' of SQLite: use a decimal strategy with functions, like \'decimal-extension and tsq-functions with canonical text\'')
     }
     override _abs(params: any[], valueSource: ToSql): string {
         if (this._isCustomDecimal(valueSource)) {
-            const strategy = this._getDecimalStrategy()
-            if (strategy === 'decimal-functions') {
+            if (this._usesDecimalKeyFunctions()) {
                 return 'tsq_decimal_abs(' + this._appendSql(valueSource, params, false) + ')'
             }
             // The text without its minus sign, which keeps its digits and its scale; a null stays null
@@ -508,7 +603,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     override _ceil(params: any[], valueSource: ToSql): string {
         if (this._isCustomDecimal(valueSource)) {
-            if (this._getDecimalStrategy() !== 'decimal-functions') {
+            if (!this._usesDecimalExtensionFunctions()) {
                 this._decimalOperationNotExact('ceiling')
             }
             return 'tsq_decimal_ceil(' + this._appendSql(valueSource, params, false) + ')'
@@ -517,7 +612,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     override _floor(params: any[], valueSource: ToSql): string {
         if (this._isCustomDecimal(valueSource)) {
-            if (this._getDecimalStrategy() !== 'decimal-functions') {
+            if (!this._usesDecimalExtensionFunctions()) {
                 this._decimalOperationNotExact('floor')
             }
             return 'tsq_decimal_floor(' + this._appendSql(valueSource, params, false) + ')'
@@ -526,7 +621,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     override _round(params: any[], valueSource: ToSql): string {
         if (this._isCustomDecimal(valueSource)) {
-            if (this._getDecimalStrategy() !== 'decimal-functions') {
+            if (!this._usesDecimalExtensionFunctions()) {
                 this._decimalOperationNotExact('rounding')
             }
             return 'tsq_decimal_round(' + this._appendSql(valueSource, params, false) + ', 0)'
@@ -535,7 +630,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     override _roundn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (columnType === 'customDecimal') {
-            if (this._getDecimalStrategy() !== 'decimal-functions') {
+            if (!this._usesDecimalExtensionFunctions()) {
                 this._decimalOperationNotExact('rounding')
             }
             return 'tsq_decimal_round(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')'
@@ -544,7 +639,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     override _modulo(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (columnType === 'customDecimal') {
-            if (this._getDecimalStrategy() !== 'decimal-functions') {
+            if (!this._usesDecimalExtensionFunctions()) {
                 this._decimalOperationNotExact('modulo')
             }
             return 'tsq_decimal_mod(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
@@ -653,31 +748,39 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         }
     }
     override _appendGroupBySelectColumn(entry: AnyValueSource, selectColumn: SelectColumnSql, _params: any[], _isOutermostQuery: boolean): string {
-        // The same SQL as the select list: a numbered placeholder (?1) can be repeated, and it is the same expression
+        // The same SQL as the select list: a numbered placeholder (?1) can be repeated, and it is the same expression; in
+        // a canonical text variant the select list already gives the canonical text
+        if (this._isCanonicalDecimalText()) {
+            return selectColumn.sql
+        }
         return this._decimalGroupingKey(entry, selectColumn.sql)
     }
     /**
-     * The values of a customDecimal are grouped by the number they are (`1.5` with `1.50`): with the decimal strategy
-     * 'decimal-functions', by the key of the value; otherwise by its normal form
+     * The values of a customDecimal are grouped by the number they are (`1.5` with `1.50`): in a canonical text variant,
+     * by their canonical text; with 'decimal-functions', by the key of the value; otherwise by its normal form
      */
     _decimalGroupingKey(value: unknown, sql: string): string {
         if (this._isCustomDecimal(value)) {
-            return this._decimalGroupingKeySql(sql)
+            return this._decimalGroupingKeySql(value, sql)
         }
         return sql
     }
-    _decimalGroupingKeySql(sql: string): string {
-        if (this._getDecimalStrategy() === 'decimal-functions') {
+    _decimalGroupingKeySql(value: unknown, sql: string): string {
+        if (this._isCanonicalDecimalText()) {
+            return this._canonicalDecimalSql(value, sql)
+        }
+        if (this._usesDecimalKeyFunctions()) {
             return 'tsq_decimal_key(' + sql + ')'
         }
         return this._decimalNormalForm(sql)
     }
     /**
      * A distinct select of groups (a group by or an aggregate) with a customDecimal column would compare the texts of
-     * the rows it gives, where `1.5` and `1.50` are different: no emission of SQLite removes them as numbers there
+     * the rows it gives, where `1.5` and `1.50` are different: no emission of SQLite removes them as numbers there,
+     * unless the texts are canonical
      */
     _rejectDistinctDecimalOfGroups(): never {
-        throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'A distinct select with a customDecimal column and a group by or an aggregate is not exact in SQLite with any decimal strategy: remove the distinct, or group by the columns instead')
+        throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'A distinct select with a customDecimal column and a group by or an aggregate is not exact in SQLite with the decimal strategy \'' + this._getDecimalStrategy() + '\': use its canonical text variant, like \'decimal-extension and tsq-functions with canonical text\', remove the distinct, or group by the columns instead')
     }
     override _buildSelectGroupBy(query: PlainSelectData, params: any[], isOutermostQuery: boolean, selectColumnsSql?: Map<AnyValueSource, SelectColumnSql> | undefined): string {
         if (query.__groupBy.length > 0) {
@@ -695,12 +798,13 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
                     result += this._decimalGroupingKey(entry, this._appendSelectColumn(entry, params, undefined, isOutermostQuery))
                 }
             }
-            if (query.__distinct && selectColumnsSql && [...selectColumnsSql.keys()].some(column => this._isCustomDecimal(column))) {
+            if (query.__distinct && selectColumnsSql && !this._isCanonicalDecimalText() && [...selectColumnsSql.keys()].some(column => this._isCustomDecimal(column))) {
                 this._rejectDistinctDecimalOfGroups()
             }
             return result
         }
-        if (!query.__distinct || !selectColumnsSql) {
+        if (!query.__distinct || !selectColumnsSql || this._isCanonicalDecimalText()) {
+            // In a canonical text variant the select list gives the canonical texts, which a distinct compares
             return ''
         }
         // A distinct select with a customDecimal, without aggregates, is grouped by its columns, the customDecimal by
@@ -1111,13 +1215,29 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         // the 60000 (second, millisecond) pairs, all at powers of two.
         return "cast(round(strftime('%f', " + this._appendSql(valueSource, params, false) + ") * 1000) as integer) % 1000"
     }
+    /** In a canonical text variant a computed customDecimal is stored in its canonical text */
+    override _appendValueForColumn(column: DBColumn, value: any, params: any[], forceTypeCast: boolean): string {
+        const sql = super._appendValueForColumn(column, value, params, forceTypeCast)
+        if (hasToSql(value) && this._isCanonicalDecimalText() && this._isCustomDecimal(column)) {
+            return this._canonicalDecimalSql(value, sql)
+        }
+        return sql
+    }
     override _appendParam(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+        if (columnType === 'customDecimal' && typeof value === 'string' && this._isCanonicalDecimalText()) {
+            // In a canonical text variant a customDecimal is sent in its canonical text
+            value = canonicalDecimalText(value)
+        }
         if (__isUuidValueType(columnType) && this._getUuidStrategy() === 'uuid-extension') {
             return 'uuid_blob(' + super._appendParam(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ')'
         }
         return super._appendParam(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
     override _appendColumnValue(value: AnyValueSource, params: any[], isOutermostQuery: boolean): string {
+        if (this._isCustomDecimal(value) && this._isCanonicalDecimalText()) {
+            // In a canonical text variant a column of a select gives the canonical text of a computed customDecimal
+            return this._canonicalDecimalSql(value, this._appendSql(value, params, false))
+        }
         if (isOutermostQuery && this._getUuidStrategy() === 'uuid-extension') {
             if (__isUuidValueSource(__getValueSourcePrivate(value))) {
                 return 'uuid_str(' + this._appendSql(value, params, false) + ')'
@@ -1139,9 +1259,10 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._getUuidStrategy() === 'uuid-extension') {
                 return 'json_group_array(' + distict + 'uuid_str(' + this._appendSql(aggregatedArrayColumns, params, false) + '))'
             }
-            if (aggregatedArrayDistinct && this._isCustomDecimal(aggregatedArrayColumns)) {
-                // The distinct values of a customDecimal are the distinct numbers, each in its normal form
-                return 'json_group_array(distinct ' + this._decimalNormalForm(this._appendSql(aggregatedArrayColumns, params, false)) + ')'
+            if (this._isCustomDecimal(aggregatedArrayColumns) && (aggregatedArrayDistinct || this._isCanonicalDecimalText())) {
+                // The distinct values of a customDecimal are the distinct numbers, each in its normal form; in a
+                // canonical text variant every value goes in its canonical text
+                return 'json_group_array(' + distict + this._decimalComparableText(aggregatedArrayColumns, this._appendSql(aggregatedArrayColumns, params, false)) + ')'
             }
             return 'json_group_array(' + distict + this._appendSql(aggregatedArrayColumns, params, false) + ')'
         } else {
@@ -1157,8 +1278,8 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
                 const column = columns[prop]!
                 if (__isUuidValueSource(__getValueSourcePrivate(column)) && this._getUuidStrategy() === 'uuid-extension') {
                     result += 'uuid_str(' + this._appendSql(column, params, false) + ')'
-                } else if (aggregatedArrayDistinct && this._isCustomDecimal(column)) {
-                    result += this._decimalNormalForm(this._appendSql(column, params, false))
+                } else if (this._isCustomDecimal(column) && (aggregatedArrayDistinct || this._isCanonicalDecimalText())) {
+                    result += this._decimalComparableText(column, this._appendSql(column, params, false))
                 } else {
                     result += this._appendSql(column, params, false)
                 }

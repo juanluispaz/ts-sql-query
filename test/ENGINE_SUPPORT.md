@@ -206,11 +206,12 @@ and computes with texts in floating point. None of the four drivers ships SQLite
 decimal extension (ext/misc/decimal.c), and Bun SQL can't register functions.
 
 **What this means for tests** — the domain stores `exact_amount` as `TEXT` in a
-`STRICT` table, and the cells use the default `decimalStrategy`,
-`'decimal-functions'`, with the functions of `test/db/sqlite/decimalFunctions.ts`
-registered by `test/db/sqlite/runners.ts`; the `bun_sql_sqlite` cells run the
-tests that write those functions with `ctx.mockOnlyConnection()`.
-`config.decimal-strategy.test.ts` covers `'text'`, `'decimal-extension'` and the distinct aggregates of every strategy.
+`STRICT` table, its seed is in canonical text, and the cells use the default
+`decimalStrategy`, `'decimal-extension and tsq-functions with canonical text'`, with
+the functions of `test/db/sqlite/decimalFunctions.ts` registered by
+`test/db/sqlite/runners.ts`; the `bun_sql_sqlite` cells run the tests that write
+those functions with `ctx.mockOnlyConnection()`. `config.decimal-strategy.test.ts`
+covers the six strategies.
 
 ### SQLite RETURNING can only reference the table being modified, not a FROM/JOIN-ed column
 

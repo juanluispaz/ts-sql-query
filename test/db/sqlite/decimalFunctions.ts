@@ -1,10 +1,11 @@
 // The functions the decimal strategies of SqliteConnection write, in JavaScript, for a driver that registers
-// functions written in JavaScript. `decimal-extension` writes decimal_add, decimal_sub, decimal_mul, decimal_cmp and
-// decimal_sum, the functions of SQLite's decimal extension (ext/misc/decimal.c), with its results; `decimal-functions`
-// writes them and the tsq_ ones. The SQLite page of the documentation shows this file as it is.
+// functions written in JavaScript. The strategies with functions write decimal_add, decimal_sub, decimal_mul,
+// decimal_cmp and decimal_sum, the functions of SQLite's decimal extension (ext/misc/decimal.c), with its results, and
+// tsq_ ones: 'decimal-extension and tsq-functions' the roundings and the modulo, 'decimal-functions' also the order,
+// the grouping, min and max. The SQLite page of the documentation shows this file as it is.
 
-// The functions of SQLite's decimal extension (ext/misc/decimal.c) that the `decimal-extension` decimal strategy
-// writes, in JavaScript, for the connectors that can't load the extension (the SQLite page of the documentation
+// The functions of SQLite's decimal extension (ext/misc/decimal.c) that the decimal strategies with functions
+// write, in JavaScript, for the connectors that can't load the extension (the SQLite page of the documentation
 // gives this same code). They give the results of the extension: decimal_add and decimal_sub keep the largest
 // scale, decimal_mul keeps the decimals of both operands but trims the zeros at the end down to the smaller scale,
 // decimal_sum keeps the largest scale, is 0 when every value is null and null without rows, decimal_cmp gives -1, 0
@@ -93,8 +94,9 @@ export function decimalSumStep(total: ExactDecimal | null, value: unknown): Exac
 export function decimalSumResult(total: ExactDecimal | null): string | null {
     return total ? formatExactDecimal(total) : null
 }
-// The functions of the `decimal-functions` decimal strategy that the decimal extension doesn't have, named with the
-// prefix of the library (tsq_) so no function of SQLite or of an extension has their name.
+// The functions of the library that the decimal extension doesn't have, which the decimal strategies with functions
+// write (see each function), named with the prefix of the library (tsq_) so no function of SQLite or of an extension
+// has their name.
 // tsq_decimal_key: a text whose order is the order of the numbers, the same for 1.5 and 1.50: '1' for zero; for a
 // positive number '2', its exponent (where the point goes, from the first significant digit) plus 500000000 in 10
 // digits, and its significant digits; for a negative number '0', the same with every digit inverted (9 - digit),

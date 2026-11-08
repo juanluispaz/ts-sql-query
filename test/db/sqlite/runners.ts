@@ -18,7 +18,7 @@ import { readFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import type { SqliteDateTimeFormat } from '../../../src/connections/SqliteConfiguration.js'
+import type { SqliteDateTimeFormat, SqliteDecimalStrategy } from '../../../src/connections/SqliteConfiguration.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { createTestContext, type TestContext } from '../../lib/testContext.js'
 import { parse as uuidParse, stringify as uuidStringify, v7 as uuidv7 } from 'uuid'
@@ -208,7 +208,7 @@ export interface SqliteTestContext extends TestContext<DBConnection> {
     /** A `DBConnection` whose `uuidStrategy` is pinned to `strategy`. */
     withUuidStrategy(strategy: 'string' | 'uuid-extension'): DBConnection
     /** A `DBConnection` whose `decimalStrategy` is pinned to `strategy`. */
-    withDecimalStrategy(strategy: 'text' | 'decimal-extension' | 'decimal-functions'): DBConnection
+    withDecimalStrategy(strategy: SqliteDecimalStrategy): DBConnection
     /** A `DBConnection` with `allowEmptyString` enabled (empty strings kept, not mapped to null). */
     withAllowEmptyString(): DBConnection
     /** A `DBConnection` whose `getDateTimeFormat()` is pinned to `format`. */
@@ -285,9 +285,9 @@ function decorateSqliteContext(
             }
             return base.withConnection(C)
         },
-        withDecimalStrategy(strategy: 'text' | 'decimal-extension' | 'decimal-functions'): DBConnection {
+        withDecimalStrategy(strategy: SqliteDecimalStrategy): DBConnection {
             class C extends DBConnection {
-                protected override decimalStrategy: 'text' | 'decimal-extension' | 'decimal-functions' = strategy
+                protected override decimalStrategy: SqliteDecimalStrategy = strategy
             }
             return base.withConnection(C)
         },

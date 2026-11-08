@@ -157,7 +157,7 @@ describe(ctx.label, () => {
     test('docs:column-types/exact-decimals', async () => {
         ctx.mockNext([
             { id: 1, amount: '12345678901234567890.1234567891', next: '12345678901234567890.1234567892' },
-            { id: 5, amount: '98765432109876543210.9876543210', next: '98765432109876543210.9876543211' },
+            { id: 5, amount: '98765432109876543210.987654321', next: '98765432109876543210.9876543211' },
         ])
         const connection = ctx.conn
         // doc-start
@@ -171,7 +171,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
         // doc-end
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, amount as amount, case when amount is null then null else decimal_add(amount, ?1) end as next from exact_amount where decimal_cmp(price, ?2) > 0 order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, amount as amount, (select case when typeof(tsq_v) <> 'text' then tsq_v when instr(tsq_v, '.') = 0 then (case when tsq_v = '-0' then '0' else tsq_v end) when rtrim(rtrim(tsq_v, '0'), '.') in ('-0', '-', '') then '0' else rtrim(rtrim(tsq_v, '0'), '.') end from (select case when amount is null then null else decimal_add(amount, ?1) end as tsq_v)) as next from exact_amount where decimal_cmp(price, ?2) > 0 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0.0000000001",
@@ -181,7 +181,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, { id: number; amount?: string; next?: string }[]>>()
         expect(rows).toEqual([
             { id: 1, amount: '12345678901234567890.1234567891', next: '12345678901234567890.1234567892' },
-            { id: 5, amount: '98765432109876543210.9876543210', next: '98765432109876543210.9876543211' },
+            { id: 5, amount: '98765432109876543210.987654321', next: '98765432109876543210.9876543211' },
         ])
     })
 })

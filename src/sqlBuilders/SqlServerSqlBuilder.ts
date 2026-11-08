@@ -45,13 +45,13 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
      * cut to the width of the text it is converted to. It is cast to a decimal with the digits of the value. A value
      * beyond the widest decimal of the database (38 digits) is rejected: the cast would fail, and no column can hold it.
      */
-    override _appendCustomDecimalParam(placeholder: string, params: any[], columnTypeName: string): string {
-        const digits = this._customDecimalDigitsOf(params[params.length - 1])
+    override _appendCustomDecimalParam(placeholder: string, value: unknown, params: any[], columnTypeName: string): string {
+        const digits = this._customDecimalDigitsOf(value)
         if (!digits) {
             return placeholder
         }
         if (digits.precision > 38) {
-            this._rejectCustomDecimalParam(params, columnTypeName, 'decimal(38)')
+            this._rejectCustomDecimalParam(value, params, columnTypeName, 'decimal(38)')
         }
         if (this._isAssigningValueToColumn(params)) {
             return placeholder

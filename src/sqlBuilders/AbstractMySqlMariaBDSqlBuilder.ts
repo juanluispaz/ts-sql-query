@@ -19,13 +19,13 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
      * beyond the widest decimal of the database (65 digits, 30 of them decimals) is rejected: the cast would give
      * 999…9 without an error, and without it the database would compute in double precision; no column can hold it.
      */
-    override _appendCustomDecimalParam(placeholder: string, params: any[], columnTypeName: string): string {
-        const digits = this._customDecimalDigitsOf(params[params.length - 1])
+    override _appendCustomDecimalParam(placeholder: string, value: unknown, params: any[], columnTypeName: string): string {
+        const digits = this._customDecimalDigitsOf(value)
         if (!digits) {
             return placeholder
         }
         if (digits.precision > 65 || digits.scale > 30) {
-            this._rejectCustomDecimalParam(params, columnTypeName, 'decimal(65, 30)')
+            this._rejectCustomDecimalParam(value, params, columnTypeName, 'decimal(65, 30)')
         }
         if (this._isAssigningValueToColumn(params)) {
             return placeholder

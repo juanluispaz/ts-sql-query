@@ -632,10 +632,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
      * The number of the database keeps 38 significant digits: a customDecimal with more would be rounded in a
      * computation without an error, and no column can hold it, so it is rejected
      */
-    override _appendCustomDecimalParam(placeholder: string, params: any[], columnTypeName: string): string {
-        const digits = this._customDecimalDigitsOf(params[params.length - 1])
+    override _appendCustomDecimalParam(placeholder: string, value: unknown, params: any[], columnTypeName: string): string {
+        const digits = this._customDecimalDigitsOf(value)
         if (digits && digits.significantDigits > 38) {
-            this._rejectCustomDecimalParam(params, columnTypeName, 'a number of 38 significant digits')
+            this._rejectCustomDecimalParam(value, params, columnTypeName, 'a number of 38 significant digits')
         }
         return placeholder
     }

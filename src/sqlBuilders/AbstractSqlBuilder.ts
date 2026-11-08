@@ -680,16 +680,16 @@ export class AbstractSqlBuilder implements SqlBuilder {
             placeholder = this._defaultTypeAdapter.transformPlaceholder(placeholder, columnTypeName, typeCategory, value)
         }
         if (columnType === 'customDecimal') {
-            return this._appendCustomDecimalParam(placeholder, params, columnTypeName)
+            return this._appendCustomDecimalParam(placeholder, value, params, columnTypeName)
         }
         return placeholder
     }
     /**
-     * The placeholder of a customDecimal parameter, whose text is the last of the params. A database that computes or
-     * compares a text in double precision casts it to a decimal with the digits of the value, and one whose decimals
-     * can't hold the value rejects it.
+     * The placeholder of a customDecimal parameter, with the value sent to the database (the one the type adapter gave,
+     * whatever the type of the user is). A database that computes or compares a text in double precision casts it to a
+     * decimal with the digits of the value, and one whose decimals can't hold the value rejects it.
      */
-    _appendCustomDecimalParam(placeholder: string, _params: any[], _columnTypeName: string): string {
+    _appendCustomDecimalParam(placeholder: string, _value: unknown, _params: any[], _columnTypeName: string): string {
         return placeholder
     }
     /**
@@ -707,8 +707,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return { precision: Math.max(integerDigits.length, 1) + decimals.length, scale: decimals.length, significantDigits: significant.length }
     }
     /** Rejects the customDecimal parameter just added (the last of the params), which the decimals of the database can't hold */
-    _rejectCustomDecimalParam(params: any[], columnTypeName: string, widestDecimal: string): never {
-        const sent = params[params.length - 1]
+    _rejectCustomDecimalParam(sent: unknown, params: any[], columnTypeName: string, widestDecimal: string): never {
         throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: sent, typeName: columnTypeName, paramIndex: params.length - 1 }, 'Invalid customDecimal value to send to the db: ' + sent + ' doesn\'t fit the widest decimal of the database, ' + widestDecimal)
     }
     /**

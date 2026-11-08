@@ -1580,7 +1580,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, concat('[', string_agg(concat('{', '"id": ', convert(nvarchar, id), ', "title": ', '"' + string_escape(convert(nvarchar(max), title), 'json') + '"', '}'), ','), ']') as issues from issue where project_id in (@0, @1) group by project_id order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, concat('[', string_agg(concat('{', '"id": ', convert(nvarchar(41), id), ', "title": ', '"' + string_escape(convert(nvarchar(max), title), 'json') + '"', '}'), ','), ']') as issues from issue where project_id in (@0, @1) group by project_id order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

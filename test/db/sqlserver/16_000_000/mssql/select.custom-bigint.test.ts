@@ -61,7 +61,7 @@ describe(ctx.label, () => {
             })
             .groupBy('projectId')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, concat('[', string_agg(isnull('"' + convert(nvarchar, download_count) + '"', 'null'), ','), ']') as downloads from project_release where project_id = @0 and download_count is not null group by project_id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, concat('[', string_agg(isnull('"' + convert(nvarchar(41), download_count) + '"', 'null'), ','), ']') as downloads from project_release where project_id = @0 and download_count is not null group by project_id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

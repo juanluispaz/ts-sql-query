@@ -47,7 +47,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as id, organization.name as name, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar, project.id), 'null'), ', "name": ', isnull('"' + string_escape(convert(nvarchar(max), project.name), 'json') + '"', 'null'), '}'), ','), ']') as projects from organization left join project on project.organization_id = organization.id where organization.id = @0 group by organization.id, organization.name"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as id, organization.name as name, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar(41), project.id), 'null'), ', "name": ', isnull('"' + string_escape(convert(nvarchar(max), project.name), 'json') + '"', 'null'), '}'), ','), ']') as projects from organization left join project on project.organization_id = organization.id where organization.id = @0 group by organization.id, organization.name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -467,7 +467,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar, issue.id), 'null'), ', "body": ', isnull('"' + string_escape(convert(nvarchar(max), issue.body), 'json') + '"', 'null'), '}'), ','), ']') as issues from project left join issue on issue.project_id = project.id where project.id = @0 group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar(41), issue.id), 'null'), ', "body": ', isnull('"' + string_escape(convert(nvarchar(max), issue.body), 'json') + '"', 'null'), '}'), ','), ']') as issues from project left join issue on issue.project_id = project.id where project.id = @0 group by project.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

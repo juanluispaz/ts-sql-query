@@ -1597,7 +1597,7 @@ describe(ctx.label, () => {
             })
             .groupBy('pid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, concat('[', string_agg(concat('{', '"combined": ', isnull(convert(nvarchar, issue.id + app_user.id), 'null'), ', "tag": ', '"' + string_escape(convert(nvarchar(max), 'rel'), 'json') + '"', '}'), ','), ']') as items from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id = @0 group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, concat('[', string_agg(concat('{', '"combined": ', isnull(convert(nvarchar(41), issue.id + app_user.id), 'null'), ', "tag": ', '"' + string_escape(convert(nvarchar(max), 'rel'), 'json') + '"', '}'), ','), ']') as items from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id = @0 group by project.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -1636,7 +1636,7 @@ describe(ctx.label, () => {
             })
             .groupBy('pid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, concat('[', string_agg(concat('{', '"combined": ', isnull(convert(nvarchar, issue.id + app_user.id), 'null'), ', "tag": ', '"' + string_escape(convert(nvarchar(max), 'rel'), 'json') + '"', '}'), ','), ']') as items from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id = @0 group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, concat('[', string_agg(concat('{', '"combined": ', isnull(convert(nvarchar(41), issue.id + app_user.id), 'null'), ', "tag": ', '"' + string_escape(convert(nvarchar(max), 'rel'), 'json') + '"', '}'), ','), ']') as items from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id = @0 group by project.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

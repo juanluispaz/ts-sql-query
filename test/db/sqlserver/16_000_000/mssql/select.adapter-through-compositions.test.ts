@@ -62,7 +62,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, scores })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg(convert(nvarchar, score), ','), ']') from project_review where project_id = project.id) as scores from project where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg(convert(nvarchar(41), score), ','), ']') from project_review where project_id = project.id) as scores from project where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

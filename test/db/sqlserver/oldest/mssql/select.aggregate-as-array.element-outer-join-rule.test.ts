@@ -48,7 +48,7 @@ describe(ctx.label, () => {
             .groupBy('org')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as org, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar, project.id), 'null'), ', "name": ', isnull('"' + string_escape(convert(nvarchar(max), project.name), 'json') + '"', 'null'), ', "archivedAt": ', isnull('"' + convert(nvarchar, project.archived_at, 127) + '"', 'null'), '}'), ','), ']') as projects from organization left join project on project.organization_id = organization.id where organization.id = @0 group by organization.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as org, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar(41), project.id), 'null'), ', "name": ', isnull('"' + string_escape(convert(nvarchar(max), project.name), 'json') + '"', 'null'), ', "archivedAt": ', isnull('"' + convert(nvarchar, project.archived_at, 127) + '"', 'null'), '}'), ','), ']') as projects from organization left join project on project.organization_id = organization.id where organization.id = @0 group by organization.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -91,7 +91,7 @@ describe(ctx.label, () => {
             .groupBy('org')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as org, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar, project.id), 'null'), ', "name": ', isnull('"' + string_escape(convert(nvarchar(max), project.name), 'json') + '"', 'null'), ', "archivedAt": ', isnull('"' + convert(nvarchar, project.archived_at, 127) + '"', 'null'), '}'), ','), ']') as projects from organization left join project on project.organization_id = organization.id where organization.id = @0 group by organization.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as org, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar(41), project.id), 'null'), ', "name": ', isnull('"' + string_escape(convert(nvarchar(max), project.name), 'json') + '"', 'null'), ', "archivedAt": ', isnull('"' + convert(nvarchar, project.archived_at, 127) + '"', 'null'), '}'), ','), ']') as projects from organization left join project on project.organization_id = organization.id where organization.id = @0 group by organization.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

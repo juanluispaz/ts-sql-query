@@ -3339,7 +3339,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with org_projects_cte as (select organization.id as orgId, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar, project.id), 'null'), ', "name": ', isnull('"' + string_escape(convert(nvarchar(max), project.name), 'json') + '"', 'null'), ', "archivedAt": ', isnull('"' + convert(nvarchar, project.archived_at, 127) + '"', 'null'), '}'), ','), ']') as projects from organization left join project on project.organization_id = organization.id group by organization.id) select orgId as orgId, projects as projects from org_projects_cte order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with org_projects_cte as (select organization.id as orgId, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar(41), project.id), 'null'), ', "name": ', isnull('"' + string_escape(convert(nvarchar(max), project.name), 'json') + '"', 'null'), ', "archivedAt": ', isnull('"' + convert(nvarchar, project.archived_at, 127) + '"', 'null'), '}'), ','), ']') as projects from organization left join project on project.organization_id = organization.id group by organization.id) select orgId as orgId, projects as projects from org_projects_cte order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId:    number
@@ -3402,7 +3402,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with org_projects_cte as (select organization.id as orgId, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar, project.id), 'null'), ', "name": ', isnull('"' + string_escape(convert(nvarchar(max), project.name), 'json') + '"', 'null'), ', "archivedAt": ', isnull('"' + convert(nvarchar, project.archived_at, 127) + '"', 'null'), '}'), ','), ']') as [wrap.projects] from organization left join project on project.organization_id = organization.id group by organization.id) select orgId as orgId, [wrap.projects] as [wrap.projects] from org_projects_cte order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with org_projects_cte as (select organization.id as orgId, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar(41), project.id), 'null'), ', "name": ', isnull('"' + string_escape(convert(nvarchar(max), project.name), 'json') + '"', 'null'), ', "archivedAt": ', isnull('"' + convert(nvarchar, project.archived_at, 127) + '"', 'null'), '}'), ','), ']') as [wrap.projects] from organization left join project on project.organization_id = organization.id group by organization.id) select orgId as orgId, [wrap.projects] as [wrap.projects] from org_projects_cte order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId: number
@@ -3452,7 +3452,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with org_projects_cte as (select organization.id as orgId, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar, project.id), 'null'), ', "name": ', isnull('"' + string_escape(convert(nvarchar(max), project.name), 'json') + '"', 'null'), ', "archivedAt": ', isnull('"' + convert(nvarchar, project.archived_at, 127) + '"', 'null'), '}'), ','), ']') as projects from organization left join project on project.organization_id = organization.id group by organization.id) select orgId as orgId, projects as projects from org_projects_cte order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with org_projects_cte as (select organization.id as orgId, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar(41), project.id), 'null'), ', "name": ', isnull('"' + string_escape(convert(nvarchar(max), project.name), 'json') + '"', 'null'), ', "archivedAt": ', isnull('"' + convert(nvarchar, project.archived_at, 127) + '"', 'null'), '}'), ','), ']') as projects from organization left join project on project.organization_id = organization.id group by organization.id) select orgId as orgId, projects as projects from org_projects_cte order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId:    number
@@ -3510,7 +3510,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with org_projects_cte as (select organization.id as orgId, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar, project.id), 'null'), ', "name": ', isnull('"' + string_escape(convert(nvarchar(max), project.name), 'json') + '"', 'null'), ', "archivedAt": ', isnull('"' + convert(nvarchar, project.archived_at, 127) + '"', 'null'), '}'), ','), ']') as [wrap.projects] from organization left join project on project.organization_id = organization.id group by organization.id) select orgId as orgId, [wrap.projects] as [wrap.projects] from org_projects_cte order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with org_projects_cte as (select organization.id as orgId, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar(41), project.id), 'null'), ', "name": ', isnull('"' + string_escape(convert(nvarchar(max), project.name), 'json') + '"', 'null'), ', "archivedAt": ', isnull('"' + convert(nvarchar, project.archived_at, 127) + '"', 'null'), '}'), ','), ']') as [wrap.projects] from organization left join project on project.organization_id = organization.id group by organization.id) select orgId as orgId, [wrap.projects] as [wrap.projects] from org_projects_cte order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId: number
@@ -3571,7 +3571,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with org_projects_cte as (select organization.id as orgId, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar, project.id), 'null'), ', "name": ', isnull('"' + string_escape(convert(nvarchar(max), project.name), 'json') + '"', 'null'), ', "archivedAt": ', isnull('"' + convert(nvarchar, project.archived_at, 127) + '"', 'null'), '}'), ','), ']') as projects from organization left join project on project.organization_id = organization.id group by organization.id) select orgId as orgId, projects as projects from org_projects_cte order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with org_projects_cte as (select organization.id as orgId, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar(41), project.id), 'null'), ', "name": ', isnull('"' + string_escape(convert(nvarchar(max), project.name), 'json') + '"', 'null'), ', "archivedAt": ', isnull('"' + convert(nvarchar, project.archived_at, 127) + '"', 'null'), '}'), ','), ']') as projects from organization left join project on project.organization_id = organization.id group by organization.id) select orgId as orgId, projects as projects from org_projects_cte order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId:    number
@@ -3625,7 +3625,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with org_projects_cte as (select organization.id as orgId, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar, project.id), 'null'), ', "name": ', isnull('"' + string_escape(convert(nvarchar(max), project.name), 'json') + '"', 'null'), ', "archivedAt": ', isnull('"' + convert(nvarchar, project.archived_at, 127) + '"', 'null'), '}'), ','), ']') as projects from organization left join project on project.organization_id = organization.id group by organization.id) select orgId as orgId, projects as projects from org_projects_cte order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with org_projects_cte as (select organization.id as orgId, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar(41), project.id), 'null'), ', "name": ', isnull('"' + string_escape(convert(nvarchar(max), project.name), 'json') + '"', 'null'), ', "archivedAt": ', isnull('"' + convert(nvarchar, project.archived_at, 127) + '"', 'null'), '}'), ','), ']') as projects from organization left join project on project.organization_id = organization.id group by organization.id) select orgId as orgId, projects as projects from org_projects_cte order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId:     number
@@ -3688,7 +3688,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with org_projects_cte as (select organization.id as orgId, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar, project.id), 'null'), ', "name": ', isnull('"' + string_escape(convert(nvarchar(max), project.name), 'json') + '"', 'null'), ', "archivedAt": ', isnull('"' + convert(nvarchar, project.archived_at, 127) + '"', 'null'), '}'), ','), ']') as [meta.projects] from organization left join project on project.organization_id = organization.id group by organization.id) select orgId as orgId, [meta.projects] as [meta.projects] from org_projects_cte order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with org_projects_cte as (select organization.id as orgId, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar(41), project.id), 'null'), ', "name": ', isnull('"' + string_escape(convert(nvarchar(max), project.name), 'json') + '"', 'null'), ', "archivedAt": ', isnull('"' + convert(nvarchar, project.archived_at, 127) + '"', 'null'), '}'), ','), ']') as [meta.projects] from organization left join project on project.organization_id = organization.id group by organization.id) select orgId as orgId, [meta.projects] as [meta.projects] from org_projects_cte order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId: number

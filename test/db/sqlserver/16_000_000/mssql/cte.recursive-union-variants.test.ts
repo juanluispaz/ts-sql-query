@@ -306,7 +306,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, tree })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as [result] from issue where id = @0 union all select issue.id as [result] from issue join recursive_select_1 on issue.parent_id = recursive_select_1.[result]) select id as id, (select concat('[', string_agg(convert(nvarchar, [result]), ','), ']') from recursive_select_1) as tree from project where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as [result] from issue where id = @0 union all select issue.id as [result] from issue join recursive_select_1 on issue.parent_id = recursive_select_1.[result]) select id as id, (select concat('[', string_agg(convert(nvarchar(41), [result]), ','), ']') from recursive_select_1) as tree from project where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

@@ -42,7 +42,7 @@ describe(ctx.label, () => {
             .groupBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, concat('[', string_agg(concat('{', '"issue.id": ', isnull(convert(nvarchar, issue.id), 'null'), ', "issue.title": ', isnull('"' + string_escape(convert(nvarchar(max), issue.title), 'json') + '"', 'null'), '}'), ','), ']') as issues from project left join issue on issue.project_id = project.id where project.id = @0 group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, concat('[', string_agg(concat('{', '"issue.id": ', isnull(convert(nvarchar(41), issue.id), 'null'), ', "issue.title": ', isnull('"' + string_escape(convert(nvarchar(max), issue.title), 'json') + '"', 'null'), '}'), ','), ']') as issues from project left join issue on issue.project_id = project.id where project.id = @0 group by project.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -88,7 +88,7 @@ describe(ctx.label, () => {
             .groupBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, concat('[', string_agg(isnull(convert(nvarchar, issue.priority + @0), 'null'), ','), ']') as bumped from project left join issue on issue.project_id = project.id where project.id = @1 group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, concat('[', string_agg(isnull(convert(nvarchar(41), issue.priority + @0), 'null'), ','), ']') as bumped from project left join issue on issue.project_id = project.id where project.id = @1 group by project.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -184,7 +184,7 @@ describe(ctx.label, () => {
             .groupBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, concat('[', string_agg(concat('{', '"iid": ', isnull(convert(nvarchar, issue.id), 'null'), ', "title": ', isnull('"' + string_escape(convert(nvarchar(max), issue.title), 'json') + '"', 'null'), '}'), ','), ']') as issues from project left join issue on issue.project_id = project.id where project.id = @0 group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, concat('[', string_agg(concat('{', '"iid": ', isnull(convert(nvarchar(41), issue.id), 'null'), ', "title": ', isnull('"' + string_escape(convert(nvarchar(max), issue.title), 'json') + '"', 'null'), '}'), ','), ']') as issues from project left join issue on issue.project_id = project.id where project.id = @0 group by project.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -234,7 +234,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, project.archived_at as optArchived, concat('[', string_agg(concat('{', '"id": ', convert(nvarchar, issue.id), ', "body": ', isnull('"' + string_escape(convert(nvarchar(max), issue.body), 'json') + '"', 'null'), '}'), ','), ']') as issues from project inner join issue on issue.project_id = project.id where project.id = @0 group by project.id, project.archived_at"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, project.archived_at as optArchived, concat('[', string_agg(concat('{', '"id": ', convert(nvarchar(41), issue.id), ', "body": ', isnull('"' + string_escape(convert(nvarchar(max), issue.body), 'json') + '"', 'null'), '}'), ','), ']') as issues from project inner join issue on issue.project_id = project.id where project.id = @0 group by project.id, project.archived_at"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

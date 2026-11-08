@@ -1300,9 +1300,12 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         let result: string
 
         switch(type) {
+        // A number leaf is converted with room for any decimal(38): 38 digits, the sign, the point and a leading
+        // zero. The length-less convert defaults to nvarchar(30), and a custom number type mapped to a wide decimal
+        // column overflows it
         case 'boolean':
         case 'int':
-            result = 'convert(nvarchar, ' + this._appendSql(valueSource, params, false) + ')'
+            result = 'convert(nvarchar(41), ' + this._appendSql(valueSource, params, false) + ')'
             break
         case 'double':
             // FINDING B: this manual `string_agg` JSON builder (SQL Server compat < 17M) is the
@@ -1310,16 +1313,16 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             // a styleless convert keeps only ≤6 significant figures. Style 3 is the only convert
             // style that round-trips a float exactly. It emits scientific notation, a valid
             // (unquoted) JSON number, so the lossless number parser preserves the digits.
-            result = 'convert(nvarchar, ' + this._appendSql(valueSource, params, false) + ', 3)'
+            result = 'convert(nvarchar(41), ' + this._appendSql(valueSource, params, false) + ', 3)'
             break
         case 'bigint':
         case 'customInt':
         case 'customBigint':
-            result = `'"' + convert(nvarchar, ` + this._appendSql(valueSource, params, false) + `) + '"'`
+            result = `'"' + convert(nvarchar(41), ` + this._appendSql(valueSource, params, false) + `) + '"'`
             break
         case 'customDouble':
             // A quoted float leaf: the same lossless style-3 form as `double` (finding B).
-            result = `'"' + convert(nvarchar, ` + this._appendSql(valueSource, params, false) + `, 3) + '"'`
+            result = `'"' + convert(nvarchar(41), ` + this._appendSql(valueSource, params, false) + `, 3) + '"'`
             break
         case 'uuid':
         case 'customUuid':
@@ -1400,21 +1403,21 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         switch(type) {
         case 'boolean':
         case 'int':
-            result = 'convert(nvarchar, a_' + aggregateId + '_.' + this._escape(prop, true) + ')'
+            result = 'convert(nvarchar(41), a_' + aggregateId + '_.' + this._escape(prop, true) + ')'
             break
         case 'double':
             // FINDING B: style 3 is the only lossless float→text convert (styleless keeps
             // ≤6 significant figures). Scientific notation is a valid unquoted JSON number.
-            result = 'convert(nvarchar, a_' + aggregateId + '_.' + this._escape(prop, true) + ', 3)'
+            result = 'convert(nvarchar(41), a_' + aggregateId + '_.' + this._escape(prop, true) + ', 3)'
             break
         case 'bigint':
         case 'customInt':
         case 'customBigint':
-            result = `'"' + convert(nvarchar, a_` + aggregateId + `_.` + this._escape(prop, true) + `) + '"'`
+            result = `'"' + convert(nvarchar(41), a_` + aggregateId + `_.` + this._escape(prop, true) + `) + '"'`
             break
         case 'customDouble':
             // Quoted float leaf, lossless style-3 form (see `_appendJsonValueForAggregate`).
-            result = `'"' + convert(nvarchar, a_` + aggregateId + `_.` + this._escape(prop, true) + `, 3) + '"'`
+            result = `'"' + convert(nvarchar(41), a_` + aggregateId + `_.` + this._escape(prop, true) + `, 3) + '"'`
             break
         case 'uuid':
         case 'customUuid':

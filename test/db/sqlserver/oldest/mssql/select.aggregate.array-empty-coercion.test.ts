@@ -108,7 +108,7 @@ describe(ctx.label, () => {
             .groupBy('id')
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar, issue.id), 'null'), ', "title": ', isnull('"' + string_escape(convert(nvarchar(max), issue.title), 'json') + '"', 'null'), '}'), ','), ']') as issues from project left join issue on issue.project_id = project.id and issue.priority = @0 where project.id = @1 group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar(41), issue.id), 'null'), ', "title": ', isnull('"' + string_escape(convert(nvarchar(max), issue.title), 'json') + '"', 'null'), '}'), ','), ']') as issues from project left join issue on issue.project_id = project.id and issue.priority = @0 where project.id = @1 group by project.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             99,

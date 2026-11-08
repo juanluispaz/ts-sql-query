@@ -37,7 +37,7 @@ describe(ctx.label, () => {
                 .groupBy('id')
                 .executeSelectMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, concat('[', string_agg(isnull(convert(nvarchar, estimated_hours, 3), 'null'), ','), ']') as hours from issue where id = @0 group by id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, concat('[', string_agg(isnull(convert(nvarchar(41), estimated_hours, 3), 'null'), ','), ']') as hours from issue where id = @0 group by id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -46,5 +46,31 @@ describe(ctx.label, () => {
             assertType<Exact<typeof rows, Array<{ id: number; hours: number[] }>>>()
             expect(rows).toEqual([{ id: 1, hours: [123.456789] }])
         })
+    })
+
+    test('string_agg JSON fallback fits a number of a wide decimal column', async () => {
+        // A custom number type mapped to a decimal(38,10) column: its text, 31 characters here, doesn't fit the
+        // nvarchar(30) a length-less convert gives, which failed with "Arithmetic overflow". The value is read as a
+        // double, as a customDouble is.
+        type Amount = number & { readonly __brand: 'Amount' }
+        const old = new DBConnection(ctx.conn.queryRunner, 16_000_000)
+        ctx.mockNext([{ id: 1, amounts: ['12345678901234567890.1234567891'] }])
+        const rows = await old.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:      tIssue.id,
+                amounts: old.aggregateAsArrayOfOneColumn(old.fragmentWithType<Amount, 'Amount'>('customDouble', 'Amount', 'required').sql`cast(12345678901234567890.1234567891 as decimal(38,10))`),
+            })
+            .groupBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, concat('[', string_agg('"' + convert(nvarchar(41), cast(12345678901234567890.1234567891 as decimal(38,10)), 3) + '"', ','), ']') as amounts from issue where id = @0 group by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; amounts: Amount[] }>>>()
+        expect(rows).toEqual([{ id: 1, amounts: [12345678901234567890.1234567891] }])
     })
 })

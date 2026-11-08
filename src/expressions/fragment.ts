@@ -90,7 +90,7 @@ export interface LocalDateTimeFragmentExpression</*in|out*/ NO_SOURCE extends NS
     sql<T1 extends NSource, T2 extends NSource, T3 extends NSource, T4 extends NSource, T5 extends NSource, T6 extends NSource, T7 extends NSource>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>, p2: ValueSourceOf<T2>, p3: ValueSourceOf<T3>, p4: ValueSourceOf<T4>, p5: ValueSourceOf<T5>, p6: ValueSourceOf<T6>, p7: ValueSourceOf<T7>): LocalDateTimeValueSource<T1 | T2 | T3 | T4 | T5 | T6 | T7 | EXTRA_SOURCE, OPTIONAL_TYPE>
 }
 
-export interface EqualableFragmentExpression</*in|out*/ NO_SOURCE extends NSource, TYPE, TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
+export interface EqualableFragmentExpression</*in|out*/ NO_SOURCE extends NSource, TYPE, TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
     sql(sql: TemplateStringsArray):  EqualableValueSource<NO_SOURCE | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     sql<T1 extends NSource>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>): EqualableValueSource<T1 | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     sql<T1 extends NSource, T2 extends NSource>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>, p2: ValueSourceOf<T2>): EqualableValueSource<T1 | T2 | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
@@ -101,7 +101,7 @@ export interface EqualableFragmentExpression</*in|out*/ NO_SOURCE extends NSourc
     sql<T1 extends NSource, T2 extends NSource, T3 extends NSource, T4 extends NSource, T5 extends NSource, T6 extends NSource, T7 extends NSource>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>, p2: ValueSourceOf<T2>, p3: ValueSourceOf<T3>, p4: ValueSourceOf<T4>, p5: ValueSourceOf<T5>, p6: ValueSourceOf<T6>, p7: ValueSourceOf<T7>): EqualableValueSource<T1 | T2 | T3 | T4 | T5 | T6 | T7 | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
 }
 
-export interface ComparableFragmentExpression</*in|out*/ NO_SOURCE extends NSource, TYPE, TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
+export interface ComparableFragmentExpression</*in|out*/ NO_SOURCE extends NSource, TYPE, TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
     sql(sql: TemplateStringsArray):  ComparableValueSource<NO_SOURCE | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     sql<T1 extends NSource>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>): ComparableValueSource<T1 | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     sql<T1 extends NSource, T2 extends NSource>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>, p2: ValueSourceOf<T2>): ComparableValueSource<T1 | T2 | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
@@ -112,7 +112,7 @@ export interface ComparableFragmentExpression</*in|out*/ NO_SOURCE extends NSour
     sql<T1 extends NSource, T2 extends NSource, T3 extends NSource, T4 extends NSource, T5 extends NSource, T6 extends NSource, T7 extends NSource>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>, p2: ValueSourceOf<T2>, p3: ValueSourceOf<T3>, p4: ValueSourceOf<T4>, p5: ValueSourceOf<T5>, p6: ValueSourceOf<T6>, p7: ValueSourceOf<T7>): ComparableValueSource<T1 | T2 | T3 | T4 | T5 | T6 | T7 | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
 }
 
-export interface CustomIntFragmentExpression</*in|out*/ NO_SOURCE extends NSource, TYPE, TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
+export interface CustomIntFragmentExpression</*in|out*/ NO_SOURCE extends NSource, TYPE, TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
     sql(sql: TemplateStringsArray):  CustomIntValueSource<NO_SOURCE | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     sql<T1 extends NSource>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>): CustomIntValueSource<T1 | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     sql<T1 extends NSource, T2 extends NSource>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>, p2: ValueSourceOf<T2>): CustomIntValueSource<T1 | T2 | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
@@ -123,7 +123,7 @@ export interface CustomIntFragmentExpression</*in|out*/ NO_SOURCE extends NSourc
     sql<T1 extends NSource, T2 extends NSource, T3 extends NSource, T4 extends NSource, T5 extends NSource, T6 extends NSource, T7 extends NSource>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>, p2: ValueSourceOf<T2>, p3: ValueSourceOf<T3>, p4: ValueSourceOf<T4>, p5: ValueSourceOf<T5>, p6: ValueSourceOf<T6>, p7: ValueSourceOf<T7>): CustomIntValueSource<T1 | T2 | T3 | T4 | T5 | T6 | T7 | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
 }
 
-export interface CustomBigintFragmentExpression</*in|out*/ NO_SOURCE extends NSource, TYPE, TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
+export interface CustomBigintFragmentExpression</*in|out*/ NO_SOURCE extends NSource, TYPE, TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
     sql(sql: TemplateStringsArray):  CustomBigintValueSource<NO_SOURCE | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     sql<T1 extends NSource>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>): CustomBigintValueSource<T1 | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     sql<T1 extends NSource, T2 extends NSource>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>, p2: ValueSourceOf<T2>): CustomBigintValueSource<T1 | T2 | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
@@ -134,7 +134,7 @@ export interface CustomBigintFragmentExpression</*in|out*/ NO_SOURCE extends NSo
     sql<T1 extends NSource, T2 extends NSource, T3 extends NSource, T4 extends NSource, T5 extends NSource, T6 extends NSource, T7 extends NSource>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>, p2: ValueSourceOf<T2>, p3: ValueSourceOf<T3>, p4: ValueSourceOf<T4>, p5: ValueSourceOf<T5>, p6: ValueSourceOf<T6>, p7: ValueSourceOf<T7>): CustomBigintValueSource<T1 | T2 | T3 | T4 | T5 | T6 | T7 | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
 }
 
-export interface CustomDoubleFragmentExpression</*in|out*/ NO_SOURCE extends NSource, TYPE, TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
+export interface CustomDoubleFragmentExpression</*in|out*/ NO_SOURCE extends NSource, TYPE, TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
     sql(sql: TemplateStringsArray):  CustomDoubleValueSource<NO_SOURCE | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     sql<T1 extends NSource>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>): CustomDoubleValueSource<T1 | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     sql<T1 extends NSource, T2 extends NSource>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>, p2: ValueSourceOf<T2>): CustomDoubleValueSource<T1 | T2 | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
@@ -145,7 +145,7 @@ export interface CustomDoubleFragmentExpression</*in|out*/ NO_SOURCE extends NSo
     sql<T1 extends NSource, T2 extends NSource, T3 extends NSource, T4 extends NSource, T5 extends NSource, T6 extends NSource, T7 extends NSource>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>, p2: ValueSourceOf<T2>, p3: ValueSourceOf<T3>, p4: ValueSourceOf<T4>, p5: ValueSourceOf<T5>, p6: ValueSourceOf<T6>, p7: ValueSourceOf<T7>): CustomDoubleValueSource<T1 | T2 | T3 | T4 | T5 | T6 | T7 | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
 }
 
-export interface CustomUuidFragmentExpression</*in|out*/ NO_SOURCE extends NSource, TYPE, TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
+export interface CustomUuidFragmentExpression</*in|out*/ NO_SOURCE extends NSource, TYPE, TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
     sql(sql: TemplateStringsArray):  CustomUuidValueSource<NO_SOURCE | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     sql<T1 extends NSource>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>): CustomUuidValueSource<T1 | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     sql<T1 extends NSource, T2 extends NSource>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>, p2: ValueSourceOf<T2>): CustomUuidValueSource<T1 | T2 | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
@@ -156,7 +156,7 @@ export interface CustomUuidFragmentExpression</*in|out*/ NO_SOURCE extends NSour
     sql<T1 extends NSource, T2 extends NSource, T3 extends NSource, T4 extends NSource, T5 extends NSource, T6 extends NSource, T7 extends NSource>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>, p2: ValueSourceOf<T2>, p3: ValueSourceOf<T3>, p4: ValueSourceOf<T4>, p5: ValueSourceOf<T5>, p6: ValueSourceOf<T6>, p7: ValueSourceOf<T7>): CustomUuidValueSource<T1 | T2 | T3 | T4 | T5 | T6 | T7 | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
 }
 
-export interface CustomLocalDateTimeFragmentExpression</*in|out*/ NO_SOURCE extends NSource, TYPE, TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
+export interface CustomLocalDateTimeFragmentExpression</*in|out*/ NO_SOURCE extends NSource, TYPE, TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
     sql(sql: TemplateStringsArray):  CustomLocalDateTimeValueSource<NO_SOURCE | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     sql<T1 extends NSource>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>): CustomLocalDateTimeValueSource<T1 | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     sql<T1 extends NSource, T2 extends NSource>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>, p2: ValueSourceOf<T2>): CustomLocalDateTimeValueSource<T1 | T2 | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
@@ -167,7 +167,7 @@ export interface CustomLocalDateTimeFragmentExpression</*in|out*/ NO_SOURCE exte
     sql<T1 extends NSource, T2 extends NSource, T3 extends NSource, T4 extends NSource, T5 extends NSource, T6 extends NSource, T7 extends NSource>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>, p2: ValueSourceOf<T2>, p3: ValueSourceOf<T3>, p4: ValueSourceOf<T4>, p5: ValueSourceOf<T5>, p6: ValueSourceOf<T6>, p7: ValueSourceOf<T7>): CustomLocalDateTimeValueSource<T1 | T2 | T3 | T4 | T5 | T6 | T7 | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
 }
 
-export interface CustomLocalDateFragmentExpression</*in|out*/ NO_SOURCE extends NSource, TYPE, TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
+export interface CustomLocalDateFragmentExpression</*in|out*/ NO_SOURCE extends NSource, TYPE, TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
     sql(sql: TemplateStringsArray):  CustomLocalDateValueSource<NO_SOURCE | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     sql<T1 extends NSource>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>): CustomLocalDateValueSource<T1 | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     sql<T1 extends NSource, T2 extends NSource>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>, p2: ValueSourceOf<T2>): CustomLocalDateValueSource<T1 | T2 | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
@@ -178,7 +178,7 @@ export interface CustomLocalDateFragmentExpression</*in|out*/ NO_SOURCE extends 
     sql<T1 extends NSource, T2 extends NSource, T3 extends NSource, T4 extends NSource, T5 extends NSource, T6 extends NSource, T7 extends NSource>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>, p2: ValueSourceOf<T2>, p3: ValueSourceOf<T3>, p4: ValueSourceOf<T4>, p5: ValueSourceOf<T5>, p6: ValueSourceOf<T6>, p7: ValueSourceOf<T7>): CustomLocalDateValueSource<T1 | T2 | T3 | T4 | T5 | T6 | T7 | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
 }
 
-export interface CustomLocalTimeFragmentExpression</*in|out*/ NO_SOURCE extends NSource, TYPE, TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
+export interface CustomLocalTimeFragmentExpression</*in|out*/ NO_SOURCE extends NSource, TYPE, TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
     sql(sql: TemplateStringsArray):  CustomLocalTimeValueSource<NO_SOURCE | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     sql<T1 extends NSource>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>): CustomLocalTimeValueSource<T1 | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     sql<T1 extends NSource, T2 extends NSource>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>, p2: ValueSourceOf<T2>): CustomLocalTimeValueSource<T1 | T2 | EXTRA_SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>

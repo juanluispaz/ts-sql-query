@@ -29,6 +29,17 @@ class ConnWithCustomTypes extends DBConnection {
     valueArgTwo() { return this.valueArg<Money, 'Money'>('customInt', 'Money', 'required') }
     // @ts-expect-error a single generic argument does not give the type name
     valueArgOne() { return this.valueArg<Money>('customInt', 'Money', 'required') }
+
+    // Rule: the value argument of an if-value fragment keeps its type name.
+    ifValueSameTypeName = this.buildFragmentWithArgsIfValue(
+        this.arg<Money, 'Money'>('customInt', 'Money', 'required'),
+        this.valueArg<Money, 'Money'>('customInt', 'Money', 'optional')
+    ).as((amount, limit) => amount.greaterThan(limit))
+    ifValueOtherTypeName = this.buildFragmentWithArgsIfValue(
+        this.arg<Money, 'Money'>('customInt', 'Money', 'required'),
+        this.valueArg<Money, 'OtherMoney'>('customInt', 'OtherMoney', 'optional')
+    // @ts-expect-error another type name
+    ).as((amount, limit) => amount.greaterThan(limit))
 }
 
 const tMoney = new class TMoney extends Table<DBConnection, 'TMoney'> {

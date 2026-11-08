@@ -97,13 +97,13 @@ export interface AnyValueSource {
 export interface ValueSourceOf</*in|out*/ SOURCE extends NSource> extends AnyValueSource, HasSource<SOURCE> {
 }
 
-export interface IValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends ValueSourceOf<SOURCE> {
+export interface IValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends ValueSourceOf<SOURCE> {
     [valueType]: TYPE
     [optionalType]: OPTIONAL_TYPE
     [typeName]: TYPE_NAME
 }
 
-export interface ValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends IValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+export interface ValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends IValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
     isConstValue(): boolean
     getConstValue(): TYPE
     allowWhen(when: boolean, errorMessage: string): this
@@ -200,7 +200,7 @@ export function isValueSource(value: any): value is AnyValueSource {
     return false
 }
 
-export function __getValueSourceOfObject(obj: AnyTableOrView, prop: string): ValueSource<any, unknown, unknown, any> | undefined {
+export function __getValueSourceOfObject(obj: AnyTableOrView, prop: string): ValueSource<any, unknown, string, any> | undefined {
     const result = (obj as any)[prop]
     if (!result) {
         return undefined
@@ -219,11 +219,11 @@ export function __getValueSourcePrivate(valueSource: AnyValueSource | IAnyBoolea
     return valueSource as any
 }
 
-export interface INullableValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends IValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+export interface INullableValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends IValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
     [nullableValueSource]: 'NullableValueSource'
 }
 
-export interface NullableValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends ValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>, INullableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+export interface NullableValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends ValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>, INullableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
     isNull(): BooleanValueSource<SOURCE, 'required'>
     isNotNull(): BooleanValueSource<SOURCE, 'required'>
     // The next methods must be reimplemented in the subinterface with the proper return type
@@ -258,11 +258,11 @@ export interface IExecutableDeleteQuery</*in|out*/ SOURCE extends NSource, /*in|
     [resultType]: RESULT
 }
 
-export interface IEqualableValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends INullableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+export interface IEqualableValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends INullableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
     [equalableValueSource]: 'EqualableValueSource'
 }
 
-export interface EqualableValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends NullableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>, IEqualableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+export interface EqualableValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends NullableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>, IEqualableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
     equalsIfValue(value: TYPE | null | undefined): IfValueSource<SOURCE, OPTIONAL_TYPE>
     equals(value: TYPE): BooleanValueSource<SOURCE, OPTIONAL_TYPE>
     equals<VALUE extends IEqualableValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): BooleanValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
@@ -302,11 +302,11 @@ export interface EqualableValueSource</*in|out*/ SOURCE extends NSource, /*in|ou
     ignoreWhenAsNull(when: boolean): EqualableValueSource<SOURCE, TYPE, TYPE_NAME, 'optional'>
 }
 
-export interface IComparableValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends IEqualableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+export interface IComparableValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends IEqualableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
     [comparableValueSource]: 'ComparableValueSource'
 }
 
-export interface ComparableValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends EqualableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>, IComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+export interface ComparableValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends EqualableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>, IComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
     lessThanIfValue(value: TYPE | null | undefined): IfValueSource<SOURCE, OPTIONAL_TYPE>
     lessThan(value: TYPE): BooleanValueSource<SOURCE, OPTIONAL_TYPE>
     lessThan<VALUE extends IEqualableValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): BooleanValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
@@ -548,12 +548,12 @@ export interface BigintValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/
     ignoreWhenAsNull(when: boolean): BigintValueSource<SOURCE, 'optional'>
 }
 
-export interface ICustomIntValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+export interface ICustomIntValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
     [customIntValueSource]: 'CustomIntValueSource'
 }
 
 // some methods are commented because there is no double equivalent
-export interface CustomIntValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<SOURCE,TYPE, TYPE_NAME, OPTIONAL_TYPE>, ICustomIntValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+export interface CustomIntValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<SOURCE,TYPE, TYPE_NAME, OPTIONAL_TYPE>, ICustomIntValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
     // SqlFunction0
     // Number functions
     abs(): CustomIntValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
@@ -630,12 +630,12 @@ export interface CustomIntValueSource</*in|out*/ SOURCE extends NSource, /*in|ou
     ignoreWhenAsNull(when: boolean): CustomIntValueSource<SOURCE, TYPE, TYPE_NAME, 'optional'>
 }
 
-export interface ICustomBigintValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+export interface ICustomBigintValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
     [customBigintValueSource]: 'CustomBigintValueSource'
 }
 
 // some methods are commented because there is no double equivalent, and multiply as in BigintValueSource
-export interface CustomBigintValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<SOURCE,TYPE, TYPE_NAME, OPTIONAL_TYPE>, ICustomBigintValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+export interface CustomBigintValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<SOURCE,TYPE, TYPE_NAME, OPTIONAL_TYPE>, ICustomBigintValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
     // SqlFunction0
     // Number functions
     abs(): CustomBigintValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
@@ -712,11 +712,11 @@ export interface CustomBigintValueSource</*in|out*/ SOURCE extends NSource, /*in
     ignoreWhenAsNull(when: boolean): CustomBigintValueSource<SOURCE, TYPE, TYPE_NAME, 'optional'>
 }
 
-export interface ICustomDoubleValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+export interface ICustomDoubleValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
     [customDoubleValueSource]: 'CustomDoubleValueSource'
 }
 
-export interface CustomDoubleValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>, ICustomDoubleValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+export interface CustomDoubleValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>, ICustomDoubleValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
     // SqlFunction0
     // Number functions
     // asInt(): NumberValueSource<SOURCE, OPTIONAL_TYPE> // Maybe unsafe cast, we round it when it is necesary
@@ -947,11 +947,11 @@ export interface UuidValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ O
     ignoreWhenAsNull(when: boolean): UuidValueSource<SOURCE, 'optional'>
 }
 
-export interface ICustomUuidValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+export interface ICustomUuidValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
     [customUuidValueSource]: 'CustomUuidValueSource'
 }
 
-export interface CustomUuidValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>, ICustomUuidValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+export interface CustomUuidValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>, ICustomUuidValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
     asString(): StringValueSource<SOURCE, OPTIONAL_TYPE>
     // Redefined methods
     valueWhenNull(value: TYPE): CustomUuidValueSource<SOURCE, TYPE, TYPE_NAME, 'required'>
@@ -1046,11 +1046,11 @@ export interface LocalDateTimeValueSource</*in|out*/ SOURCE extends NSource, /*i
     ignoreWhenAsNull(when: boolean): LocalDateTimeValueSource<SOURCE, 'optional'>
 }
 
-export interface ICustomLocalDateValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+export interface ICustomLocalDateValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
     [customLocalDateValueSource]: 'CustomLocalDateValueSource'
 }
 
-export interface CustomLocalDateValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>, ICustomLocalDateValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+export interface CustomLocalDateValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>, ICustomLocalDateValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
     /** Gets the year */
     getFullYear(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
     /** Gets the month (value between 0 to 11)*/
@@ -1069,11 +1069,11 @@ export interface CustomLocalDateValueSource</*in|out*/ SOURCE extends NSource, /
     ignoreWhenAsNull(when: boolean): CustomLocalDateValueSource<SOURCE, TYPE, TYPE_NAME, 'optional'>
 }
 
-export interface ICustomLocalTimeValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+export interface ICustomLocalTimeValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
     [customLocalTimeValueSource]: 'CustomLocalTimeValueSource'
 }
 
-export interface CustomLocalTimeValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>, ICustomLocalTimeValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+export interface CustomLocalTimeValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>, ICustomLocalTimeValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
     /** Gets the hours */
     getHours(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
     /** Gets the minutes */
@@ -1093,11 +1093,11 @@ export interface CustomLocalTimeValueSource</*in|out*/ SOURCE extends NSource, /
     ignoreWhenAsNull(when: boolean): CustomLocalTimeValueSource<SOURCE, TYPE, TYPE_NAME, 'optional'>
 }
 
-export interface ICustomLocalDateTimeValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+export interface ICustomLocalDateTimeValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
     [customLocalDateTimeValueSource]: 'CustomLocalDateTimeValueSource'
 }
 
-export interface CustomLocalDateTimeValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>, ICustomLocalDateTimeValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+export interface CustomLocalDateTimeValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>, ICustomLocalDateTimeValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
     /** Gets the year */
     getFullYear(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
     /** Gets the month (value between 0 to 11)*/
@@ -1245,7 +1245,7 @@ export type RemapIValueSourceTypeWithOptionalType<SOURCE extends NSource, TYPE, 
 export type ArgumentType = 'boolean' | 'int' | 'double' | 'bigint' | 'string' | 'uuid' | 'localDateTime' | 'localDate' | 'localTime' | 'customInt' | 'customBigint' | 'customDouble' | 'customUuid' | 'customLocalDateTime' | 'customLocalDate' | 'customLocalTime' | 'customComparable' | 'enum' | 'custom'
 export type ArgumentOptionalType = 'required' | 'optional'
 export type ArgumentMode = 'value' | 'combined'
-export class Argument<T extends ArgumentType, OPTIONAL_TYPE extends ArgumentOptionalType, MODE extends ArgumentMode, TYPE, TYPE_NAME = any> {
+export class Argument<T extends ArgumentType, OPTIONAL_TYPE extends ArgumentOptionalType, MODE extends ArgumentMode, TYPE, TYPE_NAME extends string = string> {
     readonly type: T
     readonly typeName: string
     readonly optionalType: OPTIONAL_TYPE
@@ -1356,8 +1356,8 @@ export type ArgBaseTypeForFn<ARG> =
     ): never
 
 export type RequiredArgumentWhenValueMode<ARG> =
-    ARG extends Argument<infer TYPE, any, infer MODE, infer T> ? (
-        MODE extends 'value' ? Argument<TYPE, 'required', MODE, T> : ARG
+    ARG extends Argument<infer TYPE, any, infer MODE, infer T, infer TYPE_NAME> ? (
+        MODE extends 'value' ? Argument<TYPE, 'required', MODE, T, TYPE_NAME> : ARG
     ): never
 
 export type ArgForBuilderIfValue<SOURCE extends NSource, ARG> =

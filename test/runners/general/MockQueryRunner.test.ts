@@ -161,7 +161,7 @@ describe('MockQueryRunner', () => {
         const runner = new MockQueryRunner(() => undefined, 'postgreSql')
         const cases: [unknown, string, TypeCategory, string][] = [
             [1, 'Status', 'enum', '$1::int4'], [5000000000, 'Big', 'custom', '$1::int8'], [1.5, 'Ratio', 'customComparable', '$1::float8'],
-            [5n, 'Count', '', '$1::int8'], ['open', 'Status', 'enum', '$1'], [null, 'Status', 'enum', '$1'], ['12', 'stringInt', 'customInt', '$1::int8'],
+            [5n, 'Count', '', '$1::int8'], ['open', 'Status', 'enum', '$1'], [null, 'Status', 'enum', '$1'],
         ]
         for (const [value, type, typeCategory, placeholder] of cases) {
             expect([type, value, runner.addParam([], value, type, typeCategory, true)]).toEqual([type, value, placeholder])

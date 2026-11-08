@@ -79,7 +79,7 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
 
     test('without-a-category-the-name-of-the-type-decides', async () => {
         const cases: [unknown, string, string][] = [
-            [1, 'boolean', 'bit'], ['12', 'stringInt', 'bigint'], ['1.5', 'stringDouble', 'float'], [1, 'double', 'float'],
+            [1, 'boolean', 'bit'], [1, 'double', 'float'],
             ['12', 'string', 'nvarchar'],
         ]
         for (const [value, type, expected] of cases) {

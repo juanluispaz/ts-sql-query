@@ -50,7 +50,6 @@ function describeParamTypes(label: string, enabled: boolean, typesTheParam: bool
             const cases: [unknown, string, TypeCategory, string, string][] = [
                 [7, 'int', 'int', 'int4', 'integer'],
                 [9007199254740993n, 'bigint', 'bigint', 'int8', 'bigint'],
-                ['12', 'stringInt', 'customInt', 'int8', 'bigint'],
                 [1.5, 'double', 'double', 'float8', 'double precision'],
                 ['abc', 'string', 'string', 'text', 'text'],
                 [true, 'boolean', 'boolean', 'bool', 'boolean'],

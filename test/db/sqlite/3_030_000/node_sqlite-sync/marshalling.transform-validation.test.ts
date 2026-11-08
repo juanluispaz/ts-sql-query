@@ -41,21 +41,6 @@ function reasonOf(e: unknown): string | undefined {
     return undefined
 }
 
-// `stringInt` / `stringDouble` are internal marshalling type names, not exposed
-// as column types. A user TypeAdapter that reroutes any const's value through
-// `next.transformValueFromDB/ToDB(value, 'stringInt'|'stringDouble')` is the
-// only public way to exercise those transforms — they exist so an integer /
-// double beyond `Number.MAX_SAFE_INTEGER` can be carried as a string. The base
-// type of the const the adapter wraps is irrelevant; the literal is hard-coded.
-const stringIntAdapter: TypeAdapter = {
-    transformValueFromDB(value, _type, typeCategory, next) { return next.transformValueFromDB(value, 'stringInt', typeCategory) },
-    transformValueToDB(value, _type, typeCategory, next) { return next.transformValueToDB(value, 'stringInt', typeCategory) },
-}
-const stringDoubleAdapter: TypeAdapter = {
-    transformValueFromDB(value, _type, typeCategory, next) { return next.transformValueFromDB(value, 'stringDouble', typeCategory) },
-    transformValueToDB(value, _type, typeCategory, next) { return next.transformValueToDB(value, 'stringDouble', typeCategory) },
-}
-
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -445,136 +430,6 @@ describe(ctx.label, () => {
         }
     })
 
-    // ---- stringInt / stringDouble marshalling, reached via a rerouting adapter
-    // on a const. from-db tests are mock-only by construction (a real driver
-    // never hands these raw shapes to the rerouted const — DESIGN.md §18 guard);
-    // to-db throws run client-side in both modes. ----
-
-    test('marshalling/from-db-validation/stringint-safe-number-passthrough', async () => {
-        // MOCK-ONLY: no real driver of this connector hands this representation back, so mockNext is
-        // the only way to reach the transformValueFromDB arm under test.
-        ctx.mockOnlyConnection()
-        expect(await fromDbValue(ctx.conn.const(0, 'int', stringIntAdapter), 42)).toBe(42)
-    })
-
-    test('marshalling/from-db-validation/stringint-big-numeric-string-kept-as-string', async () => {
-        // MOCK-ONLY: no real driver of this connector hands this representation back, so mockNext is
-        // the only way to reach the transformValueFromDB arm under test.
-        ctx.mockOnlyConnection()
-        expect(await fromDbValue(ctx.conn.const(0, 'int', stringIntAdapter), '900719925474099100')).toBe('900719925474099100')
-    })
-
-    test('marshalling/from-db-validation/stringint-trailing-dot-zero-string-normalized', async () => {
-        // MOCK-ONLY: no real driver of this connector hands this representation back, so mockNext is
-        // the only way to reach the transformValueFromDB arm under test.
-        ctx.mockOnlyConnection()
-        expect(await fromDbValue(ctx.conn.const(0, 'int', stringIntAdapter), '42.0')).toBe('42')
-    })
-
-    test('marshalling/from-db-validation/stringint-unsafe-bigint-kept-as-string', async () => {
-        // MOCK-ONLY: no real driver of this connector hands this representation back, so mockNext is
-        // the only way to reach the transformValueFromDB arm under test.
-        ctx.mockOnlyConnection()
-        expect(await fromDbValue(ctx.conn.const(0, 'int', stringIntAdapter), 9007199254740993n)).toBe('9007199254740993')
-    })
-
-    test('marshalling/from-db-validation/stringint-safe-bigint-narrowed-to-number', async () => {
-        // MOCK-ONLY: no real driver of this connector hands this representation back, so mockNext is
-        // the only way to reach the transformValueFromDB arm under test.
-        ctx.mockOnlyConnection()
-        expect(await fromDbValue(ctx.conn.const(0, 'int', stringIntAdapter), 42n)).toBe(42)
-    })
-
-    test('marshalling/from-db-validation/stringint-non-integer-number-throws', async () => {
-        // MOCK-ONLY: no real driver of this connector hands this representation back, so mockNext is
-        // the only way to reach the transformValueFromDB arm under test.
-        ctx.mockOnlyConnection()
-        expect(await fromDbReason(ctx.conn.const(0, 'int', stringIntAdapter), 1.5)).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
-    })
-
-    test('marshalling/from-db-validation/stringint-unsafe-number-precision-lost', async () => {
-        // MOCK-ONLY: no real driver of this connector hands this representation back, so mockNext is
-        // the only way to reach the transformValueFromDB arm under test.
-        ctx.mockOnlyConnection()
-        expect(await fromDbReason(ctx.conn.const(0, 'int', stringIntAdapter), 9007199254740996)).toBe('PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE')
-    })
-
-    test('marshalling/from-db-validation/stringint-non-numeric-string-throws', async () => {
-        // MOCK-ONLY: no real driver of this connector hands this representation back, so mockNext is
-        // the only way to reach the transformValueFromDB arm under test.
-        ctx.mockOnlyConnection()
-        expect(await fromDbReason(ctx.conn.const(0, 'int', stringIntAdapter), 'abc')).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
-    })
-
-    test('marshalling/from-db-validation/stringint-non-value-type-throws', async () => {
-        // MOCK-ONLY: no real driver of this connector hands this representation back, so mockNext is
-        // the only way to reach the transformValueFromDB arm under test.
-        ctx.mockOnlyConnection()
-        expect(await fromDbReason(ctx.conn.const(0, 'int', stringIntAdapter), true)).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
-    })
-
-    test('marshalling/from-db-validation/stringdouble-number-passthrough', async () => {
-        // MOCK-ONLY: no real driver of this connector hands this representation back, so mockNext is
-        // the only way to reach the transformValueFromDB arm under test.
-        ctx.mockOnlyConnection()
-        expect(await fromDbValue(ctx.conn.const(0, 'double', stringDoubleAdapter), 3.14)).toBe(3.14)
-    })
-
-    test('marshalling/from-db-validation/stringdouble-exponential-string-kept-as-string', async () => {
-        // MOCK-ONLY: no real driver of this connector hands this representation back, so mockNext is
-        // the only way to reach the transformValueFromDB arm under test.
-        ctx.mockOnlyConnection()
-        expect(await fromDbValue(ctx.conn.const(0, 'double', stringDoubleAdapter), '1.5e300')).toBe('1.5e300')
-    })
-
-    test('marshalling/from-db-validation/stringdouble-unsafe-bigint-kept-as-string', async () => {
-        // MOCK-ONLY: no real driver of this connector hands this representation back, so mockNext is
-        // the only way to reach the transformValueFromDB arm under test.
-        ctx.mockOnlyConnection()
-        expect(await fromDbValue(ctx.conn.const(0, 'double', stringDoubleAdapter), 9007199254740993n)).toBe('9007199254740993')
-    })
-
-    test('marshalling/from-db-validation/stringdouble-safe-bigint-narrowed-to-number', async () => {
-        // MOCK-ONLY: no real driver of this connector hands this representation back, so mockNext is
-        // the only way to reach the transformValueFromDB arm under test.
-        ctx.mockOnlyConnection()
-        expect(await fromDbValue(ctx.conn.const(0, 'double', stringDoubleAdapter), 42n)).toBe(42)
-    })
-
-    test('marshalling/from-db-validation/stringdouble-non-numeric-string-throws', async () => {
-        // MOCK-ONLY: no real driver of this connector hands this representation back, so mockNext is
-        // the only way to reach the transformValueFromDB arm under test.
-        ctx.mockOnlyConnection()
-        expect(await fromDbReason(ctx.conn.const(0, 'double', stringDoubleAdapter), 'abc')).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
-    })
-
-    test('marshalling/from-db-validation/stringdouble-non-value-type-throws', async () => {
-        // MOCK-ONLY: no real driver of this connector hands this representation back, so mockNext is
-        // the only way to reach the transformValueFromDB arm under test.
-        ctx.mockOnlyConnection()
-        expect(await fromDbReason(ctx.conn.const(0, 'double', stringDoubleAdapter), true)).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
-    })
-
-    test('marshalling/to-db-validation/stringint-non-integer-throws', async () => {
-        expect(await toDbReason(() => ctx.conn.const(1.5, 'int', stringIntAdapter))).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
-    })
-
-    test('marshalling/to-db-validation/stringint-non-integer-string-throws', async () => {
-        expect(await toDbReason(() => ctx.conn.const('1.5', 'string', stringIntAdapter))).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
-    })
-
-    test('marshalling/to-db-validation/stringint-bigint-throws', async () => {
-        expect(await toDbReason(() => ctx.conn.const(5n, 'bigint', stringIntAdapter))).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
-    })
-
-    test('marshalling/to-db-validation/stringdouble-non-numeric-string-throws', async () => {
-        expect(await toDbReason(() => ctx.conn.const('abc', 'string', stringDoubleAdapter))).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
-    })
-
-    test('marshalling/to-db-validation/stringdouble-bigint-throws', async () => {
-        expect(await toDbReason(() => ctx.conn.const(5n, 'bigint', stringDoubleAdapter))).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
-    })
-
     // ---- marshalling tail: scalar decode complements, temporal datetime-prefixed
     // decode (a localDate/localTime/localDateTime value arriving as a full
     // datetime string, as Oracle emits inside a JSON aggregate), and the
@@ -700,29 +555,6 @@ describe(ctx.label, () => {
             transformValueToDB(value, _type, _typeCategory, next) { return next.transformValueToDB(value, 'string', 'string') },
         }
         expect(await fromDbReason(ctx.conn.const('x', 'string', aggAdapter), 1)).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
-    })
-
-    test('marshalling/to-db-validation/stringint-valid-integer-string-passthrough', async () => {
-        // stringInt ENCODE success: a valid integer string passes through unchanged
-        // as the bound param. Client-side transform (both modes), guard-free —
-        // mirrors the empty-string test. The stringIntAdapter reroutes
-        // transformValueToDB to the 'stringInt' encode, whose valid-integer-string
-        // arm returns the value verbatim.
-        ctx.mockNext([])
-        sync(ctx.conn.selectFrom(tIssue)
-            .select({ id: tIssue.id, x: ctx.conn.const('5', 'string', stringIntAdapter) })
-            .executeSelectMany())
-        expect(ctx.lastParams).toEqual(['5'])
-    })
-
-    test('marshalling/to-db-validation/stringdouble-valid-numeric-string-passthrough', async () => {
-        // stringDouble ENCODE success: a valid numeric string (with an exponent)
-        // passes through unchanged as the bound param.
-        ctx.mockNext([])
-        sync(ctx.conn.selectFrom(tIssue)
-            .select({ id: tIssue.id, x: ctx.conn.const('1.5e3', 'string', stringDoubleAdapter) })
-            .executeSelectMany())
-        expect(ctx.lastParams).toEqual(['1.5e3'])
     })
 
     test('marshalling/from-db-validation/mandatory-error-in-a-nested-object-carries-its-dotted-column-path', async () => {

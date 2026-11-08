@@ -277,10 +277,8 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
 
     protected predefinedTypes: {[type: string]: ISqlTypeFactory | undefined} = {
         boolean: TYPES.Bit,
-        stringInt: TYPES.BigInt,
         int: TYPES.Int,
         bigint: TYPES.BigInt,
-        stringDouble: TYPES.Float,
         double: TYPES.Float,
         string: TYPES.NVarChar,
         uuid: TYPES.UniqueIdentifier,
@@ -296,7 +294,7 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         customLocalDate: TYPES.Date,
         customLocalTime: TYPES.Time,
         customLocalDateTime: TYPES.DateTime2
-    } satisfies {[type in NativeValueType | 'stringInt' | 'stringDouble']: ISqlTypeFactory | undefined}
+    } satisfies {[type in NativeValueType]: ISqlTypeFactory | undefined}
 
     // The type the parameter is bound with: the one declared in typesByName for its type name, or the one getType gives
     private getInputType(params: any[], index: number): ISqlType {

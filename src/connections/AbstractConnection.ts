@@ -1206,42 +1206,6 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                     return result
                 }
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid int value received from the db: ' + value)
-            case 'stringInt':
-                if (typeof value === 'number') {
-                    if (!Number.isInteger(value)) {
-                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid stringInt value received from the db: ' + value)
-                    }
-                    // A `stringInt` exists to preserve integers beyond the safe range as a string;
-                    // a rounded JavaScript number already lost that precision and cannot degrade
-                    // back to the exact string, so refuse it rather than return a wrong value.
-                    if (!Number.isSafeInteger(value)) {
-                        throw new TsSqlProcessingError({ reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value, typeName: type }, 'Precision lost reading a stringInt value from the db: the driver returned ' + value + ' as a rounded JavaScript number outside the safe integer range. Enable the driver big-integer mode so the value arrives as a string.')
-                    }
-                    return value
-                }
-                if (typeof value === 'string') {
-                    // Accept and strip a trailing `.0+` (fractional zeros only), symmetric to the
-                    // `int` arm above, so an integer an engine serialises with a REAL-affinity
-                    // suffix (SQLite renders an integer-valued REAL expression as `4.0` inside a
-                    // JSON aggregate) marshals as the integer instead of throwing. A genuine
-                    // fractional part (`4.5`) still fails the regex and throws — an integer type
-                    // is not fractional. Return the CLEANED string (`"4.0"` -> `"4"`) so a
-                    // downstream `BigInt(...)` doesn't choke on the fractional zeros. `stringInt`
-                    // has no public producer today (vestigial type), but the three integer arms
-                    // are kept uniform — this is defensive.
-                    if (!/^-?\d+(\.0+)?$/g.test(value)) {
-                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid stringInt value received from the db: ' + value)
-                    }
-                    return value.replace(/\.0+$/, '')
-                }
-                if (typeof value === 'bigint') {
-                    const result = Number(value)
-                    if (!Number.isSafeInteger(result)) {
-                        return '' + value
-                    }
-                    return result
-                }
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid stringInt value received from the db: ' + value)
             case 'bigint':
                 if (typeof value === 'number') {
                     if (!Number.isInteger(value)) {
@@ -1298,25 +1262,6 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                     return Number(value)
                 }
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid double value received from the db: ' + value)
-            case 'stringDouble':
-                if (typeof value === 'number') {
-                    return value
-                }
-                if (typeof value === 'string') {
-                    // Same numeric-text grammar as `double` above (scientific + leading-dot).
-                    if (!/^(-?(\d+(\.\d+)?|\.\d+)([eE][-+]?\d+)?|NaN|-?Infinity)$/g.test(value)) {
-                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid stringDouble value received from the db: ' + value)
-                    }
-                    return value
-                }
-                if (typeof value === 'bigint') {
-                    const result = Number(value)
-                    if (!Number.isSafeInteger(result)) {
-                        return '' + value
-                    }
-                    return result
-                }
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid stringDouble value received from the db: ' + value)
             case 'customDecimal':
                 if (typeof value === 'string') {
                     // The text the database gives keeps its digits and its scale (`1.50`). A number without the zero
@@ -1464,39 +1409,11 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                     return value
                 }
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid int value to send to the db: ' + value)
-            case 'stringInt':
-                if (typeof value === 'number') {
-                    if (!Number.isInteger(value)) {
-                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid stringInt value to send to the db: ' + value)
-                    }
-                    return value
-                }
-                if (typeof value === 'string') {
-                    if (!/^-?\d+$/g.test(value)) {
-                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid stringInt value to send to the db: ' + value)
-                    }
-                    return value
-                }
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid stringInt value to send to the db: ' + value)
             case 'double':
                 if (typeof value === 'number') {
                     return value
                 }
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid double value to send to the db: ' + value)
-            case 'stringDouble':
-                if (typeof value === 'number') {
-                    return value
-                }
-                if (typeof value === 'string') {
-                    // Accept scientific notation and the leading-dot form, symmetric with the
-                    // `stringDouble` read path: a value the database can hand back this way can
-                    // also be sent this way.
-                    if (!/^(-?(\d+(\.\d+)?|\.\d+)([eE][-+]?\d+)?|NaN|-?Infinity)$/g.test(value)) {
-                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid stringDouble value to send to the db: ' + value)
-                    }
-                    return value
-                }
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid stringDouble value to send to the db: ' + value)
             case 'customDecimal':
                 // A decimal is sent as its text, with a point as the decimal separator and without an exponent, so every
                 // database reads it with all its digits

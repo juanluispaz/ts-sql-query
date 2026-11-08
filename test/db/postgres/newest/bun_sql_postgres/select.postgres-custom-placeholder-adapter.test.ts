@@ -64,16 +64,15 @@ const tProjectCustomPlaceholder = new class TProjectCustomPlaceholder extends Ta
     constructor() { super('project') }
 }()
 
-// `issue` re-mapped with the numeric columns declared under the `stringInt` /
-// `stringDouble` type names (numbers carried as strings) and a ForceTypeCast
-// adapter, so every bound value for them carries the cast those type names map
-// to (`::int8` / `::float8`).
+// `issue` re-mapped with the numeric columns declared as a `customInt` and a
+// `customDouble` with a ForceTypeCast adapter, so every bound value for them
+// carries the cast of their category (`::int4` / `::float8`).
 const forceCast = new ForceTypeCast()
 const tIssueNumericText = new class TIssueNumericText extends Table<DBConnection, 'TIssueNumericText'> {
     id             = this.column('id', 'int')
     title          = this.column('title', 'string')
-    viewCount      = this.column<string, 'stringInt'>('view_count', 'customInt', 'stringInt', forceCast)
-    estimatedHours = this.optionalColumn<string, 'stringDouble'>('estimated_hours', 'customDouble', 'stringDouble', forceCast)
+    viewCount      = this.column<number, 'ViewCount'>('view_count', 'customInt', 'ViewCount', forceCast)
+    estimatedHours = this.optionalColumn<number, 'EstimatedHours'>('estimated_hours', 'customDouble', 'EstimatedHours', forceCast)
     constructor() { super('issue') }
 }()
 
@@ -137,21 +136,21 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('string-int-type-name-forces-an-int8-placeholder-cast', async () => {
-        // `view_count` declared as `stringInt`: the value is a string on the
-        // TypeScript side, the bound placeholder is cast to `int8`. Every seeded
+    test('custom-int-forces-an-int4-placeholder-cast', async () => {
+        // `view_count` declared as a `customInt`: the bound placeholder is cast
+        // to `int4`. Every seeded
         // issue has view_count 0; issue 1 is 'Update hero copy'.
         const expected = [{ id: 1, title: 'Update hero copy' }]
         ctx.mockNext(expected)
         const rows = await ctx.conn.selectFrom(tIssueNumericText)
-            .where(tIssueNumericText.viewCount.equals('0'))
+            .where(tIssueNumericText.viewCount.equals(0))
             .and(tIssueNumericText.id.equals(1))
             .select({ id: tIssueNumericText.id, title: tIssueNumericText.title })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where view_count = $1::int8 and id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where view_count = $1::int4 and id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "0",
+            0,
             1,
           ]
         `)
@@ -159,8 +158,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('string-double-type-name-forces-a-float8-placeholder-cast', async () => {
-        // `estimated_hours` declared as `stringDouble`: the bound placeholder is
+    test('custom-double-forces-a-float8-placeholder-cast', async () => {
+        // `estimated_hours` declared as a `customDouble`: the bound placeholder is
         // cast to `float8`. The seed leaves every estimate NULL, so issue 2 gets
         // one inside the rollback before it is searched by that estimate.
         await ctx.withRollback(async () => {
@@ -170,13 +169,13 @@ describe(ctx.label, () => {
             const expected = [{ id: 2, title: 'Redesign navbar' }]
             ctx.mockNext(expected)
             const rows = await ctx.conn.selectFrom(tIssueNumericText)
-                .where(tIssueNumericText.estimatedHours.equals('2.5'))
+                .where(tIssueNumericText.estimatedHours.equals(2.5))
                 .select({ id: tIssueNumericText.id, title: tIssueNumericText.title })
                 .executeSelectMany()
             expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where estimated_hours = $1::float8"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
-                "2.5",
+                2.5,
               ]
             `)
             assertType<Exact<typeof rows, Array<{ id: number; title: string }>>>()

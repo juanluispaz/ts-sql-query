@@ -901,7 +901,7 @@ line moves.)*
 (`9_007_199_254_740_991`) arrive **rounded** on several connectors, because their
 driver reads every integer as a JavaScript `number` by default. The library
 cannot recover a value the driver already rounded, but it no longer accepts it
-silently: `transformValueFromDB`'s integer arms (`int`, `bigint`, `stringInt`)
+silently: `transformValueFromDB`'s integer arms (`int`, `bigint`)
 reject a `number` outside the safe-integer range with
 `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` rather than return a clean, **wrong**
 value. So every connector either returns the exact integer or throws — no path

@@ -14,7 +14,7 @@ export function __typeCategoryOf(valueType: ValueType): TypeCategory {
 
 // The type names the default transforms of the connections convert
 const convertedTypeNames = new Set<string>([
-    'boolean', 'int', 'stringInt', 'bigint', 'double', 'stringDouble', 'string', 'uuid',
+    'boolean', 'int', 'bigint', 'double', 'string', 'uuid',
     'localDate', 'localTime', 'localDateTime', 'aggregatedArray',
 ])
 

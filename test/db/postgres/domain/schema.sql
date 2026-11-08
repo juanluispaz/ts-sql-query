@@ -10,6 +10,7 @@ DROP TABLE IF EXISTS project_release CASCADE;
 DROP TABLE IF EXISTS audit_entry CASCADE;
 DROP TABLE IF EXISTS webhook_event CASCADE;
 DROP TABLE IF EXISTS calendar_year CASCADE;
+DROP TABLE IF EXISTS exact_amount CASCADE;
 DROP TABLE IF EXISTS invoice CASCADE;
 DROP TABLE IF EXISTS ledger_entry CASCADE;
 DROP TABLE IF EXISTS issue_worklog CASCADE;
@@ -124,6 +125,13 @@ CREATE TABLE webhook_event (
 CREATE TABLE calendar_year (
     year_value INTEGER PRIMARY KEY,
     year_label VARCHAR(64) NOT NULL
+);
+
+-- Exact decimals (customDecimal): a value of 30 significant digits and one with the scale 2.
+CREATE TABLE exact_amount (
+    id INTEGER PRIMARY KEY,
+    amount NUMERIC(38,10),
+    price NUMERIC(10,2)
 );
 
 -- Int caller-provided PK carrying a scaling TypeAdapter (invoice_no stored x10).

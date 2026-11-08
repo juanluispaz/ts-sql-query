@@ -64,6 +64,7 @@ SET IDENTITY_INSERT project_review OFF;
 
 INSERT INTO webhook_event (issue_id, event_type) VALUES (1, 'created'), (2, 'updated');
 INSERT INTO calendar_year (year_value, year_label) VALUES (2023, 'FY2023'), (2024, 'FY2024');
+INSERT INTO exact_amount (id, amount, price) VALUES (1, 12345678901234567890.1234567891, 1.50), (2, -0.2500000000, -0.25), (3, 0.0000000000, 0.00), (4, NULL, NULL), (5, 98765432109876543210.9876543210, 1234.56);
 -- invoice_no is stored x10 by the scaledTenthAdapter, so 100 reads back as logical invoice 10.
 INSERT INTO invoice (invoice_no, total) VALUES (100, 500);
 -- ledger_entry: amount/memo stored x10 by scaledTenthAdapter (250 reads 25, 70 reads 7);

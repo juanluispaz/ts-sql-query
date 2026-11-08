@@ -6,7 +6,7 @@ import type { TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import type { AnyTableOrView, IQueryDataDiscovery, HasIsValue, IWithView } from '../utils/ITableOrView.js'
 import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
-import { valueType as valueType_, optionalType as optionalType_ , booleanValueSource, comparableValueSource, localDateTimeValueSource, localDateValueSource, equalableValueSource, nullableValueSource, numberValueSource, stringValueSource, localTimeValueSource, ifValueSource, bigintValueSource, typeName, anyBooleanValueSource, isValueSourceObject, aggregatedArrayValueSource, isSelectQueryObject, uuidValueSource, customIntValueSource, customBigintValueSource, customDoubleValueSource, customUuidValueSource, customLocalDateValueSource, customLocalTimeValueSource, customLocalDateTimeValueSource, source } from '../utils/symbols.js'
+import { valueType as valueType_, optionalType as optionalType_ , booleanValueSource, comparableValueSource, localDateTimeValueSource, localDateValueSource, equalableValueSource, nullableValueSource, numberValueSource, stringValueSource, localTimeValueSource, ifValueSource, bigintValueSource, typeName, anyBooleanValueSource, isValueSourceObject, aggregatedArrayValueSource, isSelectQueryObject, uuidValueSource, customIntValueSource, customBigintValueSource, customDoubleValueSource, customDecimalValueSource, customUuidValueSource, customLocalDateValueSource, customLocalTimeValueSource, customLocalDateTimeValueSource, source } from '../utils/symbols.js'
 import { __addWiths } from '../utils/ITableOrView.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import { proxyTypeAdapterFor } from './ProxyTypeAdapter.js'
@@ -25,6 +25,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     [customIntValueSource]!: 'CustomIntValueSource'
     [customBigintValueSource]!: 'CustomBigintValueSource'
     [customDoubleValueSource]!: 'CustomDoubleValueSource'
+    [customDecimalValueSource]!: 'CustomDecimalValueSource'
     [stringValueSource]!: 'StringValueSource'
     [localDateValueSource]!: 'LocalDateValueSource'
     [localTimeValueSource]!: 'LocalTimeValueSource'
@@ -476,7 +477,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     ceil(): any {
         if (this.__valueType === 'bigint') {
             return new SqlOperation0ValueSource('_ceil', this, 'bigint', 'bigint', this.__optionalType, this.__typeAdapter)
-        } else if (this.__valueType === 'customInt' || this.__valueType === 'customBigint' || this.__valueType === 'customDouble') {
+        } else if (this.__valueType === 'customInt' || this.__valueType === 'customBigint' || this.__valueType === 'customDouble' || this.__valueType === 'customDecimal') {
             return new SqlOperation0ValueSource('_ceil', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_ceil', this, 'int', 'int', this.__optionalType, this.__typeAdapter)
@@ -485,7 +486,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     floor(): any {
         if (this.__valueType === 'bigint') {
             return new SqlOperation0ValueSource('_floor', this, 'bigint', 'bigint', this.__optionalType, this.__typeAdapter)
-        } else if (this.__valueType === 'customInt' || this.__valueType === 'customBigint' || this.__valueType === 'customDouble') {
+        } else if (this.__valueType === 'customInt' || this.__valueType === 'customBigint' || this.__valueType === 'customDouble' || this.__valueType === 'customDecimal') {
             return new SqlOperation0ValueSource('_floor', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_floor', this, 'int', 'int', this.__optionalType, this.__typeAdapter)
@@ -494,7 +495,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     round(): any {
         if (this.__valueType === 'bigint') {
             return new SqlOperation0ValueSource('_round', this, 'bigint', 'bigint', this.__optionalType, this.__typeAdapter)
-        } else if (this.__valueType === 'customInt' || this.__valueType === 'customBigint' || this.__valueType === 'customDouble') {
+        } else if (this.__valueType === 'customInt' || this.__valueType === 'customBigint' || this.__valueType === 'customDouble' || this.__valueType === 'customDecimal') {
             return new SqlOperation0ValueSource('_round', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_round', this, 'int', 'int', this.__optionalType, this.__typeAdapter)
@@ -707,7 +708,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
         }
     }
     roundn(value: any): any {
-        if (this.__valueType === 'customDouble') {
+        if (this.__valueType === 'customDouble' || this.__valueType === 'customDecimal') {
             return new SqlOperation1ValueSource('_roundn', this, value, this.__valueType, this.__valueTypeName, getOptionalType2(this, value), getTypeAdapter2(this, value))
         } else {
             return new SqlOperation1ValueSource('_roundn', this, value, 'double', 'double', getOptionalType2(this, value), getTypeAdapter2(this, value))
@@ -2244,7 +2245,7 @@ function getTypeAdapter3(a: ValueSourceImpl, b: any, c: any): TypeAdapter | unde
 }
 
 function createSqlOperation1ofOverloadedNumber(thiz: ValueSourceImpl, value: any, operation: keyof SqlOperation1) {
-    if (thiz.__valueType === 'double' || thiz.__valueType === 'bigint' || thiz.__valueType === 'customInt' || thiz.__valueType === 'customBigint' || thiz.__valueType === 'customDouble') {
+    if (thiz.__valueType === 'double' || thiz.__valueType === 'bigint' || thiz.__valueType === 'customInt' || thiz.__valueType === 'customBigint' || thiz.__valueType === 'customDouble' || thiz.__valueType === 'customDecimal') {
         return new SqlOperation1ValueSource(operation, thiz, value, thiz.__valueType, thiz.__valueTypeName, getOptionalType2(thiz, value), getTypeAdapter2(thiz, value))
     } else {
         if (isValueSource(value)) {

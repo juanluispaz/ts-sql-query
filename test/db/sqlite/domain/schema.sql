@@ -13,6 +13,7 @@ DROP TABLE IF EXISTS project_review;
 DROP TABLE IF EXISTS project_release;
 DROP TABLE IF EXISTS webhook_event;
 DROP TABLE IF EXISTS calendar_year;
+DROP TABLE IF EXISTS exact_amount;
 DROP TABLE IF EXISTS invoice;
 DROP TABLE IF EXISTS ledger_entry;
 DROP TABLE IF EXISTS issue_worklog;
@@ -131,6 +132,14 @@ CREATE TABLE calendar_year (
     year_value INTEGER PRIMARY KEY,
     year_label VARCHAR(64) NOT NULL
 );
+
+-- Exact decimals (customDecimal): a value of 30 significant digits and one with the scale 2.
+-- SQLite has no exact decimal type: a STRICT table with TEXT columns keeps the text as given.
+CREATE TABLE exact_amount (
+    id INTEGER PRIMARY KEY,
+    amount TEXT,
+    price TEXT
+) STRICT;
 
 -- Int caller-provided PK carrying a scaling TypeAdapter (invoice_no stored x10).
 CREATE TABLE invoice (

@@ -3427,6 +3427,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             case 'bigint':
             case 'customInt':
             case 'customBigint':
+            case 'customDecimal':
                 return 'exact'
             default:
                 return 'unknown'
@@ -3751,7 +3752,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
     }
     _getMathArgumentType(columnType: ValueType, _columnTypeName: string, value: any): ValueType {
-        if (columnType === 'customInt' || columnType === 'customBigint' || columnType === 'customDouble') {
+        // The value of a customDecimal isn't a JavaScript number: a number is the argument of `roundn`
+        if (columnType === 'customInt' || columnType === 'customBigint' || columnType === 'customDouble' || (columnType === 'customDecimal' && typeof value !== 'number')) {
             return columnType
         }
         if (typeof value === 'number') {
@@ -3766,7 +3768,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return columnType
     }
     _getMathArgumentTypeName(columnType: ValueType, columnTypeName: string, value: any): string {
-        if (columnType === 'customInt' || columnType === 'customBigint' || columnType === 'customDouble') {
+        if (columnType === 'customInt' || columnType === 'customBigint' || columnType === 'customDouble' || (columnType === 'customDecimal' && typeof value !== 'number')) {
             return columnTypeName
         }
         if (typeof value === 'number') {

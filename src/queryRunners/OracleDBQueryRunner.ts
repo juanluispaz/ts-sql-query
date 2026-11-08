@@ -124,6 +124,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
             case 'customBigint':
             case 'double':
             case 'customDouble':
+            case 'customDecimal':
                 return oracleDb.DB_TYPE_NUMBER
             case 'localDate':
             case 'customLocalDate':

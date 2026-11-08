@@ -13,6 +13,7 @@ export type {
     CustomIntFilter,
     CustomBigintFilter,
     CustomDoubleFilter,
+    CustomDecimalFilter,
     StringFilter,
     DateFilter,
     TimeFilter,

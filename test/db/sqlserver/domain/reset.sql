@@ -18,6 +18,7 @@ DELETE FROM project_release;
 DELETE FROM audit_entry;
 DELETE FROM webhook_event;
 DELETE FROM calendar_year;
+DELETE FROM exact_amount;
 DELETE FROM invoice;
 DELETE FROM ledger_entry;
 DELETE FROM issue_worklog;

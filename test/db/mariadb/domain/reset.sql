@@ -18,6 +18,7 @@ TRUNCATE TABLE project_release;
 TRUNCATE TABLE audit_entry;
 TRUNCATE TABLE webhook_event;
 TRUNCATE TABLE calendar_year;
+TRUNCATE TABLE exact_amount;
 TRUNCATE TABLE invoice;
 TRUNCATE TABLE ledger_entry;
 TRUNCATE TABLE issue_worklog;

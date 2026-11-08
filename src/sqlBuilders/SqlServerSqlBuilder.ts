@@ -1318,6 +1318,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         case 'bigint':
         case 'customInt':
         case 'customBigint':
+        case 'customDecimal':
             result = `'"' + convert(nvarchar(41), ` + this._appendSql(valueSource, params, false) + `) + '"'`
             break
         case 'customDouble':
@@ -1413,6 +1414,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         case 'bigint':
         case 'customInt':
         case 'customBigint':
+        case 'customDecimal':
             result = `'"' + convert(nvarchar(41), a_` + aggregateId + `_.` + this._escape(prop, true) + `) + '"'`
             break
         case 'customDouble':

@@ -10,6 +10,7 @@ IF OBJECT_ID('project_release', 'U') IS NOT NULL DROP TABLE project_release;
 IF OBJECT_ID('audit_entry', 'U') IS NOT NULL DROP TABLE audit_entry;
 IF OBJECT_ID('webhook_event', 'U') IS NOT NULL DROP TABLE webhook_event;
 IF OBJECT_ID('calendar_year', 'U') IS NOT NULL DROP TABLE calendar_year;
+IF OBJECT_ID('exact_amount', 'U') IS NOT NULL DROP TABLE exact_amount;
 IF OBJECT_ID('invoice', 'U') IS NOT NULL DROP TABLE invoice;
 IF OBJECT_ID('ledger_entry', 'U') IS NOT NULL DROP TABLE ledger_entry;
 IF OBJECT_ID('issue_worklog', 'U') IS NOT NULL DROP TABLE issue_worklog;
@@ -131,6 +132,13 @@ CREATE TABLE webhook_event (
 CREATE TABLE calendar_year (
     year_value INT PRIMARY KEY,
     year_label VARCHAR(64) NOT NULL
+);
+
+-- Exact decimals (customDecimal): a value of 30 significant digits and one with the scale 2.
+CREATE TABLE exact_amount (
+    id INT PRIMARY KEY,
+    amount DECIMAL(38,10),
+    price DECIMAL(10,2)
 );
 
 -- Int caller-provided PK carrying a scaling TypeAdapter (invoice_no stored x10).

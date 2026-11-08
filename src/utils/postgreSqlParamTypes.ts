@@ -15,6 +15,7 @@ const bool: PostgreSqlParamType = { cast: 'bool', oid: 16 }
 const int4: PostgreSqlParamType = { cast: 'int4', oid: 23 }
 const int8: PostgreSqlParamType = { cast: 'int8', oid: 20 }
 const float8: PostgreSqlParamType = { cast: 'float8', oid: 701 }
+const numeric: PostgreSqlParamType = { cast: 'numeric', oid: 1700 }
 const text: PostgreSqlParamType = { cast: 'text', oid: 25 }
 const uuid: PostgreSqlParamType = { cast: 'uuid', oid: 2950 }
 const date: PostgreSqlParamType = { cast: 'date', oid: 1082 }
@@ -28,6 +29,7 @@ const byConversionType: { [conversionType: string]: PostgreSqlParamType } = {
     stringInt: int8,
     double: float8,
     stringDouble: float8,
+    customDecimal: numeric,
     string: text,
     uuid: uuid,
     localDate: date,

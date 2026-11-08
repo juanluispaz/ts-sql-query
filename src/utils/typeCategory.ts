@@ -22,7 +22,7 @@ const convertedTypeNames = new Set<string>([
 const conversionTypeByCategory = new Map<string, string>([
     ['boolean', 'boolean'],
     ['int', 'int'], ['bigint', 'bigint'], ['customInt', 'int'], ['customBigint', 'bigint'],
-    ['double', 'double'], ['customDouble', 'double'],
+    ['double', 'double'], ['customDouble', 'double'], ['customDecimal', 'customDecimal'],
     ['string', 'string'],
     ['uuid', 'uuid'], ['customUuid', 'uuid'],
     ['localDate', 'localDate'], ['customLocalDate', 'localDate'],

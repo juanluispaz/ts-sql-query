@@ -288,6 +288,29 @@ function _typeNegatives() {
     // @ts-expect-error a double column is not a customDouble operand
     void t.money.add(t.mDouble)
 
+    // Rule: a customDecimal takes operands of its own type, and the functions that can't be exact give a double.
+    const amount = connection.const<string, 'Amount'>('1.50', 'customDecimal', 'Amount')
+    void amount.add('0.01')
+    void amount.add(amount)
+    // @ts-expect-error a customDouble column is not a customDecimal operand
+    void amount.add(t.money)
+    // @ts-expect-error a double column is not a customDecimal operand
+    void amount.add(t.mDouble)
+    // @ts-expect-error a customDecimal is not comparable with a double column
+    void amount.equals(t.mDouble)
+    void amount.power(2)
+    // @ts-expect-error the exponent of power is a number, not a customDecimal
+    void amount.power(amount)
+    void amount.divide('2').equals(t.mDouble)
+    // @ts-expect-error divide gives a double, not a customDecimal
+    void amount.divide('2').equals(amount)
+    void amount.sqrt().equals(t.mDouble)
+    // @ts-expect-error sqrt gives a double, not a customDecimal
+    void amount.sqrt().equals(amount)
+    void amount.roundn(2).equals(amount)
+    // @ts-expect-error asDouble is a NumberValueSource-only cast, absent on customDecimal
+    void amount.asDouble()
+
     // Rule: asString is offered on uuid data types only.
     // @ts-expect-error asString does not exist on a customInt value source
     void t.cents.asString()

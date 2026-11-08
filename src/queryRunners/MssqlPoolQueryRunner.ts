@@ -292,6 +292,8 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         customInt: TYPES.Int,
         customBigint: TYPES.BigInt,
         customDouble: TYPES.Float,
+        // TYPES.Decimal converts the value to a JavaScript number before sending it, which loses digits
+        customDecimal: TYPES.NVarChar,
         customUuid: TYPES.UniqueIdentifier,
         customLocalDate: TYPES.Date,
         customLocalTime: TYPES.Time,

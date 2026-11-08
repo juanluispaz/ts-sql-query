@@ -17,11 +17,32 @@
  *   whose blob sort by the time they were generated.
  * - ci_replace, a case-insensitive replace, for the connections whose replaceAllInsensitiveFunction is 'ci_replace'.
  *
- * Every function but uuid() is deterministic: the same arguments give the same result.
+ * How they are registered, and why:
  *
- * A function the database already has with the same name and number of arguments (a loaded extension, like the real
- * decimal or uuid extension, or a function the user registered) is never replaced: registerSqliteFunctions reads the
- * functions of the database (pragma function_list) when it is called, before registering, and leaves those.
+ * - Every function but uuid() is deterministic: the same arguments give the same result. They are registered as
+ *   deterministic, which SQLite requires to use a function in an index on an expression, a partial index or a generated
+ *   column (an index on tsq_decimal_key(column) serves the comparisons of a customDecimal). uuid() isn't: each call
+ *   gives a new value.
+ * - None is registered as direct only (SQLITE_DIRECTONLY): that flag forbids a function in views, triggers, CHECK
+ *   constraints, defaults and indexes, which is where a user may want these.
+ * - On sqlite-wasm the deterministic ones are also innocuous (SQLITE_INNOCUOUS: no side effects, nothing but their
+ *   arguments), so a database with trusted_schema off still uses them in its schema; the other drivers have no such
+ *   option. On sqlite-wasm the number of arguments is given explicitly, because it would otherwise be taken from the
+ *   length of the JavaScript function.
+ * - decimal_sum is also a window function (it can take out a row that leaves the frame). tsq_decimal_min and
+ *   tsq_decimal_max aren't: taking out a row needs every value of the frame in the state, and the same registration is
+ *   the plain aggregate, whose state would then grow with the whole group.
+ * - registerSqliteFunctions reads the functions the database already has (pragma function_list) once, when it is
+ *   called: it is a setup call the user makes, not a query added to the ones the user runs.
+ * - A decimal function the database already has with the same name and number of arguments (the real decimal
+ *   extension, written in C, exact and faster) is left as it is, and so is a ci_replace the user registered (it may
+ *   be a replace on purpose different, like one aware of more of Unicode). The uuid functions are always registered,
+ *   replacing the ones the database has: the SQLite of some platforms (macOS) ships the uuid extension, whose uuid()
+ *   generates version 4 UUIDs, which don't sort by the time they were generated. The skip option keeps any of them.
+ * - uuid() takes the version 7 UUIDs of the runtime only on Bun (Bun.randomUUIDv7), whose UUIDs generated in the same
+ *   millisecond keep their order; Node's randomUUIDv7 (node:crypto, Node 24 and later) doesn't keep it (measured:
+ *   about half of 100,000 UUIDs generated in a row come out of order), so on Node, and anywhere else, the UUIDs come
+ *   from the library's generator, which keeps it.
  */
 
 import type { SqliteFunctionsOptions } from '../connections/SqliteConfiguration.js'
@@ -31,6 +52,8 @@ export interface SqliteScalarFunction {
     readonly name: string
     readonly arity: number
     readonly deterministic: boolean
+    /** Registered even when the database already has a function with its name and number of arguments */
+    readonly replacesExisting?: boolean | undefined
     readonly fn: (...args: unknown[]) => unknown
 }
 
@@ -316,22 +339,18 @@ function uuidV7OfTheLibrary(): string {
     return uuidBytesToText(bytes)
 }
 
-// The generator of version 7 UUIDs of the runtime, looked for the first time one is generated
+// The generator of version 7 UUIDs of Bun, looked for the first time one is generated
 let runtimeUuidV7: (() => string) | null | undefined
 
 /**
- * A version 7 UUID, from the runtime when it generates them (Bun.randomUUIDv7 on Bun, randomUUIDv7 of node:crypto on
- * Node 24 and later), else from the library (Node 22, a browser)
+ * A version 7 UUID: from Bun (Bun.randomUUIDv7) on Bun, else from the library. Node's randomUUIDv7 isn't used: the
+ * UUIDs it generates in the same millisecond don't keep their order.
  */
 function uuidV7(): string {
     if (runtimeUuidV7 === undefined) {
         const bun = (globalThis as { Bun?: { randomUUIDv7?: () => string } }).Bun
-        const nodeCrypto = (globalThis as { process?: { getBuiltinModule?: (name: string) => { randomUUIDv7?: () => string } | undefined } }).process?.getBuiltinModule?.('node:crypto')
         if (typeof bun?.randomUUIDv7 === 'function') {
             const randomUUIDv7 = bun.randomUUIDv7
-            runtimeUuidV7 = () => randomUUIDv7()
-        } else if (typeof nodeCrypto?.randomUUIDv7 === 'function') {
-            const randomUUIDv7 = nodeCrypto.randomUUIDv7
             runtimeUuidV7 = () => randomUUIDv7()
         } else {
             runtimeUuidV7 = null
@@ -376,9 +395,9 @@ export const sqliteScalarFunctions: readonly SqliteScalarFunction[] = [
     { name: 'tsq_decimal_floor', arity: 1, deterministic: pure, fn: decimalFloor as SqliteScalarFunction['fn'] },
     { name: 'tsq_decimal_round', arity: 2, deterministic: pure, fn: decimalRound as SqliteScalarFunction['fn'] },
     { name: 'tsq_decimal_mod', arity: 2, deterministic: pure, fn: decimalMod as SqliteScalarFunction['fn'] },
-    { name: 'uuid', arity: 0, deterministic: false, fn: uuidV7 },
-    { name: 'uuid_str', arity: 1, deterministic: pure, fn: uuidStr as SqliteScalarFunction['fn'] },
-    { name: 'uuid_blob', arity: 1, deterministic: pure, fn: uuidBlob as SqliteScalarFunction['fn'] },
+    { name: 'uuid', arity: 0, deterministic: false, replacesExisting: true, fn: uuidV7 },
+    { name: 'uuid_str', arity: 1, deterministic: pure, replacesExisting: true, fn: uuidStr as SqliteScalarFunction['fn'] },
+    { name: 'uuid_blob', arity: 1, deterministic: pure, replacesExisting: true, fn: uuidBlob as SqliteScalarFunction['fn'] },
     { name: 'ci_replace', arity: 3, deterministic: pure, fn: ciReplace as SqliteScalarFunction['fn'] },
 ]
 
@@ -392,10 +411,10 @@ export const sqliteAggregateFunctions: readonly SqliteAggregateFunction[] = [
 interface SqliteFunctionOfTheDatabase { readonly name: unknown, readonly narg: unknown }
 
 /**
- * The functions to register: the ones of the library that the database doesn't have yet with the same name and number
- * of arguments (a function with a variable number of arguments, narg -1, takes any), and that the options don't skip.
- * readFunctions runs sqliteFunctionListQuery on the database; when the list can't be read, the ones the options don't
- * skip.
+ * The functions to register: the ones of the library that the options don't skip, except the ones the database already
+ * has with the same name and number of arguments (a function with a variable number of arguments, narg -1, takes any)
+ * and that don't replace an existing one (the uuid functions do). readFunctions runs sqliteFunctionListQuery on the
+ * database; when the list can't be read, every one the options don't skip.
  */
 export function sqliteFunctionsToRegister(readFunctions: () => unknown, options: SqliteFunctionsOptions | undefined): { scalar: SqliteScalarFunction[], aggregate: SqliteAggregateFunction[] } {
     let existing: readonly SqliteFunctionOfTheDatabase[] | undefined
@@ -407,7 +426,7 @@ export function sqliteFunctionsToRegister(readFunctions: () => unknown, options:
     const skip = new Set((options?.skip ?? []).map(name => name.toLowerCase()))
     const has = (name: string, arity: number) => skip.has(name) || !!existing?.some(fn => String(fn.name).toLowerCase() === name && (Number(fn.narg) === arity || Number(fn.narg) === -1))
     return {
-        scalar: sqliteScalarFunctions.filter(fn => !has(fn.name, fn.arity)),
+        scalar: sqliteScalarFunctions.filter(fn => fn.replacesExisting ? !skip.has(fn.name) : !has(fn.name, fn.arity)),
         aggregate: sqliteAggregateFunctions.filter(fn => !has(fn.name, fn.arity)),
     }
 }

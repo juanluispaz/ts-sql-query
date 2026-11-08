@@ -143,10 +143,12 @@ export class BetterSqlite3QueryRunner extends SqlTransactionQueryRunner {
  * functions of SQLite's decimal extension and the library's own ones (tsq_) the decimal strategies of
  * SqliteConnection write, uuid, uuid_str and uuid_blob for the uuid strategy 'uuid-extension' (uuid() generates a
  * version 7 UUID), and ci_replace (for replaceAllInsensitiveFunction = 'ci_replace'). Every function but uuid() is
- * registered as deterministic, so it can be used in an index on an expression. A function the database already has with
- * the same name and number of arguments (a loaded extension, like SQLite's decimal or uuid extension, or one you
- * registered before) is left as it is: the call reads the functions of the database (pragma function_list) once,
- * before registering. options.skip names functions not to register.
+ * registered as deterministic, so it can be used in an index on an expression. A decimal function or a ci_replace the
+ * database already has with the same name and number of arguments (a loaded extension, like SQLite's decimal
+ * extension, or one you registered before) is left as it is: the call reads the functions of the database (pragma
+ * function_list) once, before registering. The uuid functions are always registered, replacing the ones the database
+ * has (the uuid extension some platforms ship generates version 4 UUIDs). options.skip names functions not to register,
+ * also to keep the uuid functions the database has.
  */
 export function registerSqliteFunctions(db: Database, options?: SqliteFunctionsOptions): void {
     const toRegister = sqliteFunctionsToRegister(() => db.prepare(sqliteFunctionListQuery).all(), options)

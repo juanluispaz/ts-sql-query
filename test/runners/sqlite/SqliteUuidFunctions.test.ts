@@ -54,16 +54,20 @@ describe.skipIf('reason' in extension)('SQLite: the JavaScript uuid functions gi
         }
     })
 
-    test('registered-after-the-extension-it-leaves-its-functions', () => {
-        // The extension loaded first keeps its uuid(), a version 4 UUID; the library's would be a version 7
+    test('registered-after-the-extension-it-replaces-its-functions-unless-skipped', () => {
+        // The extension loaded first has its uuid(), a version 4 UUID; the library's replaces it with a version 7
         const both = new Database(':memory:')
         both.loadExtension(extensionPath())
         registerSqliteFunctions(both)
-        expect(both.prepare('select substr(uuid(), 15, 1) as version').get()).toEqual({ version: '4' })
-        expect(javaScript.prepare('select substr(uuid(), 15, 1) as version').get()).toEqual({ version: '7' })
-        // What the extension doesn't have is registered
+        expect(both.prepare('select substr(uuid(), 15, 1) as version').get()).toEqual({ version: '7' })
         expect(both.prepare("select ci_replace('Hello', 'h', 'x') as r").get()).toEqual({ r: 'xello' })
         both.close()
+        // With skip, the extension's are kept
+        const kept = new Database(':memory:')
+        kept.loadExtension(extensionPath())
+        registerSqliteFunctions(kept, { skip: ['uuid', 'uuid_str', 'uuid_blob'] })
+        expect(kept.prepare('select substr(uuid(), 15, 1) as version').get()).toEqual({ version: '4' })
+        kept.close()
     })
 
     test('uuid', () => {

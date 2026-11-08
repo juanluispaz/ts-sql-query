@@ -11,11 +11,13 @@ type Rows = Record<string, unknown>[]
 interface Driver {
     name: string
     enabled: boolean
-    open(options?: { before?: 'ci_replace of my own', skip?: string[] }): Promise<{ all(sql: string, ...params: unknown[]): Rows, run(sql: string): void, close(): void, hadUuid: boolean }>
+    open(options?: { before?: 'ci_replace of my own' | 'uuid of my own', skip?: string[] }): Promise<{ all(sql: string, ...params: unknown[]): Rows, run(sql: string): void, close(): void, hadUuid: boolean }>
 }
 
-// A database whose SQLite has the uuid extension built in (the one of Bun) already has uuid(), a version 4 UUID
+// A database whose SQLite has the uuid extension built in (the one of macOS) already has uuid(), a version 4 UUID
 const uuidListed = "select name from pragma_function_list where name = 'uuid'"
+// The uuid() a database may already have, a version 4 UUID, always the same here
+const uuidOfMyOwn = '0e9c2bd6-2b6f-4c49-9a1d-3f4b6a8b5c7d'
 
 const isBun = typeof globalThis.Bun !== 'undefined'
 const nodeSqliteAvailable = await import('node:sqlite').then(() => true, () => false)
@@ -29,7 +31,8 @@ const drivers: Driver[] = [
             const { registerSqliteFunctions } = await import('../../../src/queryRunners/BetterSqlite3QueryRunner.js')
             const db = new Database(':memory:')
             const hadUuid = db.prepare(uuidListed).all().length > 0
-            if (options?.before) db.function('ci_replace', (_source: unknown, _find: unknown, _replacement: unknown) => 'mine')
+            if (options?.before === 'ci_replace of my own') db.function('ci_replace', (_source: unknown, _find: unknown, _replacement: unknown) => 'mine')
+            if (options?.before === 'uuid of my own') db.function('uuid', () => uuidOfMyOwn)
             registerSqliteFunctions(db, options?.skip ? { skip: options.skip } : undefined)
             return { all: (sql, ...params) => db.prepare(sql).all(...params) as Rows, run: sql => { db.exec(sql) }, close: () => { db.close() }, hadUuid }
         },
@@ -42,7 +45,8 @@ const drivers: Driver[] = [
             const { registerSqliteFunctions } = await import('../../../src/queryRunners/NodeSqliteQueryRunner.js')
             const db = new DatabaseSync(':memory:')
             const hadUuid = db.prepare(uuidListed).all().length > 0
-            if (options?.before) db.function('ci_replace', (_source: unknown, _find: unknown, _replacement: unknown) => 'mine')
+            if (options?.before === 'ci_replace of my own') db.function('ci_replace', (_source: unknown, _find: unknown, _replacement: unknown) => 'mine')
+            if (options?.before === 'uuid of my own') db.function('uuid', () => uuidOfMyOwn)
             registerSqliteFunctions(db, options?.skip ? { skip: options.skip } : undefined)
             return { all: (sql, ...params) => db.prepare(sql).all(...(params as never[])) as Rows, run: sql => { db.exec(sql) }, close: () => { db.close() }, hadUuid }
         },
@@ -55,7 +59,8 @@ const drivers: Driver[] = [
             const { registerSqliteFunctions } = await import('../../../src/queryRunners/BunSqliteQueryRunner.js')
             const db = new Database(':memory:')
             const hadUuid = db.query(uuidListed).all().length > 0
-            if (options?.before) db.function('ci_replace', (_source: unknown, _find: unknown, _replacement: unknown) => 'mine')
+            if (options?.before === 'ci_replace of my own') db.function('ci_replace', (_source: unknown, _find: unknown, _replacement: unknown) => 'mine')
+            if (options?.before === 'uuid of my own') db.function('uuid', () => uuidOfMyOwn)
             registerSqliteFunctions(db, options?.skip ? { skip: options.skip } : undefined)
             return { all: (sql, ...params) => db.query(sql).all(...(params as never[])) as Rows, run: sql => { db.run(sql) }, close: () => { db.close() }, hadUuid }
         },
@@ -68,7 +73,8 @@ const drivers: Driver[] = [
             const { registerSqliteFunctions } = await import('../../../src/queryRunners/Sqlite3WasmOO1QueryRunner.js')
             const db = new sqlite3.oo1.DB(':memory:', 'c')
             const hadUuid = db.selectObjects(uuidListed).length > 0
-            if (options?.before) db.createFunction('ci_replace', () => 'mine', { arity: 3 })
+            if (options?.before === 'ci_replace of my own') db.createFunction('ci_replace', () => 'mine', { arity: 3 })
+            if (options?.before === 'uuid of my own') db.createFunction('uuid', () => uuidOfMyOwn, { arity: 0 })
             registerSqliteFunctions(db, sqlite3, options?.skip ? { skip: options.skip } : undefined)
             return { all: (sql, ...params) => db.selectObjects(sql, params as never) as Rows, run: sql => { db.exec(sql) }, close: () => { db.close() }, hadUuid }
         },
@@ -123,17 +129,15 @@ for (const driver of drivers) {
             const db = await driver.open()
             try {
                 const [row] = db.all("select uuid() as u, uuid_str(uuid_blob('{A0EEBC99-9C0B4EF8-BB6D-6BB9BD380A11}')) as s, typeof(uuid_blob('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11')) as t, uuid_blob('nope') as invalid, uuid_str(null) as n, ci_replace('Hello hello', 'HELLO', 'x') as r")
-                // The library's uuid() is a version 7 UUID; the one the database already has is left
-                expect(row!['u']).toMatch(db.hadUuid ? /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/ : /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+                // uuid() is the library's, a version 7 UUID, also where the database had the uuid extension's (version 4)
+                expect(row!['u']).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
                 expect({ ...row, u: undefined }).toEqual({ u: undefined, s: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', t: 'blob', invalid: null, n: null, r: 'x x' })
-                // uuid() generates a new value each time. A version 7 UUID starts with the time it was generated, which
-                // never goes back; within the same millisecond the order depends on the generator of the runtime
-                const generated = db.all('with recursive n(i) as (select 1 union all select i + 1 from n where i < 50) select uuid() as u from n').map(r => r['u'] as string)
-                expect(new Set(generated).size).toBe(50)
-                if (!db.hadUuid) {
-                    const times = generated.map(u => u.substring(0, 13))
-                    expect([...times].sort()).toEqual(times)
-                }
+                // uuid() generates a new value each time, and the ones generated one after the other keep their order,
+                // also within the same millisecond (many of these 2000 share one)
+                const generated = db.all('with recursive n(i) as (select 1 union all select i + 1 from n where i < 2000) select uuid() as u from n').map(r => r['u'] as string)
+                expect(new Set(generated).size).toBe(2000)
+                expect(new Set(generated.map(u => u.substring(0, 13))).size).toBeLessThan(2000)
+                expect([...generated].sort()).toEqual(generated)
                 // The blob is the 16 bytes of the text, in its order
                 expect(db.all("select hex(uuid_blob('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11')) as h")).toEqual([{ h: 'A0EEBC999C0B4EF8BB6D6BB9BD380A11' }])
             } finally {
@@ -176,6 +180,23 @@ for (const driver of drivers) {
                 expect(skipping.all("select uuid_str(uuid_blob('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11')) as s")).toEqual([{ s: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' }])
             } finally {
                 skipping.close()
+            }
+        })
+
+        test('the-uuid-functions-replace-the-ones-the-database-has-unless-skipped', async () => {
+            const replaced = await driver.open({ before: 'uuid of my own' })
+            try {
+                const [row] = replaced.all('select uuid() as u')
+                expect(row!['u']).not.toBe(uuidOfMyOwn)
+                expect(row!['u']).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+            } finally {
+                replaced.close()
+            }
+            const kept = await driver.open({ before: 'uuid of my own', skip: ['uuid'] })
+            try {
+                expect(kept.all('select uuid() as u')).toEqual([{ u: uuidOfMyOwn }])
+            } finally {
+                kept.close()
             }
         })
 

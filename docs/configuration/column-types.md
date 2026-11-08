@@ -290,7 +290,7 @@ What each database keeps, for a `decimal(38, 10)` and a `decimal(10, 2)` column:
 | MariaDB, MySQL | All the digits, with the scale of the column: `'1.50'` | As text, written as `cast(? as decimal(P, S))` with the digits of the value where it isn't assigned to a column; a value wider than `decimal(65, 30)` is rejected | Exact |
 | Oracle | All the digits, without the zeros at the end of the decimals: `'1.5'` for `1.50` | As text; a value of more than 38 significant digits is rejected | Exact |
 | PostgreSQL | All the digits, with the scale of the column: `'1.50'` | As a `numeric` | Exact |
-| SQLite | The text stored | The text, as it is | Exact with the default decimal strategy: see below |
+| SQLite | The text stored | The text, as it is | Exact or rejected, by the decimal strategy: see below |
 | SQL Server | All the digits, with the scale of the column: `'1.50'`; the outermost query converts the value to text with `convert(nvarchar(41), …)` | As an `nvarchar`, written as `cast(@0 as decimal(P, S))` with the digits of the value where it isn't assigned to a column; a value wider than `decimal(38)` is rejected | Exact |
 
 In every database, a `customDecimal` in an [array aggregate](../queries/aggregate-as-object-array.md) is read from the JSON with all its digits.
@@ -311,7 +311,7 @@ Oracle's numbers keep 38 significant digits: a computation with a value of more 
 
 Oracle reads the text with a point as the decimal separator, the one the library always sends. A session that uses another separator (`NLS_NUMERIC_CHARACTERS`) rejects the value with `ORA-01722`.
 
-SQLite has no exact decimal type, and a column declared `decimal` turns the text into a floating point number when it stores it: store a `customDecimal` in a `TEXT` column of a `STRICT` table. How the library computes and compares it is the decimal strategy of the connection: by default, with functions you register in the connection of the driver, which make every operation exact. See [Exact decimals: the decimal strategies](supported-databases/sqlite.md#exact-decimals-the-decimal-strategies).
+SQLite has no exact decimal type, and a column declared `decimal` turns the text into a floating point number when it stores it: store a `customDecimal` in a `TEXT` column of a `STRICT` table. How the library computes and compares it is the decimal strategy of the connection: by default, with functions you register in the connection of the driver, which make every operation exact; the other strategies write plain SQL where they can, exact too, and reject the query where they can't. See [Exact decimals: the decimal strategies](supported-databases/sqlite.md#exact-decimals-the-decimal-strategies).
 
 ## How a value is sent to the database
 

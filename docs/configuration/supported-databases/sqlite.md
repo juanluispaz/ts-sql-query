@@ -269,13 +269,25 @@ create table exact_amount (
 ) strict;
 ```
 
-SQLite compares and orders that text as text, and computes with it in floating point. The decimal strategy of the connection says how the library writes the operations of a `customDecimal`:
+SQLite compares and orders that text as text, and computes with it in floating point. The decimal strategy of the connection says how the library writes the operations of a `customDecimal`. In every strategy an operation is exact, or the library rejects the query with `UNSUPPORTED_QUERY` before sending it; it never gives a number that has lost digits nor rows compared as texts:
 
-| Strategy | What the library writes | What it needs | What is exact |
+| Strategy | What the library writes | What it needs | What is exact | What is rejected |
+|---|---|---|---|---|
+| `decimal-functions` *(default)* | The functions of SQLite's decimal extension and the `tsq_` functions of the library | The functions below, registered in the connection of the driver | Every operation of a `customDecimal` | Nothing of its own |
+| `decimal-extension` | The functions of SQLite's [decimal extension](https://sqlite.org/floatingpoint.html#the_decimal_c_extension) (`decimal_add`, `decimal_sub`, `decimal_mul`, `decimal_sum`, `decimal_cmp`) and plain SQL | The extension loaded, or the same functions in JavaScript | Storing and reading, `add`, `subtract`, `multiply`, `abs`, `sum`, every comparison (`equals`, `lessThan`, `in`, `between`, `is`…), `minValue`, `maxValue`, `min`, `max`, the order by, `group by`, `distinct` and the compound queries | `ceil`, `floor`, `round`, `roundn` and `modulo` |
+| `text` | Plain SQL | Nothing | Storing and reading, `abs`, every comparison, `minValue`, `maxValue`, `min`, `max`, the order by, `group by`, `distinct` and the compound queries | The arithmetic: `add`, `subtract`, `multiply`, `modulo`, `ceil`, `floor`, `round`, `roundn` and `sum` |
+
+Without a function of the library, plain SQL compares the numbers by their parts: the sign, where the point goes and the significant digits, so `1.5` equals `1.50` and `001.50`, `-0.00` equals `0`, `9` comes before `10`, and two values of 30 digits that differ in the last one are different. It is exact, but it takes longer than a function written in JavaScript, which does that work once per row. On a million rows (bun:sqlite 3.51, node:sqlite 3.53, better-sqlite3 3.53.4):
+
+| Operation | Plain SQL | `decimal-functions` | The text as it is (not exact) |
 |---|---|---|---|
-| `decimal-functions` *(default)* | The functions of SQLite's decimal extension and the `tsq_` functions of the library | The functions below, registered in the connection of the driver | Every operation of a `customDecimal` |
-| `decimal-extension` | Only the functions of SQLite's [decimal extension](https://sqlite.org/floatingpoint.html#the_decimal_c_extension): `decimal_add`, `decimal_sub`, `decimal_mul`, `decimal_sum` and `decimal_cmp` | The extension loaded, or the same functions in JavaScript | Storing and reading, `add`, `subtract`, `multiply`, `abs`, `sum`, `minValue`, `maxValue` and every comparison (`equals`, `lessThan`, `in`, `between`, `is`…). The order by, `min`, `max`, `group by`, `distinct` and the compound queries compare the text; `ceil`, `floor`, `round`, `roundn` and `modulo` are rejected with `UNSUPPORTED_QUERY` |
-| `text` | Plain SQL | Nothing | Storing and reading, and the equality of the same text (`equals`, `in`, `is`): `'1.5'` and `'1.50'` are different. A range (`lessThan`, `between`…) and an order by compare the numbers the texts are in floating point, exact within about 15 significant digits; `minValue`, `maxValue`, `min`, `max`, `group by`, `distinct` and the compound queries compare the text. The arithmetic of a `customDecimal` (`add`, `subtract`, `multiply`, `modulo`, `abs`, `ceil`, `floor`, `round`, `roundn`, `sum`) is rejected with `UNSUPPORTED_QUERY` before the query is sent |
+| Order by | 3.6–4.5 s | 0.9–1.3 s | 0.3–0.5 s |
+| Group by and distinct | 1.4–1.5 s | 1.0–1.2 s | 0.4–1.0 s |
+| An equality, by the normal forms (bun:sqlite, node:sqlite) | 1.3–1.6 s | — | 33 ms |
+| A range, `lessThan` (bun:sqlite, node:sqlite) | 1.7–2.1 s | — | — |
+| `min` (bun:sqlite, node:sqlite) | 1.8–2.3 s | — | 34 ms |
+
+A group of numbers equal with different scales (`1.5` and `1.50`) gives the text of one of its rows. The distinct values (`countDistinct`, `sumDistinct`, `averageDistinct` and the distinct arrays) are the distinct numbers, each in its normal form: `1.50` is `1.5`. A distinct select with a `customDecimal` column and a `group by` or an aggregate is rejected in every strategy, because the distinct of its rows would compare their texts.
 
 You can change the strategy by overriding the `decimalStrategy` field in your connection class:
 
@@ -287,7 +299,13 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
 }
 ```
 
-With `decimal-functions` the library writes these functions, and none of SQLite: the extension's `decimal_add(a, b)`, `decimal_sub(a, b)`, `decimal_mul(a, b)`, `decimal_cmp(a, b)` and the aggregate `decimal_sum(x)`, and its own `tsq_decimal_key(x)` (a text whose order is the order of the numbers, for the order by, the group by and the distinct), `tsq_decimal_abs(x)`, `tsq_decimal_ceil(x)`, `tsq_decimal_floor(x)`, `tsq_decimal_round(x, n)`, `tsq_decimal_mod(a, b)` and the aggregates `tsq_decimal_min(x)` and `tsq_decimal_max(x)`. A query that uses one of them fails with `no such function` when it isn't registered.
+With `decimal-functions` the library writes these functions, and none of SQLite: the extension's `decimal_add(a, b)`, `decimal_sub(a, b)`, `decimal_mul(a, b)`, `decimal_cmp(a, b)` and the aggregate `decimal_sum(x)`, and its own `tsq_decimal_key(x)` (a text whose order is the order of the numbers, for the order by, the group by and the distinct), `tsq_decimal_abs(x)`, `tsq_decimal_ceil(x)`, `tsq_decimal_floor(x)`, `tsq_decimal_round(x, n)`, `tsq_decimal_mod(a, b)` and the aggregates `tsq_decimal_min(x)` and `tsq_decimal_max(x)`. A query that uses one of them fails with `no such function` when it isn't registered. With these functions registered as deterministic, an index on the key of a column lets the order by and the ranges of that column use it, as SQLite takes an index on an expression for the same expression in a query (measured with node:sqlite and better-sqlite3; the plan is `SCAN t USING INDEX` and `SEARCH t USING INDEX`):
+
+```sql
+create index exact_amount_price_key on exact_amount (tsq_decimal_key(price));
+```
+
+Without the function registered, that table can be read but not written: an insert fails with `unknown function: tsq_decimal_key()`.
 
 This module implements all of them with `BigInt`, with the results of the extension and of the other databases; the page of each driver shows it again with how to register its functions: [better-sqlite3](../query-runners/recommended/better-sqlite3.md#better-sqlite3-and-exact-decimals), [bun:sqlite](../query-runners/recommended/bun_sqlite.md#bunsqlite-and-exact-decimals), [node:sqlite](../query-runners/recommended/node_sqlite.md#nodesqlite-and-exact-decimals) and [sqlite-wasm OO1](../query-runners/recommended/sqlite-wasm-OO1.md#sqlite-wasm-oo1-and-exact-decimals). Bun SQL can't register functions: use the `text` strategy with it.
 

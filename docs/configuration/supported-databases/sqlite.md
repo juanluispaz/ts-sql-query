@@ -259,7 +259,7 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
 
 ## Exact decimals: the decimal strategies
 
-SQLite has no exact decimal type. A column declared `decimal`, `numeric` or `money` has numeric affinity, and SQLite turns the text of a [`customDecimal`](../column-types.md#exact-decimals) into a floating point number when it stores it: `'1.50'` is stored as `1.5`, and a value of 30 digits loses the last ones, without an error. Store a `customDecimal` in a `TEXT` column of a `STRICT` table, which keeps the text as it was sent and accepts nothing else:
+SQLite has no exact decimal type. A column declared `decimal`, `numeric` or `money` has numeric affinity, and SQLite turns the text of an [exact decimal](../column-types.md#exact-decimals) (a `stringDecimal` or a `customDecimal`) into a floating point number when it stores it: `'1.50'` is stored as `1.5`, and a value of 30 digits loses the last ones, without an error. Store it in a `TEXT` column of a `STRICT` table, which keeps the text as it was sent and accepts nothing else:
 
 ```sql
 create table exact_amount (
@@ -269,7 +269,7 @@ create table exact_amount (
 ) strict;
 ```
 
-SQLite compares and orders that text as text, and computes with it in floating point. The decimal strategy of the connection says how the library writes the operations of a `customDecimal`. In every strategy an operation is exact, or the library rejects the query with `UNSUPPORTED_QUERY` before sending it; it never gives a number that has lost digits nor rows compared as texts. There are three strategies, each in two variants:
+SQLite compares and orders that text as text, and computes with it in floating point. The decimal strategy of the connection says how the library writes the operations of a `stringDecimal` or a `customDecimal`; everything below applies to both. In every strategy an operation is exact, or the library rejects the query with `UNSUPPORTED_QUERY` before sending it; it never gives a number that has lost digits nor rows compared as texts. There are three strategies, each in two variants:
 
 | Strategy | What the library writes | What it needs | What is rejected |
 |---|---|---|---|

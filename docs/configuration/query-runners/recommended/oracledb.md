@@ -197,7 +197,7 @@ Without it the driver reads every `NUMBER` as a JavaScript `number`, so an out-o
 
 The handler can also be passed per query, or scoped by `metaData.name` if you prefer to name the columns explicitly.
 
-A [`customDecimal`](../../column-types.md#exact-decimals) column needs no handler: the query runner fetches each column of the result that the query expects as a `customDecimal` as text, with all its digits, with a `fetchTypeHandler` of its own for that query. That one replaces the global `oracledb.fetchTypeHandler` for that execution, so the query runner calls yours for every other column, and it still decides how they are read.
+A [`stringDecimal` or `customDecimal`](../../column-types.md#exact-decimals) column needs no handler: the query runner fetches each column of the result that the query expects as one of them as text, with all its digits, with a `fetchTypeHandler` of its own for that query. That one replaces the global `oracledb.fetchTypeHandler` for that execution, so the query runner calls yours for every other column, and it still decides how they are read.
 
 ## Inside a transaction something else manages
 

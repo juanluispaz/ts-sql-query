@@ -30,6 +30,7 @@ type FilterType = DynamicCondition<{
     myDouble: 'double'
     myString: 'string'
     myUuid: 'uuid'
+    myStringDecimal: 'stringDecimal'
     myLocalDate: 'localDate'
     myLocalTime: 'localTime'
     myLocalDateTime: 'localDateTime'
@@ -60,6 +61,7 @@ type FilterType = {
     myDouble?: NumberFilter
     myString?: StringFilter
     myUuid?: StringFilter
+    myStringDecimal?: StringDecimalFilter
     myLocalDate?: DateFilter
     myLocalTime?: TimeFilter
     myLocalDateTime?: DateTimeFilter
@@ -218,6 +220,7 @@ interface DateTimeFilter extends ComparableFilter<Date> { }
 interface CustomIntFilter<TYPE> extends ComparableFilter<TYPE> { }
 interface CustomBigintFilter<TYPE> extends ComparableFilter<TYPE> { }
 interface CustomDoubleFilter<TYPE> extends ComparableFilter<TYPE> { }
+interface StringDecimalFilter extends ComparableFilter<string> { }
 interface CustomDecimalFilter<TYPE> extends ComparableFilter<TYPE> { }
 interface CustomLocalDateFilter<TYPE> extends ComparableFilter<TYPE> { }
 interface CustomLocalTimeFilter<TYPE> extends ComparableFilter<TYPE> { }

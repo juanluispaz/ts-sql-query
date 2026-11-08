@@ -245,6 +245,7 @@ This table has every filter and the name of the type it belongs to. A column or 
 | `StringFilter` | `'string'`, `'uuid'` | Those of `ComparableFilter<string>`, and the [text operators](../../api/dynamic-conditions.md) |
 | `NumberFilter` | `'int'`, `'double'` | Those of `ComparableFilter<number>` |
 | `BigintFilter` | `'bigint'` | Those of `ComparableFilter<bigint>` |
+| `StringDecimalFilter` | `'stringDecimal'` | Those of `ComparableFilter<string>` |
 | `BooleanFilter` | `'boolean'` | Those of `EqualableFilter<boolean>` |
 | `DateFilter` | `'localDate'` | Those of `ComparableFilter<Date>` |
 | `TimeFilter` | `'localTime'` | Those of `ComparableFilter<Date>` |

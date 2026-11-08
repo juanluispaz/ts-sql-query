@@ -18,6 +18,7 @@ The same types are used for a [constant](../queries/basic-query-structure.md) an
 | `double`                        | `number`             | Floating point number                                             |
 | `string`                        | `string`             | String value                                                      |
 | `uuid`                          | `string`             | UUID value                                                        |
+| `stringDecimal`                 | `string`             | Exact decimal number, sent and read as its text                   |
 | `localDate`                     | `Date`               | Date without time                                                 |
 | `localTime`                     | `Date`               | Time without date                                                 |
 | `localDateTime`                 | `Date`               | Date with time                                                    |
@@ -42,6 +43,7 @@ this.column('ColumnName', 'bigint')
 this.column('ColumnName', 'double')
 this.column('ColumnName', 'string')
 this.column('ColumnName', 'uuid')
+this.column('ColumnName', 'stringDecimal')
 this.column('ColumnName', 'localDate')
 this.column('ColumnName', 'localTime')
 this.column('ColumnName', 'localDateTime')
@@ -77,7 +79,8 @@ Choose by the values your code handles, not only by the type of the column in th
 | A whole number that fits in a JavaScript `number` | `int` | Reading a number past `Number.MAX_SAFE_INTEGER` is rejected with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`, instead of giving you a rounded value. Sending a number with decimals is rejected too. |
 | A whole number that can be larger, like a 64-bit counter | `bigint` | The value in your code is a `bigint`. Some drivers round large integers unless you configure them: see the [query runner](query-runners/index.md#which-one-for-your-database) of your driver. The query is rejected rather than giving you a rounded value. |
 | A number with decimals, when a JavaScript `number` is enough | `double` | The value becomes a `number`, whatever the column is. A `decimal` column with more digits than a `number` holds loses them. |
-| A decimal number that must stay exact, like money | `customDecimal` | With your own type for it. The value is a text with all its digits; what each database keeps is in [Exact decimals](#exact-decimals). |
+| A decimal number that must stay exact, like money | `stringDecimal` | The value is a `string` with all its digits; what each database keeps is in [Exact decimals](#exact-decimals). |
+| The same, with your own type for it, like the one of a decimal library | `customDecimal` | Your type, with a [conversion](#custom-types) from and to the text of the number. |
 | Text | `string` | An empty string [has no value](connection.md#allowing-empty-string) by default. |
 | True or false | `boolean` | Oracle and SQL Server store it as a number or a bit, with `0` and `1`. For other representations, like `'Y'` and `'N'`, see [Custom booleans values](../advanced/custom-booleans-values.md). |
 | A UUID | `uuid` | It's a `string` in your code, and how it's stored depends on the database, as in the tip above. |
@@ -190,17 +193,23 @@ When only one column needs its own conversion, use a [type adapter](#type-adapte
 
 ## Exact decimals
 
-A `customDecimal` is a decimal number with your own TypeScript type, whose value is the text of the number, like `'12345678901234567890.1234567891'`. A JavaScript `number` keeps about 16 significant digits; the text keeps all of them, and the scale, like the `0` of `1.50`.
+JavaScript has no decimal type yet (there is a [proposal](https://github.com/tc39/proposal-decimal) to add one), and a `number` keeps about 16 significant digits. An exact decimal is kept as the text of the number, like `'12345678901234567890.1234567891'`, which keeps all the digits and the scale, like the `0` of `1.50`. There are two types for it, and everything this section says applies to both:
+
+- `stringDecimal`: the value is a `string`. Choose it when a string is enough in your code.
+- `customDecimal`: the value has your own TypeScript type, like a branded string or the decimal type of a library of your choice. The conversion from and to the text, if your type isn't a string, goes in a [type adapter](#type-adapters).
 
 ```typescriptreact
-type Amount = string & { readonly __brand: 'Amount' }
+amount = this.optionalColumn('amount', 'stringDecimal')
 
-amount = this.optionalColumn<Amount, 'Amount'>('amount', 'customDecimal', 'Amount')
+type Amount = string & { readonly __brand: 'Amount' }
+price = this.optionalColumn<Amount, 'Amount'>('price', 'customDecimal', 'Amount')
 ```
+
+A `stringDecimal` is compared and computed only with another `stringDecimal` or a string, and a `customDecimal` only with values of its own type, so the two don't mix.
 
 The text sent to the database uses a point as the decimal separator and has no exponent, like `'-0.25'`; another text, like `'1,50'` or `'1e3'`, is rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE`. A text read from the database is returned as it comes, with a `0` added before a leading point (`.5` is `'0.5'`).
 
-The operations that keep the value exact return a `customDecimal`: `add`, `subtract`, `multiply`, `modulo`, `abs`, `ceil`, `floor`, `round`, `roundn`, `minValue`, `maxValue` and `sum`. There is no `divide`: the division of two decimals isn't exact, and each database rounds it its own way. The ones whose result can't be exact return a `double`: `power`, `sqrt`, `cbrt`, `exp`, `ln`, `log10`, `logn`, the trigonometric functions and `average`.
+The operations that keep the value exact return the same type, `stringDecimal` or `customDecimal`: `add`, `subtract`, `multiply`, `modulo`, `abs`, `ceil`, `floor`, `round`, `roundn`, `minValue`, `maxValue` and `sum`. There is no `divide`: the division of two decimals isn't exact, and each database rounds it its own way. The ones whose result can't be exact return a `double`: `power`, `sqrt`, `cbrt`, `exp`, `ln`, `log10`, `logn`, the trigonometric functions and `average`.
 
 A query with a `customDecimal` column, here `tExactAmount` with `amount` as a `decimal(38, 10)` and `price` as a `decimal(10, 2)`:
 

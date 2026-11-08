@@ -11,7 +11,7 @@ This page explains how to use `ts-sql-query` with the [Bun SQL](https://bun.com/
 
     Bun SQL for SQLite can't register functions written in JavaScript nor load an extension of SQLite. So with it:
 
-    - The exact decimals ([`customDecimal`](../../column-types.md#exact-decimals)) have no arithmetic, sums nor roundings: the [decimal strategies](../../supported-databases/sqlite.md#exact-decimals-the-decimal-strategies) with functions, the default included, need functions it can't register.
+    - The exact decimals ([`stringDecimal` and `customDecimal`](../../column-types.md#exact-decimals)) have no arithmetic, sums nor roundings: the [decimal strategies](../../supported-databases/sqlite.md#exact-decimals-the-decimal-strategies) with functions, the default included, need functions it can't register.
     - The [uuid strategy](../../supported-databases/sqlite.md#uuid-strategies) `uuid-extension`, the default, works only where the SQLite that Bun uses has the uuid extension built in, like the one of macOS (measured with SQLite 3.51.0).
     - `replaceAllInsensitiveFunction` can't be used.
 

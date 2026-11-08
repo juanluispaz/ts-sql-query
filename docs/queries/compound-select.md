@@ -38,13 +38,13 @@ const allDataWithName = connection.selectFrom(tCustomer)
     .select({
         id: tCustomer.id,
         name: tCustomer.firstName.concat(' ').concat(tCustomer.lastName),
-        type: connection.const<'customer' | 'company'>('customer', 'enum', 'customerOrCompany')
+        type: connection.const<'customer' | 'company', 'customerOrCompany'>('customer', 'enum', 'customerOrCompany')
     }).unionAll(
         connection.selectFrom(tCompany)
         .select({
             id: tCompany.id,
             name: tCompany.name,
-            type: connection.const<'customer' | 'company'>('company', 'enum', 'customerOrCompany')
+            type: connection.const<'customer' | 'company', 'customerOrCompany'>('company', 'enum', 'customerOrCompany')
         })
     ).executeSelectMany();
 ```

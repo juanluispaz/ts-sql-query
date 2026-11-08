@@ -58,18 +58,18 @@ type OrderState = 'open' | 'paid' | 'void'
 class VIssueBilling extends Values<DBConnection, 'issueBilling'> {
     // `column<T>('customInt', 'IssueId')` reaches — the
     // `typeof adapter === 'string'` branch of the column impl.
-    issueId  = this.column<IssueId>('customInt', 'IssueId')
+    issueId  = this.column<IssueId, 'IssueId'>('customInt', 'IssueId')
     // `optionalColumn<T>('customDouble', 'Money')` reaches —
     // the optional sibling of the same branch.
-    amount   = this.optionalColumn<Money>('customDouble', 'Money')
+    amount   = this.optionalColumn<Money, 'Money'>('customDouble', 'Money')
     // `virtualColumnFromFragment` / `optionalVirtualColumnFromFragment`
     // declare computed columns over the values row. They are NOT emitted
     // as VALUES tuple members; reading the field inlines the fragment SQL
     // wherever it's selected. The fragments are bare literals (no `${…}`
     // interpolation) — the canonical shape now that the overload
     // resolution accepts a no-table-required fragment source.
-    state     = this.virtualColumnFromFragment<OrderState>('enum', 'OrderState', fragment => fragment.sql`'open'`)
-    billingRef = this.optionalVirtualColumnFromFragment<string>('customUuid', 'BillingRef', fragment => fragment.sql`null`)
+    state     = this.virtualColumnFromFragment<OrderState, 'OrderState'>('enum', 'OrderState', fragment => fragment.sql`'open'`)
+    billingRef = this.optionalVirtualColumnFromFragment<string, 'BillingRef'>('customUuid', 'BillingRef', fragment => fragment.sql`null`)
 }
 
 // the BASE-TYPE (non-custom) `optionalVirtualColumnFromFragment`
@@ -381,8 +381,8 @@ describe(ctx.label, () => {
         // has issues 101 and 102; the joined view only has 101, so 102's joined
         // leaf is absent.
         class VIssueBillingJoin extends Values<DBConnection, 'issueBillingJoin'> {
-            issueId = this.column<IssueId>('customInt', 'IssueId')
-            amount  = this.optionalColumn<Money>('customDouble', 'Money')
+            issueId = this.column<IssueId, 'IssueId'>('customInt', 'IssueId')
+            amount  = this.optionalColumn<Money, 'Money'>('customDouble', 'Money')
         }
         const expected = [
             { base: 101 as IssueId, joined: 101 as IssueId },

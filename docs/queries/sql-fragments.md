@@ -207,7 +207,7 @@ A typed fragment is a value like any other: you can select it, compare it and ca
 const customersWithAgeGroup = connection.selectFrom(tCustomer)
     .select({
         id: tCustomer.id,
-        ageGroup: connection.fragmentWithType<'adult' | 'minor'>('enum', 'ageGroup', 'required')
+        ageGroup: connection.fragmentWithType<'adult' | 'minor', 'ageGroup'>('enum', 'ageGroup', 'required')
             .sql`case when ${tCustomer.id} > 100 then 'adult' else 'minor' end`
     })
     .executeSelectMany();

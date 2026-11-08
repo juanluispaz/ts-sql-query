@@ -44,17 +44,19 @@ this.column('ColumnName', 'uuid')
 this.column('ColumnName', 'localDate')
 this.column('ColumnName', 'localTime')
 this.column('ColumnName', 'localDateTime')
-this.column<MyIntType>('ColumnName', 'customInt', 'MyIntTypeName')
-this.column<MyBigintType>('ColumnName', 'customBigint', 'MyBigintTypeName')
-this.column<MyDoubleType>('ColumnName', 'customDouble', 'MyDoubleTypeName')
-this.column<MyUuidType>('ColumnName', 'customUuid', 'MyUuidTypeName')
-this.column<MyDateType>('ColumnName', 'customLocalDate', 'MyDateTypeName')
-this.column<MyTimeType>('ColumnName', 'customLocalTime', 'MyTimeTypeName')
-this.column<MyDateTimeType>('ColumnName', 'customLocalDateTime', 'MyDateTimeTypeName')
-this.column<MyEnumType>('ColumnName', 'enum', 'MyEnumTypeName')
-this.column<MyCustomType>('ColumnName', 'custom', 'MyCustomTypeName')
-this.column<MyCustomComparableType>('ColumnName', 'customComparable', 'MyCustomComparableTypeName')
+this.column<MyIntType, 'MyIntTypeName'>('ColumnName', 'customInt', 'MyIntTypeName')
+this.column<MyBigintType, 'MyBigintTypeName'>('ColumnName', 'customBigint', 'MyBigintTypeName')
+this.column<MyDoubleType, 'MyDoubleTypeName'>('ColumnName', 'customDouble', 'MyDoubleTypeName')
+this.column<MyUuidType, 'MyUuidTypeName'>('ColumnName', 'customUuid', 'MyUuidTypeName')
+this.column<MyDateType, 'MyDateTypeName'>('ColumnName', 'customLocalDate', 'MyDateTypeName')
+this.column<MyTimeType, 'MyTimeTypeName'>('ColumnName', 'customLocalTime', 'MyTimeTypeName')
+this.column<MyDateTimeType, 'MyDateTimeTypeName'>('ColumnName', 'customLocalDateTime', 'MyDateTimeTypeName')
+this.column<MyEnumType, 'MyEnumTypeName'>('ColumnName', 'enum', 'MyEnumTypeName')
+this.column<MyCustomType, 'MyCustomTypeName'>('ColumnName', 'custom', 'MyCustomTypeName')
+this.column<MyCustomComparableType, 'MyCustomComparableTypeName'>('ColumnName', 'customComparable', 'MyCustomComparableTypeName')
 ```
+
+A custom type takes two generic arguments: your TypeScript type, and its type name, the same text you pass after the type of the column. The type name is part of the type of the column: another column or expression can be compared with it, or assigned to it, only when it has the same type name.
 
 !!! tip "Generating UUIDs"
 
@@ -104,7 +106,7 @@ So an int with a TypeScript brand needs nothing else; its values are checked and
 ```typescriptreact
 type Cents = number & { readonly __brand: 'Cents' }
 
-costCents = this.column<Cents>('cost_cents', 'customInt', 'Cents')
+costCents = this.column<Cents, 'Cents'>('cost_cents', 'customInt', 'Cents')
 ```
 
 !!! important
@@ -259,7 +261,7 @@ class RgbColorTypeAdapter implements TypeAdapter {
 And you can define the column as:
 
 ```typescriptreact
-this.column<RgbColor>('ColumnName', 'custom', 'RgbColor', new RgbColorTypeAdapter())
+this.column<RgbColor, 'RgbColor'>('ColumnName', 'custom', 'RgbColor', new RgbColorTypeAdapter())
 ```
 
 !!! important
@@ -322,5 +324,5 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 And you can define the column as:
 
 ```typescriptreact
-this.column<RgbColor>('ColumnName', 'custom', 'RgbColor')
+this.column<RgbColor, 'RgbColor'>('ColumnName', 'custom', 'RgbColor')
 ```

@@ -29,13 +29,13 @@ describe(ctx.label, () => {
             .select({
                 id:   tOrganization.id,
                 name: tOrganization.name,
-                kind: connection.const<'organization' | 'project'>('organization', 'enum', 'orgOrProject'),
+                kind: connection.const<'organization' | 'project', 'orgOrProject'>('organization', 'enum', 'orgOrProject'),
             }).unionAll(
                 connection.selectFrom(tProject)
                 .select({
                     id:   tProject.id,
                     name: tProject.name,
-                    kind: connection.const<'organization' | 'project'>('project', 'enum', 'orgOrProject'),
+                    kind: connection.const<'organization' | 'project', 'orgOrProject'>('project', 'enum', 'orgOrProject'),
                 }),
             ).executeSelectMany()
         // doc-end

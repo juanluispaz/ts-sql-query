@@ -95,6 +95,15 @@ const customers = await connection.selectFrom(tCustomer)
     .executeSelectMany()
 ```
 
+**A custom type with only one generic argument.** It was deprecated in v1. The type name is the second generic argument, the same text as the type name you pass to the method. This applies to columns, constants, fragments, arguments, function results and sequences:
+
+```typescriptreact
+// v1
+this.column<RgbColor>('ColumnName', 'custom', 'RgbColor')
+// v2
+this.column<RgbColor, 'RgbColor'>('ColumnName', 'custom', 'RgbColor')
+```
+
 **Aggregates, where SQL doesn't allow them:**
 
 - An aggregate function in `where`, `and`, `or`, `groupBy` or the `on` of a join. It stays allowed in `select`, `having` and `orderBy`. A custom fragment that is an aggregate has its [own builders](../../queries/sql-fragments.md#aggregate-fragments), to get the same check.

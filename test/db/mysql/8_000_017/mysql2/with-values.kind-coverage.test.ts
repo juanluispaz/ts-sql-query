@@ -62,9 +62,9 @@ const plusOffsetAdapter: TypeAdapter = {
 // ('Semver'), custom ('ReleaseChannel') and enum ('WorklogActivity'). All
 // collapse to text, so they round-trip on every dialect.
 class VBrandedSampler extends Values<DBConnection, 'brandedSampler'> {
-    ver  = this.column<string>('customComparable', 'Semver')
-    chan = this.column<ReleaseChannel>('custom', 'ReleaseChannel')
-    act  = this.column<WorklogActivity>('enum', 'WorklogActivity')
+    ver  = this.column<string, 'Semver'>('customComparable', 'Semver')
+    chan = this.column<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel')
+    act  = this.column<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity')
 }
 
 // A read-bracketing TypeAdapter (read wraps a string value in [...], write
@@ -279,7 +279,7 @@ describe(ctx.label, () => {
         // because some engines normalise the case on read.
         class VUuidSampler extends Values<DBConnection, 'uuidSampler'> {
             ref     = this.column('uuid')
-            signing = this.column<string>('customUuid', 'SigningKey')
+            signing = this.column<string, 'SigningKey'>('customUuid', 'SigningKey')
         }
         const ref     = '0a8f9c1e-1111-4222-8333-444455556666'
         const signing = '11111111-2222-4333-8444-555566667777'
@@ -311,9 +311,9 @@ describe(ctx.label, () => {
         // leaf is supplied as null: the cast the tuple emits is what this pins,
         // and each null leaf reads back absent.
         class VCustomTemporalSampler extends Values<DBConnection, 'customTemporalSampler'> {
-            d  = this.optionalColumn<Date>('customLocalDate', 'ReleaseDay')
-            t  = this.optionalColumn<Date>('customLocalTime', 'CutoffClock')
-            ts = this.optionalColumn<Date>('customLocalDateTime', 'SignOffStamp')
+            d  = this.optionalColumn<Date, 'ReleaseDay'>('customLocalDate', 'ReleaseDay')
+            t  = this.optionalColumn<Date, 'CutoffClock'>('customLocalTime', 'CutoffClock')
+            ts = this.optionalColumn<Date, 'SignOffStamp'>('customLocalDateTime', 'SignOffStamp')
         }
         ctx.mockNext([{ d: null, t: null, ts: null }])
         const v = Values.create(VCustomTemporalSampler, 'customTemporalSampler', [

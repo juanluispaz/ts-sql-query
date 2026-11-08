@@ -325,7 +325,7 @@ describe(ctx.label, () => {
         const organizationsWithGroup = await connection.selectFrom(tOrganization)
             .select({
                 id:        tOrganization.id,
-                sizeGroup: connection.fragmentWithType<'first' | 'other'>('enum', 'sizeGroup', 'required')
+                sizeGroup: connection.fragmentWithType<'first' | 'other', 'sizeGroup'>('enum', 'sizeGroup', 'required')
                     .sql`case when ${tOrganization.id} = 1 then 'first' else 'other' end`,
             })
             .orderBy('id')

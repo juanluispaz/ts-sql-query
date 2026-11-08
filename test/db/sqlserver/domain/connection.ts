@@ -276,7 +276,7 @@ export class DBConnection extends SqlServerConnection<'DBConnection'> {
         ], 'localDateTime', 'optional')
     }
     callEstimatedTotal(projectId: number): Promise<Money> {
-        return this.executeFunction<Money>('dbo.estimated_total', [
+        return this.executeFunction<Money, 'Money'>('dbo.estimated_total', [
             this.const(projectId, 'int'),
         ], 'customDouble', 'Money', 'required')
     }
@@ -284,7 +284,7 @@ export class DBConnection extends SqlServerConnection<'DBConnection'> {
     // plusOffsetAdapter shifts the numeric result so the adapter's effect is
     // observable. Reuses estimated_total.
     callEstimatedTotalOffset(projectId: number): Promise<Money> {
-        return this.executeFunction<Money>('dbo.estimated_total', [
+        return this.executeFunction<Money, 'Money'>('dbo.estimated_total', [
             this.const(projectId, 'int'),
         ], 'customDouble', 'Money', 'required', plusOffsetAdapter)
     }
@@ -307,7 +307,7 @@ export class DBConnection extends SqlServerConnection<'DBConnection'> {
         ], 'localDateTime', 'required')
     }
     callEstimatedTotalOptional(projectId: number): Promise<Money | null> {
-        return this.executeFunction<Money>('dbo.estimated_total', [
+        return this.executeFunction<Money, 'Money'>('dbo.estimated_total', [
             this.const(projectId, 'int'),
         ], 'customDouble', 'Money', 'optional')
     }
@@ -350,52 +350,52 @@ export class DBConnection extends SqlServerConnection<'DBConnection'> {
         return this.executeFunction('dbo.ret_clock', [this.const(id, 'int')], 'localTime', 'optional')
     }
     callRetEnum(id: number): Promise<WorklogActivity> {
-        return this.executeFunction<WorklogActivity>('dbo.ret_activity', [this.const(id, 'int')], 'enum', 'WorklogActivity', 'required')
+        return this.executeFunction<WorklogActivity, 'WorklogActivity'>('dbo.ret_activity', [this.const(id, 'int')], 'enum', 'WorklogActivity', 'required')
     }
     callRetEnumOptional(id: number): Promise<WorklogActivity | null> {
-        return this.executeFunction<WorklogActivity>('dbo.ret_activity', [this.const(id, 'int')], 'enum', 'WorklogActivity', 'optional')
+        return this.executeFunction<WorklogActivity, 'WorklogActivity'>('dbo.ret_activity', [this.const(id, 'int')], 'enum', 'WorklogActivity', 'optional')
     }
     callRetCustom(id: number): Promise<ReleaseChannel> {
-        return this.executeFunction<ReleaseChannel>('dbo.ret_channel', [this.const(id, 'int')], 'custom', 'ReleaseChannel', 'required')
+        return this.executeFunction<ReleaseChannel, 'ReleaseChannel'>('dbo.ret_channel', [this.const(id, 'int')], 'custom', 'ReleaseChannel', 'required')
     }
     callRetCustomOptional(id: number): Promise<ReleaseChannel | null> {
-        return this.executeFunction<ReleaseChannel>('dbo.ret_channel', [this.const(id, 'int')], 'custom', 'ReleaseChannel', 'optional')
+        return this.executeFunction<ReleaseChannel, 'ReleaseChannel'>('dbo.ret_channel', [this.const(id, 'int')], 'custom', 'ReleaseChannel', 'optional')
     }
     callRetCustomComparable(id: number): Promise<string> {
-        return this.executeFunction<string>('dbo.ret_semver', [this.const(id, 'int')], 'customComparable', 'Semver', 'required')
+        return this.executeFunction<string, 'Semver'>('dbo.ret_semver', [this.const(id, 'int')], 'customComparable', 'Semver', 'required')
     }
     callRetCustomComparableOptional(id: number): Promise<string | null> {
-        return this.executeFunction<string>('dbo.ret_semver', [this.const(id, 'int')], 'customComparable', 'Semver', 'optional')
+        return this.executeFunction<string, 'Semver'>('dbo.ret_semver', [this.const(id, 'int')], 'customComparable', 'Semver', 'optional')
     }
     callRetCustomInt(id: number): Promise<number> {
-        return this.executeFunction<number>('dbo.count_open_issues', [this.const(id, 'int')], 'customInt', 'Cents', 'required')
+        return this.executeFunction<number, 'Cents'>('dbo.count_open_issues', [this.const(id, 'int')], 'customInt', 'Cents', 'required')
     }
     callRetCustomIntOptional(id: number): Promise<number | null> {
-        return this.executeFunction<number>('dbo.count_open_issues', [this.const(id, 'int')], 'customInt', 'Cents', 'optional')
+        return this.executeFunction<number, 'Cents'>('dbo.count_open_issues', [this.const(id, 'int')], 'customInt', 'Cents', 'optional')
     }
     callRetCustomUuid(id: number): Promise<string> {
-        return this.executeFunction<string>('dbo.ret_uuid', [this.const(id, 'int')], 'customUuid', 'SigningKey', 'required')
+        return this.executeFunction<string, 'SigningKey'>('dbo.ret_uuid', [this.const(id, 'int')], 'customUuid', 'SigningKey', 'required')
     }
     callRetCustomUuidOptional(id: number): Promise<string | null> {
-        return this.executeFunction<string>('dbo.ret_uuid', [this.const(id, 'int')], 'customUuid', 'SigningKey', 'optional')
+        return this.executeFunction<string, 'SigningKey'>('dbo.ret_uuid', [this.const(id, 'int')], 'customUuid', 'SigningKey', 'optional')
     }
     callRetCustomLocalDate(id: number): Promise<Date> {
-        return this.executeFunction<Date>('dbo.ret_day', [this.const(id, 'int')], 'customLocalDate', 'ReleaseDay', 'required')
+        return this.executeFunction<Date, 'ReleaseDay'>('dbo.ret_day', [this.const(id, 'int')], 'customLocalDate', 'ReleaseDay', 'required')
     }
     callRetCustomLocalDateOptional(id: number): Promise<Date | null> {
-        return this.executeFunction<Date>('dbo.ret_day', [this.const(id, 'int')], 'customLocalDate', 'ReleaseDay', 'optional')
+        return this.executeFunction<Date, 'ReleaseDay'>('dbo.ret_day', [this.const(id, 'int')], 'customLocalDate', 'ReleaseDay', 'optional')
     }
     callRetCustomLocalTime(id: number): Promise<Date> {
-        return this.executeFunction<Date>('dbo.ret_clock', [this.const(id, 'int')], 'customLocalTime', 'CutoffClock', 'required')
+        return this.executeFunction<Date, 'CutoffClock'>('dbo.ret_clock', [this.const(id, 'int')], 'customLocalTime', 'CutoffClock', 'required')
     }
     callRetCustomLocalTimeOptional(id: number): Promise<Date | null> {
-        return this.executeFunction<Date>('dbo.ret_clock', [this.const(id, 'int')], 'customLocalTime', 'CutoffClock', 'optional')
+        return this.executeFunction<Date, 'CutoffClock'>('dbo.ret_clock', [this.const(id, 'int')], 'customLocalTime', 'CutoffClock', 'optional')
     }
     callRetCustomLocalDateTime(id: number): Promise<Date> {
-        return this.executeFunction<Date>('dbo.latest_issue_at', [this.const(id, 'int')], 'customLocalDateTime', 'SignOffStamp', 'required')
+        return this.executeFunction<Date, 'SignOffStamp'>('dbo.latest_issue_at', [this.const(id, 'int')], 'customLocalDateTime', 'SignOffStamp', 'required')
     }
     callRetCustomLocalDateTimeOptional(id: number): Promise<Date | null> {
-        return this.executeFunction<Date>('dbo.latest_issue_at', [this.const(id, 'int')], 'customLocalDateTime', 'SignOffStamp', 'optional')
+        return this.executeFunction<Date, 'SignOffStamp'>('dbo.latest_issue_at', [this.const(id, 'int')], 'customLocalDateTime', 'SignOffStamp', 'optional')
     }
 
     // executeFunction return-kind × {required, optional} × {no-adapter, trailing
@@ -538,128 +538,128 @@ export class DBConnection extends SqlServerConnection<'DBConnection'> {
 
     // enum (cm_str, WorklogActivity)
     callCmEnum(): Promise<WorklogActivity> {
-        return this.executeFunction<WorklogActivity>('dbo.cm_str', [], 'enum', 'WorklogActivity', 'required')
+        return this.executeFunction<WorklogActivity, 'WorklogActivity'>('dbo.cm_str', [], 'enum', 'WorklogActivity', 'required')
     }
     callCmEnumOpt(): Promise<WorklogActivity | null> {
-        return this.executeFunction<WorklogActivity>('dbo.cm_str', [], 'enum', 'WorklogActivity', 'optional')
+        return this.executeFunction<WorklogActivity, 'WorklogActivity'>('dbo.cm_str', [], 'enum', 'WorklogActivity', 'optional')
     }
     callCmEnumAdapter(): Promise<WorklogActivity> {
-        return this.executeFunction<WorklogActivity>('dbo.cm_str', [], 'enum', 'WorklogActivity', 'required', bracketAdapter)
+        return this.executeFunction<WorklogActivity, 'WorklogActivity'>('dbo.cm_str', [], 'enum', 'WorklogActivity', 'required', bracketAdapter)
     }
     callCmEnumOptAdapter(): Promise<WorklogActivity | null> {
-        return this.executeFunction<WorklogActivity>('dbo.cm_str', [], 'enum', 'WorklogActivity', 'optional', bracketAdapter)
+        return this.executeFunction<WorklogActivity, 'WorklogActivity'>('dbo.cm_str', [], 'enum', 'WorklogActivity', 'optional', bracketAdapter)
     }
 
     // custom (cm_str, ReleaseChannel)
     callCmCustom(): Promise<ReleaseChannel> {
-        return this.executeFunction<ReleaseChannel>('dbo.cm_str', [], 'custom', 'ReleaseChannel', 'required')
+        return this.executeFunction<ReleaseChannel, 'ReleaseChannel'>('dbo.cm_str', [], 'custom', 'ReleaseChannel', 'required')
     }
     callCmCustomOpt(): Promise<ReleaseChannel | null> {
-        return this.executeFunction<ReleaseChannel>('dbo.cm_str', [], 'custom', 'ReleaseChannel', 'optional')
+        return this.executeFunction<ReleaseChannel, 'ReleaseChannel'>('dbo.cm_str', [], 'custom', 'ReleaseChannel', 'optional')
     }
     callCmCustomAdapter(): Promise<ReleaseChannel> {
-        return this.executeFunction<ReleaseChannel>('dbo.cm_str', [], 'custom', 'ReleaseChannel', 'required', bracketAdapter)
+        return this.executeFunction<ReleaseChannel, 'ReleaseChannel'>('dbo.cm_str', [], 'custom', 'ReleaseChannel', 'required', bracketAdapter)
     }
     callCmCustomOptAdapter(): Promise<ReleaseChannel | null> {
-        return this.executeFunction<ReleaseChannel>('dbo.cm_str', [], 'custom', 'ReleaseChannel', 'optional', bracketAdapter)
+        return this.executeFunction<ReleaseChannel, 'ReleaseChannel'>('dbo.cm_str', [], 'custom', 'ReleaseChannel', 'optional', bracketAdapter)
     }
 
     // customComparable (cm_str, Semver)
     callCmCustomComparable(): Promise<string> {
-        return this.executeFunction<string>('dbo.cm_str', [], 'customComparable', 'Semver', 'required')
+        return this.executeFunction<string, 'Semver'>('dbo.cm_str', [], 'customComparable', 'Semver', 'required')
     }
     callCmCustomComparableOpt(): Promise<string | null> {
-        return this.executeFunction<string>('dbo.cm_str', [], 'customComparable', 'Semver', 'optional')
+        return this.executeFunction<string, 'Semver'>('dbo.cm_str', [], 'customComparable', 'Semver', 'optional')
     }
     callCmCustomComparableAdapter(): Promise<string> {
-        return this.executeFunction<string>('dbo.cm_str', [], 'customComparable', 'Semver', 'required', bracketAdapter)
+        return this.executeFunction<string, 'Semver'>('dbo.cm_str', [], 'customComparable', 'Semver', 'required', bracketAdapter)
     }
     callCmCustomComparableOptAdapter(): Promise<string | null> {
-        return this.executeFunction<string>('dbo.cm_str', [], 'customComparable', 'Semver', 'optional', bracketAdapter)
+        return this.executeFunction<string, 'Semver'>('dbo.cm_str', [], 'customComparable', 'Semver', 'optional', bracketAdapter)
     }
 
     // customInt (cm_int, Cents)
     callCmCustomInt(): Promise<number> {
-        return this.executeFunction<number>('dbo.cm_int', [], 'customInt', 'Cents', 'required')
+        return this.executeFunction<number, 'Cents'>('dbo.cm_int', [], 'customInt', 'Cents', 'required')
     }
     callCmCustomIntOpt(): Promise<number | null> {
-        return this.executeFunction<number>('dbo.cm_int', [], 'customInt', 'Cents', 'optional')
+        return this.executeFunction<number, 'Cents'>('dbo.cm_int', [], 'customInt', 'Cents', 'optional')
     }
     callCmCustomIntAdapter(): Promise<number> {
-        return this.executeFunction<number>('dbo.cm_int', [], 'customInt', 'Cents', 'required', fnNumberTimesTen)
+        return this.executeFunction<number, 'Cents'>('dbo.cm_int', [], 'customInt', 'Cents', 'required', fnNumberTimesTen)
     }
     callCmCustomIntOptAdapter(): Promise<number | null> {
-        return this.executeFunction<number>('dbo.cm_int', [], 'customInt', 'Cents', 'optional', fnNumberTimesTen)
+        return this.executeFunction<number, 'Cents'>('dbo.cm_int', [], 'customInt', 'Cents', 'optional', fnNumberTimesTen)
     }
 
     // customUuid (cm_uuid, SigningKey)
     callCmCustomUuid(): Promise<string> {
-        return this.executeFunction<string>('dbo.cm_uuid', [], 'customUuid', 'SigningKey', 'required')
+        return this.executeFunction<string, 'SigningKey'>('dbo.cm_uuid', [], 'customUuid', 'SigningKey', 'required')
     }
     callCmCustomUuidOpt(): Promise<string | null> {
-        return this.executeFunction<string>('dbo.cm_uuid', [], 'customUuid', 'SigningKey', 'optional')
+        return this.executeFunction<string, 'SigningKey'>('dbo.cm_uuid', [], 'customUuid', 'SigningKey', 'optional')
     }
     callCmCustomUuidAdapter(): Promise<string> {
-        return this.executeFunction<string>('dbo.cm_uuid', [], 'customUuid', 'SigningKey', 'required', fnUuidBracket)
+        return this.executeFunction<string, 'SigningKey'>('dbo.cm_uuid', [], 'customUuid', 'SigningKey', 'required', fnUuidBracket)
     }
     callCmCustomUuidOptAdapter(): Promise<string | null> {
-        return this.executeFunction<string>('dbo.cm_uuid', [], 'customUuid', 'SigningKey', 'optional', fnUuidBracket)
+        return this.executeFunction<string, 'SigningKey'>('dbo.cm_uuid', [], 'customUuid', 'SigningKey', 'optional', fnUuidBracket)
     }
 
     // customDouble (cm_double, Money)
     callCmCustomDouble(): Promise<number> {
-        return this.executeFunction<number>('dbo.cm_double', [], 'customDouble', 'Money', 'required')
+        return this.executeFunction<number, 'Money'>('dbo.cm_double', [], 'customDouble', 'Money', 'required')
     }
     callCmCustomDoubleOpt(): Promise<number | null> {
-        return this.executeFunction<number>('dbo.cm_double', [], 'customDouble', 'Money', 'optional')
+        return this.executeFunction<number, 'Money'>('dbo.cm_double', [], 'customDouble', 'Money', 'optional')
     }
     callCmCustomDoubleAdapter(): Promise<number> {
-        return this.executeFunction<number>('dbo.cm_double', [], 'customDouble', 'Money', 'required', fnNumberTimesTen)
+        return this.executeFunction<number, 'Money'>('dbo.cm_double', [], 'customDouble', 'Money', 'required', fnNumberTimesTen)
     }
     callCmCustomDoubleOptAdapter(): Promise<number | null> {
-        return this.executeFunction<number>('dbo.cm_double', [], 'customDouble', 'Money', 'optional', fnNumberTimesTen)
+        return this.executeFunction<number, 'Money'>('dbo.cm_double', [], 'customDouble', 'Money', 'optional', fnNumberTimesTen)
     }
 
     // customLocalDate (cm_date, ReleaseDay)
     callCmCustomLocalDate(): Promise<Date> {
-        return this.executeFunction<Date>('dbo.cm_date', [], 'customLocalDate', 'ReleaseDay', 'required')
+        return this.executeFunction<Date, 'ReleaseDay'>('dbo.cm_date', [], 'customLocalDate', 'ReleaseDay', 'required')
     }
     callCmCustomLocalDateOpt(): Promise<Date | null> {
-        return this.executeFunction<Date>('dbo.cm_date', [], 'customLocalDate', 'ReleaseDay', 'optional')
+        return this.executeFunction<Date, 'ReleaseDay'>('dbo.cm_date', [], 'customLocalDate', 'ReleaseDay', 'optional')
     }
     callCmCustomLocalDateAdapter(): Promise<Date> {
-        return this.executeFunction<Date>('dbo.cm_date', [], 'customLocalDate', 'ReleaseDay', 'required', shiftHourAdapter)
+        return this.executeFunction<Date, 'ReleaseDay'>('dbo.cm_date', [], 'customLocalDate', 'ReleaseDay', 'required', shiftHourAdapter)
     }
     callCmCustomLocalDateOptAdapter(): Promise<Date | null> {
-        return this.executeFunction<Date>('dbo.cm_date', [], 'customLocalDate', 'ReleaseDay', 'optional', shiftHourAdapter)
+        return this.executeFunction<Date, 'ReleaseDay'>('dbo.cm_date', [], 'customLocalDate', 'ReleaseDay', 'optional', shiftHourAdapter)
     }
 
     // customLocalTime (cm_time, CutoffClock)
     callCmCustomLocalTime(): Promise<Date> {
-        return this.executeFunction<Date>('dbo.cm_time', [], 'customLocalTime', 'CutoffClock', 'required')
+        return this.executeFunction<Date, 'CutoffClock'>('dbo.cm_time', [], 'customLocalTime', 'CutoffClock', 'required')
     }
     callCmCustomLocalTimeOpt(): Promise<Date | null> {
-        return this.executeFunction<Date>('dbo.cm_time', [], 'customLocalTime', 'CutoffClock', 'optional')
+        return this.executeFunction<Date, 'CutoffClock'>('dbo.cm_time', [], 'customLocalTime', 'CutoffClock', 'optional')
     }
     callCmCustomLocalTimeAdapter(): Promise<Date> {
-        return this.executeFunction<Date>('dbo.cm_time', [], 'customLocalTime', 'CutoffClock', 'required', shiftHourAdapter)
+        return this.executeFunction<Date, 'CutoffClock'>('dbo.cm_time', [], 'customLocalTime', 'CutoffClock', 'required', shiftHourAdapter)
     }
     callCmCustomLocalTimeOptAdapter(): Promise<Date | null> {
-        return this.executeFunction<Date>('dbo.cm_time', [], 'customLocalTime', 'CutoffClock', 'optional', shiftHourAdapter)
+        return this.executeFunction<Date, 'CutoffClock'>('dbo.cm_time', [], 'customLocalTime', 'CutoffClock', 'optional', shiftHourAdapter)
     }
 
     // customLocalDateTime (cm_datetime, SignOffStamp)
     callCmCustomLocalDateTime(): Promise<Date> {
-        return this.executeFunction<Date>('dbo.cm_datetime', [], 'customLocalDateTime', 'SignOffStamp', 'required')
+        return this.executeFunction<Date, 'SignOffStamp'>('dbo.cm_datetime', [], 'customLocalDateTime', 'SignOffStamp', 'required')
     }
     callCmCustomLocalDateTimeOpt(): Promise<Date | null> {
-        return this.executeFunction<Date>('dbo.cm_datetime', [], 'customLocalDateTime', 'SignOffStamp', 'optional')
+        return this.executeFunction<Date, 'SignOffStamp'>('dbo.cm_datetime', [], 'customLocalDateTime', 'SignOffStamp', 'optional')
     }
     callCmCustomLocalDateTimeAdapter(): Promise<Date> {
-        return this.executeFunction<Date>('dbo.cm_datetime', [], 'customLocalDateTime', 'SignOffStamp', 'required', shiftHourAdapter)
+        return this.executeFunction<Date, 'SignOffStamp'>('dbo.cm_datetime', [], 'customLocalDateTime', 'SignOffStamp', 'required', shiftHourAdapter)
     }
     callCmCustomLocalDateTimeOptAdapter(): Promise<Date | null> {
-        return this.executeFunction<Date>('dbo.cm_datetime', [], 'customLocalDateTime', 'SignOffStamp', 'optional', shiftHourAdapter)
+        return this.executeFunction<Date, 'SignOffStamp'>('dbo.cm_datetime', [], 'customLocalDateTime', 'SignOffStamp', 'optional', shiftHourAdapter)
     }
 
     // Reusable typed SQL fragments — exercised by

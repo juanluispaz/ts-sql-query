@@ -273,9 +273,9 @@ The executed query is:
     select 
         id as id, 
         convert(nvarchar(41), amount) as amount, 
-        convert(nvarchar(41), amount + @0) as [next] 
+        convert(nvarchar(41), amount + cast(@0 as decimal(11, 10))) as [next] 
     from exact_amount 
-    where price > @1 
+    where price > cast(@1 as decimal(1, 0)) 
     order by id
     ```
 
@@ -288,22 +288,26 @@ What each database keeps, for a `decimal(38, 10)` and a `decimal(10, 2)` column:
 | Database | Reading a value | Sending a value | Adding, comparing and ordering |
 |---|---|---|---|
 | MariaDB, MySQL | All the digits, with the scale of the column: `'1.50'` | As text, written as `cast(? as decimal(P, S))` with the digits of the value where it isn't assigned to a column; a value wider than `decimal(65, 30)` is rejected | Exact |
-| Oracle | All the digits, without the zeros at the end of the decimals: `'1.5'` for `1.50` | As text | Exact |
+| Oracle | All the digits, without the zeros at the end of the decimals: `'1.5'` for `1.50` | As text; a value of more than 38 significant digits is rejected | Exact |
 | PostgreSQL | All the digits, with the scale of the column: `'1.50'` | As a `numeric` | Exact |
 | SQLite | The text stored | The text, as it is | Exact with the default decimal strategy: see below |
-| SQL Server | All the digits, with the scale of the column: `'1.50'`; the outermost query converts the value to text with `convert(nvarchar(41), …)` | As an `nvarchar` | Exact |
+| SQL Server | All the digits, with the scale of the column: `'1.50'`; the outermost query converts the value to text with `convert(nvarchar(41), …)` | As an `nvarchar`, written as `cast(@0 as decimal(P, S))` with the digits of the value where it isn't assigned to a column; a value wider than `decimal(38)` is rejected | Exact |
 
 In every database, a `customDecimal` in an [array aggregate](../queries/aggregate-as-object-array.md) is read from the JSON with all its digits.
 
 On SQL Server the conversion to text goes only in the select that returns the rows, so the database compares, groups and orders the numbers, not their text. An order by of a converted column is written with its expression, and a compound query, or a `selectDistinctFrom` ordered by a converted column, is wrapped in a select that converts the columns:
 
 ```sql
-select o_1_.id as id, convert(nvarchar(41), o_1_.shifted) as shifted from (select id as id, price + @0 as shifted from exact_amount where id in (@1, @2) union select id as id, price + @3 as shifted from exact_amount where id in (@4, @5)) as o_1_ order by o_1_.shifted
+select o_1_.id as id, convert(nvarchar(41), o_1_.shifted) as shifted from (select id as id, price + cast(@0 as decimal(1, 0)) as shifted from exact_amount where id in (@1, @2) union select id as id, price + cast(@3 as decimal(1, 0)) as shifted from exact_amount where id in (@4, @5)) as o_1_ order by o_1_.shifted
 ```
 
 If a select adds columns of its own with `customizeQuery({ beforeColumns })`, the wrapping select passes them on too: it selects the converted columns and every column of the wrapped select, where the converted ones have another alias (`price_tsq_raw`).
 
 On MariaDB and MySQL, a text parameter would be computed as a floating point number, and compared as one in an `in` or a `between`; the cast keeps it exact. The widest decimal of these databases has 65 digits, 30 of them decimals: the cast of a value with more gives `999…9` without an error, and no column can hold it, so it's rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE` before the query is sent.
+
+On SQL Server, a text parameter alone would be cut to the width of the text it's converted to, two of them would be joined as texts by `+`, and a modulo rejects it; the cast keeps it a number. The widest decimal of SQL Server has 38 digits: a value with more is rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE` before the query is sent.
+
+Oracle's numbers keep 38 significant digits: a computation with a value of more is rounded without an error, and no column can hold it, so it's rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE` before the query is sent.
 
 Oracle reads the text with a point as the decimal separator, the one the library always sends. A session that uses another separator (`NLS_NUMERIC_CHARACTERS`) rejects the value with `ORA-01722`.
 

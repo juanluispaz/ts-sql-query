@@ -42,6 +42,18 @@ function writeAtomically(path: string, content: string): void {
     renameSync(temporary, path)
 }
 
+/**
+ * The command that compiles an extension: the one the page of the documentation on SQLite's extensions gives for
+ * macOS and Linux, which a test checks
+ */
+export function sqliteExtensionCompileCommand(platform: NodeJS.Platform, include: string, output: string, source: string): string[] {
+    const args = ['cc', '-O2', '-fPIC', '-shared', '-I', include, '-o', output, source]
+    if (platform === 'darwin') {
+        args.splice(1, 0, '-dynamiclib')
+    }
+    return args
+}
+
 /** The path of the built library, or why it can't be used */
 export function buildSqliteExtension(name: SqliteExtensionName): { path: string } | { reason: string } {
     try {
@@ -96,11 +108,8 @@ export function buildSqliteExtension(name: SqliteExtensionName): { path: string 
             }
             try {
                 const temporary = path + '.' + process.pid + '.tmp'
-                const args = ['-O2', '-fPIC', '-shared', '-I', include, '-o', temporary, source]
-                if (process.platform === 'darwin') {
-                    args.unshift('-dynamiclib')
-                }
-                const compiled = spawnSync('cc', args, { encoding: 'utf8' })
+                const [compiler, ...args] = sqliteExtensionCompileCommand(process.platform, include, temporary, source)
+                const compiled = spawnSync(compiler!, args, { encoding: 'utf8' })
                 if (compiled.error || compiled.status !== 0) {
                     rmSync(temporary, { force: true })
                     const reason = 'cc failed: ' + (compiled.error?.message ?? compiled.stderr)

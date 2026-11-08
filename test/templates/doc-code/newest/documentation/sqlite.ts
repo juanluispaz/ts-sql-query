@@ -194,6 +194,8 @@ test('snippets registered', () => {})
 class Database {
     constructor(_1: any, _2?: any) {}
     function(_1: any, _2: any) {}
+    loadExtension(_1: string) {}
+    static setCustomSQLite(_1: string) {}
 }
 void Database
 
@@ -203,6 +205,7 @@ type SQLOutputValue = any
 class DatabaseSync {
     constructor(_1: any, _2?: any) {}
     function(_1: any, _2: any) {}
+    loadExtension(_1: string) {}
 }
 
 void DatabaseSync

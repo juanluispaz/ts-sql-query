@@ -826,8 +826,6 @@ export interface CustomDecimalValueSource</*in|out*/ SOURCE extends NSource, /*i
     subtract<VALUE extends CustomDecimalValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): CustomDecimalValueSource<SOURCE | VALUE[typeof source], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     multiply(value: TYPE): CustomDecimalValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     multiply<VALUE extends CustomDecimalValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): CustomDecimalValueSource<SOURCE | VALUE[typeof source], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    divide(value: TYPE): NumberValueSource<SOURCE, OPTIONAL_TYPE>
-    divide<VALUE extends CustomDecimalValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): NumberValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     modulo(value: TYPE): CustomDecimalValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     modulo<VALUE extends CustomDecimalValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): CustomDecimalValueSource<SOURCE | VALUE[typeof source], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Trigonometric Functions

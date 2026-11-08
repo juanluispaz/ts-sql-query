@@ -21,6 +21,27 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
     protected uuidStrategy: 'string' | 'uuid-extension' = 'uuid-extension'
 
     /**
+     * How a `customDecimal` is computed, compared and ordered. SQLite has no exact decimal type: a `customDecimal`
+     * lives in a `TEXT` column (of a `STRICT` table, so SQLite doesn't turn it into a floating point number).
+     *
+     * - `'decimal-functions'` (the default): everything is exact. The library writes the functions of the `decimal`
+     *   extension of SQLite (`decimal_add`, `decimal_sub`, `decimal_mul`, `decimal_sum` and `decimal_cmp`) and three
+     *   of its own: `tsq_decimal_key` (a text that orders as the number, for the order by, the group by and
+     *   `distinct`), and the aggregates `tsq_decimal_min` and `tsq_decimal_max`. Register them on the connection: the
+     *   page of each connector gives them in JavaScript.
+     * - `'decimal-extension'`: only the functions of the `decimal` extension, so the extension loaded on the
+     *   connection is enough. Computing and comparing are exact; the order by, `min`, `max`, the group by and
+     *   `distinct` work on the text.
+     * - `'text'`: plain SQL. A comparison of order (`<`, `>`, `between`) and the order by compare the value converted
+     *   to a floating point number, exact up to about 15 significant digits; an equality compares the text; an
+     *   addition, a multiplication or a sum is computed in floating point, and its result is rejected with
+     *   `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`.
+     *
+     * See the SQLite page of the documentation.
+     */
+    protected decimalStrategy: 'text' | 'decimal-extension' | 'decimal-functions' = 'decimal-functions'
+
+    /**
      * Name of a scalar SQL function to call for `.replaceAllInsensitive(...)`.
      *
      * SQLite has no case-insensitive `REPLACE` and no built-in `regexp_replace`, so the

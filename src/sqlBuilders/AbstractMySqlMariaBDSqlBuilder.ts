@@ -1,5 +1,5 @@
 import type { ToSql, SqlOperation, SelectData, InsertData, UpdateData, DeleteData, FlatQueryColumns, OrderByEntry, PlainSelectData } from './SqlBuilder.js'
-import { getQueryColumn, flattenQueryColumns } from './SqlBuilder.js'
+import { getQueryColumn, flattenQueryColumns, hasToSql } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import type { AnyValueSource, IAnyBooleanValueSource, __AggregatedArrayColumns, ValueType } from '../expressions/values.js'
 import { isValueSource } from '../expressions/values.js'
@@ -8,10 +8,64 @@ import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { DBColumn } from '../utils/Column.js'
 import { isColumn, __getColumnPrivate } from '../utils/Column.js'
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
+import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { SqlOperation1ValueSource, SqlOperation1ValueSourceIfValueOrIgnore } from '../internal/ValueSourceImpl.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 
 export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
+    /**
+     * A value assigned to a column of a table (an insert or the set of an update) takes the type of the column; a value
+     * elsewhere has the type its parameter gives
+     */
+    _isAssigningValueToColumn(params: any[]): boolean {
+        return !!(params as any)._assigningValueToColumn
+    }
+    _setAssigningValueToColumn(params: any[], value: boolean): void {
+        Object.defineProperty(params, '_assigningValueToColumn', {
+            value: value,
+            writable: true,
+            enumerable: false,
+            configurable: true
+        })
+    }
+    override _appendValueForColumn(column: DBColumn, value: any, params: any[], forceTypeCast: boolean): string {
+        if (hasToSql(value) || __getTableOrViewPrivate(__getColumnPrivate(column).__tableOrView).__type === 'values') {
+            return super._appendValueForColumn(column, value, params, forceTypeCast)
+        }
+        const oldAssigningValueToColumn = this._isAssigningValueToColumn(params)
+        this._setAssigningValueToColumn(params, true)
+        try {
+            return super._appendValueForColumn(column, value, params, forceTypeCast)
+        } finally {
+            this._setAssigningValueToColumn(params, oldAssigningValueToColumn)
+        }
+    }
+    /**
+     * A customDecimal parameter is text, and the database computes with a text in double precision, and compares it
+     * in double precision in an `in` or a `between`: it is cast to a decimal with the digits of the value. A value
+     * beyond the widest decimal of the database (65 digits, 30 of them decimals) is rejected: the cast would give
+     * 999…9 without an error, and without it the database would compute in double precision; no column can hold it.
+     */
+    override _appendParam(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+        const placeholder = super._appendParam(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
+        if (columnType !== 'customDecimal') {
+            return placeholder
+        }
+        const sent = params[params.length - 1]
+        const match = typeof sent === 'string' ? /^-?0*(\d*)(?:\.(\d+))?$/.exec(sent) : null
+        if (!match) {
+            return placeholder
+        }
+        const scale = match[2]?.length ?? 0
+        const precision = Math.max(match[1]!.length, 1) + scale
+        if (precision > 65 || scale > 30) {
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: sent, typeName: columnTypeName, paramIndex: params.length - 1 }, 'Invalid customDecimal value to send to the db: ' + sent + ' doesn\'t fit the widest decimal of the database, decimal(65, 30)')
+        }
+        if (this._isAssigningValueToColumn(params)) {
+            return placeholder
+        }
+        return 'cast(' + placeholder + ' as decimal(' + precision + ', ' + scale + '))'
+    }
     override _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean, needsGrouping: boolean): string {
         if (needsGrouping) {
             // MySQL 5.7 and MariaDB 10.3 don't accept a compound in parentheses as an operand of another one

@@ -164,6 +164,8 @@ export interface ConnectionConfiguration {
     readonly usePlatformDependentRound?: boolean
     /** PostgreSQL: write the insensitive comparisons with `like` instead of `ilike` (`useLikeInsteadOfIlike`) */
     readonly useLikeInsteadOfIlike?: boolean
+    /** SQLite: how a customDecimal is computed and compared (`decimalStrategy`) */
+    readonly decimalStrategy?: string
     /** SQLite: the date and time functions of the database work in the time zone of the application */
     readonly sqliteRunsInApplicationTimeZone?: boolean
     /** SQLite: an integer read where a date or time with another format was expected is a Julian day */

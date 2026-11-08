@@ -301,9 +301,8 @@ function _typeNegatives() {
     void amount.power(2)
     // @ts-expect-error the exponent of power is a number, not a customDecimal
     void amount.power(amount)
-    void amount.divide('2').equals(t.mDouble)
-    // @ts-expect-error divide gives a double, not a customDecimal
-    void amount.divide('2').equals(amount)
+    // @ts-expect-error a customDecimal has no divide: the division of two decimals isn't exact
+    void amount.divide('2')
     void amount.sqrt().equals(t.mDouble)
     // @ts-expect-error sqrt gives a double, not a customDecimal
     void amount.sqrt().equals(amount)

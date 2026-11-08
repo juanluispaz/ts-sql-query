@@ -148,6 +148,17 @@ const tRecord = new class TRecord extends Table<DBConnection, 'TRecord'> {
 const docCodeMock = new DocCodeMockRunner()
 const connection = new DBConnection(docCodeMock)
 
+// A decimal number kept exact as its text (docs/configuration/column-types.md, Exact decimals)
+const tExactAmount = new class TExactAmount extends Table<DBConnection, 'TExactAmount'> {
+    id = this.primaryKey('id', 'int')
+    amount = this.optionalColumn<string, 'Amount'>('amount', 'customDecimal', 'Amount')
+    price = this.optionalColumn<string, 'Amount'>('price', 'customDecimal', 'Amount')
+    constructor() {
+        super('exact_amount')
+    }
+}()
+void tExactAmount
+
 /******************** 
  * Generated code
  */

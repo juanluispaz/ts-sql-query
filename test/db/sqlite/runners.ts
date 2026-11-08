@@ -29,6 +29,8 @@ import { MockSqlite3WasmOO1QueryRunner } from '../../lib/mockRunners/MockSqlite3
 import { parse as uuidParse, stringify as uuidStringify, v7 as uuidv7 } from 'uuid'
 import { SynchronousPromise } from 'synchronous-promise'
 import { DBConnection } from './domain/connection.js'
+import { decimalAbs, decimalAdd, decimalCeil, decimalChoiceResult, decimalCmp, decimalFloor, decimalKey, decimalMaxStep, decimalMinStep, decimalMod, decimalMul, decimalRound, decimalSub, decimalSumResult, decimalSumStep } from './decimalFunctions.js'
+import type { DecimalChoice, ExactDecimal } from './decimalFunctions.js'
 
 // SQLite's `uuid-extension` strategy emits uuid_blob / uuid_str / uuid
 // (see docs/configuration/supported-databases/sqlite.md#uuid-strategies).
@@ -59,6 +61,83 @@ function ciReplace(source: string | null, find: string | null, replacement: stri
     if (source == null || find == null || replacement == null) return source
     const escaped = find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     return source.replace(new RegExp(escaped, 'gi'), replacement)
+}
+export function registerBetterSqlite3DecimalFunctions(db: import('better-sqlite3').Database): void {
+    db.function('decimal_add', { deterministic: true }, decimalAdd as (...args: unknown[]) => unknown)
+    db.function('decimal_sub', { deterministic: true }, decimalSub as (...args: unknown[]) => unknown)
+    db.function('decimal_mul', { deterministic: true }, decimalMul as (...args: unknown[]) => unknown)
+    db.function('decimal_cmp', { deterministic: true }, decimalCmp as (...args: unknown[]) => unknown)
+    db.aggregate('decimal_sum', { start: null, step: decimalSumStep as (...args: unknown[]) => unknown, result: decimalSumResult as (total: unknown) => unknown })
+    db.function('tsq_decimal_key', { deterministic: true }, decimalKey as (...args: unknown[]) => unknown)
+    db.function('tsq_decimal_abs', { deterministic: true }, decimalAbs as (...args: unknown[]) => unknown)
+    db.function('tsq_decimal_ceil', { deterministic: true }, decimalCeil as (...args: unknown[]) => unknown)
+    db.function('tsq_decimal_floor', { deterministic: true }, decimalFloor as (...args: unknown[]) => unknown)
+    db.function('tsq_decimal_round', { deterministic: true }, decimalRound as (...args: unknown[]) => unknown)
+    db.function('tsq_decimal_mod', { deterministic: true }, decimalMod as (...args: unknown[]) => unknown)
+    db.aggregate('tsq_decimal_min', { start: null, step: decimalMinStep as (...args: unknown[]) => unknown, result: decimalChoiceResult as (chosen: unknown) => unknown })
+    db.aggregate('tsq_decimal_max', { start: null, step: decimalMaxStep as (...args: unknown[]) => unknown, result: decimalChoiceResult as (chosen: unknown) => unknown })
+}
+export function registerBunSqliteDecimalFunctions(db: import('bun:sqlite').Database): void {
+    db.function('decimal_add', decimalAdd)
+    db.function('decimal_sub', decimalSub)
+    db.function('decimal_mul', decimalMul)
+    db.function('decimal_cmp', decimalCmp)
+    db.aggregate<ExactDecimal | null>('decimal_sum', { start: null, step: decimalSumStep, result: decimalSumResult })
+    db.function('tsq_decimal_key', decimalKey)
+    db.function('tsq_decimal_abs', decimalAbs)
+    db.function('tsq_decimal_ceil', decimalCeil)
+    db.function('tsq_decimal_floor', decimalFloor)
+    db.function('tsq_decimal_round', decimalRound)
+    db.function('tsq_decimal_mod', decimalMod)
+    db.aggregate<DecimalChoice | null>('tsq_decimal_min', { start: null, step: decimalMinStep, result: decimalChoiceResult as (chosen: DecimalChoice | null) => string | null })
+    db.aggregate<DecimalChoice | null>('tsq_decimal_max', { start: null, step: decimalMaxStep, result: decimalChoiceResult as (chosen: DecimalChoice | null) => string | null })
+}
+export function registerNodeSqliteDecimalFunctions(db: import('node:sqlite').DatabaseSync): void {
+    db.function('decimal_add', { deterministic: true }, decimalAdd as (...args: any[]) => any)
+    db.function('decimal_sub', { deterministic: true }, decimalSub as (...args: any[]) => any)
+    db.function('decimal_mul', { deterministic: true }, decimalMul as (...args: any[]) => any)
+    db.function('decimal_cmp', { deterministic: true }, decimalCmp as (...args: any[]) => any)
+    db.aggregate('decimal_sum', { start: null, step: decimalSumStep as (...args: any[]) => any, result: decimalSumResult as (total: any) => any })
+    db.function('tsq_decimal_key', { deterministic: true }, decimalKey as (...args: any[]) => any)
+    db.function('tsq_decimal_abs', { deterministic: true }, decimalAbs as (...args: any[]) => any)
+    db.function('tsq_decimal_ceil', { deterministic: true }, decimalCeil as (...args: any[]) => any)
+    db.function('tsq_decimal_floor', { deterministic: true }, decimalFloor as (...args: any[]) => any)
+    db.function('tsq_decimal_round', { deterministic: true }, decimalRound as (...args: any[]) => any)
+    db.function('tsq_decimal_mod', { deterministic: true }, decimalMod as (...args: any[]) => any)
+    db.aggregate('tsq_decimal_min', { start: null, step: decimalMinStep as (...args: any[]) => any, result: decimalChoiceResult as (chosen: any) => any })
+    db.aggregate('tsq_decimal_max', { start: null, step: decimalMaxStep as (...args: any[]) => any, result: decimalChoiceResult as (chosen: any) => any })
+}
+function registerSqlite3WasmOO1DecimalFunctions(sqlite3: import('@sqlite.org/sqlite-wasm').Sqlite3Static, db: import('@sqlite.org/sqlite-wasm').Database): void {
+    db.createFunction('decimal_add', (_ctxPtr, a, b) => decimalAdd(a, b))
+    db.createFunction('decimal_sub', (_ctxPtr, a, b) => decimalSub(a, b))
+    db.createFunction('decimal_mul', (_ctxPtr, a, b) => decimalMul(a, b))
+    db.createFunction('decimal_cmp', (_ctxPtr, a, b) => decimalCmp(a, b))
+    db.createFunction('tsq_decimal_key', (_ctxPtr, value) => decimalKey(value))
+    db.createFunction('tsq_decimal_abs', (_ctxPtr, value) => decimalAbs(value))
+    db.createFunction('tsq_decimal_ceil', (_ctxPtr, value) => decimalCeil(value))
+    db.createFunction('tsq_decimal_floor', (_ctxPtr, value) => decimalFloor(value))
+    db.createFunction('tsq_decimal_round', (_ctxPtr, value, places) => decimalRound(value, places))
+    db.createFunction('tsq_decimal_mod', (_ctxPtr, a, b) => decimalMod(a, b))
+    // An aggregate keeps the state of each aggregation by the address of its aggregate context
+    function aggregate<T>(name: string, step: (state: T | null, value: unknown) => T | null, result: (state: T | null) => unknown): void {
+        const states = new Map<number, T | null>()
+        db.createFunction({
+            name,
+            xStep: (ctxPtr: number, value: unknown) => {
+                const key = Number(sqlite3.capi.sqlite3_js_aggregate_context(ctxPtr, 1))
+                states.set(key, step(states.get(key) ?? null, value))
+            },
+            xFinal: (ctxPtr: number) => {
+                const key = Number(sqlite3.capi.sqlite3_js_aggregate_context(ctxPtr, 0))
+                const state = states.get(key) ?? null
+                states.delete(key)
+                return result(state) as string | null
+            },
+        })
+    }
+    aggregate('decimal_sum', decimalSumStep, decimalSumResult)
+    aggregate('tsq_decimal_min', decimalMinStep, decimalChoiceResult)
+    aggregate('tsq_decimal_max', decimalMaxStep, decimalChoiceResult)
 }
 function registerBetterSqlite3UuidFunctions(db: import('better-sqlite3').Database): void {
     db.function('uuid', uuidv7 as (_: unknown) => unknown)
@@ -133,6 +212,8 @@ export interface SqliteTestContext extends TestContext<DBConnection> {
     withReplaceAllInsensitiveFunction(functionName: string): DBConnection
     /** A `DBConnection` whose `uuidStrategy` is pinned to `strategy`. */
     withUuidStrategy(strategy: 'string' | 'uuid-extension'): DBConnection
+    /** A `DBConnection` whose `decimalStrategy` is pinned to `strategy`. */
+    withDecimalStrategy(strategy: 'text' | 'decimal-extension' | 'decimal-functions'): DBConnection
     /** A `DBConnection` with `allowEmptyString` enabled (empty strings kept, not mapped to null). */
     withAllowEmptyString(): DBConnection
     /** A `DBConnection` whose `getDateTimeFormat()` is pinned to `format`. */
@@ -206,6 +287,12 @@ function decorateSqliteContext(
         withUuidStrategy(strategy: 'string' | 'uuid-extension'): DBConnection {
             class C extends DBConnection {
                 protected override uuidStrategy: 'string' | 'uuid-extension' = strategy
+            }
+            return base.withConnection(C)
+        },
+        withDecimalStrategy(strategy: 'text' | 'decimal-extension' | 'decimal-functions'): DBConnection {
+            class C extends DBConnection {
+                protected override decimalStrategy: 'text' | 'decimal-extension' | 'decimal-functions' = strategy
             }
             return base.withConnection(C)
         },
@@ -295,6 +382,7 @@ async function getOrCreateBunSqliteDb(): Promise<import('bun:sqlite').Database> 
         const { Database } = await import('bun:sqlite')
         sharedBunSqliteDb = new Database(':memory:')
         registerBunSqliteUuidFunctions(sharedBunSqliteDb)
+        registerBunSqliteDecimalFunctions(sharedBunSqliteDb)
     }
     return sharedBunSqliteDb
 }
@@ -462,6 +550,7 @@ async function getOrCreateBetterSqlite3Db(): Promise<import('better-sqlite3').Da
         const Database = (await import('better-sqlite3')).default
         sharedBetterSqlite3Db = new Database(':memory:')
         registerBetterSqlite3UuidFunctions(sharedBetterSqlite3Db)
+        registerBetterSqlite3DecimalFunctions(sharedBetterSqlite3Db)
     }
     return sharedBetterSqlite3Db
 }
@@ -641,6 +730,7 @@ async function getOrCreateNodeSqliteDb(): Promise<import('node:sqlite').Database
         const { DatabaseSync } = await import('node:sqlite')
         sharedNodeSqliteDb = new DatabaseSync(':memory:')
         registerNodeSqliteUuidFunctions(sharedNodeSqliteDb)
+        registerNodeSqliteDecimalFunctions(sharedNodeSqliteDb)
     }
     return sharedNodeSqliteDb
 }
@@ -688,6 +778,7 @@ async function getOrCreateSqliteWasm(): Promise<import('@sqlite.org/sqlite-wasm'
         const sqlite3 = await sqlite3InitModule()
         sqliteWasmSharedDb = new sqlite3.oo1.DB(':memory:', 'c')
         registerSqlite3WasmOO1UuidFunctions(sqliteWasmSharedDb)
+        registerSqlite3WasmOO1DecimalFunctions(sqlite3, sqliteWasmSharedDb)
     }
     return sqliteWasmSharedDb
 }

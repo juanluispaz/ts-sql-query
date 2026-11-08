@@ -1,4 +1,4 @@
-import type { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, PlainSelectData, SqlOperation, WithQueryData, CompoundOperator, JoinData, QueryColumns, FlatQueryColumns, WithSelectData, WithValuesData, OrderByEntry } from './SqlBuilder.js'
+import type { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, PlainSelectData, CompoundSelectData, SqlOperation, WithQueryData, CompoundOperator, JoinData, QueryColumns, FlatQueryColumns, WithSelectData, WithValuesData, OrderByEntry } from './SqlBuilder.js'
 import { flattenQueryColumns, getQueryColumn } from './SqlBuilder.js'
 import type { AnyTableOrView, __ITableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
@@ -126,6 +126,66 @@ export class AbstractSqlBuilder implements SqlBuilder {
             enumerable: false,
             configurable: true
         })
+    }
+    /**
+     * The columns of the select being written are converted by the query that wraps it (see
+     * `_needsResultConversionWrap`), so this select writes them as they are.
+     */
+    _isResultConversionDeferred(params: any[]): boolean {
+        return !!(params as any)._resultConversionDeferred
+    }
+    _setResultConversionDeferred(params: any[], value: boolean): void {
+        Object.defineProperty(params, '_resultConversionDeferred', {
+            value: value,
+            writable: true,
+            enumerable: false,
+            configurable: true
+        })
+    }
+    /**
+     * The alias of the query that wraps a select to convert its columns, while its order by is written; undefined
+     * otherwise.
+     */
+    _getResultConversionWrapperAlias(params: any[]): string | undefined {
+        return (params as any)._resultConversionWrapperAlias
+    }
+    _setResultConversionWrapperAlias(params: any[], value: string | undefined): void {
+        Object.defineProperty(params, '_resultConversionWrapperAlias', {
+            value: value,
+            writable: true,
+            enumerable: false,
+            configurable: true
+        })
+    }
+    /**
+     * The query that wraps a select to convert its columns also passes on every other column of it (`wrapper.*`), the
+     * ones a customization adds included: the columns it converts have another alias in the wrapped select
+     */
+    _isResultConversionWithAllColumns(params: any[]): boolean {
+        return !!(params as any)._resultConversionWithAllColumns
+    }
+    _setResultConversionWithAllColumns(params: any[], value: boolean): void {
+        Object.defineProperty(params, '_resultConversionWithAllColumns', {
+            value: value,
+            writable: true,
+            enumerable: false,
+            configurable: true
+        })
+    }
+    /** The alias, in the wrapped select, of a column the wrapper converts when it passes on every column */
+    _resultConversionInnerAlias(property: string): string {
+        return property + '_tsq_raw'
+    }
+    /** The column is converted in the outermost query (`_appendResultColumnConversion` changes it) */
+    _isConvertedResultColumn(value: AnyValueSource, params: any[]): boolean {
+        return this._appendResultColumnConversion(value, '', params) !== ''
+    }
+    /** A select of the query, or of one of its compound queries, adds columns of its own (`beforeColumns`) */
+    _hasCustomizedColumns(query: SelectData): boolean {
+        if (query.__type === 'compound') {
+            return this._hasCustomizedColumns(query.__firstQuery) || this._hasCustomizedColumns(query.__secondQuery)
+        }
+        return !!query.__customization?.beforeColumns
     }
     _isOrderByOnWrapper(params: any[]): boolean {
         return !!(params as any)._orderByOnWrapper
@@ -651,6 +711,49 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _finalizeAggregatedArrayResult(sql: string): string {
         return sql
     }
+    /**
+     * A column of the result of the outermost query, written so the driver returns its value without loss. The
+     * identity by default; the column keeps its SQL in the group by, the having and the order by, which compare and
+     * order the value, not its converted form.
+     */
+    _appendResultColumnConversion(_value: AnyValueSource, sql: string, _params: any[]): string {
+        return sql
+    }
+    /**
+     * The outermost query must be wrapped in a select that converts its columns (`_appendResultColumnConversion`),
+     * because the conversion can't be written in the query itself: in the arms of a compound, a conversion would
+     * change how the rows are compared and ordered. False by default.
+     */
+    _needsResultConversionWrap(_query: SelectData, _params: any[]): boolean {
+        return false
+    }
+    /**
+     * The columns of the select that wraps a query to convert them (`_needsResultConversionWrap`), read from the
+     * wrapped query, whose alias is `wrapperAlias`.
+     */
+    _appendResultConversionWrapperColumns(query: SelectData, params: any[], wrapperAlias: string): string {
+        const columns: FlatQueryColumns = {}
+        flattenQueryColumns(query.__columns, columns, '')
+        const withAllColumns = this._isResultConversionWithAllColumns(params)
+        let result = ''
+        for (const property in columns) {
+            const alias = this._appendColumnAlias(property, params)
+            if (withAllColumns) {
+                if (this._isConvertedResultColumn(columns[property]!, params)) {
+                    result += (result ? ', ' : '') + this._appendResultColumnConversion(columns[property]!, wrapperAlias + '.' + this._appendColumnAlias(this._resultConversionInnerAlias(property), params), params) + ' as ' + alias
+                }
+                continue
+            }
+            if (result) {
+                result += ', '
+            }
+            result += this._appendResultColumnConversion(columns[property]!, wrapperAlias + '.' + alias, params) + ' as ' + alias
+        }
+        if (withAllColumns) {
+            result += (result ? ', ' : '') + wrapperAlias + '.*'
+        }
+        return result
+    }
     _buildWith(withData: WithQueryData, params: any[]): string {
         let withs = withData.__withs
         if (this._isWithGenerated(params)) {
@@ -950,6 +1053,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return result
     }
+    /** The two queries of a compound query joined by its operator, without its order by and its limit */
+    _buildCompoundCore(query: CompoundSelectData, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean): string {
+        let compoundCore = ''
+        compoundCore += this._buildSelectWithColumnsInfoForCompound(query.__firstQuery, params, columnsForInsert, isOutermostQuery, this._compoundOperandNeedsGrouping(query.__firstQuery, 'first', query.__compoundOperator))
+        compoundCore += this._appendCompoundOperator(query.__compoundOperator, params)
+        compoundCore += this._buildSelectWithColumnsInfoForCompound(query.__secondQuery, params, columnsForInsert, isOutermostQuery, this._compoundOperandNeedsGrouping(query.__secondQuery, 'second', query.__compoundOperator))
+        return compoundCore
+    }
     _buildSelectWithColumnsInfo(query: SelectData, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean): string {
         const oldSafeTableOrView = this._getSafeTableOrView(params)
         const oldWithGenerated = this._isWithGenerated(params)
@@ -982,20 +1093,32 @@ export class AbstractSqlBuilder implements SqlBuilder {
             // strict engines; wrap the whole compound in a plain
             // `select * from (...)` and order there. The inner compound is
             // emitted verbatim so its set semantics and collations survive.
-            const wrapCompoundOrderBy = emitOrderBy && this._needsCompoundOrderByWrap(query)
+            // The columns of the outermost compound are converted over a query that wraps it, never in its arms
+            const conversionWrap = isOutermostQuery && !this._isResultConversionDeferred(params) && this._needsResultConversionWrap(query, params)
+            const wrapCompoundOrderBy = (emitOrderBy && this._needsCompoundOrderByWrap(query)) || conversionWrap
 
-            let compoundCore = ''
-            compoundCore += this._buildSelectWithColumnsInfoForCompound(query.__firstQuery, params, columnsForInsert, isOutermostQuery, this._compoundOperandNeedsGrouping(query.__firstQuery, 'first', query.__compoundOperator))
-            compoundCore += this._appendCompoundOperator(query.__compoundOperator, params)
-            compoundCore += this._buildSelectWithColumnsInfoForCompound(query.__secondQuery, params, columnsForInsert, isOutermostQuery, this._compoundOperandNeedsGrouping(query.__secondQuery, 'second', query.__compoundOperator))
+            const oldResultConversionDeferred = this._isResultConversionDeferred(params)
+            const oldResultConversionWithAllColumns = this._isResultConversionWithAllColumns(params)
+            if (conversionWrap) {
+                this._setResultConversionDeferred(params, true)
+                this._setResultConversionWithAllColumns(params, this._hasCustomizedColumns(query))
+            }
+            const compoundCore = this._buildCompoundCore(query, params, columnsForInsert, isOutermostQuery)
+            this._setResultConversionDeferred(params, oldResultConversionDeferred)
 
             if (wrapCompoundOrderBy) {
-                selectQuery += 'select * from (' + compoundCore + ')'
-                selectQuery += this._supportTableAliasWithAs ? ' as o_' + this._generateUnique() + '_' : ' o_' + this._generateUnique() + '_'
-                const oldSafeTableOrViewInOrderBy = this._getSafeTableOrView(params)
-                this._setSafeTableOrView(params, undefined)
-                selectQuery += this._buildSelectOrderByForWrapper(query, params)
-                this._setSafeTableOrView(params, oldSafeTableOrViewInOrderBy)
+                const wrapperAlias = 'o_' + this._generateUnique() + '_'
+                selectQuery += 'select ' + (conversionWrap ? this._appendResultConversionWrapperColumns(query, params, wrapperAlias) : '*') + ' from (' + compoundCore + ')'
+                selectQuery += this._supportTableAliasWithAs ? ' as ' + wrapperAlias : ' ' + wrapperAlias
+                if (emitOrderBy) {
+                    const oldSafeTableOrViewInOrderBy = this._getSafeTableOrView(params)
+                    const oldResultConversionWrapperAlias = this._getResultConversionWrapperAlias(params)
+                    this._setSafeTableOrView(params, undefined)
+                    this._setResultConversionWrapperAlias(params, conversionWrap ? wrapperAlias : undefined)
+                    selectQuery += this._buildSelectOrderByForWrapper(query, params)
+                    this._setResultConversionWrapperAlias(params, oldResultConversionWrapperAlias)
+                    this._setSafeTableOrView(params, oldSafeTableOrViewInOrderBy)
+                }
             } else {
                 selectQuery += compoundCore
                 if (emitOrderBy) {
@@ -1005,6 +1128,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     this._setSafeTableOrView(params, oldSafeTableOrViewInOrderBy)
                 }
             }
+            this._setResultConversionWithAllColumns(params, oldResultConversionWithAllColumns)
             if (!query.__asInlineAggregatedArrayValue || !this._supportLimitWhenAggregateArray || this._isAggregateArrayWrapped(params)) {
                 selectQuery += this._buildSelectLimitOffset(query, params)
             }
@@ -1103,6 +1227,18 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const columns: FlatQueryColumns = {}
         flattenQueryColumns(query.__columns, columns, '')
 
+        // An order by written over a query that wraps the select; the columns of the outermost select are converted
+        // there when they can't be converted in the select itself
+        const emitOrderBy = !query.__asInlineAggregatedArrayValue || !this._supportOrderByWhenAggregateArray || this._isAggregateArrayWrapped(params)
+        const conversionOnWrapper = isOutermostQuery && !this._isResultConversionDeferred(params) && this._needsResultConversionWrap(query, params) && emitOrderBy && !needAgggregateArrayWrapper && this._needsSelectOrderByWrap(query, params)
+        const convertColumns = isOutermostQuery && !conversionOnWrapper && !this._isResultConversionDeferred(params)
+        const oldResultConversionWithAllColumns = this._isResultConversionWithAllColumns(params)
+        if (conversionOnWrapper) {
+            this._setResultConversionWithAllColumns(params, this._hasCustomizedColumns(query))
+        }
+        // The columns the query that wraps this select converts, when it passes on every column, have another alias here
+        const innerAliases = isOutermostQuery && !convertColumns && this._isResultConversionWithAllColumns(params)
+
         // The SQL of each column of the select, for the group by, the having and the order by that refer to it
         const selectColumnsSql = new Map<AnyValueSource, SelectColumnSql>()
         if (needAgggregateArrayWrapper || !this._needAgggregateArrayColumnsTransformation(query, params)) {
@@ -1119,9 +1255,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 if (!columnForInsert) {
                     selectColumnsSql.set(columns[property]!, { sql: columnSql, name: property, position, paramsStart, paramsEnd: params.length })
                 }
-                selectQuery += columnSql
+                if (convertColumns && !columnForInsert) {
+                    selectQuery += this._appendResultColumnConversion(columns[property]!, columnSql, params)
+                } else {
+                    selectQuery += columnSql
+                }
                 if (property) {
-                    selectQuery += ' as ' + this._appendColumnAlias(property, params)
+                    const alias = innerAliases && !columnForInsert && this._isConvertedResultColumn(columns[property]!, params) ? this._resultConversionInnerAlias(property) : property
+                    selectQuery += ' as ' + this._appendColumnAlias(alias, params)
                 }
                 requireComma = true
             }
@@ -1198,7 +1339,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             selectQuery += this._appendRawFragment(customization.customWindow, params)
         }
 
-        if (!query.__asInlineAggregatedArrayValue || !this._supportOrderByWhenAggregateArray || this._isAggregateArrayWrapped(params)) {
+        if (emitOrderBy) {
             const oldSafeTableOrViewInOrderBy = this._getSafeTableOrView(params)
             const oldOrderBySafeTableOrView = this._getOrderBySafeTableOrView(params)
             const oldSelectColumnsSql = this._getSelectColumnsSql(params)
@@ -1208,11 +1349,15 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (!needAgggregateArrayWrapper && this._needsSelectOrderByWrap(query, params)) {
                 // The order by can't be written over the select: it is written over a query that wraps it, where the
                 // columns of the select are the columns of the from
-                selectQuery = selectQuery.substring(0, selectStart) + 'select * from (' + selectQuery.substring(selectStart) + ')'
-                selectQuery += this._supportTableAliasWithAs ? ' as o_' + this._generateUnique() + '_' : ' o_' + this._generateUnique() + '_'
+                const wrapperAlias = 'o_' + this._generateUnique() + '_'
+                selectQuery = selectQuery.substring(0, selectStart) + 'select ' + (conversionOnWrapper ? this._appendResultConversionWrapperColumns(query, params, wrapperAlias) : '*') + ' from (' + selectQuery.substring(selectStart) + ')'
+                selectQuery += this._supportTableAliasWithAs ? ' as ' + wrapperAlias : ' ' + wrapperAlias
                 const oldOrderByOnWrapper = this._isOrderByOnWrapper(params)
+                const oldResultConversionWrapperAlias = this._getResultConversionWrapperAlias(params)
                 this._setOrderByOnWrapper(params, true)
+                this._setResultConversionWrapperAlias(params, conversionOnWrapper ? wrapperAlias : undefined)
                 selectQuery += this._buildSelectOrderByForWrapper(query, params)
+                this._setResultConversionWrapperAlias(params, oldResultConversionWrapperAlias)
                 this._setOrderByOnWrapper(params, oldOrderByOnWrapper)
             } else {
                 selectQuery += this._buildSelectOrderBy(query, params)
@@ -1221,6 +1366,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             this._setOrderBySafeTableOrView(params, oldOrderBySafeTableOrView)
             this._setSafeTableOrView(params, oldSafeTableOrViewInOrderBy)
         }
+        this._setResultConversionWithAllColumns(params, oldResultConversionWithAllColumns)
         if (!query.__asInlineAggregatedArrayValue || !this._supportLimitWhenAggregateArray || this._isAggregateArrayWrapped(params)) {
             selectQuery += this._buildSelectLimitOffset(query, params)
         }
@@ -2327,7 +2473,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (requireComma) {
                 result += ', '
             }
-            result += this._appendColumnValue(columns[property]!, params, isOutermostQuery)
+            const columnSql = this._appendColumnValue(columns[property]!, params, isOutermostQuery)
+            result += isOutermostQuery ? this._appendResultColumnConversion(columns[property]!, columnSql, params) : columnSql
             if (property) {
                 result += ' as ' + this._appendColumnAlias(property, params)
             }
@@ -4115,7 +4262,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * are sent in the form it's stored
      */
     _buildCallFunction(params: any[], functionCall: AnyValueSource): string {
-        return 'select ' + this._appendColumnValue(functionCall, params, true)
+        return 'select ' + this._appendResultColumnConversion(functionCall, this._appendColumnValue(functionCall, params, true), params)
     }
     _appendFunctionCall(params: any[], functionName: string, functionParams: AnyValueSource[]): string {
         const forceTypeCast = this._forceTypeCastInCallArguments()

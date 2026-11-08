@@ -1321,7 +1321,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 if (typeof value === 'string') {
                     // The text the database gives keeps its digits and its scale (`1.50`). A number without the zero
                     // before the point (`.5`, as Oracle writes it) gets it
-                    if (!/^(-?(\d+(\.\d+)?|\.\d+)([eE][-+]?\d+)?|NaN|-?Infinity)$/.test(value)) {
+                    if (!/^-?(\d+(\.\d+)?|\.\d+)$/.test(value)) {
                         throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid customDecimal value received from the db: ' + value)
                     }
                     if (value.startsWith('.')) {
@@ -1333,11 +1333,9 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                     return value
                 }
                 if (typeof value === 'number') {
-                    // The driver gave a JavaScript number: its text is the value as the driver kept it
-                    if (!Number.isFinite(value)) {
-                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid customDecimal value received from the db: ' + value)
-                    }
-                    return '' + value
+                    // The driver gave a JavaScript number: the digits beyond its precision, and the scale, are already
+                    // lost, and nothing tells which
+                    throw new TsSqlProcessingError({ reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value, typeName: type }, 'Precision lost reading a customDecimal value from the db: the driver returned ' + value + ' as a JavaScript number')
                 }
                 if (typeof value === 'bigint') {
                     return '' + value

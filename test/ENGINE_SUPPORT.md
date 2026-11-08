@@ -195,6 +195,23 @@ Bun SQL's sqlite adapter cannot register (§ 3).
 
 
 
+### SQLite has no exact decimal type
+
+SQLite has no exact decimal type (sqlite.org/datatype3.html §3, measured on
+bun:sqlite 3.51, node:sqlite 3.53, better-sqlite3 3.53.4 and sqlite-wasm
+3.54.1). A column with numeric affinity (`decimal`, `numeric`, …) turns a
+decimal text into a floating point number when it stores it; a `TEXT` column of
+a `STRICT` table keeps the text, but the database compares and orders it as text
+and computes with texts in floating point. None of the four drivers ships SQLite's
+decimal extension (ext/misc/decimal.c), and Bun SQL can't register functions.
+
+**What this means for tests** — the domain stores `exact_amount` as `TEXT` in a
+`STRICT` table, and the cells use the default `decimalStrategy`,
+`'decimal-functions'`, with the functions of `test/db/sqlite/decimalFunctions.ts`
+registered by `test/db/sqlite/runners.ts`; the `bun_sql_sqlite` cells run the
+tests that write those functions with `ctx.mockOnlyConnection()`.
+`config.decimal-strategy.test.ts` covers `'text'` and `'decimal-extension'`.
+
 ### SQLite RETURNING can only reference the table being modified, not a FROM/JOIN-ed column
 
 An `UPDATE … FROM …` / `UPDATE … JOIN …` whose `returning(...)` /

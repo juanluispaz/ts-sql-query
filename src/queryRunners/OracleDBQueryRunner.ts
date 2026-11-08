@@ -1,12 +1,12 @@
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, RollbackOpts } from './QueryRunner.js'
-import type { Connection, DbType } from 'oracledb'
+import type { Connection, DbType, ExecuteOptions, FetchTypeResponse, Metadata } from 'oracledb'
 import oracleDb from 'oracledb'
 import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getOracleDBErrorReason, isOracleDBError } from './connectorErrorMappers/OracleDBErrorMapper.js'
 import { getParamTypeAt, getParamTypeCategoryAt } from '../utils/queryParamsMetadata.js'
 import type { TypeCategory } from '../TypeAdapter.js'
-import { setQueryParamType } from './QueryRunner.js'
+import { getQueryResultColumns, setQueryParamType } from './QueryRunner.js'
 
 export interface OracleDBQueryRunnerConfig {
     /** The connection is in a transaction that something else manages, and that something else ends: the statements don't commit, and none begins, commits or rolls back through this query runner */
@@ -49,7 +49,47 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     }
 
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
-        return this.connection.execute(query, this.bindParams(params), {outFormat: oracleDb.OUT_FORMAT_OBJECT, autoCommit: this.autoCommit()}).then((result) => result.rows || [])
+        const options: ExecuteOptions = {outFormat: oracleDb.OUT_FORMAT_OBJECT, autoCommit: this.autoCommit()}
+        const fetchTypeHandler = this.fetchTypeHandlerFor(query, params)
+        if (fetchTypeHandler) {
+            options.fetchTypeHandler = fetchTypeHandler
+        }
+        return this.connection.execute(query, this.bindParams(params), options).then((result) => result.rows || [])
+    }
+    /**
+     * oracledb gives a NUMBER as a JavaScript number, which loses digits and the scale: the columns of the result
+     * expected as a customDecimal are fetched as text, with all their digits. The column is the one with the name
+     * expected, or the only column of a query that returns one value without a name. The handler given for one
+     * execution replaces the global one of oracledb (`oracledb.fetchTypeHandler`), which still decides for the
+     * other columns. Undefined when no column is a customDecimal.
+     */
+    protected fetchTypeHandlerFor(query: string, params: any[]): ((metadata: Metadata<any>, rowsetMetaData: ReadonlyArray<Metadata<any>>) => FetchTypeResponse | undefined) | undefined {
+        const columns = getQueryResultColumns(query, params)
+        if (!columns) {
+            return undefined
+        }
+        let unnamed = false
+        const names = new Set<string>()
+        for (const column of columns) {
+            if (column.typeCategory !== 'customDecimal') {
+                continue
+            }
+            if (column.name) {
+                names.add(column.name)
+            } else {
+                unnamed = true
+            }
+        }
+        if (!unnamed && names.size === 0) {
+            return undefined
+        }
+        return (metadata, rowsetMetaData) => {
+            if (names.has(metadata.name) || (unnamed && rowsetMetaData.length === 1)) {
+                return { type: oracleDb.DB_TYPE_VARCHAR }
+            }
+            const globalFetchTypeHandler = (oracleDb as { fetchTypeHandler?: typeof oracleDb.fetchTypeHandler | undefined }).fetchTypeHandler
+            return globalFetchTypeHandler ? globalFetchTypeHandler(metadata, rowsetMetaData) : undefined
+        }
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
         return this.connection.execute(query, this.bindParams(params), {autoCommit: this.autoCommit()}).then((result) => {

@@ -14,21 +14,19 @@ Each entry says what it is, why it waits, and what is already known.
 - **Known:** [`docs/api/value-expressions.md`](../docs/api/value-expressions.md)
   is consistent with that: it lists no `multiply` or `divide` for a bigint.
 
-## `customDouble` and exact decimals
+## Explicit divisions on exact numbers
 
-- **What:** a `customDouble` that holds an exact decimal kept as text, like
-  money read from `numeric` or `decimal`, kept exact without declaring
-  anything.
-- **Why deferred:** a `customDouble` is converted as a `double`, and on
-  PostgreSQL its parameter is typed as `float8`; both round an exact decimal.
-  For now that case is the user's: they register the conversion of the type,
-  and declare the type of its parameters in the `typesByName` option of the
-  query runner (`'numeric'` for pg and Bun SQL, oid `1700` for postgres.js and
-  PGlite, `TYPES.NVarChar` for mssql), as the cells of
-  `docs:column-types/exact-decimal-kept-as-text` do.
-- **Known:** `::numeric` as the PostgreSQL cast of a `customDouble` would keep
-  both uses exact (a `number` with a type of its own, and an exact decimal);
-  not measured on a real engine.
+- **What:** two divisions whose name says what happens when the query is
+  written: an integer division for the integer types (`int`, `bigint`,
+  `customInt`, `customBigint`), and for `customDecimal` a division that says it
+  loses precision and returns a `double` (a name like `divideAsDouble`, to be
+  chosen then).
+- **Why deferred:** the plain `divide` of a bigint doesn't give a bigint, and
+  the division of two decimals isn't exact, so neither `bigint` nor
+  `customDecimal` offers `divide`: a plain `divide` on an exact type is never
+  silently lossy. The explicit operations need their own design.
+- **Known:** `customDecimal` has no `divide`; its rejection is in the
+  `types.negative` cells (`expressions.test.ts`).
 
 ## Native `BOOLEAN` columns on Oracle 23ai
 

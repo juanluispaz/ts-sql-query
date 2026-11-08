@@ -1,5 +1,5 @@
 // Documentation snippets for the Column types page (docs/configuration/column-types.md), sections Custom types and
-// Global type adapter.
+// Global type adapter, and Exact decimals.
 //
 // The page stores the color in a binary column; organization.plan holds it here as a hex string, which keeps the
 // round trip through the connection on every database.
@@ -73,6 +73,15 @@ const tOrganizationColor = new class TOrganizationColor extends Table<DBConnecti
     constructor() { super('organization') }
 }()
 
+const tExactAmount = new class TExactAmount extends Table<DBConnection, 'TExactAmount'> {
+    id = this.primaryKey('id', 'int')
+    amount = this.optionalColumn<string, 'Amount'>('amount', 'customDecimal', 'Amount')
+    price = this.optionalColumn<string, 'Amount'>('price', 'customDecimal', 'Amount')
+    constructor() {
+        super('exact_amount')
+    }
+}()
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -144,5 +153,36 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof result, ExactDecimal>>()
         expect(result).toBe('12345678901234567890.123456789')
+    })
+
+    test('docs:column-types/exact-decimals', async () => {
+        ctx.mockNext([
+            { id: 1, amount: '12345678901234567890.1234567891', next: '12345678901234567890.1234567892' },
+            { id: 5, amount: '98765432109876543210.9876543210', next: '98765432109876543210.9876543211' },
+        ])
+        const connection = ctx.conn
+        // doc-start
+        const rows = await connection.selectFrom(tExactAmount)
+            .where(tExactAmount.price.greaterThan('1'))
+            .select({
+                id: tExactAmount.id,
+                amount: tExactAmount.amount,
+                next: tExactAmount.amount.add('0.0000000001'),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        // doc-end
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, amount as amount, amount + $1 as next from exact_amount where price > $2 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0.0000000001",
+            "1",
+          ]
+        `)
+        assertType<Exact<typeof rows, { id: number; amount?: string; next?: string }[]>>()
+        expect(rows).toEqual([
+            { id: 1, amount: '12345678901234567890.1234567891', next: '12345678901234567890.1234567892' },
+            { id: 5, amount: '98765432109876543210.9876543210', next: '98765432109876543210.9876543211' },
+        ])
     })
 })

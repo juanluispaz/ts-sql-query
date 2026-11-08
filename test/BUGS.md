@@ -75,6 +75,39 @@ entry says under *Current workaround in the suite* why the matrix can't see it.
 A `none` there is not "nothing to do": it means no test would notice a
 regression either.
 
+## Oracle: a customDecimal of more than 38 digits is rounded in a computation without an error
+
+**Where**: the customDecimal parameters on Oracle, sent as text and converted by the database.
+**Reproduction**: `custom-decimal/a-value-wider-than-the-decimals-of-the-database` in
+`oracle/*/oracledb/select.custom-decimal.test.ts`: `select :0 + :1 as "result" from dual` with a value of 66 digits
+and `0.5` gives `12345678901234567890123456789012345678900000000000000000000000000` on Oracle 23: the number of the
+database keeps 38 digits. The value alone comes back exact (it stays a text); a column rejects it (ORA-01438).
+**Current workaround in the suite**: the test asserts the rounded sum with `TODO[BUG]`.
+
+## SQL Server: a customDecimal parameter alone is cut to 41 characters, two of them are concatenated, and a modulo rejects it
+
+**Where**: `SqlServerSqlBuilder`: a customDecimal parameter is an `nvarchar`, converted with `convert(nvarchar(41), …)` in
+the outermost select.
+**Reproduction**: `custom-decimal/a-value-wider-than-the-decimals-of-the-database` in
+`sqlserver/*/mssql/select.custom-decimal.test.ts`: `select convert(nvarchar(41), @0) as [result]` with a value of 66
+digits gives its first 41 characters, without an error; `select convert(nvarchar(41), @0 + @1)` with that value and
+`0.5` concatenates the two texts (`'0.123…' + '0.5'` gives `0.123…0.5`, rejected when read; the long one is cut to 41
+characters). A parameter with a column (`price + @0`) is converted to the decimal of the column and is exact, but not in a modulo:
+`amount % @0` fails with "The data types decimal and nvarchar are incompatible in the modulo operator"
+(`custom-decimal/abs-ceil-floor-round-and-modulo-keep-every-digit`).
+**Current workaround in the suite**: the tests assert the cut values and the error with `TODO[BUG]`.
+
+## Oracle: the order by of a compound query whose selects add columns orders by the wrong column
+
+**Where**: the order by of a compound query on Oracle (`OracleSqlBuilder`), which names a column by its position.
+**Reproduction**: `custom-decimal/a-column-added-by-a-customization-is-kept` in
+`oracle/*/oracledb/select.custom-decimal.test.ts`: two selects of `price`, each with
+`customizeQuery({ beforeColumns: rawFragment`${id} as "extra_id", ` })`, joined by `union` and ordered by `price`.
+The library writes `... union select id as "extra_id", price as "price" ... order by 1`: position 1 is
+`extra_id`, the column the customization added, so the rows come ordered by the id (1.5 before -0.25) on Oracle 23.
+**Current workaround in the suite**: the test asserts that order with `TODO[BUG]`; without a customization that adds
+columns the position is the right one, so no other test sees it.
+
 ## A `localDate` read and sent back doesn't find its row
 
 **Where**: `transformValueToDB` for `localDate` (`AbstractConnection`, no override on the connections of

@@ -44,6 +44,73 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // No alias nor position in a group by: the same SQL, with the same named parameters
         return selectColumn.sql
     }
+    /**
+     * The driver gives a decimal as a JavaScript number, which loses digits and the scale; the text of a customDecimal
+     * in the result of the outermost query keeps every digit of a decimal(38): 38 digits, the sign and the point
+     */
+    override _appendResultColumnConversion(value: AnyValueSource, sql: string, _params: any[]): string {
+        if (isValueSource(value) && __getValueSourcePrivate(value).__valueType === 'customDecimal') {
+            return 'convert(nvarchar(41), ' + sql + ')'
+        }
+        return sql
+    }
+    override _needsResultConversionWrap(query: SelectData, _params: any[]): boolean {
+        return this._hasCustomDecimalColumn(query.__columns)
+    }
+    _hasCustomDecimalColumn(queryColumns: QueryColumns | undefined): boolean {
+        if (!queryColumns) {
+            return false
+        }
+        const columns: FlatQueryColumns = {}
+        flattenQueryColumns(queryColumns, columns, '')
+        for (const property in columns) {
+            if (__getValueSourcePrivate(columns[property]!).__valueType === 'customDecimal') {
+                return true
+            }
+        }
+        return false
+    }
+    /**
+     * The order by names a column of the select that is converted to text (a customDecimal of the outermost query):
+     * a bare alias would order by the text
+     */
+    _isConvertedOrderByAlias(entry: OrderByEntry, query: SelectData): boolean {
+        const expression = entry.expression
+        if (typeof expression !== 'string') {
+            return false
+        }
+        const column = getQueryColumn(query.__columns, expression)
+        return !!column && __getValueSourcePrivate(column).__valueType === 'customDecimal'
+    }
+    override _needsSelectOrderByWrap(query: SelectData, params: any[]): boolean {
+        // A distinct select can only order by what it selects, and the converted column is text: the order by goes over
+        // a query that wraps the select, which converts the columns
+        if (query.__type !== 'plain' || !query.__distinct || !query.__orderBy || this._isResultConversionDeferred(params) || !this._isCurrentRootQuery(query, params)) {
+            return false
+        }
+        return query.__orderBy.some(entry => this._isConvertedOrderByAlias(entry, query))
+    }
+    override _appendOrderByColumnAlias(entry: OrderByEntry, query: SelectData, params: any[]): string {
+        if (this._isConvertedOrderByAlias(entry, query)) {
+            const wrapperAlias = this._getResultConversionWrapperAlias(params)
+            if (wrapperAlias) {
+                // Over the query that wraps the select, the column of the wrapped query, not the converted one
+                const name = entry.expression as string
+                return wrapperAlias + '.' + this._appendColumnAlias(this._isResultConversionWithAllColumns(params) ? this._resultConversionInnerAlias(name) : name, params)
+            }
+            if (query.__type === 'plain' && !this._isOrderByOnWrapper(params) && !this._isResultConversionDeferred(params) && this._isCurrentRootQuery(query, params)) {
+                // The expression of the column before converting it. An expression with parameters is written as the select
+                // list writes it, with the same parameters; otherwise it is written qualified, because a bare column with
+                // the name of the alias would be the alias
+                const selectColumn = this._getOrderBySelectColumnWithParams(entry, query, params)
+                if (selectColumn) {
+                    return this._appendOrderBySelectColumnWithParams(selectColumn, entry, query, params)
+                }
+                return this._appendOrderByColumnExpression(entry, query, params)
+            }
+        }
+        return super._appendOrderByColumnAlias(entry, query, params)
+    }
     override _appendRawColumnName(column: DBColumn, params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
         const tableOrView = columnPrivate.__tableOrView
@@ -518,7 +585,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             if (requireComma) {
                 result += ', '
             }
-            result += this._appendSql(columns[property]!, params, false)
+            result += this._appendResultColumnConversion(columns[property]!, this._appendSql(columns[property]!, params, false), params)
             if (property) {
                 result += ' as ' + this._appendColumnAlias(property, params)
             }

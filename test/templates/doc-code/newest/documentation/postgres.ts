@@ -252,6 +252,17 @@ const tOutboxMessage = new class TOutboxMessage extends Table<DBConnection, 'TOu
 const customers: Array<{ firstName: string, lastName: string, companyId: number }> = []
 void [emailService, fileStorage, customerCache, outboxRelay, logger, jobQueue, registerCustomer, tOutboxMessage, customers]
 
+// A decimal number kept exact as its text (docs/configuration/column-types.md, Exact decimals)
+const tExactAmount = new class TExactAmount extends Table<DBConnection, 'TExactAmount'> {
+    id = this.primaryKey('id', 'int')
+    amount = this.optionalColumn<string, 'Amount'>('amount', 'customDecimal', 'Amount')
+    price = this.optionalColumn<string, 'Amount'>('price', 'customDecimal', 'Amount')
+    constructor() {
+        super('exact_amount')
+    }
+}()
+void tExactAmount
+
 /******************** 
  * Generated code
  */

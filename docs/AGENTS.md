@@ -57,13 +57,13 @@ Start with the file of the area of your task. These files are written for you: o
 | Write a function that returns a dynamic select, and type it | [`llms-dynamic-functions-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-dynamic-functions-postgresql.txt) | 21k |
 | Type a row of a table | [`llms-types.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-types.txt) | 6k |
 | Declare the tables and the connection | [`llms-configuration-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-configuration-postgresql.txt) | 33k |
-| Connect a driver | The page of your driver, listed in `llms.txt`, or all of them in [`llms-query-runners.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-query-runners.txt) | 50k |
+| Connect a driver | The page of your driver, listed in `llms.txt`, or all of them in [`llms-query-runners.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-query-runners.txt) | 51k |
 | Look up a method | [`llms-api.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-api.txt) | 51k |
 | Understand an error | [`llms-errors.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-errors.txt) | 22k |
 | Find what writes a SQL keyword | [`llms-keywords.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-keywords.txt) | 12k |
 | Know what the library is, and what it can't do | [`llms-general.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-general.txt) | 8k |
 | Move a project from v1 to v2 | [`llms-migrating-from-v1.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-migrating-from-v1.txt) | 11k |
-| See what changed in a version | [`llms-changelog-v2.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-changelog-v2.txt), or `llms-changelog-v1.txt` | 28k |
+| See what changed in a version | [`llms-changelog-v2.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-changelog-v2.txt), or `llms-changelog-v1.txt` | 29k |
 
 The files with `<database>` also come with all the databases, like `llms-queries-all.txt`, to compare them or to move code between them. Otherwise use the one of your database, which is smaller.
 

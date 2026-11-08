@@ -213,12 +213,16 @@ The second argument of the constructor is the name of a database, or an object w
 ```ts
 interface MockQueryRunnerConfig {
     database?: DatabaseType
+    queryRunner?: QueryRunnerName
+    typesByName?: { readonly [typeName: string]: string }
     promise?: PromiseProvider
     isSqlError?: (error: unknown) => boolean
 }
 ```
 
-- **`database`**: the database to write the placeholders for (`$1`, `?`, `:0`, …). A connection sets it to its own database when you create it, so you only need this to use the query runner without a connection.
+- **`database`**: the database to write the placeholders for (`$1`, `?`, `:0`, …). A connection sets it to its own database when you create it, so you only need this to use the query runner without a connection. With `queryRunner`, it defaults to the database of that query runner.
+- **`queryRunner`**: the query runner of the library whose parameters the mock imitates, by the name of its class (`'PgPoolQueryRunner'`, `'BetterSqlite3QueryRunner'`, `'MssqlPoolQueryRunner'`, …). See [Imitating a query runner](#imitating-a-query-runner).
+- **`typesByName`**: with `queryRunner` set to `'PgQueryRunner'`, `'PgPoolQueryRunner'` or `'BunSqlPostgresQueryRunner'`, the `typesByName` you give that query runner: the PostgreSQL type written as the cast of a parameter, by its type name.
 - **`promise`**: another `Promise` provider, used by [synchronous query runners](../../../advanced/synchronous-query-runners.md) (e.g. `synchronous-promise`). Defaults to the native `Promise`.
 - **`isSqlError`**: which errors count as errors of the database in `connection.transaction(...)`, `beginTransaction()`, `commit()` and `rollback()`. By default only the errors of `ts-sql-query` do, so an error your code throws in the transaction comes out as it is, as with a real query runner. An error it accepts comes out wrapped in a `TsSqlQueryExecutionError`, as the error of a real driver does. This is how to simulate one thrown in the transaction:
 
@@ -240,3 +244,37 @@ try {
     // e.cause is the DriverError
 }
 ```
+
+## Imitating a query runner
+
+Without `queryRunner`, the mock writes the placeholders of the database and sends each value as it receives it, with the rules every query runner of that database applies; on PostgreSQL it writes the casts `PgQueryRunner` writes. A query runner can do something else: postgres.js and PGlite send the type with the parameter instead of a cast, and the SQLite query runners of better-sqlite3, bun:sqlite, node:sqlite and sqlite-wasm send a boolean as `1` or `0`. With `queryRunner`, the mock adds each parameter exactly as that query runner does, with the same code, so your function receives the SQL and the parameters the real query runner would send:
+
+```ts
+const connection = new DBConnection(new MockQueryRunner(
+    (type, query, params, index) => {
+        // MockQueryRunner: verify your queries here
+    },
+    { queryRunner: 'PostgresQueryRunner' }
+))
+
+const customers = await connection.selectFrom(tCustomer)
+    .where(tCustomer.companyId.equals(2))
+    .select({
+        id: tCustomer.id,
+        firstName: tCustomer.firstName,
+        source: connection.const('import', 'string'),
+    })
+    .executeSelectMany()
+```
+
+The function receives this SQL and these parameters:
+
+```sql
+select id as id, first_name as "firstName", $1 as source from customer where company_id = $2
+```
+
+```json
+["import", 2]
+```
+
+Without `queryRunner`, the same query is `select id as id, first_name as "firstName", $1::text as source from customer where company_id = $2`, with the cast pg needs. A connection of a database the query runner doesn't support is rejected with `UNSUPPORTED_DATABASE`, as the real query runner rejects it. The settings of the connection that change how a value is sent, such as its `compatibilityVersion`, come from the connection of the query, as for the real query runner, so they need no option here.

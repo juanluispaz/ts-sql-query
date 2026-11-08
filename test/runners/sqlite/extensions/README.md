@@ -13,3 +13,5 @@ full SQLite (`sqlite3ext.h`, version 3.53.0 or later) into `node_modules/.cache/
 folder named after a hash of the source, the platform, the architecture and the headers, never into the repository.
 A build that fails is remembered there with its reason (`<name>.dylib.failed` or `<name>.so.failed`), and the tests
 that need it are skipped saying why; delete that folder to try again, for example after installing a compiler.
+
+[`prebuilt-review/`](prebuilt-review/README.md) keeps how the prebuilt npm package `sqlite-extensions`, which the documentation mentions, was reviewed, and how to repeat it on a new version.

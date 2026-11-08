@@ -203,10 +203,13 @@ type PickPath<COLUMNS, MANDATORY extends string> = ResultObjectValues<PickMandat
 
 export type PickValuesPath<COLUMNS extends Pickable, PICKED extends DynamicPickPaths<COLUMNS>> = Expand<PickPath<COLUMNS, PICKED>>
 
-export type PickValuesPathWitAllProperties<COLUMNS extends Pickable, PICKED extends DynamicPickPaths<COLUMNS>> = Expand<
+export type PickValuesPathWithAllProperties<COLUMNS extends Pickable, PICKED extends DynamicPickPaths<COLUMNS>> = Expand<
     ResultObjectValues<PickWithMandatories<COLUMNS, PICKED, ''>>
     // This second line is added to allow TS be compatible with Pick usage as the result of the function
     & Pick<ResultObjectValues<COLUMNS>, PICKED & keyof ResultObjectValues<COLUMNS>>>
+
+/** @deprecated use PickValuesPathWithAllProperties instead */
+export type PickValuesPathWitAllProperties<COLUMNS extends Pickable, PICKED extends DynamicPickPaths<COLUMNS>> = PickValuesPathWithAllProperties<COLUMNS, PICKED>
 
 
 
@@ -235,10 +238,13 @@ type PickPathProjectedAsNullable<COLUMNS, MANDATORY extends string> = ResultObje
 
 export type PickValuesPathProjectedAsNullable<COLUMNS extends Pickable, PICKED extends DynamicPickPaths<COLUMNS>> = Expand<PickPathProjectedAsNullable<COLUMNS, PICKED>>
 
-export type PickValuesPathWitAllPropertiesProjectedAsNullable<COLUMNS extends Pickable, PICKED extends DynamicPickPaths<COLUMNS>> = Expand<
+export type PickValuesPathWithAllPropertiesProjectedAsNullable<COLUMNS extends Pickable, PICKED extends DynamicPickPaths<COLUMNS>> = Expand<
     ResultObjectValuesProjectedAsNullable<PickWithMandatories<COLUMNS, PICKED, ''>>
     // This second line is added to allow TS be compatible with Pick usage as the result of the function
     & Pick<ResultObjectValuesProjectedAsNullable<COLUMNS>, PICKED & keyof ResultObjectValuesProjectedAsNullable<COLUMNS>>>
+
+/** @deprecated use PickValuesPathWithAllPropertiesProjectedAsNullable instead */
+export type PickValuesPathWitAllPropertiesProjectedAsNullable<COLUMNS extends Pickable, PICKED extends DynamicPickPaths<COLUMNS>> = PickValuesPathWithAllPropertiesProjectedAsNullable<COLUMNS, PICKED>
 
 // Support till 9 clean up levels (recursive definition not working in [P in keyof T])
 type MarkPropertiesWithoutContentAsOptional<T> = T extends AnyValueSource | undefined ? T : T extends object ? {

@@ -3,6 +3,7 @@ import type { MariaDBSqlBuilder } from "../sqlBuilders/MariaDBSqlBuilder"
 import type { MariaDB, TypeSafeDB, TypeUnsafeDB } from "../databases"
 import { AbstractMySqlMariaDBConnection } from "./AbstractMySqlMariaDBConnection"
 
+/** @deprecated Extend MariaDBConnection instead. This class will be removed in ts-sql-query v2. */
 export abstract class AbstractMariaDBConnection<DB extends MariaDB & (TypeUnsafeDB | TypeSafeDB)> extends AbstractMySqlMariaDBConnection<DB> {
  
     protected uuidStrategy: 'string' | 'uuid' = 'uuid'

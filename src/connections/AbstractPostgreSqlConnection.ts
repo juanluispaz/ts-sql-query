@@ -3,6 +3,7 @@ import type { QueryRunner } from "../queryRunners/QueryRunner"
 import type { PostgreSql, TypeSafeDB, TypeUnsafeDB } from "../databases"
 import { AbstractAdvancedConnection } from "./AbstractAdvancedConnection"
 
+/** @deprecated Extend PostgreSqlConnection instead. This class will be removed in ts-sql-query v2. */
 export abstract class AbstractPostgreSqlConnection<DB extends PostgreSql & (TypeUnsafeDB | TypeSafeDB)> extends AbstractAdvancedConnection<DB> {
 
     constructor(queryRunner: QueryRunner, sqlBuilder: PostgreSqlSqlBuilder) {

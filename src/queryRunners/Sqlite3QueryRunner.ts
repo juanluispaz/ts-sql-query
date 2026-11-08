@@ -2,6 +2,15 @@ import type { DatabaseType } from "./QueryRunner"
 import type { Database } from 'sqlite3'
 import { PromiseBasedWithSqlTransactionQueryRunner } from "./PromiseBasedWithSqlTransactionQueryRunner"
 
+/**
+ * @deprecated The [sqlite3](https://www.npmjs.com/package/sqlite3) driver was deprecated by its
+ * maintainers on 2025-12-11; consequently, `Sqlite3QueryRunner` is deprecated as well, and it is
+ * removed in ts-sql-query v2. Existing code keeps working. In v1 you can use `BetterSqlite3QueryRunner`
+ * (better-sqlite3 driver) or `Sqlite3WasmOO1QueryRunner` (@sqlite.org/sqlite-wasm, for environments
+ * without native bindings); ts-sql-query v2 also offers `NodeSqliteQueryRunner` (Node's built-in
+ * `node:sqlite`, Node 22.13+, no extra driver), `BunSqliteQueryRunner` (Bun's built-in `bun:sqlite`)
+ * and `BunSqlSqliteQueryRunner` (Bun SQL with `adapter: 'sqlite'`, Bun 1.4.4+).
+ */
 export class Sqlite3QueryRunner extends PromiseBasedWithSqlTransactionQueryRunner {
     readonly database: DatabaseType
     readonly connection: Database

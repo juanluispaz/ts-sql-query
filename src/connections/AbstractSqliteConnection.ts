@@ -4,6 +4,7 @@ import type { Sqlite, TypeSafeDB, TypeUnsafeDB } from "../databases"
 import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from "./SqliteConfiguration"
 import { AbstractConnection } from "./AbstractConnection"
 
+/** @deprecated Extend SqliteConnection instead. This class will be removed in ts-sql-query v2. */
 export abstract class AbstractSqliteConnection<DB extends Sqlite & (TypeUnsafeDB | TypeSafeDB)> extends AbstractConnection<DB> {
 
     protected uuidStrategy: 'string' | 'uuid-extension' = 'uuid-extension'

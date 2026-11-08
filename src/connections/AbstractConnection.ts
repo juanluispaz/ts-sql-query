@@ -198,6 +198,7 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         return this.transactionMetadata
     }
 
+    /** @deprecated Use an async function that awaits each query. In ts-sql-query v2 an array is returned as the result without waiting for it: the transaction commits even if a query fails. */
     transaction<P extends Promise<any>[]>(fn: () => [...P]): Promise<UnwrapPromiseTuple<P>>
     transaction<T>(fn: () => Promise<T>): Promise<T>
     transaction(fn: () => Promise<any>[] | Promise<any>): Promise<any> {

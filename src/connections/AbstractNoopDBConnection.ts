@@ -4,6 +4,7 @@ import type { NoopDB, TypeSafeDB, TypeUnsafeDB } from "../databases"
 import { AbstractAdvancedConnection } from "./AbstractAdvancedConnection"
 import { ChainedQueryRunner } from "../queryRunners/ChainedQueryRunner"
 
+/** @deprecated Extend NoopDBConnection instead. This class will be removed in ts-sql-query v2. */
 export abstract class AbstractNoopDBConnection<DB extends NoopDB & (TypeUnsafeDB | TypeSafeDB)> extends AbstractAdvancedConnection<DB> {
 
     constructor(queryRunner: QueryRunner, sqlBuilder: NoopDBSqlBuilder) {

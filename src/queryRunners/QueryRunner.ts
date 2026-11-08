@@ -32,6 +32,7 @@ export interface QueryRunner {
     executeBeginTransaction(): Promise<void>
     executeCommit(): Promise<void>
     executeRollback(): Promise<void>
+    /** @deprecated Use an async function that awaits each query. In ts-sql-query v2 an array is returned as the result without waiting for it: the transaction commits even if a query fails. */
     executeInTransaction<P extends Promise<any>[]>(fn: () => [...P], outermostQueryRunner: QueryRunner): Promise<UnwrapPromiseTuple<P>>
     executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T>
     executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any>
@@ -109,3 +110,13 @@ export function isSelectPageCountQuery(query: string, params: any[]): boolean {
     query
     return !!(params as any).$isSelectPageCountQuery
 }
+
+export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' |
+    'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' |
+    'insertReturningOneRow' | 'insertReturningManyRows' | 'insertReturningOneColumnOneRow' | 'insertReturningOneColumnManyRows' |
+    'update' | 'updateReturningOneRow' | 'updateReturningManyRows' | 'updateReturningOneColumnOneRow' | 'updateReturningOneColumnManyRows' |
+    'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' |
+    'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 'executeDatabaseSchemaModification' | 
+    'executeConnectionConfiguration'
+
+export type { PromiseProvider } from "../utils/PromiseProvider"

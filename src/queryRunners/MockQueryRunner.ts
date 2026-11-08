@@ -9,7 +9,10 @@ export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneR
     'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 'executeDatabaseSchemaModification' | 'isTransactionActive' |
     'executeConnectionConfiguration'
 
-export type QueryExecutor = (type: QueryType, query: string, params: any[], index: number) => any
+export type MockQueryExecutor = (type: QueryType, query: string, params: any[], index: number) => any
+
+/** @deprecated use MockQueryExecutor instead */
+export type QueryExecutor = MockQueryExecutor
 
 export interface MockQueryRunnerConfig {
     database?: DatabaseType
@@ -18,12 +21,12 @@ export interface MockQueryRunnerConfig {
 
 export class MockQueryRunner implements QueryRunner {
     private count = 0
-    readonly queryExecutor: QueryExecutor
+    readonly queryExecutor: MockQueryExecutor
 
     readonly database: DatabaseType
     readonly promise: PromiseProvider
 
-    constructor(queryExecutor: QueryExecutor, databaseOrConfig: DatabaseType | MockQueryRunnerConfig = 'noopDB') {
+    constructor(queryExecutor: MockQueryExecutor, databaseOrConfig: DatabaseType | MockQueryRunnerConfig = 'noopDB') {
         this.queryExecutor = queryExecutor
         if (typeof databaseOrConfig === 'string') {
             databaseOrConfig = { database: databaseOrConfig }
@@ -470,6 +473,7 @@ export class MockQueryRunner implements QueryRunner {
         return ':' + index
     }
 
+    /** @deprecated Use an async function that awaits each query. In ts-sql-query v2 an array is returned as the result without waiting for it: the transaction commits even if a query fails. */
     executeInTransaction<P extends Promise<any>[]>(fn: () => [...P], outermostQueryRunner: QueryRunner): Promise<UnwrapPromiseTuple<P>>
     executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T>
     executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any>

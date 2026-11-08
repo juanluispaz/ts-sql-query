@@ -1,6 +1,7 @@
 import type { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 import { AbstractQueryRunner } from "./AbstractQueryRunner"
 
+/** @deprecated Extend AbstractQueryRunner instead, implementing createResolvedPromise yourself (e.g. return Promise.resolve(result)). This class will be removed in ts-sql-query v2. */
 export abstract class PromiseBasedAbstractQueryRunner extends AbstractQueryRunner {
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return Promise.resolve(result) 

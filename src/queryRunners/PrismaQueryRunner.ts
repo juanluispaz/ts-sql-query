@@ -26,6 +26,10 @@ export interface PrismaConfig {
     forUseInTransaction?: boolean
 }
 
+/**
+ * @deprecated PrismaQueryRunner will be removed in ts-sql-query v2 (Prisma no longer offers the API it is built on).
+ * On PostgreSQL use PgPoolQueryRunner over the pg pool that Prisma uses.
+ */
 export class PrismaQueryRunner extends AbstractQueryRunner {
     readonly database: DatabaseType;
     readonly connection: RawPrismaClient
@@ -155,6 +159,7 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
     isTransactionActive(): boolean {
         return this.transactionLevel > 0
     }
+    /** @deprecated Use an async function that awaits each query. In ts-sql-query v2 an array is returned as the result without waiting for it: the transaction commits even if a query fails. */
     executeInTransaction<P extends Promise<any>[]>(fn: () => [...P], outermostQueryRunner: QueryRunner): Promise<UnwrapPromiseTuple<P>>
     executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T>
     executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any>

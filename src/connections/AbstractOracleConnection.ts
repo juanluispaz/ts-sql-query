@@ -3,6 +3,7 @@ import type { QueryRunner } from "../queryRunners/QueryRunner"
 import type { Oracle, TypeSafeDB, TypeUnsafeDB } from "../databases"
 import { AbstractAdvancedConnection } from "./AbstractAdvancedConnection"
 
+/** @deprecated Extend OracleConnection instead. This class will be removed in ts-sql-query v2. */
 export abstract class AbstractOracleConnection<DB extends Oracle & (TypeUnsafeDB | TypeSafeDB)> extends AbstractAdvancedConnection<DB> {
 
     protected uuidStrategy: 'string' | 'custom-functions' = 'custom-functions'

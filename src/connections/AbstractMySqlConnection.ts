@@ -3,6 +3,7 @@ import type { QueryRunner } from "../queryRunners/QueryRunner"
 import type { MySqlSqlBuilder } from "../sqlBuilders/MySqlSqlBuilder"
 import { AbstractMySqlMariaDBConnection } from "./AbstractMySqlMariaDBConnection"
 
+/** @deprecated Extend MySqlConnection instead. This class will be removed in ts-sql-query v2. */
 export abstract class AbstractMySqlConnection<DB extends MySql & (TypeUnsafeDB | TypeSafeDB)> extends AbstractMySqlMariaDBConnection<DB> {
 
     protected uuidStrategy: 'string' | 'binary' = 'binary'

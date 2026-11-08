@@ -3,6 +3,7 @@ import type { QueryRunner } from "../queryRunners/QueryRunner"
 import type { SqlServer, TypeSafeDB, TypeUnsafeDB } from "../databases"
 import { AbstractAdvancedConnection } from "./AbstractAdvancedConnection"
 
+/** @deprecated Extend SqlServerConnection instead. This class will be removed in ts-sql-query v2. */
 export abstract class AbstractSqlServerConnection<DB extends SqlServer & (TypeUnsafeDB | TypeSafeDB)> extends AbstractAdvancedConnection<DB & SqlServer> {
 
     constructor(queryRunner: QueryRunner, sqlBuilder: SqlServerSqlBuilder) {

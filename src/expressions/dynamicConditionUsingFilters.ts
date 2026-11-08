@@ -29,9 +29,18 @@ export interface ComparableFilter<TYPE> extends EqualableFilter<TYPE> {
     lessThan?: TYPE
     greaterThanIfValue?: TYPE | null | undefined
     greaterThan?: TYPE
+    lessOrEqualIfValue?: TYPE | null | undefined
+    lessOrEqual?: TYPE
+    greaterOrEqualIfValue?: TYPE | null | undefined
+    greaterOrEqual?: TYPE
+
+    /** @deprecated use lessOrEqualIfValue instead */
     lessOrEqualsIfValue?: TYPE | null | undefined
+    /** @deprecated use lessOrEqual instead */
     lessOrEquals?: TYPE
+    /** @deprecated use greaterOrEqualIfValue instead */
     greaterOrEqualsIfValue?: TYPE | null | undefined
+    /** @deprecated use greaterOrEqual instead */
     greaterOrEquals?: TYPE
 
     /** @deprecated use lessThanIfValue instead */
@@ -42,13 +51,13 @@ export interface ComparableFilter<TYPE> extends EqualableFilter<TYPE> {
     largerIfValue?: TYPE | null | undefined
     /** @deprecated use greaterThan instead */
     larger?: TYPE
-    /** @deprecated use lessOrEqualsIfValue instead */
+    /** @deprecated use lessOrEqualIfValue instead */
     smallAsIfValue?: TYPE | null | undefined
-    /** @deprecated use lessOrEquals instead */
+    /** @deprecated use lessOrEqual instead */
     smallAs?: TYPE
-    /** @deprecated use greaterOrEqualsIfValue instead */
+    /** @deprecated use greaterOrEqualIfValue instead */
     largeAsIfValue?: TYPE | null | undefined
-    /** @deprecated use greaterOrEquals instead */
+    /** @deprecated use greaterOrEqual instead */
     largeAs?: TYPE
 }
 
@@ -272,6 +281,7 @@ export type DynamicCondition<DEFINITION extends DynamicDefinition, EXTENSION ext
     [KEY in DynamicConditionExtensionKeys<EXTENSION>]?: EXTENSION[KEY] extends DynamicConditionRule<infer TYPE> ? TYPE : never
 }
 
+/** @deprecated Use DynamicCondition instead. This type will be removed in ts-sql-query v2. */
 export type TypeSafeDynamicCondition<DEFINITION extends DynamicDefinition, EXTENSION extends DinamicConditionExtension = never> = {
     not?: TypeSafeDynamicCondition<DEFINITION, EXTENSION>
     and?: Array<TypeSafeDynamicCondition<DEFINITION, EXTENSION> | undefined>

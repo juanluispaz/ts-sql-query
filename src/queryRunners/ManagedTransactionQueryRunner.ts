@@ -3,6 +3,7 @@ import { AbstractQueryRunner } from "./AbstractQueryRunner"
 import type { QueryRunner } from "./QueryRunner"
 
 export abstract class ManagedTransactionQueryRunner extends AbstractQueryRunner {
+    /** @deprecated Use an async function that awaits each query. In ts-sql-query v2 an array is returned as the result without waiting for it: the transaction commits even if a query fails. */
     executeInTransaction<P extends Promise<any>[]>(fn: () => [...P], outermostQueryRunner: QueryRunner): Promise<UnwrapPromiseTuple<P>>
     executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T>
     executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any>
@@ -33,5 +34,6 @@ export abstract class ManagedTransactionQueryRunner extends AbstractQueryRunner 
             })
         })
     }
+    /** @deprecated Returning an array of promises in a transaction is deprecated; use an async function that awaits each query (fn: () => Promise<T>). This method will be removed in ts-sql-query v2. */
     protected abstract createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>>
 }

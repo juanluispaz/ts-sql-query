@@ -347,7 +347,7 @@ export interface ComparableValueSource<TABLE_OR_VIEW extends ITableOrViewRef<Any
     /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using greaterOrEqualIfValue instead */
     greaterOrEqual(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     greaterOrEqual<VALUE extends IEqualableValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    /** @deprecated use greaterThanIfValue method instead */
+    /** @deprecated use greaterOrEqualIfValue method instead */
     greaterOrEqualsIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     /** @deprecated use greaterOrEqual method instead */
     greaterOrEquals(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
@@ -356,23 +356,23 @@ export interface ComparableValueSource<TABLE_OR_VIEW extends ITableOrViewRef<Any
     /** @deprecated use greaterOrEqual method instead */
     greaterOrEquals<VALUE extends IEqualableValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     between(value: TYPE, value2: TYPE): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using greaterOrEqualIfValue instead */
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); this could be an error in your code */
     between(value: TYPE | OptionalValueType<OPTIONAL_TYPE>, value2: TYPE | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     between<VALUE2 extends IEqualableValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: TYPE, value2: VALUE2): BooleanValueSource<TABLE_OR_VIEW | VALUE2[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE2[typeof optionalType]>>
-    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using greaterOrEqualIfValue instead */
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); this could be an error in your code */
     between<VALUE2 extends IEqualableValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: TYPE | OptionalValueType<OPTIONAL_TYPE>, value2: VALUE2): BooleanValueSource<TABLE_OR_VIEW | VALUE2[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE2[typeof optionalType]>>
     between<VALUE extends IEqualableValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE, value2: TYPE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using greaterOrEqualIfValue instead */
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); this could be an error in your code */
     between<VALUE extends IEqualableValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE, value2: TYPE | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     between<VALUE extends IEqualableValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>, VALUE2 extends IEqualableValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE, value2: VALUE2): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView] | VALUE2[typeof tableOrView], MergeOptional<MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>, VALUE2[typeof optionalType]>>
     notBetween(value: TYPE, value2: TYPE): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using greaterOrEqualIfValue instead */
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); this could be an error in your code */
     notBetween(value: TYPE | OptionalValueType<OPTIONAL_TYPE>, value2: TYPE | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     notBetween<VALUE2 extends IEqualableValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: TYPE, value2: VALUE2): BooleanValueSource<TABLE_OR_VIEW | VALUE2[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE2[typeof optionalType]>>
-    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using greaterOrEqualIfValue instead */
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); this could be an error in your code */
     notBetween<VALUE2 extends IEqualableValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: TYPE | OptionalValueType<OPTIONAL_TYPE>, value2: VALUE2): BooleanValueSource<TABLE_OR_VIEW | VALUE2[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE2[typeof optionalType]>>
     notBetween<VALUE extends IEqualableValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE, value2: TYPE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using greaterOrEqualIfValue instead */
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); this could be an error in your code */
     notBetween<VALUE extends IEqualableValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE, value2: TYPE | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     notBetween<VALUE extends IEqualableValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>, VALUE2 extends IEqualableValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE, value2: VALUE2): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView] | VALUE2[typeof tableOrView], MergeOptional<MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>, VALUE2[typeof optionalType]>>
     // Redefined methods
@@ -1692,6 +1692,7 @@ export interface StringDoubleValueSource<TABLE_OR_VIEW extends ITableOrViewRef<A
     logn(value: stringDouble | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     logn<VALUE extends IStringDoubleValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     roundn(value: stringInt): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     roundn(value: stringInt | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     roundn<VALUE extends IStringIntValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     minValue(value: stringInt): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
@@ -1813,8 +1814,8 @@ export interface StringValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>,
     like(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     like<VALUE extends IStringValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     notLikeIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using notLikeIfValue instead */
     notLike(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using notLikeIfValue instead */
     notLike(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     notLike<VALUE extends IStringValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     likeInsensitiveIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
@@ -1976,7 +1977,7 @@ export interface TypeSafeStringValueSource<TABLE_OR_VIEW extends ITableOrViewRef
     equalsInsensitive<VALUE extends ITypeSafeStringValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     notEqualsInsensitiveIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     notEqualsInsensitive(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using noEqualsInsensitiveIfValue instead */
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using notEqualsInsensitiveIfValue instead */
     notEqualsInsensitive(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     notEqualsInsensitive<VALUE extends ITypeSafeStringValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     likeIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
@@ -2078,7 +2079,7 @@ export interface TypeSafeStringValueSource<TABLE_OR_VIEW extends ITableOrViewRef
     // SqlFunction1
     concatIfValue(value: string | null | undefined): TypeSafeStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     concat(value: string): TypeSafeStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); you should be using concatfValue instead */
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); you should be using concatIfValue instead */
     concat(value: string | OptionalValueType<OPTIONAL_TYPE>): TypeSafeStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); you should be using concatIfValue instead */
     concat(value: string | null | undefined): TypeSafeStringValueSource<TABLE_OR_VIEW, 'optional'>

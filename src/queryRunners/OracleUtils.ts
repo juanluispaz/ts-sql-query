@@ -1,3 +1,4 @@
+/** @deprecated Internal helper, it will be removed in ts-sql-query v2. */
 export function processOutBinds(params: any[], outBinds: any): any[] {
     if (!outBinds) {
         return []

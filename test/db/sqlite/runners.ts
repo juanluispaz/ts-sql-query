@@ -12,7 +12,7 @@
 //     throws.
 //   - `better-sqlite3` is a native (N-API) module that loads under both
 //     runtimes.
-//   - `sqlite3` and `sqlite-wasm-OO1` are universal under both runtimes.
+//   - `sqlite-wasm-OO1` is universal under both runtimes.
 
 import { readFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
@@ -25,7 +25,6 @@ import { MockBetterSqlite3QueryRunner } from '../../lib/mockRunners/MockBetterSq
 import { MockBunSqlSqliteQueryRunner } from '../../lib/mockRunners/MockBunSqlSqliteQueryRunner.js'
 import { MockBunSqliteQueryRunner } from '../../lib/mockRunners/MockBunSqliteQueryRunner.js'
 import { MockNodeSqliteQueryRunner } from '../../lib/mockRunners/MockNodeSqliteQueryRunner.js'
-import { MockSqlite3QueryRunner } from '../../lib/mockRunners/MockSqlite3QueryRunner.js'
 import { MockSqlite3WasmOO1QueryRunner } from '../../lib/mockRunners/MockSqlite3WasmOO1QueryRunner.js'
 import { parse as uuidParse, stringify as uuidStringify, v7 as uuidv7 } from 'uuid'
 import { SynchronousPromise } from 'synchronous-promise'
@@ -45,9 +44,8 @@ import { DBConnection } from './domain/connection.js'
 //     src/examples/{BetterSqlite3,NodeSqlite}*Example.ts show.
 //   - sqlite-wasm-OO1 — registered here via `db.createFunction(...)` (the OO1
 //     user-defined-function API), exactly as the connector doc shows.
-// Two connectors can't register them, so their `'uuid-extension'` tests stay
+// One connector can't register them, so its `'uuid-extension'` tests stay
 // mock-only (via `ctx.mockOnlyConnection()`):
-//   - sqlite3 (npm) — has no user-defined-function API at all.
 //   - Bun SQL (sqlite adapter) — exposes neither a user-defined-function API
 //     nor the bun:sqlite `Database` it opens.
 // uuid_str / uuid_blob are NULL-safe (return NULL on NULL input), mirroring
@@ -166,8 +164,7 @@ export interface SqliteTestContext extends TestContext<DBConnection> {
      * two connections coexist on the shared fixture.
      *
      * Present ONLY on the native SQLite connectors whose driver exposes the
-     * toggle — bun:sqlite, better-sqlite3, node:sqlite. Absent on `sqlite3`
-     * (no exact-integer API) and sqlite-wasm. Meant to be called in real-DB
+     * toggle — bun:sqlite, better-sqlite3, node:sqlite. Absent on sqlite-wasm. Meant to be called in real-DB
      * mode; under the mock the driver's reader is irrelevant (the mock hands
      * the value back verbatim), so callers guard on `ctx.realDbEnabled`.
      */
@@ -674,67 +671,6 @@ async function createNodeSqliteExactIntegerConnection(sync = false): Promise<DBC
     return new DBConnection(sync
         ? new ExactIntegerRunner(db, { promise: SynchronousPromise })
         : new ExactIntegerRunner(db))
-}
-
-// ---- sqlite3 (in-process, async, universal) -----------------------------
-
-let sharedSqlite3Db: import('sqlite3').Database | null = null
-
-async function getOrCreateSqlite3Db(): Promise<import('sqlite3').Database> {
-    if (sharedSqlite3Db === null) {
-        const sqlite3 = (await import('sqlite3')).default
-        sharedSqlite3Db = new sqlite3.Database(':memory:')
-    }
-    return sharedSqlite3Db
-}
-
-function sqlite3Exec(database: import('sqlite3').Database, sql: string): Promise<void> {
-    return new Promise((res, rej) => database.exec(sql, e => e ? rej(e) : res()))
-}
-
-export function createSqlite3TestContext(spec: SqliteTestSpec): SqliteTestContext {
-    const version = spec.label.split(' / ')[0] ?? ''
-    const connector = spec.label.split(' / ')[1] ?? ''
-    const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ false, version, connector)
-
-    return decorateSqliteContext(createTestContext<DBConnection>({
-        label: spec.label,
-        canonicalForDocs: spec.canonicalForDocs,
-        compatibilityVersion: spec.compatibilityVersion,
-        database: 'sqlite',
-        realDbEnabled,
-        mockRunnerClass: MockSqlite3QueryRunner,
-        async createRealRunner() {
-            const { Sqlite3QueryRunner } = await import('../../../src/queryRunners/Sqlite3QueryRunner.js')
-            const conn = await getOrCreateSqlite3Db()
-            const { schema, seed } = await readSchemaAndSeed()
-            await sqlite3Exec(conn, schema)
-            await sqlite3Exec(conn, seed)
-            return {
-                runner: new Sqlite3QueryRunner(conn),
-                // Close the shared db per file so no native sqlite handle is
-                // left open on an idle worker: Node 26 stalls vitest's graceful
-                // worker-stop teardown otherwise. `up()` reopens it. sqlite3's
-                // `close` is async, so await it before the file resolves `down()`.
-                shutdown: async () => {
-                    const db = sharedSqlite3Db
-                    if (db) {
-                        sharedSqlite3Db = null
-                        await new Promise<void>((resolve, reject) => db.close(e => e ? reject(e) : resolve()))
-                    }
-                },
-            }
-        },
-        async onReseed(runner) {
-            const db = runner.getNativeRunner() as import('sqlite3').Database
-            const { schema, seed } = await readSchemaAndSeed()
-            await sqlite3Exec(db, schema)
-            await sqlite3Exec(db, seed)
-        },
-        buildConnection(interceptor, compatibilityVersion) {
-            return new DBConnection(interceptor, compatibilityVersion)
-        },
-    }))
 }
 
 // ---- @sqlite.org/sqlite-wasm OO1 API (in-process, universal) ------------

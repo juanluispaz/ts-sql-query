@@ -24,9 +24,9 @@
 // functions. This connector registers them in the test harness (see
 // test/db/sqlite/runners.ts — better-sqlite3 / bun:sqlite / node:sqlite
 // via `db.function(...)`, sqlite-wasm-OO1 via `db.createFunction(...)`), so
-// those tests run end-to-end against the real engine. The `sqlite3` and
-// Bun SQL connectors can't register them (no user-defined-function API),
-// so they keep these tests mock-only (via `ctx.mockOnlyConnection()`), per
+// those tests run end-to-end against the real engine. The
+// Bun SQL connector can't register them (no user-defined-function API),
+// so it keeps these tests mock-only (via `ctx.mockOnlyConnection()`), per
 // [DESIGN.md §1 #18](../../../../DESIGN.md#1-principles): there the
 // assertion of interest is the SqlBuilder shape, not engine execution.
 

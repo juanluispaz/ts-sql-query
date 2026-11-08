@@ -158,7 +158,7 @@ await connection.transaction(async () => {
 
 !!! warning "Query runners that can't tell"
 
-    `Sqlite3QueryRunner`, `Sqlite3WasmOO1QueryRunner` and `BunSqlSqliteQueryRunner` can't tell when the database rolled the transaction back (their driver doesn't say it): the statements that follow run outside any transaction, as described above.
+    `Sqlite3WasmOO1QueryRunner` and `BunSqlSqliteQueryRunner` can't tell when the database rolled the transaction back (their driver doesn't say it): the statements that follow run outside any transaction, as described above.
 
     On MariaDB and MySQL a lock wait timeout rolls back only the statement that waited, unless the server runs with `innodb_rollback_on_timeout`: then it rolls back the whole transaction, and that isn't detected.
 

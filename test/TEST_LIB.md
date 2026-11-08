@@ -222,7 +222,7 @@ tags a connector by **gating profile**:
   twin). Gated by `--wasm`. Separate from `native` because the bootstrap is
   CPU-bound and dominates wall time.
 - `native`: needs no extra infrastructure. The embedded SQLite drivers
-  (better-sqlite3, bun_sqlite, bun_sql_sqlite, node_sqlite, sqlite3, and their
+  (better-sqlite3, bun_sqlite, bun_sql_sqlite, node_sqlite, and their
   `-sync` twins). Gated by `--native`, real by default.
 
 The convenience predicate `isRealDbEnabled(database, requires, version?, connector?)`
@@ -435,8 +435,7 @@ Full conventions and when to add a sibling: [`mockRunners/README.md`](./lib/mock
 
 Today's divergences are in `addParam`: `boolean → int` coercion in four SQLite
 runners (`MockBetterSqlite3QueryRunner`, `MockBunSqliteQueryRunner`,
-`MockNodeSqliteQueryRunner`, `MockSqlite3WasmOO1QueryRunner`) and `bigint → number`
-in `MockSqlite3QueryRunner`. `MockBunSqlSqliteQueryRunner` and
+`MockNodeSqliteQueryRunner`, `MockSqlite3WasmOO1QueryRunner`). `MockBunSqlSqliteQueryRunner` and
 `MockBunSqlPostgresQueryRunner` behave as the generic mock does, kept on disk so a
 future quirk is a one-file edit. Only these connectors have one; every other
 connector uses the generic mock.

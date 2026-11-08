@@ -17,7 +17,7 @@ Behaviour is checked with data that shows the difference: mixed case for an `Ins
 
 ## Databases, versions and drivers
 
-The tests run on each combination of a database, a version and a driver: 81 combinations, which share 5,384 tests, more than 419,000 tests in all, with those particular to a database and those of the query runners. A combination that lacks one of the shared tests fails the build, and so does a test that checks less than the rules ask, like comparing only part of a result.
+The tests run on each combination of a database, a version and a driver: 76 combinations, which share 5,401 tests, more than 394,000 tests in all, with those particular to a database and those of the query runners. A combination that lacks one of the shared tests fails the build, and so does a test that checks less than the rules ask, like comparing only part of a result.
 
 | Database | Versions | Drivers |
 |---|---|---|
@@ -26,7 +26,7 @@ The tests run on each combination of a database, a version and a driver: 81 comb
 | MariaDB | 10.3, 10.4, 10.5 and 13.0 | `mariadb`, Bun SQL |
 | Oracle | 21 XE and 23 Free | `oracledb` |
 | SQL Server | 2019, 2022 and 2025 | `mssql` |
-| SQLite | The SQL for 3.29, 3.30, 3.35, 3.38 and the newest version | `better-sqlite3`, `sqlite3`, `node:sqlite`, `bun:sqlite`, Bun SQL, sqlite-wasm |
+| SQLite | The SQL for 3.29, 3.30, 3.35, 3.38 and the newest version | `better-sqlite3`, `node:sqlite`, `bun:sqlite`, Bun SQL, sqlite-wasm |
 
 On older versions the tests run with the [`compatibilityVersion`](../configuration/supported-databases/postgresql.md#compatibility-version) of that version, so they check the SQL that the library writes for it. The SQLite drivers that can run [without promises](../advanced/synchronous-query-runners.md) are tested that way too.
 

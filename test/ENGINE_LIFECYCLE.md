@@ -5,7 +5,7 @@ them warm across runs, isolates them per-worker, and revalidates schema/seed
 when they change. Covers both **docker-backed engines** (postgres, mysql,
 mariadb, oracle, sqlserver) and **in-process WASM engines** (pglite,
 sqlite-wasm-OO1). Native SQLite drivers (better-sqlite3, bun_sqlite,
-bun_sql_sqlite, node_sqlite, sqlite3) need no lifecycle — they're in-process and stateless
+bun_sql_sqlite, node_sqlite) need no lifecycle — they're in-process and stateless
 per-test by construction.
 
 The corresponding code lives under [test/lib/containerLifecycle.ts](./lib/containerLifecycle.ts);

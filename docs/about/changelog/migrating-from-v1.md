@@ -23,7 +23,7 @@ This page lists what to change in an application that runs on `ts-sql-query` v1.
     | `ts-sql-query/connections/AbstractConnection`, `AbstractAdvancedConnection`, `Abstract<database>Connection` | Extend the connection of your database, like `PostgreSqlConnection` |
     | `ts-sql-query/connections/NoopDBConnection` | `ts-sql-query/__UNSUPPORTED__/connections/NoopDBConnection` |
     | `ts-sql-query/queryRunners/AbstractQueryRunner`, `AbstractPoolQueryRunner`, `ChainedQueryRunner`, `SqlTransactionQueryRunner`, `ManagedTransactionQueryRunner`, `ManagedTransactionPoolQueryRunner` | `ts-sql-query/__UNSUPPORTED__/queryRunners/...` |
-    | `ts-sql-query/expressions/*`, `utils/*`, `internal/*`, `queryBuilders/*`, `sqlBuilders/*` | `ts-sql-query/__UNSUPPORTED__/expressions/*`, ... |
+    | `ts-sql-query/expressions/*`, `utils/*`, `internal/*`, `queryBuilders/*`, `sqlBuilders/*` | `ts-sql-query/__UNSUPPORTED__/expressions/*`, ... Some of what was only there is now public, like the filter types of a dynamic condition (`StringFilter`, `NumberFilter`, ...) of `expressions/dynamicConditionUsingFilters`, in `ts-sql-query/dynamic/condition` and `ts-sql-query` |
     | `ts-sql-query/typeMarks/*`, `ts-sql-query/databases` | Removed |
     | `ts-sql-query/queryRunners/PromiseBasedQueryRunner`, `PromiseBasedWithSqlTransactionQueryRunner`, `PromiseBasedPoolQueryRunner`, `PromiseBasedAbstractQueryRunner`, `OracleUtils` | Removed. Extend `ManagedTransactionQueryRunner`, `SqlTransactionQueryRunner`, `ManagedTransactionPoolQueryRunner` or `AbstractQueryRunner`, from `__UNSUPPORTED__`; see [your own query runner](#your-own-query-runner-and-the-connection-of-the-driver) |
     | `ts-sql-query/utils/PromiseProvider` | `PromiseProvider` from `ts-sql-query/queryRunners/QueryRunner` |
@@ -67,7 +67,8 @@ The rules of a [dynamic condition](../../dynamic/helper-types/conditions.md) wer
 | `AnyDBQueryRunner`, `AnyDBPoolQueryRunner`, `LoopBackQueryRunner` | The query runner of your driver |
 | `MsNodeSqlV8QueryRunner`, `TediousQueryRunner`, `TediousPoolQueryRunner` | [`MssqlPoolQueryRunner`](../../configuration/query-runners/recommended/mssql.md) |
 | `MySqlQueryRunner`, `MySqlPoolQueryRunner` | [`MySql2QueryRunner`, `MySql2PoolQueryRunner`](../../configuration/query-runners/recommended/mysql2.md) |
-| `SqliteQueryRunner` | [`BetterSqlite3QueryRunner`](../../configuration/query-runners/recommended/better-sqlite3.md), [`NodeSqliteQueryRunner`](../../configuration/query-runners/recommended/node_sqlite.md), [`Sqlite3QueryRunner`](../../configuration/query-runners/additional/sqlite3.md) (deprecated, like the `sqlite3` driver) |
+| `SqliteQueryRunner` | [`BetterSqlite3QueryRunner`](../../configuration/query-runners/recommended/better-sqlite3.md), [`NodeSqliteQueryRunner`](../../configuration/query-runners/recommended/node_sqlite.md) |
+| `Sqlite3QueryRunner` (the `sqlite3` driver, deprecated by its maintainers) | [`BetterSqlite3QueryRunner`](../../configuration/query-runners/recommended/better-sqlite3.md), [`NodeSqliteQueryRunner`](../../configuration/query-runners/recommended/node_sqlite.md), on Bun [`BunSqliteQueryRunner`](../../configuration/query-runners/recommended/bun_sqlite.md), or [`Sqlite3WasmOO1QueryRunner`](../../configuration/query-runners/recommended/sqlite-wasm-OO1.md) |
 | `PrismaQueryRunner` | On PostgreSQL, the `pg` query runners, which can [share the pool and the transaction with Prisma](../../configuration/query-runners/combining-with-another-library.md#example-prisma). On other databases there is no replacement that shares them |
 
 ### Removed features
@@ -272,7 +273,7 @@ const [updated, deleted] = await connection.transaction(async () => {
 
 **PostgreSQL: catching the error of a statement doesn't save the transaction.** PostgreSQL answers the commit of a failed transaction with a rollback. v1 didn't look at that answer, so `connection.transaction(...)` resolved, and nothing was saved. v2 reads it and rejects with `TRANSACTION_ERROR`, `transactionErrorType: 'transaction rolled back'`, running the after-rollback functions ([docs](../../configuration/supported-databases/postgresql.md#a-statement-that-fails-inside-a-transaction)).
 
-**MariaDB, MySQL, SQL Server, SQLite: a transaction the database rolled back by itself is over.** A deadlock, for example, can do this. v1 had no check for it and went on sending statements, which the database runs on their own, committed one by one. When the query runner can tell from the error, v2 rejects those statements with the same `TRANSACTION_ERROR`, without sending them. `Sqlite3QueryRunner` and `Sqlite3WasmOO1QueryRunner` can't tell ([docs](../../queries/transaction.md#when-the-database-rolls-back-the-transaction)).
+**MariaDB, MySQL, SQL Server, SQLite: a transaction the database rolled back by itself is over.** A deadlock, for example, can do this. v1 had no check for it and went on sending statements, which the database runs on their own, committed one by one. When the query runner can tell from the error, v2 rejects those statements with the same `TRANSACTION_ERROR`, without sending them. `Sqlite3WasmOO1QueryRunner` can't tell ([docs](../../queries/transaction.md#when-the-database-rolls-back-the-transaction)).
 
 **PostgreSQL, Oracle: a nested transaction rejects** with `NESTED_TRANSACTION_NOT_SUPPORTED`. v1 sent a second begin on PostgreSQL, and on Oracle it only counted them; the inner commit committed everything. On PostgreSQL, you can keep them by creating the query runner with `allowNestedTransactions: true` ([docs](../../configuration/query-runners/recommended/pg.md)).
 
@@ -522,7 +523,6 @@ A property left in your connection class still compiles and does nothing, unless
 - `ConsoleLogQueryRunner`: `logResults: true` logged no results and `false` logged them, the other way round. Now `true` logs them.
 - **`BetterSqlite3QueryRunner` no longer forces `safeIntegers(true)`.** Integers come as `number`, and above the safe range [they fail](#errors). To read them as `bigint`, enable `safeIntegers` in the database ([docs](../../configuration/query-runners/recommended/better-sqlite3.md)).
 - **SQL given straight to a query runner** must use the placeholders of the library. Oracle binds by name, so a placeholder is named after the index of its value (`:0`, `:1`). `BetterSqlite3QueryRunner` numbers them (`?1`, `?2`), and doesn't bind a bare `?`.
-- **`Sqlite3QueryRunner`** binds a `bigint` as a `number`, which loses precision above the safe range. In v1, the `sqlite3` driver bound `NULL` for it.
 
 ### Tests with MockQueryRunner
 

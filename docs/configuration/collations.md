@@ -348,7 +348,7 @@ db.createFunction('ci_replace', (_ctxPtr, s, f, t) => {
 })
 ```
 
-The **`sqlite3`** and **`bun:sql`** connectors have **no user-defined-function API** (`bun:sql` does not expose the `bun:sqlite` database it opens either), so `replaceAllInsensitiveFunction` cannot be used — leave it unset and `replaceAllInsensitive` behaves as `replace` (case-sensitive). Registering a compiled extension is out of scope: it opens a non-JS chapter the library does not enter.
+The **`bun:sql`** connector has **no user-defined-function API** (it does not expose the `bun:sqlite` database it opens either), so `replaceAllInsensitiveFunction` cannot be used — leave it unset and `replaceAllInsensitive` behaves as `replace` (case-sensitive). Registering a compiled extension is out of scope: it opens a non-JS chapter the library does not enter.
 
 ## Per database
 

@@ -29,16 +29,16 @@ it's on).
 
 ## Latest measurements
 
-Measured 2026-11-07 under Bun, on the full matrix including the query-runner tests
-(**428,004 tests, 27,852 files**; 419,688 pass and 8,316 are skipped). The other tables of this file are dated runs at the matrix size each
+Measured 2026-11-08 under Bun, on the full matrix including the query-runner tests
+(**403,342 tests, 26,379 files**; 394,961 pass and 8,381 are skipped). The other tables of this file are dated runs at the matrix size each
 one states: use them to compare regimes and runtimes, and this one for the current cost.
 
 | Invocation | Selection | Wall |
 |---|---|---|
-| `bun run tests` (mocked main pass) | 428,004 tests / 27,852 files | **12 s** |
+| `bun run tests` (mocked main pass) | 403,342 tests / 26,379 files | **11 s** |
 | `bun run tests --wasm`, the sequential WASM unit | 63,360 tests / 4,114 files | **38 s** |
 | `bun run tests --docker --wasm`, its main pass (cold containers, measured 2026-11-05 on 24,857 files) | the full matrix | **788 s (~13 min)** |
-| `npm run tests -- --run-connectors native` (Node) | 208,165 tests pass | **22 s** |
+| `npm run tests -- --run-connectors native` (Node, measured 2026-11-07, before the `sqlite3` cells were removed) | 208,165 tests pass | **22 s** |
 
 ## The one lever that matters: no per-file isolation
 
@@ -98,7 +98,7 @@ with "heap out of memory", or crawls in GC just under the limit (~2.5× slower).
 
 **‡ The `bun` and `vitest` columns are NOT the same workload.** The docker
 connectors `pg` / `postgres` / `mysql2` / `mariadb` / `oracledb` / `mssql` and the
-`sqlite3` and `better-sqlite3(-sync)` drivers run real under both runtimes. The
+`better-sqlite3(-sync)` driver run real under both runtimes. The
 rest split by runtime:
 
 - **real only under bun**: `bun_sql_postgres`, `bun_sql_mysql` (docker) and
@@ -186,7 +186,7 @@ pipeline stays on npm/Node.
   `bun run tests --run-versions newest` (~2 s). `bun run tests <coord>` for a
   single cell.
 - **Validate one cell against real-DB cheaply**: `bun run tests <cell>` — the
-  embedded SQLite cells (`better-sqlite3`, `bun_sqlite`, `bun_sql_sqlite`, `sqlite3`,
+  embedded SQLite cells (`better-sqlite3`, `bun_sqlite`, `bun_sql_sqlite`,
   `node_sqlite` against Bun's `node:sqlite`, and their `-sync` twins) are real at
   mock-loop speed. See
   [`DESIGN.md` § Real-DB validation](./DESIGN.md#real-db-validation) for the cost

@@ -194,7 +194,6 @@ Connector link inventory:
 - [pg](https://github.com/brianc/node-postgres)
 - [postgres.js](https://github.com/porsager/postgres)
 - [sqlite-wasm](https://sqlite.org/wasm/doc/trunk/index.md)
-- [sqlite3](https://www.npmjs.com/package/sqlite3)
 - [tarn](https://www.npmjs.com/package/tarn)
 
 Native mapping page rules:

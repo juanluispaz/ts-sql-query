@@ -32,7 +32,6 @@ import { getQueryExecutionSource } from '../../../../../src/queryRunners/QueryRu
 import { fromRef, type TableOrViewLeftJoinOf, type TableOrViewOf, type UpdatableValuesShapedAs } from '../../../../../src/extras/types.js'
 
 const BetterSqlite3QueryRunner = null as any
-const Sqlite3QueryRunner = null as any
 const BunSqliteQueryRunner = null as any
 const BunSqlSqliteQueryRunner = null as any
 export type TransactionSQL = any
@@ -209,7 +208,6 @@ void Values
 
 
 void BetterSqlite3QueryRunner
-void Sqlite3QueryRunner
 void BunSqliteQueryRunner
 void BunSqlSqliteQueryRunner
 void NodeSqliteQueryRunner

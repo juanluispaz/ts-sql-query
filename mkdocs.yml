@@ -74,8 +74,9 @@ plugins:
         'advanced-usage.md': 'advanced/custom-booleans-values.md'
         'column-types.md': 'configuration/column-types.md'
         'composing-and-splitting-results.md': 'queries/complex-projections.md'
-        'configuration/query-runners/recommended/sqlite3.md': 'configuration/query-runners/additional/sqlite3.md'
+        'configuration/query-runners/recommended/sqlite3.md': 'configuration/query-runners/index.md#which-one-for-your-database'
         'configuration/query-runners/additional/prisma.md': 'configuration/query-runners/combining-with-another-library.md#example-prisma'
+        'configuration/query-runners/additional/sqlite3.md': 'configuration/query-runners/index.md#which-one-for-your-database'
         'connection-tables-views.md': 'configuration/connection.md'
         'dynamic/from-business-model.md': 'dynamic/own-function/from-business-model.md'
         'dynamic/from-database-types.md': 'dynamic/own-function/from-database-types.md'
@@ -217,8 +218,6 @@ nav:
         - ConsoleLogQueryRunner: configuration/query-runners/general-purpose/ConsoleLogQueryRunner.md
         - ConsoleLogNoopQueryRunner: configuration/query-runners/general-purpose/ConsoleLogNoopQueryRunner.md
         - NoopQueryRunner: configuration/query-runners/general-purpose/NoopQueryRunner.md
-    - Additional query runners:
-      - sqlite3: configuration/query-runners/additional/sqlite3.md
     - Combining with another library: configuration/query-runners/combining-with-another-library.md
   - API: 
     - API Introduction: api/introduction.md

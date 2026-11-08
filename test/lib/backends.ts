@@ -27,7 +27,7 @@
  *     and dominates wall time under parallel workers — see the two-phase split
  *     in `scripts/tests.sh`.
  *   - `native`: embedded SQLite drivers (better-sqlite3, bun_sqlite,
- *     bun_sql_sqlite, node_sqlite, sqlite3) — no extra infra. Gated by `--native` (default
+ *     bun_sql_sqlite, node_sqlite) — no extra infra. Gated by `--native` (default
  *     `all`, i.e. real). pglite / sqlite-wasm-OO1 are also in-process but
  *     belong to `wasm` because their gating profile differs.
  */

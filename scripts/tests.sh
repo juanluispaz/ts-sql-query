@@ -225,7 +225,7 @@ Sharding (--shard) — the no-docker CI split
                   the query-runner tests of those engines.
                   Sequential (the per-worker WASM bootstrap is CPU-bound).
     2 · sqlite-A  better-sqlite3(+sync), node_sqlite(+sync).            parallel
-    3 · sqlite-B  sqlite3, bun_sqlite(+sync), bun_sql_sqlite.           parallel
+    3 · sqlite-B  bun_sqlite(+sync), bun_sql_sqlite.                    parallel
     4 · rest      everything else (docker engines mocked + documentation
                   + types.negative + query-runner tests).              parallel
 
@@ -250,7 +250,7 @@ Runner flags
         Which connector KINDS run. all (default) | docker (pg, postgres,
         bun_sql_postgres, mariadb, mysql2, bun_sql_mysql, oracledb, mssql) |
         wasm (pglite, sqlite-wasm-OO1) | native (better-sqlite3, bun_sqlite,
-        bun_sql_sqlite, node_sqlite, sqlite3). A pure path filter: EXCLUDES the other kinds from the run
+        bun_sql_sqlite, node_sqlite). A pure path filter: EXCLUDES the other kinds from the run
         (does NOT mock them). `types.negative/` folders are dialect-level
         and dropped under any non-all filter. Mirrors RealDbBackend in
         test/lib/backends.ts.

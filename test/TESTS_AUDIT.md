@@ -15,7 +15,7 @@ tool.
 **Scope.** The audit's rules are **universal anti-cheat patterns** —
 semantic shapes a cheat would adopt regardless of which database the cell
 tests. Defences that depend on **which DB/connector the cell uses**
-(`sqlite3` BigInt coercion, MySQL no-RETURNING, …) are **out of scope** for
+(MySQL no-RETURNING, …) are **out of scope** for
 `tests:audit`. Those live in [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md)
 (the catalogue), the validation sub-agent's `EXTERNAL_CAVEATS` sweep on
 the canonical ([`QUALITY_GATE.md`](./QUALITY_GATE.md)), and the mechanical

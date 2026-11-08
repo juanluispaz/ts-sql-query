@@ -29,7 +29,6 @@ $RUN ./src/examples/documentation/SqlServer-compatibility.ts || exit 1
 $RUN ./src/examples/documentation/Oracle.ts || exit 1
 $RUN ./src/examples/documentation/Oracle-compatibility.ts || exit 1
 
-$RUN ./src/examples/Sqlite3Example.ts || exit 1
 $RUN ./src/examples/BetterSqlite3Example.ts || exit 1
 $RUN ./src/examples/BetterSqlite3SynchronousExample.ts || exit 1
 if [ "$runtime" = "bun" ]; then

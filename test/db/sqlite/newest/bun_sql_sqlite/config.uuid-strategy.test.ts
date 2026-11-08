@@ -23,8 +23,7 @@
 // `uuid_str(uuid_blob(?))`, which requires the SQLite `uuid` extension
 // functions. Bun SQL's sqlite adapter exposes neither a
 // user-defined-function API nor the bun:sqlite `Database` it opens, so they
-// can't be registered here. Like the `sqlite3` (npm) connector, this connector
-// therefore keeps the `'uuid-extension'` tests mock-only (via
+// can't be registered here. This connector therefore keeps the `'uuid-extension'` tests mock-only (via
 // `ctx.mockOnlyConnection()`), per
 // [DESIGN.md §1 #18](../../../../DESIGN.md#1-principles): there the
 // assertion of interest is the SqlBuilder shape, not engine execution.

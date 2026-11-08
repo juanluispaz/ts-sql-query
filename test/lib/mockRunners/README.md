@@ -37,9 +37,7 @@ in mock mode and `1` in real mode. Every snapshot of params that
 exercised a boolean column would be inconsistent across modes.
 
 Each of those `Mock*QueryRunner` applies the same coercion the real runner does,
-so the captured params come out identical. `MockSqlite3QueryRunner` does the same
-for its own divergence: `Sqlite3QueryRunner.addParam` coerces `bigint → number`,
-because the `sqlite3` npm driver would bind a JS `BigInt` as `NULL`.
+so the captured params come out identical.
 
 ## Conventions
 
@@ -118,7 +116,7 @@ Recipe:
 
 Today the observable divergences between a real runner and `MockQueryRunner`
 are in `addParam`: the `boolean → int` coercion in the four SQLite runners listed
-above, the `bigint → number` coercion in `Sqlite3QueryRunner`, and the
+above, and the
 placeholder of a PostgreSQL parameter whose type the library asks for
 (forceTypeCast). The generic mock writes it as pg does, with a cast
 (`$1::int4`); `PostgresQueryRunner` (postgres.js) and `PgLiteQueryRunner` send

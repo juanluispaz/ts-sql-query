@@ -65,7 +65,6 @@ export function connectorFromExampleFile(file: string): string {
     if (/bettersqlite3/.test(base)) return 'better-sqlite3'
     if (/nodesqlite/.test(base)) return 'node_sqlite'
     if (/sqlite3wasmoo1/.test(base)) return 'sqlite-wasm-OO1'
-    if (/sqlite3/.test(base)) return 'sqlite3'
     if (/pglite/.test(base)) return 'pglite'
     if (/mssql|tedious/.test(base)) return 'mssql'
     if (/oracledb/.test(base)) return 'oracledb'

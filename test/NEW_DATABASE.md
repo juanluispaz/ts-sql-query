@@ -220,9 +220,8 @@ tests are commented out in similar cells of other databases. Use them as a
 checklist to avoid re-discovering constraints already characterised
 elsewhere:
 
-- `sqlite3` cannot bind `BigInt` (its runner coerces it to a number, which loses
-  precision past `Number.MAX_SAFE_INTEGER`); `sqlite3` and `bun_sql_sqlite` cannot
-  register `uuid_str`, so their `'uuid-extension'` tests stay mock-only.
+- `bun_sql_sqlite` cannot register `uuid_str`, so its `'uuid-extension'` tests
+  stay mock-only.
 - MySQL has no `INSERT/UPDATE/DELETE RETURNING`.
 - Oracle has no `ON CONFLICT`; isolation level OR access mode, not both.
 - SQL Server has no `ON CONFLICT`; `isolationLevel(level)` only, no

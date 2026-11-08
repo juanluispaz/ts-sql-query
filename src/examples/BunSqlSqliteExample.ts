@@ -1,7 +1,3 @@
-/*
- * npm install sqlite3
- */
-
 import { Table } from '../Table.js'
 import { assertEquals } from './assertEquals.js'
 import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'

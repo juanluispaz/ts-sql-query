@@ -7,8 +7,8 @@
 # Per-runtime divergence is intentional:
 #   * bun-only:  BunSqlite*, BunSqlSqlite*, BunSqlPostgres*,
 #                BunSqlMySql*, BunSqlMariaDB*.
-#   * common:    everything under documentation/, Sqlite3Example,
-#                BetterSqlite3*, NodeSqlite* (Node 24+ / Bun),
+#   * common:    everything under documentation/, BetterSqlite3*,
+#                NodeSqlite* (Node 24+ / Bun),
 #                Sqlite3WasmOO1*, PgLiteExample, the per-driver scripts
 #                that share between runtimes.
 
@@ -56,7 +56,6 @@ $RUN ./src/examples/documentation/SqlServer-compatibility.ts || exit 1
 $RUN ./src/examples/documentation/Oracle.ts || exit 1
 $RUN ./src/examples/documentation/Oracle-compatibility.ts || exit 1
 
-$RUN ./src/examples/Sqlite3Example.ts || exit 1
 $RUN ./src/examples/BetterSqlite3Example.ts || exit 1
 $RUN ./src/examples/BetterSqlite3SynchronousExample.ts || exit 1
 if [ "$runtime" = "bun" ]; then

@@ -1711,18 +1711,6 @@ const sqliteScenarios: readonly ErrorScenario[] = [
         expected: { reason: 'SQL_USER_DEFINED_ERROR', databaseErrorMessage: expect.stringContaining('rt_err raised') },
     },
     {
-        name: 'abort-raised-by-a-trigger-without-extended-codes',
-        setup: [
-            'create table rt_err_guarded (n integer)',
-            `create trigger rt_err_guard before insert on rt_err_guarded begin select raise(abort, 'rt_err raised'); end`,
-        ],
-        cleanup: ['drop table if exists rt_err_guarded'],
-        run: mutation('insert into rt_err_guarded (n) values (1)'),
-        // sqlite3 gives the primary code only (SQLITE_CONSTRAINT): nothing tells RAISE from a constraint
-        onlyRunners: ['Sqlite3QueryRunner'],
-        expected: { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorMessage: expect.stringContaining('rt_err raised') },
-    },
-    {
         name: 'syntax-error',
         run: query('selec 1'),
         expected: { reason: 'SQL_SYNTAX_ERROR' },
@@ -1775,7 +1763,7 @@ const sqliteScenarios: readonly ErrorScenario[] = [
     {
         name: 'blob-too-big',
         // Bun's SQLite (bun:sqlite, Bun SQL, node:sqlite under Bun) is built with a larger SQLITE_MAX_LENGTH
-        onlyRunners: ['BetterSqlite3QueryRunner', 'Sqlite3QueryRunner', 'Sqlite3WasmOO1QueryRunner'],
+        onlyRunners: ['BetterSqlite3QueryRunner', 'Sqlite3WasmOO1QueryRunner'],
         run: query('select zeroblob(2000000000)'),
         expected: { reason: 'SQL_INVALID_VALUE', errorType: 'too long' },
     },
@@ -1917,13 +1905,13 @@ const sqliteScenarios: readonly ErrorScenario[] = [
         name: 'parameter-the-statement-does-not-use',
         // bun:sqlite, Bun SQL and sqlite-wasm ignore the extra value, and so does better-sqlite3 binding the values
         // from an object (only the parameters the statement has are read from it)
-        onlyRunners: ['NodeSqliteQueryRunner', 'Sqlite3QueryRunner'],
+        onlyRunners: ['NodeSqliteQueryRunner'],
         run: ({ runner }) => runner.executeSelectManyRows('select 1', [1]),
         expected: { reason: 'SQL_INVALID_PARAMETER' },
     },
     {
         name: 'parameter-the-statement-is-missing',
-        // node:sqlite, sqlite3 and sqlite-wasm bind NULL for it
+        // node:sqlite and sqlite-wasm bind NULL for it
         onlyRunners: ['BetterSqlite3QueryRunner', 'BunSqliteQueryRunner', 'BunSqlSqliteQueryRunner'],
         run: ({ runner }) => runner.executeSelectManyRows('select ?1, ?2', [1]),
         // better-sqlite3 names the missing parameter (missing), Bun says how many it expected (wrong count)
@@ -1937,7 +1925,7 @@ const sqliteScenarios: readonly ErrorScenario[] = [
     {
         name: 'file-that-is-not-a-database',
         // A file outside the virtual filesystem of sqlite-wasm
-        onlyRunners: ['BetterSqlite3QueryRunner', 'BunSqliteQueryRunner', 'BunSqlSqliteQueryRunner', 'NodeSqliteQueryRunner', 'Sqlite3QueryRunner'],
+        onlyRunners: ['BetterSqlite3QueryRunner', 'BunSqliteQueryRunner', 'BunSqlSqliteQueryRunner', 'NodeSqliteQueryRunner'],
         cleanup: ['detach database rt_err_not_a_db'],
         run: ddl(`attach database '/etc/hosts' as rt_err_not_a_db`),
         expected: { reason: 'SQL_CONNECTION_ERROR', errorType: 'invalid connection configuration' },

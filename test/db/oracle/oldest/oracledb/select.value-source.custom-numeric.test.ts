@@ -8,8 +8,7 @@
 // the custom arm changes is the result's carried value-type — so the
 // branch is exercised purely by feeding a differently-typed operand.
 //
-// Operand sources, chosen to avoid binding a JS BigInt (the sqlite3
-// driver can't bind one): bigint coverage comes from the read-only
+// Operand sources: bigint coverage comes from the read-only
 // `viewCount` column (seed default 0); customInt/customDouble come from
 // `const(v, 'customInt'|'customDouble', 'TypeName')`, which bind a plain
 // number — EXCEPT the arithmetic-and-sign arms, which run over the real

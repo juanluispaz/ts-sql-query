@@ -34,11 +34,11 @@ the test in **this cell**?*
 
 An in-repo close path counts **only when it covers every connector of the
 dialect**. A workaround that would rescue four SQLite runners and leave
-two behind does not make the gap actionable debt: `cot()` is a
-`TODO[LIMITATION]` because `1 / tan(x)` works on all six SQLite runners
+one behind does not make the gap actionable debt: `cot()` is a
+`TODO[LIMITATION]` because `1 / tan(x)` works on all five SQLite runners
 (Oracle already emits exactly that), while `reverse()` is `NOT-SUPPORTED`
 because the only close path is registering a UDF, and Bun SQL's sqlite adapter
-and `sqlite3` expose no UDF API.
+exposes no UDF API.
 
 **`NOT-SUPPORTED` vs `NOT-APPLICABLE`** — both are permanent; they differ
 in **who draws the boundary**, and only `NOT-APPLICABLE` keeps a live test:
@@ -121,8 +121,8 @@ every return data type × {required, optional} × {no-adapter, trailing-adapter}
 are commented out on all five SQLite version tiers and run live on the
 other five dialects.
 
-Registering a UDF through the driver would **not** close it: it rescues
-neither `sqlite3` nor Bun SQL (no UDF API — see § 3), it cannot
+Registering a UDF through the driver would **not** close it: it does not
+rescue Bun SQL (no UDF API — see § 3), it cannot
 express a stored procedure at all, and a function invented by the test
 harness would no longer be the domain's declared surface. Nothing about
 this is pending.
@@ -149,10 +149,10 @@ call compiles fine). The `reverse()` tests on the SQLite cells are commented out
 **Why this is not actionable debt.** The only close path is registering a `reverse`
 user-defined function, and it does not reach every SQLite runner
 (better-sqlite3, bun:sqlite, node:sqlite and sqlite-wasm expose a UDF API; Bun
-SQL's sqlite adapter and `sqlite3` do not — § 3). Per the decision rule at the top of this file, a close path
+SQL's sqlite adapter does not — § 3). Per the decision rule at the top of this file, a close path
 that leaves connectors of the dialect behind does not make the gap a
 `TODO[LIMITATION]`. Contrast `cot()`, which stays in
-[`LIMITATIONS.md`](./LIMITATIONS.md) because `1 / tan(x)` closes it on all six.
+[`LIMITATIONS.md`](./LIMITATIONS.md) because `1 / tan(x)` closes it on all five.
 
 
 
@@ -191,7 +191,7 @@ because the truncation changes nothing.
 `NOT-SUPPORTED` and not `NOT-APPLICABLE` because the API is callable on SQLite —
 the boundary is the operator's runtime semantics, not the type surface. And not a
 `TODO[LIMITATION]` either: the only close path is a custom float-modulo UDF, which
-Bun SQL's sqlite adapter and `sqlite3` cannot register (§ 3).
+Bun SQL's sqlite adapter cannot register (§ 3).
 
 
 
@@ -855,19 +855,19 @@ fragment and `temporal/*-null-if-value*` tests are commented out in
 
 When the rows of a recursive `with` form a cycle, Oracle answers `ORA-32044: cycle detected while executing recursive WITH query`, also when a condition on a level column would end the walk (verified on the `newest` and `oldest` images). PostgreSQL, MySQL, MariaDB, SQLite and SQL Server follow the cycle until the condition stops it. On Oracle, `connectByNoCycle` is the way to walk data with a cycle. The test `docs:recursive-select/depth-limit` is commented out with `// NOT-SUPPORTED:` on the Oracle cells.
 
-### `replaceAllInsensitiveFunction`'s UDF cannot be registered on Bun SQL / `sqlite3`
+### `replaceAllInsensitiveFunction`'s UDF cannot be registered on Bun SQL
 
 `replaceAllInsensitiveFunction` lets a SQLite connection route
 `replaceAllInsensitive` through a case-folding user-defined function (`ci_replace`).
 Registering that UDF needs a driver-level user-defined-function API. **better-sqlite3**,
 **bun:sqlite** (`Database.function`, Bun 1.4+), **node:sqlite** and **sqlite-wasm**
 expose one and run the test live; Bun SQL's sqlite adapter (no UDF API, and it does not
-expose the `bun:sqlite` `Database` it opens) and the deprecated **sqlite3** do not, so
+expose the `bun:sqlite` `Database` it opens) does not, so
 `ci_replace` cannot be registered there. This is **within-dialect divergence** across SQLite runners, so it is a
-per-runner boundary, not a dialect frontier — and only those drivers growing a
+per-runner boundary, not a dialect frontier — and only that driver growing a
 UDF-registration API would close it. The `replaceAllInsensitiveFunction` test is
 commented with `// NOT-SUPPORTED:` (full canonical body preserved) on `bun_sql_sqlite`
-and `sqlite3` and runs live on the other SQLite runners.
+and runs live on the other SQLite runners.
 
 *(Judgement note for a future maintainer: the `uuid_str`/`uuid_blob`
 platform-dependent case is `NOT-APPLICABLE`; the difference here is that the
@@ -904,7 +904,6 @@ The library does not touch the connection object the application hands it.
 | `better-sqlite3` | `safeIntegers` on the database |
 | `node_sqlite` | `setReadBigInts` on the statement |
 | `bun_sqlite`, `bun_sql_sqlite` | `safeIntegers` in the configuration |
-| **`sqlite3`** | **no option exists** — the driver has no exact-integer API at all, and it is deprecated (its own page already warns that it loses precision past `MAX_SAFE_INTEGER`) |
 
 **How the suite validates it.** The test
 `asBigint-on-double-keeps-bigint-arithmetic-exact`
@@ -928,13 +927,12 @@ connector, and asserts whichever applies:
   **every** integer column as `bigint` (so `id` would arrive as `1n`) — and the
   in-memory db is a singleton shared across every test file, so a db-wide flip
   would corrupt every other test's `number` reads.
-- **Reader rounds and stays that way** — on `mysql2` (no `supportBigNumbers`),
-  `oracledb` (no `fetchTypeHandler`) and the deprecated `sqlite3` (no
-  exact-integer API), the sum arrives as a rounded `number`, so the same test
+- **Reader rounds and stays that way** — on `mysql2` (no `supportBigNumbers`)
+  and `oracledb` (no `fetchTypeHandler`), the sum arrives as a rounded `number`, so the same test
   asserts the marshaller **throws** `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`
   instead of returning a clean-but-wrong `bigint`. The mock is seeded with the
   rounded number the real driver returns, so mock and real agree. Wiring
-  `supportBigNumbers` / `fetchTypeHandler` on the two configurable ones would flip
+  `supportBigNumbers` / `fetchTypeHandler` on them would flip
   them into the exact branch, at the cost of those cells no longer reflecting a
   default setup; that is a suite-design call, not a library one.
 
@@ -951,15 +949,12 @@ arithmetic form above. `marshalling/bigint-column-scalar-read-past-2p53`
 JSON aggregate) through the shared `ctx.conn`, i.e. the driver's default reader.
 Every connector asserts its default-reader outcome: the exact-by-default readers
 return the value intact, and every rounding reader (`mysql2`, `oracledb`,
-`sqlite3`, `better-sqlite3`, `bun:sqlite`, Bun SQL's sqlite adapter) raises
+`better-sqlite3`, `bun:sqlite`, Bun SQL's sqlite adapter) raises
 `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`. `node:sqlite` is special — its
 driver *refuses* to return the value (a `RangeError`) rather than rounding it; the
 library **normalizes that driver error to the same
 `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`** (see `NodeSqliteErrorMapper`), so
-the reason is uniform across every connector. The `sqlite3` cell is best-effort:
-that deprecated driver has no exact-integer mode and rounds the value on write and
-on read, so the column can never round-trip — the read simply throws, which is the
-honest outcome (never a silently-wrong value).
+the reason is uniform across every connector.
 
 
 

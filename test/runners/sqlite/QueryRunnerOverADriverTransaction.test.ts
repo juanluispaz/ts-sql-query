@@ -4,7 +4,6 @@ import Database from 'better-sqlite3'
 import { createRequire } from 'node:module'
 import { BetterSqlite3QueryRunner } from '../../../src/queryRunners/BetterSqlite3QueryRunner.js'
 import { NodeSqliteQueryRunner } from '../../../src/queryRunners/NodeSqliteQueryRunner.js'
-import { Sqlite3QueryRunner } from '../../../src/queryRunners/Sqlite3QueryRunner.js'
 import { Sqlite3WasmOO1QueryRunner } from '../../../src/queryRunners/Sqlite3WasmOO1QueryRunner.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { describeOverADriverTransaction, inManualTransaction } from '../lib/overADriverTransaction.js'
@@ -76,23 +75,6 @@ describeOverADriverTransaction({
         return driverOver(db, () => db.selectValue('select count(*) from rt_given'), () => db.close())
     },
     createRunner: transaction => new Sqlite3WasmOO1QueryRunner(transaction, { forUseInTransaction: true }),
-})
-
-describeOverADriverTransaction({
-    label: 'Sqlite3QueryRunner (forUseInTransaction)',
-    realEnabled: isRealDbEnabled('sqlite', 'native', 'newest', 'sqlite3'),
-    async open() {
-        const sqlite3 = (await import('sqlite3')).default
-        const db = new sqlite3.Database(':memory:')
-        const run = (sql: string) => new Promise((resolve, reject) => db.run(sql, (error: unknown) => error ? reject(error) : resolve(undefined)))
-        return {
-            begin: fn => inManualTransaction(db, run, fn),
-            run,
-            count: () => new Promise<number>((resolve, reject) => db.get('select count(*) as n from rt_given', (error: unknown, row: any) => error ? reject(error) : resolve(Number(row.n)))),
-            close: () => new Promise<void>((resolve, reject) => db.close(e => e ? reject(e) : resolve())),
-        }
-    },
-    createRunner: transaction => new Sqlite3QueryRunner(transaction, { forUseInTransaction: true }),
 })
 
 describeOverADriverTransaction({

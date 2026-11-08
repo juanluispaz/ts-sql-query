@@ -10,7 +10,6 @@
 //
 // One value type per test so a connector that can't handle a single type
 // only loses that test (not the others). Connector limitations surfaced:
-//   - bigint: the `sqlite3` driver can't bind a JS BigInt (sends NULL).
 //   - uuid:   the shared test connection defaults to the `'string'` uuid
 //             strategy, so uuid columns round-trip as plain TEXT and no
 //             binary uuid helper is needed.

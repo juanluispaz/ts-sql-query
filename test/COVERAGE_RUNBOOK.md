@@ -78,7 +78,7 @@ tests on the first wave.
    enforce something `LIMITATIONS.md` says it will not enforce is doomed.
 7. **[`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md)** — every
    "Dialect-specific notes" subsection. These are the caveats in force on
-   today's matrix: `sqlite3` BigInt coercion, MySQL no RETURNING, Oracle/SqlServer/MariaDB on-conflict shapes. The
+   today's matrix: MySQL no RETURNING, Oracle/SqlServer/MariaDB on-conflict shapes. The
    §8 propagation sweep is mechanical only if the agent knows the
    catalog.
 8. **[`ANTIPATTERNS.md`](./ANTIPATTERNS.md)** — every entry. Catalogue of
@@ -448,7 +448,7 @@ its cell**, before propagating. Per
 [`DESIGN.md` § Real-DB validation](./DESIGN.md#real-db-validation):
 
 - **Canonical is SQLite native** (`sqlite/newest/bun_sqlite`, also
-  `better-sqlite3`/`node_sqlite`/`sqlite3`): the bake above already ran
+  `better-sqlite3`/`node_sqlite`): the bake above already ran
   real-DB. The canonical is real-validated; no flag needed.
 - **Canonical is docker-backed** (`postgres/newest/pg`, mariadb / mysql /
   oracle / sqlserver canonical cells): run
@@ -564,11 +564,9 @@ Once the canonical is GREEN/YELLOW, propagate via a small `cp` script (or
 
 4. **Apply the EXTERNAL_CAVEATS re-wrap list from §4.5 / §7.** Block-comment
    the relevant tests in the affected cells with the canonical body
-   preserved and the documented reason header. Neither `bigint` nor
-   `customUuid` needs a wrap: `Sqlite3QueryRunner` coerces a `bigint` param to
-   a `number`, so those tests run live on `sqlite3` with the coerced param in
-   their snapshot, and the domain's `uuidStrategy` is `'string'`, so no SQLite
-   cell depends on a UUID extension.
+   preserved and the documented reason header. `customUuid` needs no wrap:
+   the domain's `uuidStrategy` is `'string'`, so no SQLite cell depends on a
+   UUID extension.
 
 5. **For "not typed on this dialect" cells** (today: sqlite for `.oldValues()` /
    `deleteFrom(...).using(...)` / `isolationLevel(...)`, mysql for

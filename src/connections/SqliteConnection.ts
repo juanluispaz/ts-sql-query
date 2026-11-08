@@ -32,7 +32,7 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
      *
      * The three connectors that expose a JS user-function API can register it:
      * `better-sqlite3` / `node:sqlite` via `db.function(name, (s, f, t) => …)`, `sqlite-wasm`
-     * via `db.createFunction`. The `sqlite3`, `bun:sqlite` and `bun:sql` connectors have no such
+     * via `db.createFunction`. The `bun:sqlite` and `bun:sql` connectors have no such
      * API, so on them `.replaceAllInsensitive(...)` stays case-sensitive. See the Collations page
      * of the documentation for the JS implementation to register per connector.
      */

@@ -171,7 +171,7 @@ WASM_PATHS=()
 # !!! KEEP IN SYNC with RealDbBackend / isRealDbEnabled in
 # test/lib/backends.ts (the runtime gate). !!!
 WASM_CONNECTOR_NAMES=(pglite sqlite-wasm-OO1 sqlite-wasm-OO1-sync)
-NATIVE_CONNECTOR_NAMES=(better-sqlite3 better-sqlite3-sync bun_sql_sqlite bun_sqlite bun_sqlite-sync node_sqlite node_sqlite-sync sqlite3)
+NATIVE_CONNECTOR_NAMES=(better-sqlite3 better-sqlite3-sync bun_sql_sqlite bun_sqlite bun_sqlite-sync node_sqlite node_sqlite-sync)
 
 # Internal: connector folder name matches the given type.
 # Returns 0 on match, 1 on miss. `docker` is the complement of WASM ∪
@@ -274,7 +274,7 @@ unset _wp
 #                  workers (see getOrCreateSqliteWasm in
 #                  test/db/sqlite/runners.ts).
 #   2 · sqlite-A : better-sqlite3(+sync), node_sqlite(+sync).
-#   3 · sqlite-B : sqlite3, bun_sqlite(+sync), bun_sql_sqlite.
+#   3 · sqlite-B : bun_sqlite(+sync), bun_sql_sqlite.
 #   4 · rest     : everything else — the COMPLEMENT: every connector cell not
 #                  claimed by shards 1-3 (docker engines + documentation) PLUS
 #                  the types.negative folders and the query-runner tests, so no
@@ -284,7 +284,7 @@ unset _wp
 # Groups 2/3 are hand-balanced by file count so each parallel shard stays
 # memory-bounded; shard 1 runs sequential. Current figures: test/BENCHMARKS.md.
 SHARD2_CONNECTOR_NAMES=(better-sqlite3 better-sqlite3-sync node_sqlite node_sqlite-sync)
-SHARD3_CONNECTOR_NAMES=(sqlite3 bun_sqlite bun_sqlite-sync bun_sql_sqlite)
+SHARD3_CONNECTOR_NAMES=(bun_sqlite bun_sqlite-sync bun_sql_sqlite)
 
 # Echo the runner paths for shard <n> (1..4), one per line. Shards 1-3 are
 # explicit connector-cell sets; shard 4 is the complement + types.negative,

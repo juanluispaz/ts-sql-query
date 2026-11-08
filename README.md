@@ -140,14 +140,14 @@ The condition on the last name had no value, so it's not in the query. No extra 
 | [MySQL](https://ts-sql-query.readthedocs.io/en/latest/configuration/supported-databases/mysql/) | `mysql2`, Bun SQL |
 | [Oracle](https://ts-sql-query.readthedocs.io/en/latest/configuration/supported-databases/oracle/) | `oracledb` |
 | [PostgreSQL](https://ts-sql-query.readthedocs.io/en/latest/configuration/supported-databases/postgresql/) | `pg`, `postgres`, Bun SQL, PGlite |
-| [SQLite](https://ts-sql-query.readthedocs.io/en/latest/configuration/supported-databases/sqlite/) | `better-sqlite3`, `node:sqlite`, `bun:sqlite`, Bun SQL, sqlite-wasm, `sqlite3` |
+| [SQLite](https://ts-sql-query.readthedocs.io/en/latest/configuration/supported-databases/sqlite/) | `better-sqlite3`, `node:sqlite`, `bun:sqlite`, Bun SQL, sqlite-wasm |
 | [SQL Server](https://ts-sql-query.readthedocs.io/en/latest/configuration/supported-databases/sqlserver/) | `mssql` |
 
 `ts-sql-query` uses one dialect, inspired by SQLite and PostgreSQL with names adapted to JavaScript, and writes the SQL of the database you connect to. Each database page says what it offers and what it doesn't, and [Query runners](https://ts-sql-query.readthedocs.io/en/latest/configuration/query-runners/) tells how to connect with each driver.
 
 ## How it's tested
 
-The tests run on 81 combinations of a database, a version and a driver, which share 5,384 tests: more than 419,000 tests in all. Each one checks the SQL, the parameters, the exact type of the result and the rows that come back, and the same test runs against the real database and against a mock. Besides the queries, 4,347 forms of using the library are checked to be compilation errors, each query runner is tested on its own against its database, and every example of the documentation compiles.
+The tests run on 76 combinations of a database, a version and a driver, which share 5,401 tests: more than 394,000 tests in all. Each one checks the SQL, the parameters, the exact type of the result and the rows that come back, and the same test runs against the real database and against a mock. Besides the queries, 4,347 forms of using the library are checked to be compilation errors, each query runner is tested on its own against its database, and every example of the documentation compiles.
 
 | Database | Versions |
 |---|---|

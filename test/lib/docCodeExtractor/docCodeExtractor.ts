@@ -313,7 +313,6 @@ const SUBSTITUTIONS: { from: string; to: string }[] = [
     { from: `// ForceTypeCast's transformPlaceholder implementation ...`, to: `{ return next.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB); /* dummy implementation*/ }` },
     { from: `// ForceTypeCast's forceTypeCast implementation ...`, to: `{ void type; void typeCategory; void valueSentToDB; void forceTypeCast; void next; return true; /* dummy implementation*/ }` },
     { from: `new NodeSqliteQueryRunner(db`, to: `new NodeSqliteQueryRunner(db as any` },
-    { from: `new Sqlite3QueryRunner(db`, to: `new Sqlite3QueryRunner(db as any` },
     { from: `new BetterSqlite3QueryRunner(db`, to: `new BetterSqlite3QueryRunner(db as any` },
     { from: `new BunSqliteQueryRunner(db`, to: `new BunSqliteQueryRunner(db as any` },
     { from: `new Sqlite3WasmOO1QueryRunner(db`, to: `new Sqlite3WasmOO1QueryRunner(db as any` },

@@ -54,9 +54,9 @@ cell**?*
   tracked by symmetry + the dialect's `types.negative/`.
 
 An in-repo close path counts **only when it covers every connector of the
-dialect**. `cot()` is here because `1 / tan(x)` closes it on all six SQLite
+dialect**. `cot()` is here because `1 / tan(x)` closes it on all five SQLite
 runners (Oracle already emits exactly that); `reverse()` is **not**, because
-its only close path is a UDF that Bun SQL's sqlite adapter and `sqlite3` cannot
+its only close path is a UDF that Bun SQL's sqlite adapter cannot
 register.
 
 |  | Limitation | Bug | Not supported | Dialect boundary |
@@ -599,7 +599,7 @@ covers **every** SQLite runner, UDF API or not:
    work on SQLite and turn every `cot` test there live. This is the cheapest close
    and the recommended one when someone picks this up.
 2. Register a `cot` UDF on the connectors that expose a UDF API. Note this is a
-   *partial* path — Bun SQL and `sqlite3` have no UDF API — which is why
+   *partial* path — Bun SQL has no UDF API — which is why
    `reverse()`, whose only close path is this one, is `NOT-SUPPORTED` instead.
 
 The emulation is **deliberately deferred**, to keep taxonomy work free of a `src/`
@@ -664,9 +664,8 @@ database is a cost the user didn't ask for). Where the driver gives nothing,
 it isn't detected, and the statements that follow run outside any
 transaction, each one committed at once:
 
-- **`Sqlite3QueryRunner`** (sqlite3 has no `inTransaction`) and
-  **`BunSqlSqliteQueryRunner`** (Bun SQL neither). The error doesn't tell
-  either: a conflict clause that rolls back fails with the same
+- **`BunSqlSqliteQueryRunner`** (Bun SQL has no `inTransaction`). The error
+  doesn't tell either: a conflict clause that rolls back fails with the same
   `SQLITE_CONSTRAINT` as one that rolls back only the statement.
 - **`Sqlite3WasmOO1QueryRunner`**: the C API has `sqlite3_get_autocommit(db)`,
   but the `Database` the query runner gets doesn't reach it (`db.pointer`

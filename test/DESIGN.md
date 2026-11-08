@@ -62,7 +62,7 @@ Three categories of real-DB connector with very different cost:
 
 | Category | Connectors | Real-DB by default? | Cost per cell |
 |---|---|---|---|
-| **Embedded SQLite** | better-sqlite3, bun_sqlite, bun_sql_sqlite, node_sqlite, sqlite3 (and their `-sync` twins) | yes, no flag needed | as cheap as the mock |
+| **Embedded SQLite** | better-sqlite3, bun_sqlite, bun_sql_sqlite, node_sqlite (and their `-sync` twins) | yes, no flag needed | as cheap as the mock |
 | **Docker-backed** | postgres (pg, postgres, bun_sql_postgres), mysql and mariadb (mysql2 / mariadb, bun_sql_mysql), oracle, sqlserver | no — opt in with `--docker` | seconds to minutes (depends on warm reuse) |
 | **WASM** | pglite, sqlite-wasm-OO1 (and its `-sync` twin) | no — opt in with `--wasm` | seconds to minutes (CPU-bound bootstrap) |
 

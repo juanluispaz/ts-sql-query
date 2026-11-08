@@ -44,7 +44,6 @@ A connection object and its query runner represent one connection to the databas
 | SQLite | `bun:sqlite` | `BunSqliteQueryRunner` | [Bun Sqlite](recommended/bun_sqlite.md) |
 | SQLite | Bun SQL | `BunSqlSqliteQueryRunner` | [Bun SQL for SQLite](recommended/bun_sql_sqlite.md) |
 | SQLite | sqlite-wasm | `Sqlite3WasmOO1QueryRunner` | [sqlite-wasm OO1](recommended/sqlite-wasm-OO1.md) |
-| SQLite | `sqlite3` | `Sqlite3QueryRunner` | [sqlite3](additional/sqlite3.md) |
 | SQL Server | `mssql` | `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner` | [mssql](recommended/mssql.md) |
 
 The name says what the query runner receives: `Pool` a pool of connections of the driver, from which it takes a connection for each statement or transaction, `PoolPromise` a promise of that pool, and no suffix a single connection you give it. The page of each one shows how to create it.

@@ -240,7 +240,7 @@ Note that `.length()` is **not** affected: it counts characters correctly on SQL
 
 `ts-sql-query` offers you different strategies to handle UUIDs in Sqlite:
 
-- `uuid-extension`: *(default strategy)* In this case, the UUID is represented and stored as `blob` data type of length 16. This requires the [UUID extension](https://sqlite.org/src/file?name=ext/misc/uuid.c) or another compatible implementation (if you use better-sqlite3 you can [provide your own one](../query-runners/recommended/better-sqlite3.md#better-sqlite3-and-uuids)).
+- `uuid-extension`: *(default strategy)* In this case, the UUID is represented and stored as `blob` data type of length 16. This requires the functions `uuid`, `uuid_str` and `uuid_blob` of the [UUID extension](https://sqlite.org/src/file?name=ext/misc/uuid.c): some builds of SQLite have them built in, like the one of macOS, which Bun uses there, and on the drivers that register functions written in JavaScript [`registerSqliteFunctions`](#registering-the-functions) registers them.
 - `string`: In this case, the UUID is represented as string and stored in a column with `text` data type and length 36 characters.
 
 You can configure the strategy by overriding the `uuidStrategy` field in your connection class:
@@ -255,7 +255,7 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
 
 !!! tip "Generating UUIDs"
 
-    When generating UUIDs on the application side, prefer **UUID v7** over UUID v4. With the `'string'` strategy v7 sorts chronologically by lexicographic comparison of its 36-character text representation; with the `'uuid-extension'` strategy this depends on the `uuid_blob` function you register — the snippets recommended in the [better-sqlite3](../query-runners/recommended/better-sqlite3.md#better-sqlite3-and-uuids) and [node:sqlite](../query-runners/recommended/node_sqlite.md#nodesqlite-and-uuids) pages preserve the canonical byte order, so v7 sorts on the primary-key index. See the [column types](../column-types.md) page for more context.
+    When generating UUIDs on the application side, prefer **UUID v7** over UUID v4. With the `'string'` strategy v7 sorts chronologically by lexicographic comparison of its 36-character text representation; with the `'uuid-extension'` strategy the blob of `uuid_blob` keeps the bytes in the order of the text, so v7 sorts on the primary-key index too. The `uuid()` that `registerSqliteFunctions` registers generates v7. See the [column types](../column-types.md) page for more context.
 
 ## Exact decimals: the decimal strategies
 
@@ -303,12 +303,12 @@ It turns `007.50` into `7.5`, `-0.00` and `0.0` into `0`, `.5` into `0.5`, `1.50
 
 Plain SQL compares the numbers by their parts: the sign, where the point goes and the significant digits, so `1.5` equals `1.50` and `001.50`, `-0.00` equals `0`, `9` comes before `10`, and two values of 30 digits that differ in the last one are different. It is exact, but without the canonical text it takes longer than a function written in JavaScript, which does that work once per row. On a million rows in canonical text, the median of three runs of the SQL each strategy writes:
 
-In milliseconds, on bun:sqlite 3.51 / node:sqlite 3.53 / better-sqlite3 3.53.4 (macOS), the functions in JavaScript:
+In milliseconds, on bun:sqlite 3.51 / node:sqlite 3.53 / better-sqlite3 3.53.4 (macOS), the functions in JavaScript, without an index on the key (with one, the comparisons of `decimal-functions` took under a millisecond on bun:sqlite, see [below](#an-index-on-the-key-of-a-decimal)):
 
 | Operation | `text` | `canonical text` | `decimal-extension and tsq-functions` | `… with canonical text` *(default)* | `decimal-functions` | `… with canonical text` |
 |---|---|---|---|---|---|---|
-| An equality | 1196 / 1277 / 1046 | 32 / 32 / 31 | 379 / 442 / 331 | 32 / 34 / 31 | 375 / 426 / 330 | 32 / 34 / 30 |
-| A range (`greaterThan`) | 1676 / 2124 / 1567 | 1631 / 2010 / 1578 | 441 / 560 / 382 | 440 / 561 / 375 | 453 / 567 / 375 | 443 / 576 / 376 |
+| An equality | 1196 / 1277 / 1046 | 32 / 32 / 31 | 379 / 442 / 331 | 32 / 34 / 31 | 472 / 778 / 604 | 29 / 32 / 30 |
+| A range (`greaterThan`) | 1676 / 2124 / 1567 | 1631 / 2010 / 1578 | 441 / 560 / 382 | 440 / 561 / 375 | 492 / 850 / 643 | 499 / 858 / 674 |
 | Order by | 3832 / 4773 / 3552 | 1101 / 1225 / 1051 | 3799 / 4725 / 3550 | 1081 / 1225 / 1060 | 841 / 1285 / 986 | 866 / 1280 / 997 |
 | Group by | 1548 / 1678 / 1452 | 388 / 551 / 400 | 1546 / 1709 / 1440 | 387 / 550 / 402 | 972 / 1349 / 1046 | 384 / 556 / 402 |
 | Distinct | 1595 / 1710 / 1515 | 525 / 1365 / 538 | 1582 / 1748 / 1537 | 508 / 1449 / 523 | 1194 / 1644 / 1322 | 570 / 1462 / 534 |
@@ -330,195 +330,32 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
 }
 ```
 
-The strategies with functions write these ones, and none of SQLite: the extension's `decimal_add(a, b)`, `decimal_sub(a, b)`, `decimal_mul(a, b)`, `decimal_cmp(a, b)` and the aggregate `decimal_sum(x)`, and the library's `tsq_decimal_ceil(x)`, `tsq_decimal_floor(x)`, `tsq_decimal_round(x, n)` and `tsq_decimal_mod(a, b)`; `decimal-functions` also `tsq_decimal_key(x)` (a text whose order is the order of the numbers, for the order by, the group by and the distinct), `tsq_decimal_abs(x)` and the aggregates `tsq_decimal_min(x)` and `tsq_decimal_max(x)`. The library's functions start with `tsq_`, so no function of SQLite or of an extension has their name. A query that uses one of them fails with `no such function` when it isn't registered. With these functions registered as deterministic, an index on the key of a column lets the order by and the ranges of that column use it with `decimal-functions`, as SQLite takes an index on an expression for the same expression in a query (measured with node:sqlite and better-sqlite3; the plan is `SCAN t USING INDEX` and `SEARCH t USING INDEX`):
+The strategies with functions write these ones, and none of SQLite: the extension's `decimal_add(a, b)`, `decimal_sub(a, b)`, `decimal_mul(a, b)`, `decimal_cmp(a, b)` and the aggregate `decimal_sum(x)`, and the library's `tsq_decimal_ceil(x)`, `tsq_decimal_floor(x)`, `tsq_decimal_round(x, n)` and `tsq_decimal_mod(a, b)`; `decimal-functions` also `tsq_decimal_key(x)` (a text whose order is the order of the numbers, for the order by, the group by and the distinct), `tsq_decimal_abs(x)` and the aggregates `tsq_decimal_min(x)` and `tsq_decimal_max(x)`. The library's functions start with `tsq_`, so no function of SQLite or of an extension has their name. A query that uses one of them fails with `no such function` when the database doesn't have it.
+
+### Registering the functions
+
+On the drivers that register functions written in JavaScript, one call of `registerSqliteFunctions` registers all of them, with the ones of the [uuid strategy](#uuid-strategies) and `ci_replace`: see the page of [better-sqlite3](../query-runners/recommended/better-sqlite3.md#the-sql-functions-of-the-library), [bun:sqlite](../query-runners/recommended/bun_sqlite.md#the-sql-functions-of-the-library), [node:sqlite](../query-runners/recommended/node_sqlite.md#the-sql-functions-of-the-library) or [sqlite-wasm OO1](../query-runners/recommended/sqlite-wasm-OO1.md#the-sql-functions-of-the-library). The functions are written with `BigInt` and give the results of SQLite's decimal extension and, for the library's own, of the other databases. A function the database already has with the same name and number of arguments is left as it is: with SQLite's decimal extension loaded before the call, its functions, written in C, compute, and the call adds the library's own.
+
+!!! warning "Bun SQL can't register functions"
+
+    Bun SQL for SQLite has no way to register a function nor to load an extension, so the strategies with functions don't work with it. With it, use the `canonical text` strategy (or `text`), which compares, orders and groups exactly and rejects the arithmetic; or, on Bun, use [bun:sqlite](../query-runners/recommended/bun_sqlite.md), which registers them.
+
+### An index on the key of a decimal
+
+With `decimal-functions` and its canonical text variant, the comparisons and the order by of a `customDecimal` use its key: `price.greaterThan('9.5')` is `tsq_decimal_key(price) > tsq_decimal_key(?)`, and without the canonical text the equality and `in` too. `registerSqliteFunctions` registers `tsq_decimal_key` as deterministic, so SQLite takes an index on that expression, and uses it for the same expression in a query:
 
 ```sql
 create index exact_amount_price_key on exact_amount (tsq_decimal_key(price));
 ```
 
-Without the function registered, that table can be read but not written: an insert fails with `unknown function: tsq_decimal_key()`.
+On a million rows with bun:sqlite, an equality, an `in` and a range with that index take under a millisecond (`SEARCH t USING COVERING INDEX`) where without it they take about half a second, and the order by reads the index (`SCAN t USING INDEX`) instead of sorting. Without the index, comparing by the key takes longer than comparing with `decimal_cmp`, which the other strategies with functions write: on a million rows, an equality takes 472 ms instead of 375 ms on bun:sqlite, 778 ms instead of 426 ms on node:sqlite and 604 ms instead of 330 ms on better-sqlite3. Create the index on the columns you compare or order by.
 
-This module implements all of them with `BigInt`, with the results of the extension and of the other databases; the page of each driver shows it again with how to register its functions: [better-sqlite3](../query-runners/recommended/better-sqlite3.md#better-sqlite3-and-exact-decimals), [bun:sqlite](../query-runners/recommended/bun_sqlite.md#bunsqlite-and-exact-decimals), [node:sqlite](../query-runners/recommended/node_sqlite.md#nodesqlite-and-exact-decimals) and [sqlite-wasm OO1](../query-runners/recommended/sqlite-wasm-OO1.md#sqlite-wasm-oo1-and-exact-decimals). Bun SQL can't register functions: use the `text` or the `canonical text` strategy with it.
+The index has two costs:
 
-```typescriptreact title="decimalFunctions.ts"
-// The functions the decimal strategies of SqliteConnection write, in JavaScript, for a driver that registers
-// functions written in JavaScript. The strategies with functions write decimal_add, decimal_sub, decimal_mul,
-// decimal_cmp and decimal_sum, the functions of SQLite's decimal extension (ext/misc/decimal.c), with its results, and
-// tsq_ ones: 'decimal-extension and tsq-functions' the roundings and the modulo, 'decimal-functions' also the order,
-// the grouping, min and max. The SQLite page of the documentation shows this file as it is.
+- Without the function registered, the table can still be read, but not written: an insert fails with `unknown function: tsq_decimal_key()`. Register the functions on every connection that writes it.
+- With `pragma trusted_schema = off`, SQLite takes in the schema only the functions marked as innocuous, and only sqlite-wasm can mark them: on better-sqlite3, node:sqlite and bun:sqlite creating the index fails with `unsafe use of tsq_decimal_key()`.
 
-// The functions of SQLite's decimal extension (ext/misc/decimal.c) that the decimal strategies with functions
-// write, in JavaScript, for the connectors that can't load the extension (the SQLite page of the documentation
-// gives this same code). They give the results of the extension: decimal_add and decimal_sub keep the largest
-// scale, decimal_mul keeps the decimals of both operands but trims the zeros at the end down to the smaller scale,
-// decimal_sum keeps the largest scale, is 0 when every value is null and null without rows, decimal_cmp gives -1, 0
-// or 1, a null operand gives null, and a zero keeps the sign of the operation that gave it ('-0.00'). The
-// extension's decimal_add and decimal_sub fail with "out of memory" on a null operand; these return null (the
-// library never sends them one).
-export interface ExactDecimal { negative: boolean, digits: bigint, scale: number }
-export function parseExactDecimal(value: unknown): ExactDecimal | null {
-    if (value === null || value === undefined) return null
-    const text = String(value).trim()
-    let negative = false
-    let i = 0
-    if (text[i] === '-') { negative = true; i++ } else if (text[i] === '+') { i++ }
-    let digits = ''
-    let pointAt = -1
-    let exponent = 0
-    for (; i < text.length; i++) {
-        const c = text[i]!
-        if (c >= '0' && c <= '9') {
-            digits += c
-        } else if (c === '.') {
-            pointAt = digits.length
-        } else if (c === 'e' || c === 'E') {
-            exponent = parseInt(text.substring(i + 1), 10) || 0
-            break
-        }
-    }
-    let scale = pointAt < 0 ? 0 : digits.length - pointAt
-    let magnitude = BigInt(digits || '0')
-    scale -= exponent
-    if (scale < 0) {
-        magnitude *= 10n ** BigInt(-scale)
-        scale = 0
-    }
-    return { negative: negative && magnitude !== 0n, digits: magnitude, scale }
-}
-export function formatExactDecimal(value: ExactDecimal): string {
-    const text = value.digits.toString().padStart(value.scale + 1, '0')
-    const integerPart = text.substring(0, text.length - value.scale)
-    const fraction = value.scale > 0 ? '.' + text.substring(text.length - value.scale) : ''
-    return (value.negative ? '-' : '') + integerPart + fraction
-}
-export function addExactDecimals(a: ExactDecimal, b: ExactDecimal): ExactDecimal {
-    const scale = Math.max(a.scale, b.scale)
-    const x = a.digits * 10n ** BigInt(scale - a.scale)
-    const y = b.digits * 10n ** BigInt(scale - b.scale)
-    if (a.negative === b.negative) return { negative: a.negative, digits: x + y, scale }
-    return x < y ? { negative: !a.negative, digits: y - x, scale } : { negative: a.negative, digits: x - y, scale }
-}
-export function decimalAdd(a: unknown, b: unknown): string | null {
-    const x = parseExactDecimal(a)
-    const y = parseExactDecimal(b)
-    return x && y ? formatExactDecimal(addExactDecimals(x, y)) : null
-}
-export function decimalSub(a: unknown, b: unknown): string | null {
-    const x = parseExactDecimal(a)
-    const y = parseExactDecimal(b)
-    return x && y ? formatExactDecimal(addExactDecimals(x, { ...y, negative: !y.negative })) : null
-}
-export function decimalMul(a: unknown, b: unknown): string | null {
-    const x = parseExactDecimal(a)
-    const y = parseExactDecimal(b)
-    if (!x || !y) return null
-    let digits = x.digits * y.digits
-    let scale = x.scale + y.scale
-    const minScale = Math.min(x.scale, y.scale)
-    while (scale > minScale && digits % 10n === 0n) {
-        digits /= 10n
-        scale--
-    }
-    return formatExactDecimal({ negative: x.negative !== y.negative, digits, scale })
-}
-export function decimalCmp(a: unknown, b: unknown): number | null {
-    const x = parseExactDecimal(a)
-    const y = parseExactDecimal(b)
-    if (!x || !y) return null
-    const difference = addExactDecimals(x, { ...y, negative: !y.negative })
-    return difference.digits === 0n ? 0 : difference.negative ? -1 : 1
-}
-// decimal_sum: the state is null until a row is seen
-export function decimalSumStep(total: ExactDecimal | null, value: unknown): ExactDecimal {
-    const sum = total ?? { negative: false, digits: 0n, scale: 0 }
-    const x = parseExactDecimal(value)
-    return x ? addExactDecimals(sum, x) : sum
-}
-export function decimalSumResult(total: ExactDecimal | null): string | null {
-    return total ? formatExactDecimal(total) : null
-}
-// The functions of the library that the decimal extension doesn't have, which the decimal strategies with functions
-// write (see each function), named with the prefix of the library (tsq_) so no function of SQLite or of an extension
-// has their name.
-// tsq_decimal_key: a text whose order is the order of the numbers, the same for 1.5 and 1.50: '1' for zero; for a
-// positive number '2', its exponent (where the point goes, from the first significant digit) plus 500000000 in 10
-// digits, and its significant digits; for a negative number '0', the same with every digit inverted (9 - digit),
-// and '~' at the end, so a longer number, of greater magnitude, comes before.
-export function decimalKey(value: unknown): string | null {
-    const x = parseExactDecimal(value)
-    if (!x) return null
-    if (x.digits === 0n) return '1'
-    const text = x.digits.toString()
-    const exponent = (text.length - x.scale + 500000000).toString().padStart(10, '0')
-    const significant = text.replace(/0+$/, '')
-    if (!x.negative) return '2' + exponent + significant
-    const invert = (digits: string) => digits.replace(/[0-9]/g, digit => String(9 - Number(digit)))
-    return '0' + invert(exponent) + invert(significant) + '~'
-}
-// tsq_decimal_abs, tsq_decimal_ceil, tsq_decimal_floor, tsq_decimal_round and tsq_decimal_mod: the operations of
-// the other databases on a decimal, with their scales: abs and mod keep the scale (mod the larger of both, with the
-// sign of the dividend, null when dividing by zero), ceil and floor have no decimals, and round(x, n) has n decimals
-// (none when n is negative), rounding half away from zero.
-export function decimalAbs(value: unknown): string | null {
-    const x = parseExactDecimal(value)
-    return x ? formatExactDecimal({ ...x, negative: false }) : null
-}
-export function decimalToInteger(value: unknown, up: (negative: boolean) => boolean): string | null {
-    const x = parseExactDecimal(value)
-    if (!x) return null
-    const divisor = 10n ** BigInt(x.scale)
-    let digits = x.digits / divisor
-    if (x.digits % divisor !== 0n && up(x.negative)) digits += 1n
-    return formatExactDecimal({ negative: x.negative && digits !== 0n, digits, scale: 0 })
-}
-export function decimalCeil(value: unknown): string | null {
-    // The magnitude goes up for a positive number and down (truncated) for a negative one
-    return decimalToInteger(value, negative => !negative)
-}
-export function decimalFloor(value: unknown): string | null {
-    return decimalToInteger(value, negative => negative)
-}
-export function decimalRound(value: unknown, places: unknown): string | null {
-    const x = parseExactDecimal(value)
-    if (!x || places === null || places === undefined) return null
-    const n = Number(places)
-    if (n >= x.scale) {
-        return formatExactDecimal({ ...x, digits: x.digits * 10n ** BigInt(n - x.scale), scale: n })
-    }
-    const divisor = 10n ** BigInt(x.scale - n)
-    let digits = x.digits / divisor
-    if ((x.digits % divisor) * 2n >= divisor) digits += 1n
-    const scale = Math.max(n, 0)
-    if (n < 0) digits *= 10n ** BigInt(-n)
-    return formatExactDecimal({ negative: x.negative && digits !== 0n, digits, scale })
-}
-export function decimalMod(a: unknown, b: unknown): string | null {
-    const x = parseExactDecimal(a)
-    const y = parseExactDecimal(b)
-    if (!x || !y || y.digits === 0n) return null
-    const scale = Math.max(x.scale, y.scale)
-    const digits = (x.digits * 10n ** BigInt(scale - x.scale)) % (y.digits * 10n ** BigInt(scale - y.scale))
-    return formatExactDecimal({ negative: x.negative && digits !== 0n, digits, scale })
-}
-// tsq_decimal_min and tsq_decimal_max: the value, with its scale, that is the smallest or the largest number; the
-// first one when several are equal, and null without values
-export interface DecimalChoice { value: unknown, number: ExactDecimal }
-export function decimalMinStep(chosen: DecimalChoice | null, value: unknown): DecimalChoice | null {
-    const x = parseExactDecimal(value)
-    if (!x) return chosen
-    return !chosen || decimalCmp(value, chosen.value)! < 0 ? { value, number: x } : chosen
-}
-export function decimalMaxStep(chosen: DecimalChoice | null, value: unknown): DecimalChoice | null {
-    const x = parseExactDecimal(value)
-    if (!x) return chosen
-    return !chosen || decimalCmp(value, chosen.value)! > 0 ? { value, number: x } : chosen
-}
-export function decimalChoiceResult(chosen: DecimalChoice | null): unknown {
-    return chosen ? chosen.value : null
-}
-```
-
-A function written in JavaScript costs more than the ones of SQLite. Ordering 100,000 rows of a `TEXT` column, measured on macOS with Bun 1.4 and Node 26: 16 ms by the text and 60 ms by `tsq_decimal_key` on bun:sqlite, 29 ms and 97 ms on node:sqlite, 19 ms and 79 ms on better-sqlite3. A comparison written with `decimal_cmp` can't use an index of the column.
+A function written in JavaScript costs more than the ones of SQLite. Ordering 100,000 rows of a `TEXT` column, measured on macOS with Bun 1.4 and Node 26: 16 ms by the text and 60 ms by `tsq_decimal_key` on bun:sqlite, 29 ms and 97 ms on node:sqlite, 19 ms and 79 ms on better-sqlite3.
 
 ## `stringConcatDistinct` has no separator
 

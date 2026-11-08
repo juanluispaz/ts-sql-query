@@ -324,31 +324,9 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
 }
 ```
 
-Register `ci_replace` on the driver. The JS body is the same everywhere; only the registration call differs, and only some connectors expose one.
+Register `ci_replace` on the driver: `registerSqliteFunctions` of the query runner registers it, a case-insensitive replace of every occurrence, together with the other SQL functions the library may write. See the page of [better-sqlite3](query-runners/recommended/better-sqlite3.md#the-sql-functions-of-the-library), [bun:sqlite](query-runners/recommended/bun_sqlite.md#the-sql-functions-of-the-library), [node:sqlite](query-runners/recommended/node_sqlite.md#the-sql-functions-of-the-library) or [sqlite-wasm OO1](query-runners/recommended/sqlite-wasm-OO1.md#the-sql-functions-of-the-library).
 
-On **`better-sqlite3`**, **`bun:sqlite`** and **`node:sqlite`**, all three expose `db.function(name, fn)`:
-
-```typescriptreact
-// `db` is the better-sqlite3 / bun:sqlite / node:sqlite Database the query runner wraps
-db.function('ci_replace', (s, f, t) => {
-    if (s == null || f == null || t == null) return s
-    // case-insensitive replace of every occurrence of `f` in `s` with `t`
-    const escaped = String(f).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    return String(s).replace(new RegExp(escaped, 'gi'), String(t))
-})
-```
-
-On **`sqlite-wasm-OO1`**, the OO1 wrapper exposes `db.createFunction(name, fn)` (the callback receives a leading context pointer):
-
-```typescriptreact
-db.createFunction('ci_replace', (_ctxPtr, s, f, t) => {
-    if (s == null || f == null || t == null) return s
-    const escaped = String(f).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    return String(s).replace(new RegExp(escaped, 'gi'), String(t))
-})
-```
-
-The **`bun:sql`** connector has **no user-defined-function API** (it does not expose the `bun:sqlite` database it opens either), so `replaceAllInsensitiveFunction` cannot be used — leave it unset and `replaceAllInsensitive` behaves as `replace` (case-sensitive). Registering a compiled extension is out of scope: it opens a non-JS chapter the library does not enter.
+The **`bun:sql`** connector has **no user-defined-function API** (it does not expose the `bun:sqlite` database it opens either), so `replaceAllInsensitiveFunction` cannot be used — leave it unset and `replaceAllInsensitive` behaves as `replace` (case-sensitive).
 
 ## Per database
 

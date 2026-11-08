@@ -97,3 +97,22 @@ async function main() {
 ## A statement you run with Bun SQL itself
 
 A statement that fails leaves a PostgreSQL transaction failed, even if its error is caught ([details](../../supported-databases/postgresql.md#a-statement-that-fails-inside-a-transaction)). `ts-sql-query` notices it for the statements it runs, but not for one you run with the connection of the transaction yourself (`connection.queryRunner.getCurrentNativeConnection()`): if that one fails and you catch its error, Bun SQL commits the transaction as if nothing had failed, and nothing of it is saved.
+
+## The type of the parameters
+
+Where PostgreSQL can't work out the type of a parameter, like a constant selected on its own, the query runner writes it as a cast in the SQL, `$1::int4`, from [the category of its type](../../column-types.md#how-a-value-is-sent-to-the-database): Bun SQL can't send a parameter with its type. The second argument of `BunSqlPostgresQueryRunner`, optional, is an object of type `BunSqlPostgresQueryRunnerConfig`, exported from `ts-sql-query/queryRunners/BunSqlPostgresQueryRunner`, with one option, `typesByName`: it maps the name of a type, the one you give a custom type or a built-in one like `'int'`, to the cast written instead, for example `numeric` for an exact decimal kept as text:
+
+```ts
+import { SQL } from "bun";
+import { BunSqlPostgresQueryRunner } from "ts-sql-query/queryRunners/BunSqlPostgresQueryRunner";
+
+const sql = new SQL({ adapter: 'postgres' /* , configuration */ });
+
+async function main() {
+    const connection = new DBConnection(new BunSqlPostgresQueryRunner(sql, { typesByName: { ExactDecimal: 'numeric' } }));
+    // A parameter of the type ExactDecimal, where the query needs a type: $1::numeric
+    connection // ...
+}
+```
+
+The cast is written only where the query needs a type, as without the option; elsewhere, like compared with a column, the parameter goes as `$1` and the column gives it its type.

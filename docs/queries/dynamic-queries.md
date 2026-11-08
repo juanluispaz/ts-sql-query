@@ -987,11 +987,11 @@ The executed query is:
     ```postgresql
     select 
         id as id, 
-        null::text as "firstName", 
-        null::text as "lastName", 
+        $1::text as "firstName", 
+        $2::text as "lastName", 
         birthday as birthday 
     from customer 
-    where id = $1
+    where id = $3
     ```
 === "SQLite"
     ```sqlite
@@ -1014,7 +1014,7 @@ The executed query is:
     where id = @0
     ```
 
-The parameters are: `[ 10 ]`
+The parameters are: `[ 10 ]`; on PostgreSQL, `[ null, null, 10 ]`, because there a null of a known type is sent as a parameter that carries its type.
 
 ## Order by from a string
 

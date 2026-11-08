@@ -65,9 +65,14 @@ When the transaction began with a query on the database (`db.query('begin')`), c
 
 A transaction that begins inside another one is rejected, unless you create the query runner with `new PgLiteQueryRunner(db, { allowNestedTransactions: true })`. PostgreSQL doesn't nest them: see [what this option does](../../../queries/transaction.md#nested-transactions).
 
+## The type of the parameters
+
+Where PostgreSQL can't work out the type of a parameter, like a constant selected on its own, the query runner sends the parameter with the type of [the category of its type](../../column-types.md#how-a-value-is-sent-to-the-database), and the SQL has no cast: `select $1 as result`, with the parameter sent as an `int4`. The option `typesByName` maps the name of a type, the one you give a custom type or a built-in one like `'int'`, to the oid of the PostgreSQL type every parameter of that name is sent with, wherever it is written: `new PgLiteQueryRunner(db, { typesByName: { ExactDecimal: 1700 } })` sends an exact decimal kept as text as a `numeric` (oid 1700), with every digit.
+
 ## Options of the query runner
 
 The second argument of `PgLiteQueryRunner`, optional, is an object of type `PgLiteQueryRunnerConfig`, exported from `ts-sql-query/queryRunners/PgLiteQueryRunner`:
 
 - **`allowNestedTransactions`**: see [Nested transactions](#nested-transactions).
+- **`typesByName`**: see [The type of the parameters](#the-type-of-the-parameters).
 - **`forUseInTransaction`**: the connection is already in a transaction that something else began and ends; see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages).

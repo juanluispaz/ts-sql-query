@@ -6,7 +6,7 @@ search:
 
 This page documents the API for defining and customizing type adapters in `ts-sql-query`. Type adapters transform values when reading from or writing to the database, supporting use cases such as custom serialization, non-standard boolean mappings, and enforced type casting.
 
-Type adapters control how values are serialized when writing to the database and deserialized when reading from it. They can be applied at the field level (when defining a table or view), or globally by overriding the `transformValueFromDB`, `transformValueToDB` and `transformPlaceholder` methods in the connection.
+Type adapters control how values are serialized when writing to the database and deserialized when reading from it. They can be applied at the field level (when defining a table or view), or globally by overriding the `transformValueFromDB`, `transformValueToDB`, `transformPlaceholder` and `forceTypeCast` methods in the connection.
 
 !!! info
 
@@ -35,15 +35,20 @@ type TypeCategory = 'boolean'
 interface TypeAdapter {
     transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown
     transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown
-    transformPlaceholder?(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string
+    transformPlaceholder?(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, next: DefaultTypeAdapter): string
+    forceTypeCast?(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean, next: DefaultTypeAdapter): boolean
 }
 ```
+
+- `transformPlaceholder` receives the placeholder as the query runner wrote it, like `$1` or `$1::int4`, and returns the one written in the SQL.
+- `forceTypeCast` decides whether the database must receive the type of the parameter: it receives `true` where the position in the SQL gives the parameter no type, and returns the value to use. The query runner then writes a cast, like `$1::int4`, or sends the parameter with its type when the driver can. Only the PostgreSQL query runners use it.
 
 ```typescript
 interface DefaultTypeAdapter {
     transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
     transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
-    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown): string
+    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown): string
+    forceTypeCast(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean): boolean
 }
 ```
 
@@ -72,10 +77,15 @@ class ForceTypeCast implements TypeAdapter {
     transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown
     // ForceTypeCast's transformValueToDB implementation ...
 
-    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string
+    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, next: DefaultTypeAdapter): string
     // ForceTypeCast's transformPlaceholder implementation ...
+
+    forceTypeCast(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean, next: DefaultTypeAdapter): boolean
+    // ForceTypeCast's forceTypeCast implementation ...
 }
 ```
+
+`ForceTypeCast` asks for the type of the parameter in every position, also where the library doesn't detect that PostgreSQL needs it. See [A position the library doesn't detect](../configuration/supported-databases/postgresql.md#a-position-the-library-doesnt-detect).
 
 !!! tip
 

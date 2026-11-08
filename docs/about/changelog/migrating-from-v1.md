@@ -174,6 +174,8 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 }
 ```
 
+`transformPlaceholder` no longer receives `forceTypeCast`: it is `transformPlaceholder(placeholder, type, typeCategory, valueSentToDB)` in the connection, with `next` at the end in a type adapter, and it receives the placeholder as the query runner wrote it, with the cast when there is one. To decide whether the database must receive the type of a parameter, implement `forceTypeCast(type, typeCategory, valueSentToDB, forceTypeCast)`; an override that cast every parameter on PostgreSQL is no longer needed, the library gives the type where PostgreSQL needs it (see [The type of a parameter](../../configuration/supported-databases/postgresql.md#the-type-of-a-parameter)).
+
 A rule like this one, that only sends a `customInt` to `int`, is no longer needed: a custom type is converted as the type of its category (see [Custom types are converted as their category](#custom-types-are-converted-as-their-category)). `TypeCategory` is exported from `ts-sql-query` and from `ts-sql-query/TypeAdapter`.
 
 ### Your own query runner, and the connection of the driver
@@ -183,7 +185,7 @@ A rule like this one, that only sends a `customInt` to `int`, is no longer neede
 - `executeInTransaction(fn, ...)` no longer accepts a function returning an array, and `executeBeginTransaction`, `executeCommit`, `executeRollback` and `executeInTransaction` receive an optional `opts` at the end.
 - To log or intercept queries, prefer [`InterceptorQueryRunner`](../../configuration/query-runners/general-purpose/InterceptorQueryRunner.md), which is public and needs no changes beyond the import of `QueryType`.
 - `MockQueryRunner` no longer calls your function with `'isTransactionActive'`. A branch for that value doesn't compile: remove it.
-- `addParam(params, value, type, typeCategory)` and `addOutParam(params, name, type, typeCategory)` receive the name of the type and its category. A query runner that forwards them to another doesn't compile until it passes them on, and neither does code that calls them to build its own SQL. A query runner that adds the value keeps them with `setQueryParamType(params, index, type, typeCategory)`, from `ts-sql-query/queryRunners/QueryRunner`, so that `getQueryParamType` and `getQueryParamTypeCategory` can read them.
+- `addParam(params, value, type, typeCategory, forceTypeCast)` and `addOutParam(params, name, type, typeCategory, forceTypeCast)` receive the name of the type, its category and whether the database must receive the type of the parameter, and return the placeholder as it is written in the SQL. A query runner that forwards them to another doesn't compile until it passes them on, and neither does code that calls them to build its own SQL. A query runner that adds the value keeps them with `setQueryParamType(params, index, type, typeCategory, forceTypeCast)`, from `ts-sql-query/queryRunners/QueryRunner`, so that `getQueryParamType`, `getQueryParamTypeCategory` and `getQueryParamForceTypeCast` can read them (see [Get the type of each parameter](../../advanced/query-execution-metadata.md#get-the-type-of-each-parameter)).
 
 ## What changes silently at runtime
 

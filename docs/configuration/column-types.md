@@ -111,13 +111,15 @@ costCents = this.column<Cents>('cost_cents', 'customInt', 'Cents')
 
     Register the conversion of an `enum`, a `custom` or a `customComparable`, and of a custom type whose values in your code aren't those of its category, like an exact decimal kept as text in a `customDouble`. Without it, an `enum`, a `custom` or a `customComparable` is returned as it comes, and that depends on where it comes from: from a plain column you get what the driver gives, which can be different in each driver, and from [an array aggregate](../queries/aggregate-as-object-array.md#how-the-values-go-through-json) you get what is in the JSON. A number there is its text, so that no digit is lost, and it's the conversion that decides what to do with it.
 
-The best place to register it is the connection, so it applies everywhere that type is used. These are the three methods to implement, and all of them receive the name of the type and its category:
+The best place to register it is the connection, so it applies everywhere that type is used. These are the methods to implement, and all of them receive the name of the type and its category:
 
 - `transformValueFromDB`: converts a value that comes from the database.
 - `transformValueToDB`: converts a value that is sent to the database.
-- `transformPlaceholder`: changes how the parameter is written in the SQL, like adding a cast. PostgreSQL needs a cast in some positions, and the library writes it for the types it knows and for the categories it converts.
+- `transformPlaceholder`, optional: changes how the parameter is written in the SQL, like wrapping it in a function.
 
-For example, an exact decimal kept as text, so that no digit is lost: it's read as the text the database gives, and on PostgreSQL its parameter is cast as `numeric`, not as the `float8` of a `double`:
+The SQL type a parameter is sent with comes from [its category](#how-a-value-is-sent-to-the-database); the `typesByName` option of the query runner gives a type of your own another one.
+
+For example, an exact decimal kept as text, so that no digit is lost: it's read as the text the database gives, and sent as it is:
 
 ```ts
 import type { TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
@@ -134,14 +136,50 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
         }
         return super.transformValueToDB(value, type, typeCategory);
     }
-    protected override transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown): string {
-        if (type === 'ExactDecimal' && forceTypeCast) {
-            return placeholder + '::numeric';
-        }
-        return super.transformPlaceholder(placeholder, type, typeCategory, forceTypeCast, valueSentToDB);
-    }
 }
 ```
+
+On PostgreSQL, its parameter must have the type `numeric`, not the `float8` of a `double`. With `pg`, declare it in the query runner:
+
+```ts
+import { Pool } from 'pg';
+import { PgPoolQueryRunner } from "ts-sql-query/queryRunners/PgPoolQueryRunner";
+
+const pool = new Pool({ /* … */ });
+
+async function main() {
+    const connection = new DBConnection(new PgPoolQueryRunner(pool, { typesByName: { ExactDecimal: 'numeric' } }));
+    // Do your queries here
+    connection // ...
+}
+```
+
+Then `connection.const<ExactDecimal, 'ExactDecimal'>(amount, 'customDouble', 'ExactDecimal')` selected on its own is written `select $1::numeric as result`, with the parameter `[ '12345678901234567890.123456789' ]`, and the result keeps every digit. `pg` and Bun SQL write the cast only where the query needs a type; compared with a `numeric` column, the column gives it. With postgres.js and PGlite, declare the oid of `numeric`, `typesByName: { ExactDecimal: 1700 }`: the parameter is sent as a `numeric` everywhere, and the SQL is `select $1 as result`.
+
+On SQL Server, a `customDouble` is sent as a `float`, which loses digits too. Declare the type `nvarchar`: the text arrives with all its digits, and SQL Server converts it where a `decimal` is expected, like in an insert or a comparison with a `decimal` column:
+
+<!-- doc-code-snippet-template: sqlserver -->
+```ts
+import mssql from 'mssql'
+import { MssqlPoolPromiseQueryRunner } from "ts-sql-query/queryRunners/MssqlPoolPromiseQueryRunner";
+
+const { ConnectionPool, TYPES } = mssql
+
+const poolPromise = new ConnectionPool({
+    user: '...',
+    password: '...',
+    server: 'localhost',
+    database: '...'
+}).connect();
+
+async function main() {
+    const connection = new DBConnection(new MssqlPoolPromiseQueryRunner(poolPromise, { typesByName: { ExactDecimal: TYPES.NVarChar } }));
+    // Do your queries here
+    connection // ...
+}
+```
+
+`TYPES.Decimal` doesn't serve for it: the driver turns the value into a JavaScript number, so `TYPES.Decimal(38, 10)` loses the digits of a long decimal, and `TYPES.Decimal` without arguments is `decimal(18, 0)`, which rounds the fraction away.
 
 When only one column needs its own conversion, use a [type adapter](#type-adapters) in that column. When the conversion is generic, see [Global type adapter](#global-type-adapter).
 
@@ -149,22 +187,24 @@ When only one column needs its own conversion, use a [type adapter](#type-adapte
 
 Each parameter of a query goes with the name of its type and its category, and the category decides which SQL type it has in the databases where the library declares one:
 
-| Category | PostgreSQL cast, where the query needs one | SQL Server parameter type |
+| Category | PostgreSQL type, where the query needs one | SQL Server parameter type |
 |---|---|---|
-| `boolean` | `::bool` | `bit` |
-| `int`, `customInt` | `::int4` | `int` |
-| `bigint`, `customBigint` | `::int8` | `bigint` |
-| `double`, `customDouble` | `::float8` | `float` |
-| `string` | `::text` | `nvarchar` |
-| `uuid`, `customUuid` | `::uuid` | `uniqueidentifier` |
-| `localDate`, `customLocalDate` | `::date` | `date` |
-| `localTime`, `customLocalTime` | `::time` | `time` |
-| `localDateTime`, `customLocalDateTime` | `::timestamp` | `datetime2` |
-| `enum`, `custom`, `customComparable` | By the value: `::int4` or `::int8` for a whole number, `::float8` for one with decimals, `::int8` for a `bigint`, and no cast otherwise | By the value, and a text always as `nvarchar` |
+| `boolean` | `bool` | `bit` |
+| `int`, `customInt` | `int4` | `int` |
+| `bigint`, `customBigint` | `int8` | `bigint` |
+| `double`, `customDouble` | `float8` | `float` |
+| `string` | `text` | `nvarchar` |
+| `uuid`, `customUuid` | `uuid` | `uniqueidentifier` |
+| `localDate`, `customLocalDate` | `date` | `date` |
+| `localTime`, `customLocalTime` | `time` | `time` |
+| `localDateTime`, `customLocalDateTime` | `timestamp` | `datetime2` |
+| `enum`, `custom`, `customComparable` | By the value: `int4` or `int8` for a whole number, `float8` for one with decimals, `int8` for a `bigint`, and none otherwise | By the value, and a text always as `nvarchar` |
 
-PostgreSQL gets the cast only where it can't tell the type from the rest of the query, like a constant selected on its own (`select $1::int4 as result`) or a row of [`Values`](mapping.md#mapping-constant-values-as-view). Oracle declares it for a `null` of a number, a date or a time, and for a date or a time returned with `returning`: `NUMBER` or `TIMESTAMP`, as the driver sends their values. On MariaDB, MySQL and SQLite, and on Oracle for the rest, the driver sends each value as JavaScript gives it.
+PostgreSQL gets the type only where it can't tell it from the rest of the query, like a constant selected on its own or a row of [`Values`](mapping.md#mapping-constant-values-as-view). How it gets it depends on the query runner: `pg` and Bun SQL write it as a cast in the SQL (`select $1::int4 as result`); postgres.js and PGlite send the parameter with its type, and the SQL has no cast (`select $1 as result`). A `null` of one of these categories is a parameter too, with its type: `$1::int4` with the parameter `null` on `pg`. Oracle declares it for a `null` of a number, a date or a time, and for a date or a time returned with `returning`: `NUMBER` or `TIMESTAMP`, as the driver sends their values. On MariaDB, MySQL and SQLite, and on Oracle for the rest, the driver sends each value as JavaScript gives it.
 
 So the category also says how big the value can be in the database: a `customInt` is a 32-bit integer, like an `int`, and a value of your own type that needs 64 bits goes in a `customBigint`; a `customDouble` is a floating point number, and an exact decimal needs [its own conversion](#custom-types).
+
+The `typesByName` option of the query runners of PostgreSQL, SQL Server and Oracle sends the parameters of a type name with the type you declare instead; each query runner's page has its shape.
 
 ## Type adapters
 
@@ -206,13 +246,12 @@ class RgbColorTypeAdapter implements TypeAdapter {
     }
 
     // Optional
-    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string {
-        // You can force a type cast in the query if you want. With this code, the parameter in the SQL will look like $1::bytea
-        // By default, in PostgreSQL only, a type cast is generated when forceTypeCast is true
+    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, next: DefaultTypeAdapter): string {
+        // You can write a type cast in the query if you want. With this code, the parameter in the SQL will look like $1::bytea
         if (type === 'RgbColor') {
             return placeholder + '::bytea'
         }
-        return next.transformPlaceholder(placeholder, type, typeCategory, forceTypeCast, valueSentToDB)
+        return next.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB)
     }
 }
 ```
@@ -270,13 +309,12 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
         }
         return super.transformValueToDB(value, type, typeCategory);
     }   
-    protected override transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown): string {
-        // You can force a type cast in the query if you want. With this code, the parameter in the SQL will look like $1::bytea
-        // By default, in PostgreSql only, a type cast is generated when forceTypeCast is true
+    protected override transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown): string {
+        // You can write a type cast in the query if you want. With this code, the parameter in the SQL will look like $1::bytea
         if (type === 'RgbColor') {
             return placeholder + '::bytea'
         }
-        return super.transformPlaceholder(placeholder, type, typeCategory, forceTypeCast, valueSentToDB)
+        return super.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB)
     }
 }
 ```

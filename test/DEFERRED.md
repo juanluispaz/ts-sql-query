@@ -17,13 +17,15 @@ Each entry says what it is, why it waits, and what is already known.
 ## `customDouble` and exact decimals
 
 - **What:** a `customDouble` that holds an exact decimal kept as text, like
-  money read from `numeric` or `decimal`.
+  money read from `numeric` or `decimal`, kept exact without declaring
+  anything.
 - **Why deferred:** a `customDouble` is converted as a `double`, and on
-  PostgreSQL its parameter is cast as `::float8`; both round an exact decimal.
+  PostgreSQL its parameter is typed as `float8`; both round an exact decimal.
   For now that case is the user's: they register the conversion of the type,
-  and its `transformPlaceholder` on PostgreSQL. On SQL Server the query runner
-  binds a `customDouble` as `Float`, and there is no way to change it: the test
-  `docs:column-types/exact-decimal-kept-as-text` is marked there.
+  and declare the type of its parameters in the `typesByName` option of the
+  query runner (`'numeric'` for pg and Bun SQL, oid `1700` for postgres.js and
+  PGlite, `TYPES.NVarChar` for mssql), as the cells of
+  `docs:column-types/exact-decimal-kept-as-text` do.
 - **Known:** `::numeric` as the PostgreSQL cast of a `customDouble` would keep
   both uses exact (a `number` with a type of its own, and an exact decimal);
   not measured on a real engine.

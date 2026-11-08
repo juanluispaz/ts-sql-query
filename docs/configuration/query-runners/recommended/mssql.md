@@ -89,3 +89,30 @@ async function main(mssqlPool: mssql.ConnectionPool) {
     await transaction.commit();
 }
 ```
+
+## The type of the parameters
+
+Each parameter is sent with the SQL Server type of [the category of its type](../../column-types.md#how-a-value-is-sent-to-the-database), like `int` or `nvarchar`. The second argument of both query runners, optional, is an object with one option, `typesByName`: it maps the name of a type, the one you give a custom type or a built-in one like `'int'`, to the mssql type every parameter of that name is sent with. The value is a type of `TYPES`, like `TYPES.NVarChar`, or one with its arguments, like `TYPES.Decimal(18, 4)`. Its types are `MssqlPoolPromiseQueryRunnerConfig` and `MssqlPoolQueryRunnerConfig`, exported from the module of each query runner.
+
+```ts
+import mssql from 'mssql'
+import { MssqlPoolPromiseQueryRunner } from "ts-sql-query/queryRunners/MssqlPoolPromiseQueryRunner";
+
+const { ConnectionPool, TYPES } = mssql
+
+const poolPromise = new ConnectionPool({
+    user: '...',
+    password: '...',
+    server: 'localhost',
+    database: '...'
+}).connect();
+
+async function main() {
+    const connection = new DBConnection(new MssqlPoolPromiseQueryRunner(poolPromise, {
+        typesByName: { ExactDecimal: TYPES.NVarChar, Price: TYPES.Decimal(18, 4) }
+    }));
+    connection // ...
+}
+```
+
+`TYPES.Decimal(18, 4)` rounds a value to 4 decimals. For an exact decimal kept as text, use `TYPES.NVarChar`, and SQL Server converts the text where a `decimal` is expected: the driver turns the value of a `TYPES.Decimal` into a JavaScript number, so a long decimal loses digits, and `TYPES.Decimal` without arguments is `decimal(18, 0)`, which rounds the fraction away.

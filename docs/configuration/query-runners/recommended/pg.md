@@ -112,9 +112,28 @@ A transaction that begins inside another one is rejected. Both query runners acc
 
 PostgreSQL doesn't nest them: see [what this option does](../../../queries/transaction.md#nested-transactions).
 
+## The type of the parameters
+
+Where PostgreSQL can't work out the type of a parameter, like a constant selected on its own, the query runner writes it as a cast in the SQL, `$1::int4`, from [the category of its type](../../column-types.md#how-a-value-is-sent-to-the-database): `pg` can't send a parameter with its type. The option `typesByName` maps the name of a type, the one you give a custom type or a built-in one like `'int'`, to the cast written instead, for example `numeric` for an exact decimal kept as text:
+
+```ts
+import { Pool } from 'pg';
+import { PgPoolQueryRunner } from "ts-sql-query/queryRunners/PgPoolQueryRunner";
+
+const pool = new Pool(/* configuration */);
+
+async function main() {
+    const connection = new DBConnection(new PgPoolQueryRunner(pool, { typesByName: { ExactDecimal: 'numeric' } }));
+    // A parameter of the type ExactDecimal, where the query needs a type: $1::numeric
+    connection // ...
+}
+```
+
+The cast is written only where the query needs a type, as without the option; elsewhere, like compared with a column, the parameter goes as `$1` and the column gives it its type.
+
 ## Options of the query runner
 
 The second argument of the query runners, optional, is an object of options:
 
-- `PgPoolQueryRunner` takes a `PgPoolQueryRunnerConfig`, exported from `ts-sql-query/queryRunners/PgPoolQueryRunner`, with **`allowNestedTransactions`** (see [Nested transactions](#nested-transactions)).
-- `PgQueryRunner` takes a `PgQueryRunnerConfig`, exported from `ts-sql-query/queryRunners/PgQueryRunner`, with **`allowNestedTransactions`** and **`forUseInTransaction`** (see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages)).
+- `PgPoolQueryRunner` takes a `PgPoolQueryRunnerConfig`, exported from `ts-sql-query/queryRunners/PgPoolQueryRunner`, with **`allowNestedTransactions`** (see [Nested transactions](#nested-transactions)) and **`typesByName`** (see [The type of the parameters](#the-type-of-the-parameters)).
+- `PgQueryRunner` takes a `PgQueryRunnerConfig`, exported from `ts-sql-query/queryRunners/PgQueryRunner`, with **`allowNestedTransactions`**, **`typesByName`** and **`forUseInTransaction`** (see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages)).

@@ -275,10 +275,10 @@ The executed query is:
         first_name as "firstName", 
         last_name as "lastName", 
         birthday as birthday, 
-        null::int4 as "companyId", 
-        null::text as "companyName" 
+        $1::int4 as "companyId", 
+        $2::text as "companyName" 
     from customer 
-    where id = $1
+    where id = $3
     ```
 === "SQLite"
     ```sqlite
@@ -305,7 +305,7 @@ The executed query is:
     where id = @0
     ```
 
-The parameters are: `[ 12 ]`
+The parameters are: `[ 12 ]`; on PostgreSQL, `[ null, null, 12 ]`, because there a null of a known type is sent as a parameter that carries its type.
 
 The result type is:
 ```tsx

@@ -14,6 +14,9 @@ A query runner receives a query as its text and its parameters. To log or monito
 | The same, as an object | `getQueryExecutionSource` | A `QueryExecutionSource`, or `undefined` |
 | The function that executed the query | `getFunctionExecutingQuery` | An object with its name and position, or `undefined` |
 | Whether it's the count query of a select page | `isSelectPageCountQuery` | A `boolean` |
+| The name of the type of a parameter | `getQueryParamType` | The name, like `'int'` or the one of a custom type, or `undefined` |
+| The category of the type of a parameter | `getQueryParamTypeCategory` | A `TypeCategory`, like `'customInt'`, or `undefined` |
+| Whether the database must receive the type of a parameter | `getQueryParamForceTypeCast` | A `boolean`, or `undefined` |
 
 
 ## Retrieve the execution name of a query
@@ -340,3 +343,38 @@ class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
     }
 }
 ```
+
+## Get the type of each parameter
+
+Each parameter of a query goes with the name of its type, the category of that type (the first argument of the column, like `'customInt'`), and whether the database must receive its type because the position where it's written gives it none (the query runners of PostgreSQL then write a cast or send the parameter with its type). `getQueryParamType`, `getQueryParamTypeCategory` and `getQueryParamForceTypeCast` read them for the parameter at an index, or return `undefined` for a parameter added without them, like one of a statement you run through the query runner yourself.
+
+```ts
+import { getQueryParamType, getQueryParamTypeCategory, getQueryParamForceTypeCast } from 'ts-sql-query/queryRunners/QueryRunner';
+import { InterceptorQueryRunner } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
+import type { QueryType } from "ts-sql-query/queryRunners/QueryRunner";
+import type { TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
+
+class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
+    onQuery(queryType: QueryType, query: string, params: any[]): void {
+        for (let index = 0; index < params.length; index++) {
+            const type: string | undefined = getQueryParamType(query, params, index)
+            const typeCategory: TypeCategory | undefined = getQueryParamTypeCategory(query, params, index)
+            const forceTypeCast: boolean | undefined = getQueryParamForceTypeCast(query, params, index)
+            console.log('parameter', index, params[index], type, typeCategory, forceTypeCast)
+        }
+        // Additional information
+        console.log('query type', queryType)
+    }
+    onQueryResult(): void {
+        // Your MetadataLoggingQueryRunner's onQueryResult implementation ...
+    }
+    onQueryError(): void {
+        // Your MetadataLoggingQueryRunner's onQueryError implementation ...
+    }
+}
+```
+
+In `select $1::int4 as i from customer where id = $2`, with the parameters `[ 7, 10 ]`, the first parameter is `'int'`, `'int'` and `true`: a constant selected on its own. The second is `'int'`, `'int'` and `false`: compared with the column `id`, it takes its type from it.
+
+A query runner of your own that adds the parameters keeps this information. Its `addParam(params, value, type, typeCategory, forceTypeCast)` adds the value to `params`, calls `setQueryParamType(params, index, type, typeCategory, forceTypeCast)` from `ts-sql-query/queryRunners/QueryRunner` with the index of the value, and returns the placeholder as it is written in the SQL, with the cast if it writes one; `addOutParam(params, name, type, typeCategory, forceTypeCast)` does the same for an out parameter. A query runner that wraps another passes all of them on to it.
+

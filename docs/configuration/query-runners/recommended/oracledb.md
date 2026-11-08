@@ -217,8 +217,24 @@ async function main(oracleConnection: oracledb.Connection) {
 
 ## Options of the query runner
 
-The second argument of `OracleDBQueryRunner`, optional, is an object of type `OracleDBQueryRunnerConfig`, exported from `ts-sql-query/queryRunners/OracleDBQueryRunner`, with one option:
+The second argument of `OracleDBQueryRunner`, optional, is an object of type `OracleDBQueryRunnerConfig`, exported from `ts-sql-query/queryRunners/OracleDBQueryRunner`:
 
 - **`forUseInTransaction`**: the connection is in a transaction that something else manages; see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages).
+- **`typesByName`**: the type each parameter of a type name is bound with; see [The type of the parameters](#the-type-of-the-parameters).
 
-`OracleDBPoolQueryRunner` and `OracleDBPoolPromiseQueryRunner` have no options.
+`OracleDBPoolQueryRunner` and `OracleDBPoolPromiseQueryRunner` take `typesByName` too, in an `OracleDBPoolQueryRunnerConfig` and an `OracleDBPoolPromiseQueryRunnerConfig`, and pass it on to the query runner of each connection.
+
+## The type of the parameters
+
+oracledb binds each value with the type it gives a JavaScript value: a `Date` as a `TIMESTAMP`, for example. The option `typesByName` maps the name of a type, the one you give a custom type or a built-in one like `'int'`, to the `DbType` of oracledb every parameter of that name is bound with, also its `null` and the value returned with `returning`:
+
+```ts
+import oracledb from 'oracledb';
+import { OracleDBPoolQueryRunner } from "ts-sql-query/queryRunners/OracleDBPoolQueryRunner";
+
+async function main(pool: oracledb.Pool) {
+    // A value of the type Day is bound as a DATE, not as a TIMESTAMP
+    const connection = new DBConnection(new OracleDBPoolQueryRunner(pool, { typesByName: { Day: oracledb.DB_TYPE_DATE } }));
+    connection // ...
+}
+```

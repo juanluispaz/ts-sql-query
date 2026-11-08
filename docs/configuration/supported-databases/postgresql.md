@@ -5,7 +5,7 @@ search:
 <!-- doc-code-template: postgresql -->
 # PostgreSQL
 
-This page has what is particular to PostgreSQL: what it offers and what it doesn't, how to declare its version, explicit typing, what happens when a statement fails inside a transaction, rounding, and how `minValue` and `maxValue` treat `null`. To define the connection and map your tables, the pages to read are [Connection](../connection.md) and [Mapping](../mapping.md).
+This page has what is particular to PostgreSQL: what it offers and what it doesn't, how to declare its version, the type of a parameter, what happens when a statement fails inside a transaction, rounding, and how `minValue` and `maxValue` treat `null`. To define the connection and map your tables, the pages to read are [Connection](../connection.md) and [Mapping](../mapping.md).
 
 ## Defining the connection
 
@@ -78,30 +78,40 @@ await connection.transaction(async () => {
 
 To go on after a statement that may fail, don't run it in the transaction, or find out beforehand whether it would fail (for example, whether the company exists).
 
-## Explicit typing
+## The type of a parameter
 
-PostgreSQL may be unable to work out the type of a parameter in a query, which often happens with a `null` value. The library writes a cast, like `$1::int4`, where it knows it's needed, and only for the types it knows. To write it on every parameter of those types, override `transformPlaceholder` in your connection class:
+PostgreSQL can't work out the type of a parameter in some positions, like a constant selected on its own, a row of [`Values`](../mapping.md#mapping-constant-values-as-view), the argument of a function or a `null`. There the library gives the parameter its type, and the query runner decides how: `pg` and Bun SQL write a cast in the SQL, like `$1::int4`; postgres.js and PGlite send the parameter with its type, and the SQL has only `$1`. [How a value is sent to the database](../column-types.md#how-a-value-is-sent-to-the-database) has the type of each category, and the `typesByName` option of the query runner sets it for a type of your own.
+
+### A position the library doesn't detect
+
+Inside a SQL fragment of your own, the library doesn't know what the position needs. For example, `to_char` has a version for each type, and with a parameter without a type PostgreSQL rejects the query: `function to_char(unknown, unknown) is not unique`. The type adapter `ForceTypeCast` gives that value its type:
 
 ```ts
-import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
-import type { TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
+import { ForceTypeCast } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
 
-class DBConnection extends PostgreSqlConnection<'DBConnection'> {
-    protected override transformPlaceholder(
-        placeholder: string,
-        type: string,
-        typeCategory: TypeCategory,
-        _forceTypeCast: boolean,
-        valueSentToDB: unknown
-    ): string {
-        return super.transformPlaceholder(placeholder, type, typeCategory, true, valueSentToDB)
-    }
-}
+const amount = connection.const(10, 'int', new ForceTypeCast())
+
+const result = connection.selectFromNoTable()
+    .select({
+        formatted: connection.fragmentWithType('string', 'required').sql`to_char(${amount}, 'FM999')`
+    })
+    .executeSelectOne()
 ```
 
-!!! tip
+```postgresql
+select to_char($1::int4, 'FM999') as formatted
+```
 
-    You can also enforce type casting using the `ForceTypeCast` adapter provided in `ts-sql-query/TypeAdapter`. For more advanced usage, see the section on [Global type adapter](../column-types.md#global-type-adapter).
+The parameters are: `[ 10 ]`
+
+The result type is:
+```tsx
+const result: Promise<{
+    formatted: string;
+}>
+```
+
+With postgres.js and PGlite the SQL is `select to_char($1, 'FM999') as formatted`, and the parameter is sent as an `int4`. In a column, `this.column('amount', 'int', new ForceTypeCast())` gives its type to every parameter of that column, wherever it is written.
 
 ## UUID handling
 

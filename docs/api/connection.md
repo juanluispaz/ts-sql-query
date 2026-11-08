@@ -368,7 +368,13 @@ interface Connection {
     /** Protected method that transforms the values sent to the database */
     transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
     /** Protected method that customizes the value placeholder in the query */
-    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown): string
+    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown): string
+    /**
+     * Protected method that decides whether the database must receive the type of the parameter. It receives true where
+     * the position in the SQL gives the parameter no type; the query runner then writes a cast or sends the parameter
+     * with its type (PostgreSQL only). By default, it returns what it receives
+     */
+    forceTypeCast(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean): boolean
 
     /** Protected method that returns true if the provided string is a reserved keyword */
     isReservedKeyword(word: string): boolean

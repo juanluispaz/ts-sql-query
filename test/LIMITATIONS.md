@@ -27,7 +27,7 @@ The JSON of an array aggregate is parsed keeping every number as its text, so th
 
 ## A `customDouble` holding an exact decimal
 
-A `customDouble` is converted as a `double`, cast as `::float8` on PostgreSQL and bound as `Float` on SQL Server, so an exact decimal kept as text loses digits. On PostgreSQL the user can register its conversion and its `transformPlaceholder`; on SQL Server the query runner gives no way to bind it with another type. Deferred by the maintainer: see [`DEFERRED.md`](./DEFERRED.md).
+By default a `customDouble` is converted as a `double`, typed as `float8` on PostgreSQL and bound as `Float` on SQL Server, so an exact decimal kept as text loses digits. The user registers the conversion of the type and declares the type of its parameters in the `typesByName` option of the query runner (`'numeric'` for pg and Bun SQL, oid `1700` for postgres.js and PGlite, `TYPES.NVarChar` for mssql), as the cells of `docs:column-types/exact-decimal-kept-as-text` do. A default that needs no declaration is deferred by the maintainer: see [`DEFERRED.md`](./DEFERRED.md).
 
 ## The golden rule: no closing a gap with a query of its own
 

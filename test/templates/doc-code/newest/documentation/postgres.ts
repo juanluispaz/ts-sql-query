@@ -3,7 +3,7 @@ import { MockQueryRunner } from '../../../../../src/queryRunners/MockQueryRunner
 import { PostgreSqlConnection } from '../../../../../src/connections/PostgreSqlConnection.js'
 import { DocCodeMockRunner } from '../../../../lib/mockRunners/DocCodeMockRunner.js'
 import { Table } from '../../../../../src/Table.js'
-import { CustomBooleanTypeAdapter } from '../../../../../src/TypeAdapter.js'
+import { CustomBooleanTypeAdapter, ForceTypeCast } from '../../../../../src/TypeAdapter.js'
 import { View } from '../../../../../src/View.js'
 import { Values } from '../../../../../src/Values.js'
 
@@ -53,6 +53,9 @@ import {
     getQueryExecutionSource,
     getQueryExecutionStack, 
     isSelectPageCountQuery, 
+    getQueryParamType,
+    getQueryParamTypeCategory,
+    getQueryParamForceTypeCast,
     type FunctionExecutingQueryInformation, 
     type QueryType 
 } from '../../../../../src/queryRunners/QueryRunner.js'
@@ -268,6 +271,7 @@ void tRecord
 void connection
 void Values
 void MockQueryRunner
+void ForceTypeCast
 
 void function(
     _ck: ColumnKeys<any>, 
@@ -313,6 +317,9 @@ void getQueryExecutionName
 void getQueryExecutionSource
 void getQueryExecutionStack
 void isSelectPageCountQuery
+void getQueryParamType
+void getQueryParamTypeCategory
+void getQueryParamForceTypeCast
 void dynamicPick, 
 void dynamicPickPaths, 
 void fromRef

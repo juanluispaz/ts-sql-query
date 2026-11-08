@@ -15,7 +15,7 @@ In the database, when null is part of an operation, the result of the operation 
 All data manipulation operations are methods on the value itself. For example, the absolute value in SQL is `abs(value)`, and in `ts-sql-query` it is `value.abs()`.
 
 ```typescript
-interface ValueSource<T, TYPE_NAME> {
+interface ValueSource<T, TYPE_NAME extends string> {
     isConstValue(): boolean
     /**
      * It returns the proper type of the value, instead of the any type included here to simplify
@@ -38,7 +38,7 @@ interface ValueSource<T, TYPE_NAME> {
 ```
 
 ```typescript
-interface NullableValueSource<T, TYPE_NAME> extends ValueSource<T, TYPE_NAME> {
+interface NullableValueSource<T, TYPE_NAME extends string> extends ValueSource<T, TYPE_NAME> {
     isNull(): BooleanValueSource
     isNotNull(): BooleanValueSource
     /** The result is required if the provided value is required */
@@ -57,7 +57,7 @@ interface NullableValueSource<T, TYPE_NAME> extends ValueSource<T, TYPE_NAME> {
 ```
 
 ```typescript
-interface EqualableValueSource<T, TYPE_NAME> extends NullableValueSource<T, TYPE_NAME> {
+interface EqualableValueSource<T, TYPE_NAME extends string> extends NullableValueSource<T, TYPE_NAME> {
     equalsIfValue(value: T | null | undefined): IfValueSource
     equals(value: T | this): BooleanValueSource
     notEqualsIfValue(value: T | null | undefined): IfValueSource
@@ -83,7 +83,7 @@ interface EqualableValueSource<T, TYPE_NAME> extends NullableValueSource<T, TYPE
 ```
 
 ```typescript
-interface ComparableValueSource<T, TYPE_NAME> extends EqualableValueSource<T, TYPE_NAME> {
+interface ComparableValueSource<T, TYPE_NAME extends string> extends EqualableValueSource<T, TYPE_NAME> {
     lessThanIfValue(value: T | null | undefined): IfValueSource
     lessThan(value: T | this): BooleanValueSource
     greaterThanIfValue(value: T | null | undefined): IfValueSource
@@ -369,7 +369,7 @@ interface LocalDateTimeValueSource extends ComparableValueSource<Date, 'localDat
 /**
  * Represents a custom int
  */
-interface CustomIntValueSource<T, TYPE_NAME> extends ComparableValueSource<T, TYPE_NAME> {
+interface CustomIntValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
     abs(): this
     ceil(): this
     floor(): this
@@ -394,7 +394,7 @@ interface CustomIntValueSource<T, TYPE_NAME> extends ComparableValueSource<T, TY
 /**
  * Represents a custom bigint
  */
-interface CustomBigintValueSource<T, TYPE_NAME> extends ComparableValueSource<T, TYPE_NAME> {
+interface CustomBigintValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
     abs(): this
     ceil(): this
     floor(): this
@@ -418,7 +418,7 @@ interface CustomBigintValueSource<T, TYPE_NAME> extends ComparableValueSource<T,
 /**
  * Represents a custom double
  */
-interface CustomDoubleValueSource<T, TYPE_NAME> extends ComparableValueSource<T, TYPE_NAME> {
+interface CustomDoubleValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
     abs(): this
     ceil(): this
     floor(): this
@@ -461,7 +461,7 @@ interface CustomDoubleValueSource<T, TYPE_NAME> extends ComparableValueSource<T,
 /**
  * Represents a custom UUID
  */
-interface CustomUuidValueSource<T, TYPE_NAME> extends ComparableValueSource<T, TYPE_NAME> {
+interface CustomUuidValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
     asString(): StringValueSource
 }
 ```
@@ -470,7 +470,7 @@ interface CustomUuidValueSource<T, TYPE_NAME> extends ComparableValueSource<T, T
 /**
  * Represents a custom local date without time (using a Date object)
  */
-interface CustomLocalDateValueSource<T, TYPE_NAME> extends ComparableValueSource<T, TYPE_NAME> {
+interface CustomLocalDateValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
     /** Gets the year */
     getFullYear(): NumberValueSource
     /** Gets the month (value between 0 to 11)*/
@@ -486,7 +486,7 @@ interface CustomLocalDateValueSource<T, TYPE_NAME> extends ComparableValueSource
 /**
  * Represents a custom local time without date (using a Date object)
  */
-interface CustomLocalTimeValueSource<T, TYPE_NAME> extends ComparableValueSource<T, TYPE_NAME> {
+interface CustomLocalTimeValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
     /** Gets the hours */
     getHours(): NumberValueSource
     /** Gets the minutes */
@@ -502,7 +502,7 @@ interface CustomLocalTimeValueSource<T, TYPE_NAME> extends ComparableValueSource
 /**
  * Represents a custom local date with time (using a Date object)
  */
-interface CustomLocalDateTimeValueSource<T, TYPE_NAME> extends ComparableValueSource<T, TYPE_NAME> {
+interface CustomLocalDateTimeValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
     /** Gets the year */
     getFullYear(): NumberValueSource
     /** Gets the month (value between 0 to 11)*/

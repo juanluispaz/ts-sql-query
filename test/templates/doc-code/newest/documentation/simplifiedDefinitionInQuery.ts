@@ -36,7 +36,7 @@ type RESULT = any
 type Default = any
 type QueryRunner = any
 type OuterJoinSource = any
-type Argument<_T, _TYPE_NAME> = any
+type Argument<_T, _TYPE_NAME extends string> = any
 type DynamicFilter = any
 type Filterable = any
 type DynamicConditionExtension = any
@@ -63,7 +63,7 @@ void function (
     _bvs: BooleanValueSource,
     _tis: TransactionIsolationLevel,
 ) {}
-interface ValueSource<T, TYPE_NAME> {
+interface ValueSource<T, TYPE_NAME extends string> {
     makeCompilerHappy_type: T
     makeCompilerHappy_typeName: TYPE_NAME
 }

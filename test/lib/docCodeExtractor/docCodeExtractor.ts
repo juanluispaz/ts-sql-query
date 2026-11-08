@@ -324,7 +324,7 @@ const SUBSTITUTIONS: { from: string; to: string }[] = [
     { from: `test(`, to: `_test(` },
     { from: `expect(`, to: `_expect(` },
     { from: `beforeEach(`, to: `_beforeEach(` },
-    { from: `interface ValueSource<T, TYPE_NAME> {`, to: `interface ValueSource<_T, _TYPE_NAME> {` },
+    { from: `interface ValueSource<T, TYPE_NAME extends string> {`, to: `interface ValueSource<_T, _TYPE_NAME extends string> {` },
     // { from: `// return a BooleanValueSource based on the value`, to: `return connection.true()` },
 ]
 

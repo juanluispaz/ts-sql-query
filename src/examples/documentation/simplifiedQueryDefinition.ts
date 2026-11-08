@@ -4,7 +4,7 @@
  * Simplified versions of the query's API
  */
 
-interface ValueSource<T, TYPE_NAME> {
+interface ValueSource<T, TYPE_NAME extends string> {
     isConstValue(): boolean
     /**
      * It returns the proper type of the value, instead of the any type included here to simplify
@@ -25,7 +25,7 @@ interface ValueSource<T, TYPE_NAME> {
     disallowWhen(when: boolean, error: Error): this
 }
 
-interface NullableValueSource<T, TYPE_NAME> extends ValueSource<T, TYPE_NAME> {
+interface NullableValueSource<T, TYPE_NAME extends string> extends ValueSource<T, TYPE_NAME> {
     isNull(): BooleanValueSource
     isNotNull(): BooleanValueSource
     /** The result is required if the provided value is required */
@@ -42,7 +42,7 @@ interface NullableValueSource<T, TYPE_NAME> extends ValueSource<T, TYPE_NAME> {
     ignoreWhenAsNull(when: boolean): this
 }
 
-interface EqualableValueSource<T, TYPE_NAME> extends NullableValueSource<T, TYPE_NAME> {
+interface EqualableValueSource<T, TYPE_NAME extends string> extends NullableValueSource<T, TYPE_NAME> {
     equalsIfValue(value: T | null | undefined): IfValueSource
     equals(value: T | this): BooleanValueSource
     notEqualsIfValue(value: T | null | undefined): IfValueSource
@@ -66,7 +66,7 @@ interface EqualableValueSource<T, TYPE_NAME> extends NullableValueSource<T, TYPE
     notInN(...value: Array<T | this>): BooleanValueSource
 }
 
-interface ComparableValueSource<T, TYPE_NAME> extends EqualableValueSource<T, TYPE_NAME> {
+interface ComparableValueSource<T, TYPE_NAME extends string> extends EqualableValueSource<T, TYPE_NAME> {
     lessThanIfValue(value: T | null | undefined): IfValueSource
     lessThan(value: T | this): BooleanValueSource
     greaterThanIfValue(value: T | null | undefined): IfValueSource
@@ -330,7 +330,7 @@ interface LocalDateTimeValueSource extends ComparableValueSource<Date, 'localDat
 /**
  * Represents a custom int
  */
-interface CustomIntValueSource<T, TYPE_NAME> extends ComparableValueSource<T, TYPE_NAME> {
+interface CustomIntValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
     abs(): this
     ceil(): this
     floor(): this
@@ -353,7 +353,7 @@ interface CustomIntValueSource<T, TYPE_NAME> extends ComparableValueSource<T, TY
 /**
  * Represents a custom bigint
  */
-interface CustomBigintValueSource<T, TYPE_NAME> extends ComparableValueSource<T, TYPE_NAME> {
+interface CustomBigintValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
     abs(): this
     ceil(): this
     floor(): this
@@ -375,7 +375,7 @@ interface CustomBigintValueSource<T, TYPE_NAME> extends ComparableValueSource<T,
 /**
  * Represents a custom double
  */
-interface CustomDoubleValueSource<T, TYPE_NAME> extends ComparableValueSource<T, TYPE_NAME> {
+interface CustomDoubleValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
     abs(): this
     ceil(): this
     floor(): this
@@ -416,14 +416,14 @@ interface CustomDoubleValueSource<T, TYPE_NAME> extends ComparableValueSource<T,
 /**
  * Represents a custom UUID
  */
-interface CustomUuidValueSource<T, TYPE_NAME> extends ComparableValueSource<T, TYPE_NAME> {
+interface CustomUuidValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
     asString(): StringValueSource
 }
 
 /**
  * Represents a custom local date without time (using a Date object)
  */
-interface CustomLocalDateValueSource<T, TYPE_NAME> extends ComparableValueSource<T, TYPE_NAME> {
+interface CustomLocalDateValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
     /** Gets the year */
     getFullYear(): NumberValueSource
     /** Gets the month (value between 0 to 11)*/
@@ -437,7 +437,7 @@ interface CustomLocalDateValueSource<T, TYPE_NAME> extends ComparableValueSource
 /**
  * Represents a custom local time without date (using a Date object)
  */
-interface CustomLocalTimeValueSource<T, TYPE_NAME> extends ComparableValueSource<T, TYPE_NAME> {
+interface CustomLocalTimeValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
     /** Gets the hours */
     getHours(): NumberValueSource
     /** Gets the minutes */
@@ -451,7 +451,7 @@ interface CustomLocalTimeValueSource<T, TYPE_NAME> extends ComparableValueSource
 /**
  * Represents a custom local date with time (using a Date object)
  */
-interface CustomLocalDateTimeValueSource<T, TYPE_NAME> extends ComparableValueSource<T, TYPE_NAME> {
+interface CustomLocalDateTimeValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
     /** Gets the year */
     getFullYear(): NumberValueSource
     /** Gets the month (value between 0 to 11)*/
@@ -621,15 +621,15 @@ interface Connection {
     /** sum(value) */
     sum(value: NumberValueSource): NumberValueSource
     sum(value: BigintValueSource): BigintValueSource
-    sum<T, TYPE_NAME>(value: CustomIntValueSource<T, TYPE_NAME>): CustomIntValueSource<T, TYPE_NAME>
-    sum<T, TYPE_NAME>(value: CustomBigintValueSource<T, TYPE_NAME>): CustomBigintValueSource<T, TYPE_NAME>
-    sum<T, TYPE_NAME>(value: CustomDoubleValueSource<T, TYPE_NAME>): CustomDoubleValueSource<T, TYPE_NAME>
+    sum<T, TYPE_NAME extends string>(value: CustomIntValueSource<T, TYPE_NAME>): CustomIntValueSource<T, TYPE_NAME>
+    sum<T, TYPE_NAME extends string>(value: CustomBigintValueSource<T, TYPE_NAME>): CustomBigintValueSource<T, TYPE_NAME>
+    sum<T, TYPE_NAME extends string>(value: CustomDoubleValueSource<T, TYPE_NAME>): CustomDoubleValueSource<T, TYPE_NAME>
     /** sum(distinct value) */
     sumDistinct(value: NumberValueSource): NumberValueSource
     sumDistinct(value: BigintValueSource): BigintValueSource
-    sumDistinct<T, TYPE_NAME>(value: CustomIntValueSource<T, TYPE_NAME>): CustomIntValueSource<T, TYPE_NAME>
-    sumDistinct<T, TYPE_NAME>(value: CustomBigintValueSource<T, TYPE_NAME>): CustomBigintValueSource<T, TYPE_NAME>
-    sumDistinct<T, TYPE_NAME>(value: CustomDoubleValueSource<T, TYPE_NAME>): CustomDoubleValueSource<T, TYPE_NAME>
+    sumDistinct<T, TYPE_NAME extends string>(value: CustomIntValueSource<T, TYPE_NAME>): CustomIntValueSource<T, TYPE_NAME>
+    sumDistinct<T, TYPE_NAME extends string>(value: CustomBigintValueSource<T, TYPE_NAME>): CustomBigintValueSource<T, TYPE_NAME>
+    sumDistinct<T, TYPE_NAME extends string>(value: CustomDoubleValueSource<T, TYPE_NAME>): CustomDoubleValueSource<T, TYPE_NAME>
     /** avg(value). It always returns a number, a double, also for a bigint or a custom type */
     average(value: NumberValueSource | BigintValueSource | CustomIntValueSource<any, any> | CustomBigintValueSource<any, any> | CustomDoubleValueSource<any, any>): NumberValueSource
     /** avg(distinct value). It always returns a number, a double, also for a bigint or a custom type */
@@ -647,9 +647,9 @@ interface Connection {
     aggregateAsArray<T extends SelectValues>(columns: T): AggregatedArrayValueSourceProjectableAsNullable<T>
     /** Only available on MariaDB, PostgreSQL and SQLite */
     aggregateAsArrayDistinct<T extends SelectValues>(columns: T): AggregatedArrayValueSourceProjectableAsNullable<T>
-    aggregateAsArrayOfOneColumn<T, TYPE_NAME>(value: ValueSource<T, TYPE_NAME>): AggregatedArrayValueSource<T>
+    aggregateAsArrayOfOneColumn<T, TYPE_NAME extends string>(value: ValueSource<T, TYPE_NAME>): AggregatedArrayValueSource<T>
     /** Only available on MariaDB, PostgreSQL and SQLite */
-    aggregateAsArrayOfOneColumnDistinct<T, TYPE_NAME>(value: ValueSource<T, TYPE_NAME>): AggregatedArrayValueSource<T>
+    aggregateAsArrayOfOneColumnDistinct<T, TYPE_NAME extends string>(value: ValueSource<T, TYPE_NAME>): AggregatedArrayValueSource<T>
 
     // Methods that create SQL fragments
     fragmentWithType(type: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
@@ -2663,14 +2663,14 @@ type RESULT = any
 type Default = any
 type QueryRunner = any
 type OuterJoinSource = any
-type Argument<_T, _TYPE_NAME> = any
+type Argument<_T, _TYPE_NAME extends string> = any
 type RawFragment = any
 type CustomizedTableOrView = any
 type AnyValueSource = ValueSource<any, any>
 type TransactionIsolationLevel = any
 
 void function (_c: Connection, _v: Values, _config: MariaDBConnectionConfiguration | MySqlConnectionConfiguration | OracleConnectionConfiguration | PostgreSqlConnectionConfiguration | SqliteConnectionConfiguration | SqlServerConnectionConfiguration) { return null}
-interface ValueSource<T, TYPE_NAME> {
+interface ValueSource<T, TYPE_NAME extends string> {
     makeCompilerHappy_type: T
     makeCompilerHappy_typeName: TYPE_NAME
 }

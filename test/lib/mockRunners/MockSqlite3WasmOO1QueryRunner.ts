@@ -12,6 +12,10 @@ export class MockSqlite3WasmOO1QueryRunner extends MockQueryRunner {
         if (typeof value === 'boolean') {
             return super.addParam(params, Number(value), type, typeCategory, forceTypeCast)
         }
+        // An integer number beyond the 64-bit range goes as its text converted to a real
+        if (typeof value === 'number' && Number.isInteger(value) && (value >= 2 ** 63 || value < -(2 ** 63))) {
+            return 'cast(' + super.addParam(params, String(value), type, typeCategory, forceTypeCast) + ' as real)'
+        }
         return super.addParam(params, value, type, typeCategory, forceTypeCast)
     }
 }

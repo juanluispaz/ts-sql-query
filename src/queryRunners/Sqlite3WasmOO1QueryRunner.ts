@@ -93,6 +93,11 @@ export class Sqlite3WasmOO1QueryRunner extends SqlTransactionQueryRunner {
         setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
         if (typeof value === 'boolean') {
             params.push(Number(value))
+        } else if (typeof value === 'number' && Number.isInteger(value) && (value >= 2 ** 63 || value < -(2 ** 63))) {
+            // sqlite-wasm binds a number that is an integer as a 64-bit integer, and one beyond that range would wrap
+            // without an error (1e20 → 7766279631452241920); its text converted to a real keeps the value
+            params.push(String(value))
+            return 'cast(?' + params.length + ' as real)'
         } else {
             params.push(value)
         }

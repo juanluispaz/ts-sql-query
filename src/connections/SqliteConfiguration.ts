@@ -12,3 +12,13 @@ export type SqliteDateTimeFormatType = 'date' | 'time' | 'dateTime'
 export type SqliteDecimalStrategy = 'text' | 'canonical text'
     | 'decimal-functions' | 'decimal-functions with canonical text'
     | 'decimal-extension and tsq-functions' | 'decimal-extension and tsq-functions with canonical text'
+
+/** The options of registerSqliteFunctions, the function of each SQLite query runner that registers the SQL functions of the library */
+export interface SqliteFunctionsOptions {
+    /**
+     * The names of the functions not to register. A function the database already has with the same name and number of
+     * arguments (a loaded extension, or one you registered) is never replaced anyway; skip is for one you will register
+     * after the call, or don't want.
+     */
+    readonly skip?: readonly string[] | undefined
+}

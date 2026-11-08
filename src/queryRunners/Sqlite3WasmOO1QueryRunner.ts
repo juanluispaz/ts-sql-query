@@ -1,10 +1,12 @@
 import type { BeginTransactionOpts, DatabaseType, PromiseProvider } from './QueryRunner.js'
-import type { Database } from '@sqlite.org/sqlite-wasm'
+import type { Database, Sqlite3Static, SqlValue } from '@sqlite.org/sqlite-wasm'
 import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getSqlite3WasmOO1ErrorReason, isSqlite3WasmOO1Error } from './connectorErrorMappers/Sqlite3WasmOO1ErrorMapper.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
+import { sqliteFunctionListQuery, sqliteFunctionsToRegister } from '../utils/sqliteFunctions.js'
+import type { SqliteFunctionsOptions } from '../connections/SqliteConfiguration.js'
 
 export interface Sqlite3WasmOO1QueryRunnerConfig {
     promise?: PromiseProvider | undefined
@@ -115,5 +117,71 @@ export class Sqlite3WasmOO1QueryRunner extends SqlTransactionQueryRunner {
 
     static isSqlError(error: unknown): boolean {
         return error instanceof TsSqlError || isSqlite3WasmOO1Error(error)
+    }
+}
+
+/**
+ * Registers on the database the SQL functions the library may write on SQLite, so they are always available: the
+ * functions of SQLite's decimal extension and the library's own ones (tsq_) the decimal strategies of
+ * SqliteConnection write, uuid, uuid_str and uuid_blob for the uuid strategy 'uuid-extension' (uuid() generates a
+ * version 7 UUID), and ci_replace (for replaceAllInsensitiveFunction = 'ci_replace'). Every function but uuid() is
+ * registered as deterministic, so it can be used in an index on an expression. A function the database already has with
+ * the same name and number of arguments (a loaded extension, like SQLite's decimal or uuid extension, or one you
+ * registered before) is left as it is: the call reads the functions of the database (pragma function_list) once,
+ * before registering. options.skip names functions not to register.
+ *
+ * The functions are also marked innocuous (they have no side effects), so a database with trusted_schema off still
+ * uses them in its schema. sqlite3 is the module the database was created with: an aggregate keeps its state in the
+ * aggregate context of SQLite.
+ */
+export function registerSqliteFunctions(db: Database, sqlite3: Sqlite3Static, options?: SqliteFunctionsOptions): void {
+    const toRegister = sqliteFunctionsToRegister(() => db.selectObjects(sqliteFunctionListQuery), options)
+    for (const sqlFunction of toRegister.scalar) {
+        const fn = sqlFunction.fn
+        db.createFunction(sqlFunction.name, (_ctxPtr: number, ...args: SqlValue[]) => fn(...args) as SqlValue, {
+            arity: sqlFunction.arity,
+            deterministic: sqlFunction.deterministic,
+            innocuous: sqlFunction.deterministic,
+        })
+    }
+    for (const sqlFunction of toRegister.aggregate) {
+        // The state of each aggregation, by the address of its aggregate context
+        const states = new Map<number, unknown>()
+        const stateKey = (ctxPtr: number, create: boolean) => Number(sqlite3.capi.sqlite3_js_aggregate_context(ctxPtr, create ? 1 : 0))
+        const step = sqlFunction.step
+        const inverse = sqlFunction.inverse
+        const result = sqlFunction.result
+        const options = {
+            name: sqlFunction.name,
+            arity: sqlFunction.arity,
+            deterministic: true,
+            innocuous: true,
+            xStep: (ctxPtr: number, value: SqlValue) => {
+                const key = stateKey(ctxPtr, true)
+                states.set(key, step(states.get(key) ?? null, value))
+            },
+            xFinal: (ctxPtr: number): SqlValue => {
+                // Without rows SQLite gives no aggregate context, and the state is null
+                const key = stateKey(ctxPtr, false)
+                const state = key ? states.get(key) ?? null : null
+                states.delete(key)
+                return result(state) as SqlValue
+            },
+        }
+        if (inverse) {
+            db.createFunction({
+                ...options,
+                xValue: (ctxPtr: number): SqlValue => {
+                    const key = stateKey(ctxPtr, false)
+                    return result(key ? states.get(key) ?? null : null) as SqlValue
+                },
+                xInverse: (ctxPtr: number, value: SqlValue) => {
+                    const key = stateKey(ctxPtr, true)
+                    states.set(key, inverse(states.get(key) ?? null, value))
+                },
+            })
+        } else {
+            db.createFunction(options)
+        }
     }
 }

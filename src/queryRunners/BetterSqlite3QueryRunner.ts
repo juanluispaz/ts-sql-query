@@ -5,6 +5,8 @@ import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from "../TsSq
 import { getBetterSqlite3ErrorReason, isBetterSqlite3Error } from './connectorErrorMappers/BetterSqlite3ErrorMapper.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
+import { sqliteFunctionListQuery, sqliteFunctionsToRegister } from '../utils/sqliteFunctions.js'
+import type { SqliteFunctionsOptions } from '../connections/SqliteConfiguration.js'
 
 export interface BetterSqlite3QueryRunnerConfig {
     promise?: PromiseProvider
@@ -133,5 +135,39 @@ export class BetterSqlite3QueryRunner extends SqlTransactionQueryRunner {
 
     static isSqlError(error: unknown): boolean {
         return error instanceof TsSqlError || isBetterSqlite3Error(error)
+    }
+}
+
+/**
+ * Registers on the database the SQL functions the library may write on SQLite, so they are always available: the
+ * functions of SQLite's decimal extension and the library's own ones (tsq_) the decimal strategies of
+ * SqliteConnection write, uuid, uuid_str and uuid_blob for the uuid strategy 'uuid-extension' (uuid() generates a
+ * version 7 UUID), and ci_replace (for replaceAllInsensitiveFunction = 'ci_replace'). Every function but uuid() is
+ * registered as deterministic, so it can be used in an index on an expression. A function the database already has with
+ * the same name and number of arguments (a loaded extension, like SQLite's decimal or uuid extension, or one you
+ * registered before) is left as it is: the call reads the functions of the database (pragma function_list) once,
+ * before registering. options.skip names functions not to register.
+ */
+export function registerSqliteFunctions(db: Database, options?: SqliteFunctionsOptions): void {
+    const toRegister = sqliteFunctionsToRegister(() => db.prepare(sqliteFunctionListQuery).all(), options)
+    for (const sqlFunction of toRegister.scalar) {
+        const fn = sqlFunction.fn
+        // better-sqlite3 gives a blob back from a Buffer, and takes the number of arguments from the length of the function
+        const wrapped = (...args: unknown[]) => {
+            const result = fn(...args)
+            return result instanceof Uint8Array && !Buffer.isBuffer(result) ? Buffer.from(result.buffer, result.byteOffset, result.byteLength) : result
+        }
+        Object.defineProperty(wrapped, 'length', { value: sqlFunction.arity })
+        db.function(sqlFunction.name, { deterministic: sqlFunction.deterministic }, wrapped)
+    }
+    for (const sqlFunction of toRegister.aggregate) {
+        const inverse = sqlFunction.inverse
+        db.aggregate<any>(sqlFunction.name, {
+            deterministic: true,
+            start: null,
+            step: sqlFunction.step,
+            ...(inverse ? { inverse: inverse } : {}),
+            result: sqlFunction.result,
+        })
     }
 }

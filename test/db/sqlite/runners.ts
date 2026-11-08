@@ -21,150 +21,15 @@ import { fileURLToPath } from 'node:url'
 import type { SqliteDateTimeFormat, SqliteDecimalStrategy } from '../../../src/connections/SqliteConfiguration.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { createTestContext, type TestContext } from '../../lib/testContext.js'
-import { parse as uuidParse, stringify as uuidStringify, v7 as uuidv7 } from 'uuid'
 import { SynchronousPromise } from 'synchronous-promise'
 import { DBConnection } from './domain/connection.js'
-import { decimalAbs, decimalAdd, decimalCeil, decimalChoiceResult, decimalCmp, decimalFloor, decimalKey, decimalMaxStep, decimalMinStep, decimalMod, decimalMul, decimalRound, decimalSub, decimalSumResult, decimalSumStep } from './decimalFunctions.js'
-import type { DecimalChoice, ExactDecimal } from './decimalFunctions.js'
 
-// SQLite's `uuid-extension` strategy emits uuid_blob / uuid_str / uuid
-// (see docs/configuration/supported-databases/sqlite.md#uuid-strategies).
-// The shared test connection now defaults to the `'string'` uuid strategy
-// (test/db/sqlite/domain/connection.ts), so uuid columns round-trip as plain
-// TEXT and need none of these helpers — every uuid test runs on every
-// connector. We still register the helpers for the connectors that can, so a
-// test that opts back into `'uuid-extension'` via
-// `ctx.withUuidStrategy('uuid-extension')` finds them available and runs the
-// binary `'uuid-extension'` path END-TO-END against the real engine:
-//   - better-sqlite3, bun:sqlite, node:sqlite — registered here via
-//     `db.function(...)`, exactly as the connector docs and
-//     src/examples/{BetterSqlite3,NodeSqlite}*Example.ts show.
-//   - sqlite-wasm-OO1 — registered here via `db.createFunction(...)` (the OO1
-//     user-defined-function API), exactly as the connector doc shows.
-// One connector can't register them, so its `'uuid-extension'` tests stay
-// mock-only (via `ctx.mockOnlyConnection()`):
-//   - Bun SQL (sqlite adapter) — exposes neither a user-defined-function API
-//     nor the bun:sqlite `Database` it opens.
-// uuid_str / uuid_blob are NULL-safe (return NULL on NULL input), mirroring
-// the real uuid extension.
-// The user-registered case-insensitive replace a connection names via
-// `replaceAllInsensitiveFunction`. SQLite's native `replace(...)` is
-// case-sensitive; this UDF folds case (like the docs' recommended implementation)
-// so `config.insensitive-collation.test.ts` can run the `fn(?, ?, ?)` emission
-// END-TO-END on the connectors that can register functions.
-function ciReplace(source: string | null, find: string | null, replacement: string | null): string | null {
-    if (source == null || find == null || replacement == null) return source
-    const escaped = find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    return source.replace(new RegExp(escaped, 'gi'), replacement)
-}
-export function registerBetterSqlite3DecimalFunctions(db: import('better-sqlite3').Database): void {
-    db.function('decimal_add', { deterministic: true }, decimalAdd as (...args: unknown[]) => unknown)
-    db.function('decimal_sub', { deterministic: true }, decimalSub as (...args: unknown[]) => unknown)
-    db.function('decimal_mul', { deterministic: true }, decimalMul as (...args: unknown[]) => unknown)
-    db.function('decimal_cmp', { deterministic: true }, decimalCmp as (...args: unknown[]) => unknown)
-    db.aggregate('decimal_sum', { start: null, step: decimalSumStep as (...args: unknown[]) => unknown, result: decimalSumResult as (total: unknown) => unknown })
-    db.function('tsq_decimal_key', { deterministic: true }, decimalKey as (...args: unknown[]) => unknown)
-    db.function('tsq_decimal_abs', { deterministic: true }, decimalAbs as (...args: unknown[]) => unknown)
-    db.function('tsq_decimal_ceil', { deterministic: true }, decimalCeil as (...args: unknown[]) => unknown)
-    db.function('tsq_decimal_floor', { deterministic: true }, decimalFloor as (...args: unknown[]) => unknown)
-    db.function('tsq_decimal_round', { deterministic: true }, decimalRound as (...args: unknown[]) => unknown)
-    db.function('tsq_decimal_mod', { deterministic: true }, decimalMod as (...args: unknown[]) => unknown)
-    db.aggregate('tsq_decimal_min', { start: null, step: decimalMinStep as (...args: unknown[]) => unknown, result: decimalChoiceResult as (chosen: unknown) => unknown })
-    db.aggregate('tsq_decimal_max', { start: null, step: decimalMaxStep as (...args: unknown[]) => unknown, result: decimalChoiceResult as (chosen: unknown) => unknown })
-}
-export function registerBunSqliteDecimalFunctions(db: import('bun:sqlite').Database): void {
-    db.function('decimal_add', decimalAdd)
-    db.function('decimal_sub', decimalSub)
-    db.function('decimal_mul', decimalMul)
-    db.function('decimal_cmp', decimalCmp)
-    db.aggregate<ExactDecimal | null>('decimal_sum', { start: null, step: decimalSumStep, result: decimalSumResult })
-    db.function('tsq_decimal_key', decimalKey)
-    db.function('tsq_decimal_abs', decimalAbs)
-    db.function('tsq_decimal_ceil', decimalCeil)
-    db.function('tsq_decimal_floor', decimalFloor)
-    db.function('tsq_decimal_round', decimalRound)
-    db.function('tsq_decimal_mod', decimalMod)
-    db.aggregate<DecimalChoice | null>('tsq_decimal_min', { start: null, step: decimalMinStep, result: decimalChoiceResult as (chosen: DecimalChoice | null) => string | null })
-    db.aggregate<DecimalChoice | null>('tsq_decimal_max', { start: null, step: decimalMaxStep, result: decimalChoiceResult as (chosen: DecimalChoice | null) => string | null })
-}
-export function registerNodeSqliteDecimalFunctions(db: import('node:sqlite').DatabaseSync): void {
-    db.function('decimal_add', { deterministic: true }, decimalAdd as (...args: any[]) => any)
-    db.function('decimal_sub', { deterministic: true }, decimalSub as (...args: any[]) => any)
-    db.function('decimal_mul', { deterministic: true }, decimalMul as (...args: any[]) => any)
-    db.function('decimal_cmp', { deterministic: true }, decimalCmp as (...args: any[]) => any)
-    db.aggregate('decimal_sum', { start: null, step: decimalSumStep as (...args: any[]) => any, result: decimalSumResult as (total: any) => any })
-    db.function('tsq_decimal_key', { deterministic: true }, decimalKey as (...args: any[]) => any)
-    db.function('tsq_decimal_abs', { deterministic: true }, decimalAbs as (...args: any[]) => any)
-    db.function('tsq_decimal_ceil', { deterministic: true }, decimalCeil as (...args: any[]) => any)
-    db.function('tsq_decimal_floor', { deterministic: true }, decimalFloor as (...args: any[]) => any)
-    db.function('tsq_decimal_round', { deterministic: true }, decimalRound as (...args: any[]) => any)
-    db.function('tsq_decimal_mod', { deterministic: true }, decimalMod as (...args: any[]) => any)
-    db.aggregate('tsq_decimal_min', { start: null, step: decimalMinStep as (...args: any[]) => any, result: decimalChoiceResult as (chosen: any) => any })
-    db.aggregate('tsq_decimal_max', { start: null, step: decimalMaxStep as (...args: any[]) => any, result: decimalChoiceResult as (chosen: any) => any })
-}
-function registerSqlite3WasmOO1DecimalFunctions(sqlite3: import('@sqlite.org/sqlite-wasm').Sqlite3Static, db: import('@sqlite.org/sqlite-wasm').Database): void {
-    db.createFunction('decimal_add', (_ctxPtr, a, b) => decimalAdd(a, b))
-    db.createFunction('decimal_sub', (_ctxPtr, a, b) => decimalSub(a, b))
-    db.createFunction('decimal_mul', (_ctxPtr, a, b) => decimalMul(a, b))
-    db.createFunction('decimal_cmp', (_ctxPtr, a, b) => decimalCmp(a, b))
-    db.createFunction('tsq_decimal_key', (_ctxPtr, value) => decimalKey(value))
-    db.createFunction('tsq_decimal_abs', (_ctxPtr, value) => decimalAbs(value))
-    db.createFunction('tsq_decimal_ceil', (_ctxPtr, value) => decimalCeil(value))
-    db.createFunction('tsq_decimal_floor', (_ctxPtr, value) => decimalFloor(value))
-    db.createFunction('tsq_decimal_round', (_ctxPtr, value, places) => decimalRound(value, places))
-    db.createFunction('tsq_decimal_mod', (_ctxPtr, a, b) => decimalMod(a, b))
-    // An aggregate keeps the state of each aggregation by the address of its aggregate context
-    function aggregate<T>(name: string, step: (state: T | null, value: unknown) => T | null, result: (state: T | null) => unknown): void {
-        const states = new Map<number, T | null>()
-        db.createFunction({
-            name,
-            xStep: (ctxPtr: number, value: unknown) => {
-                const key = Number(sqlite3.capi.sqlite3_js_aggregate_context(ctxPtr, 1))
-                states.set(key, step(states.get(key) ?? null, value))
-            },
-            xFinal: (ctxPtr: number) => {
-                const key = Number(sqlite3.capi.sqlite3_js_aggregate_context(ctxPtr, 0))
-                const state = states.get(key) ?? null
-                states.delete(key)
-                return result(state) as string | null
-            },
-        })
-    }
-    aggregate('decimal_sum', decimalSumStep, decimalSumResult)
-    aggregate('tsq_decimal_min', decimalMinStep, decimalChoiceResult)
-    aggregate('tsq_decimal_max', decimalMaxStep, decimalChoiceResult)
-}
-function registerBetterSqlite3UuidFunctions(db: import('better-sqlite3').Database): void {
-    db.function('uuid', uuidv7 as (_: unknown) => unknown)
-    db.function('uuid_str', ((blob: Uint8Array | null) => blob == null ? null : uuidStringify(blob)) as (_: unknown) => unknown)
-    db.function('uuid_blob', ((uuid: string | null) => uuid == null ? null : Buffer.from(uuidParse(uuid))) as (_: unknown) => unknown)
-    db.function('ci_replace', ciReplace as (_: unknown) => unknown)
-}
-function registerBunSqliteUuidFunctions(db: import('bun:sqlite').Database): void {
-    db.function('uuid', () => uuidv7())
-    db.function('uuid_str', (blob: Uint8Array | null) => blob == null ? null : uuidStringify(blob))
-    db.function('uuid_blob', (uuid: string | null) => uuid == null ? null : Buffer.from(uuidParse(uuid)))
-    db.function('ci_replace', ciReplace)
-}
-function registerNodeSqliteUuidFunctions(db: import('node:sqlite').DatabaseSync): void {
-    // `DatabaseSync.function` only exists from Node 24; on Node 22 the
-    // real branch still runs but uuid columns are simply not exercised
-    // there (no test depends on them under that runtime).
-    const fnCapable = db as unknown as { function?: (name: string, fn: (...args: any[]) => unknown) => void }
-    if (typeof fnCapable.function !== 'function') return
-    fnCapable.function('uuid', () => uuidv7())
-    fnCapable.function('uuid_str', (blob: Uint8Array | null) => blob == null ? null : uuidStringify(blob))
-    fnCapable.function('uuid_blob', (uuid: string | null) => uuid == null ? null : Buffer.from(uuidParse(uuid)))
-    fnCapable.function('ci_replace', (s: string | null, f: string | null, r: string | null) => ciReplace(s, f, r))
-}
-function registerSqlite3WasmOO1UuidFunctions(db: import('@sqlite.org/sqlite-wasm').Database): void {
-    // The OO1 user-defined-function API: `createFunction(name, (ctxPtr, ...args))`.
-    // Returning a `Uint8Array` binds as a BLOB (no `Buffer` needed in WASM).
-    db.createFunction('uuid', () => uuidv7())
-    db.createFunction('uuid_str', (_ctxPtr, blob) => blob == null ? null : uuidStringify(blob as Uint8Array))
-    db.createFunction('uuid_blob', (_ctxPtr, uuid) => uuid == null ? null : uuidParse(uuid as string))
-    db.createFunction('ci_replace', (_ctxPtr, s, f, r) => ciReplace(s as string | null, f as string | null, r as string | null))
-}
+// The SQL functions the library may write on SQLite (the decimal strategies with functions, the uuid strategy
+// 'uuid-extension' and replaceAllInsensitiveFunction = 'ci_replace') are registered with the registerSqliteFunctions
+// of each query runner, the call the connector pages give, so the tests run with what users get. One connector can't
+// register them, so its tests that need them stay mock-only (via `ctx.mockOnlyConnection()`): Bun SQL (sqlite
+// adapter) exposes neither a user-defined-function API nor the bun:sqlite `Database` it opens. Each module is imported
+// in the factory of its connector, as its driver is: some of them load their driver (better-sqlite3, bun:sqlite).
 
 /**
  * `TestContext<DBConnection>` extended with sqlite-specific connection
@@ -376,8 +241,8 @@ async function getOrCreateBunSqliteDb(): Promise<import('bun:sqlite').Database> 
     if (sharedBunSqliteDb === null) {
         const { Database } = await import('bun:sqlite')
         sharedBunSqliteDb = new Database(':memory:')
-        registerBunSqliteUuidFunctions(sharedBunSqliteDb)
-        registerBunSqliteDecimalFunctions(sharedBunSqliteDb)
+        const { registerSqliteFunctions } = await import('../../../src/queryRunners/BunSqliteQueryRunner.js')
+        registerSqliteFunctions(sharedBunSqliteDb)
     }
     return sharedBunSqliteDb
 }
@@ -544,8 +409,8 @@ async function getOrCreateBetterSqlite3Db(): Promise<import('better-sqlite3').Da
     if (sharedBetterSqlite3Db === null) {
         const Database = (await import('better-sqlite3')).default
         sharedBetterSqlite3Db = new Database(':memory:')
-        registerBetterSqlite3UuidFunctions(sharedBetterSqlite3Db)
-        registerBetterSqlite3DecimalFunctions(sharedBetterSqlite3Db)
+        const { registerSqliteFunctions } = await import('../../../src/queryRunners/BetterSqlite3QueryRunner.js')
+        registerSqliteFunctions(sharedBetterSqlite3Db)
     }
     return sharedBetterSqlite3Db
 }
@@ -724,8 +589,8 @@ async function getOrCreateNodeSqliteDb(): Promise<import('node:sqlite').Database
     if (sharedNodeSqliteDb === null) {
         const { DatabaseSync } = await import('node:sqlite')
         sharedNodeSqliteDb = new DatabaseSync(':memory:')
-        registerNodeSqliteUuidFunctions(sharedNodeSqliteDb)
-        registerNodeSqliteDecimalFunctions(sharedNodeSqliteDb)
+        const { registerSqliteFunctions } = await import('../../../src/queryRunners/NodeSqliteQueryRunner.js')
+        registerSqliteFunctions(sharedNodeSqliteDb)
     }
     return sharedNodeSqliteDb
 }
@@ -772,8 +637,8 @@ async function getOrCreateSqliteWasm(): Promise<import('@sqlite.org/sqlite-wasm'
         const sqlite3InitModule = (await import('@sqlite.org/sqlite-wasm')).default
         const sqlite3 = await sqlite3InitModule()
         sqliteWasmSharedDb = new sqlite3.oo1.DB(':memory:', 'c')
-        registerSqlite3WasmOO1UuidFunctions(sqliteWasmSharedDb)
-        registerSqlite3WasmOO1DecimalFunctions(sqlite3, sqliteWasmSharedDb)
+        const { registerSqliteFunctions } = await import('../../../src/queryRunners/Sqlite3WasmOO1QueryRunner.js')
+        registerSqliteFunctions(sqliteWasmSharedDb, sqlite3)
     }
     return sqliteWasmSharedDb
 }

@@ -1,13 +1,12 @@
-// The JavaScript functions the documentation gives for the decimal strategies with functions (registered for the
-// SQLite cells in test/db/sqlite/runners.ts) give the results of SQLite's decimal extension: the extension is built
+// The JavaScript functions registerSqliteFunctions registers for the decimal strategies with functions give the
+// results of SQLite's decimal extension: the extension is built
 // from extensions/decimal.c (ext/misc/decimal.c of SQLite 3.53.0) and loaded on better-sqlite3, and the same
 // queries run against it and against the JavaScript functions. Without a C compiler, or without the headers of
 // SQLite, the comparison is skipped.
 
-import { readFileSync } from 'node:fs'
 import Database from 'better-sqlite3'
 import { describe, expect, test } from '../../lib/testRunner.js'
-import { registerBetterSqlite3DecimalFunctions } from '../../db/sqlite/runners.js'
+import { registerSqliteFunctions } from '../../../src/queryRunners/BetterSqlite3QueryRunner.js'
 import { buildSqliteExtension } from './sqliteExtensions.js'
 
 // The extension loaded on better-sqlite3, or why it can't be: building or loading it never fails the run
@@ -38,10 +37,16 @@ for (const a of values) {
     }
 }
 
+// The path of the built extension, when it could be built
+function extensionPath(): string {
+    const built = buildSqliteExtension('decimal')
+    return 'path' in built ? built.path : ''
+}
+
 describe.skipIf('reason' in extension)('SQLite: the JavaScript decimal functions give the results of the decimal extension', () => {
     const real = 'real' in extension ? extension.real : new Database(':memory:')
     const javaScript = new Database(':memory:')
-    registerBetterSqlite3DecimalFunctions(javaScript)
+    registerSqliteFunctions(javaScript)
     const both = (sql: string, ...args: unknown[]) => [real.prepare(sql).get(...args), javaScript.prepare(sql).get(...args)]
 
     for (const name of ['decimal_add', 'decimal_sub', 'decimal_mul', 'decimal_cmp']) {
@@ -87,40 +92,29 @@ describe.skipIf('reason' in extension)('SQLite: the JavaScript decimal functions
         }
     })
 
+    test('decimal_sum-as-a-window-function', () => {
+        const rows = "select 1 as i, '123456789012345678901234567890.1' as v union all select 2, '0.0000000001' union all select 3, '-5.25' union all select 4, null union all select 5, '99999999999999999999.99' union all select 6, '1.50'"
+        for (const frame of ['order by i', 'order by i rows between 2 preceding and current row', 'order by i rows between 1 preceding and 1 following']) {
+            const sql = `select i, decimal_sum(v) over (${frame}) as v from (${rows}) order by i`
+            expect([frame, javaScript.prepare(sql).all()]).toEqual([frame, real.prepare(sql).all()])
+        }
+    })
+
+    test('registered-after-the-extension-it-leaves-its-functions', () => {
+        // The extension loaded first: registerSqliteFunctions adds only the functions it doesn't have (the tsq_ ones).
+        // decimal_cmp('.5', '2.5E-2') tells them apart: the extension gives -1, the JavaScript one 1
+        const both = new Database(':memory:')
+        both.loadExtension(extensionPath())
+        registerSqliteFunctions(both)
+        expect(both.prepare("select decimal_cmp('.5', '2.5E-2') as c, tsq_decimal_key('1.50') = tsq_decimal_key('1.5') as k").get()).toEqual({ c: -1, k: 1 })
+        expect(javaScript.prepare("select decimal_cmp('.5', '2.5E-2') as c").get()).toEqual({ c: 1 })
+        // The extension's decimal_sum is the one listed, as a window function of the extension
+        expect(both.prepare("select type from pragma_function_list where name = 'decimal_sum'").all()).toEqual(real.prepare("select type from pragma_function_list where name = 'decimal_sum'").all())
+        both.close()
+    })
+
     test('decimal_sum-by-group', () => {
         const sql = "select g, decimal_sum(v) as v from (select 1 as g, '1.5' as v union all select 1, '2.25' union all select 2, null union all select 2, '-0.5') group by g order by g"
         expect(javaScript.prepare(sql).all()).toEqual(real.prepare(sql).all())
     })
-})
-
-describe('SQLite: the decimal functions of the documentation', () => {
-    const read = (path: string) => readFileSync(new URL('../../../' + path, import.meta.url), 'utf8')
-    const module = readFileSync(new URL('../../db/sqlite/decimalFunctions.ts', import.meta.url), 'utf8')
-    const runners = readFileSync(new URL('../../db/sqlite/runners.ts', import.meta.url), 'utf8')
-    // The names given to db.function, db.aggregate, db.createFunction and the aggregate helper of sqlite-wasm
-    const registeredNames = (code: string) => [...code.matchAll(/(?:\.function|\.aggregate|\.createFunction|aggregate)(?:<[^>]*>)?\(\s*'([a-z_]+)'/g)].map(match => match[1]).sort()
-    const pages = [
-        { page: 'docs/configuration/supported-databases/sqlite.md', register: undefined },
-        { page: 'docs/configuration/query-runners/recommended/better-sqlite3.md', register: 'registerBetterSqlite3DecimalFunctions' },
-        { page: 'docs/configuration/query-runners/recommended/bun_sqlite.md', register: 'registerBunSqliteDecimalFunctions' },
-        { page: 'docs/configuration/query-runners/recommended/node_sqlite.md', register: 'registerNodeSqliteDecimalFunctions' },
-        { page: 'docs/configuration/query-runners/recommended/sqlite-wasm-OO1.md', register: 'registerSqlite3WasmOO1DecimalFunctions' },
-    ]
-    for (const { page, register } of pages) {
-        test(page, () => {
-            const text = read(page)
-            // The block "decimalFunctions.ts" of the page is test/db/sqlite/decimalFunctions.ts as it is
-            const start = text.indexOf('```typescriptreact title="decimalFunctions.ts"\n')
-            expect(start).toBeGreaterThanOrEqual(0)
-            const block = text.substring(text.indexOf('\n', start) + 1, text.indexOf('\n```\n', start) + 1)
-            expect(block).toBe(module)
-            if (register) {
-                // The snippet after it registers the functions the cells register, by the same names
-                const snippetStart = text.indexOf('```typescriptreact\n', start + block.length)
-                const snippet = text.substring(snippetStart, text.indexOf('\n```\n', snippetStart))
-                const registration = runners.substring(runners.indexOf('function ' + register + '('), runners.indexOf('\n}\n', runners.indexOf('function ' + register + '(')))
-                expect(registeredNames(snippet)).toEqual(registeredNames(registration))
-            }
-        })
-    }
 })

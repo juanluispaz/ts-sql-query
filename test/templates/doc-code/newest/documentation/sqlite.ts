@@ -36,6 +36,8 @@ const BunSqliteQueryRunner = null as any
 const BunSqlSqliteQueryRunner = null as any
 export type TransactionSQL = any
 const NodeSqliteQueryRunner = null as any
+// The same name in the module of each query runner of SQLite
+const registerSqliteFunctions = null as any
 const SQL = null as any
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
@@ -222,6 +224,7 @@ void BetterSqlite3QueryRunner
 void BunSqliteQueryRunner
 void BunSqlSqliteQueryRunner
 void NodeSqliteQueryRunner
+void registerSqliteFunctions
 void SQL
 void sync
 void SynchronousPromise

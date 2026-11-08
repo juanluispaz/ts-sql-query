@@ -12,9 +12,13 @@ import { extractColumnNamesFrom, extractColumnsFrom } from '../../../../src/extr
 import { CustomBooleanTypeAdapter, type DefaultTypeAdapter, type TypeAdapter, type TypeCategory } from '../../../../src/TypeAdapter.js'
 import { getQueryConnectionConfiguration, type ConnectionConfiguration, type QueryResultColumn } from '../../../../src/queryRunners/QueryRunner.js'
 import { MockQueryRunner } from '../../../../src/queryRunners/MockQueryRunner.js'
+import type * as BetterSqlite3QueryRunnerModule from '../../../../src/queryRunners/BetterSqlite3QueryRunner.js'
+import type * as Sqlite3WasmOO1QueryRunnerModule from '../../../../src/queryRunners/Sqlite3WasmOO1QueryRunner.js'
+import type { Database as Sqlite3WasmDatabase } from '@sqlite.org/sqlite-wasm'
 import { tCountry } from '../domain/connection.js'
 
-function _typeNegatives() {
+// Never called: it only has to compile, so the modules of the query runners come as parameters and nothing is loaded
+function _typeNegatives(betterSqlite3: typeof BetterSqlite3QueryRunnerModule, sqlite3WasmOO1: typeof Sqlite3WasmOO1QueryRunnerModule, wasmDb: Sqlite3WasmDatabase) {
     // Rule: the configuration of the connection a query runner reads has the settings of the connection, and only them.
     const configuration: ConnectionConfiguration | undefined = getQueryConnectionConfiguration('', [])
     void configuration?.compatibilityVersion
@@ -41,6 +45,14 @@ function _typeNegatives() {
     new MockQueryRunner(() => undefined, { queryRunner: 'postgres' })
     // @ts-expect-error a wrapper adds no parameter of its own
     new MockQueryRunner(() => undefined, { queryRunner: 'InterceptorQueryRunner' })
+    // Rule: registerSqliteFunctions takes the database of its driver (sqlite-wasm also the module the database was
+    // created with), and only the module of each query runner exports it.
+    // @ts-expect-error not a better-sqlite3 database
+    betterSqlite3.registerSqliteFunctions({})
+    // @ts-expect-error sqlite-wasm needs the module the database was created with
+    sqlite3WasmOO1.registerSqliteFunctions(wasmDb)
+    // @ts-expect-error the root entry doesn't export it
+    void root.registerSqliteFunctions
     // Rule: both values of a custom boolean have the same data type.
     new CustomBooleanTypeAdapter(1, 0)
     new CustomBooleanTypeAdapter('yes', 'no')

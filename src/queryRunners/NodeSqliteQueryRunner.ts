@@ -5,6 +5,8 @@ import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSq
 import { getNodeSqliteErrorReason, isNodeSqliteError } from './connectorErrorMappers/NodeSqliteErrorMapper.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
+import { sqliteFunctionListQuery, sqliteFunctionsToRegister } from '../utils/sqliteFunctions.js'
+import type { SqliteFunctionsOptions } from '../connections/SqliteConfiguration.js'
 
 export interface NodeSqliteQueryRunnerConfig {
     promise?: PromiseProvider | undefined
@@ -123,5 +125,37 @@ export class NodeSqliteQueryRunner extends SqlTransactionQueryRunner {
 
     static isSqlError(error: unknown): boolean {
         return error instanceof TsSqlError || isNodeSqliteError(error)
+    }
+}
+
+/**
+ * Registers on the database the SQL functions the library may write on SQLite, so they are always available: the
+ * functions of SQLite's decimal extension and the library's own ones (tsq_) the decimal strategies of
+ * SqliteConnection write, uuid, uuid_str and uuid_blob for the uuid strategy 'uuid-extension' (uuid() generates a
+ * version 7 UUID), and ci_replace (for replaceAllInsensitiveFunction = 'ci_replace'). Every function but uuid() is
+ * registered as deterministic, so it can be used in an index on an expression. A function the database already has with
+ * the same name and number of arguments (a loaded extension, like SQLite's decimal or uuid extension, or one you
+ * registered before) is left as it is: the call reads the functions of the database (pragma function_list) once,
+ * before registering. options.skip names functions not to register.
+ *
+ * It needs the function and aggregate methods of node:sqlite (Node 22.16 or later, 24, 26).
+ */
+export function registerSqliteFunctions(db: DatabaseSync, options?: SqliteFunctionsOptions): void {
+    if (typeof db.function !== 'function' || typeof db.aggregate !== 'function') {
+        throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'db', value: db }, 'registerSqliteFunctions needs the function and aggregate methods of node:sqlite, which this version of Node doesn\'t have')
+    }
+    const toRegister = sqliteFunctionsToRegister(() => db.prepare(sqliteFunctionListQuery).all(), options)
+    for (const sqlFunction of toRegister.scalar) {
+        db.function(sqlFunction.name, { deterministic: sqlFunction.deterministic }, sqlFunction.fn as (...args: any[]) => any)
+    }
+    for (const sqlFunction of toRegister.aggregate) {
+        const inverse = sqlFunction.inverse
+        db.aggregate<any>(sqlFunction.name, {
+            deterministic: true,
+            start: null,
+            step: sqlFunction.step,
+            ...(inverse ? { inverse: inverse } : {}),
+            result: sqlFunction.result as (state: any) => any,
+        })
     }
 }

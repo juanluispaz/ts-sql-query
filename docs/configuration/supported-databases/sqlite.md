@@ -269,25 +269,56 @@ create table exact_amount (
 ) strict;
 ```
 
-SQLite compares and orders that text as text, and computes with it in floating point. The decimal strategy of the connection says how the library writes the operations of a `customDecimal`. In every strategy an operation is exact, or the library rejects the query with `UNSUPPORTED_QUERY` before sending it; it never gives a number that has lost digits nor rows compared as texts:
+SQLite compares and orders that text as text, and computes with it in floating point. The decimal strategy of the connection says how the library writes the operations of a `customDecimal`. In every strategy an operation is exact, or the library rejects the query with `UNSUPPORTED_QUERY` before sending it; it never gives a number that has lost digits nor rows compared as texts. There are three strategies, each in two variants:
 
-| Strategy | What the library writes | What it needs | What is exact | What is rejected |
-|---|---|---|---|---|
-| `decimal-functions` *(default)* | The functions of SQLite's decimal extension and the `tsq_` functions of the library | The functions below, registered in the connection of the driver | Every operation of a `customDecimal` | Nothing of its own |
-| `decimal-extension` | The functions of SQLite's [decimal extension](https://sqlite.org/floatingpoint.html#the_decimal_c_extension) (`decimal_add`, `decimal_sub`, `decimal_mul`, `decimal_sum`, `decimal_cmp`) and plain SQL | The extension loaded, or the same functions in JavaScript | Storing and reading, `add`, `subtract`, `multiply`, `abs`, `sum`, every comparison (`equals`, `lessThan`, `in`, `between`, `is`…), `minValue`, `maxValue`, `min`, `max`, the order by, `group by`, `distinct` and the compound queries | `ceil`, `floor`, `round`, `roundn` and `modulo` |
-| `text` | Plain SQL | Nothing | Storing and reading, `abs`, every comparison, `minValue`, `maxValue`, `min`, `max`, the order by, `group by`, `distinct` and the compound queries | The arithmetic: `add`, `subtract`, `multiply`, `modulo`, `ceil`, `floor`, `round`, `roundn` and `sum` |
-
-Without a function of the library, plain SQL compares the numbers by their parts: the sign, where the point goes and the significant digits, so `1.5` equals `1.50` and `001.50`, `-0.00` equals `0`, `9` comes before `10`, and two values of 30 digits that differ in the last one are different. It is exact, but it takes longer than a function written in JavaScript, which does that work once per row. On a million rows (bun:sqlite 3.51, node:sqlite 3.53, better-sqlite3 3.53.4):
-
-| Operation | Plain SQL | `decimal-functions` | The text as it is (not exact) |
+| Strategy | What the library writes | What it needs | What is rejected |
 |---|---|---|---|
-| Order by | 3.6–4.5 s | 0.9–1.3 s | 0.3–0.5 s |
-| Group by and distinct | 1.4–1.5 s | 1.0–1.2 s | 0.4–1.0 s |
-| An equality, by the normal forms (bun:sqlite, node:sqlite) | 1.3–1.6 s | — | 33 ms |
-| A range, `lessThan` (bun:sqlite, node:sqlite) | 1.7–2.1 s | — | — |
-| `min` (bun:sqlite, node:sqlite) | 1.8–2.3 s | — | 34 ms |
+| `decimal-extension and tsq-functions` | The functions of SQLite's [decimal extension](https://sqlite.org/floatingpoint.html#the_decimal_c_extension) (`decimal_add`, `decimal_sub`, `decimal_mul`, `decimal_sum`, `decimal_cmp`) for the arithmetic, the sums and the comparisons of order; plain SQL for the order by, `min`, `max`, the grouping and `abs`; and the functions of the library `tsq_decimal_ceil`, `tsq_decimal_floor`, `tsq_decimal_round` and `tsq_decimal_mod`, which the extension doesn't have | The extension loaded, or its functions in JavaScript, and the four functions of the library | Nothing |
+| `decimal-functions` | The functions of the decimal extension and the ones of the library, also for the order by, the grouping, `min`, `max` and `abs` (`tsq_decimal_key`, `tsq_decimal_min`, `tsq_decimal_max`, `tsq_decimal_abs`) | The functions of the extension and of the library | Nothing |
+| `text` | Plain SQL | Nothing | The arithmetic: `add`, `subtract`, `multiply`, `modulo`, `ceil`, `floor`, `round`, `roundn` and `sum` |
 
-A group of numbers equal with different scales (`1.5` and `1.50`) gives the text of one of its rows. The distinct values (`countDistinct`, `sumDistinct`, `averageDistinct` and the distinct arrays) are the distinct numbers, each in its normal form: `1.50` is `1.5`. A distinct select with a `customDecimal` column and a `group by` or an aggregate is rejected in every strategy, because the distinct of its rows would compare their texts.
+Each strategy has a **canonical text** variant, named with ` with canonical text` at the end (`canonical text` for `text`). **The default is `decimal-extension and tsq-functions with canonical text`.** In a canonical text variant the library writes every `customDecimal` in its canonical text: without zeros before the integer part (`0` when it is zero), without zeros at the end of the fraction, and without a minus sign for a zero. `007.50` is written as `7.5`, `-0.00` as `0` and `.5` as `0.5`, in every value it sends (an insert, an update, a comparison) and in every computed value it stores or reads. In return, it takes the values stored as written so, and compares their text directly: an equality, `in`, `notIn`, `is`, the group by, `distinct`, the duplicates of a `union`, `intersect` or `except` and the distinct aggregates compare the text, which is faster and can use an ordinary index of the column (`SEARCH t USING COVERING INDEX` for an equality and an `in`, measured with bun:sqlite). The order by, the ranges, `min` and `max` stay exact as in the strategy without the variant.
+
+| | Without the variant | With canonical text |
+|---|---|---|
+| What is stored | The text as you send it (`1.50` stays `1.50`) | The canonical text (`1.50` is stored as `1.5`) |
+| What is read | The text stored, with its scale | The canonical text: the scale of a value isn't kept |
+| Equality, `in`, group by, `distinct` | By the number: `1.5` equals `1.50` | By the text, which is the same for the same number |
+| A distinct select with a `customDecimal` column and a `group by` or an aggregate | Rejected: the distinct of its rows would compare their texts | Allowed |
+| A value written by something else than the library | Any text of a decimal | Must be in canonical text: a value like `1.50` written by another program, or by SQL you write, isn't equal to `1.5` in an equality, and is a group of its own |
+
+The canonical text is a contract: use a canonical text variant when the library writes the values of those columns, or when you normalize what others write. To turn the values a table already has into their canonical text, run once, for each column:
+
+```sql
+update exact_amount set price = (
+    select case when i = '' and f = '' then '0'
+                else s || (case when i = '' then '0' else i end) || (case when f <> '' then '.' || f else '' end) end
+    from (select case when substr(price, 1, 1) = '-' then '-' else '' end as s,
+                 ltrim(substr(ltrim(price, '-'), 1, instr(ltrim(price, '-') || '.', '.') - 1), '0') as i,
+                 rtrim(substr(ltrim(price, '-'), instr(ltrim(price, '-') || '.', '.') + 1), '0') as f)
+) where price is not null;
+```
+
+It turns `007.50` into `7.5`, `-0.00` and `0.0` into `0`, `.5` into `0.5`, `1.500` into `1.5`, and leaves `100` as it is.
+
+Plain SQL compares the numbers by their parts: the sign, where the point goes and the significant digits, so `1.5` equals `1.50` and `001.50`, `-0.00` equals `0`, `9` comes before `10`, and two values of 30 digits that differ in the last one are different. It is exact, but without the canonical text it takes longer than a function written in JavaScript, which does that work once per row. On a million rows in canonical text, the median of three runs of the SQL each strategy writes:
+
+In milliseconds, on bun:sqlite 3.51 / node:sqlite 3.53 / better-sqlite3 3.53.4 (macOS), the functions in JavaScript:
+
+| Operation | `text` | `canonical text` | `decimal-extension and tsq-functions` | `… with canonical text` *(default)* | `decimal-functions` | `… with canonical text` |
+|---|---|---|---|---|---|---|
+| An equality | 1196 / 1277 / 1046 | 32 / 32 / 31 | 379 / 442 / 331 | 32 / 34 / 31 | 375 / 426 / 330 | 32 / 34 / 30 |
+| A range (`greaterThan`) | 1676 / 2124 / 1567 | 1631 / 2010 / 1578 | 441 / 560 / 382 | 440 / 561 / 375 | 453 / 567 / 375 | 443 / 576 / 376 |
+| Order by | 3832 / 4773 / 3552 | 1101 / 1225 / 1051 | 3799 / 4725 / 3550 | 1081 / 1225 / 1060 | 841 / 1285 / 986 | 866 / 1280 / 997 |
+| Group by | 1548 / 1678 / 1452 | 388 / 551 / 400 | 1546 / 1709 / 1440 | 387 / 550 / 402 | 972 / 1349 / 1046 | 384 / 556 / 402 |
+| Distinct | 1595 / 1710 / 1515 | 525 / 1365 / 538 | 1582 / 1748 / 1537 | 508 / 1449 / 523 | 1194 / 1644 / 1322 | 570 / 1462 / 534 |
+| `min` and `max` | 3271 / 4393 / 3674 | 1318 / 1818 / 1361 | 3261 / 4318 / 3797 | 1369 / 1841 / 1511 | 1276 / 1372 / 1019 | 1288 / 1350 / 1021 |
+| `add`, read | rejected | rejected | 651 / 1035 / 584 | 1008 / 1306 / 830 | 790 / 1034 / 576 | 1058 / 1263 / 829 |
+| `sum` | rejected | rejected | 325 / 357 / 290 | 326 / 353 / 287 | 327 / 376 / 285 | 341 / 364 / 289 |
+
+The text as it is, which isn't exact, takes about 30 ms for an equality, 320 ms to 500 ms for the order by and 370 ms to 470 ms for a group by. With the canonical text the equalities and the groupings cost what the text costs, and the order by, `min` and `max` of `decimal-extension and tsq-functions` cost about what the functions of the library cost; without it, plain SQL takes 3 to 4 times longer than `decimal-functions` there. A computed value read in canonical text costs between a quarter and a half more, for the subquery that turns it into its canonical text.
+
+A group of numbers equal with different scales (`1.5` and `1.50`), in a strategy without the canonical text, gives the text of one of its rows; the distinct values (`countDistinct`, `sumDistinct`, `averageDistinct` and the distinct arrays) are the distinct numbers, each in its normal form: `1.50` is `1.5`.
 
 You can change the strategy by overriding the `decimalStrategy` field in your connection class:
 
@@ -295,11 +326,11 @@ You can change the strategy by overriding the `decimalStrategy` field in your co
 import { SqliteConnection } from "ts-sql-query/connections/SqliteConnection";
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
-    protected override decimalStrategy = 'text' as const
+    protected override decimalStrategy = 'decimal-functions with canonical text' as const
 }
 ```
 
-With `decimal-functions` the library writes these functions, and none of SQLite: the extension's `decimal_add(a, b)`, `decimal_sub(a, b)`, `decimal_mul(a, b)`, `decimal_cmp(a, b)` and the aggregate `decimal_sum(x)`, and its own `tsq_decimal_key(x)` (a text whose order is the order of the numbers, for the order by, the group by and the distinct), `tsq_decimal_abs(x)`, `tsq_decimal_ceil(x)`, `tsq_decimal_floor(x)`, `tsq_decimal_round(x, n)`, `tsq_decimal_mod(a, b)` and the aggregates `tsq_decimal_min(x)` and `tsq_decimal_max(x)`. A query that uses one of them fails with `no such function` when it isn't registered. With these functions registered as deterministic, an index on the key of a column lets the order by and the ranges of that column use it, as SQLite takes an index on an expression for the same expression in a query (measured with node:sqlite and better-sqlite3; the plan is `SCAN t USING INDEX` and `SEARCH t USING INDEX`):
+The strategies with functions write these ones, and none of SQLite: the extension's `decimal_add(a, b)`, `decimal_sub(a, b)`, `decimal_mul(a, b)`, `decimal_cmp(a, b)` and the aggregate `decimal_sum(x)`, and the library's `tsq_decimal_ceil(x)`, `tsq_decimal_floor(x)`, `tsq_decimal_round(x, n)` and `tsq_decimal_mod(a, b)`; `decimal-functions` also `tsq_decimal_key(x)` (a text whose order is the order of the numbers, for the order by, the group by and the distinct), `tsq_decimal_abs(x)` and the aggregates `tsq_decimal_min(x)` and `tsq_decimal_max(x)`. The library's functions start with `tsq_`, so no function of SQLite or of an extension has their name. A query that uses one of them fails with `no such function` when it isn't registered. With these functions registered as deterministic, an index on the key of a column lets the order by and the ranges of that column use it with `decimal-functions`, as SQLite takes an index on an expression for the same expression in a query (measured with node:sqlite and better-sqlite3; the plan is `SCAN t USING INDEX` and `SEARCH t USING INDEX`):
 
 ```sql
 create index exact_amount_price_key on exact_amount (tsq_decimal_key(price));
@@ -307,16 +338,17 @@ create index exact_amount_price_key on exact_amount (tsq_decimal_key(price));
 
 Without the function registered, that table can be read but not written: an insert fails with `unknown function: tsq_decimal_key()`.
 
-This module implements all of them with `BigInt`, with the results of the extension and of the other databases; the page of each driver shows it again with how to register its functions: [better-sqlite3](../query-runners/recommended/better-sqlite3.md#better-sqlite3-and-exact-decimals), [bun:sqlite](../query-runners/recommended/bun_sqlite.md#bunsqlite-and-exact-decimals), [node:sqlite](../query-runners/recommended/node_sqlite.md#nodesqlite-and-exact-decimals) and [sqlite-wasm OO1](../query-runners/recommended/sqlite-wasm-OO1.md#sqlite-wasm-oo1-and-exact-decimals). Bun SQL can't register functions: use the `text` strategy with it.
+This module implements all of them with `BigInt`, with the results of the extension and of the other databases; the page of each driver shows it again with how to register its functions: [better-sqlite3](../query-runners/recommended/better-sqlite3.md#better-sqlite3-and-exact-decimals), [bun:sqlite](../query-runners/recommended/bun_sqlite.md#bunsqlite-and-exact-decimals), [node:sqlite](../query-runners/recommended/node_sqlite.md#nodesqlite-and-exact-decimals) and [sqlite-wasm OO1](../query-runners/recommended/sqlite-wasm-OO1.md#sqlite-wasm-oo1-and-exact-decimals). Bun SQL can't register functions: use the `text` or the `canonical text` strategy with it.
 
 ```typescriptreact title="decimalFunctions.ts"
 // The functions the decimal strategies of SqliteConnection write, in JavaScript, for a driver that registers
-// functions written in JavaScript. `decimal-extension` writes decimal_add, decimal_sub, decimal_mul, decimal_cmp and
-// decimal_sum, the functions of SQLite's decimal extension (ext/misc/decimal.c), with its results; `decimal-functions`
-// writes them and the tsq_ ones. The SQLite page of the documentation shows this file as it is.
+// functions written in JavaScript. The strategies with functions write decimal_add, decimal_sub, decimal_mul,
+// decimal_cmp and decimal_sum, the functions of SQLite's decimal extension (ext/misc/decimal.c), with its results, and
+// tsq_ ones: 'decimal-extension and tsq-functions' the roundings and the modulo, 'decimal-functions' also the order,
+// the grouping, min and max. The SQLite page of the documentation shows this file as it is.
 
-// The functions of SQLite's decimal extension (ext/misc/decimal.c) that the `decimal-extension` decimal strategy
-// writes, in JavaScript, for the connectors that can't load the extension (the SQLite page of the documentation
+// The functions of SQLite's decimal extension (ext/misc/decimal.c) that the decimal strategies with functions
+// write, in JavaScript, for the connectors that can't load the extension (the SQLite page of the documentation
 // gives this same code). They give the results of the extension: decimal_add and decimal_sub keep the largest
 // scale, decimal_mul keeps the decimals of both operands but trims the zeros at the end down to the smaller scale,
 // decimal_sum keeps the largest scale, is 0 when every value is null and null without rows, decimal_cmp gives -1, 0
@@ -405,8 +437,9 @@ export function decimalSumStep(total: ExactDecimal | null, value: unknown): Exac
 export function decimalSumResult(total: ExactDecimal | null): string | null {
     return total ? formatExactDecimal(total) : null
 }
-// The functions of the `decimal-functions` decimal strategy that the decimal extension doesn't have, named with the
-// prefix of the library (tsq_) so no function of SQLite or of an extension has their name.
+// The functions of the library that the decimal extension doesn't have, which the decimal strategies with functions
+// write (see each function), named with the prefix of the library (tsq_) so no function of SQLite or of an extension
+// has their name.
 // tsq_decimal_key: a text whose order is the order of the numbers, the same for 1.5 and 1.50: '1' for zero; for a
 // positive number '2', its exponent (where the point goes, from the first significant digit) plus 500000000 in 10
 // digits, and its significant digits; for a negative number '0', the same with every digit inverted (9 - digit),

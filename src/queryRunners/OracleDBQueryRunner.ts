@@ -4,13 +4,18 @@ import oracleDb from 'oracledb'
 import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getOracleDBErrorReason, isOracleDBError } from './connectorErrorMappers/OracleDBErrorMapper.js'
-import { getParamTypeCategoryAt } from '../utils/queryParamsMetadata.js'
+import { getParamTypeAt, getParamTypeCategoryAt } from '../utils/queryParamsMetadata.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { setQueryParamType } from './QueryRunner.js'
 
 export interface OracleDBQueryRunnerConfig {
     /** The connection is in a transaction that something else manages, and that something else ends: the statements don't commit, and none begins, commits or rolls back through this query runner */
     forUseInTransaction?: boolean | undefined
+    /**
+     * The DbType of oracledb, like `oracledb.DB_TYPE_NUMBER`, each parameter of a type name (the name given to a custom
+     * type, or a built-in one) is bound with, also a RETURNING OUT bind, instead of the one oracledb gives its value
+     */
+    typesByName?: { readonly [typeName: string]: DbType } | undefined
 }
 
 export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
@@ -59,7 +64,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         })
     }
     protected override executeMutationReturning(query: string, params: any[] = []): Promise<any[]> {
-        return this.connection.execute(query, this.bindParams(this.resolveOutBindTypes(params)), {autoCommit: this.autoCommit()}).then((result) => {
+        return this.connection.execute(query, this.bindParams(params, true), {autoCommit: this.autoCommit()}).then((result) => {
             return this.processOutBinds(params, result.outBinds)
         })
     }
@@ -67,11 +72,31 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
      * The params as oracledb binds them by name: the placeholders this runner emits are named after the index of their
      * value (`:0`, `:1`, …), and binding by name gives every occurrence of a placeholder the same value, so the same
      * placeholder can be repeated in the query (an array binds one value per occurrence, in the order of the text).
+     * A parameter of a type name in typesByName is bound with the DbType declared there. With resolveOutBinds, a
+     * RETURNING OUT bind also gets the DbType of its column. The params of the query are not changed.
      */
-    protected bindParams(params: any[]): Record<string, any> {
+    protected bindParams(params: any[], resolveOutBinds: boolean = false): Record<string, any> {
+        const typesByName = this.config?.typesByName
         const result: Record<string, any> = {}
         for (let i = 0, length = params.length; i < length; i++) {
             const value = params[i]
+            const typeName = getParamTypeAt(params, i)
+            const declared = typesByName && typeName !== undefined && Object.hasOwn(typesByName, typeName) ? typesByName[typeName] : undefined
+            if (resolveOutBinds && value && typeof value === 'object' && value.dir === oracleDb.BIND_OUT) {
+                // Each RETURNING OUT bind keeps the category of the type of its column (addOutParam)
+                const dbType = declared ?? this.oracleDbType(getParamTypeCategoryAt(params, i))
+                if (dbType === undefined || (dbType === oracleDb.DB_TYPE_NUMBER && declared === undefined)) {
+                    // Without a type, oracledb returns an OUT number as a string, with all its digits
+                    result[i] = value
+                } else {
+                    result[i] = { ...value, type: dbType }
+                }
+                continue
+            }
+            if (declared !== undefined) {
+                result[i] = { val: value, type: declared }
+                continue
+            }
             if (value === null || value === undefined) {
                 // oracledb binds a null without a type Oracle can use where nothing else gives it one: a row of a
                 // union (ORA-01790) or a `case :0 when 1` (ORA-00932). A null of a number, a date or a time is bound
@@ -111,29 +136,6 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
                 return undefined
         }
     }
-    private resolveOutBindTypes(params: any[]): any[] {
-        // Each RETURNING OUT bind keeps the category of the type of its column (addOutParam). Here,
-        // only in the array handed to the driver, a temporal column's OUT bind is given its oracledb
-        // DbType. The original array — used by processOutBinds and captured for the snapshot — is
-        // left untouched; the copy is made lazily only when there is a type to resolve.
-        let resolved: any[] | undefined = undefined
-        for (let i = 0, length = params.length; i < length; i++) {
-            const param = params[i]
-            if (!param || typeof param !== 'object' || param.dir !== oracleDb.BIND_OUT) {
-                continue
-            }
-            const dbType = this.oracleDbType(getParamTypeCategoryAt(params, i))
-            if (dbType === undefined || dbType === oracleDb.DB_TYPE_NUMBER) {
-                // Without a type, oracledb returns an OUT number as a string, with all its digits
-                continue
-            }
-            if (!resolved) {
-                resolved = params.slice()
-            }
-            resolved[i] = { ...param, type: dbType }
-        }
-        return resolved ?? params
-    }
     /**
      * Oracle always runs statements inside a transaction, and oracledb doesn't commit it unless asked (its autoCommit
      * defaults to false): outside a transaction begun through ts-sql-query, each statement is committed, as on every
@@ -168,14 +170,14 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         // the transaction of the connection is not this query runner's to commit or roll back
         return !!this.config?.forUseInTransaction
     }
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
-        setQueryParamType(params, params.length, type, typeCategory)
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
         const index = params.length
         params.push(value)
         return ':' + index
     }
-    override addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory): string {
-        setQueryParamType(params, params.length, type, typeCategory)
+    override addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
         const index = params.length
         if (name) {
             params.push({dir: oracleDb.BIND_OUT, as: name})

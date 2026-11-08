@@ -4,7 +4,8 @@
 import { describe, expect, test } from '../../lib/testRunner.js'
 import {
     getFunctionExecutingQuery, getQueryExecutionMetadata, getQueryExecutionName, getQueryExecutionSource,
-    getQueryExecutionStack, isSelectPageCountQuery,
+    getQueryExecutionStack, getQueryParamForceTypeCast, getQueryParamType, getQueryParamTypeCategory, isSelectPageCountQuery,
+    setQueryParamType,
 } from '../../../src/queryRunners/QueryRunner.js'
 import { setQueryExecutionMetadata, setQueryExecutionSource, setSelectPageCountQuery } from '../../../src/utils/queryParamsMetadata.js'
 
@@ -33,6 +34,18 @@ describe('QueryRunner functions', () => {
         expect(getQueryExecutionName('q', params)).toBe('load users')
         expect(getQueryExecutionMetadata('q', params)).toEqual({ tag: 1 })
         expect(Object.keys(params)).toEqual([])
+    })
+
+    test('param-types', () => {
+        const params: any[] = [1, 'a', null]
+        setQueryParamType(params, 0, 'int', 'int', true)
+        setQueryParamType(params, 2, 'Money', 'customDouble', false)
+        expect([0, 1, 2].map(index => [getQueryParamType('q', params, index), getQueryParamTypeCategory('q', params, index), getQueryParamForceTypeCast('q', params, index)])).toEqual([
+            ['int', 'int', true],
+            [undefined, undefined, undefined],
+            ['Money', 'customDouble', false],
+        ])
+        expect(Object.keys(params)).toEqual(['0', '1', '2'])
     })
 
     test('page-count-query', () => {

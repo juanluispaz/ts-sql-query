@@ -33,7 +33,7 @@ describe(ctx.label, () => {
                 .executeInsert()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan, verified) values ($1, $2, case when $3::bool then 'Y' else 'N' end) returning id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan, verified) values ($1, $2, case when $3 then 'Y' else 'N' end) returning id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Demo Corp",

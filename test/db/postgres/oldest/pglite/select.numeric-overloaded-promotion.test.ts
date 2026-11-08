@@ -73,7 +73,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id, p: tIssue.priority })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority as p from issue where id = $1 and priority < $2::float8 and priority <> $3::float8 and priority between $4::float8 and $5::float8 and priority in ($6::float8, $7::float8)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority as p from issue where id = $1 and priority < $2 and priority <> $3 and priority between $4 and $5 and priority in ($6, $7)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -255,7 +255,7 @@ describe(ctx.label, () => {
                 .select({ id: tIssue.id, rest: tIssue.priority.add(2.5).modulo(2) })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, mod((priority + $1::float8)::numeric, ($2)::numeric) as rest from issue where id = $3"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, mod((priority + $1)::numeric, ($2)::numeric) as rest from issue where id = $3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2.5,

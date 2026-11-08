@@ -32,7 +32,7 @@ describe(ctx.label, () => {
                 belowFraction: connection.const(2.5, 'double').lessThan(10.25),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int4 < $2 as "underLimit", $3::int4 > $4 as "overLimit", $5::int4 between $6 and $7 as "inRange", greatest($8::int4, $9) as "atLeastLimit", least($10::int4, $11) as "atMostLimit", $12::int4 + $13 as total, $14::float8 < $15 as "belowFraction" from issue where id = $16"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 < $2 as "underLimit", $3 > $4 as "overLimit", $5 between $6 and $7 as "inRange", greatest($8, $9) as "atLeastLimit", least($10, $11) as "atMostLimit", $12 + $13 as total, $14 < $15 as "belowFraction" from issue where id = $16"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             7,
@@ -79,7 +79,7 @@ describe(ctx.label, () => {
                 withBonus:   connection.max(connection.optionalConst(bonus, 'int').valueWhenNull(3).add(1)),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum($1::int4) as "totalPoints", count($2::int4) as counted, max(coalesce($3::int4, $4) + $5) as "withBonus" from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum($1) as "totalPoints", count($2) as counted, max(coalesce($3, $4) + $5) as "withBonus" from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

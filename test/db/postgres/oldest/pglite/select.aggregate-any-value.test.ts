@@ -77,7 +77,7 @@ describe(ctx.label, () => {
                 five:  connection.anyValue(connection.const(5, 'int')),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as total, any_value($1::int4) as five from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as total, any_value($1) as five from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             5,

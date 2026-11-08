@@ -18,7 +18,7 @@ describe(ctx.label, () => {
         const expected = [{ id: 4 }]
         ctx.mockNext([{ id: 4, 'iss.title': null, 'iss.tag': 'x' }])
         const rows = await arm().union(arm()).executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, issue.title as "iss.title", $1::text as "iss.tag" from project left join issue on issue.project_id = project.id and issue.number = $2 where project.id = $3 union select project.id as id, issue.title as "iss.title", $4::text as "iss.tag" from project left join issue on issue.project_id = project.id and issue.number = $5 where project.id = $6"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, issue.title as "iss.title", $1 as "iss.tag" from project left join issue on issue.project_id = project.id and issue.number = $2 where project.id = $3 union select project.id as id, issue.title as "iss.title", $4 as "iss.tag" from project left join issue on issue.project_id = project.id and issue.number = $5 where project.id = $6"`)
         expect(rows).toEqual(expected)
     })
 })

@@ -2,7 +2,7 @@
 // dialect). Built-in module; loaded via dynamic import so the file can
 // also be parsed under node — there the real branch is skipped.
 
-import { createBunSqlPostgresTestContext } from '../../runners.js'
+import { castTypesByName, createBunSqlPostgresTestContext } from '../../runners.js'
 
 export const ctx = createBunSqlPostgresTestContext({
     label: 'newest / bun_sql_postgres',
@@ -15,7 +15,7 @@ export const ctx = createBunSqlPostgresTestContext({
         // every worker runs this cell. A worker runs one test at a time.
         const sql = new SQL(uri, { max: 3 })
         return {
-            runner: new BunSqlPostgresQueryRunner(sql),
+            runner: new BunSqlPostgresQueryRunner(sql, { typesByName: castTypesByName }),
             shutdown: async () => { await sql.close() },
         }
     },

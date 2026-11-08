@@ -89,7 +89,7 @@ describe(ctx.label, () => {
             .orderBy('name')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode(projectId, code) as (values ($1::int4, $2::text)) select project.name as name, projectCode.code as code from project inner join projectCode on projectCode.projectId = project.id order by name"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode(projectId, code) as (values ($1, $2)) select project.name as name, projectCode.code as code from project inner join projectCode on projectCode.projectId = project.id order by name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -122,7 +122,7 @@ describe(ctx.label, () => {
             .select({ pickedCode })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode(projectId, code) as (values ($1::int4, $2::text)) select (select code as result from projectCode where projectId = $3) as "pickedCode""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode(projectId, code) as (values ($1, $2)) select (select code as result from projectCode where projectId = $3) as "pickedCode""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -188,7 +188,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode(projectId, code) as (values ($1::int4, $2::text)), sub as (select code as code, projectId as projectId from projectCode) select code as code, projectId as "projectId" from sub"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode(projectId, code) as (values ($1, $2)), sub as (select code as code, projectId as projectId from projectCode) select code as code, projectId as "projectId" from sub"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -307,7 +307,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode(projectId, code) as (values ($1::int4, $2::text), ($3::int4, $4::text)) select id as id, name as name from project where id in (select projectId as result from projectCode) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode(projectId, code) as (values ($1, $2), ($3, $4)) select id as id, name as name from project where id in (select projectId as result from projectCode) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -345,7 +345,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode(projectId, code) as (values ($1::int4, $2::text), ($3::int4, $4::text)) select id as id, name as name from project where exists(select projectId as result from projectCode where projectId = project.id) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode(projectId, code) as (values ($1, $2), ($3, $4)) select id as id, name as name from project where exists(select projectId as result from projectCode where projectId = project.id) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

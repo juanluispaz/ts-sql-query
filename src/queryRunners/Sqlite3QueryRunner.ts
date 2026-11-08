@@ -103,8 +103,8 @@ export class Sqlite3QueryRunner extends SqlTransactionQueryRunner {
         }
         return super.executeBeginTransaction(opts)
     }
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
-        setQueryParamType(params, params.length, type, typeCategory)
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
         if (typeof value === 'bigint') {
             // The deprecated sqlite3 driver cannot bind a JS BigInt: it ends up binding NULL instead.
             // As a best-effort fallback for this connector, coerce the BigInt to a number so the value

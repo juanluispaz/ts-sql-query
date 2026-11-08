@@ -8,10 +8,10 @@ export class MockSqlite3WasmOO1QueryRunner extends MockQueryRunner {
     // Sqlite3WasmOO1QueryRunner.addParam coerces `boolean` to `1`/`0`
     // before pushing, because the WASM OO1 API only binds primitives
     // SQLite recognises natively.
-    override addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
+    override addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
         if (typeof value === 'boolean') {
-            return super.addParam(params, Number(value), type, typeCategory)
+            return super.addParam(params, Number(value), type, typeCategory, forceTypeCast)
         }
-        return super.addParam(params, value, type, typeCategory)
+        return super.addParam(params, value, type, typeCategory, forceTypeCast)
     }
 }

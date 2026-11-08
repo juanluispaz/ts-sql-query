@@ -98,8 +98,8 @@ export class BunSqliteQueryRunner extends SqlTransactionQueryRunner {
         }
         return super.executeBeginTransaction(opts)
     }
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
-        setQueryParamType(params, params.length, type, typeCategory)
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
         if (typeof value === 'boolean') {
             params.push(Number(value))
         } else {

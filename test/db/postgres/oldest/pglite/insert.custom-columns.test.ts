@@ -259,7 +259,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue_worklog (issue_id, work_date, activity, billed_amount, cost_cents, invoiced) values ($1, $2, $3, $4, $5, case when $6::bool then 1 else 0 end)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue_worklog (issue_id, work_date, activity, billed_amount, cost_cents, invoiced) values ($1, $2, $3, $4, $5, case when $6 then 1 else 0 end)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

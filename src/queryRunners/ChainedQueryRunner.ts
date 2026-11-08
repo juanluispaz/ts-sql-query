@@ -118,11 +118,11 @@ export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
     executeConnectionConfiguration(query: string, params: any[] = []): Promise<void> {
         return this.queryRunner.executeConnectionConfiguration(query, params)
     }
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
-        return this.queryRunner.addParam(params, value, type, typeCategory)
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+        return this.queryRunner.addParam(params, value, type, typeCategory, forceTypeCast)
     }
-    addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory): string {
-        return this.queryRunner.addOutParam(params, name, type, typeCategory)
+    addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+        return this.queryRunner.addOutParam(params, name, type, typeCategory, forceTypeCast)
     }
     createResolvedPromise<RESULT>(result: RESULT | PromiseLike<RESULT>): Promise<RESULT> {
         return this.queryRunner.createResolvedPromise(result)

@@ -30,10 +30,12 @@ import {
     UNREACHABLE_PORT,
 } from '../../lib/containerLifecycle.js'
 import { imageForCell, newestImage } from '../../lib/dockerImages.js'
-import { createTestContext, type TestContext } from '../../lib/testContext.js'
+import { createTestContext, type MockRunnerClass, type TestContext } from '../../lib/testContext.js'
 import { CaptureInterceptor } from '../../lib/captureInterceptor.js'
 import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
 import { MockBunSqlPostgresQueryRunner } from '../../lib/mockRunners/MockBunSqlPostgresQueryRunner.js'
+import { MockPgLiteQueryRunner } from '../../lib/mockRunners/MockPgLiteQueryRunner.js'
+import { MockPgQueryRunner } from '../../lib/mockRunners/MockPgQueryRunner.js'
 import { DBConnection } from './domain/connection.js'
 
 
@@ -158,6 +160,21 @@ function decoratePostgresContext(
 }
 
 const DATABASE = 'postgres'
+
+// The PostgreSQL type of the custom types of the tests, given to the runner of
+// every cell (`typesByName`): the cast pg and Bun SQL write, and the oid
+// postgres.js and PGlite send the parameter with. An `ExactDecimal` is a
+// `customDouble` that holds an exact decimal as text: as a `float8` it would
+// lose digits.
+export const castTypesByName = { ExactDecimal: 'numeric' }
+export const oidTypesByName = { ExactDecimal: 1700 }
+
+class MockPgCellQueryRunner extends MockPgQueryRunner {
+    protected override readonly typesByName = castTypesByName
+}
+class MockBunSqlPostgresCellQueryRunner extends MockBunSqlPostgresQueryRunner {
+    protected override readonly typesByName = castTypesByName
+}
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const SCHEMA_PATH = resolve(__dirname, './domain/schema.sql')
@@ -430,6 +447,8 @@ export interface PgTestSpec {
      * connector's nesting-works test is NOT-APPLICABLE).
      */
     createNestedTxRunner?: (uri: string) => { runner: QueryRunner; shutdown(): Promise<void> }
+    /** The mock of the connector's runner; pg's when omitted */
+    mockRunnerClass?: MockRunnerClass
 }
 
 export function createPgTestContext(spec: PgTestSpec): PostgresTestContext {
@@ -458,6 +477,7 @@ export function createPgTestContext(spec: PgTestSpec): PostgresTestContext {
         compatibilityVersion: spec.compatibilityVersion,
         database: 'postgreSql',
         realDbEnabled,
+        mockRunnerClass: spec.mockRunnerClass ?? MockPgCellQueryRunner,
         async createRealRunner(forceNew = false) {
             const container = await containers.getFor(image).acquire()
             const adminUri = container.getConnectionUri()
@@ -558,12 +578,13 @@ export function createPgLiteTestContext(spec: PgLiteTestSpec): PostgresTestConte
         database: 'postgreSql',
         realDbEnabled,
         timeoutMs: 30_000,
+        mockRunnerClass: MockPgLiteQueryRunner,
         async createRealRunner() {
             const { PgLiteQueryRunner } = await import('../../../src/queryRunners/PgLiteQueryRunner.js')
             const db = await getOrCreatePglite()
             await applyPgliteSchemaAndSeed(db)
             return {
-                runner: new PgLiteQueryRunner(db),
+                runner: new PgLiteQueryRunner(db, { typesByName: oidTypesByName }),
                 // Don't close the db — the shared instance survives
                 // until the worker process exits (see comment on
                 // pgliteSharedDb).
@@ -574,7 +595,7 @@ export function createPgLiteTestContext(spec: PgLiteTestSpec): PostgresTestConte
             const { PgLiteQueryRunner } = await import('../../../src/queryRunners/PgLiteQueryRunner.js')
             const db = await getOrCreatePglite()
             nestedTxConn = new DBConnection(
-                new CaptureInterceptor(new PgLiteQueryRunner(db, { allowNestedTransactions: true })),
+                new CaptureInterceptor(new PgLiteQueryRunner(db, { allowNestedTransactions: true, typesByName: oidTypesByName })),
                 spec.compatibilityVersion,
             )
         },
@@ -614,7 +635,7 @@ export function createBunSqlPostgresTestContext(spec: PgTestSpec): PostgresTestC
         compatibilityVersion: spec.compatibilityVersion,
         database: 'postgreSql',
         realDbEnabled,
-        mockRunnerClass: MockBunSqlPostgresQueryRunner,
+        mockRunnerClass: MockBunSqlPostgresCellQueryRunner,
         async createRealRunner() {
             const container = await containers.getFor(image).acquire()
             workerUri = await bootstrapWorkerDbSchemaAndSeed(container.getConnectionUri())

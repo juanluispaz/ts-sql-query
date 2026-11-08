@@ -606,11 +606,18 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _appendParam(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         const typeCategory = __typeCategoryOf(columnType)
-        const placeholder = this._queryRunner.addParam(params, value, columnTypeName, typeCategory)
-        if (typeAdapter && typeAdapter.transformPlaceholder) {
-            return typeAdapter.transformPlaceholder(placeholder, columnTypeName, typeCategory, forceTypeCast, value, this._defaultTypeAdapter)
+        // The query runner writes the type of the parameter in the placeholder, or sends it with the parameter, where
+        // the position gives it none, or where the type adapter asks for it (like ForceTypeCast)
+        if (typeAdapter && typeAdapter.forceTypeCast) {
+            forceTypeCast = typeAdapter.forceTypeCast(columnTypeName, typeCategory, value, forceTypeCast, this._defaultTypeAdapter)
         } else {
-            return this._defaultTypeAdapter.transformPlaceholder(placeholder, columnTypeName, typeCategory, forceTypeCast, value)
+            forceTypeCast = this._defaultTypeAdapter.forceTypeCast(columnTypeName, typeCategory, value, forceTypeCast)
+        }
+        const placeholder = this._queryRunner.addParam(params, value, columnTypeName, typeCategory, forceTypeCast)
+        if (typeAdapter && typeAdapter.transformPlaceholder) {
+            return typeAdapter.transformPlaceholder(placeholder, columnTypeName, typeCategory, value, this._defaultTypeAdapter)
+        } else {
+            return this._defaultTypeAdapter.transformPlaceholder(placeholder, columnTypeName, typeCategory, value)
         }
     }
     _appendConditionParam(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
@@ -3565,9 +3572,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _asNullValue(_params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (typeAdapter && typeAdapter.transformPlaceholder) {
-            return typeAdapter.transformPlaceholder('null', columnTypeName, __typeCategoryOf(columnType), false, null, this._defaultTypeAdapter)
+            return typeAdapter.transformPlaceholder('null', columnTypeName, __typeCategoryOf(columnType), null, this._defaultTypeAdapter)
         } else {
-            return this._defaultTypeAdapter.transformPlaceholder('null', columnTypeName, __typeCategoryOf(columnType), false, null)
+            return this._defaultTypeAdapter.transformPlaceholder('null', columnTypeName, __typeCategoryOf(columnType), null)
         }
     }
     // Oracle recursive

@@ -115,7 +115,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, mod((priority)::numeric, ($1::float8)::numeric) as m from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, mod((priority)::numeric, ($1)::numeric) as m from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2.5,
@@ -299,7 +299,7 @@ describe(ctx.label, () => {
                 r:  tIssue.priority.power(0.5),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, power(priority, $1::float8) as r from issue where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, power(priority, $1) as r from issue where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0.5,

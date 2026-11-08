@@ -1,5 +1,6 @@
 import { isSelectPageCountQuery, setQueryParamType } from './QueryRunner.js'
 import type { TypeCategory } from '../TypeAdapter.js'
+import { postgreSqlPlaceholder } from '../utils/postgreSqlParamTypes.js'
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, PromiseProvider, QueryRunner, RollbackOpts } from './QueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js';
 
@@ -136,8 +137,8 @@ export class NoopQueryRunner implements QueryRunner {
     executeConnectionConfiguration(_query: string, _params: any[] = []): Promise<void> {
         return this.promise.resolve()
     }
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
-        setQueryParamType(params, params.length, type, typeCategory)
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
         const index = params.length
         let result
         switch (this.database) {
@@ -154,7 +155,8 @@ export class NoopQueryRunner implements QueryRunner {
                 result = ':' + index
                 break
             case 'postgreSql':
-                result = '$' + (index + 1)
+                // With the cast PgQueryRunner writes
+                result = postgreSqlPlaceholder(index, value, type, typeCategory, forceTypeCast)
                 break
             case 'sqlite':
                 result = '?' + (index + 1)
@@ -168,8 +170,8 @@ export class NoopQueryRunner implements QueryRunner {
         params.push(value)
         return result
     }
-    addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory): string {
-        setQueryParamType(params, params.length, type, typeCategory)
+    addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
         const index = params.length
         params.push({ out_param_with_name: name })
         return ':' + index

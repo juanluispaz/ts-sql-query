@@ -63,9 +63,10 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, null::int4 as priority from issue where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, $1 as priority from issue where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
+            null,
             1,
           ]
         `)
@@ -86,9 +87,10 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, null::int4 as priority from issue where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, $1 as priority from issue where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
+            null,
             1,
           ]
         `)
@@ -132,9 +134,10 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, null::int4 as bumped from issue where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, $1 as bumped from issue where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
+            null,
             1,
           ]
         `)
@@ -269,9 +272,10 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, null::bool as pub from project where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, $1 as pub from project where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
+            null,
             1,
           ]
         `)

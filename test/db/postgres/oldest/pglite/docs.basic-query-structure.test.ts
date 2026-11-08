@@ -229,7 +229,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, $1::text as source, $2::text as note from project where id = $3"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, $1 as source, $2 as note from project where id = $3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "import",

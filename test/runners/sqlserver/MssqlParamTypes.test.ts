@@ -1,12 +1,14 @@
-// How MssqlPoolQueryRunner binds each parameter: by the category of its type,
-// then by the name of its type, and otherwise (a parameter added without them,
-// or a custom type) with a type inferred from the JavaScript value. The value
-// read back proves the binding.
+// How MssqlPoolQueryRunner binds each parameter: with the type declared for the
+// name of its type in typesByName, then by the category of its type, then by
+// the name of its type, and otherwise (a parameter added without them, or a
+// custom type) with a type inferred from the JavaScript value. The value read
+// back proves the binding.
 
 import { afterAll, beforeAll, describe, expect, test } from '../../lib/testRunner.js'
 import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
 import type { TypeCategory } from '../../../src/TypeAdapter.js'
 import { MssqlPoolQueryRunner } from '../../../src/queryRunners/MssqlPoolQueryRunner.js'
+import { MssqlPoolPromiseQueryRunner } from '../../../src/queryRunners/MssqlPoolPromiseQueryRunner.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/sqlserver/runners.js'
 
@@ -28,7 +30,7 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
     // The base type SQL Server bound the parameter with.
     async function boundAs(value: unknown, type: string = '', typeCategory: TypeCategory = ''): Promise<string> {
         const params: any[] = []
-        const placeholder = runner!.addParam(params, value, type, typeCategory)
+        const placeholder = runner!.addParam(params, value, type, typeCategory, false)
         return await runner!.executeSelectOneColumnOneRow(`select cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30))`, params)
     }
 
@@ -53,7 +55,7 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
     test('a-null-without-a-data-type', async () => {
         for (const value of [null, undefined]) {
             const params: any[] = []
-            const placeholder = runner!.addParam(params, value, '', '')
+            const placeholder = runner!.addParam(params, value, '', '', false)
             expect(await runner!.executeSelectOneColumnOneRow(`select case when ${placeholder} is null then 1 else 0 end`, params)).toBe(1)
         }
     })
@@ -92,6 +94,76 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
         for (const [value, type, typeCategory, expected] of cases) {
             expect([type, await boundAs(value, type, typeCategory)]).toEqual([type, expected])
         }
+    })
+
+    // 30 digits, 10 of them decimals: a decimal(38,10) keeps all of them, a float doesn't
+    const exactDecimal = '12345678901234567890.1234567891'
+
+    test('typesByName/an-exact-decimal-bound-as-text-keeps-every-digit', async () => {
+        const { TYPES } = db!.mssql
+        const declared = new MssqlPoolQueryRunner(pool!, { typesByName: { ExactDecimal: TYPES.NVarChar } })
+        await runner!.executeDatabaseSchemaModification('create table rt_exact_decimal (v decimal(38,10) not null)')
+        try {
+            const insertParams: any[] = []
+            const inserted = await declared.executeInsert(`insert into rt_exact_decimal (v) values (${declared.addParam(insertParams, exactDecimal, 'ExactDecimal', 'customDouble', false)})`, insertParams)
+            expect(inserted).toBe(1)
+            const selectParams: any[] = []
+            const placeholder = declared.addParam(selectParams, exactDecimal, 'ExactDecimal', 'customDouble', false)
+            const read = await declared.executeSelectManyRows(`select cast(v as nvarchar(50)) as v, cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30)) as boundAs from rt_exact_decimal where v = ${placeholder}`, selectParams)
+            expect(read).toEqual([{ v: exactDecimal, boundAs: 'nvarchar' }])
+
+            // Without the declaration, the category binds it as a float, which loses digits
+            const floatParams: any[] = []
+            const asFloat = await runner!.executeSelectOneColumnOneRow(`select cast(cast(${runner!.addParam(floatParams, exactDecimal, 'ExactDecimal', 'customDouble', false)} as decimal(38,10)) as nvarchar(50))`, floatParams)
+            expect(asFloat).not.toBe(exactDecimal)
+        } finally {
+            await runner!.executeDatabaseSchemaModification('drop table rt_exact_decimal')
+        }
+    })
+
+    test('typesByName/a-decimal-type-loses-the-digits-of-a-long-exact-decimal', async () => {
+        // The driver converts the value of a Decimal parameter to a JS number before sending it, so a long exact decimal
+        // loses digits even declared with a scale that holds them; without a scale, Decimal is (18, 0)
+        const { TYPES } = db!.mssql
+        const declared = new MssqlPoolQueryRunner(pool!, { typesByName: { Wide: TYPES.Decimal(38, 10), Bare: TYPES.Decimal } })
+        const sent = async (value: unknown, type: string) => {
+            const params: any[] = []
+            const placeholder = declared.addParam(params, value, type, 'customDouble', false)
+            return await declared.executeSelectOneColumnOneRow(`select cast(${placeholder} as nvarchar(50))`, params)
+        }
+        expect(await sent(exactDecimal, 'Wide')).not.toBe(exactDecimal)
+        expect(await sent('12.56789', 'Bare')).toBe('13')
+    })
+
+    test('typesByName/a-type-with-its-arguments', async () => {
+        // Decimal(18, 4) rounds to 4 decimals
+        const { TYPES } = db!.mssql
+        const declared = new MssqlPoolQueryRunner(pool!, { typesByName: { Price: TYPES.Decimal(18, 4) } })
+        const params: any[] = []
+        const placeholder = declared.addParam(params, 1.23456, 'Price', 'customDouble', false)
+        const row = await declared.executeSelectOneRow(`select cast(${placeholder} as nvarchar(50)) as v, cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30)) as boundAs, cast(sql_variant_property(${placeholder}, 'Scale') as int) as scale`, params)
+        expect(row).toEqual({ v: '1.2346', boundAs: 'decimal', scale: 4 })
+    })
+
+    test('typesByName/the-declared-type-wins-over-the-category-and-applies-to-that-name-only', async () => {
+        const { TYPES } = db!.mssql
+        const declared = new MssqlPoolQueryRunner(pool!, { typesByName: { int: TYPES.BigInt, Code: TYPES.Decimal(10, 2) } })
+        const boundBy = async (value: unknown, type: string, typeCategory: TypeCategory) => {
+            const params: any[] = []
+            const placeholder = declared.addParam(params, value, type, typeCategory, false)
+            return await declared.executeSelectOneColumnOneRow(`select cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30))`, params)
+        }
+        expect(await boundBy(1, 'int', 'int')).toBe('bigint')
+        expect(await boundBy(12, 'Code', 'customInt')).toBe('decimal')
+        expect(await boundBy(12, 'Cents', 'customInt')).toBe('int')
+    })
+
+    test('typesByName/the-pool-promise-runner-passes-it-on', async () => {
+        const { TYPES } = db!.mssql
+        const declared = new MssqlPoolPromiseQueryRunner(Promise.resolve(pool!), { typesByName: { ExactDecimal: TYPES.NVarChar } })
+        const params: any[] = []
+        const placeholder = declared.addParam(params, exactDecimal, 'ExactDecimal', 'customDouble', false)
+        expect(await declared.executeSelectOneRow(`select ${placeholder} as v, cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30)) as boundAs`, params)).toEqual({ v: exactDecimal, boundAs: 'nvarchar' })
     })
 
     test('a-statement-without-a-result-set', async () => {

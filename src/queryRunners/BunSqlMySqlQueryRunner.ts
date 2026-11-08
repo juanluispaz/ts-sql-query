@@ -48,8 +48,8 @@ export class BunSqlMySqlQueryRunner extends AbstractBunSqlQueryRunner {
     protected override isTransactionOpenInTheDatabase(error: unknown): boolean | undefined {
         return isTransactionOpenAfterMySqlError(this.getErrorReason(error))
     }
-    override addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
-        setQueryParamType(params, params.length, type, typeCategory)
+    override addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
         params.push(value)
         return '?'
     }

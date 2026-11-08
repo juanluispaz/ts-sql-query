@@ -173,8 +173,8 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
         }
         return this.currentQueryRunner.getCurrentNativeConnection()
     }
-    abstract addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string
-    addOutParam(_params: any[], _name: string, _type: string, _typeCategory: TypeCategory): string {
+    abstract addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string
+    addOutParam(_params: any[], _name: string, _type: string, _typeCategory: TypeCategory, _forceTypeCast: boolean): string {
         throw new TsSqlProcessingError({ reason: 'OUT_PARAMS_NOT_SUPPORTED' }, 'Unsupported output parameters')
     }
 

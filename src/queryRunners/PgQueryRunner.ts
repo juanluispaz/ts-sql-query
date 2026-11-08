@@ -6,9 +6,15 @@ import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSq
 import { getPgErrorReason, isPgError } from './connectorErrorMappers/PgErrorMapper.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { setQueryParamType } from './QueryRunner.js'
+import { postgreSqlPlaceholder } from '../utils/postgreSqlParamTypes.js'
 
 export interface PgQueryRunnerConfig {
     allowNestedTransactions?: boolean | undefined
+    /**
+     * The cast, like `'numeric'`, written after the placeholder of a parameter of each type name (the name given to a
+     * custom type, or a built-in one) where the library writes a cast, instead of the one of its category
+     */
+    typesByName?: { readonly [typeName: string]: string } | undefined
     /** The connection is in a transaction that something else began, and that something else ends: none begins on it */
     forUseInTransaction?: boolean | undefined
 }
@@ -62,10 +68,12 @@ export class PgQueryRunner extends SqlTransactionQueryRunner {
         }
         return super.executeBeginTransaction(opts)
     }
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
-        setQueryParamType(params, params.length, type, typeCategory)
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+        // pg can't send a parameter with its type: the type goes as a cast in the placeholder
+        const index = params.length
+        setQueryParamType(params, index, type, typeCategory, forceTypeCast)
         params.push(value)
-        return '$' + params.length
+        return postgreSqlPlaceholder(index, value, type, typeCategory, forceTypeCast, this.config?.typesByName)
     }
     override nestedTransactionsSupported(): boolean {
         return !!this.config?.allowNestedTransactions

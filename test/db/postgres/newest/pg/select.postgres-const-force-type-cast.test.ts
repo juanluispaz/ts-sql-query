@@ -1,9 +1,10 @@
-// Coverage of `PostgreSqlConnection.transformPlaceholder` for the
+// Coverage of the PostgreSQL type a parameter gets for the
 // `forceTypeCast = true` branch. When a
 // const value source is projected as a SELECT column,
 // `PostgreSqlSqlBuilder._appendColumnValue` forwards through
 // `__toSql(forceTypeCast = true)`; each typed const triggers the
-// matching `::<pg-type>` placeholder cast in `transformPlaceholder`.
+// matching `::<pg-type>` placeholder cast (pg, Bun SQL), or the matching
+// typed parameter (postgres.js, PGlite).
 // `::bool` is already covered by the existing
 // `insert.multi-row.test.ts` (custom-boolean remap goes through the
 // same path with `forceTypeCast = true`); this file adds the other
@@ -17,8 +18,8 @@
 // (`bigint → ::int8`; `number` int32 → `::int4`; `number` int64 →
 // `::int8`; `number` float → `::float8`; anything else → no cast).
 //
-// PostgreSQL-specific: every other dialect's `transformPlaceholder`
-// either no-ops (no `::cast` syntax) or uses a wholly different
+// PostgreSQL-specific: every other dialect's query runner either
+// ignores it (no `::cast` syntax) or uses a wholly different
 // mechanism — there is no parallel file in other dialect folders.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'

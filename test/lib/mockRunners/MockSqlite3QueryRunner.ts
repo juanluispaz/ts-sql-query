@@ -10,10 +10,10 @@ import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
 import type { TypeCategory } from '../../../src/TypeAdapter.js'
 
 export class MockSqlite3QueryRunner extends MockQueryRunner {
-    override addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
+    override addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
         if (typeof value === 'bigint') {
-            return super.addParam(params, Number(value), type, typeCategory)
+            return super.addParam(params, Number(value), type, typeCategory, forceTypeCast)
         }
-        return super.addParam(params, value, type, typeCategory)
+        return super.addParam(params, value, type, typeCategory, forceTypeCast)
     }
 }

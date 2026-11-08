@@ -16,7 +16,7 @@
 // no-ops here — they are the parts this interceptor does not care about.
 
 import { InterceptorQueryRunner } from '../../src/queryRunners/InterceptorQueryRunner.js'
-import { getQueryParamType, getQueryParamTypeCategory, type BeginTransactionOpts, type QueryRunner, type QueryType } from '../../src/queryRunners/QueryRunner.js'
+import { getQueryParamForceTypeCast, getQueryParamType, getQueryParamTypeCategory, type BeginTransactionOpts, type QueryRunner, type QueryType } from '../../src/queryRunners/QueryRunner.js'
 
 const TYPE_CATEGORIES = new Set<string>([
     'boolean', 'int', 'bigint', 'customInt', 'customBigint', 'double', 'customDouble', 'string', 'uuid', 'customUuid',
@@ -24,14 +24,16 @@ const TYPE_CATEGORIES = new Set<string>([
     'enum', 'custom', 'customComparable',
 ])
 
-// Every parameter the library adds goes with the name of its type and its category, kept by the query runner: a
-// parameter without them, or with an unknown category, is a place where the library lost the type of the value.
+// Every parameter the library adds goes with the name of its type, its category and its forceTypeCast, kept by the
+// query runner: a parameter without them, or with an unknown category, is a place where the library lost the type of
+// the value.
 function checkParamTypes(query: string, params: unknown[]): void {
     for (let index = 0; index < params.length; index++) {
         const type = getQueryParamType(query, params as any[], index)
         const typeCategory = getQueryParamTypeCategory(query, params as any[], index)
-        if (typeof type !== 'string' || typeCategory === undefined || !TYPE_CATEGORIES.has(typeCategory)) {
-            throw new Error('The parameter ' + index + ' of the query has no type (type: ' + String(type) + ', category: ' + JSON.stringify(typeCategory) + '): ' + query)
+        const forceTypeCast = getQueryParamForceTypeCast(query, params as any[], index)
+        if (typeof type !== 'string' || typeCategory === undefined || !TYPE_CATEGORIES.has(typeCategory) || typeof forceTypeCast !== 'boolean') {
+            throw new Error('The parameter ' + index + ' of the query has no type (type: ' + String(type) + ', category: ' + JSON.stringify(typeCategory) + ', forceTypeCast: ' + String(forceTypeCast) + '): ' + query)
         }
     }
 }

@@ -1,11 +1,11 @@
 // Coverage of the `ForceTypeCast` type adapter
-// A column wrapped with this adapter unconditionally forces
-// `transformPlaceholder(... forceTypeCast = true)`, so every bound
-// parameter for that column carries the dialect's placeholder cast —
-// independently of where in the query it is used (WHERE, projection,
-// INSERT VALUES, etc.). On dialects that need it (PostgreSQL) this emits
-// a `::<type>` cast; on dialects that infer parameter types fine it is an
-// intentional no-op. The exact emitted SQL is pinned per cell by the
+// A column wrapped with this adapter unconditionally asks the query
+// runner to give the database the type of every bound parameter for that
+// column (`addParam(... forceTypeCast = true)`) — independently of where
+// in the query it is used (WHERE, projection, INSERT VALUES, etc.). On
+// PostgreSQL, pg and Bun SQL emit a `::<type>` cast while postgres.js and
+// PGlite send the parameter typed; on dialects that infer parameter
+// types fine it is an intentional no-op. The exact emitted SQL is pinned per cell by the
 // snapshots.
 //
 // The fixture re-maps the shared
@@ -123,9 +123,10 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
         assertType<Exact<typeof rows, Array<{ id: number; lowest?: number; label?: string }>>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, null::int4 as lowest, $1::text || name as label from project where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, $1::int4 as lowest, $2::text || name as label from project where id = $3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
+            null,
             null,
             1,
           ]

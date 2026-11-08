@@ -1,6 +1,6 @@
 import type { TsSqlErrorReason, QueryExecutionSource } from "../TsSqlError.js"
 import type { TypeCategory } from '../TypeAdapter.js'
-import { getParamTypeAt, getParamTypeCategoryAt, getQueryExecutionMetadataOf, getQueryExecutionSourceOf, isSelectPageCountQueryParams, setParamTypeAt } from '../utils/queryParamsMetadata.js'
+import { getParamForceTypeCastAt, getParamTypeAt, getParamTypeCategoryAt, getQueryExecutionMetadataOf, getQueryExecutionSourceOf, isSelectPageCountQueryParams, setParamTypeAt } from '../utils/queryParamsMetadata.js'
 
 export interface QueryRunner {
     readonly database: DatabaseType
@@ -51,11 +51,14 @@ export interface QueryRunner {
     executeDatabaseSchemaModification(query: string, params?: any[]): Promise<void>
     executeConnectionConfiguration(query: string, params?: any[]): Promise<void>
     /**
-     * Adds the value to the params and returns its placeholder. A query runner that adds it keeps its type with
-     * `setQueryParamType`, at the index of the value; one that delegates to another passes the type on.
+     * Adds the value to the params and returns its placeholder, the final one as it is written in the SQL. A query
+     * runner that adds it keeps its type with `setQueryParamType`, at the index of the value; one that delegates to
+     * another passes the type on. forceTypeCast tells the database must receive the type of the parameter, because the
+     * position where it is written in the SQL gives it none: the query runner writes a cast in the placeholder, or
+     * sends the parameter with its type when the driver can.
      */
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string
-    addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory): string
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string
+    addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string
     // Resolves a value that may or may not already be a promise into a promise
     // on this runner's configured provider — like `Promise.resolve`, it adopts a
     // thenable and wraps a plain value, both yielding `Promise<RESULT>`. Keeping
@@ -112,11 +115,11 @@ export type CommitOpts = []
 export type RollbackOpts = []
 
 /**
- * Keeps the type name and the type category of the parameter at that index of the params: the query runner calls it
- * when it adds the parameter, in `addParam` and `addOutParam`.
+ * Keeps the type name, the type category and the forceTypeCast of the parameter at that index of the params: the query
+ * runner calls it when it adds the parameter, in `addParam` and `addOutParam`.
  */
-export function setQueryParamType(params: any[], index: number, type: string, typeCategory: TypeCategory): void {
-    setParamTypeAt(params, index, type, typeCategory)
+export function setQueryParamType(params: any[], index: number, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): void {
+    setParamTypeAt(params, index, type, typeCategory, forceTypeCast)
 }
 /** The type name of the parameter at that index, or undefined when it was added without it */
 export function getQueryParamType(query: string, params: any[], index: number): string | undefined {
@@ -127,6 +130,14 @@ export function getQueryParamType(query: string, params: any[], index: number): 
 export function getQueryParamTypeCategory(query: string, params: any[], index: number): TypeCategory | undefined {
     query
     return getParamTypeCategoryAt(params, index)
+}
+/**
+ * Whether the database must receive the type of the parameter at that index (the forceTypeCast given to `addParam`), or
+ * undefined when it was added without it
+ */
+export function getQueryParamForceTypeCast(query: string, params: any[], index: number): boolean | undefined {
+    query
+    return getParamForceTypeCastAt(params, index)
 }
 export function getQueryExecutionName(query: string, params: any[]): string | undefined {
     query

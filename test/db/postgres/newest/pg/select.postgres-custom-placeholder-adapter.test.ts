@@ -21,11 +21,11 @@ import { ctx } from './setup.js'
 // `transformPlaceholder` to this adapter — the regression test below pins that.
 class CastingBooleanAdapter extends CustomBooleanTypeAdapter {
     constructor() { super('Y', 'N') }
-    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string {
+    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, next: DefaultTypeAdapter): string {
         if (type === 'boolean') {
             return placeholder + '::boolean'
         }
-        return next.transformPlaceholder(placeholder, type, typeCategory, forceTypeCast, valueSentToDB)
+        return next.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB)
     }
 }
 const castingBool = new CastingBooleanAdapter()
@@ -46,11 +46,11 @@ const tOrgCastingBool = new class TOrgCastingBool extends Table<DBConnection, 'T
 const castVarchar64: TypeAdapter = {
     transformValueFromDB(value, type, typeCategory, next) { return next.transformValueFromDB(value, type, typeCategory) },
     transformValueToDB(value, type, typeCategory, next) { return next.transformValueToDB(value, type, typeCategory) },
-    transformPlaceholder(placeholder, type, typeCategory, forceTypeCast, valueSentToDB, next) {
+    transformPlaceholder(placeholder, type, typeCategory, valueSentToDB, next) {
         if (type === 'string') {
             return placeholder + '::varchar(64)'
         }
-        return next.transformPlaceholder(placeholder, type, typeCategory, forceTypeCast, valueSentToDB)
+        return next.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB)
     },
 }
 
@@ -138,12 +138,12 @@ describe(ctx.label, () => {
 
     test('user-type-adapter-transform-placeholder-rewrites-a-rendered-null', async () => {
         // The `_asNullValue` path: when a NULL value is RENDERED for a column that
-        // carries a `transformPlaceholder` adapter, PostgreSqlSqlBuilder routes the
-        // 'null' placeholder through the adapter. `name.onlyWhenOrNull(false)`
-        // collapses `name` to its NULL form (a `NullValueSource` carrying the
-        // castVarchar64 adapter); rendered in the SELECT list it becomes
-        // `null::varchar(64) as "n"` (the default null placeholder is a bare `null`).
-        // Were the adapter branch skipped, the emitted SQL would carry a bare `null`.
+        // carries a `transformPlaceholder` adapter, PostgreSqlSqlBuilder renders it
+        // as a null parameter that carries its type, and routes its placeholder
+        // through the adapter. `name.onlyWhenOrNull(false)` collapses `name` to its
+        // NULL form (a `NullValueSource` carrying the castVarchar64 adapter);
+        // rendered in the SELECT list its placeholder ends with `::varchar(64)`.
+        // Were the adapter branch skipped, the placeholder would carry no `::varchar(64)`.
         // The other transformPlaceholder tests only exercise the bound-value path,
         // never the rendered-null path. `n` is the null-collapsed optional leaf, so
         // it drops from the result under the default projector. The select carries
@@ -152,8 +152,12 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(tProjectCustomPlaceholder)
             .select({ id: tProjectCustomPlaceholder.id, n: tProjectCustomPlaceholder.name.onlyWhenOrNull(false) })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, null::varchar(64) as n from project"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, $1::text::varchar(64) as n from project"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            null,
+          ]
+        `)
         expect(rows).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }])
     })
 

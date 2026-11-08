@@ -1,6 +1,7 @@
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, PromiseProvider, QueryRunner, QueryType, RollbackOpts } from './QueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import type { TypeCategory } from '../TypeAdapter.js'
+import { postgreSqlPlaceholder } from '../utils/postgreSqlParamTypes.js'
 import { setQueryParamType } from './QueryRunner.js'
 
 export type MockQueryExecutor = (type: QueryType, query: string, params: any[], index: number) => any
@@ -482,8 +483,8 @@ export class MockQueryRunner implements QueryRunner {
             return this.promise.reject(e)
         }
     }
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
-        setQueryParamType(params, params.length, type, typeCategory)
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
         const index = params.length
         let result
         switch (this.database) {
@@ -500,7 +501,8 @@ export class MockQueryRunner implements QueryRunner {
                 result = ':' + index
                 break
             case 'postgreSql':
-                result = '$' + (index + 1)
+                // With the cast PgQueryRunner writes
+                result = postgreSqlPlaceholder(index, value, type, typeCategory, forceTypeCast)
                 break
             case 'sqlite':
                 result = '?' + (index + 1)
@@ -514,8 +516,8 @@ export class MockQueryRunner implements QueryRunner {
         params.push(value)
         return result
     }
-    addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory): string {
-        setQueryParamType(params, params.length, type, typeCategory)
+    addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
         if (this.database !== 'oracle') {
             throw new TsSqlProcessingError({ reason: 'OUT_PARAMS_NOT_SUPPORTED' }, 'Unsupported output parameters')
         }

@@ -3,10 +3,21 @@ import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
 import { getGivenSqlConnection, type GivenSqlConnection } from '../utils/givenSqlConnection.js'
 import { PostgresTransactionOutcome } from '../utils/postgresTransactionOutcome.js'
 import type { BeginTransactionOpts, DatabaseType, QueryRunner } from './QueryRunner.js'
-import type { Sql, ReservedSql, TransactionSql } from 'postgres'
+import type { Sql, ReservedSql, TransactionSql, Parameter } from 'postgres'
 import { getPostgresJsErrorReason, isPostgresJsError } from './connectorErrorMappers/PostgresErrorMapper.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { setQueryParamType } from './QueryRunner.js'
+import { getParamForceTypeCastAt, getParamTypeAt, getParamTypeCategoryAt } from '../utils/queryParamsMetadata.js'
+import { postgreSqlParamType } from '../utils/postgreSqlParamTypes.js'
+
+export interface PostgresQueryRunnerConfig {
+    /**
+     * The type each parameter of a type name (the name given to a custom type, or a built-in one) is sent with, in every
+     * position: the oid of a PostgreSQL type, like `1700` for numeric, or a function that gives the parameter, like
+     * `value => sql.typed.money(value)` for a type declared in the `types` option of postgres.js
+     */
+    typesByName?: { readonly [typeName: string]: number | ((value: any) => Parameter<any>) } | undefined
+}
 
 export class PostgresQueryRunner extends SqlTransactionQueryRunner {
     database: DatabaseType
@@ -15,14 +26,16 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
     lowLevelTransaction?: ReservedSql | undefined
     private readonly givenConnection: GivenSqlConnection
     protected override readonly transactionOutcome = new PostgresTransactionOutcome()
+    private config?: PostgresQueryRunnerConfig | undefined
 
     /** connection: the client of a pool, a connection reserved from it, or a transaction begun with it */
-    constructor(connection: Sql | TransactionSql | ReservedSql) {
+    constructor(connection: Sql | TransactionSql | ReservedSql, config?: PostgresQueryRunnerConfig) {
         super()
         // Only a pool client is asked to reserve or begin (see givenConnection)
         this.connection = connection as Sql
         this.givenConnection = getGivenSqlConnection(connection)
         this.database = 'postgreSql'
+        this.config = config
     }
     useDatabase(database: DatabaseType): void {
         if (database !== 'postgreSql') {
@@ -50,17 +63,59 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
         // Outside a transaction, a connection reserved for fn alone
         return this.connection.reserve().then(reserved => fn(reserved).finally(() => reserved.release()))
     }
+    /**
+     * The params as they are given to postgres.js: a parameter of a type name in typesByName is sent with the type
+     * declared there, and one whose type the database must receive (forceTypeCast) with the oid of its PostgreSQL
+     * type, so the SQL needs no cast; the other params go untyped, as they are. The params of the query are not changed.
+     */
+    private driverParams(sql: Sql | TransactionSql | ReservedSql, params: any[]): any[] {
+        const typesByName = this.config?.typesByName
+        let result: any[] | undefined = undefined
+        for (let i = 0, length = params.length; i < length; i++) {
+            const value = params[i]
+            const type = getParamTypeAt(params, i)
+            const declared = typesByName && type !== undefined && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
+            let typed: Parameter<any> | undefined
+            if (typeof declared === 'function') {
+                typed = declared(value)
+            } else if (declared !== undefined) {
+                typed = sql.typed(value, declared)
+            } else if (getParamForceTypeCastAt(params, i)) {
+                const paramType = postgreSqlParamType(type, getParamTypeCategoryAt(params, i), value)
+                if (paramType) {
+                    typed = sql.typed(value, paramType.oid)
+                }
+            }
+            if (typed !== undefined) {
+                if (!result) {
+                    result = params.slice()
+                }
+                result[i] = typed
+            }
+        }
+        return result ?? params
+    }
+    private executeUnsafe<RESULT>(query: string, params: any[], getResult: (result: any) => RESULT): Promise<RESULT> {
+        const rejected = this.rejectWhenRolledBackByTheDatabase()
+        if (rejected) {
+            return rejected
+        }
+        const sql = this.getSql()
+        let driverParams
+        try {
+            driverParams = this.driverParams(sql, params)
+        } catch (error) {
+            // A function of typesByName failed: nothing was sent
+            return this.createRejectedPromise(error)
+        }
+        // then is called to ensure the query is executed
+        return sql.unsafe(query, driverParams).then(getResult, (error) => this.statementOfTheTransactionFailed(error))
+    }
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
-        return this.rejectWhenRolledBackByTheDatabase() || this.getSql().unsafe(query, params).then((result) => {
-            // then is called to ensure the query is executed
-            return result
-        }, (error) => this.statementOfTheTransactionFailed(error))
+        return this.executeUnsafe(query, params, (result) => result)
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
-        return this.rejectWhenRolledBackByTheDatabase() || this.getSql().unsafe(query, params).then((result) => {
-            // then is called to ensure the query is executed
-            return result.count
-        }, (error) => this.statementOfTheTransactionFailed(error))
+        return this.executeUnsafe(query, params, (result) => result.count)
     }
     override executeBeginTransactionQuery(query: string, params: any[]): Promise<number> {
         return this.reserveForTransaction().then((reserved) => {
@@ -152,8 +207,9 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
     override isTransactionActive(): boolean {
         return !!this.transaction || !!this.lowLevelTransaction || super.isTransactionActive()
     }
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
-        setQueryParamType(params, params.length, type, typeCategory)
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+        // postgres.js sends the parameter with its type (see driverParams): the placeholder needs no cast
+        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
         params.push(value)
         return '$' + params.length
     }

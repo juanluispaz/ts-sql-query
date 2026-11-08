@@ -11,6 +11,7 @@ import { __getValueSourcePrivate, __isBooleanValueSource, isValueSource } from '
 import { isDefault } from '../expressions/Default.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __typeCategoryOf } from '../utils/typeCategory.js'
+import { postgreSqlParamType } from '../utils/postgreSqlParamTypes.js'
 
 export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     postgreSql: true = true
@@ -398,12 +399,14 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // the user opt-in.
         return this._minAndMaxValueBetweenTwoValuesPoisoningNull(params, valueSource, value, columnType, columnTypeName, typeAdapter, this._connectionConfiguration.minValueFunction, 'greatest')
     }
-    override _asNullValue(_params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        if (typeAdapter && typeAdapter.transformPlaceholder) {
-            return typeAdapter.transformPlaceholder('null', columnTypeName, __typeCategoryOf(columnType), true, null, this._defaultTypeAdapter)
-        } else {
-            return this._defaultTypeAdapter.transformPlaceholder('null', columnTypeName, __typeCategoryOf(columnType), true, null)
+    override _asNullValue(params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        // A null of a type PostgreSQL knows is a parameter that carries its type, written as a cast or sent with it by
+        // the query runner: a bare null has none where the position gives it none (a row of a union, a Values row, a
+        // case). A null of any other type stays a literal null, that PostgreSQL resolves as text where it can't infer it.
+        if (postgreSqlParamType(columnTypeName, __typeCategoryOf(columnType), null)) {
+            return this._appendParam(null, params, columnType, columnTypeName, typeAdapter, true)
         }
+        return super._asNullValue(params, columnType, columnTypeName, typeAdapter)
     }
     override _modulo(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (this._moduloRequiresFloatHandling(columnType, value)) {

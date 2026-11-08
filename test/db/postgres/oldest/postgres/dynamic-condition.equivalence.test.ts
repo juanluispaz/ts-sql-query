@@ -1121,7 +1121,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where $1::float8 > $2 and $3::float8 < $4 order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where $1 > $2 and $3 < $4 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             5,
@@ -1212,7 +1212,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where $1::int4 > $2 and $3::int4 < $4 order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where $1 > $2 and $3 < $4 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             5,

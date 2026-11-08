@@ -3046,7 +3046,7 @@ describe(ctx.label, () => {
             .orderBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.id as "wrapper.inner.iid", $1::int4 as "wrapper.inner.constReq" from project left join issue on issue.project_id = project.id where project.id in ($2, $3) order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.id as "wrapper.inner.iid", $1 as "wrapper.inner.constReq" from project left join issue on issue.project_id = project.id where project.id in ($2, $3) order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -3202,7 +3202,7 @@ describe(ctx.label, () => {
             .orderBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.id as "wrapper.inner.iid", $1::int4 as "wrapper.inner.constReq" from project left join issue on issue.project_id = project.id where project.id in ($2, $3) order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.id as "wrapper.inner.iid", $1 as "wrapper.inner.constReq" from project left join issue on issue.project_id = project.id where project.id in ($2, $3) order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

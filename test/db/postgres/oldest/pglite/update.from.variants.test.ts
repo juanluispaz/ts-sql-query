@@ -247,7 +247,7 @@ describe(ctx.label, () => {
                 .and(tProject.id.equals(99999))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"with orgNames(id, name) as (values ($1::int4, $2::text)) update project set name = orgNames.name from orgNames where project.organization_id = orgNames.id and project.id = $3"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with orgNames(id, name) as (values ($1, $2)) update project set name = orgNames.name from orgNames where project.organization_id = orgNames.id and project.id = $3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

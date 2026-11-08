@@ -1,5 +1,5 @@
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, RollbackOpts } from './QueryRunner.js'
-import type { ConnectionPool, ISqlTypeFactory, Request, Transaction } from 'mssql'
+import type { ConnectionPool, ISqlType, ISqlTypeFactory, Request, Transaction } from 'mssql'
 import mssql from 'mssql'
 import type { NativeValueType } from '../expressions/values.js'
 import { ManagedTransactionQueryRunner } from './ManagedTransactionQueryRunner.js'
@@ -20,17 +20,28 @@ const isolationLevelWords: { [level: number]: string } = {
     [ISOLATION_LEVEL.SNAPSHOT]: 'snapshot',
 }
 
+export interface MssqlPoolQueryRunnerConfig {
+    /**
+     * The type of mssql each parameter of a type name (the name given to a custom type, or a built-in one) is bound
+     * with, instead of the one of its category: `TYPES.NVarChar` for an exact decimal kept as text, or
+     * `TYPES.Decimal(18, 4)`
+     */
+    typesByName?: { readonly [typeName: string]: ISqlTypeFactory | ISqlType } | undefined
+}
+
 export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     readonly database: DatabaseType
     readonly pool: ConnectionPool
     transaction?: Transaction | undefined
+    private config?: MssqlPoolQueryRunnerConfig | undefined
 
     /** pool: the pool, or a transaction begun with it, which something else commits or rolls back */
-    constructor(pool: ConnectionPool | Transaction) {
+    constructor(pool: ConnectionPool | Transaction, config?: MssqlPoolQueryRunnerConfig) {
         super()
         // A transaction gives its requests like the pool, and only a pool is asked to begin (see executeBeginTransaction)
         this.pool = pool as ConnectionPool
         this.database = 'sqlServer'
+        this.config = config
     }
 
     useDatabase(database: DatabaseType): void {
@@ -59,7 +70,7 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         }
         const req = this.request()
         for (var i = 0, length = params.length; i < length; i++) {
-            req.input('' + i, { type: this.getType(params, i) }, params[i])
+            req.input('' + i, this.getInputType(params, i), params[i])
         }
         return req.query(query).then((result) => {
             if (!result.recordset) {
@@ -75,7 +86,7 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         }
         const req = this.request()
         for (var i = 0, length = params.length; i < length; i++) {
-            req.input('' + i, { type: this.getType(params, i) }, params[i])
+            req.input('' + i, this.getInputType(params, i), params[i])
         }
         return req.query(query).then((result) => {
             return result.rowsAffected[0]!
@@ -234,8 +245,8 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     isTransactionActive(): boolean {
         return !!this.transaction
     }
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
-        setQueryParamType(params, params.length, type, typeCategory)
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
         const index = params.length
         params.push(value)
         return '@' + index
@@ -286,6 +297,22 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         customLocalTime: TYPES.Time,
         customLocalDateTime: TYPES.DateTime2
     } satisfies {[type in NativeValueType | 'stringInt' | 'stringDouble']: ISqlTypeFactory | undefined}
+
+    // The type the parameter is bound with: the one declared in typesByName for its type name, or the one getType gives
+    private getInputType(params: any[], index: number): ISqlType {
+        const typesByName = this.config?.typesByName
+        const type = getParamTypeAt(params, index)
+        const declared = typesByName && type !== undefined && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
+        if (declared) {
+            if (typeof declared === 'function') {
+                // A type factory, like TYPES.NVarChar
+                return { type: declared }
+            }
+            // A type with its arguments, like TYPES.Decimal(18, 4)
+            return declared as ISqlType
+        }
+        return { type: this.getType(params, index) }
+    }
 
     protected getType(params: any[], index: number): ISqlTypeFactory {
         // The category of the type decides the type of the parameter, then its name; a parameter added without them,

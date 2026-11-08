@@ -1,11 +1,11 @@
 // Coverage of the `ForceTypeCast` type adapter
-// A column wrapped with this adapter unconditionally forces
-// `transformPlaceholder(... forceTypeCast = true)`, so every bound
-// parameter for that column carries the dialect's placeholder cast —
-// independently of where in the query it is used (WHERE, projection,
-// INSERT VALUES, etc.). On dialects that need it (PostgreSQL) this emits
-// a `::<type>` cast; on dialects that infer parameter types fine it is an
-// intentional no-op. The exact emitted SQL is pinned per cell by the
+// A column wrapped with this adapter unconditionally asks the query
+// runner to give the database the type of every bound parameter for that
+// column (`addParam(... forceTypeCast = true)`) — independently of where
+// in the query it is used (WHERE, projection, INSERT VALUES, etc.). On
+// PostgreSQL, pg and Bun SQL emit a `::<type>` cast while postgres.js and
+// PGlite send the parameter typed; on dialects that infer parameter
+// types fine it is an intentional no-op. The exact emitted SQL is pinned per cell by the
 // snapshots.
 //
 // The fixture re-maps the shared
@@ -46,7 +46,7 @@ describe(ctx.label, () => {
             .where(tProjectForcedCast.id.equals(1))
             .select({ id: tProjectForcedCast.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where id = $1::int4"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -64,7 +64,7 @@ describe(ctx.label, () => {
             .where(tProjectForcedCast.name.equals('Marketing site'))
             .select({ id: tProjectForcedCast.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where name = $1::text"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where name = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Marketing site",
@@ -81,7 +81,7 @@ describe(ctx.label, () => {
         const built = ctx.conn.insertInto(tProjectForcedCast)
             .set({ id: 1, name: 'Marketing site' })
 
-        expect(built.query()).toMatchInlineSnapshot(`"insert into project (id, name) values ($1::int4, $2::text)"`)
+        expect(built.query()).toMatchInlineSnapshot(`"insert into project (id, name) values ($1, $2)"`)
         expect(built.params()).toMatchInlineSnapshot(`
           [
             1,
@@ -98,7 +98,7 @@ describe(ctx.label, () => {
             .set({ name: 'Renamed' })
             .where(tProjectForcedCast.id.equals(1))
 
-        expect(built.query()).toMatchInlineSnapshot(`"update project set name = $1::text where id = $2::int4"`)
+        expect(built.query()).toMatchInlineSnapshot(`"update project set name = $1 where id = $2"`)
         expect(built.params()).toMatchInlineSnapshot(`
           [
             "Renamed",
@@ -122,9 +122,10 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
         assertType<Exact<typeof rows, Array<{ id: number; lowest?: number; label?: string }>>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, null::int4 as lowest, $1::text || name as label from project where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, $1 as lowest, $2 || name as label from project where id = $3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
+            null,
             null,
             1,
           ]

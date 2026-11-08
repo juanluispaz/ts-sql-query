@@ -72,7 +72,7 @@ describe(ctx.label, () => {
                 ])
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan, verified) values ($1, $2, case when $3::bool then 'Y' else 'N' end), ($4, $5, case when $6::bool then 'Y' else 'N' end), ($7, $8, case when $9::bool then 'Y' else 'N' end)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan, verified) values ($1, $2, case when $3 then 'Y' else 'N' end), ($4, $5, case when $6 then 'Y' else 'N' end), ($7, $8, case when $9 then 'Y' else 'N' end)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Mixed-A",

@@ -39,11 +39,11 @@ class RgbColorConnection extends DBConnection {
         }
         return super.transformValueToDB(value, type, typeCategory)
     }
-    protected override transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown): string {
+    protected override transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown): string {
         if (type === 'RgbColor') {
             return placeholder + '::varchar'
         }
-        return super.transformPlaceholder(placeholder, type, typeCategory, forceTypeCast, valueSentToDB)
+        return super.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB)
     }
 }
 
@@ -67,12 +67,6 @@ class ExactDecimalConnection extends DBConnection {
             return value
         }
         return super.transformValueToDB(value, type, typeCategory)
-    }
-    protected override transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown): string {
-        if (type === 'ExactDecimal' && forceTypeCast) {
-            return placeholder + '::numeric'
-        }
-        return super.transformPlaceholder(placeholder, type, typeCategory, forceTypeCast, valueSentToDB)
     }
 }
 
@@ -141,7 +135,7 @@ describe(ctx.label, () => {
             .selectOneColumn(connection.const<ExactDecimal, 'ExactDecimal'>(amount, 'customDouble', 'ExactDecimal'))
             .executeSelectOne()
         // doc-end
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::numeric as result"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "12345678901234567890.123456789",

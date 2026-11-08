@@ -33,10 +33,10 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
 
     function insertReturningMoments(types: [TypeCategory, TypeCategory]): { sql: string, params: any[] } {
         const params: any[] = []
-        const d = r().addParam(params, new Date(Date.UTC(2026, 9, 25)), 'localDateTime', 'localDateTime')
-        const ts = r().addParam(params, new Date(Date.UTC(2026, 9, 25, 10, 30, 15)), 'localDateTime', 'localDateTime')
-        const dOut = r().addOutParam(params, 'd', types[0], types[0])
-        const tsOut = r().addOutParam(params, 'ts', types[1], types[1])
+        const d = r().addParam(params, new Date(Date.UTC(2026, 9, 25)), 'localDateTime', 'localDateTime', false)
+        const ts = r().addParam(params, new Date(Date.UTC(2026, 9, 25, 10, 30, 15)), 'localDateTime', 'localDateTime', false)
+        const dOut = r().addOutParam(params, 'd', types[0], types[0], false)
+        const tsOut = r().addOutParam(params, 'ts', types[1], types[1], false)
         return { sql: `insert into rt_moment (d, ts) values (${d}, ${ts}) returning d, ts into ${dOut}, ${tsOut}`, params }
     }
 
@@ -58,8 +58,8 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
 
     test('out-binds-of-a-pl-sql-block-make-one-row-per-repeated-name', async () => {
         const params: any[] = []
-        const sql = `begin insert into rt_moment (d) values (${r().addParam(params, new Date(), 'localDateTime', 'localDateTime')}) returning id into ${r().addOutParam(params, '', 'int', 'int')};`
-            + ` insert into rt_moment (d) values (${r().addParam(params, new Date(), 'localDateTime', 'localDateTime')}) returning id into ${r().addOutParam(params, '', 'int', 'int')}; end;`
+        const sql = `begin insert into rt_moment (d) values (${r().addParam(params, new Date(), 'localDateTime', 'localDateTime', false)}) returning id into ${r().addOutParam(params, '', 'int', 'int', false)};`
+            + ` insert into rt_moment (d) values (${r().addParam(params, new Date(), 'localDateTime', 'localDateTime', false)}) returning id into ${r().addOutParam(params, '', 'int', 'int', false)}; end;`
         const ids = (await r().executeInsertReturningMultipleLastInsertedId(sql, params)).map(Number)
         expect(ids).toHaveLength(2)
         expect(ids[1]!).toBeGreaterThan(ids[0]!)
@@ -74,7 +74,7 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
 
     test('a-mutation-returning-nothing-into-out-binds', async () => {
         const params: any[] = []
-        const sql = `update rt_moment set d = d where id < 0 returning id into ${r().addOutParam(params, 'id', 'int', 'int')}`
+        const sql = `update rt_moment set d = d where id < 0 returning id into ${r().addOutParam(params, 'id', 'int', 'int', false)}`
         expect(await r().executeUpdateReturningManyRows(sql, params)).toEqual([])
     })
 })

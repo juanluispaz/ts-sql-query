@@ -1,19 +1,26 @@
 import type { BeginTransactionOpts, DatabaseType, QueryRunner } from './QueryRunner.js'
 import type { ConnectionPool, Transaction } from 'mssql'
-import { MssqlPoolQueryRunner } from './MssqlPoolQueryRunner.js'
+import { MssqlPoolQueryRunner, type MssqlPoolQueryRunnerConfig } from './MssqlPoolQueryRunner.js'
 import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
 import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { setQueryParamType } from './QueryRunner.js'
 
+export interface MssqlPoolPromiseQueryRunnerConfig {
+    /** See MssqlPoolQueryRunnerConfig */
+    typesByName?: MssqlPoolQueryRunnerConfig['typesByName']
+}
+
 export class MssqlPoolPromiseQueryRunner extends ManagedTransactionPoolQueryRunner {
     readonly database: DatabaseType
     readonly promisePool: Promise<ConnectionPool>
+    private config?: MssqlPoolPromiseQueryRunnerConfig | undefined
 
-    constructor(promisePool: Promise<ConnectionPool>) {
+    constructor(promisePool: Promise<ConnectionPool>, config?: MssqlPoolPromiseQueryRunnerConfig) {
         super()
         this.promisePool = promisePool
         this.database = 'sqlServer'
+        this.config = config
     }
 
     useDatabase(database: DatabaseType): void {
@@ -27,8 +34,8 @@ export class MssqlPoolPromiseQueryRunner extends ManagedTransactionPoolQueryRunn
     override getCurrentNativeConnection(): Transaction | undefined {
         return super.getCurrentNativeConnection() as any
     }
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
-        setQueryParamType(params, params.length, type, typeCategory)
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
         const index = params.length
         params.push(value)
         return '@' + index
@@ -41,7 +48,7 @@ export class MssqlPoolPromiseQueryRunner extends ManagedTransactionPoolQueryRunn
         }
     }
     protected createQueryRunner(): Promise<QueryRunner> {
-        return this.promisePool.then(pool => new MssqlPoolQueryRunner(pool))
+        return this.promisePool.then(pool => new MssqlPoolQueryRunner(pool, this.config))
     }
     protected releaseQueryRunner(_queryRunner: QueryRunner): void {
         // Do nothing

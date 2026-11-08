@@ -39,11 +39,11 @@ class RgbColorConnection extends DBConnection {
         }
         return super.transformValueToDB(value, type, typeCategory)
     }
-    protected override transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown): string {
+    protected override transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown): string {
         if (type === 'RgbColor') {
             return 'cast(' + placeholder + ' as nvarchar(32))'
         }
-        return super.transformPlaceholder(placeholder, type, typeCategory, forceTypeCast, valueSentToDB)
+        return super.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB)
     }
 }
 
@@ -52,6 +52,23 @@ const tOrganizationColor = new class TOrganizationColor extends Table<DBConnecti
     color = this.column<RgbColor, 'RgbColor'>('plan', 'custom', 'RgbColor')
     constructor() { super('organization') }
 }()
+
+type ExactDecimal = string & { readonly __brand: 'ExactDecimal' }
+
+class ExactDecimalConnection extends DBConnection {
+    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory) {
+        if (type === 'ExactDecimal' && value !== null && value !== undefined) {
+            return String(value)
+        }
+        return super.transformValueFromDB(value, type, typeCategory)
+    }
+    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory) {
+        if (type === 'ExactDecimal') {
+            return value
+        }
+        return super.transformValueToDB(value, type, typeCategory)
+    }
+}
 
 type Units = number & { readonly __brand: 'Units' }
 
@@ -109,8 +126,6 @@ describe(ctx.label, () => {
         expect(row).toEqual({ units: 42, tag: '42' })
     })
 
-    // TODO[LIMITATION]: SQL Server: the runner binds a customDouble as Float, so an exact decimal loses digits (deferred, see test/DEFERRED.md)
-    /*
     test('docs:column-types/exact-decimal-kept-as-text', async () => {
         const amount = '12345678901234567890.123456789' as ExactDecimal
         ctx.mockNext('12345678901234567890.123456789')
@@ -120,10 +135,13 @@ describe(ctx.label, () => {
             .selectOneColumn(connection.const<ExactDecimal, 'ExactDecimal'>(amount, 'customDouble', 'ExactDecimal'))
             .executeSelectOne()
         // doc-end
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "12345678901234567890.123456789",
+          ]
+        `)
         assertType<Exact<typeof result, ExactDecimal>>()
         expect(result).toBe('12345678901234567890.123456789')
     })
-    */
 })

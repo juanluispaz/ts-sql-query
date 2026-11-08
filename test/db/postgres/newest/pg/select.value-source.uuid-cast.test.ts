@@ -526,9 +526,11 @@ describe(ctx.label, () => {
                 ign: tIssue.externalRef.ignoreWhenAsNull(true),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, external_ref as req, null::uuid as own, null::uuid as ign from issue where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, external_ref as req, $1::uuid as own, $2::uuid as ign from issue where id = $3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
+            null,
+            null,
             1,
           ]
         `)
@@ -628,9 +630,11 @@ describe(ctx.label, () => {
                 ign: tProjectRelease.signingKey.ignoreWhenAsNull(true),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signing_key as req, null::uuid as own, null::uuid as ign from project_release where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signing_key as req, $1::uuid as own, $2::uuid as ign from project_release where id = $3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
+            null,
+            null,
             1,
           ]
         `)

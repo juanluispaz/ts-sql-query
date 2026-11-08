@@ -30,8 +30,8 @@ export class MariaDBPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     override getCurrentNativeConnection(): PoolConnection | undefined {
         return super.getCurrentNativeConnection() as PoolConnection | undefined
     }
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
-        setQueryParamType(params, params.length, type, typeCategory)
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
         params.push(value)
         return '?'
     }

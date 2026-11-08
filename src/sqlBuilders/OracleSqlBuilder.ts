@@ -1119,7 +1119,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             this._setContainsInsertReturningClause(params, true)
             const idColumnSql = this._appendSql(idColumn, params, false)
             const idColumnPrivate = __getValueSourcePrivate(idColumn)
-            const placeholder = this._queryRunner.addOutParam(params, '', idColumnPrivate.__valueTypeName, __typeCategoryOf(idColumnPrivate.__valueType)) // Empty name for the out params, no special name is requiered
+            const placeholder = this._queryRunner.addOutParam(params, '', idColumnPrivate.__valueTypeName, __typeCategoryOf(idColumnPrivate.__valueType), false) // Empty name for the out params, no special name is requiered
             return ' returning ' + idColumnSql + ' into ' + placeholder
         }
 
@@ -1152,7 +1152,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 result += ', '
             }
             const columnPrivate = __getValueSourcePrivate(columns[property]!)
-            const placeholder = this._queryRunner.addOutParam(params, property, columnPrivate.__valueTypeName, __typeCategoryOf(columnPrivate.__valueType))
+            const placeholder = this._queryRunner.addOutParam(params, property, columnPrivate.__valueTypeName, __typeCategoryOf(columnPrivate.__valueType), false)
             result += placeholder
             requireComma = true
         }

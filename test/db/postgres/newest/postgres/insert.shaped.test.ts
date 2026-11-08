@@ -311,7 +311,7 @@ describe(ctx.label, () => {
                 .setForAll({ isPublished: true })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, published) values ($1, $2, $3, case when $4::bool then 't' else 'f' end), ($5, $6, $7, case when $8::bool then 't' else 'f' end)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, published) values ($1, $2, $3, case when $4 then 't' else 'f' end), ($5, $6, $7, case when $8 then 't' else 'f' end)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -350,7 +350,7 @@ describe(ctx.label, () => {
                 .setForAllIfValue({ isPublished: undefined })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, published) values ($1, $2, $3, case when $4::bool then 't' else 'f' end), ($5, $6, $7, case when $8::bool then 't' else 'f' end)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, published) values ($1, $2, $3, case when $4 then 't' else 'f' end), ($5, $6, $7, case when $8 then 't' else 'f' end)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

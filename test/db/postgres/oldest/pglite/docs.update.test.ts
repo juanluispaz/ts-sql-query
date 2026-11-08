@@ -193,7 +193,7 @@ describe(ctx.label, () => {
                 .executeUpdate()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectForUpdate(id, name, slug) as (values ($1::int4, $2::text, $3::text)) update project set name = projectForUpdate.name, slug = projectForUpdate.slug from projectForUpdate where project.id = projectForUpdate.id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectForUpdate(id, name, slug) as (values ($1, $2, $3)) update project set name = projectForUpdate.name, slug = projectForUpdate.slug from projectForUpdate where project.id = projectForUpdate.id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

@@ -15,11 +15,18 @@ export class ProxyTypeAdapter implements TypeAdapter {
         return this.typeAdapter.transformValueToDB(value, type, typeCategory, next)
     }
 
-    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string {
+    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, next: DefaultTypeAdapter): string {
         if (this.typeAdapter.transformPlaceholder) {
-            return this.typeAdapter.transformPlaceholder(placeholder, type, typeCategory, forceTypeCast, valueSentToDB, next)
+            return this.typeAdapter.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB, next)
         }
-        return next.transformPlaceholder(placeholder, type, typeCategory, forceTypeCast, valueSentToDB)
+        return next.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB)
+    }
+
+    forceTypeCast(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean, next: DefaultTypeAdapter): boolean {
+        if (this.typeAdapter.forceTypeCast) {
+            return this.typeAdapter.forceTypeCast(type, typeCategory, valueSentToDB, forceTypeCast, next)
+        }
+        return next.forceTypeCast(type, typeCategory, valueSentToDB, forceTypeCast)
     }
 }
 

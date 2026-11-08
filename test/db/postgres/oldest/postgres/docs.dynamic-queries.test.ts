@@ -219,9 +219,11 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, null::text as title, null::text as status, body as body from issue where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, $1 as title, $2 as status, body as body from issue where id = $3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
+            null,
+            null,
             2,
           ]
         `)
@@ -250,9 +252,10 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title, null::text as body from issue where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title, $1 as body from issue where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
+            null,
             2,
           ]
         `)

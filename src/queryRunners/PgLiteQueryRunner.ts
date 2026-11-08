@@ -6,9 +6,16 @@ import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSq
 import { getPgLiteErrorReason, isPgLiteError } from './connectorErrorMappers/PgLiteErrorMapper.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { setQueryParamType } from './QueryRunner.js'
+import { getParamForceTypeCastAt, getParamTypeAt, getParamTypeCategoryAt } from '../utils/queryParamsMetadata.js'
+import { postgreSqlParamType } from '../utils/postgreSqlParamTypes.js'
 
 export interface PgLiteQueryRunnerConfig {
     allowNestedTransactions?: boolean | undefined
+    /**
+     * The oid of the PostgreSQL type, like `1700` for numeric, each parameter of a type name (the name given to a custom
+     * type, or a built-in one) is sent with, in every position
+     */
+    typesByName?: { readonly [typeName: string]: number } | undefined
     /** The connection is in a transaction that something else began, and that something else ends: none begins on it */
     forUseInTransaction?: boolean | undefined
 }
@@ -46,11 +53,34 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
         return fn(this.connection)
     }
 
+    /**
+     * The query options with the types of the params, when one has a type: a parameter of a type name in typesByName is
+     * sent with the type declared there, and one whose type the database must receive (forceTypeCast) with the oid of
+     * its PostgreSQL type, so the SQL needs no cast; the other params go untyped (0).
+     */
+    private queryOptions(params: any[]): { paramTypes: number[] } | undefined {
+        const typesByName = this.config?.typesByName
+        let paramTypes: number[] | undefined = undefined
+        for (let i = 0, length = params.length; i < length; i++) {
+            const type = getParamTypeAt(params, i)
+            let oid = typesByName && type !== undefined && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
+            if (oid === undefined && getParamForceTypeCastAt(params, i)) {
+                oid = postgreSqlParamType(type, getParamTypeCategoryAt(params, i), params[i])?.oid
+            }
+            if (oid !== undefined) {
+                if (!paramTypes) {
+                    paramTypes = new Array(length).fill(0)
+                }
+                paramTypes[i] = oid
+            }
+        }
+        return paramTypes ? { paramTypes } : undefined
+    }
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
-        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query(query, params).then((result) => result.rows, (error) => this.statementOfTheTransactionFailed(error))
+        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query(query, params, this.queryOptions(params)).then((result) => result.rows, (error) => this.statementOfTheTransactionFailed(error))
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
-        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query(query, params).then((result) => result.affectedRows || 0, (error) => this.statementOfTheTransactionFailed(error))
+        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query(query, params, this.queryOptions(params)).then((result) => result.affectedRows || 0, (error) => this.statementOfTheTransactionFailed(error))
     }
     override executeCommitQuery(query: string, params: any[]): Promise<number> {
         return this.connection.query(query, params).then((result) => {
@@ -64,8 +94,9 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
         }
         return super.executeBeginTransaction(opts)
     }
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
-        setQueryParamType(params, params.length, type, typeCategory)
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+        // PGlite sends the parameter with its type (see queryOptions): the placeholder needs no cast
+        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
         params.push(value)
         return '$' + params.length
     }

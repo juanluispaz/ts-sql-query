@@ -86,7 +86,7 @@ describe(ctx.label, () => {
             .where(ctx.conn.intEqualsIfValue(1, 2))
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int4 as x where $2 = $3"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as x where $2 = $3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -110,7 +110,7 @@ describe(ctx.label, () => {
             .where(ctx.conn.intEqualsIfValue(1, undefined))
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int4 as x"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as x"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -260,7 +260,7 @@ describe(ctx.label, () => {
             .select({ x: ctx.conn.const(1, 'int') })
             .where(ctx.conn.intIsPositiveIfValue(5))
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int4 as x where $2::int > 0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as x where $2::int > 0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -277,7 +277,7 @@ describe(ctx.label, () => {
             .select({ x: ctx.conn.const(1, 'int') })
             .where(ctx.conn.intIsPositiveIfValue(undefined))
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int4 as x"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as x"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

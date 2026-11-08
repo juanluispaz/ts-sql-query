@@ -49,7 +49,7 @@ describe(ctx.label, () => {
                 .from(source)
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) select $1::int4 as "projectId", number as number, title as title, $2::text as status, priority as priority from issue where project_id = $3"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) select $1 as "projectId", number as number, title as title, $2 as status, priority as priority from issue where project_id = $3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 4,
@@ -93,7 +93,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsertMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) select $1::int4 as "projectId", number as number, title as title, $2::text as status, priority as priority from issue where project_id = $3 returning id as id, project_id as "projectId", number as number, title as title, status as status, priority as priority"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) select $1 as "projectId", number as number, title as title, $2 as status, priority as priority from issue where project_id = $3 returning id as id, project_id as "projectId", number as number, title as title, status as status, priority as priority"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 4,
@@ -142,7 +142,7 @@ describe(ctx.label, () => {
                 .from(source)
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"with active_projects as (select id as id from project where archived_at is null) insert into issue (project_id, number, title, status, priority) select issue.project_id as "projectId", issue.number + $1 as number, issue.title as title, $2::text as status, issue.priority as priority from issue inner join active_projects on active_projects.id = issue.project_id where issue.project_id = $3"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with active_projects as (select id as id from project where archived_at is null) insert into issue (project_id, number, title, status, priority) select issue.project_id as "projectId", issue.number + $1 as number, issue.title as title, $2 as status, issue.priority as priority from issue inner join active_projects on active_projects.id = issue.project_id where issue.project_id = $3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1000,
@@ -452,7 +452,7 @@ describe(ctx.label, () => {
                 .returning({ name: tProject.name, slug: tProject.slug, published: tProject.published })
                 .executeInsertMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, published) select organization_id as "organizationId", name as name, $1::text as slug, published as published from project where id = $2 returning name as name, slug as slug, (published = 't') as published"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, published) select organization_id as "organizationId", name as name, $1 as slug, published as published from project where id = $2 returning name as name, slug as slug, (published = 't') as published"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "mktg-site-copy",
@@ -486,7 +486,7 @@ describe(ctx.label, () => {
                 .returning({ name: tProject.name, published: tProject.published })
                 .executeInsertMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, published) select id as "organizationId", $1::text as name, $2::text as slug, case when verified = 'Y' then 't' else 'f' end as published from organization where id = $3 returning name as name, (published = 't') as published"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, published) select id as "organizationId", $1 as name, $2 as slug, case when verified = 'Y' then 't' else 'f' end as published from organization where id = $3 returning name as name, (published = 't') as published"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Onboarding",

@@ -656,7 +656,7 @@ describe(ctx.label, () => {
                 afterQuery: connection.rawFragment` /* ${archiveProject}; ${deleteProject}; ${createProject} */`,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where id = $1  /* update project set published = case when $2::bool then 't' else 'f' end where id = $3; delete from project where id = $4; insert into project (organization_id, name, slug) values ($5, $6, $7) */"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where id = $1  /* update project set published = case when $2 then 't' else 'f' end where id = $3; delete from project where id = $4; insert into project (organization_id, name, slug) values ($5, $6, $7) */"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,

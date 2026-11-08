@@ -191,7 +191,7 @@ describe(ctx.label, () => {
                 .where(tIssueWorklog.id.equals(2))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set invoiced = case when $1::bool then 1 else 0 end, cost_cents = $2, billed_amount = $3 where id = $4"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set invoiced = case when $1 then 1 else 0 end, cost_cents = $2, billed_amount = $3 where id = $4"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 true,

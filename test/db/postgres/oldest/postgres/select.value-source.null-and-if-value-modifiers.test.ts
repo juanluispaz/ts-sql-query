@@ -125,7 +125,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(assignee_id, $1::float8) as w from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(assignee_id, $1) as w from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0.5,
@@ -1305,9 +1305,11 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (published = 't') as req, null::bool as own, null::bool as ign from project where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (published = 't') as req, $1 as own, $2 as ign from project where id = $3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
+            null,
+            null,
             1,
           ]
         `)
@@ -1341,9 +1343,13 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, work_date as "dReq", null::date as "dOwn", null::date as "dIgn", started_at as "tReq", null::time as "tOwn", null::time as "tIgn" from issue_worklog where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, work_date as "dReq", $1 as "dOwn", $2 as "dIgn", started_at as "tReq", $3 as "tOwn", $4 as "tIgn" from issue_worklog where id = $5"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
+            null,
+            null,
+            null,
+            null,
             2,
           ]
         `)
@@ -1385,9 +1391,15 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, released_on as "dReq", null::date as "dOwn", null::date as "dIgn", cutoff_time as "tReq", null::time as "tOwn", null::time as "tIgn", signed_off_at as "dtReq", null::timestamp as "dtOwn", null::timestamp as "dtIgn" from project_release where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, released_on as "dReq", $1 as "dOwn", $2 as "dIgn", cutoff_time as "tReq", $3 as "tOwn", $4 as "tIgn", signed_off_at as "dtReq", $5 as "dtOwn", $6 as "dtIgn" from project_release where id = $7"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
             1,
           ]
         `)
@@ -1420,9 +1432,11 @@ describe(ctx.label, () => {
                 ign: tOrganization.createdAt.ignoreWhenAsNull(true),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, created_at as req, null::timestamp as own, null::timestamp as ign from organization where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, created_at as req, $1 as own, $2 as ign from organization where id = $3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
+            null,
+            null,
             1,
           ]
         `)
@@ -1449,9 +1463,13 @@ describe(ctx.label, () => {
                 bIgn: tIssueWorklog.billedAmount.ignoreWhenAsNull(true),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cost_cents as "cReq", null::int4 as "cOwn", null::int4 as "cIgn", billed_amount as "bReq", null::float8 as "bOwn", null::float8 as "bIgn" from issue_worklog where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cost_cents as "cReq", $1 as "cOwn", $2 as "cIgn", billed_amount as "bReq", $3 as "bOwn", $4 as "bIgn" from issue_worklog where id = $5"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
+            null,
+            null,
+            null,
+            null,
             1,
           ]
         `)
@@ -1782,9 +1800,11 @@ describe(ctx.label, () => {
                 ign: tOrganization.verified.ignoreWhenAsNull(true),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (verified = 'Y') as req, null::bool as own, null::bool as ign from organization where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (verified = 'Y') as req, $1 as own, $2 as ign from organization where id = $3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
+            null,
+            null,
             1,
           ]
         `)
@@ -1808,9 +1828,11 @@ describe(ctx.label, () => {
                 ign: tIssueWorklog.approved.ignoreWhenAsNull(true),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (approved = 'A') as req, null::bool as own, null::bool as ign from issue_worklog where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (approved = 'A') as req, $1 as own, $2 as ign from issue_worklog where id = $3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
+            null,
+            null,
             1,
           ]
         `)
@@ -1834,9 +1856,11 @@ describe(ctx.label, () => {
                 ign: tIssueWorklog.invoiced.ignoreWhenAsNull(true),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (invoiced = 1) as req, null::bool as own, null::bool as ign from issue_worklog where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (invoiced = 1) as req, $1 as own, $2 as ign from issue_worklog where id = $3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
+            null,
+            null,
             1,
           ]
         `)
@@ -1861,9 +1885,11 @@ describe(ctx.label, () => {
                 ign: tIssue.priority.asDouble().ignoreWhenAsNull(true),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority::float as req, null::float8 as own, null::float8 as ign from issue where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority::float as req, $1 as own, $2 as ign from issue where id = $3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
+            null,
+            null,
             1,
           ]
         `)

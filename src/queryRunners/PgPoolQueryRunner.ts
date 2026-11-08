@@ -5,9 +5,15 @@ import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQuery
 import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { setQueryParamType } from './QueryRunner.js'
+import { postgreSqlPlaceholder } from '../utils/postgreSqlParamTypes.js'
 
 export interface PgPoolQueryRunnerConfig {
     allowNestedTransactions?: boolean | undefined
+    /**
+     * The cast, like `'numeric'`, written after the placeholder of a parameter of each type name (the name given to a
+     * custom type, or a built-in one) where the library writes a cast, instead of the one of its category
+     */
+    typesByName?: { readonly [typeName: string]: string } | undefined
 }
 
 export class PgPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
@@ -33,10 +39,12 @@ export class PgPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     override getCurrentNativeConnection(): PoolClient | undefined {
         return super.getCurrentNativeConnection() as PoolClient | undefined
     }
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
-        setQueryParamType(params, params.length, type, typeCategory)
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+        // pg can't send a parameter with its type: the type goes as a cast in the placeholder
+        const index = params.length
+        setQueryParamType(params, index, type, typeCategory, forceTypeCast)
         params.push(value)
-        return '$' + params.length
+        return postgreSqlPlaceholder(index, value, type, typeCategory, forceTypeCast, this.config?.typesByName)
     }
     protected createQueryRunner(): Promise<QueryRunner> {
         return this.pool.connect().then(connection => new PgQueryRunner(connection, this.config))

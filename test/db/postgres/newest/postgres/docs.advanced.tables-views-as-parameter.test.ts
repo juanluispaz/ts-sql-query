@@ -270,7 +270,7 @@ describe(ctx.label, () => {
             .orderBy('name', 'desc')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectName(id, name) as (values ($1::int4, $2::text), ($3::int4, $4::text)) select name as name, (select count(*) as result from issue where project_id = projectName.id) as issues from projectName order by name desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectName(id, name) as (values ($1, $2), ($3, $4)) select name as name, (select count(*) as result from issue where project_id = projectName.id) as issues from projectName order by name desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -430,7 +430,7 @@ describe(ctx.label, () => {
             .orderBy('name', 'desc')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectName(id, name) as (values ($1::int4, $2::text), ($3::int4, $4::text)) select names.name as name, coalesce((select count(*) as result from issue where project_id = names.id), $5) as issues from projectName as names order by name desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectName(id, name) as (values ($1, $2), ($3, $4)) select names.name as name, coalesce((select count(*) as result from issue where project_id = names.id), $5) as issues from projectName as names order by name desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -467,7 +467,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectName(id, name) as (values ($1::int4, $2::text), ($3::int4, $4::text)) select project.id as id, names.name as name from project left join projectName as names on names.id = project.id order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectName(id, name) as (values ($1, $2), ($3, $4)) select project.id as id, names.name as name from project left join projectName as names on names.id = project.id order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

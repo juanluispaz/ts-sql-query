@@ -163,11 +163,11 @@ export class SwitchableQueryRunner implements QueryRunner {
     executeConnectionConfiguration(query: string, params: any[] = []): Promise<void> {
         return this.target.executeConnectionConfiguration(query, params)
     }
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
-        return this.target.addParam(params, value, type, typeCategory)
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+        return this.target.addParam(params, value, type, typeCategory, forceTypeCast)
     }
-    addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory): string {
-        return this.target.addOutParam(params, name, type, typeCategory)
+    addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+        return this.target.addOutParam(params, name, type, typeCategory, forceTypeCast)
     }
     createResolvedPromise<RESULT>(result: RESULT | PromiseLike<RESULT>): Promise<RESULT> {
         return this.target.createResolvedPromise(result)

@@ -10,8 +10,8 @@ import { setQueryParamType } from '../../../src/queryRunners/QueryRunner.js'
 import type { TypeCategory } from '../../../src/TypeAdapter.js'
 
 export class MockBunSqlSqliteQueryRunner extends MockQueryRunner {
-    override addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
-        setQueryParamType(params, params.length, type, typeCategory)
+    override addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
         params.push(value)
         return '?' + params.length
     }

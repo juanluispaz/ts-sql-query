@@ -347,9 +347,10 @@ describe(ctx.label, () => {
                 c:  tIssueWorklog.costCents.onlyWhenOrNull(false),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, null::int4 as c from issue_worklog where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, $1::int4 as c from issue_worklog where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
+            null,
             1,
           ]
         `)
@@ -470,9 +471,10 @@ describe(ctx.label, () => {
                 v:  tIssue.viewCount.onlyWhenOrNull(false),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, null::int8 as v from issue where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, $1::int8 as v from issue where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
+            null,
             1,
           ]
         `)

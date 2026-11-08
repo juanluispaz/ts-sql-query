@@ -31,12 +31,12 @@ class DBConnection extends OracleConnection<'DBConnection'> {
     deleteUserReturningObjectWithMessage(userId: string): Promise<{message: string}> {
         const queryRunner = this.queryRunner
         const params: any[] = []
-        return queryRunner.executeUpdateReturningOneRow(`begin PR_DEL_E2EUSER(${queryRunner.addParam(params, userId, 'string', 'string')}, ${queryRunner.addOutParam(params, 'message', 'string', 'string')}); end;`, params)
+        return queryRunner.executeUpdateReturningOneRow(`begin PR_DEL_E2EUSER(${queryRunner.addParam(params, userId, 'string', 'string', false)}, ${queryRunner.addOutParam(params, 'message', 'string', 'string', false)}); end;`, params)
     }
     deleteUserReturningMessage(userId: string): Promise<string> {
         const queryRunner = this.queryRunner
         const params: any[] = []
-        return queryRunner.executeUpdateReturningOneColumnOneRow(`begin PR_DEL_E2EUSER(${queryRunner.addParam(params, userId, 'string', 'string')}, ${queryRunner.addOutParam(params, 'message', 'string', 'string')}); end;`, params)
+        return queryRunner.executeUpdateReturningOneColumnOneRow(`begin PR_DEL_E2EUSER(${queryRunner.addParam(params, userId, 'string', 'string', false)}, ${queryRunner.addOutParam(params, 'message', 'string', 'string', false)}); end;`, params)
     }
     deleteUserLowLevel(userId: string): Promise<string> {
         return this.queryRunner.execute(async (connection) => {

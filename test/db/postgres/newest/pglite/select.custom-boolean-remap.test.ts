@@ -155,7 +155,7 @@ describe(ctx.label, () => {
                     published:      ctx.conn.const(1, 'int').greaterThan(0),
                 })
                 .executeInsert()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, published) values ($1, $2, $3, case when $4::int4 > $5 then 't' else 'f' end)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, published) values ($1, $2, $3, case when $4 > $5 then 't' else 'f' end)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -179,7 +179,7 @@ describe(ctx.label, () => {
             const inserted = await ctx.conn.insertInto(tOrganization)
                 .values({ name: 'Initech', plan: 'pro', verified: true })
                 .executeInsert()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan, verified) values ($1, $2, case when $3::bool then 'Y' else 'N' end)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan, verified) values ($1, $2, case when $3 then 'Y' else 'N' end)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Initech",

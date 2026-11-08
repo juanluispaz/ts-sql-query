@@ -141,7 +141,7 @@ describe(ctx.label, () => {
                 .executeDelete()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueForDelete(title, status) as (values ($1::text, $2::text)) delete from issue using issueForDelete where issue.title = issueForDelete.title and issue.status = issueForDelete.status"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueForDelete(title, status) as (values ($1, $2)) delete from issue using issueForDelete where issue.title = issueForDelete.title and issue.status = issueForDelete.status"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Document /v2/users",

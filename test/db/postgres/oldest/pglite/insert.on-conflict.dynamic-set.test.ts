@@ -643,7 +643,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into app_user (email, full_name) values ($1, $2) on conflict on constraint app_user_email_key do update set full_name = $3, verified = case when $4::bool then 'Y' else 'N' end"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into app_user (email, full_name) values ($1, $2) on conflict on constraint app_user_email_key do update set full_name = $3, verified = case when $4 then 'Y' else 'N' end"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "ada@acme.test",

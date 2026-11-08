@@ -307,7 +307,7 @@ describe(ctx.label, () => {
             const trueSql = ctx.lastSql
 
             expect(falseSql).toMatchInlineSnapshot(`"update project set name = $1"`)
-            expect(trueSql).toMatchInlineSnapshot(`"update project set name = $1, published = case when $2::bool then 't' else 'f' end"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update project set name = $1, published = case when $2 then 't' else 'f' end"`)
             expect(trueSql).not.toBe(falseSql)
             assertType<Exact<typeof affected, number>>()
             expect(affected).toBe(4)
@@ -331,7 +331,7 @@ describe(ctx.label, () => {
                 .set({ projectName: 'Extended rename', isPublished: false })
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = $1, published = case when $2::bool then 't' else 'f' end"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = $1, published = case when $2 then 't' else 'f' end"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Extended rename",
@@ -498,7 +498,7 @@ describe(ctx.label, () => {
             const trueSql = ctx.lastSql
 
             expect(falseSql).toMatchInlineSnapshot(`"update project set name = $1"`)
-            expect(trueSql).toMatchInlineSnapshot(`"update project set name = $1, published = case when $2::bool then 't' else 'f' end"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update project set name = $1, published = case when $2 then 't' else 'f' end"`)
             expect(trueSql).not.toBe(falseSql)
             expect(affected).toBe(4)
         })
@@ -526,7 +526,7 @@ describe(ctx.label, () => {
             const trueSql = ctx.lastSql
 
             expect(falseSql).toMatchInlineSnapshot(`"update project set name = $1"`)
-            expect(trueSql).toMatchInlineSnapshot(`"update project set name = $1, published = case when $2::bool then 't' else 'f' end"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update project set name = $1, published = case when $2 then 't' else 'f' end"`)
             expect(trueSql).not.toBe(falseSql)
             expect(affected).toBe(4)
         })
@@ -552,7 +552,7 @@ describe(ctx.label, () => {
                 .executeUpdate()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"update project set name = $1, published = case when $2::bool then 't' else 'f' end"`)
+            expect(falseSql).toMatchInlineSnapshot(`"update project set name = $1, published = case when $2 then 't' else 'f' end"`)
             expect(trueSql).toMatchInlineSnapshot(`"update project set name = $1"`)
             expect(trueSql).not.toBe(falseSql)
             expect(affected).toBe(4)
@@ -580,7 +580,7 @@ describe(ctx.label, () => {
                 .executeUpdate()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"update project set name = $1, published = case when $2::bool then 't' else 'f' end"`)
+            expect(falseSql).toMatchInlineSnapshot(`"update project set name = $1, published = case when $2 then 't' else 'f' end"`)
             expect(trueSql).toMatchInlineSnapshot(`"update project set name = $1"`)
             expect(trueSql).not.toBe(falseSql)
             expect(affected).toBe(4)

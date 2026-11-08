@@ -21,11 +21,11 @@ import { ctx } from './setup.js'
 // `transformPlaceholder` to this adapter — the regression test below pins that.
 class CastingBooleanAdapter extends CustomBooleanTypeAdapter {
     constructor() { super('Y', 'N') }
-    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string {
+    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, next: DefaultTypeAdapter): string {
         if (type === 'boolean') {
             return placeholder + '::boolean'
         }
-        return next.transformPlaceholder(placeholder, type, typeCategory, forceTypeCast, valueSentToDB)
+        return next.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB)
     }
 }
 const castingBool = new CastingBooleanAdapter()
@@ -46,11 +46,11 @@ const tOrgCastingBool = new class TOrgCastingBool extends Table<DBConnection, 'T
 const castVarchar64: TypeAdapter = {
     transformValueFromDB(value, type, typeCategory, next) { return next.transformValueFromDB(value, type, typeCategory) },
     transformValueToDB(value, type, typeCategory, next) { return next.transformValueToDB(value, type, typeCategory) },
-    transformPlaceholder(placeholder, type, typeCategory, forceTypeCast, valueSentToDB, next) {
+    transformPlaceholder(placeholder, type, typeCategory, valueSentToDB, next) {
         if (type === 'string') {
             return placeholder + '::varchar(64)'
         }
-        return next.transformPlaceholder(placeholder, type, typeCategory, forceTypeCast, valueSentToDB)
+        return next.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB)
     },
 }
 

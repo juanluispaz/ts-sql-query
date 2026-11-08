@@ -53,7 +53,7 @@ describe(ctx.label, () => {
                 b:  ctx.conn.const(true, 'boolean'),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int4 as i, $2::float8 as d, $3::int8 as bi, $4::bool as b"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as i, $2 as d, $3 as bi, $4 as b"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             7,
@@ -80,7 +80,7 @@ describe(ctx.label, () => {
                 cc: ctx.conn.const<string, 'Semver'>('1.2.0', 'customComparable', 'Semver'),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::uuid as u, $2 as e, $3 as c, $4 as cc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as u, $2 as e, $3 as c, $4 as cc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556666",
@@ -106,7 +106,7 @@ describe(ctx.label, () => {
                 cu: ctx.conn.const<string, 'SigningKey'>(UUID_V, 'customUuid', 'SigningKey'),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int4 as ci, $2::float8 as cd, $3::uuid as cu"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as ci, $2 as cd, $3 as cu"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             7,
@@ -135,7 +135,7 @@ describe(ctx.label, () => {
                 cldt: ctx.conn.const<Date, 'SignOffStamp'>(ldt, 'customLocalDateTime', 'SignOffStamp'),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::time as lt, $2::timestamp as ldt, $3::time as clt, $4::timestamp as cldt"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as lt, $2 as ldt, $3 as clt, $4 as cldt"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "17:00:00",
@@ -160,7 +160,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const('hello', 'string', bracketAdapter))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::text as result"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "hello",

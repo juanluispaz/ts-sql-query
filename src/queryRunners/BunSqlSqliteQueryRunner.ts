@@ -46,8 +46,8 @@ export class BunSqlSqliteQueryRunner extends AbstractBunSqlQueryRunner {
         // same absence the RETURNING path reports) when nothing was inserted.
         return sql.unsafe(query, params).then((result) => result.count === 0 ? null : result.lastInsertRowid)
     }
-    override addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
-        setQueryParamType(params, params.length, type, typeCategory)
+    override addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
         params.push(value)
         return '?' + params.length
     }

@@ -35,7 +35,7 @@ describe(ctx.label, () => {
                 .returning({ id: tIssue.id })
                 .executeInsertMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) select $1::int4 as "projectId", number as number, title as title, $2::text as status, priority as priority from issue where project_id = $3 returning id as id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) select $1 as "projectId", number as number, title as title, $2 as status, priority as priority from issue where project_id = $3 returning id as id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 4,
@@ -73,7 +73,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) select $1::int4 as "projectId", number as number, title as title, $2::text as status, priority as priority from issue where project_id = $3 returning id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) select $1 as "projectId", number as number, title as title, $2 as status, priority as priority from issue where project_id = $3 returning id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 4,

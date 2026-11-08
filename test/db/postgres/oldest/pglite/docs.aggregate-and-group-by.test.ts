@@ -32,7 +32,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as "organizationId", organization.name as "organizationName", $1::text as kind, count(project.id) as "projectCount" from organization inner join project on project.organization_id = organization.id group by organization.id, organization.name"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as "organizationId", organization.name as "organizationName", $1 as kind, count(project.id) as "projectCount" from organization inner join project on project.organization_id = organization.id group by organization.id, organization.name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "organization",

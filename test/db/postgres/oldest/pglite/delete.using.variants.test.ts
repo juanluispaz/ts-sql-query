@@ -318,7 +318,7 @@ describe(ctx.label, () => {
                 })
                 .executeDeleteOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using project left join project_review on project_review.project_id = project.id where issue.project_id = project.id and issue.id = $1 returning issue.id as pid, project_review.reviewer_code as "obj.x", $2::int4 as "obj.k""`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using project left join project_review on project_review.project_id = project.id where issue.project_id = project.id and issue.id = $1 returning issue.id as pid, project_review.reviewer_code as "obj.x", $2 as "obj.k""`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 4,
@@ -352,7 +352,7 @@ describe(ctx.label, () => {
                 .projectingOptionalValuesAsNullable()
                 .executeDeleteOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using project left join project_review on project_review.project_id = project.id where issue.project_id = project.id and issue.id = $1 returning issue.id as pid, project_review.reviewer_code as "obj.x", $2::int4 as "obj.k""`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using project left join project_review on project_review.project_id = project.id where issue.project_id = project.id and issue.id = $1 returning issue.id as pid, project_review.reviewer_code as "obj.x", $2 as "obj.k""`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 4,
@@ -380,7 +380,7 @@ describe(ctx.label, () => {
                 .and(tIssue.id.equals(99999))
                 .executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectIds(id) as (values ($1::int4)) delete from issue using projectIds where issue.project_id = projectIds.id and issue.id = $2"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectIds(id) as (values ($1)) delete from issue using projectIds where issue.project_id = projectIds.id and issue.id = $2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

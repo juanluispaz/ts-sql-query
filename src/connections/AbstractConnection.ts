@@ -1640,8 +1640,17 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         }
     }
 
-    protected transformPlaceholder(placeholder: string, _type: string, _typeCategory: TypeCategory, _forceTypeCast: boolean, _valueSentToDB: unknown): string {
+    protected transformPlaceholder(placeholder: string, _type: string, _typeCategory: TypeCategory, _valueSentToDB: unknown): string {
         return placeholder
+    }
+
+    /**
+     * Whether the database must receive the type of the parameter (the query runner writes a cast in the placeholder,
+     * or sends the parameter with its type): it receives the one the library decided for the position where the
+     * parameter is written, and returns the one to use
+     */
+    protected forceTypeCast(_type: string, _typeCategory: TypeCategory, _valueSentToDB: unknown, forceTypeCast: boolean): boolean {
+        return forceTypeCast
     }
 
     protected isReservedKeyword(word: string): boolean {

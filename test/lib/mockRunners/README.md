@@ -9,8 +9,10 @@ Used by `test/db/<db>/runners.ts` so the params captured by
 bodies do not need `if (ctx.realDbEnabled) ... else ...` branches just
 to satisfy a snapshot that depends on a driver's internal massage.
 
-There are seven: the six embedded SQLite connectors and
-`MockBunSqlPostgresQueryRunner`. Every other connector uses the generic mock.
+There are ten: the six embedded SQLite connectors and the four PostgreSQL
+ones (`MockPgQueryRunner`, `MockBunSqlPostgresQueryRunner`,
+`MockPostgresQueryRunner`, `MockPgLiteQueryRunner`). Every other connector uses
+the generic mock.
 Some are intentionally thin (behave as `MockQueryRunner` does) — they are kept on
 disk so adding a future connector-specific quirk is a single-file change rather
 than a refactor of the test infrastructure.
@@ -43,9 +45,10 @@ because the `sqlite3` npm driver would bind a JS `BigInt` as `NULL`.
 
 1. **One class per mirrored runner, even when the subclass is passthrough.**
    `MockBunSqlPostgresQueryRunner` is empty because
-   `BunSqlPostgresQueryRunner.addParam` already pushes values as-is. The file
-   stays on disk so that if the runner ever grows a quirk in the future, the
-   divergence is a one-file edit instead of a refactor of the `runners.ts`.
+   `BunSqlPostgresQueryRunner.addParam` writes its placeholders as pg does
+   (`MockPgQueryRunner`). The file stays on disk so that if the runner ever
+   grows a quirk in the future, the divergence is a one-file edit instead of a
+   refactor of the `runners.ts`.
 
 2. **An override that transforms a value re-uses `super`, never copy-pastes the
    real runner's logic.** The pattern is:
@@ -115,10 +118,17 @@ Recipe:
 
 Today the observable divergences between a real runner and `MockQueryRunner`
 are in `addParam`: the `boolean → int` coercion in the four SQLite runners listed
-above, and the `bigint → number` coercion in `Sqlite3QueryRunner`. Every other
-`addParam` (postgres / mysql / mariadb / mssql / oracle / Bun SQL) pushes the value
-unchanged, with the placeholder the generic mock uses, and nothing here mirrors
-`addOutParam` (Oracle) or any `execute*`. If a future real runner
+above, the `bigint → number` coercion in `Sqlite3QueryRunner`, and the
+placeholder of a PostgreSQL parameter whose type the library asks for
+(forceTypeCast). The generic mock writes it as pg does, with a cast
+(`$1::int4`); `PostgresQueryRunner` (postgres.js) and `PgLiteQueryRunner` send
+the parameter typed and leave the placeholder bare, which
+`MockPostgresQueryRunner` and `MockPgLiteQueryRunner` mirror; `MockPgQueryRunner`
+(and `MockBunSqlPostgresQueryRunner`) also write the cast a `typesByName` entry
+declares, set by a subclass in `test/db/postgres/runners.ts` to the map the
+cell's real runner gets. Every other `addParam` (mysql / mariadb / mssql /
+oracle) pushes the value unchanged, with the placeholder the generic mock uses,
+and nothing here mirrors `addOutParam` (Oracle) or any `execute*`. If a future real runner
 introduces a new transformation, the convention above is already
 wired and ready.
 

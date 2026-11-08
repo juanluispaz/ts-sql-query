@@ -95,10 +95,11 @@ export function isSelectPageCountQueryParams(params: any[]): boolean {
 }
 
 /**
- * The type name and the type category of the parameter at that index of the params, kept by the query runner when it
- * adds the parameter, in two arrays aligned with the params. A parameter added without them leaves a hole.
+ * The type name, the type category and whether the query builder asked for the type of the parameter to be given to
+ * the database (its forceTypeCast), of the parameter at that index of the params, kept by the query runner when it
+ * adds the parameter, in three arrays aligned with the params. A parameter added without them leaves a hole.
  */
-export function setParamTypeAt(params: any[], index: number, type: string, typeCategory: TypeCategory): void {
+export function setParamTypeAt(params: any[], index: number, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): void {
     let types = getHiddenParamsProperty<string[]>(params, '$paramTypes')
     if (!types) {
         types = []
@@ -109,8 +110,14 @@ export function setParamTypeAt(params: any[], index: number, type: string, typeC
         typeCategories = []
         defineHiddenParamsProperty(params, '$paramTypeCategories', typeCategories)
     }
+    let forceTypeCasts = getHiddenParamsProperty<boolean[]>(params, '$paramForceTypeCasts')
+    if (!forceTypeCasts) {
+        forceTypeCasts = []
+        defineHiddenParamsProperty(params, '$paramForceTypeCasts', forceTypeCasts)
+    }
     types[index] = type
     typeCategories[index] = typeCategory
+    forceTypeCasts[index] = forceTypeCast
 }
 
 export function getParamTypeAt(params: any[], index: number): string | undefined {
@@ -119,4 +126,8 @@ export function getParamTypeAt(params: any[], index: number): string | undefined
 
 export function getParamTypeCategoryAt(params: any[], index: number): TypeCategory | undefined {
     return getHiddenParamsProperty<TypeCategory[]>(params, '$paramTypeCategories')?.[index]
+}
+
+export function getParamForceTypeCastAt(params: any[], index: number): boolean | undefined {
+    return getHiddenParamsProperty<boolean[]>(params, '$paramForceTypeCasts')?.[index]
 }

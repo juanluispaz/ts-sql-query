@@ -388,9 +388,10 @@ describe(ctx.label, () => {
             .where(tProject.id.equals(1))
             .selectOneColumn(tProject.id.minValue(ctx.conn.optionalConst(null, 'int')))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select null::int4 as result from project where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int4 as result from project where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
+            null,
             1,
           ]
         `)

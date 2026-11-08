@@ -743,7 +743,7 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = issue.title from issue left join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = $1 returning project.id as pid, app_user.full_name as "obj.x", $2::int4 as "obj.k""`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = issue.title from issue left join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = $1 returning project.id as pid, app_user.full_name as "obj.x", $2 as "obj.k""`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 3,
@@ -778,7 +778,7 @@ describe(ctx.label, () => {
                 .projectingOptionalValuesAsNullable()
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = issue.title from issue left join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = $1 returning project.id as pid, app_user.full_name as "obj.x", $2::int4 as "obj.k""`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = issue.title from issue left join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = $1 returning project.id as pid, app_user.full_name as "obj.x", $2 as "obj.k""`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 3,

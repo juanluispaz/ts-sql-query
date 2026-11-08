@@ -45,9 +45,13 @@ class RecordingAdapter implements DefaultTypeAdapter {
         this.calls.push(JSON.stringify(['to', value, type]))
         return 'to-result'
     }
-    transformPlaceholder(placeholder: string, type: string, _typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown): string {
-        this.calls.push(JSON.stringify(['placeholder', placeholder, type, forceTypeCast, valueSentToDB]))
+    transformPlaceholder(placeholder: string, type: string, _typeCategory: TypeCategory, valueSentToDB: unknown): string {
+        this.calls.push(JSON.stringify(['placeholder', placeholder, type, valueSentToDB]))
         return 'placeholder-result'
+    }
+    forceTypeCast(type: string, _typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean): boolean {
+        this.calls.push(JSON.stringify(['forceTypeCast', type, valueSentToDB, forceTypeCast]))
+        return forceTypeCast
     }
 }
 
@@ -277,6 +281,7 @@ describe(ctx.label, () => {
         expect(next.calls).toEqual([['from', 'yes', 'boolean'], ['to', true, 'boolean']].map((call) => JSON.stringify(call)))
         const asTypeAdapter: TypeAdapter = byString
         expect(asTypeAdapter.transformPlaceholder).toBeUndefined()
+        expect(asTypeAdapter.forceTypeCast).toBeUndefined()
     })
 
     test('force-type-cast-delegates-and-forces-the-cast', () => {
@@ -284,8 +289,9 @@ describe(ctx.label, () => {
         const next = new RecordingAdapter()
         expect(adapter.transformValueFromDB(1, 'int', 'int', next)).toBe('from-result')
         expect(adapter.transformValueToDB(2, 'int', 'int', next)).toBe('to-result')
-        expect(adapter.transformPlaceholder('$1', 'int', 'int', false, 3, next)).toBe('placeholder-result')
-        expect(next.calls).toEqual([['from', 1, 'int'], ['to', 2, 'int'], ['placeholder', '$1', 'int', true, 3]].map((call) => JSON.stringify(call)))
+        expect(adapter.transformPlaceholder('$1', 'int', 'int', 3, next)).toBe('placeholder-result')
+        expect([adapter.forceTypeCast('int', 'int', 3, false, next), adapter.forceTypeCast('int', 'int', 3, true, next)]).toEqual([true, true])
+        expect(next.calls).toEqual([['from', 1, 'int'], ['to', 2, 'int'], ['placeholder', '$1', 'int', 3]].map((call) => JSON.stringify(call)))
     })
 
     test('error-wrapping-one-of-the-library-repeats-no-reason', async () => {
@@ -331,7 +337,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vSource(id, label) as (values ($1::int4, $2::text)) select id as id, (select title as result from issue where id = vSource.id) as title from vSource"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vSource(id, label) as (values ($1, $2)) select id as id, (select title as result from issue where id = vSource.id) as title from vSource"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

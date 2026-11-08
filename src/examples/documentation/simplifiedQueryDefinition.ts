@@ -858,7 +858,9 @@ interface Connection {
     /** Protected method that transforms the values sent to the database */
     transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
     /** Protected method that customizes the value placeholder in the query */
-    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown): string
+    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown): string
+    /** Protected method that decides whether the database must receive the type of the parameter */
+    forceTypeCast(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean): boolean
 
     /** Protected method that returns true if the provided string is a reserved keyword */
     isReservedKeyword(word: string): boolean
@@ -2611,13 +2613,15 @@ type TypeCategory = 'boolean'
 interface TypeAdapter {
     transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown
     transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown
-    transformPlaceholder?(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string
+    transformPlaceholder?(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, next: DefaultTypeAdapter): string
+    forceTypeCast?(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean, next: DefaultTypeAdapter): boolean
 }
 
 interface DefaultTypeAdapter {
     transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
     transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
-    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown): string
+    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown): string
+    forceTypeCast(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean): boolean
 }
 
 declare class CustomBooleanTypeAdapter implements TypeAdapter {
@@ -2642,8 +2646,11 @@ declare class ForceTypeCast implements TypeAdapter {
     transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown
     // ForceTypeCast's transformValueToDB implementation ...
 
-    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string
+    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, next: DefaultTypeAdapter): string
     // ForceTypeCast's transformPlaceholder implementation ...
+
+    forceTypeCast(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean, next: DefaultTypeAdapter): boolean
+    // ForceTypeCast's forceTypeCast implementation ...
 }
 
 // END

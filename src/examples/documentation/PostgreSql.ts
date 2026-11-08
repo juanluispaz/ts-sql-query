@@ -4086,8 +4086,8 @@ async function main() {
         firstName: 'First Name',
     }
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, first_name as "firstName", null::text as "lastName", birthday as birthday from customer where id = $1`)
-    expectedParams.push(`[10]`)
+    expectedQuery.push(`select id as id, first_name as "firstName", $1::text as "lastName", birthday as birthday from customer where id = $2`)
+    expectedParams.push(`[null,10]`)
     expectedType.push(`selectOneRow`)
 
     /* *** Example ****************************************************************/
@@ -4113,8 +4113,8 @@ async function main() {
         firstName: 'First Name',
     }
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, first_name as "firstName", null::text as "lastName", birthday as birthday from customer where id = $1`)
-    expectedParams.push(`[10]`)
+    expectedQuery.push(`select id as id, first_name as "firstName", $1::text as "lastName", birthday as birthday from customer where id = $2`)
+    expectedParams.push(`[null,10]`)
     expectedType.push(`selectOneRow`)
 
     /* *** Example ****************************************************************/
@@ -4168,8 +4168,8 @@ async function main() {
         id: 1,
     }
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, null::text as "firstName", null::text as "lastName", birthday as birthday from customer where id = $1`)
-    expectedParams.push(`[10]`)
+    expectedQuery.push(`select id as id, $1::text as "firstName", $2::text as "lastName", birthday as birthday from customer where id = $3`)
+    expectedParams.push(`[null,null,10]`)
     expectedType.push(`selectOneRow`)
 
     /* *** Example ****************************************************************/
@@ -4193,8 +4193,8 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, first_name as "firstName", last_name as "lastName", birthday as birthday, null::int4 as "companyId", null::text as "companyName" from customer where id = $1`)
-    expectedParams.push(`[12]`)
+    expectedQuery.push(`select id as id, first_name as "firstName", last_name as "lastName", birthday as birthday, $1::int4 as "companyId", $2::text as "companyName" from customer where id = $3`)
+    expectedParams.push(`[null,null,12]`)
     expectedType.push(`selectManyRows`)
     
     /* *** Example ****************************************************************/

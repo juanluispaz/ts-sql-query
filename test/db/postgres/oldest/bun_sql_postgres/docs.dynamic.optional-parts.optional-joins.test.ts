@@ -106,9 +106,11 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title, status as status, body as body, null::int4 as "projectId", null::text as "projectName" from issue where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title, status as status, body as body, $1::int4 as "projectId", $2::text as "projectName" from issue where id = $3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
+            null,
+            null,
             2,
           ]
         `)

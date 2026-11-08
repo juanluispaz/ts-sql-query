@@ -31,7 +31,10 @@ Particular cases live next to their runner: Oracle's commit outside a
 transaction and its OUT binds (`oracle/OracleDBCommit.test.ts`,
 `oracle/OracleDBOutBinds.test.ts`), SQL Server's isolation level on the
 pooled connection and its parameter types
-(`sqlserver/MssqlPoolQueryRunner.test.ts`, `sqlserver/MssqlParamTypes.test.ts`).
+(`sqlserver/MssqlPoolQueryRunner.test.ts`, `sqlserver/MssqlParamTypes.test.ts`),
+Oracle's `typesByName` (`oracle/OracleDBParamTypes.test.ts`), and how the
+PostgreSQL runners type a parameter, with a cast or sent typed, and their
+`typesByName` (`postgres/PostgreSqlParamTypes.test.ts`).
 
 One fix relies on driver internals and has a test watching each side of it:
 `MssqlPoolQueryRunner` flags the connection of a transaction the server
@@ -142,8 +145,10 @@ its errors fails there.
 
 Some runners read more than the SQL and the values: what is recorded on the
 params array as non-enumerable properties — the name and the category of the
-type of each parameter, kept by `addParam` and `addOutParam` (SQL Server binds
-with them; Oracle declares a RETURNING OUT bind with them), whether a mutation
+type of each parameter and whether the database must receive its type
+(forceTypeCast), kept by `addParam` and `addOutParam` (SQL Server binds with
+them; Oracle declares a RETURNING OUT bind with them; postgres.js and PGlite send
+a parameter typed with them), whether a mutation
 carries a returning clause, a forced affected-row count, the query execution
 name and metadata. Those are set and read through
 [`src/utils/queryParamsMetadata.ts`](../src/utils/queryParamsMetadata.ts), and

@@ -185,7 +185,7 @@ describe(ctx.label, () => {
 
             const affected = await query.executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint */ into issue (project_id, number, title, status, priority) select $1::int4 as "projectId", $2::int4 as number, name as title, $3::text as status, organization_id as priority from project where id = $4  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint */ into issue (project_id, number, title, status, priority) select $1 as "projectId", $2 as number, name as title, $3 as status, organization_id as priority from project where id = $4  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -237,7 +237,7 @@ describe(ctx.label, () => {
 
             const affected = await query.executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint */ into issue (project_id, number, title, status, priority) select $1::int4 as "projectId", $2::int4 as number, $3::text as title, $4::text as status, count(id) as priority from project where organization_id = $5  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint */ into issue (project_id, number, title, status, priority) select $1 as "projectId", $2 as number, $3 as title, $4 as status, count(id) as priority from project where organization_id = $5  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

@@ -1,20 +1,28 @@
 import type { DatabaseType, QueryRunner } from './QueryRunner.js'
 import type { Pool, Connection } from 'oracledb'
 import oracledb from 'oracledb'
-import { OracleDBQueryRunner } from './OracleDBQueryRunner.js'
+import { OracleDBQueryRunner, type OracleDBQueryRunnerConfig } from './OracleDBQueryRunner.js'
 import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
 import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { setQueryParamType } from './QueryRunner.js'
 
+export interface OracleDBPoolQueryRunnerConfig {
+    /** See OracleDBQueryRunnerConfig */
+    typesByName?: OracleDBQueryRunnerConfig['typesByName']
+}
+
 export class OracleDBPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     readonly database: DatabaseType
     readonly pool: Pool
 
-    constructor(pool: Pool) {
+    private config?: OracleDBPoolQueryRunnerConfig | undefined
+
+    constructor(pool: Pool, config?: OracleDBPoolQueryRunnerConfig) {
         super()
         this.pool = pool
         this.database = 'oracle'
+        this.config = config
     }
 
     useDatabase(database: DatabaseType): void {
@@ -28,14 +36,14 @@ export class OracleDBPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     override getCurrentNativeConnection(): Connection | undefined {
         return super.getCurrentNativeConnection() as Connection | undefined
     }
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
-        setQueryParamType(params, params.length, type, typeCategory)
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
         const index = params.length
         params.push(value)
         return ':' + index
     }
-    override addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory): string {
-        setQueryParamType(params, params.length, type, typeCategory)
+    override addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
         const index = params.length
         if (name) {
             params.push({dir: oracledb.BIND_OUT, as: name})
@@ -45,7 +53,7 @@ export class OracleDBPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
         return ':' + index
     }
     protected createQueryRunner(): Promise<QueryRunner> {
-        return this.pool.getConnection().then(connection => new OracleDBQueryRunner(connection))
+        return this.pool.getConnection().then(connection => new OracleDBQueryRunner(connection, { typesByName: this.config?.typesByName }))
     }
     protected releaseQueryRunner(queryRunner: QueryRunner): void {
         (queryRunner.getNativeRunner() as Connection).close()

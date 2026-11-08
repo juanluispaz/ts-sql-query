@@ -152,8 +152,8 @@ export abstract class AbstractBunSqlQueryRunner extends SqlTransactionQueryRunne
     override isTransactionActive(): boolean {
         return !!this.transaction || !!this.lowLevelTransaction || super.isTransactionActive()
     }
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory): string {
-        setQueryParamType(params, params.length, type, typeCategory)
+    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
         params.push(value)
         return '$' + params.length
     }

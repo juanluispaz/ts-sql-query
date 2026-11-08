@@ -10,6 +10,7 @@ import { deepOmit, deepPick, type DeepPick, type DeepOmit } from '../../../../sr
 import { sync } from '../../../../src/extras/sync.js'
 import { extractColumnNamesFrom, extractColumnsFrom } from '../../../../src/extras/utils.js'
 import { CustomBooleanTypeAdapter, type DefaultTypeAdapter, type TypeAdapter, type TypeCategory } from '../../../../src/TypeAdapter.js'
+import { getQueryConnectionConfiguration, type ConnectionConfiguration, type QueryResultColumn } from '../../../../src/queryRunners/QueryRunner.js'
 import { Values } from '../../../../src/Values.js'
 import type { DBConnection } from '../domain/connection.js'
 import { tCountry, tProject, vProjectOverview } from '../domain/connection.js'
@@ -21,6 +22,25 @@ class VRow extends Values<DBConnection, 'vRow'> {
 }
 
 function _typeNegatives() {
+    // Rule: the configuration of the connection a query runner reads has the settings of the connection, and only them.
+    const configuration: ConnectionConfiguration | undefined = getQueryConnectionConfiguration('', [])
+    void configuration?.compatibilityVersion
+    void configuration?.getDateTimeFormat?.('dateTime')
+    // @ts-expect-error not a setting of the connection
+    void configuration?.database
+    if (configuration) {
+        // @ts-expect-error the configuration of the connection is read-only
+        configuration.compatibilityVersion = 1
+    }
+    // @ts-expect-error the readers of the query runner are not exported by the root entry
+    void root.getQueryConnectionConfiguration
+
+    // Rule: what a query runner reads of the result columns is read-only.
+    const resultColumn: QueryResultColumn = { name: 'id', path: 'id', type: 'int', typeCategory: 'int' }
+    // @ts-expect-error a result column is read-only
+    resultColumn.type = 'bigint'
+    // @ts-expect-error the category of a result column is one of the list
+    void ({ name: 'id', path: 'id', type: 'int', typeCategory: 'number' } satisfies QueryResultColumn)
     // Rule: both values of a custom boolean have the same data type.
     new CustomBooleanTypeAdapter(1, 0)
     new CustomBooleanTypeAdapter('yes', 'no')

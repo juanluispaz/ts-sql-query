@@ -1,6 +1,6 @@
 import type { TsSqlErrorReason, QueryExecutionSource } from "../TsSqlError.js"
 import type { TypeCategory } from '../TypeAdapter.js'
-import { getParamForceTypeCastAt, getParamTypeAt, getParamTypeCategoryAt, getQueryExecutionMetadataOf, getQueryExecutionSourceOf, isSelectPageCountQueryParams, setParamTypeAt } from '../utils/queryParamsMetadata.js'
+import { getParamForceTypeCastAt, getParamTypeAt, getParamTypeCategoryAt, getQueryConnectionConfigurationOf, getQueryExecutionMetadataOf, getQueryExecutionSourceOf, getQueryResultColumnsOf, isSelectPageCountQueryParams, setParamTypeAt } from '../utils/queryParamsMetadata.js'
 
 export interface QueryRunner {
     readonly database: DatabaseType
@@ -138,6 +138,96 @@ export function getQueryParamTypeCategory(query: string, params: any[], index: n
 export function getQueryParamForceTypeCast(query: string, params: any[], index: number): boolean | undefined {
     query
     return getParamForceTypeCastAt(params, index)
+}
+/**
+ * The configuration of the connection that executes a query: the connection itself, as its SQL builder reads it, so
+ * each value is the one the connection has when it is read, field initialisers of a subclass included. A setting that
+ * a database doesn't have is undefined on its connection.
+ */
+export interface ConnectionConfiguration {
+    /** Whether an empty string is a value (`allowEmptyString`); when false, the library treats it as no value */
+    readonly allowEmptyString: boolean
+    /**
+     * The identifier written in the SQL: quoted when it is a reserved word or has a space, or, when `strict`, when it
+     * isn't made only of letters, digits and underscores
+     */
+    escape(identifier: string, strict: boolean): string
+    /** The collation the insensitive operations use (`insensitiveCollation`) */
+    readonly insensitiveCollation?: string
+    /** SQLite: the format a value of the type `'date'`, `'time'` or `'dateTime'` is stored with */
+    getDateTimeFormat?(type: string): string
+    /** The minimum version of the database the SQL must support (`compatibilityVersion`) */
+    readonly compatibilityVersion: number
+    /** MariaDB, MySQL, Oracle and SQLite: how a uuid is stored (`uuidStrategy`) */
+    readonly uuidStrategy?: string
+    /** MariaDB, MySQL and PostgreSQL: round with the function of the database as it is (`usePlatformDependentRound`) */
+    readonly usePlatformDependentRound?: boolean
+    /** PostgreSQL: write the insensitive comparisons with `like` instead of `ilike` (`useLikeInsteadOfIlike`) */
+    readonly useLikeInsteadOfIlike?: boolean
+    /** SQLite: the date and time functions of the database work in the time zone of the application */
+    readonly sqliteRunsInApplicationTimeZone?: boolean
+    /** SQLite: an integer read where a date or time with another format was expected is a Julian day */
+    readonly treatUnexpectedIntegerDateTimeAsJulian?: boolean
+    /** SQLite: a text without time zone read where a date or time with another format was expected is in UTC */
+    readonly treatUnexpectedStringDateTimeAsUTC?: boolean
+    /** SQLite: a Unix time read where a date or time with another format was expected is in milliseconds */
+    readonly unexpectedUnixDateTimeAreMilliseconds?: boolean
+    /** SQL Server: the length of a text excludes its trailing blanks (`excludeTrailingBlanksInLength`) */
+    readonly excludeTrailingBlanksInLength?: boolean
+    /** PostgreSQL and SQL Server: the smaller and greater of two values ignore a null (`ignoreNullInMinAndMaxValue`) */
+    readonly ignoreNullInMinAndMaxValue?: boolean
+    /** PostgreSQL and SQL Server: the function of yours that gives the smaller of two values (`minValueFunction`) */
+    readonly minValueFunction?: string
+    /** PostgreSQL and SQL Server: the function of yours that gives the greater of two values (`maxValueFunction`) */
+    readonly maxValueFunction?: string
+    /** Oracle: a concatenation reads a null as the empty string (`ignoreNullInConcat`) */
+    readonly ignoreNullInConcat?: boolean
+    /** Oracle: the function of yours that concatenates propagating a null (`concatFunction`) */
+    readonly concatFunction?: string
+    /** Oracle and SQL Server: the collation of `replace` (`replaceCollation`) */
+    readonly replaceCollation?: string | undefined
+    /** Oracle: the collation of the insensitive `replace` (`replaceInsensitiveCollation`) */
+    readonly replaceInsensitiveCollation?: string | undefined
+    /** SQLite: the function of yours that replaces ignoring case (`replaceAllInsensitiveFunction`) */
+    readonly replaceAllInsensitiveFunction?: string | undefined
+}
+
+/**
+ * A column of the result of the query, as the query builder will read it: the key of the column in a row the database
+ * returns, the property path in the result object, and the type name and type category its value is converted with.
+ */
+export interface QueryResultColumn {
+    /** The key of the column in a row returned by the database; '' when the SQL gives the column no alias */
+    readonly name: string
+    /** The property path in the result object (`customer.name`), `result` for a single value, '' without one */
+    readonly path: string
+    /** The type name (`int`, `Money`, `aggregatedArray`, …) */
+    readonly type: string
+    /** The type category; '' for an aggregated array (a JSON text whose values the library converts) */
+    readonly typeCategory: TypeCategory
+}
+
+/**
+ * The columns of the result of the query, in the order of its select list, each with the key it has in a row returned
+ * by the database, its property path in the result, its type name and its type category; an empty array when the
+ * query returns no columns, or undefined when the library didn't build the query
+ */
+export function getQueryResultColumns(query: string, params: any[]): readonly QueryResultColumn[] | undefined {
+    query
+    return getQueryResultColumnsOf(params)
+}
+/** The column of the result of the query with that key in a row returned by the database, or undefined */
+export function getQueryResultColumn(query: string, params: any[], name: string): QueryResultColumn | undefined {
+    query
+    return getQueryResultColumnsOf(params)?.find(column => column.name === name)
+}
+/**
+ * The configuration of the connection that executes the query (the connection itself, whose values are read when
+ * used), or undefined when the library didn't build the query
+ */
+export function getQueryConnectionConfiguration(query: string, params: any[]): ConnectionConfiguration | undefined {
+    query
+    return getQueryConnectionConfigurationOf(params)
 }
 export function getQueryExecutionName(query: string, params: any[]): string | undefined {
     query

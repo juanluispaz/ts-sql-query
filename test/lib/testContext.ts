@@ -22,7 +22,7 @@
 //                              skipping the test on a real cell, so the body
 //                              still runs — and still asserts — in every mode.
 
-import type { DatabaseType, PromiseProvider, QueryRunner } from '../../src/queryRunners/QueryRunner.js'
+import type { BeginTransactionOpts, DatabaseType, PromiseProvider, QueryRunner } from '../../src/queryRunners/QueryRunner.js'
 import { MockQueryRunner, type MockQueryExecutor, type MockQueryRunnerConfig } from '../../src/queryRunners/MockQueryRunner.js'
 import { CaptureInterceptor } from './captureInterceptor.js'
 import { FaultInjectingQueryRunner, type FaultInjectingQueryRunnerOptions } from './FaultInjectingQueryRunner.js'
@@ -63,7 +63,7 @@ export interface TestContext<CONN> {
      * (Porsager's `postgres`, Bun's `sql`, `oracledb`'s autocommit
      * flip). `undefined` when no transaction has been started yet.
      */
-    readonly lastTransactionOpts: readonly unknown[] | undefined
+    readonly lastTransactionOpts: BeginTransactionOpts | undefined
 
     /** Queue a value the mock will return for the NEXT data query. */
     mockNext(value: unknown): void
@@ -430,7 +430,7 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
         get history() {
             return capture?.history ?? []
         },
-        get lastTransactionOpts(): readonly unknown[] | undefined {
+        get lastTransactionOpts(): BeginTransactionOpts | undefined {
             return capture?.lastTransactionOpts
         },
 

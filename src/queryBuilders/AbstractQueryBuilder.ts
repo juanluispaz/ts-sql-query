@@ -1,13 +1,15 @@
 import type { AnyValueSource } from '../expressions/values.js'
 import { isValueSource, __getValueSourcePrivate } from '../expressions/values.js'
 import type { QueryColumns, SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
-import { getQueryColumn, isUsableValue } from '../sqlBuilders/SqlBuilder.js'
+import { flattenQueryColumns, getQueryColumn, isUsableValue } from '../sqlBuilders/SqlBuilder.js'
+import type { FlatQueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { AnyTableOrView, IWithView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate, __registerRequiredColumn } from '../utils/ITableOrView.js'
 import type { QueryExecutionSource } from '../TsSqlError.js'
 import { TsSqlError, TsSqlProcessingError, TsSqlQueryExecutionError } from '../TsSqlError.js'
-import { setQueryExecutionMetadata, setQueryExecutionSource, setSelectPageCountQuery } from '../utils/queryParamsMetadata.js'
+import { setQueryConnectionConfiguration, setQueryExecutionMetadata, setQueryExecutionSource, setQueryResultColumns, setSelectPageCountQuery } from '../utils/queryParamsMetadata.js'
+import type { QueryResultColumn } from '../queryRunners/QueryRunner.js'
 import { __typeCategoryOf } from '../utils/typeCategory.js'
 
 export class AbstractQueryBuilder {
@@ -513,8 +515,41 @@ export class AbstractQueryBuilder {
     }
 }
 
-export function  __setQueryMetadata(source: Error, params: any[], queryMetadata?: {queryExecutionName?: string,  queryExecutionMetadata?: any} | undefined, isSelectPageCountQuery?: boolean) {
+/**
+ * The columns of the result of a query that projects these columns, in the order the SQL builder writes them (the same
+ * flattening), each under the key the query builder reads it from the row; none when there are no columns.
+ */
+export function __resultColumnsOf(columns: QueryColumns | undefined, sqlBuilder: SqlBuilder): QueryResultColumn[] {
+    const result: QueryResultColumn[] = []
+    if (!columns) {
+        return result
+    }
+    const flat: FlatQueryColumns = {}
+    flattenQueryColumns(columns, flat, '')
+    for (const path in flat) {
+        const valueSourcePrivate = __getValueSourcePrivate(flat[path]!)
+        result.push({ name: sqlBuilder._resultColumnKey(path), path, type: valueSourcePrivate.__valueTypeName, typeCategory: __typeCategoryOf(valueSourcePrivate.__valueType) })
+    }
+    return result
+}
+
+/**
+ * The only column of the result of a query that returns a single value without an alias (a function, the id of an
+ * inserted row).
+ */
+export function __unnamedResultColumn(valueSource: AnyValueSource): QueryResultColumn[] {
+    const valueSourcePrivate = __getValueSourcePrivate(valueSource)
+    return [{ name: '', path: '', type: valueSourcePrivate.__valueTypeName, typeCategory: __typeCategoryOf(valueSourcePrivate.__valueType) }]
+}
+
+/**
+ * Hangs on the params what the query runner may read of the query being executed: where it was executed, the name and
+ * metadata the user gave it, the columns of its result, and the configuration of the connection.
+ */
+export function  __setQueryMetadata(source: Error, params: any[], sqlBuilder: SqlBuilder, resultColumns: readonly QueryResultColumn[], queryMetadata?: {queryExecutionName?: string,  queryExecutionMetadata?: any} | undefined, isSelectPageCountQuery?: boolean) {
     setQueryExecutionSource(params, source)
+    setQueryResultColumns(params, resultColumns)
+    setQueryConnectionConfiguration(params, sqlBuilder._connectionConfiguration)
     if (queryMetadata) {
         setQueryExecutionMetadata(params, queryMetadata)
     }

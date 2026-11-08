@@ -9,7 +9,7 @@ import { TsSqlQueryExecutionError, QueryExecutionSource, TsSqlProcessingError } 
 import { from, resultType, source, type, using } from '../utils/symbols.js'
 import { asAlwaysIfValueSource } from '../expressions/values.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
-import { AbstractQueryBuilder, __setQueryMetadata } from './AbstractQueryBuilder.js'
+import { AbstractQueryBuilder, __setQueryMetadata, __resultColumnsOf } from './AbstractQueryBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 
 export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDataDiscovery, ToSql, DeleteExpression<any, any>, DeleteExpressionAllowingNoWhere<any, any>, CustomizableExecutableDelete<any, any>, ExecutableDelete<any, any>, DynamicExecutableDeleteExpression<any, any>, DeleteData, ComposableCustomizableExecutableDelete<any, any, any, any>, ReturnableExecutableDelete<any, any>, ExecutableDeleteReturning<any, any, any, any>, DeleteWhereExpression<any, any>, DeleteWhereExpressionAllowingNoWhere<any, any>, DeleteWhereJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, DeleteExpressionWithoutJoin<any, any>, DeleteUsingExpression<any, any>, DeleteWhereJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, DeleteExpressionWithoutJoinAllowingNoWhere<any, any>, DeleteUsingExpressionAllowingNoWhere<any, any>, CustomizableExecutableDeleteProjectableAsNullable<any, any, any> {
@@ -41,7 +41,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const source = new QueryExecutionSource('Query executed at')
         try {
             this.query()
-            __setQueryMetadata(source, this.__params, this.__customization)
+            __setQueryMetadata(source, this.__params, this.__sqlBuilder, [], this.__customization)
             let result = this.__sqlBuilder._queryRunner.executeDelete(this.__query, this.__params).catch((e) => {
                 throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
             })
@@ -65,7 +65,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const source = new QueryExecutionSource('Query executed at')
         try {
             this.query()
-            __setQueryMetadata(source, this.__params, this.__customization)
+            __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
             this.__sqlBuilder._resetUnique()
             let result
             if (this.__oneColumn) {
@@ -101,7 +101,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const source = new QueryExecutionSource('Query executed at')
         try {
             this.query()
-            __setQueryMetadata(source, this.__params, this.__customization)
+            __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
             this.__sqlBuilder._resetUnique()
             let result
             if (this.__oneColumn) {
@@ -137,7 +137,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const source = new QueryExecutionSource('Query executed at')
         try {
             this.query()
-            __setQueryMetadata(source, this.__params, this.__customization)
+            __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
             this.__sqlBuilder._resetUnique()
             let result
             if (this.__oneColumn) {

@@ -14,7 +14,7 @@ import { asAlwaysIfValueSource } from '../expressions/values.js'
 import { WithViewImpl } from '../internal/WithViewImpl.js'
 import { createColumnsFrom } from '../internal/DBColumnImpl.js'
 import { View } from '../View.js'
-import { AbstractQueryBuilder, __setQueryMetadata } from './AbstractQueryBuilder.js'
+import { AbstractQueryBuilder, __setQueryMetadata, __resultColumnsOf } from './AbstractQueryBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 
 abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQueryDataDiscovery, IExecutableSelectQuery<any, any, any>, CompoundableCustomizableExecutableSelectExpression<any, any, any, any, any>, CompoundedExecutableSelectExpression<any, any, any, any, any>, WithableExecutableSelect<any, any, any, any, any>, ExecutableSelect<any, any, any, any>, LimitExecutableSelectExpression<any,any,any,any, any>, OrderByExecutableSelectExpression<any,any,any,any, any>, OrderedExecutableSelectExpression<any,any,any,any, any>, OffsetExecutableSelectExpression<any, any, any, any, any>, CompoundableCustomizableExecutableSelectExpression<any, any, any, any, any>, CompoundableExecutableSelectExpression<any, any, any, any, any>, CompoundedLimitExecutableSelectExpression<any, any, any, any, any>, CompoundedOrderByExecutableSelectExpression<any, any, any, any, any>, CompoundedOrderedExecutableSelectExpression<any, any, any, any, any>, CompoundedOffsetExecutableSelectExpression<any, any, any, any, any>, CompoundedCustomizableExecutableSelect<any, any, any, any, any>, OrderableExecutableSelectExpressionWithoutWhere<any, any, any, any, any>, WithableExecutableSelectWithoutWhere<any, any, any, any, any>, CompoundableExecutableSelectExpressionWithoutWhere<any, any, any, any, any>, CompoundableCustomizableExecutableSelectExpressionWitoutWhere<any, any, any, any, any> {
@@ -74,7 +74,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
         const source = new QueryExecutionSource('Query executed at')
         try {
             this.query()
-            __setQueryMetadata(source, this.__params, this.__customization)
+            __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
             this.__sqlBuilder._resetUnique()
             let result
             if (this.__oneColumn) {
@@ -110,7 +110,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
         const source = new QueryExecutionSource('Query executed at')
         try {
             this.query()
-            __setQueryMetadata(source, this.__params, this.__customization)
+            __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
             this.__sqlBuilder._resetUnique()
             let result
             if (this.__oneColumn) {
@@ -145,7 +145,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
     __executeSelectMany(source: QueryExecutionSource): Promise<any> {
         try {
             this.query()
-            __setQueryMetadata(source, this.__params, this.__customization)
+            __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
             this.__sqlBuilder._resetUnique()
             let result
             if (this.__oneColumn) {
@@ -222,7 +222,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
             const countAll = new AggregateFunctions0ValueSource('_countAll', 'int', 'int', 'required', undefined)
             const params: any[] = []
             query = this.__buildSelectCount(countAll, params)
-            __setQueryMetadata(source, params, this.__customization, true)
+            __setQueryMetadata(source, params, this.__sqlBuilder, __resultColumnsOf({ '': countAll }, this.__sqlBuilder), this.__customization, true)
             return this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(query, params).then((value) => {
                 return this.__transformValueFromDB(countAll, value, undefined, undefined, true)
             }).catch((e) => {

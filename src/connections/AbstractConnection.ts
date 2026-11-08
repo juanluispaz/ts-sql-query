@@ -25,7 +25,7 @@ import { DynamicConditionBuilder } from '../queryBuilders/DynamicConditionBuilde
 import type { RawFragment } from '../utils/RawFragment.js'
 import { RawFragmentImpl } from '../internal/RawFragmentImpl.js'
 import type { CustomizedTableOrView } from '../utils/tableOrViewUtils.js'
-import { __setQueryMetadata } from '../queryBuilders/AbstractQueryBuilder.js'
+import { __setQueryMetadata, __unnamedResultColumn } from '../queryBuilders/AbstractQueryBuilder.js'
 import type { NAggregate, NDB, NNoTableOrViewRequired, NNotNestedAggregate, NSource, NWithDB } from '../utils/sourceName.js'
 import type { DataToProject, GetDataToProjectSource } from '../complexProjections/dataToProject.js'
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
@@ -212,7 +212,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             return this.queryRunner.createRejectedPromise(new TsSqlQueryExecutionError(source, { reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, 'Nested transactions not supported'))
         }
         const opts: any = isolationLevel || []
-        __setQueryMetadata(source, opts)
+        __setQueryMetadata(source, opts, this.__sqlBuilder, [])
         try {
             return this.queryRunner.executeInTransaction<T>(() => {
                 this.pushTransactionStack()
@@ -296,7 +296,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             return this.queryRunner.createRejectedPromise(new TsSqlQueryExecutionError(source, { reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, 'Nested transactions not supported'))
         }
         const opts: any = isolationLevel || []
-        __setQueryMetadata(source, opts)
+        __setQueryMetadata(source, opts, this.__sqlBuilder, [])
         try {
             return this.queryRunner.executeBeginTransaction(opts).then((result) => {
                 this.pushTransactionStack()
@@ -326,7 +326,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             return this.queryRunner.createRejectedPromise(new TsSqlQueryExecutionError(source, { reason: 'NOT_IN_TRANSACTION' }, 'There is no open transaction'))
         }
         const opts: any = []
-        __setQueryMetadata(source, opts)
+        __setQueryMetadata(source, opts, this.__sqlBuilder, [])
         // A commit that fails leaves the transaction open, but once it's done the transaction has ended, even when a function of after next commit fails
         let committed = false
         const popWhenCommitted = (e: unknown) => {
@@ -431,7 +431,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             return this.queryRunner.createRejectedPromise(new TsSqlQueryExecutionError(source, { reason: 'NOT_IN_TRANSACTION' }, 'There is no open transaction'))
         }
         const opts: any = []
-        __setQueryMetadata(source, opts)
+        __setQueryMetadata(source, opts, this.__sqlBuilder, [])
         try {
             return this.queryRunner.executeRollback(opts).then(() => {
                 const onRollback = this.onRollback
@@ -635,7 +635,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         try {
             const queryParams: any[] = []
             query = this.__sqlBuilder._buildCallProcedure(queryParams, procedureName, params)
-            __setQueryMetadata(source, queryParams)
+            __setQueryMetadata(source, queryParams, this.__sqlBuilder, [])
             return this.__sqlBuilder._queryRunner.executeProcedure(query, queryParams).catch((e) => {
                 throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
             })
@@ -697,7 +697,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             const functionCall = new FunctionCallValueSource(functionName, params as AnyValueSource[], valueType as ValueType, returnType, required === 'optional' ? 'optional' : 'required', adapter2)
             const queryParams: any[] = []
             query = this.__sqlBuilder._buildCallFunction(queryParams, functionCall)
-            __setQueryMetadata(source, queryParams)
+            __setQueryMetadata(source, queryParams, this.__sqlBuilder, __unnamedResultColumn(functionCall))
             return this.__sqlBuilder._queryRunner.executeFunction(query, queryParams).then((value) => {
                 let result
                 try {

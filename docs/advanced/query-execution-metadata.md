@@ -17,6 +17,9 @@ A query runner receives a query as its text and its parameters. To log or monito
 | The name of the type of a parameter | `getQueryParamType` | The name, like `'int'` or the one of a custom type, or `undefined` |
 | The category of the type of a parameter | `getQueryParamTypeCategory` | A `TypeCategory`, like `'customInt'`, or `undefined` |
 | Whether the database must receive the type of a parameter | `getQueryParamForceTypeCast` | A `boolean`, or `undefined` |
+| The columns of the result, with the type of each one | `getQueryResultColumns` | An array of `QueryResultColumn`, or `undefined` |
+| One column of the result, by its name in the row | `getQueryResultColumn` | A `QueryResultColumn`, or `undefined` |
+| The configuration of the connection that executes the query | `getQueryConnectionConfiguration` | The connection, as a `ConnectionConfiguration`, or `undefined` |
 
 
 ## Retrieve the execution name of a query
@@ -378,3 +381,81 @@ In `select $1::int4 as i from customer where id = $2`, with the parameters `[ 7,
 
 A query runner of your own that adds the parameters keeps this information. Its `addParam(params, value, type, typeCategory, forceTypeCast)` adds the value to `params`, calls `setQueryParamType(params, index, type, typeCategory, forceTypeCast)` from `ts-sql-query/queryRunners/QueryRunner` with the index of the value, and returns the placeholder as it is written in the SQL, with the cast if it writes one; `addOutParam(params, name, type, typeCategory, forceTypeCast)` does the same for an out parameter. A query runner that wraps another passes all of them on to it.
 
+## Get the type of each column of the result
+
+Each query the library builds also goes with the columns of its result, in the order of its select list. `getQueryResultColumns` returns them as an array of `QueryResultColumn`, each with:
+
+| Property | What it is |
+|---|---|
+| `name` | The key of the column in a row returned by the database. `''` when the SQL gives the column no alias: the count query of a select page, the id returned by `returningLastInsertedId`, the value of a function |
+| `path` | The property of the result object it fills, like `'customer.name'` for a nested object, `'result'` for a query that selects one column, `''` without one |
+| `type` | The name of the type its value is converted with, like `'int'` or the one of a custom type |
+| `typeCategory` | The category of that type, like `'customInt'`; `''` for an aggregated array, whose JSON text the library converts value by value |
+
+The array is empty for a query that returns no columns: an insert, update or delete without returning, a procedure, and the statements of a transaction. `getQueryResultColumns` returns `undefined` for a statement you run through the query runner yourself. `getQueryResultColumn` finds one column by its `name`.
+
+```ts
+import { getQueryResultColumns } from 'ts-sql-query/queryRunners/QueryRunner';
+import { InterceptorQueryRunner } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
+import type { QueryType, QueryResultColumn } from "ts-sql-query/queryRunners/QueryRunner";
+
+class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
+    onQuery(queryType: QueryType, query: string, params: any[]): void {
+        const columns: readonly QueryResultColumn[] | undefined = getQueryResultColumns(query, params)
+        for (const column of columns ?? []) {
+            console.log('result column', column.name, column.path, column.type, column.typeCategory)
+        }
+        // Additional information
+        console.log('query type', queryType)
+    }
+    onQueryResult(): void {
+        // Your MetadataLoggingQueryRunner's onQueryResult implementation ...
+    }
+    onQueryError(): void {
+        // Your MetadataLoggingQueryRunner's onQueryError implementation ...
+    }
+}
+```
+
+In `select id as id, first_name || $1 || last_name as name, birthday as birthday from customer where id = $2`, the columns are `id` (`'int'`, `'int'`), `name` (`'string'`, `'string'`) and `birthday` (`'localDate'`, `'localDate'`), each with the same `name` and `path`. The `name` is the alias as the database returns it. On PostgreSQL, an alias longer than 63 bytes is written shortened, and the `name` is that shortened alias, while `path` keeps the property.
+
+A row can have more keys than the columns, when a `customizeQuery({ beforeColumns })` fragment adds columns of its own.
+
+## Get the configuration of the connection
+
+Each query the library builds also goes with the connection that executes it, so a query runner can read its configuration. `getQueryConnectionConfiguration` returns that connection, typed as `ConnectionConfiguration` (from `ts-sql-query/queryRunners/QueryRunner`), or `undefined` for a statement you run through the query runner yourself. `ConnectionConfiguration` has every setting of the connection, like `allowEmptyString` or `insensitiveCollation`; a setting a database doesn't have is `undefined` on its connections. The ones that say what the database receives and returns are:
+
+| Property | What it is |
+|---|---|
+| `compatibilityVersion` | The `compatibilityVersion` of the connection |
+| `uuidStrategy` | The `uuidStrategy` of the connection, or `undefined` on the databases without one (PostgreSQL and SQL Server) |
+| `getDateTimeFormat(type)` | On SQLite, the format a `'date'`, `'time'` or `'dateTime'` is stored with |
+| `sqliteRunsInApplicationTimeZone`, `treatUnexpectedIntegerDateTimeAsJulian`, `treatUnexpectedStringDateTimeAsUTC`, `unexpectedUnixDateTimeAreMilliseconds` | On SQLite, how dates are stored and read |
+
+The values are read from the connection when you read them, so a connection whose class sets `compatibilityVersion` in a field gives that value. All the queries of a connection give the same object: the connection.
+
+```ts
+import { getQueryConnectionConfiguration } from 'ts-sql-query/queryRunners/QueryRunner';
+import { InterceptorQueryRunner } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
+import type { QueryType, ConnectionConfiguration } from "ts-sql-query/queryRunners/QueryRunner";
+
+class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
+    onQuery(queryType: QueryType, query: string, params: any[]): void {
+        const configuration: ConnectionConfiguration | undefined = getQueryConnectionConfiguration(query, params)
+        if (configuration) {
+            console.log('connection', this.database, configuration.compatibilityVersion, configuration.uuidStrategy)
+            console.log('date-time format', configuration.getDateTimeFormat?.('dateTime'))
+        }
+        // Additional information
+        console.log('query type', queryType)
+    }
+    onQueryResult(): void {
+        // Your MetadataLoggingQueryRunner's onQueryResult implementation ...
+    }
+    onQueryError(): void {
+        // Your MetadataLoggingQueryRunner's onQueryError implementation ...
+    }
+}
+```
+
+On a SQLite connection whose class declares `protected override compatibilityVersion = 3_030_000`, with no other setting, the configuration gives `3030000` and `'uuid-extension'`, and `getDateTimeFormat('dateTime')` gives `'localdate milliseconds as text'`.

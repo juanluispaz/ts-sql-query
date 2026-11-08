@@ -12,7 +12,7 @@ import { from, resultType, source, type, using } from '../utils/symbols.js'
 import type { AlwaysIfValueSource, AnyValueSource, IExecutableSelectQuery, IAnyBooleanValueSource } from '../expressions/values.js'
 import { asAlwaysIfValueSource, isValueSource, __getValueSourcePrivate } from '../expressions/values.js'
 import { __addWiths } from '../utils/ITableOrView.js'
-import { AbstractQueryBuilder, __setQueryMetadata } from './AbstractQueryBuilder.js'
+import { AbstractQueryBuilder, __setQueryMetadata, __resultColumnsOf, __unnamedResultColumn } from './AbstractQueryBuilder.js'
 import type { RawFragment } from '../utils/RawFragment.js'
 import { __typeCategoryOf } from '../utils/typeCategory.js'
 
@@ -60,7 +60,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const source = new QueryExecutionSource('Query executed at')
         try {
             this.query()
-            __setQueryMetadata(source, this.__params, this.__customization)
+            __setQueryMetadata(source, this.__params, this.__sqlBuilder, this.__idColumn ? __unnamedResultColumn(this.__idColumn) : [], this.__customization)
             const idColumn = this.__idColumn
             const multiple = this.__multiple
             let result
@@ -209,7 +209,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const source = new QueryExecutionSource('Query executed at')
         try {
             this.query()
-            __setQueryMetadata(source, this.__params, this.__customization)
+            __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
             this.__sqlBuilder._resetUnique()
             const multiple = this.__multiple
             let result
@@ -251,7 +251,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const source = new QueryExecutionSource('Query executed at')
         try {
             this.query()
-            __setQueryMetadata(source, this.__params, this.__customization)
+            __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
             this.__sqlBuilder._resetUnique()
             const multiple = this.__multiple
             let result
@@ -295,7 +295,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const source = new QueryExecutionSource('Query executed at')
         try {
             this.query()
-            __setQueryMetadata(source, this.__params, this.__customization)
+            __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
             this.__sqlBuilder._resetUnique()
             const multiple = this.__multiple
             let result

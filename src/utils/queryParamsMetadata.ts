@@ -7,6 +7,7 @@
 
 import type { QueryExecutionSource } from '../TsSqlError.js'
 import type { TypeCategory } from '../TypeAdapter.js'
+import type { ConnectionConfiguration, QueryResultColumn } from '../queryRunners/QueryRunner.js'
 
 function defineHiddenParamsProperty(params: any[], name: string, value: unknown): void {
     Object.defineProperty(params, name, {
@@ -130,4 +131,28 @@ export function getParamTypeCategoryAt(params: any[], index: number): TypeCatego
 
 export function getParamForceTypeCastAt(params: any[], index: number): boolean | undefined {
     return getHiddenParamsProperty<boolean[]>(params, '$paramForceTypeCasts')?.[index]
+}
+
+/**
+ * The columns of the result of the query, in the order of its select list; an empty array when the query returns no
+ * columns. Undefined for a query the library didn't build.
+ */
+export function setQueryResultColumns(params: any[], columns: readonly QueryResultColumn[]): void {
+    defineHiddenParamsProperty(params, '$resultColumns', columns)
+}
+
+export function getQueryResultColumnsOf(params: any[]): readonly QueryResultColumn[] | undefined {
+    return getHiddenParamsProperty(params, '$resultColumns')
+}
+
+/**
+ * The connection that executes the query, as the configuration its SQL builder reads (`_connectionConfiguration`): its
+ * values are read from it when used, so they are the ones the connection has once constructed.
+ */
+export function setQueryConnectionConfiguration(params: any[], configuration: ConnectionConfiguration): void {
+    defineHiddenParamsProperty(params, '$connectionConfiguration', configuration)
+}
+
+export function getQueryConnectionConfigurationOf(params: any[]): ConnectionConfiguration | undefined {
+    return getHiddenParamsProperty(params, '$connectionConfiguration')
 }

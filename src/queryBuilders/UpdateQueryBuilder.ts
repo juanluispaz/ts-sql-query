@@ -11,7 +11,7 @@ import { from, resultType, source, type, using } from '../utils/symbols.js'
 import { asAlwaysIfValueSource } from '../expressions/values.js'
 import { __addWiths } from '../utils/ITableOrView.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
-import { __setQueryMetadata, AbstractQueryBuilder } from './AbstractQueryBuilder.js'
+import { __setQueryMetadata, AbstractQueryBuilder, __resultColumnsOf } from './AbstractQueryBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __expandColumnNames, __flattenSets, __flattenShape, __tableWithColumnPaths } from '../utils/columnPaths.js'
 import { isColumn } from '../utils/Column.js'
@@ -48,7 +48,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const source = new QueryExecutionSource('Query executed at')
         try {
             this.query()
-            __setQueryMetadata(source, this.__params, this.__customization)
+            __setQueryMetadata(source, this.__params, this.__sqlBuilder, [], this.__customization)
             let result: Promise<number>
             if (!this.__hasColumnsToSet()) {
                 // Nothing to update, nothing to set: resolve 0 without touching the
@@ -80,7 +80,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const source = new QueryExecutionSource('Query executed at')
         try {
             this.query()
-            __setQueryMetadata(source, this.__params, this.__customization)
+            __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
             if (!this.__hasColumnsToSet()) {
                 // Nothing to update, nothing to set
                 return this.__sqlBuilder._queryRunner.createResolvedPromise(null)
@@ -121,7 +121,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const source = new QueryExecutionSource('Query executed at')
         try {
             this.query()
-            __setQueryMetadata(source, this.__params, this.__customization)
+            __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
             if (!this.__hasColumnsToSet()) {
                 // Nothing to update, nothing to set
                 return this.__sqlBuilder._queryRunner.createResolvedPromise(null).then(() => {
@@ -163,7 +163,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const source = new QueryExecutionSource('Query executed at')
         try {
             this.query()
-            __setQueryMetadata(source, this.__params, this.__customization)
+            __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
             let result
             if (!this.__hasColumnsToSet()) {
                 // Nothing to update, nothing to set: resolve [] without touching the

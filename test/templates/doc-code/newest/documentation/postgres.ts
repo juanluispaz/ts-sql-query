@@ -56,6 +56,10 @@ import {
     getQueryParamType,
     getQueryParamTypeCategory,
     getQueryParamForceTypeCast,
+    getQueryResultColumns,
+    getQueryConnectionConfiguration,
+    type QueryResultColumn,
+    type ConnectionConfiguration,
     type FunctionExecutingQueryInformation, 
     type QueryType 
 } from '../../../../../src/queryRunners/QueryRunner.js'
@@ -320,6 +324,8 @@ void isSelectPageCountQuery
 void getQueryParamType
 void getQueryParamTypeCategory
 void getQueryParamForceTypeCast
+void getQueryResultColumns
+void getQueryConnectionConfiguration
 void dynamicPick, 
 void dynamicPickPaths, 
 void fromRef
@@ -333,6 +339,8 @@ void function(_dcfm: DynamicConditionForModel<any>, _ddfm: DynamicDefinitionForM
 void function(
     _qt: QueryType,
     _feqi: FunctionExecutingQueryInformation,
+    _qrc: QueryResultColumn,
+    _cc: ConnectionConfiguration,
     _dp: DynamicPick<any>, 
     _dpp: DynamicPickPaths<any>, 
     _pvp: PickValuesPath<any, never>, 

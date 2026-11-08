@@ -16,7 +16,7 @@
 // no-ops here — they are the parts this interceptor does not care about.
 
 import { InterceptorQueryRunner } from '../../src/queryRunners/InterceptorQueryRunner.js'
-import { getQueryParamForceTypeCast, getQueryParamType, getQueryParamTypeCategory, type BeginTransactionOpts, type QueryRunner, type QueryType } from '../../src/queryRunners/QueryRunner.js'
+import { getQueryConnectionConfiguration, getQueryExecutionSource, getQueryParamForceTypeCast, getQueryParamType, getQueryParamTypeCategory, getQueryResultColumns, type BeginTransactionOpts, type QueryRunner, type QueryType } from '../../src/queryRunners/QueryRunner.js'
 
 const TYPE_CATEGORIES = new Set<string>([
     'boolean', 'int', 'bigint', 'customInt', 'customBigint', 'double', 'customDouble', 'string', 'uuid', 'customUuid',
@@ -35,6 +35,67 @@ function checkParamTypes(query: string, params: unknown[]): void {
         if (typeof type !== 'string' || typeCategory === undefined || !TYPE_CATEGORIES.has(typeCategory) || typeof forceTypeCast !== 'boolean') {
             throw new Error('The parameter ' + index + ' of the query has no type (type: ' + String(type) + ', category: ' + JSON.stringify(typeCategory) + ', forceTypeCast: ' + String(forceTypeCast) + '): ' + query)
         }
+    }
+}
+
+// The queries that return one value without its column name, and the ones that return no columns
+const SINGLE_VALUE_QUERY_TYPES = new Set<QueryType>([
+    'selectOneColumnOneRow', 'selectOneColumnManyRows', 'insertReturningLastInsertedId', 'insertReturningMultipleLastInsertedId',
+    'insertReturningOneColumnOneRow', 'insertReturningOneColumnManyRows', 'updateReturningOneColumnOneRow', 'updateReturningOneColumnManyRows',
+    'deleteReturningOneColumnOneRow', 'deleteReturningOneColumnManyRows', 'executeFunction',
+])
+const NO_COLUMNS_QUERY_TYPES = new Set<QueryType>(['insert', 'update', 'delete', 'executeProcedure', 'beginTransaction', 'commit', 'rollback'])
+// The queries whose result is rows, each an object keyed by the names of the columns
+const ROWS_QUERY_TYPES = new Set<QueryType>([
+    'selectOneRow', 'selectManyRows', 'insertReturningOneRow', 'insertReturningManyRows', 'updateReturningOneRow', 'updateReturningManyRows',
+    'deleteReturningOneRow', 'deleteReturningManyRows',
+])
+
+// Every query the library builds (the ones with the place where they were executed) goes with the columns of its
+// result and the configuration of the connection: a query without them, a column without its type, or a number of
+// columns that doesn't fit the query, is a place where the library lost what the query runner may read.
+function checkResultColumns(queryType: QueryType, query: string, params: unknown[]): void {
+    if (!getQueryExecutionSource(query, params as any[])) {
+        // A query the library didn't build (a raw query of a test through the runner)
+        return
+    }
+    if (!getQueryConnectionConfiguration(query, params as any[])) {
+        throw new Error('The query has no connection configuration: ' + query)
+    }
+    const columns = getQueryResultColumns(query, params as any[])
+    if (!Array.isArray(columns)) {
+        throw new Error('The query has no result columns: ' + query)
+    }
+    for (const column of columns) {
+        const valid = typeof column.name === 'string' && typeof column.path === 'string' && typeof column.type === 'string'
+            && (column.typeCategory === '' ? column.type === 'aggregatedArray' : TYPE_CATEGORIES.has(column.typeCategory))
+        if (!valid) {
+            throw new Error('A result column of the query has no type (' + JSON.stringify(column) + '): ' + query)
+        }
+    }
+    if (SINGLE_VALUE_QUERY_TYPES.has(queryType) && columns.length !== 1) {
+        throw new Error('The ' + queryType + ' query has ' + columns.length + ' result columns instead of one: ' + query)
+    }
+    if (NO_COLUMNS_QUERY_TYPES.has(queryType) && columns.length !== 0) {
+        throw new Error('The ' + queryType + ' query has ' + columns.length + ' result columns instead of none: ' + query)
+    }
+}
+
+// On a real database, the name of each result column is a key of the rows returned by the database: a name not in
+// the row is a column the query runner would look up under the wrong key. The row can have more keys: a
+// `customizeQuery({ beforeColumns })` fragment can add columns of its own.
+function checkResultColumnNames(queryType: QueryType, query: string, params: unknown[], result: unknown): void {
+    if (!ROWS_QUERY_TYPES.has(queryType) || !getQueryExecutionSource(query, params as any[])) {
+        return
+    }
+    const row = Array.isArray(result) ? result[0] : result
+    if (!row || typeof row !== 'object') {
+        return
+    }
+    const columns = getQueryResultColumns(query, params as any[]) ?? []
+    const missing = columns.map(column => column.name).filter(name => !(name in row))
+    if (missing.length > 0) {
+        throw new Error('The result columns ' + JSON.stringify(missing) + ' of the query are not keys of the row returned by the database (' + JSON.stringify(Object.keys(row)) + '): ' + query)
     }
 }
 
@@ -108,6 +169,7 @@ export class CaptureInterceptor extends InterceptorQueryRunner<undefined, QueryR
             // The params of a begin, commit or rollback are the options of the transaction
             checkParamTypes(query, params)
         }
+        checkResultColumns(queryType, query, params)
         const effectiveQuery = query === '' ? queryType : query
         this.lastSql = effectiveQuery
         this.lastParams = params
@@ -121,8 +183,10 @@ export class CaptureInterceptor extends InterceptorQueryRunner<undefined, QueryR
         return undefined
     }
 
-    override onQueryResult(_queryType: QueryType, _query: string, _params: unknown[], _result: unknown, _playload: undefined): void {
-        // no-op: this interceptor only observes query dispatch
+    override onQueryResult(queryType: QueryType, query: string, params: unknown[], result: unknown, _playload: undefined): void {
+        if ((this.queryRunner as { mockActive?: boolean }).mockActive === false) {
+            checkResultColumnNames(queryType, query, params, result)
+        }
     }
 
     override onQueryError(_queryType: QueryType, _query: string, _params: unknown[], _error: unknown, _playload: undefined): void {

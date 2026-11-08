@@ -19,7 +19,7 @@ import { InterceptorQueryRunner } from '../../src/queryRunners/InterceptorQueryR
 import { getQueryConnectionConfiguration, getQueryExecutionSource, getQueryParamForceTypeCast, getQueryParamType, getQueryParamTypeCategory, getQueryResultColumns, type BeginTransactionOpts, type QueryRunner, type QueryType } from '../../src/queryRunners/QueryRunner.js'
 
 const TYPE_CATEGORIES = new Set<string>([
-    'boolean', 'int', 'bigint', 'customInt', 'customBigint', 'double', 'customDouble', 'customDecimal', 'string', 'uuid', 'customUuid',
+    'boolean', 'int', 'bigint', 'customInt', 'customBigint', 'double', 'customDouble', 'stringDecimal', 'customDecimal', 'string', 'uuid', 'customUuid',
     'localDate', 'customLocalDate', 'localTime', 'customLocalTime', 'localDateTime', 'customLocalDateTime',
     'enum', 'custom', 'customComparable',
 ])

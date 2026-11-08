@@ -1,6 +1,7 @@
 import type { TypeCategory } from '../TypeAdapter.js'
 import { customDecimalDigitsOf, rejectCustomDecimalParam } from './customDecimalParams.js'
 import { isParamValueForColumnAt } from './queryParamsMetadata.js'
+import { __isDecimalCategory } from './typeCategory.js'
 
 /**
  * The placeholder of a parameter on MySQL and MariaDB, for every query runner of them. A customDecimal is sent as
@@ -11,7 +12,7 @@ import { isParamValueForColumnAt } from './queryParamsMetadata.js'
  * hold it. Call it before adding the parameter at that index.
  */
 export function mySqlPlaceholder(placeholder: string, params: any[], index: number, value: unknown, type: string, typeCategory: TypeCategory): string {
-    if (typeCategory !== 'customDecimal') {
+    if (!__isDecimalCategory(typeCategory)) {
         return placeholder
     }
     const digits = customDecimalDigitsOf(value)

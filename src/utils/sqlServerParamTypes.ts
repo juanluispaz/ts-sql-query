@@ -1,6 +1,7 @@
 import type { TypeCategory } from '../TypeAdapter.js'
 import { customDecimalDigitsOf, rejectCustomDecimalParam } from './customDecimalParams.js'
 import { isParamValueForColumnAt } from './queryParamsMetadata.js'
+import { __isDecimalCategory } from './typeCategory.js'
 
 /**
  * The placeholder of a parameter on SQL Server, for every query runner of it. A customDecimal is sent as an nvarchar:
@@ -10,7 +11,7 @@ import { isParamValueForColumnAt } from './queryParamsMetadata.js'
  * column can hold it. Call it before adding the parameter at that index.
  */
 export function sqlServerPlaceholder(placeholder: string, params: any[], index: number, value: unknown, type: string, typeCategory: TypeCategory): string {
-    if (typeCategory !== 'customDecimal') {
+    if (!__isDecimalCategory(typeCategory)) {
         return placeholder
     }
     const digits = customDecimalDigitsOf(value)

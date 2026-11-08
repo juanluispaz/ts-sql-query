@@ -46,6 +46,7 @@ export type {
     CustomBigintFilter,
     CustomDoubleFilter,
     CustomDecimalFilter,
+    StringDecimalFilter,
     StringFilter,
     DateFilter,
     TimeFilter,

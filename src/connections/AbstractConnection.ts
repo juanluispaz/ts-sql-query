@@ -2,14 +2,14 @@ import type { QueryColumns, SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
 import type { InsertExpression } from '../expressions/insert.js'
 import type { UpdateExpression, UpdateExpressionAllowingNoWhere } from '../expressions/update.js'
 import type { DeleteExpression, DeleteExpressionAllowingNoWhere } from '../expressions/delete.js'
-import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, IfValueSource, IComparableValueSource, INumberValueSource, IStringValueSource, IExecutableSelectQuery, BigintValueSource, IBigintValueSource, AlwaysIfValueSource, ValueSourceOf, RemapValueSourceTypeWithOptionalType, IValueSource, UuidValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery, AggregatedArrayValueSourceProjectableAsNullable, AggregatedArrayValueSource, ValueType, CustomIntValueSource, CustomBigintValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomDecimalValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomBigintValueSource, ICustomDoubleValueSource, AnyValueSource, ICustomDecimalValueSource } from '../expressions/values.js'
+import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, IfValueSource, IComparableValueSource, INumberValueSource, IStringValueSource, IStringDecimalValueSource, IExecutableSelectQuery, BigintValueSource, IBigintValueSource, AlwaysIfValueSource, ValueSourceOf, RemapValueSourceTypeWithOptionalType, IValueSource, UuidValueSource, StringDecimalValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery, AggregatedArrayValueSourceProjectableAsNullable, AggregatedArrayValueSource, ValueType, CustomIntValueSource, CustomBigintValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomDecimalValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomBigintValueSource, ICustomDoubleValueSource, AnyValueSource, ICustomDecimalValueSource } from '../expressions/values.js'
 import type { NoTableOrViewRequired, ITableOrView, ITable, SameDB, HasSource, ForUseInLeftJoin, AnyTableOrView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery } from '../expressions/select.js'
 import type { TypeAdapter, DefaultTypeAdapter, TypeCategory } from '../TypeAdapter.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import type { IConnection } from '../utils/IConnection.js'
-import type { BooleanFragmentExpression, NumberFragmentExpression, StringFragmentExpression, LocalDateFragmentExpression, LocalTimeFragmentExpression, LocalDateTimeFragmentExpression, EqualableFragmentExpression, ComparableFragmentExpression, FragmentBuilder0, FragmentBuilder1, FragmentBuilder2, FragmentBuilder3, FragmentBuilder4, FragmentBuilder5, FragmentBuilder0IfValue, FragmentBuilder1IfValue, FragmentBuilder2IfValue, FragmentBuilder3IfValue, FragmentBuilder4IfValue, FragmentBuilder5IfValue, BigintFragmentExpression, UuidFragmentExpression, CustomIntFragmentExpression, CustomBigintFragmentExpression, CustomDoubleFragmentExpression, CustomUuidFragmentExpression, CustomDecimalFragmentExpression, CustomLocalDateFragmentExpression, CustomLocalTimeFragmentExpression, CustomLocalDateTimeFragmentExpression, FragmentBuilderMaybeOptional0, FragmentBuilderMaybeOptional1, FragmentBuilderMaybeOptional2, FragmentBuilderMaybeOptional3, FragmentBuilderMaybeOptional4, FragmentBuilderMaybeOptional5 } from '../expressions/fragment.js'
+import type { BooleanFragmentExpression, NumberFragmentExpression, StringFragmentExpression, LocalDateFragmentExpression, LocalTimeFragmentExpression, LocalDateTimeFragmentExpression, EqualableFragmentExpression, ComparableFragmentExpression, FragmentBuilder0, FragmentBuilder1, FragmentBuilder2, FragmentBuilder3, FragmentBuilder4, FragmentBuilder5, FragmentBuilder0IfValue, FragmentBuilder1IfValue, FragmentBuilder2IfValue, FragmentBuilder3IfValue, FragmentBuilder4IfValue, FragmentBuilder5IfValue, BigintFragmentExpression, UuidFragmentExpression, StringDecimalFragmentExpression, CustomIntFragmentExpression, CustomBigintFragmentExpression, CustomDoubleFragmentExpression, CustomUuidFragmentExpression, CustomDecimalFragmentExpression, CustomLocalDateFragmentExpression, CustomLocalTimeFragmentExpression, CustomLocalDateTimeFragmentExpression, FragmentBuilderMaybeOptional0, FragmentBuilderMaybeOptional1, FragmentBuilderMaybeOptional2, FragmentBuilderMaybeOptional3, FragmentBuilderMaybeOptional4, FragmentBuilderMaybeOptional5 } from '../expressions/fragment.js'
 import { InsertQueryBuilder } from '../queryBuilders/InsertQueryBuilder.js'
 import { UpdateQueryBuilder } from '../queryBuilders/UpdateQueryBuilder.js'
 import { DeleteQueryBuilder } from '../queryBuilders/DeleteQueryBuilder.js'
@@ -560,6 +560,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     const(value: number, type: 'double', adapter?: TypeAdapter): NumberValueSource<NNoTableOrViewRequired<DB>, 'required'>
     const(value: string, type: 'string', adapter?: TypeAdapter): StringValueSource<NNoTableOrViewRequired<DB>, 'required'>
     const(value: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<NNoTableOrViewRequired<DB>, 'required'>
+    const(value: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource<NNoTableOrViewRequired<DB>, 'required'>
     const(value: Date, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<NNoTableOrViewRequired<DB>, 'required'>
     const(value: Date, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<NNoTableOrViewRequired<DB>, 'required'>
     const(value: Date, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<NNoTableOrViewRequired<DB>, 'required'>
@@ -587,6 +588,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     optionalConst(value: number | null | undefined, type: 'double', adapter?: TypeAdapter): NumberValueSource<NNoTableOrViewRequired<DB>, 'optional'>
     optionalConst(value: string | null | undefined, type: 'string', adapter?: TypeAdapter): StringValueSource<NNoTableOrViewRequired<DB>, 'optional'>
     optionalConst(value: string | null | undefined, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<NNoTableOrViewRequired<DB>, 'optional'>
+    optionalConst(value: string | null | undefined, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource<NNoTableOrViewRequired<DB>, 'optional'>
     optionalConst(value: Date | null | undefined, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<NNoTableOrViewRequired<DB>, 'optional'>
     optionalConst(value: Date | null | undefined, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<NNoTableOrViewRequired<DB>, 'optional'>
     optionalConst(value: Date | null | undefined, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<NNoTableOrViewRequired<DB>, 'optional'>
@@ -657,7 +659,9 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'string', required: 'required', adapter?: TypeAdapter): Promise<string>
     protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'string', required: 'optional', adapter?: TypeAdapter): Promise<string | null>
     protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'uuid', required: 'required', adapter?: TypeAdapter): Promise<string>
+    protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'stringDecimal', required: 'required', adapter?: TypeAdapter): Promise<string>
     protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'uuid', required: 'optional', adapter?: TypeAdapter): Promise<string | null>
+    protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'stringDecimal', required: 'optional', adapter?: TypeAdapter): Promise<string | null>
     protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'localDate', required: 'required', adapter?: TypeAdapter): Promise<Date>
     protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'localDate', required: 'optional', adapter?: TypeAdapter): Promise<Date | null>
     protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'localTime', required: 'required', adapter?: TypeAdapter): Promise<Date>
@@ -756,7 +760,9 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     fragmentWithType(type: 'string', required: 'required', adapter?: TypeAdapter): StringFragmentExpression<NNoTableOrViewRequired<DB>, 'required'>
     fragmentWithType(type: 'string', required: 'optional', adapter?: TypeAdapter): StringFragmentExpression<NNoTableOrViewRequired<DB>, 'optional'>
     fragmentWithType(type: 'uuid', required: 'required', adapter?: TypeAdapter): UuidFragmentExpression<NNoTableOrViewRequired<DB>, 'required'>
+    fragmentWithType(type: 'stringDecimal', required: 'required', adapter?: TypeAdapter): StringDecimalFragmentExpression<NNoTableOrViewRequired<DB>, 'required'>
     fragmentWithType(type: 'uuid', required: 'optional', adapter?: TypeAdapter): UuidFragmentExpression<NNoTableOrViewRequired<DB>, 'optional'>
+    fragmentWithType(type: 'stringDecimal', required: 'optional', adapter?: TypeAdapter): StringDecimalFragmentExpression<NNoTableOrViewRequired<DB>, 'optional'>
     fragmentWithType(type: 'localDate', required: 'required', adapter?: TypeAdapter):  LocalDateFragmentExpression<NNoTableOrViewRequired<DB>, 'required'>
     fragmentWithType(type: 'localDate', required: 'optional', adapter?: TypeAdapter):  LocalDateFragmentExpression<NNoTableOrViewRequired<DB>, 'optional'>
     fragmentWithType(type: 'localTime', required: 'required', adapter?: TypeAdapter): LocalTimeFragmentExpression<NNoTableOrViewRequired<DB>, 'required'>
@@ -803,7 +809,9 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     protected arg(type: 'string', required: 'required', adapter?: TypeAdapter): Argument<'string', 'required', 'combined', string>
     protected arg(type: 'string', required: 'optional', adapter?: TypeAdapter): Argument<'string', 'optional', 'combined', string>
     protected arg(type: 'uuid', required: 'required', adapter?: TypeAdapter): Argument<'uuid', 'required', 'combined', string>
+    protected arg(type: 'stringDecimal', required: 'required', adapter?: TypeAdapter): Argument<'stringDecimal', 'required', 'combined', string>
     protected arg(type: 'uuid', required: 'optional', adapter?: TypeAdapter): Argument<'uuid', 'optional', 'combined', string>
+    protected arg(type: 'stringDecimal', required: 'optional', adapter?: TypeAdapter): Argument<'stringDecimal', 'optional', 'combined', string>
     protected arg(type: 'localDate', required: 'required', adapter?: TypeAdapter): Argument<'localDate', 'required', 'combined', Date>
     protected arg(type: 'localDate', required: 'optional', adapter?: TypeAdapter): Argument<'localDate', 'optional', 'combined', Date>
     protected arg(type: 'localTime', required: 'required', adapter?: TypeAdapter): Argument<'localTime', 'required', 'combined', Date>
@@ -850,7 +858,9 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     protected valueArg(type: 'string', required: 'required', adapter?: TypeAdapter): Argument<'string', 'required', 'value', string>
     protected valueArg(type: 'string', required: 'optional', adapter?: TypeAdapter): Argument<'string', 'optional', 'value', string>
     protected valueArg(type: 'uuid', required: 'required', adapter?: TypeAdapter): Argument<'uuid', 'required', 'value', string>
+    protected valueArg(type: 'stringDecimal', required: 'required', adapter?: TypeAdapter): Argument<'stringDecimal', 'required', 'value', string>
     protected valueArg(type: 'uuid', required: 'optional', adapter?: TypeAdapter): Argument<'uuid', 'optional', 'value', string>
+    protected valueArg(type: 'stringDecimal', required: 'optional', adapter?: TypeAdapter): Argument<'stringDecimal', 'optional', 'value', string>
     protected valueArg(type: 'localDate', required: 'required', adapter?: TypeAdapter): Argument<'localDate', 'required', 'value', Date>
     protected valueArg(type: 'localDate', required: 'optional', adapter?: TypeAdapter): Argument<'localDate', 'optional', 'value', Date>
     protected valueArg(type: 'localTime', required: 'required', adapter?: TypeAdapter): Argument<'localTime', 'required', 'value', Date>
@@ -932,7 +942,9 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     aggregateFragmentWithType(type: 'string', required: 'required', adapter?: TypeAdapter): StringFragmentExpression<NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>
     aggregateFragmentWithType(type: 'string', required: 'optional', adapter?: TypeAdapter): StringFragmentExpression<NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>
     aggregateFragmentWithType(type: 'uuid', required: 'required', adapter?: TypeAdapter): UuidFragmentExpression<NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>
+    aggregateFragmentWithType(type: 'stringDecimal', required: 'required', adapter?: TypeAdapter): StringDecimalFragmentExpression<NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>
     aggregateFragmentWithType(type: 'uuid', required: 'optional', adapter?: TypeAdapter): UuidFragmentExpression<NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType(type: 'stringDecimal', required: 'optional', adapter?: TypeAdapter): StringDecimalFragmentExpression<NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>
     aggregateFragmentWithType(type: 'localDate', required: 'required', adapter?: TypeAdapter):  LocalDateFragmentExpression<NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>
     aggregateFragmentWithType(type: 'localDate', required: 'optional', adapter?: TypeAdapter):  LocalDateFragmentExpression<NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>
     aggregateFragmentWithType(type: 'localTime', required: 'required', adapter?: TypeAdapter): LocalTimeFragmentExpression<NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>
@@ -1073,6 +1085,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     }
     sum<SOURCE extends NSource>(value: INumberValueSource<SOURCE, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): NumberValueSource<SOURCE | NAggregate<DB>, 'optional'>
     sum<SOURCE extends NSource>(value: IBigintValueSource<SOURCE, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): BigintValueSource<SOURCE | NAggregate<DB>, 'optional'>
+    sum<SOURCE extends NSource>(value: IStringDecimalValueSource<SOURCE, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): StringDecimalValueSource<SOURCE | NAggregate<DB>, 'optional'>
     sum<TYPE extends ICustomIntValueSource<any, any, any, any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): CustomIntValueSource<TYPE[typeof source] | NAggregate<DB>, TYPE[typeof valueType], TYPE[typeof typeName], 'optional'>
     sum<TYPE extends ICustomBigintValueSource<any, any, any, any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): CustomBigintValueSource<TYPE[typeof source] | NAggregate<DB>, TYPE[typeof valueType], TYPE[typeof typeName], 'optional'>
     sum<TYPE extends ICustomDoubleValueSource<any, any, any, any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): CustomDoubleValueSource<TYPE[typeof source] | NAggregate<DB>, TYPE[typeof valueType], TYPE[typeof typeName], 'optional'>
@@ -1083,6 +1096,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     }
     sumDistinct<SOURCE extends NSource>(value: INumberValueSource<SOURCE, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): NumberValueSource<SOURCE | NAggregate<DB>, 'optional'>
     sumDistinct<SOURCE extends NSource>(value: IBigintValueSource<SOURCE, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): BigintValueSource<SOURCE | NAggregate<DB>, 'optional'>
+    sumDistinct<SOURCE extends NSource>(value: IStringDecimalValueSource<SOURCE, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): StringDecimalValueSource<SOURCE | NAggregate<DB>, 'optional'>
     sumDistinct<TYPE extends ICustomIntValueSource<any, any, any, any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): CustomIntValueSource<TYPE[typeof source] | NAggregate<DB>, TYPE[typeof valueType], TYPE[typeof typeName], 'optional'>
     sumDistinct<TYPE extends ICustomBigintValueSource<any, any, any, any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): CustomBigintValueSource<TYPE[typeof source] | NAggregate<DB>, TYPE[typeof valueType], TYPE[typeof typeName], 'optional'>
     sumDistinct<TYPE extends ICustomDoubleValueSource<any, any, any, any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): CustomDoubleValueSource<TYPE[typeof source] | NAggregate<DB>, TYPE[typeof valueType], TYPE[typeof typeName], 'optional'>
@@ -1103,12 +1117,12 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     // emits a cast inside `_average` / `_averageDistinct` so the engine
     // also returns a fractional scalar — homogenising behaviour across
     // every dialect.
-    average<SOURCE extends NSource>(value: (INumberValueSource<SOURCE, any> | IBigintValueSource<SOURCE, any> | ICustomIntValueSource<SOURCE, any, any, any> | ICustomBigintValueSource<SOURCE, any, any, any> | ICustomDoubleValueSource<SOURCE, any, any, any> | ICustomDecimalValueSource<SOURCE, any, any, any>) & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): NumberValueSource<SOURCE | NAggregate<DB>, 'optional'>
+    average<SOURCE extends NSource>(value: (INumberValueSource<SOURCE, any> | IBigintValueSource<SOURCE, any> | IStringDecimalValueSource<SOURCE, any> | ICustomIntValueSource<SOURCE, any, any, any> | ICustomBigintValueSource<SOURCE, any, any, any> | ICustomDoubleValueSource<SOURCE, any, any, any> | ICustomDecimalValueSource<SOURCE, any, any, any>) & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): NumberValueSource<SOURCE | NAggregate<DB>, 'optional'>
     average(value: ValueSourceOf<any>): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1ValueSource('_average', value, 'double', 'double', 'optional', valuePrivate.__typeAdapter)
     }
-    averageDistinct<SOURCE extends NSource>(value: (INumberValueSource<SOURCE, any> | IBigintValueSource<SOURCE, any> | ICustomIntValueSource<SOURCE, any, any, any> | ICustomBigintValueSource<SOURCE, any, any, any> | ICustomDoubleValueSource<SOURCE, any, any, any> | ICustomDecimalValueSource<SOURCE, any, any, any>) & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): NumberValueSource<SOURCE | NAggregate<DB>, 'optional'>
+    averageDistinct<SOURCE extends NSource>(value: (INumberValueSource<SOURCE, any> | IBigintValueSource<SOURCE, any> | IStringDecimalValueSource<SOURCE, any> | ICustomIntValueSource<SOURCE, any, any, any> | ICustomBigintValueSource<SOURCE, any, any, any> | ICustomDoubleValueSource<SOURCE, any, any, any> | ICustomDecimalValueSource<SOURCE, any, any, any>) & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): NumberValueSource<SOURCE | NAggregate<DB>, 'optional'>
     averageDistinct(value: ValueSourceOf<any>): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1ValueSource('_averageDistinct', value, 'double', 'double', 'optional', valuePrivate.__typeAdapter)
@@ -1262,6 +1276,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                     return Number(value)
                 }
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid double value received from the db: ' + value)
+            case 'stringDecimal':
             case 'customDecimal':
                 if (typeof value === 'string') {
                     // The text the database gives keeps its digits and its scale (`1.50`). A number without the zero
@@ -1414,6 +1429,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                     return value
                 }
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid double value to send to the db: ' + value)
+            case 'stringDecimal':
             case 'customDecimal':
                 // A decimal is sent as its text, with a point as the decimal separator and without an exponent, so every
                 // database reads it with all its digits

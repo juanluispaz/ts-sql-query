@@ -6,7 +6,7 @@
  */
 export type TypeCategory = 'boolean'
     | 'int' | 'bigint' | 'customInt' | 'customBigint'
-    | 'double' | 'customDouble' | 'customDecimal'
+    | 'double' | 'customDouble' | 'stringDecimal' | 'customDecimal'
     | 'string'
     | 'uuid' | 'customUuid'
     | 'localDate' | 'customLocalDate'

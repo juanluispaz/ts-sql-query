@@ -14,7 +14,7 @@ export function __typeCategoryOf(valueType: ValueType): TypeCategory {
 
 // The type names the default transforms of the connections convert
 const convertedTypeNames = new Set<string>([
-    'boolean', 'int', 'bigint', 'double', 'string', 'uuid',
+    'boolean', 'int', 'bigint', 'double', 'stringDecimal', 'string', 'uuid',
     'localDate', 'localTime', 'localDateTime', 'aggregatedArray',
 ])
 
@@ -22,7 +22,7 @@ const convertedTypeNames = new Set<string>([
 const conversionTypeByCategory = new Map<string, string>([
     ['boolean', 'boolean'],
     ['int', 'int'], ['bigint', 'bigint'], ['customInt', 'int'], ['customBigint', 'bigint'],
-    ['double', 'double'], ['customDouble', 'double'], ['customDecimal', 'customDecimal'],
+    ['double', 'double'], ['customDouble', 'double'], ['stringDecimal', 'stringDecimal'], ['customDecimal', 'customDecimal'],
     ['string', 'string'],
     ['uuid', 'uuid'], ['customUuid', 'uuid'],
     ['localDate', 'localDate'], ['customLocalDate', 'localDate'],
@@ -41,4 +41,12 @@ export function __conversionType(type: string, typeCategory: TypeCategory | unde
         return type
     }
     return conversionTypeByCategory.get(typeCategory) ?? type
+}
+
+/**
+ * A decimal the library sends and reads as its text, so it keeps every digit: a stringDecimal (a JavaScript string)
+ * or a customDecimal (a type of the user). Every rule of the exact decimals applies to both.
+ */
+export function __isDecimalCategory(category: string | undefined): boolean {
+    return category === 'customDecimal' || category === 'stringDecimal'
 }

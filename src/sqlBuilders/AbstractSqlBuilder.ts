@@ -23,6 +23,7 @@ import type { RawFragment } from '../utils/RawFragment.js'
 import { TsSqlError, TsSqlProcessingError } from '../TsSqlError.js'
 import { getContainsInsertReturningClause, setContainsInsertReturningClause, setContainsMutationReturningClause, setForcedAffectedRowCount, setParamValueForColumnAt } from '../utils/queryParamsMetadata.js'
 import { __typeCategoryOf } from '../utils/typeCategory.js'
+import { __isDecimalCategory } from '../utils/typeCategory.js'
 
 /** A column of the select list as it was written, for the group by that refers to it */
 // `name`: the alias of the column; `paramsStart` / `paramsEnd`: the range of the params the column's SQL consumed
@@ -3614,6 +3615,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             case 'bigint':
             case 'customInt':
             case 'customBigint':
+            case 'stringDecimal':
             case 'customDecimal':
                 return 'exact'
             default:
@@ -3940,7 +3942,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _getMathArgumentType(columnType: ValueType, _columnTypeName: string, value: any): ValueType {
         // The value of a customDecimal isn't a JavaScript number: a number is the argument of `roundn`
-        if (columnType === 'customInt' || columnType === 'customBigint' || columnType === 'customDouble' || (columnType === 'customDecimal' && typeof value !== 'number')) {
+        if (columnType === 'customInt' || columnType === 'customBigint' || columnType === 'customDouble' || (__isDecimalCategory(columnType) && typeof value !== 'number')) {
             return columnType
         }
         if (typeof value === 'number') {
@@ -3955,7 +3957,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return columnType
     }
     _getMathArgumentTypeName(columnType: ValueType, columnTypeName: string, value: any): string {
-        if (columnType === 'customInt' || columnType === 'customBigint' || columnType === 'customDouble' || (columnType === 'customDecimal' && typeof value !== 'number')) {
+        if (columnType === 'customInt' || columnType === 'customBigint' || columnType === 'customDouble' || (__isDecimalCategory(columnType) && typeof value !== 'number')) {
             return columnTypeName
         }
         if (typeof value === 'number') {

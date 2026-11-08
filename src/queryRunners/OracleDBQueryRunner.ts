@@ -8,6 +8,7 @@ import { getParamTypeAt, getParamTypeCategoryAt } from '../utils/queryParamsMeta
 import type { TypeCategory } from '../TypeAdapter.js'
 import { getQueryResultColumns, setQueryParamType } from './QueryRunner.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
+import { __isDecimalCategory } from '../utils/typeCategory.js'
 
 export interface OracleDBQueryRunnerConfig {
     /** The connection is in a transaction that something else manages, and that something else ends: the statements don't commit, and none begins, commits or rolls back through this query runner */
@@ -72,7 +73,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         let unnamed = false
         const names = new Set<string>()
         for (const column of columns) {
-            if (column.typeCategory !== 'customDecimal') {
+            if (!__isDecimalCategory(column.typeCategory)) {
                 continue
             }
             if (column.name) {
@@ -165,6 +166,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
             case 'customBigint':
             case 'double':
             case 'customDouble':
+            case 'stringDecimal':
             case 'customDecimal':
                 return oracleDb.DB_TYPE_NUMBER
             case 'localDate':

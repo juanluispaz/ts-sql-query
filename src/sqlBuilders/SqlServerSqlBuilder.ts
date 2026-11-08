@@ -12,6 +12,7 @@ import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { ITable } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
+import { __isDecimalCategory } from '../utils/typeCategory.js'
 
 export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     sqlServer: true = true
@@ -49,7 +50,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
      * in the result of the outermost query keeps every digit of a decimal(38): 38 digits, the sign and the point
      */
     override _appendResultColumnConversion(value: AnyValueSource, sql: string, _params: any[]): string {
-        if (isValueSource(value) && __getValueSourcePrivate(value).__valueType === 'customDecimal') {
+        if (isValueSource(value) && __isDecimalCategory(__getValueSourcePrivate(value).__valueType)) {
             return 'convert(nvarchar(41), ' + sql + ')'
         }
         return sql
@@ -64,7 +65,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         const columns: FlatQueryColumns = {}
         flattenQueryColumns(queryColumns, columns, '')
         for (const property in columns) {
-            if (__getValueSourcePrivate(columns[property]!).__valueType === 'customDecimal') {
+            if (__isDecimalCategory(__getValueSourcePrivate(columns[property]!).__valueType)) {
                 return true
             }
         }
@@ -80,7 +81,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             return false
         }
         const column = getQueryColumn(query.__columns, expression)
-        return !!column && __getValueSourcePrivate(column).__valueType === 'customDecimal'
+        return !!column && __isDecimalCategory(__getValueSourcePrivate(column).__valueType)
     }
     override _needsSelectOrderByWrap(query: SelectData, params: any[]): boolean {
         // A distinct select can only order by what it selects, and the converted column is text: the order by goes over
@@ -1385,6 +1386,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         case 'bigint':
         case 'customInt':
         case 'customBigint':
+        case 'stringDecimal':
         case 'customDecimal':
             result = `'"' + convert(nvarchar(41), ` + this._appendSql(valueSource, params, false) + `) + '"'`
             break
@@ -1481,6 +1483,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         case 'bigint':
         case 'customInt':
         case 'customBigint':
+        case 'stringDecimal':
         case 'customDecimal':
             result = `'"' + convert(nvarchar(41), a_` + aggregateId + `_.` + this._escape(prop, true) + `) + '"'`
             break

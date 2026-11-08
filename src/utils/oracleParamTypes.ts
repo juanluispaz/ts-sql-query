@@ -1,5 +1,6 @@
 import type { TypeCategory } from '../TypeAdapter.js'
 import { customDecimalDigitsOf, rejectCustomDecimalParam } from './customDecimalParams.js'
+import { __isDecimalCategory } from './typeCategory.js'
 
 /**
  * Checks a parameter on Oracle, for every query runner of it: the number of the database keeps 38 significant
@@ -7,7 +8,7 @@ import { customDecimalDigitsOf, rejectCustomDecimalParam } from './customDecimal
  * can hold, is rejected. Call it before adding the parameter at that index.
  */
 export function checkOracleParam(index: number, value: unknown, type: string, typeCategory: TypeCategory): void {
-    if (typeCategory !== 'customDecimal') {
+    if (!__isDecimalCategory(typeCategory)) {
         return
     }
     const digits = customDecimalDigitsOf(value)

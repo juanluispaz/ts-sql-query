@@ -1,6 +1,6 @@
 import type { SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
-import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, UuidValueSource, ValueType, CustomIntValueSource, CustomBigintValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomDecimalValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource } from '../expressions/values.js'
+import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, UuidValueSource, StringDecimalValueSource, ValueType, CustomIntValueSource, CustomBigintValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomDecimalValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource } from '../expressions/values.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import type { Sequence } from '../expressions/sequence.js'
 import { AbstractConnection } from './AbstractConnection.js'
@@ -19,6 +19,7 @@ export abstract class AbstractAdvancedConnection</*in|out*/ DB extends NDB> exte
     protected sequence(name: string, type: 'double', adapter?: TypeAdapter): Sequence<NumberValueSource<NNoTableOrViewRequired<DB>, 'required'>>
     protected sequence(name: string, type: 'string', adapter?: TypeAdapter): Sequence<StringValueSource<NNoTableOrViewRequired<DB>, 'required'>>
     protected sequence(name: string, type: 'uuid', adapter?: TypeAdapter): Sequence<UuidValueSource<NNoTableOrViewRequired<DB>, 'required'>>
+    protected sequence(name: string, type: 'stringDecimal', adapter?: TypeAdapter): Sequence<StringDecimalValueSource<NNoTableOrViewRequired<DB>, 'required'>>
     protected sequence(name: string, type: 'localDate', adapter?: TypeAdapter): Sequence<LocalDateValueSource<NNoTableOrViewRequired<DB>, 'required'>>
     protected sequence(name: string, type: 'localTime', adapter?: TypeAdapter): Sequence<LocalTimeValueSource<NNoTableOrViewRequired<DB>, 'required'>>
     protected sequence(name: string, type: 'localDateTime', adapter?: TypeAdapter): Sequence<LocalDateTimeValueSource<NNoTableOrViewRequired<DB>, 'required'>>

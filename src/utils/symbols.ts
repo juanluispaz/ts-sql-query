@@ -42,6 +42,7 @@ export const customIntValueSource: unique symbol = Symbol('customIntValueSource'
 export const customBigintValueSource: unique symbol = Symbol('customBigintValueSource')
 export const customDoubleValueSource: unique symbol = Symbol('customDoubleValueSource')
 export const customDecimalValueSource: unique symbol = Symbol('customDecimalValueSource')
+export const stringDecimalValueSource: unique symbol = Symbol('stringDecimalValueSource')
 export const stringValueSource: unique symbol = Symbol('stringValueSource')
 export const uuidValueSource: unique symbol = Symbol('uuidValueSource')
 export const customUuidValueSource: unique symbol = Symbol('customUuidValueSource')

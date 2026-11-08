@@ -1,4 +1,4 @@
-import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, UuidValueSource, IBooleanValueSource, INumberValueSource, IBigintValueSource, IStringValueSource, IUuidValueSource, ILocalDateValueSource, ILocalTimeValueSource, ILocalDateTimeValueSource, IEqualableValueSource, IComparableValueSource, AnyValueSource, ValueType, CustomIntValueSource, CustomBigintValueSource, CustomDoubleValueSource, CustomDecimalValueSource, CustomUuidValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomBigintValueSource, ICustomDoubleValueSource, ICustomDecimalValueSource, ICustomUuidValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomLocalDateTimeValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource } from './expressions/values.js'
+import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, UuidValueSource, StringDecimalValueSource, IBooleanValueSource, INumberValueSource, IBigintValueSource, IStringValueSource, IUuidValueSource, IStringDecimalValueSource, ILocalDateValueSource, ILocalTimeValueSource, ILocalDateTimeValueSource, IEqualableValueSource, IComparableValueSource, AnyValueSource, ValueType, CustomIntValueSource, CustomBigintValueSource, CustomDoubleValueSource, CustomDecimalValueSource, CustomUuidValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomBigintValueSource, ICustomDoubleValueSource, ICustomDecimalValueSource, ICustomUuidValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomLocalDateTimeValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource } from './expressions/values.js'
 import type { ITable, IWithView, ITableOrView, HasIsValue, OfDB } from './utils/ITableOrView.js'
 import { __addWiths, __registerTableOrView, __registerRequiredColumn, __getTableOrViewPrivate } from './utils/ITableOrView.js'
 import type { TypeAdapter } from './TypeAdapter.js'
@@ -8,7 +8,7 @@ import { DBColumnImpl } from './internal/DBColumnImpl.js'
 import { connection, isTableOrViewObject, source, type } from './utils/symbols.js'
 import type { IConnection } from './utils/IConnection.js'
 import type { RawFragment } from './utils/RawFragment.js'
-import type { BigintFragmentExpression, BooleanFragmentExpression, ComparableFragmentExpression, CustomDoubleFragmentExpression, CustomDecimalFragmentExpression, CustomIntFragmentExpression, CustomBigintFragmentExpression, CustomLocalDateFragmentExpression, CustomLocalDateTimeFragmentExpression, CustomLocalTimeFragmentExpression, CustomUuidFragmentExpression, LocalDateFragmentExpression, LocalDateTimeFragmentExpression, EqualableFragmentExpression, NumberFragmentExpression, StringFragmentExpression, LocalTimeFragmentExpression, UuidFragmentExpression } from './expressions/fragment.js'
+import type { BigintFragmentExpression, BooleanFragmentExpression, ComparableFragmentExpression, CustomDoubleFragmentExpression, CustomDecimalFragmentExpression, CustomIntFragmentExpression, CustomBigintFragmentExpression, CustomLocalDateFragmentExpression, CustomLocalDateTimeFragmentExpression, CustomLocalTimeFragmentExpression, CustomUuidFragmentExpression, LocalDateFragmentExpression, LocalDateTimeFragmentExpression, EqualableFragmentExpression, NumberFragmentExpression, StringFragmentExpression, LocalTimeFragmentExpression, UuidFragmentExpression, StringDecimalFragmentExpression } from './expressions/fragment.js'
 import { ValueSourceFromBuilder } from './internal/ValueSourceImpl.js'
 import { FragmentQueryBuilder } from './queryBuilders/FragmentQueryBuilder.js'
 import type { NNoTableOrViewRequiredFrom, NSourceAllowingNoTableOrViewRequired, NTable } from './utils/sourceName.js'
@@ -88,6 +88,7 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
     protected column(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'required'> & Column
     protected column(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource<SOURCE, 'required'> & Column
     protected column(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<SOURCE, 'required'> & Column
+    protected column(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource<SOURCE, 'required'> & Column
     protected column(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<SOURCE, 'required'> & Column
     protected column(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<SOURCE, 'required'> & Column
     protected column(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<SOURCE, 'required'> & Column
@@ -115,6 +116,7 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
     protected optionalColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'optional'> & Column
     protected optionalColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource<SOURCE, 'optional'> & Column
     protected optionalColumn(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<SOURCE, 'optional'> & Column
+    protected optionalColumn(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource<SOURCE, 'optional'> & Column
     protected optionalColumn(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<SOURCE, 'optional'> & Column
     protected optionalColumn(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<SOURCE, 'optional'> & Column
     protected optionalColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<SOURCE, 'optional'> & Column
@@ -142,6 +144,7 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
     protected columnWithDefaultValue(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'required'> & ColumnWithDefaultValue
     protected columnWithDefaultValue(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource<SOURCE, 'required'> & ColumnWithDefaultValue
     protected columnWithDefaultValue(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<SOURCE, 'required'> & ColumnWithDefaultValue
+    protected columnWithDefaultValue(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource<SOURCE, 'required'> & ColumnWithDefaultValue
     protected columnWithDefaultValue(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<SOURCE, 'required'> & ColumnWithDefaultValue
     protected columnWithDefaultValue(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<SOURCE, 'required'> & ColumnWithDefaultValue
     protected columnWithDefaultValue(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<SOURCE, 'required'> & ColumnWithDefaultValue
@@ -169,6 +172,7 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
     protected optionalColumnWithDefaultValue(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'optional'> & ColumnWithDefaultValue
     protected optionalColumnWithDefaultValue(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource<SOURCE, 'optional'> & ColumnWithDefaultValue
     protected optionalColumnWithDefaultValue(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<SOURCE, 'optional'> & ColumnWithDefaultValue
+    protected optionalColumnWithDefaultValue(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource<SOURCE, 'optional'> & ColumnWithDefaultValue
     protected optionalColumnWithDefaultValue(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<SOURCE, 'optional'> & ColumnWithDefaultValue
     protected optionalColumnWithDefaultValue(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<SOURCE, 'optional'> & ColumnWithDefaultValue
     protected optionalColumnWithDefaultValue(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<SOURCE, 'optional'> & ColumnWithDefaultValue
@@ -196,6 +200,7 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
     protected autogeneratedPrimaryKey(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKey(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKey(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
+    protected autogeneratedPrimaryKey(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKey(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKey(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKey(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
@@ -223,6 +228,7 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
     protected primaryKey(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'required'> & PrimaryKeyColumn
     protected primaryKey(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource<SOURCE, 'required'> & PrimaryKeyColumn
     protected primaryKey(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<SOURCE, 'required'> & PrimaryKeyColumn
+    protected primaryKey(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource<SOURCE, 'required'> & PrimaryKeyColumn
     protected primaryKey(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<SOURCE, 'required'> & PrimaryKeyColumn
     protected primaryKey(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<SOURCE, 'required'> & PrimaryKeyColumn
     protected primaryKey(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<SOURCE, 'required'> & PrimaryKeyColumn
@@ -250,6 +256,7 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
     protected autogeneratedPrimaryKeyBySequence(this: OfDB<'mariaDB' | 'oracle' | 'postgreSql' | 'sqlServer'>, name: string, sequenceName: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKeyBySequence(this: OfDB<'mariaDB' | 'oracle' | 'postgreSql' | 'sqlServer'>, name: string, sequenceName: string, type: 'string', adapter?: TypeAdapter): StringValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKeyBySequence(this: OfDB<'mariaDB' | 'oracle' | 'postgreSql' | 'sqlServer'>, name: string, sequenceName: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
+    protected autogeneratedPrimaryKeyBySequence(this: OfDB<'mariaDB' | 'oracle' | 'postgreSql' | 'sqlServer'>, name: string, sequenceName: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKeyBySequence(this: OfDB<'mariaDB' | 'oracle' | 'postgreSql' | 'sqlServer'>, name: string, sequenceName: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKeyBySequence(this: OfDB<'mariaDB' | 'oracle' | 'postgreSql' | 'sqlServer'>, name: string, sequenceName: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKeyBySequence(this: OfDB<'mariaDB' | 'oracle' | 'postgreSql' | 'sqlServer'>, name: string, sequenceName: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
@@ -277,6 +284,7 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
     protected computedColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'required'>
     protected computedColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource<SOURCE, 'required'>
     protected computedColumn(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<SOURCE, 'required'>
+    protected computedColumn(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource<SOURCE, 'required'>
     protected computedColumn(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<SOURCE, 'required'>
     protected computedColumn(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<SOURCE, 'required'>
     protected computedColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<SOURCE, 'required'>
@@ -304,6 +312,7 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
     protected optionalComputedColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'optional'>
     protected optionalComputedColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource<SOURCE, 'optional'>
     protected optionalComputedColumn(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<SOURCE, 'optional'>
+    protected optionalComputedColumn(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource<SOURCE, 'optional'>
     protected optionalComputedColumn(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<SOURCE, 'optional'>
     protected optionalComputedColumn(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<SOURCE, 'optional'>
     protected optionalComputedColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<SOURCE, 'optional'>
@@ -331,6 +340,7 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
     protected virtualColumnFromFragment(type: 'double', fn: (fragment: NumberFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>) => INumberValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>, adapter?: TypeAdapter): NumberValueSource<SOURCE, 'required'>
     protected virtualColumnFromFragment(type: 'string', fn: (fragment: StringFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>) => IStringValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>, adapter?: TypeAdapter): StringValueSource<SOURCE, 'required'>
     protected virtualColumnFromFragment(type: 'uuid', fn: (fragment: UuidFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>) => IUuidValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>, adapter?: TypeAdapter): UuidValueSource<SOURCE, 'required'>
+    protected virtualColumnFromFragment(type: 'stringDecimal', fn: (fragment: StringDecimalFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>) => IStringDecimalValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>, adapter?: TypeAdapter): StringDecimalValueSource<SOURCE, 'required'>
     protected virtualColumnFromFragment(type: 'localDate', fn: (fragment: LocalDateFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>) => ILocalDateValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>, adapter?: TypeAdapter): LocalDateValueSource<SOURCE, 'required'>
     protected virtualColumnFromFragment(type: 'localTime', fn: (fragment: LocalTimeFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>) => ILocalTimeValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>, adapter?: TypeAdapter): LocalTimeValueSource<SOURCE, 'required'>
     protected virtualColumnFromFragment(type: 'localDateTime', fn: (fragment: LocalDateTimeFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>) => ILocalDateTimeValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>, adapter?: TypeAdapter): LocalDateTimeValueSource<SOURCE, 'required'>
@@ -360,6 +370,7 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
     protected optionalVirtualColumnFromFragment(type: 'double', fn: (fragment: NumberFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'optional'>) => INumberValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'optional'>, adapter?: TypeAdapter): NumberValueSource<SOURCE, 'optional'>
     protected optionalVirtualColumnFromFragment(type: 'string', fn: (fragment: StringFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'optional'>) => IStringValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'optional'>, adapter?: TypeAdapter): StringValueSource<SOURCE, 'optional'>
     protected optionalVirtualColumnFromFragment(type: 'uuid', fn: (fragment: UuidFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'optional'>) => IUuidValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'optional'>, adapter?: TypeAdapter): UuidValueSource<SOURCE, 'optional'>
+    protected optionalVirtualColumnFromFragment(type: 'stringDecimal', fn: (fragment: StringDecimalFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'optional'>) => IStringDecimalValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'optional'>, adapter?: TypeAdapter): StringDecimalValueSource<SOURCE, 'optional'>
     protected optionalVirtualColumnFromFragment(type: 'localDate', fn: (fragment: LocalDateFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'optional'>) => ILocalDateValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'optional'>, adapter?: TypeAdapter): LocalDateValueSource<SOURCE, 'optional'>
     protected optionalVirtualColumnFromFragment(type: 'localTime', fn: (fragment: LocalTimeFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'optional'>) => ILocalTimeValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'optional'>, adapter?: TypeAdapter): LocalTimeValueSource<SOURCE, 'optional'>
     protected optionalVirtualColumnFromFragment(type: 'localDateTime', fn: (fragment: LocalDateTimeFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'optional'>) => ILocalDateTimeValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'optional'>, adapter?: TypeAdapter): LocalDateTimeValueSource<SOURCE, 'optional'>

@@ -310,6 +310,28 @@ function _typeNegatives() {
     // @ts-expect-error asDouble is a NumberValueSource-only cast, absent on customDecimal
     void amount.asDouble()
 
+    // Rule: a stringDecimal takes operands of its own type or a string, and isn't comparable with a customDecimal,
+    // a string or a double; the functions that can't be exact give a double.
+    const exact = connection.const('1.50', 'stringDecimal')
+    void exact.add('0.01')
+    void exact.add(exact)
+    void exact.equals('1.5')
+    // @ts-expect-error a customDecimal is not a stringDecimal operand
+    void exact.add(amount)
+    // @ts-expect-error a stringDecimal is not comparable with a customDecimal
+    void exact.equals(amount)
+    // @ts-expect-error a stringDecimal is not comparable with a string value source
+    void exact.equals(connection.const('1.50', 'string'))
+    // @ts-expect-error a double column is not a stringDecimal operand
+    void exact.add(t.mDouble)
+    // @ts-expect-error a stringDecimal has no divide: the division of two decimals isn't exact
+    void exact.divide('2')
+    // @ts-expect-error sqrt gives a double, not a stringDecimal
+    void exact.sqrt().equals(exact)
+    void exact.roundn(2).equals(exact)
+    // @ts-expect-error a stringDecimal takes a string, not a number
+    void connection.const(1.5, 'stringDecimal')
+
     // Rule: asString is offered on uuid data types only.
     // @ts-expect-error asString does not exist on a customInt value source
     void t.cents.asString()

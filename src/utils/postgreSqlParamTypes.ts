@@ -27,6 +27,7 @@ const byConversionType: { [conversionType: string]: PostgreSqlParamType } = {
     int: int4,
     bigint: int8,
     double: float8,
+    stringDecimal: numeric,
     customDecimal: numeric,
     string: text,
     uuid: uuid,

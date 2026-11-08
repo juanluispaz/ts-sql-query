@@ -450,8 +450,47 @@ interface CustomDecimalValueSource<T, TYPE_NAME extends string> extends Comparab
     add(value: T | this): this
     subtract(value: T | this): this
     multiply(value: T | this): this
-    divide(value: T | this): NumberValueSource
     modulo(value: T | this): this
+    atan2(value: number | NumberValueSource): NumberValueSource
+}
+
+/**
+ * Represents a decimal number whose value is its text, a JavaScript string (`'1.50'`), kept with every digit
+ */
+interface StringDecimalValueSource extends ComparableValueSource<string, 'stringDecimal'> {
+    abs(): this
+    ceil(): this
+    floor(): this
+    round(): this
+    exp(): NumberValueSource
+    ln(): NumberValueSource
+    log10(): NumberValueSource
+    sqrt(): NumberValueSource
+    cbrt(): NumberValueSource
+    sign(): NumberValueSource
+    acos(): NumberValueSource
+    asin(): NumberValueSource
+    atan(): NumberValueSource
+    cos(): NumberValueSource
+    cot(): NumberValueSource
+    sin(): NumberValueSource
+    tan(): NumberValueSource
+    power(value: number | NumberValueSource): NumberValueSource
+    logn(value: number | NumberValueSource): NumberValueSource
+    /** The number of decimals is a number, or a value source of one */
+    roundn(value: number | NumberValueSource): this
+    /**
+     * This function establishes a minimum value for the current value, that means the biggest value must be returned
+     */
+    minValue(value: string | this): this
+    /**
+     * This function establishes a maximum value for the current value, that means the smallest value must be returned
+     */
+    maxValue(value: string | this): this
+    add(value: string | this): this
+    subtract(value: string | this): this
+    multiply(value: string | this): this
+    modulo(value: string | this): this
     atan2(value: number | NumberValueSource): NumberValueSource
 }
 
@@ -610,6 +649,7 @@ interface Connection {
     const(value: number, type: 'double', adapter?: TypeAdapter): NumberValueSource
     const(value: string, type: 'string', adapter?: TypeAdapter): StringValueSource
     const(value: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
+    const(value: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
     const(value: Date, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
     const(value: Date, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
     const(value: Date, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
@@ -632,6 +672,7 @@ interface Connection {
     optionalConst(value: number | null | undefined, type: 'double', adapter?: TypeAdapter): NumberValueSource
     optionalConst(value: string | null | undefined, type: 'string', adapter?: TypeAdapter): StringValueSource
     optionalConst(value: string | null | undefined, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
+    optionalConst(value: string | null | undefined, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
     optionalConst(value: Date | null | undefined, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
     optionalConst(value: Date | null | undefined, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
     optionalConst(value: Date | null | undefined, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
@@ -665,6 +706,7 @@ interface Connection {
     /** sum(value) */
     sum(value: NumberValueSource): NumberValueSource
     sum(value: BigintValueSource): BigintValueSource
+    sum(value: StringDecimalValueSource): StringDecimalValueSource
     sum<T, TYPE_NAME extends string>(value: CustomIntValueSource<T, TYPE_NAME>): CustomIntValueSource<T, TYPE_NAME>
     sum<T, TYPE_NAME extends string>(value: CustomBigintValueSource<T, TYPE_NAME>): CustomBigintValueSource<T, TYPE_NAME>
     sum<T, TYPE_NAME extends string>(value: CustomDoubleValueSource<T, TYPE_NAME>): CustomDoubleValueSource<T, TYPE_NAME>
@@ -672,14 +714,15 @@ interface Connection {
     /** sum(distinct value) */
     sumDistinct(value: NumberValueSource): NumberValueSource
     sumDistinct(value: BigintValueSource): BigintValueSource
+    sumDistinct(value: StringDecimalValueSource): StringDecimalValueSource
     sumDistinct<T, TYPE_NAME extends string>(value: CustomIntValueSource<T, TYPE_NAME>): CustomIntValueSource<T, TYPE_NAME>
     sumDistinct<T, TYPE_NAME extends string>(value: CustomBigintValueSource<T, TYPE_NAME>): CustomBigintValueSource<T, TYPE_NAME>
     sumDistinct<T, TYPE_NAME extends string>(value: CustomDoubleValueSource<T, TYPE_NAME>): CustomDoubleValueSource<T, TYPE_NAME>
     sumDistinct<T, TYPE_NAME extends string>(value: CustomDecimalValueSource<T, TYPE_NAME>): CustomDecimalValueSource<T, TYPE_NAME>
     /** avg(value). It always returns a number, a double, also for a bigint or a custom type */
-    average(value: NumberValueSource | BigintValueSource | CustomIntValueSource<any, any> | CustomBigintValueSource<any, any> | CustomDoubleValueSource<any, any> | CustomDecimalValueSource<any, any>): NumberValueSource
+    average(value: NumberValueSource | BigintValueSource | StringDecimalValueSource | CustomIntValueSource<any, any> | CustomBigintValueSource<any, any> | CustomDoubleValueSource<any, any> | CustomDecimalValueSource<any, any>): NumberValueSource
     /** avg(distinct value). It always returns a number, a double, also for a bigint or a custom type */
-    averageDistinct(value: NumberValueSource | BigintValueSource | CustomIntValueSource<any, any> | CustomBigintValueSource<any, any> | CustomDoubleValueSource<any, any> | CustomDecimalValueSource<any, any>): NumberValueSource
+    averageDistinct(value: NumberValueSource | BigintValueSource | StringDecimalValueSource | CustomIntValueSource<any, any> | CustomBigintValueSource<any, any> | CustomDoubleValueSource<any, any> | CustomDecimalValueSource<any, any>): NumberValueSource
     /** group_concat(value, separator) sometimes called string_agg or listagg. The default separator is ',' */
     stringConcat(value: StringValueSource, separator?: string): StringValueSource
     /**
@@ -704,6 +747,7 @@ interface Connection {
     fragmentWithType(type: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType(type: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType(type: 'uuid', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
+    fragmentWithType(type: 'stringDecimal', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType(type: 'localDate', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType(type: 'localTime', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType(type: 'localDateTime', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
@@ -726,6 +770,7 @@ interface Connection {
     aggregateFragmentWithType(type: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     aggregateFragmentWithType(type: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     aggregateFragmentWithType(type: 'uuid', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
+    aggregateFragmentWithType(type: 'stringDecimal', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     aggregateFragmentWithType(type: 'localDate', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     aggregateFragmentWithType(type: 'localTime', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     aggregateFragmentWithType(type: 'localDateTime', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
@@ -757,6 +802,7 @@ interface Connection {
     executeFunction(functionName: string, params: AnyValueSource[], returnType: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<number>
     executeFunction(functionName: string, params: AnyValueSource[], returnType: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<string>
     executeFunction(functionName: string, params: AnyValueSource[], returnType: 'uuid', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<string>
+    executeFunction(functionName: string, params: AnyValueSource[], returnType: 'stringDecimal', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<string>
     executeFunction(functionName: string, params: AnyValueSource[], returnType: 'localDate', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<Date>
     executeFunction(functionName: string, params: AnyValueSource[], returnType: 'localTime', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<Date>
     executeFunction(functionName: string, params: AnyValueSource[], returnType: 'localDateTime', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<Date>
@@ -779,6 +825,7 @@ interface Connection {
     sequence(name: string, type: 'double', adapter?: TypeAdapter): Sequence<NumberValueSource>
     sequence(name: string, type: 'string', adapter?: TypeAdapter): Sequence<StringValueSource>
     sequence(name: string, type: 'uuid', adapter?: TypeAdapter): Sequence<UuidValueSource>
+    sequence(name: string, type: 'stringDecimal', adapter?: TypeAdapter): Sequence<StringDecimalValueSource>
     sequence(name: string, type: 'localDate', adapter?: TypeAdapter): Sequence<LocalDateValueSource>
     sequence(name: string, type: 'localTime', adapter?: TypeAdapter): Sequence<LocalTimeValueSource>
     sequence(name: string, type: 'localDateTime', adapter?: TypeAdapter): Sequence<LocalDateTimeValueSource>
@@ -804,6 +851,7 @@ interface Connection {
     arg(type: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<number, 'number'>
     arg(type: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<string, 'string'>
     arg(type: 'uuid', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<string, 'uuid'>
+    arg(type: 'stringDecimal', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<string, 'stringDecimal'>
     arg(type: 'localDate', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<Date, 'localDate'>
     arg(type: 'localTime', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<Date, 'localTime'>
     arg(type: 'localDateTime', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<Date, 'localDateTime'>
@@ -828,6 +876,7 @@ interface Connection {
     valueArg(type: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<number, 'number'>
     valueArg(type: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<string, 'string'>
     valueArg(type: 'uuid', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<string, 'uuid'>
+    valueArg(type: 'stringDecimal', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<string, 'stringDecimal'>
     valueArg(type: 'localDate', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<Date, 'localDate'>
     valueArg(type: 'localTime', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<Date, 'localTime'>
     valueArg(type: 'localDateTime', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<Date, 'localDateTime'>
@@ -1004,11 +1053,11 @@ type DynamicFilter = {
 
 /**
  * The filter of a field, according to its type: BooleanFilter for boolean, NumberFilter for int and double, BigintFilter for bigint,
- * StringFilter for string and uuid, DateFilter for localDate, TimeFilter for localTime, DateTimeFilter for localDateTime,
+ * StringFilter for string and uuid, StringDecimalFilter for stringDecimal, DateFilter for localDate, TimeFilter for localTime, DateTimeFilter for localDateTime,
  * EqualableFilter for enum and custom, ComparableFilter for customComparable, and for the other custom types the filter of its name.
  * The uuid and customUuid types accept the text operators, and they apply asString before them.
  */
-type FieldFilter = BooleanFilter | NumberFilter | BigintFilter | StringFilter | DateFilter | TimeFilter | DateTimeFilter | EqualableFilter<any> | ComparableFilter<any> | CustomIntFilter<any> | CustomBigintFilter<any> | CustomDoubleFilter<any> | CustomDecimalFilter<any> | CustomUuidFilter<any> | CustomLocalDateFilter<any> | CustomLocalTimeFilter<any> | CustomLocalDateTimeFilter<any>
+type FieldFilter = BooleanFilter | NumberFilter | BigintFilter | StringFilter | StringDecimalFilter | DateFilter | TimeFilter | DateTimeFilter | EqualableFilter<any> | ComparableFilter<any> | CustomIntFilter<any> | CustomBigintFilter<any> | CustomDoubleFilter<any> | CustomDecimalFilter<any> | CustomUuidFilter<any> | CustomLocalDateFilter<any> | CustomLocalTimeFilter<any> | CustomLocalDateTimeFilter<any>
 
 interface NullableFilter {
     isNull?: boolean
@@ -1128,6 +1177,7 @@ interface DateTimeFilter extends ComparableFilter<Date> { }
 interface CustomIntFilter<TYPE> extends ComparableFilter<TYPE> { }
 interface CustomBigintFilter<TYPE> extends ComparableFilter<TYPE> { }
 interface CustomDoubleFilter<TYPE> extends ComparableFilter<TYPE> { }
+interface StringDecimalFilter extends ComparableFilter<string> { }
 interface CustomDecimalFilter<TYPE> extends ComparableFilter<TYPE> { }
 interface CustomLocalDateFilter<TYPE> extends ComparableFilter<TYPE> { }
 interface CustomLocalTimeFilter<TYPE> extends ComparableFilter<TYPE> { }
@@ -1210,6 +1260,7 @@ interface Table {
     column(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     column(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
     column(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
+    column(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
     column(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
     column(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
     column(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
@@ -1232,6 +1283,7 @@ interface Table {
     optionalColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     optionalColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
     optionalColumn(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
+    optionalColumn(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
     optionalColumn(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
     optionalColumn(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
     optionalColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
@@ -1254,6 +1306,7 @@ interface Table {
     columnWithDefaultValue(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     columnWithDefaultValue(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
     columnWithDefaultValue(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
+    columnWithDefaultValue(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
     columnWithDefaultValue(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
     columnWithDefaultValue(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
     columnWithDefaultValue(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
@@ -1276,6 +1329,7 @@ interface Table {
     optionalColumnWithDefaultValue(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     optionalColumnWithDefaultValue(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
     optionalColumnWithDefaultValue(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
+    optionalColumnWithDefaultValue(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
     optionalColumnWithDefaultValue(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
     optionalColumnWithDefaultValue(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
     optionalColumnWithDefaultValue(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
@@ -1299,6 +1353,7 @@ interface Table {
     autogeneratedPrimaryKey(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     autogeneratedPrimaryKey(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
     autogeneratedPrimaryKey(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
+    autogeneratedPrimaryKey(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
     autogeneratedPrimaryKey(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
     autogeneratedPrimaryKey(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
     autogeneratedPrimaryKey(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
@@ -1322,6 +1377,7 @@ interface Table {
     primaryKey(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     primaryKey(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
     primaryKey(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
+    primaryKey(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
     primaryKey(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
     primaryKey(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
     primaryKey(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
@@ -1346,6 +1402,7 @@ interface Table {
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'string', adapter?: TypeAdapter): StringValueSource
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
+    autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
@@ -1368,6 +1425,7 @@ interface Table {
     computedColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     computedColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
     computedColumn(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
+    computedColumn(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
     computedColumn(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
     computedColumn(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
     computedColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
@@ -1390,6 +1448,7 @@ interface Table {
     optionalComputedColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     optionalComputedColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
     optionalComputedColumn(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
+    optionalComputedColumn(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
     optionalComputedColumn(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
     optionalComputedColumn(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
     optionalComputedColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
@@ -1412,6 +1471,7 @@ interface Table {
     virtualColumnFromFragment(type: 'double', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
     virtualColumnFromFragment(type: 'string', fn: (fragment: FragmentExpression) => StringValueSource, adapter?: TypeAdapter): StringValueSource
     virtualColumnFromFragment(type: 'uuid', fn: (fragment: FragmentExpression) => UuidValueSource, adapter?: TypeAdapter): UuidValueSource
+    virtualColumnFromFragment(type: 'stringDecimal', fn: (fragment: FragmentExpression) => StringDecimalValueSource, adapter?: TypeAdapter): StringDecimalValueSource
     virtualColumnFromFragment(type: 'localDate', fn: (fragment: FragmentExpression) => LocalDateValueSource, adapter?: TypeAdapter): LocalDateValueSource
     virtualColumnFromFragment(type: 'localTime', fn: (fragment: FragmentExpression) => LocalTimeValueSource, adapter?: TypeAdapter): LocalTimeValueSource
     virtualColumnFromFragment(type: 'localDateTime', fn: (fragment: FragmentExpression) => LocalDateTimeValueSource, adapter?: TypeAdapter): LocalDateTimeValueSource
@@ -1434,6 +1494,7 @@ interface Table {
     optionalVirtualColumnFromFragment(type: 'double', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
     optionalVirtualColumnFromFragment(type: 'string', fn: (fragment: FragmentExpression) => StringValueSource, adapter?: TypeAdapter): StringValueSource
     optionalVirtualColumnFromFragment(type: 'uuid', fn: (fragment: FragmentExpression) => UuidValueSource, adapter?: TypeAdapter): UuidValueSource
+    optionalVirtualColumnFromFragment(type: 'stringDecimal', fn: (fragment: FragmentExpression) => StringDecimalValueSource, adapter?: TypeAdapter): StringDecimalValueSource
     optionalVirtualColumnFromFragment(type: 'localDate', fn: (fragment: FragmentExpression) => LocalDateValueSource, adapter?: TypeAdapter): LocalDateValueSource
     optionalVirtualColumnFromFragment(type: 'localTime', fn: (fragment: FragmentExpression) => LocalTimeValueSource, adapter?: TypeAdapter): LocalTimeValueSource
     optionalVirtualColumnFromFragment(type: 'localDateTime', fn: (fragment: FragmentExpression) => LocalDateTimeValueSource, adapter?: TypeAdapter): LocalDateTimeValueSource
@@ -1469,6 +1530,7 @@ interface View {
     column(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     column(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
     column(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
+    column(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
     column(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
     column(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
     column(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
@@ -1491,6 +1553,7 @@ interface View {
     optionalColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     optionalColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
     optionalColumn(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
+    optionalColumn(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
     optionalColumn(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
     optionalColumn(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
     optionalColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
@@ -1513,6 +1576,7 @@ interface View {
     virtualColumnFromFragment(type: 'double', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
     virtualColumnFromFragment(type: 'string', fn: (fragment: FragmentExpression) => StringValueSource, adapter?: TypeAdapter): StringValueSource
     virtualColumnFromFragment(type: 'uuid', fn: (fragment: FragmentExpression) => UuidValueSource, adapter?: TypeAdapter): UuidValueSource
+    virtualColumnFromFragment(type: 'stringDecimal', fn: (fragment: FragmentExpression) => StringDecimalValueSource, adapter?: TypeAdapter): StringDecimalValueSource
     virtualColumnFromFragment(type: 'localDate', fn: (fragment: FragmentExpression) => LocalDateValueSource, adapter?: TypeAdapter): LocalDateValueSource
     virtualColumnFromFragment(type: 'localTime', fn: (fragment: FragmentExpression) => LocalTimeValueSource, adapter?: TypeAdapter): LocalTimeValueSource
     virtualColumnFromFragment(type: 'localDateTime', fn: (fragment: FragmentExpression) => LocalDateTimeValueSource, adapter?: TypeAdapter): LocalDateTimeValueSource
@@ -1535,6 +1599,7 @@ interface View {
     optionalVirtualColumnFromFragment(type: 'double', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
     optionalVirtualColumnFromFragment(type: 'string', fn: (fragment: FragmentExpression) => StringValueSource, adapter?: TypeAdapter): StringValueSource
     optionalVirtualColumnFromFragment(type: 'uuid', fn: (fragment: FragmentExpression) => UuidValueSource, adapter?: TypeAdapter): UuidValueSource
+    optionalVirtualColumnFromFragment(type: 'stringDecimal', fn: (fragment: FragmentExpression) => StringDecimalValueSource, adapter?: TypeAdapter): StringDecimalValueSource
     optionalVirtualColumnFromFragment(type: 'localDate', fn: (fragment: FragmentExpression) => LocalDateValueSource, adapter?: TypeAdapter): LocalDateValueSource
     optionalVirtualColumnFromFragment(type: 'localTime', fn: (fragment: FragmentExpression) => LocalTimeValueSource, adapter?: TypeAdapter): LocalTimeValueSource
     optionalVirtualColumnFromFragment(type: 'localDateTime', fn: (fragment: FragmentExpression) => LocalDateTimeValueSource, adapter?: TypeAdapter): LocalDateTimeValueSource
@@ -1579,6 +1644,7 @@ interface Values {
     column(type: 'double', adapter?: TypeAdapter): NumberValueSource
     column(type: 'string', adapter?: TypeAdapter): StringValueSource
     column(type: 'uuid', adapter?: TypeAdapter): UuidValueSource
+    column(type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
     column(type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
     column(type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
     column(type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
@@ -1601,6 +1667,7 @@ interface Values {
     optionalColumn(type: 'double', adapter?: TypeAdapter): NumberValueSource
     optionalColumn(type: 'string', adapter?: TypeAdapter): StringValueSource
     optionalColumn(type: 'uuid', adapter?: TypeAdapter): UuidValueSource
+    optionalColumn(type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
     optionalColumn(type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
     optionalColumn(type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
     optionalColumn(type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
@@ -1623,6 +1690,7 @@ interface Values {
     virtualColumnFromFragment(type: 'double', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
     virtualColumnFromFragment(type: 'string', fn: (fragment: FragmentExpression) => StringValueSource, adapter?: TypeAdapter): StringValueSource
     virtualColumnFromFragment(type: 'uuid', fn: (fragment: FragmentExpression) => UuidValueSource, adapter?: TypeAdapter): UuidValueSource
+    virtualColumnFromFragment(type: 'stringDecimal', fn: (fragment: FragmentExpression) => StringDecimalValueSource, adapter?: TypeAdapter): StringDecimalValueSource
     virtualColumnFromFragment(type: 'localDate', fn: (fragment: FragmentExpression) => LocalDateValueSource, adapter?: TypeAdapter): LocalDateValueSource
     virtualColumnFromFragment(type: 'localTime', fn: (fragment: FragmentExpression) => LocalTimeValueSource, adapter?: TypeAdapter): LocalTimeValueSource
     virtualColumnFromFragment(type: 'localDateTime', fn: (fragment: FragmentExpression) => LocalDateTimeValueSource, adapter?: TypeAdapter): LocalDateTimeValueSource
@@ -1645,6 +1713,7 @@ interface Values {
     optionalVirtualColumnFromFragment(type: 'double', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
     optionalVirtualColumnFromFragment(type: 'string', fn: (fragment: FragmentExpression) => StringValueSource, adapter?: TypeAdapter): StringValueSource
     optionalVirtualColumnFromFragment(type: 'uuid', fn: (fragment: FragmentExpression) => UuidValueSource, adapter?: TypeAdapter): UuidValueSource
+    optionalVirtualColumnFromFragment(type: 'stringDecimal', fn: (fragment: FragmentExpression) => StringDecimalValueSource, adapter?: TypeAdapter): StringDecimalValueSource
     optionalVirtualColumnFromFragment(type: 'localDate', fn: (fragment: FragmentExpression) => LocalDateValueSource, adapter?: TypeAdapter): LocalDateValueSource
     optionalVirtualColumnFromFragment(type: 'localTime', fn: (fragment: FragmentExpression) => LocalTimeValueSource, adapter?: TypeAdapter): LocalTimeValueSource
     optionalVirtualColumnFromFragment(type: 'localDateTime', fn: (fragment: FragmentExpression) => LocalDateTimeValueSource, adapter?: TypeAdapter): LocalDateTimeValueSource

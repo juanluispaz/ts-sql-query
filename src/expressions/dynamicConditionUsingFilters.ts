@@ -1,6 +1,6 @@
 import type { DataToProjectOf, DataToProjectOfAny, GetDataToProjectSource } from '../complexProjections/dataToProject.js'
 import type { UsableKeyOf } from '../utils/objectUtils.js'
-import type { AnyValueSource, BooleanValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IBigintValueSource, IBooleanValueSource, IComparableValueSource, ICustomDoubleValueSource, ICustomDecimalValueSource, ICustomIntValueSource, ICustomBigintValueSource, ICustomLocalDateTimeValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomUuidValueSource, ILocalDateTimeValueSource, ILocalDateValueSource, IEqualableValueSource, INullableValueSource, INumberValueSource, IStringValueSource, ILocalTimeValueSource, IUuidValueSource, IValueSource } from './values.js'
+import type { AnyValueSource, BooleanValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IBigintValueSource, IBooleanValueSource, IComparableValueSource, ICustomDoubleValueSource, ICustomDecimalValueSource, IStringDecimalValueSource, ICustomIntValueSource, ICustomBigintValueSource, ICustomLocalDateTimeValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomUuidValueSource, ILocalDateTimeValueSource, ILocalDateValueSource, IEqualableValueSource, INullableValueSource, INumberValueSource, IStringValueSource, ILocalTimeValueSource, IUuidValueSource, IValueSource } from './values.js'
 
 export interface Filter {
 }
@@ -42,6 +42,7 @@ export interface BigintFilter extends ComparableFilter<bigint> { }
 export interface CustomIntFilter<TYPE> extends ComparableFilter<TYPE> { }
 export interface CustomBigintFilter<TYPE> extends ComparableFilter<TYPE> { }
 export interface CustomDoubleFilter<TYPE> extends ComparableFilter<TYPE> { }
+export interface StringDecimalFilter extends ComparableFilter<string> { }
 export interface CustomDecimalFilter<TYPE> extends ComparableFilter<TYPE> { }
 export interface StringFilter extends ComparableFilter<string> {
     equalsInsensitiveIfValue?: string | null | undefined
@@ -134,6 +135,7 @@ export type FilterTypeOf<TYPE> =
     TYPE extends 'double' ? NumberFilter :
     TYPE extends 'string' ? StringFilter :
     TYPE extends 'uuid' ? StringFilter :
+    TYPE extends 'stringDecimal' ? StringDecimalFilter :
     TYPE extends 'localDate' ? DateFilter :
     TYPE extends 'localTime' ? TimeFilter :
     TYPE extends 'localDateTime' ? DateTimeFilter :
@@ -151,7 +153,7 @@ export type FilterTypeOf<TYPE> =
     MapValueSourceToFilter<TYPE>
 
 export type DynamicColumnType<T> = 'boolean' | 'int' | 'bigint' | 'double' |
-    'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | 
+    'string' | 'uuid' | 'stringDecimal' | 'localDate' | 'localTime' | 'localDateTime' | 
     ['customInt', T] | ['customBigint', T] | ['customDouble', T] | ['customDecimal', T] | ['customUuid', T] | ['customLocalDate', T] | ['customLocalTime', T] | ['customLocalDateTime', T] | 
     ['enum', T] | ['custom', T] | ['customComparable', T]
 
@@ -181,6 +183,7 @@ export type MapValueSourceToFilter<TYPE> =
         TYPE extends INumberValueSource<any, any> ? NumberFilter :
         TYPE extends IStringValueSource<any, any> ? StringFilter :
         TYPE extends IUuidValueSource<any, any> ? StringFilter :
+        TYPE extends IStringDecimalValueSource<any, any> ? StringDecimalFilter :
         TYPE extends ILocalDateTimeValueSource<any, any> ? DateTimeFilter :
         TYPE extends ILocalDateValueSource<any, any> ? DateFilter :
         TYPE extends ILocalTimeValueSource<any, any> ? TimeFilter :

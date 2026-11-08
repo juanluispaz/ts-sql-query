@@ -459,6 +459,50 @@ interface CustomDoubleValueSource<T, TYPE_NAME extends string> extends Comparabl
 
 ```typescript
 /**
+ * Represents a custom decimal: a decimal number of a type of your own, sent to and received from the database as its
+ * text, so it keeps every digit. The functions whose result can't be exact return a double.
+ */
+interface CustomDecimalValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
+    abs(): this
+    ceil(): this
+    floor(): this
+    round(): this
+    exp(): NumberValueSource
+    ln(): NumberValueSource
+    log10(): NumberValueSource
+    sqrt(): NumberValueSource
+    cbrt(): NumberValueSource
+    sign(): NumberValueSource
+    acos(): NumberValueSource
+    asin(): NumberValueSource
+    atan(): NumberValueSource
+    cos(): NumberValueSource
+    cot(): NumberValueSource
+    sin(): NumberValueSource
+    tan(): NumberValueSource
+    power(value: number | NumberValueSource): NumberValueSource
+    logn(value: number | NumberValueSource): NumberValueSource
+    /** The number of decimals is a number, or a value source of one */
+    roundn(value: number | NumberValueSource): this
+    /**
+     * This function establishes a minimum value for the current value, that means the biggest value must be returned
+     */
+    minValue(value: T | this): this
+    /**
+     * This function establishes a maximum value for the current value, that means the smallest value must be returned
+     */
+    maxValue(value: T | this): this
+    add(value: T | this): this
+    subtract(value: T | this): this
+    multiply(value: T | this): this
+    divide(value: T | this): NumberValueSource
+    modulo(value: T | this): this
+    atan2(value: number | NumberValueSource): NumberValueSource
+}
+```
+
+```typescript
+/**
  * Represents a custom UUID
  */
 interface CustomUuidValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {

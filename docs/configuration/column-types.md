@@ -24,6 +24,7 @@ The same types are used for a [constant](../queries/basic-query-structure.md) an
 | `customInt`                     | *custom*             | Your type, with the operations of `int`                           |
 | `customBigint`                  | *custom*             | Your type, with the operations of `bigint`                        |
 | `customDouble`                  | *custom*             | Your type, with the operations of `double`                        |
+| `customDecimal`                 | *custom*             | Your type: an exact decimal number, sent and read as its text      |
 | `customUuid`                    | *custom*             | Your type, with the operations of `uuid`                          |
 | `customLocalDate`               | *custom*             | Your type, with the operations of `localDate`                     |
 | `customLocalTime`               | *custom*             | Your type, with the operations of `localTime`                     |
@@ -47,6 +48,7 @@ this.column('ColumnName', 'localDateTime')
 this.column<MyIntType, 'MyIntTypeName'>('ColumnName', 'customInt', 'MyIntTypeName')
 this.column<MyBigintType, 'MyBigintTypeName'>('ColumnName', 'customBigint', 'MyBigintTypeName')
 this.column<MyDoubleType, 'MyDoubleTypeName'>('ColumnName', 'customDouble', 'MyDoubleTypeName')
+this.column<MyDecimalType, 'MyDecimalTypeName'>('ColumnName', 'customDecimal', 'MyDecimalTypeName')
 this.column<MyUuidType, 'MyUuidTypeName'>('ColumnName', 'customUuid', 'MyUuidTypeName')
 this.column<MyDateType, 'MyDateTypeName'>('ColumnName', 'customLocalDate', 'MyDateTypeName')
 this.column<MyTimeType, 'MyTimeTypeName'>('ColumnName', 'customLocalTime', 'MyTimeTypeName')
@@ -75,7 +77,7 @@ Choose by the values your code handles, not only by the type of the column in th
 | A whole number that fits in a JavaScript `number` | `int` | Reading a number past `Number.MAX_SAFE_INTEGER` is rejected with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`, instead of giving you a rounded value. Sending a number with decimals is rejected too. |
 | A whole number that can be larger, like a 64-bit counter | `bigint` | The value in your code is a `bigint`. Some drivers round large integers unless you configure them: see the [query runner](query-runners/index.md#which-one-for-your-database) of your driver. The query is rejected rather than giving you a rounded value. |
 | A number with decimals, when a JavaScript `number` is enough | `double` | The value becomes a `number`, whatever the column is. A `decimal` column with more digits than a `number` holds loses them. |
-| A decimal number that must stay exact, like money | `customDouble` | With your own type for it, and its [conversion registered](#custom-types): without it, the value is converted as a `double` and loses the digits a `number` doesn't hold. |
+| A decimal number that must stay exact, like money | `customDecimal` | With your own type for it. The value is a text with all its digits; what each database keeps is in [Exact decimals](#exact-decimals). |
 | Text | `string` | An empty string [has no value](connection.md#allowing-empty-string) by default. |
 | True or false | `boolean` | Oracle and SQL Server store it as a number or a bit, with `0` and `1`. For other representations, like `'Y'` and `'N'`, see [Custom booleans values](../advanced/custom-booleans-values.md). |
 | A UUID | `uuid` | It's a `string` in your code, and how it's stored depends on the database, as in the tip above. |
@@ -88,13 +90,14 @@ Choose by the values your code handles, not only by the type of the column in th
 
 ## Custom types
 
-A custom type (`customInt`, `customBigint`, `customDouble`, `customUuid`, `customLocalDate`, `customLocalTime`, `customLocalDateTime`, `enum`, `custom` and `customComparable`) gives a column your own TypeScript type, and its name (the last argument of the column, like `'Cents'`) identifies it. The first word of the type is its category: it says which operations the column offers in a query, and how its values are converted.
+A custom type (`customInt`, `customBigint`, `customDouble`, `customDecimal`, `customUuid`, `customLocalDate`, `customLocalTime`, `customLocalDateTime`, `enum`, `custom` and `customComparable`) gives a column your own TypeScript type, and its name (the last argument of the column, like `'Cents'`) identifies it. The first word of the type is its category: it says which operations the column offers in a query, and how its values are converted.
 
 | Category | Its values are converted as |
 |---|---|
 | `customInt` | `int` |
 | `customBigint` | `bigint` |
 | `customDouble` | `double` |
+| `customDecimal` | A decimal number as text: see [Exact decimals](#exact-decimals) |
 | `customUuid` | `uuid` |
 | `customLocalDate` | `localDate` |
 | `customLocalTime` | `localTime` |
@@ -111,7 +114,7 @@ costCents = this.column<Cents, 'Cents'>('cost_cents', 'customInt', 'Cents')
 
 !!! important
 
-    Register the conversion of an `enum`, a `custom` or a `customComparable`, and of a custom type whose values in your code aren't those of its category, like an exact decimal kept as text in a `customDouble`. Without it, an `enum`, a `custom` or a `customComparable` is returned as it comes, and that depends on where it comes from: from a plain column you get what the driver gives, which can be different in each driver, and from [an array aggregate](../queries/aggregate-as-object-array.md#how-the-values-go-through-json) you get what is in the JSON. A number there is its text, so that no digit is lost, and it's the conversion that decides what to do with it.
+    Register the conversion of an `enum`, a `custom` or a `customComparable`, and of a custom type whose values in your code aren't those of its category, like a `customDouble` kept as text. Without it, an `enum`, a `custom` or a `customComparable` is returned as it comes, and that depends on where it comes from: from a plain column you get what the driver gives, which can be different in each driver, and from [an array aggregate](../queries/aggregate-as-object-array.md#how-the-values-go-through-json) you get what is in the JSON. A number there is its text, so that no digit is lost, and it's the conversion that decides what to do with it.
 
 The best place to register it is the connection, so it applies everywhere that type is used. These are the methods to implement, and all of them receive the name of the type and its category:
 
@@ -121,7 +124,7 @@ The best place to register it is the connection, so it applies everywhere that t
 
 The SQL type a parameter is sent with comes from [its category](#how-a-value-is-sent-to-the-database); the `typesByName` option of the query runner gives a type of your own another one.
 
-For example, an exact decimal kept as text, so that no digit is lost: it's read as the text the database gives, and sent as it is:
+For example, a `customDouble` kept as text, so that no digit is lost: it's read as the text the database gives, and sent as it is. A [`customDecimal`](#exact-decimals) does this without a conversion of your own:
 
 ```ts
 import type { TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
@@ -185,6 +188,34 @@ async function main() {
 
 When only one column needs its own conversion, use a [type adapter](#type-adapters) in that column. When the conversion is generic, see [Global type adapter](#global-type-adapter).
 
+## Exact decimals
+
+A `customDecimal` is a decimal number with your own TypeScript type, whose value is the text of the number, like `'12345678901234567890.1234567891'`. A JavaScript `number` keeps about 16 significant digits; the text keeps all of them, and the scale, like the `0` of `1.50`.
+
+```typescriptreact
+type Amount = string & { readonly __brand: 'Amount' }
+
+amount = this.optionalColumn<Amount, 'Amount'>('amount', 'customDecimal', 'Amount')
+```
+
+The text sent to the database uses a point as the decimal separator and has no exponent, like `'-0.25'`; another text, like `'1,50'` or `'1e3'`, is rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE`. A text read from the database is returned as it comes, with a `0` added before a leading point (`.5` is `'0.5'`).
+
+The operations that keep the value exact return a `customDecimal`: `add`, `subtract`, `multiply`, `modulo`, `abs`, `ceil`, `floor`, `round`, `roundn`, `minValue`, `maxValue` and `sum`. The ones whose result can't be exact return a `double`: `divide`, `power`, `sqrt`, `cbrt`, `exp`, `ln`, `log10`, `logn`, the trigonometric functions and `average`.
+
+What each database keeps, for a `decimal(38, 10)` and a `decimal(10, 2)` column:
+
+| Database | Reading a column | Sending a value | Adding a value, like `amount.add('0.0000000001')` |
+|---|---|---|---|
+| PostgreSQL | All the digits, with the scale of the column: `'1.50'` | As a `numeric` | Exact |
+| MariaDB, MySQL | All the digits, with the scale of the column | As text: exact | Computed as a floating point number: `'12345678901234567000'`. With Bun SQL on MySQL 8 or later it's exact, with 30 decimals |
+| Oracle | The value of a JavaScript `number`: `'12345678901234567000'`, and `'1.5'` for `1.50` | As text: exact, when the decimal separator of the session is a point | The value of a JavaScript `number` |
+| SQL Server | The value of a JavaScript `number`: `'12345678901234567000'`, and `'1.5'` for `1.50` | As an `nvarchar`: exact | The value of a JavaScript `number` |
+| SQLite | The text stored | The text, as it is | Computed as a floating point number |
+
+In every database, a `customDecimal` in an [array aggregate](../queries/aggregate-as-object-array.md) is read from the JSON with all its digits.
+
+SQLite has no exact decimal type. A column declared `decimal` has numeric affinity, and SQLite turns the text into a floating point number when it stores it: `'1.50'` is stored as `1.5`, and a value of 30 digits loses the last ones. A `TEXT` column of a `STRICT` table keeps the text as it was sent, but SQLite compares and orders it as text: `'1.5'` and `'1.50'` are different, `'1234.56'` is less than `'2'`, and a sum or an addition is computed as a floating point number.
+
 ## How a value is sent to the database
 
 Each parameter of a query goes with the name of its type and its category, and the category decides which SQL type it has in the databases where the library declares one:
@@ -195,6 +226,7 @@ Each parameter of a query goes with the name of its type and its category, and t
 | `int`, `customInt` | `int4` | `int` |
 | `bigint`, `customBigint` | `int8` | `bigint` |
 | `double`, `customDouble` | `float8` | `float` |
+| `customDecimal` | `numeric` | `nvarchar`, the text |
 | `string` | `text` | `nvarchar` |
 | `uuid`, `customUuid` | `uuid` | `uniqueidentifier` |
 | `localDate`, `customLocalDate` | `date` | `date` |
@@ -204,7 +236,7 @@ Each parameter of a query goes with the name of its type and its category, and t
 
 PostgreSQL gets the type only where it can't tell it from the rest of the query, like a constant selected on its own or a row of [`Values`](mapping.md#mapping-constant-values-as-view). How it gets it depends on the query runner: `pg` and Bun SQL write it as a cast in the SQL (`select $1::int4 as result`); postgres.js and PGlite send the parameter with its type, and the SQL has no cast (`select $1 as result`). A `null` of one of these categories is a parameter too, with its type: `$1::int4` with the parameter `null` on `pg`. Oracle declares it for a `null` of a number, a date or a time, and for a date or a time returned with `returning`: `NUMBER` or `TIMESTAMP`, as the driver sends their values. On MariaDB, MySQL and SQLite, and on Oracle for the rest, the driver sends each value as JavaScript gives it.
 
-So the category also says how big the value can be in the database: a `customInt` is a 32-bit integer, like an `int`, and a value of your own type that needs 64 bits goes in a `customBigint`; a `customDouble` is a floating point number, and an exact decimal needs [its own conversion](#custom-types).
+So the category also says how big the value can be in the database: a `customInt` is a 32-bit integer, like an `int`, and a value of your own type that needs 64 bits goes in a `customBigint`; a `customDouble` is a floating point number, and an exact decimal is a [`customDecimal`](#exact-decimals).
 
 The `typesByName` option of the query runners of PostgreSQL, SQL Server and Oracle sends the parameters of a type name with the type you declare instead; each query runner's page has its shape.
 

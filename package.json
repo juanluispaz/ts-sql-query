@@ -119,6 +119,9 @@
         "chained-error": "^1.0.0",
         "ts-extended-types": "^1.1.0"
     },
+    "overrides": {
+        "pg-protocol": "1.14.0"
+    },
     "nyc": {
         "exclude": [
             "src/examples/**"

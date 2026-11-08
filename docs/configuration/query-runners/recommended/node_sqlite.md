@@ -86,6 +86,8 @@ async function main() {
 
 It needs the `function` and `aggregate` methods of node:sqlite, which Node has since 22.16; on an older Node, `registerSqliteFunctions` throws `INVALID_CONFIGURATION`.
 
+For SQLite's own extensions written in C, how to compile and load them, and which function each setting needs, see [SQLite functions and extensions](../../supported-databases/sqlite-extensions.md).
+
 ## Inside a transaction something else manages
 
 When the connection is already in a transaction that something else began and ends, like your own code or [another library](../combining-with-another-library.md), create the query runner with `forUseInTransaction`. Its statements run in that transaction, and a transaction can't begin on it: `connection.transaction(...)` and `connection.beginTransaction()` reject with `NESTED_TRANSACTION_NOT_SUPPORTED`.

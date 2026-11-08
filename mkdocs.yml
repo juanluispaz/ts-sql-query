@@ -192,6 +192,7 @@ nav:
       - Oracle: configuration/supported-databases/oracle.md
       - PostgreSQL: configuration/supported-databases/postgresql.md
       - SQLite: configuration/supported-databases/sqlite.md
+      - SQLite functions and extensions: configuration/supported-databases/sqlite-extensions.md
       - SQL Server: configuration/supported-databases/sqlserver.md
     - Query runners: configuration/query-runners/index.md
     - Recommended query runners: 

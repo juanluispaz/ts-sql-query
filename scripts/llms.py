@@ -244,7 +244,7 @@ def _only_database(text, database):
 
 def _of_database(page, slug):
     """A page about one database only goes in the files of that database"""
-    match = re.fullmatch(r'configuration/supported-databases/(\w+)\.md', page)
+    match = re.fullmatch(r'configuration/supported-databases/([a-z]+)(?:-[a-z-]+)?\.md', page)
     return not match or match.group(1) == slug
 
 

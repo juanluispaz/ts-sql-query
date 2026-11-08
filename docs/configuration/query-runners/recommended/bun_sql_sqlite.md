@@ -17,6 +17,8 @@ This page explains how to use `ts-sql-query` with the [Bun SQL](https://bun.com/
 
     [bun:sqlite](bun_sqlite.md) (`BunSqliteQueryRunner`) has none of these limits: one call of `registerSqliteFunctions` registers every function the library writes. If you stay with Bun SQL, set the decimal strategy to `canonical text`: it compares, orders and groups a `customDecimal` exactly, and rejects its arithmetic when the query is built (`UNSUPPORTED_QUERY`), so nothing gives a number that has lost digits. On a system whose SQLite lacks the uuid extension, set the uuid strategy to `string`.
 
+    Which function each setting needs is on [SQLite functions and extensions](../../supported-databases/sqlite-extensions.md).
+
 !!! success "Supported databases"
 
     - [SQLite](../../supported-databases/sqlite.md)

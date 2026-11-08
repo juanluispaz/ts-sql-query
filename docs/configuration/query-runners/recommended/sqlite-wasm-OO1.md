@@ -72,6 +72,8 @@ async function main() {
 
 On sqlite-wasm the functions but `uuid()` are also registered as innocuous (they have no side effects), so a database with `pragma trusted_schema = off` still takes them in an index on an expression or in a view; on the other drivers, which can't mark them, SQLite refuses them there with `unsafe use of tsq_decimal_key()`.
 
+For SQLite's own extensions written in C, how to compile and load them, and which function each setting needs, see [SQLite functions and extensions](../../supported-databases/sqlite-extensions.md).
+
 ## Inside a transaction something else manages
 
 When the connection is already in a transaction that something else began and ends, like your own code or [another library](../combining-with-another-library.md), create the query runner with `forUseInTransaction`. Its statements run in that transaction, and a transaction can't begin on it: `connection.transaction(...)` and `connection.beginTransaction()` reject with `NESTED_TRANSACTION_NOT_SUPPORTED`.

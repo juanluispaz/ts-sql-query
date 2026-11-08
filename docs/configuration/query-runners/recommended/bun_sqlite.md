@@ -71,6 +71,8 @@ async function main() {
 - `uuid`, `uuid_str` and `uuid_blob` are always registered, replacing the ones the database has: some builds of SQLite have the uuid extension built in, like the one of macOS, which Bun uses there (measured with SQLite 3.51.0), and its `uuid()` generates version 4 UUIDs, which don't sort by time. To keep the ones the database has, name them in `skip`.
 - `registerSqliteFunctions(db, { skip: ['uuid'] })` leaves out the functions you name, and keeps the one the database has, if it has one.
 
+For SQLite's own extensions written in C, how to compile and load them, and which function each setting needs, see [SQLite functions and extensions](../../supported-databases/sqlite-extensions.md).
+
 ## Inside a transaction something else manages
 
 When the connection is already in a transaction that something else began and ends, like your own code or [another library](../combining-with-another-library.md), create the query runner with `forUseInTransaction`. Its statements run in that transaction, and a transaction can't begin on it: `connection.transaction(...)` and `connection.beginTransaction()` reject with `NESTED_TRANSACTION_NOT_SUPPORTED`.

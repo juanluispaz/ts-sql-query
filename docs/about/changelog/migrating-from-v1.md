@@ -30,7 +30,7 @@ This page lists what to change in an application that runs on `ts-sql-query` v1.
 
     `__UNSUPPORTED__` reaches the internals of the library, with no stability guarantee.
 
-- **New paths, optional.** `ts-sql-query/dynamicCondition` keeps working, and the same names are also in `ts-sql-query/dynamic/pick` and `ts-sql-query/dynamic/condition`. The cross-database symbols can also be imported from the root, `ts-sql-query`. The connections, the query runners and `IDEncrypter` stay on their own path.
+- **New paths, optional.** `ts-sql-query/dynamicCondition` keeps working, except for the names [renamed](#renamed) or [removed](#removed-connections-and-query-runners) below, and the same names are also in `ts-sql-query/dynamic/pick` and `ts-sql-query/dynamic/condition`. The cross-database symbols can also be imported from the root, `ts-sql-query`. The connections, the query runners and `IDEncrypter` stay on their own path.
 - **Dependencies.** `chained-error` and `ts-extended-types` are gone: remove any import of them from your code. The page of each query runner ([pg](../../configuration/query-runners/recommended/pg.md), for example) says which driver versions it is tested on, so check yours before updating.
 
 ## What stops compiling
@@ -63,6 +63,7 @@ The rules of a [dynamic condition](../../dynamic/helper-types/conditions.md) wer
 | v1 | v2 |
 |---|---|
 | `TypeSafePostgreSqlConnection`, `TypeSafeMySqlConnection`, ... | The connection without the prefix, like `PostgreSqlConnection`. Values are plain `number`, `string` and `Date`, not the `int`, `double`, `uuid`, `LocalDate`, ... of `ts-extended-types` |
+| `TyeSafeConnection`, `TyeUnsafeConnection` from `ts-sql-query/Connection`; `TypeSafeDynamicCondition` from `ts-sql-query/dynamicCondition` | `Connection`, same path; `DynamicCondition`, same path |
 | `AnyDBQueryRunner`, `AnyDBPoolQueryRunner`, `LoopBackQueryRunner` | The query runner of your driver |
 | `MsNodeSqlV8QueryRunner`, `TediousQueryRunner`, `TediousPoolQueryRunner` | [`MssqlPoolQueryRunner`](../../configuration/query-runners/recommended/mssql.md) |
 | `MySqlQueryRunner`, `MySqlPoolQueryRunner` | [`MySql2QueryRunner`, `MySql2PoolQueryRunner`](../../configuration/query-runners/recommended/mysql2.md) |
@@ -190,7 +191,7 @@ A rule like this one, that only sends a `customInt` to `int`, is no longer neede
 ### Your own query runner, and the connection of the driver
 
 - `queryRunner.execute(fn)` calls `fn` with one argument, the connection to run statements on: a function with two parameters doesn't compile. With postgres.js and mssql, `fn` received the pool or the client, and the transaction in that second argument ([docs](../../queries/transaction.md#using-the-drivers-connection-in-the-transaction)). `getCurrentNativeConnection()` returns the connection of the transaction, and `undefined` outside one.
-- A class implementing `QueryRunner` has to add `createRejectedPromise`, `nestedTransactionsSupported`, `getErrorReason` and `isSqlError`, and its `createResolvedPromise` must adopt a promise it receives. A class extending `AbstractQueryRunner` inherits them, but has to import it from `__UNSUPPORTED__`.
+- A class implementing `QueryRunner` has to add `createRejectedPromise`, `nestedTransactionsSupported`, `executeInTransactionCallsBeginAndCommit`, `getErrorReason` and `isSqlError`, and its `createResolvedPromise` must adopt a promise it receives. A class extending `AbstractQueryRunner` inherits them, but has to import it from `__UNSUPPORTED__`.
 - `executeInTransaction(fn, ...)` no longer accepts a function returning an array, and `executeBeginTransaction`, `executeCommit`, `executeRollback` and `executeInTransaction` receive an optional `opts` at the end.
 - To log or intercept queries, prefer [`InterceptorQueryRunner`](../../configuration/query-runners/general-purpose/InterceptorQueryRunner.md), which is public and needs no changes beyond the import of `QueryType`.
 - `MockQueryRunner` no longer calls your function with `'isTransactionActive'`. A branch for that value doesn't compile: remove it.

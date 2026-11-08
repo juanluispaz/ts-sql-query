@@ -102,14 +102,23 @@ class ValuesOf<REF extends VIEW<AnyDB, any>> implements IValues<REF> {
     protected column<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<REF, T, TYPE_NAME, 'required'> & Column
     protected column<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<REF, T, TYPE_NAME, 'required'> & Column
     protected column<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<REF, T, TYPE_NAME, 'required'> & Column
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected column<T>(type: 'customInt', typeName: string, adapter?: TypeAdapter): CustomIntValueSource<REF, T, T, 'required'> & Column
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected column<T>(type: 'customDouble', typeName: string, adapter?: TypeAdapter): CustomDoubleValueSource<REF, T, T, 'required'> & Column
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected column<T>(type: 'customUuid', typeName: string, adapter?: TypeAdapter): CustomUuidValueSource<REF, T, T, 'required'> & Column
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected column<T>(type: 'customLocalDate', typeName: string, adapter?: TypeAdapter): CustomLocalDateValueSource<REF, T, T, 'required'> & Column
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected column<T>(type: 'customLocalTime', typeName: string, adapter?: TypeAdapter): CustomLocalTimeValueSource<REF, T, T, 'required'> & Column
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected column<T>(type: 'customLocalDateTime', typeName: string, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<REF, T, T, 'required'> & Column
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected column<T>(type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T, T, 'required'> & Column
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected column<T>(type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T, T, 'required'> & Column
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected column<T>(type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<REF, T, T, 'required'> & Column
     protected column(type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<REF, T, TYPE_NAME, 'required'> & Column */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
@@ -152,14 +161,23 @@ class ValuesOf<REF extends VIEW<AnyDB, any>> implements IValues<REF> {
     protected optionalColumn<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<REF, T, TYPE_NAME, 'optional'> & OptionalColumn
     protected optionalColumn<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<REF, T, TYPE_NAME, 'optional'> & OptionalColumn
     protected optionalColumn<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<REF, T, TYPE_NAME, 'optional'> & OptionalColumn
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected optionalColumn<T>(type: 'customInt', typeName: string, adapter?: TypeAdapter): CustomIntValueSource<REF, T, T, 'optional'> & OptionalColumn
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected optionalColumn<T>(type: 'customDouble', typeName: string, adapter?: TypeAdapter): CustomDoubleValueSource<REF, T, T, 'optional'> & OptionalColumn
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected optionalColumn<T>(type: 'customUuid', typeName: string, adapter?: TypeAdapter): CustomUuidValueSource<REF, T, T, 'optional'> & OptionalColumn
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected optionalColumn<T>(type: 'customLocalDate', typeName: string, adapter?: TypeAdapter): CustomLocalDateValueSource<REF, T, T, 'optional'> & OptionalColumn
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected optionalColumn<T>(type: 'customLocalTime', typeName: string, adapter?: TypeAdapter): CustomLocalTimeValueSource<REF, T, T, 'optional'> & OptionalColumn
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected optionalColumn<T>(type: 'customLocalDateTime', typeName: string, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<REF, T, T, 'optional'> & OptionalColumn
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected optionalColumn<T>(type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T, T, 'optional'> & OptionalColumn
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected optionalColumn<T>(type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T, T, 'optional'> & OptionalColumn
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected optionalColumn<T>(type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<REF, T, T, 'optional'> & OptionalColumn
     protected optionalColumn(type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<REF, T, TYPE_NAME, 'optional'> & OptionalColumn */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
@@ -202,14 +220,23 @@ class ValuesOf<REF extends VIEW<AnyDB, any>> implements IValues<REF> {
     protected virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, fn: (fragment: EqualableFragmentExpression<REF[typeof database], T, TYPE_NAME, 'required'>) => IEqualableValueSource<REF, T, TYPE_NAME, 'required'>, adapter?: TypeAdapter): EqualableValueSource<REF, T, TYPE_NAME, 'required'>
     protected virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, fn: (fragment: EqualableFragmentExpression<REF[typeof database], T, TYPE_NAME, 'required'>) => IEqualableValueSource<REF, T, TYPE_NAME, 'required'>, adapter?: TypeAdapter): EqualableValueSource<REF, T, TYPE_NAME, 'required'>
     protected virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, fn: (fragment: ComparableFragmentExpression<REF[typeof database], T, TYPE_NAME, 'required'>) => IComparableValueSource<REF, T, TYPE_NAME, 'required'>, adapter?: TypeAdapter): ComparableValueSource<REF, T, TYPE_NAME, 'required'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected virtualColumnFromFragment<T>(type: 'customInt', typeName: string, fn: (fragment: CustomIntFragmentExpression<REF[typeof database], T, T, 'required'>) => ICustomIntValueSource<REF, T, T, 'required'>, adapter?: TypeAdapter): CustomIntValueSource<REF, T, T, 'required'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected virtualColumnFromFragment<T>(type: 'customDouble', typeName: string, fn: (fragment: CustomDoubleFragmentExpression<REF[typeof database], T, T, 'required'>) => ICustomDoubleValueSource<REF, T, T, 'required'>, adapter?: TypeAdapter): CustomDoubleValueSource<REF, T, T, 'required'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected virtualColumnFromFragment<T>(type: 'customUuid', typeName: string, fn: (fragment: CustomUuidFragmentExpression<REF[typeof database], T, T, 'required'>) => ICustomUuidValueSource<REF, T, T, 'required'>, adapter?: TypeAdapter): CustomUuidValueSource<REF, T, T, 'required'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected virtualColumnFromFragment<T>(type: 'customLocalDate', typeName: string, fn: (fragment: CustomLocalDateFragmentExpression<REF[typeof database], T, T, 'required'>) => ICustomLocalDateValueSource<REF, T, T, 'required'>, adapter?: TypeAdapter): CustomLocalDateValueSource<REF, T, T, 'required'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected virtualColumnFromFragment<T>(type: 'customLocalTime', typeName: string, fn: (fragment: CustomLocalTimeFragmentExpression<REF[typeof database], T, T, 'required'>) => ICustomLocalTimeValueSource<REF, T, T, 'required'>, adapter?: TypeAdapter): CustomLocalTimeValueSource<REF, T, T, 'required'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected virtualColumnFromFragment<T>(type: 'customLocalDateTime', typeName: string, fn: (fragment: CustomLocalDateTimeFragmentExpression<REF[typeof database], T, T, 'required'>) => ICustomLocalDateTimeValueSource<REF, T, T, 'required'>, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<REF, T, T, 'required'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected virtualColumnFromFragment<T>(type: 'enum', typeName: string, fn: (fragment: EqualableFragmentExpression<REF[typeof database], T, T, 'required'>) => IEqualableValueSource<REF, T, T, 'required'>, adapter?: TypeAdapter): EqualableValueSource<REF, T, T, 'required'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected virtualColumnFromFragment<T>(type: 'custom', typeName: string, fn: (fragment: EqualableFragmentExpression<REF[typeof database], T, T, 'required'>) => IEqualableValueSource<REF, T, T, 'required'>, adapter?: TypeAdapter): EqualableValueSource<REF, T, T, 'required'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected virtualColumnFromFragment<T>(type: 'customComparable', typeName: string, fn: (fragment: ComparableFragmentExpression<REF[typeof database], T, T, 'required'>) => IComparableValueSource<REF, T, T, 'required'>, adapter?: TypeAdapter): ComparableValueSource<REF, T, T, 'required'>
     protected virtualColumnFromFragment(type: string, arg1: any, arg2?: any, arg3?: TypeAdapter): any /* EqualableValueSource<REF, T, TYPE_NAME, 'required'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof arg1 === 'string') {
@@ -254,14 +281,23 @@ class ValuesOf<REF extends VIEW<AnyDB, any>> implements IValues<REF> {
     protected optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, fn: (fragment: EqualableFragmentExpression<REF[typeof database], T, TYPE_NAME, 'optional'>) => IEqualableValueSource<REF, T, TYPE_NAME, 'optional'>, adapter?: TypeAdapter): EqualableValueSource<REF, T, TYPE_NAME, 'optional'>
     protected optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, fn: (fragment: EqualableFragmentExpression<REF[typeof database], T, TYPE_NAME, 'optional'>) => IEqualableValueSource<REF, T, TYPE_NAME, 'optional'>, adapter?: TypeAdapter): EqualableValueSource<REF, T, TYPE_NAME, 'optional'>
     protected optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, fn: (fragment: ComparableFragmentExpression<REF[typeof database], T, TYPE_NAME, 'optional'>) => IComparableValueSource<REF, T, TYPE_NAME, 'optional'>, adapter?: TypeAdapter): ComparableValueSource<REF, T, TYPE_NAME, 'optional'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected optionalVirtualColumnFromFragment<T>(type: 'customInt', typeName: string, fn: (fragment: CustomIntFragmentExpression<REF[typeof database], T, T, 'optional'>) => ICustomIntValueSource<REF, T, T, 'optional'>, adapter?: TypeAdapter): CustomIntValueSource<REF, T, T, 'optional'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected optionalVirtualColumnFromFragment<T>(type: 'customDouble', typeName: string, fn: (fragment: CustomDoubleFragmentExpression<REF[typeof database], T, T, 'optional'>) => ICustomDoubleValueSource<REF, T, T, 'optional'>, adapter?: TypeAdapter): CustomDoubleValueSource<REF, T, T, 'optional'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected optionalVirtualColumnFromFragment<T>(type: 'customUuid', typeName: string, fn: (fragment: CustomUuidFragmentExpression<REF[typeof database], T, T, 'optional'>) => ICustomUuidValueSource<REF, T, T, 'optional'>, adapter?: TypeAdapter): CustomUuidValueSource<REF, T, T, 'optional'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected optionalVirtualColumnFromFragment<T>(type: 'customLocalDate', typeName: string, fn: (fragment: CustomLocalDateFragmentExpression<REF[typeof database], T, T, 'optional'>) => ICustomLocalDateValueSource<REF, T, T, 'optional'>, adapter?: TypeAdapter): CustomLocalDateValueSource<REF, T, T, 'optional'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected optionalVirtualColumnFromFragment<T>(type: 'customLocalTime', typeName: string, fn: (fragment: CustomLocalTimeFragmentExpression<REF[typeof database], T, T, 'optional'>) => ICustomLocalTimeValueSource<REF, T, T, 'optional'>, adapter?: TypeAdapter): CustomLocalTimeValueSource<REF, T, T, 'optional'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected optionalVirtualColumnFromFragment<T>(type: 'customLocalDateTime', typeName: string, fn: (fragment: CustomLocalDateTimeFragmentExpression<REF[typeof database], T, T, 'optional'>) => ICustomLocalDateTimeValueSource<REF, T, T, 'optional'>, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<REF, T, T, 'optional'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected optionalVirtualColumnFromFragment<T>(type: 'enum', typeName: string, fn: (fragment: EqualableFragmentExpression<REF[typeof database], T, T, 'optional'>) => IEqualableValueSource<REF, T, T, 'optional'>, adapter?: TypeAdapter): EqualableValueSource<REF, T, T, 'optional'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected optionalVirtualColumnFromFragment<T>(type: 'custom', typeName: string, fn: (fragment: EqualableFragmentExpression<REF[typeof database], T, T, 'optional'>) => IEqualableValueSource<REF, T, T, 'optional'>, adapter?: TypeAdapter): EqualableValueSource<REF, T, T, 'optional'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected optionalVirtualColumnFromFragment<T>(type: 'customComparable', typeName: string, fn: (fragment: ComparableFragmentExpression<REF[typeof database], T, T, 'optional'>) => IComparableValueSource<REF, T, T, 'optional'>, adapter?: TypeAdapter): ComparableValueSource<REF, T, T, 'optional'>
     protected optionalVirtualColumnFromFragment(type: string, arg1: any, arg2?: any, arg3?: TypeAdapter): any /* EqualableValueSource<REF, T, TYPE_NAME, 'optional'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof arg1 === 'string') {

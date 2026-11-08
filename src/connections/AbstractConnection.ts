@@ -426,14 +426,23 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     const<T, TYPE_NAME extends string>(value: T, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
     const<T, TYPE_NAME extends string>(value: T, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
     const<T, TYPE_NAME extends string>(value: T, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     const<T>(value: T, type: 'customInt', typeName: string, adapter?: TypeAdapter): CustomIntValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     const<T>(value: T, type: 'customDouble', typeName: string, adapter?: TypeAdapter): CustomDoubleValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     const<T>(value: T, type: 'customUuid', typeName: string, adapter?: TypeAdapter): CustomUuidValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     const<T>(value: T, type: 'customLocalDate', typeName: string, adapter?: TypeAdapter): CustomLocalDateValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     const<T>(value: T, type: 'customLocalTime', typeName: string, adapter?: TypeAdapter): CustomLocalTimeValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     const<T>(value: T, type: 'customLocalDateTime', typeName: string, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     const<T>(value: T, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     const<T>(value: T, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     const<T>(value: T, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>
     const(value: any, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<NoTableRequired, T, TYPE_NAME, 'required'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
@@ -476,14 +485,23 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
     optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
     optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     optionalConst<T>(value: T | null | undefined, type: 'customInt', typeName: string, adapter?: TypeAdapter): CustomIntValueSource<NoTableOrViewRequired<DB>, T, T, 'optional'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     optionalConst<T>(value: T | null | undefined, type: 'customDouble', typeName: string, adapter?: TypeAdapter): CustomDoubleValueSource<NoTableOrViewRequired<DB>, T, T, 'optional'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     optionalConst<T>(value: T | null | undefined, type: 'customUuid', typeName: string, adapter?: TypeAdapter): CustomUuidValueSource<NoTableOrViewRequired<DB>, T, T, 'optional'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     optionalConst<T>(value: T | null | undefined, type: 'customLocalDate', typeName: string, adapter?: TypeAdapter): CustomLocalDateValueSource<NoTableOrViewRequired<DB>, T, T, 'optional'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     optionalConst<T>(value: T | null | undefined, type: 'customLocalTime', typeName: string, adapter?: TypeAdapter): CustomLocalTimeValueSource<NoTableOrViewRequired<DB>, T, T, 'optional'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     optionalConst<T>(value: T | null | undefined, type: 'customLocalDateTime', typeName: string, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<NoTableOrViewRequired<DB>, T, T, 'optional'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     optionalConst<T>(value: T | null | undefined, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T, T, 'optional'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     optionalConst<T>(value: T | null | undefined, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T, T, 'optional'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     optionalConst<T>(value: T | null | undefined, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<NoTableOrViewRequired<DB>, T, T, 'optional'>
     optionalConst(value: any, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<NoTableRequired, T, TYPE_NAME, 'optional'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
@@ -585,23 +603,41 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'custom', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
     protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customComparable', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Promise<T>
     protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customComparable', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customInt', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customInt', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customDouble', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customDouble', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customUuid', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customUuid', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customLocalDate', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customLocalDate', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customLocalTime', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customLocalTime', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customLocalDateTime', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customLocalDateTime', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'enum', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'enum', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'custom', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'custom', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customComparable', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
     protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): Promise<any> {
         try {
@@ -706,23 +742,41 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     fragmentWithType<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T, TYPE_NAME, 'optional'>
     fragmentWithType<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): ComparableFragmentExpression<DB, T, TYPE_NAME, 'required'>
     fragmentWithType<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): ComparableFragmentExpression<DB, T, TYPE_NAME, 'optional'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     fragmentWithType<T>(type: 'customInt', typeName: string, required: 'required', adapter?: TypeAdapter): CustomIntFragmentExpression<DB, T, T, 'required'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     fragmentWithType<T>(type: 'customInt', typeName: string, required: 'optional', adapter?: TypeAdapter): CustomIntFragmentExpression<DB, T, T, 'optional'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     fragmentWithType<T>(type: 'customDouble', typeName: string, required: 'required', adapter?: TypeAdapter): CustomDoubleFragmentExpression<DB, T, T, 'required'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     fragmentWithType<T>(type: 'customDouble', typeName: string, required: 'optional', adapter?: TypeAdapter): CustomDoubleFragmentExpression<DB, T, T, 'optional'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     fragmentWithType<T>(type: 'customUuid', typeName: string, required: 'required', adapter?: TypeAdapter): CustomUuidFragmentExpression<DB, T, T, 'required'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     fragmentWithType<T>(type: 'customUuid', typeName: string, required: 'optional', adapter?: TypeAdapter): CustomUuidFragmentExpression<DB, T, T, 'optional'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     fragmentWithType<T>(type: 'customLocalDate', typeName: string, required: 'required', adapter?: TypeAdapter): CustomLocalDateFragmentExpression<DB, T, T, 'required'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     fragmentWithType<T>(type: 'customLocalDate', typeName: string, required: 'optional', adapter?: TypeAdapter): CustomLocalDateFragmentExpression<DB, T, T, 'optional'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     fragmentWithType<T>(type: 'customLocalTime', typeName: string, required: 'required', adapter?: TypeAdapter): CustomLocalTimeFragmentExpression<DB, T, T, 'required'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     fragmentWithType<T>(type: 'customLocalTime', typeName: string, required: 'optional', adapter?: TypeAdapter): CustomLocalTimeFragmentExpression<DB, T, T, 'optional'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     fragmentWithType<T>(type: 'customLocalDateTime', typeName: string, required: 'required', adapter?: TypeAdapter): CustomLocalDateTimeFragmentExpression<DB, T, T, 'required'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     fragmentWithType<T>(type: 'customLocalDateTime', typeName: string, required: 'optional', adapter?: TypeAdapter): CustomLocalDateTimeFragmentExpression<DB, T, T, 'optional'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     fragmentWithType<T>(type: 'enum', typeName: string, required: 'required', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T, T, 'required'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     fragmentWithType<T>(type: 'enum', typeName: string, required: 'optional', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T, T, 'optional'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     fragmentWithType<T>(type: 'custom', typeName: string, required: 'required', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T, T, 'required'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     fragmentWithType<T>(type: 'custom', typeName: string, required: 'optional', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T, T, 'optional'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     fragmentWithType<T>(type: 'customComparable', typeName: string, required: 'required', adapter?: TypeAdapter): ComparableFragmentExpression<DB, T, T, 'required'>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     fragmentWithType<T>(type: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): ComparableFragmentExpression<DB, T, T, 'optional'>
     fragmentWithType(type: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any {
         if (typeof adapter === 'string') {
@@ -798,23 +852,41 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     protected arg<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Argument<'custom', 'optional', 'combined', T, TYPE_NAME>
     protected arg<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Argument<'customComparable', 'required', 'combined', T, TYPE_NAME>
     protected arg<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Argument<'customComparable', 'optional', 'combined', T, TYPE_NAME>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected arg<T>(type: 'customInt', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'customInt', 'required', 'combined', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected arg<T>(type: 'customInt', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'customInt', 'optional', 'combined', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected arg<T>(type: 'customDouble', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'customDouble', 'required', 'combined', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected arg<T>(type: 'customDouble', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'customDouble', 'optional', 'combined', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected arg<T>(type: 'customUuid', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'customUuid', 'required', 'combined', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected arg<T>(type: 'customUuid', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'customUuid', 'optional', 'combined', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected arg<T>(type: 'customLocalDate', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'customLocalDate', 'required', 'combined', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected arg<T>(type: 'customLocalDate', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'customLocalDate', 'optional', 'combined', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected arg<T>(type: 'customLocalTime', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'customLocalTime', 'required', 'combined', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected arg<T>(type: 'customLocalTime', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'customLocalTime', 'optional', 'combined', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected arg<T>(type: 'customLocalDateTime', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'customLocalDateTime', 'required', 'combined', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected arg<T>(type: 'customLocalDateTime', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'customLocalDateTime', 'optional', 'combined', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected arg<T>(type: 'enum', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'enum', 'required', 'combined', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected arg<T>(type: 'enum', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'enum', 'optional', 'combined', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected arg<T>(type: 'custom', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'custom', 'required', 'combined', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected arg<T>(type: 'custom', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'custom', 'optional', 'combined', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected arg<T>(type: 'customComparable', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'customComparable', 'required', 'combined', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected arg<T>(type: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'customComparable', 'optional', 'combined', T, T>
     protected arg(type: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any {
         if (typeof adapter === 'string') {
@@ -888,23 +960,41 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     protected valueArg<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Argument<'custom', 'optional', 'value', T, TYPE_NAME>
     protected valueArg<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Argument<'customComparable', 'required', 'value', T, TYPE_NAME>
     protected valueArg<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Argument<'customComparable', 'optional', 'value', T, TYPE_NAME>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected valueArg<T>(type: 'customInt', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'customInt', 'required', 'value', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected valueArg<T>(type: 'customInt', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'customInt', 'optional', 'value', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected valueArg<T>(type: 'customDouble', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'customDouble', 'required', 'value', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected valueArg<T>(type: 'customDouble', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'customDouble', 'optional', 'value', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected valueArg<T>(type: 'customUuid', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'customUuid', 'required', 'value', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected valueArg<T>(type: 'customUuid', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'customUuid', 'optional', 'value', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected valueArg<T>(type: 'customLocalDate', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'customLocalDate', 'required', 'value', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected valueArg<T>(type: 'customLocalDate', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'customLocalDate', 'optional', 'value', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected valueArg<T>(type: 'customLocalTime', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'customLocalTime', 'required', 'value', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected valueArg<T>(type: 'customLocalTime', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'customLocalTime', 'optional', 'value', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected valueArg<T>(type: 'customLocalDateTime', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'customLocalDateTime', 'required', 'value', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected valueArg<T>(type: 'customLocalDateTime', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'customLocalDateTime', 'optional', 'value', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected valueArg<T>(type: 'enum', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'enum', 'required', 'value', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected valueArg<T>(type: 'enum', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'enum', 'optional', 'value', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected valueArg<T>(type: 'custom', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'custom', 'required', 'value', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected valueArg<T>(type: 'custom', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'custom', 'optional', 'value', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected valueArg<T>(type: 'customComparable', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'customComparable', 'required', 'value', T, T>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected valueArg<T>(type: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'customComparable', 'optional', 'value', T, T>
     protected valueArg(type: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any {
         if (typeof adapter === 'string') {

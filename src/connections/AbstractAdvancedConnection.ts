@@ -49,14 +49,23 @@ export abstract class AbstractAdvancedConnection<DB extends AnyDB> extends Abstr
     protected sequence<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<EqualableValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>>
     protected sequence<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<EqualableValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>>
     protected sequence<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<ComparableValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected sequence<T>(name: string, type: 'customInt', typeName: string, adapter?: TypeAdapter): Sequence<CustomIntValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected sequence<T>(name: string, type: 'customDouble', typeName: string, adapter?: TypeAdapter): Sequence<CustomDoubleValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected sequence<T>(name: string, type: 'customUuid', typeName: string, adapter?: TypeAdapter): Sequence<CustomUuidValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected sequence<T>(name: string, type: 'customLocalDate', typeName: string, adapter?: TypeAdapter): Sequence<CustomLocalDateValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected sequence<T>(name: string, type: 'customLocalTime', typeName: string, adapter?: TypeAdapter): Sequence<CustomLocalTimeValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected sequence<T>(name: string, type: 'customLocalDateTime', typeName: string, adapter?: TypeAdapter): Sequence<CustomLocalDateTimeValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected sequence<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): Sequence<EqualableValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected sequence<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): Sequence<EqualableValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>>
+    /** @deprecated Provide the type name as second generic argument (e.g. <MyType, 'MyTypeName'>), it must match the typeName argument */
     protected sequence<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): Sequence<ComparableValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>>
     protected sequence<_T>(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): Sequence<any> {
         if (typeof adapter === 'string') {

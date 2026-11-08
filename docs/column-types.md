@@ -39,15 +39,18 @@ this.column('ColumnName', 'uuid')
 this.column('ColumnName', 'localDate')
 this.column('ColumnName', 'localTime')
 this.column('ColumnName', 'localDateTime')
+this.column<MyIntType, 'MyIntTypeName'>('ColumnName', 'customInt', 'MyIntTypeName')
+this.column<MyDoubleType, 'MyDoubleTypeName'>('ColumnName', 'customDouble', 'MyDoubleTypeName')
+this.column<MyUuidType, 'MyUuidTypeName'>('ColumnName', 'customUuid', 'MyUuidTypeName')
+this.column<MyDateType, 'MyDateTypeName'>('ColumnName', 'customLocalDate', 'MyDateTypeName')
+this.column<MyTimeType, 'MyTimeTypeName'>('ColumnName', 'customLocalTime', 'MyTimeTypeName')
+this.column<MyDateTimeType, 'MyDateTimeTypeName'>('ColumnName', 'customLocalDateTime', 'MyDateTimeTypeName')
+this.column<MyEnumType, 'MyEnumTypeName'>('ColumnName', 'enum', 'MyEnumTypeName')
+this.column<MyCustomType, 'MyCustomTypeName'>('ColumnName', 'custom', 'MyCustomTypeName')
+this.column<MyCustomComparableType, 'MyCustomComparableTypeName'>('ColumnName', 'customComparable', 'MyCustomComparableTypeName')
+
+// Deprecated: providing only the first generic argument (the type name must be provided as second generic argument)
 this.column<MyIntType>('ColumnName', 'customInt', 'MyIntTypeName')
-this.column<MyDoubleType>('ColumnName', 'customDouble', 'MyDoubleTypeName')
-this.column<MyUuidType>('ColumnName', 'customUuid', 'MyUuidTypeName')
-this.column<MyDateType>('ColumnName', 'customLocalDate', 'MyDateTypeName')
-this.column<MyTimeType>('ColumnName', 'customLocalTime', 'MyTimeTypeName')
-this.column<MyDateTimeType>('ColumnName', 'customLocalDateTime', 'MyDateTimeTypeName')
-this.column<MyEnumType>('ColumnName', 'enum', 'MyEnumTypeName')
-this.column<MyCustomType>('ColumnName', 'custom', 'MyCustomTypeName')
-this.column<MyCustomComparableType>('ColumnName', 'customComparable', 'MyCustomComparableTypeName')
 
 // Deprecated
 this.column('ColumnName', 'stringInt')
@@ -114,7 +117,7 @@ export class RgbColorTypeAdapter implements TypeAdapter {
 And you can define the column as:
 
 ```ts
-this.column<RgbColor>('ColumnName', 'custom', 'RgbColor', new RgbColorTypeAdapter())
+this.column<RgbColor, 'RgbColor'>('ColumnName', 'custom', 'RgbColor', new RgbColorTypeAdapter())
 ```
 
 **Important**:
@@ -172,5 +175,5 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 And you can define the column as:
 
 ```ts
-this.column<RgbColor>('ColumnName', 'custom', 'RgbColor')
+this.column<RgbColor, 'RgbColor'>('ColumnName', 'custom', 'RgbColor')
 ```

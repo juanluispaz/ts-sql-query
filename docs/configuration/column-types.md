@@ -200,21 +200,114 @@ amount = this.optionalColumn<Amount, 'Amount'>('amount', 'customDecimal', 'Amoun
 
 The text sent to the database uses a point as the decimal separator and has no exponent, like `'-0.25'`; another text, like `'1,50'` or `'1e3'`, is rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE`. A text read from the database is returned as it comes, with a `0` added before a leading point (`.5` is `'0.5'`).
 
-The operations that keep the value exact return a `customDecimal`: `add`, `subtract`, `multiply`, `modulo`, `abs`, `ceil`, `floor`, `round`, `roundn`, `minValue`, `maxValue` and `sum`. The ones whose result can't be exact return a `double`: `divide`, `power`, `sqrt`, `cbrt`, `exp`, `ln`, `log10`, `logn`, the trigonometric functions and `average`.
+The operations that keep the value exact return a `customDecimal`: `add`, `subtract`, `multiply`, `modulo`, `abs`, `ceil`, `floor`, `round`, `roundn`, `minValue`, `maxValue` and `sum`. There is no `divide`: the division of two decimals isn't exact, and each database rounds it its own way. The ones whose result can't be exact return a `double`: `power`, `sqrt`, `cbrt`, `exp`, `ln`, `log10`, `logn`, the trigonometric functions and `average`.
+
+A query with a `customDecimal` column, here `tExactAmount` with `amount` as a `decimal(38, 10)` and `price` as a `decimal(10, 2)`:
+
+```ts
+const rows = await connection.selectFrom(tExactAmount)
+    .where(tExactAmount.price.greaterThan('1'))
+    .select({
+        id: tExactAmount.id,
+        amount: tExactAmount.amount,
+        next: tExactAmount.amount.add('0.0000000001'),
+    })
+    .orderBy('id')
+    .executeSelectMany()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        amount as amount, 
+        amount + cast(? as decimal(11, 10)) as next 
+    from exact_amount 
+    where price > cast(? as decimal(1, 0)) 
+    order by id
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        amount as amount, 
+        amount + cast(? as decimal(11, 10)) as `next` 
+    from exact_amount 
+    where price > cast(? as decimal(1, 0)) 
+    order by id
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        amount as "amount", 
+        amount + :0 as "next" 
+    from exact_amount 
+    where price > :1 
+    order by "id"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        amount as amount, 
+        amount + $1 as next 
+    from exact_amount 
+    where price > $2 
+    order by id
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        amount as amount, 
+        case when amount is null then null else decimal_add(amount, ?1) end as next 
+    from exact_amount 
+    where decimal_cmp(price, ?2) > 0 
+    order by id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        convert(nvarchar(41), amount) as amount, 
+        convert(nvarchar(41), amount + @0) as [next] 
+    from exact_amount 
+    where price > @1 
+    order by id
+    ```
+
+The parameters are: `[ '0.0000000001', '1' ]`
+
+For a row with the amount `12345678901234567890.1234567891` and the price `1.50`, the row read is `{ id: 1, amount: '12345678901234567890.1234567891', next: '12345678901234567890.1234567892' }`. On SQLite the query uses functions you register in the connection of the driver: see below.
 
 What each database keeps, for a `decimal(38, 10)` and a `decimal(10, 2)` column:
 
-| Database | Reading a column | Sending a value | Adding a value, like `amount.add('0.0000000001')` |
+| Database | Reading a value | Sending a value | Adding, comparing and ordering |
 |---|---|---|---|
+| MariaDB, MySQL | All the digits, with the scale of the column: `'1.50'` | As text, written as `cast(? as decimal(P, S))` with the digits of the value where it isn't assigned to a column; a value wider than `decimal(65, 30)` is rejected | Exact |
+| Oracle | All the digits, without the zeros at the end of the decimals: `'1.5'` for `1.50` | As text | Exact |
 | PostgreSQL | All the digits, with the scale of the column: `'1.50'` | As a `numeric` | Exact |
-| MariaDB, MySQL | All the digits, with the scale of the column | As text: exact | Computed as a floating point number: `'12345678901234567000'`. With Bun SQL on MySQL 8 or later it's exact, with 30 decimals |
-| Oracle | The value of a JavaScript `number`: `'12345678901234567000'`, and `'1.5'` for `1.50` | As text: exact, when the decimal separator of the session is a point | The value of a JavaScript `number` |
-| SQL Server | The value of a JavaScript `number`: `'12345678901234567000'`, and `'1.5'` for `1.50` | As an `nvarchar`: exact | The value of a JavaScript `number` |
-| SQLite | The text stored | The text, as it is | Computed as a floating point number |
+| SQLite | The text stored | The text, as it is | Exact with the default decimal strategy: see below |
+| SQL Server | All the digits, with the scale of the column: `'1.50'`; the outermost query converts the value to text with `convert(nvarchar(41), …)` | As an `nvarchar` | Exact |
 
 In every database, a `customDecimal` in an [array aggregate](../queries/aggregate-as-object-array.md) is read from the JSON with all its digits.
 
-SQLite has no exact decimal type. A column declared `decimal` has numeric affinity, and SQLite turns the text into a floating point number when it stores it: `'1.50'` is stored as `1.5`, and a value of 30 digits loses the last ones. A `TEXT` column of a `STRICT` table keeps the text as it was sent, but SQLite compares and orders it as text: `'1.5'` and `'1.50'` are different, `'1234.56'` is less than `'2'`, and a sum or an addition is computed as a floating point number.
+On SQL Server the conversion to text goes only in the select that returns the rows, so the database compares, groups and orders the numbers, not their text. An order by of a converted column is written with its expression, and a compound query, or a `selectDistinctFrom` ordered by a converted column, is wrapped in a select that converts the columns:
+
+```sql
+select o_1_.id as id, convert(nvarchar(41), o_1_.shifted) as shifted from (select id as id, price + @0 as shifted from exact_amount where id in (@1, @2) union select id as id, price + @3 as shifted from exact_amount where id in (@4, @5)) as o_1_ order by o_1_.shifted
+```
+
+If a select adds columns of its own with `customizeQuery({ beforeColumns })`, the wrapping select passes them on too: it selects the converted columns and every column of the wrapped select, where the converted ones have another alias (`price_tsq_raw`).
+
+On MariaDB and MySQL, a text parameter would be computed as a floating point number, and compared as one in an `in` or a `between`; the cast keeps it exact. The widest decimal of these databases has 65 digits, 30 of them decimals: the cast of a value with more gives `999…9` without an error, and no column can hold it, so it's rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE` before the query is sent.
+
+Oracle reads the text with a point as the decimal separator, the one the library always sends. A session that uses another separator (`NLS_NUMERIC_CHARACTERS`) rejects the value with `ORA-01722`.
+
+SQLite has no exact decimal type, and a column declared `decimal` turns the text into a floating point number when it stores it: store a `customDecimal` in a `TEXT` column of a `STRICT` table. How the library computes and compares it is the decimal strategy of the connection: by default, with functions you register in the connection of the driver, which make every operation exact. See [Exact decimals: the decimal strategies](supported-databases/sqlite.md#exact-decimals-the-decimal-strategies).
 
 ## How a value is sent to the database
 

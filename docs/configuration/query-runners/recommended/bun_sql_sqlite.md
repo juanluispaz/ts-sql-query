@@ -53,6 +53,10 @@ If your queries may return integers larger than JavaScript's safe integer range,
 
 To work with [UUIDs in SQLite](../../supported-databases/sqlite.md#uuid-strategies) the default strategy is `uuid-extension`, which needs the SQL functions of the [uuid extension](https://sqlite.org/src/file?name=ext/misc/uuid.c). Bun SQL can't register functions written in JavaScript: use the `string` strategy.
 
+## SQLite and exact decimals
+
+A [`customDecimal`](../../column-types.md#exact-decimals) on SQLite is exact with the [decimal strategies](../../supported-databases/sqlite.md#exact-decimals-the-decimal-strategies) that write functions, the default included. Bun SQL can't register functions written in JavaScript: use the `text` strategy, or bun:sqlite.
+
 ## Inside a transaction you began with Bun SQL
 
 Created with the transaction object of `sql.begin(...)`, the query runner runs its statements in that transaction, which Bun SQL commits or rolls back when your function ends. A transaction can't begin inside it: `connection.transaction(...)` and `connection.beginTransaction()` are rejected with `NESTED_TRANSACTION_NOT_SUPPORTED`.

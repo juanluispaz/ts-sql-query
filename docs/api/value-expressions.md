@@ -495,7 +495,6 @@ interface CustomDecimalValueSource<T, TYPE_NAME extends string> extends Comparab
     add(value: T | this): this
     subtract(value: T | this): this
     multiply(value: T | this): this
-    divide(value: T | this): NumberValueSource
     modulo(value: T | this): this
     atan2(value: number | NumberValueSource): NumberValueSource
 }

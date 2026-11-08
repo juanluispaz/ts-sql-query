@@ -82,6 +82,42 @@ Each entry says what it is, why it waits, and what is already known.
   [`COVERAGE_RUNBOOK.md`](./COVERAGE_RUNBOOK.md)). Nothing is deleted without
   that review.
 
+## Temporal values for the date and time types
+
+- **What:** accepting and returning the values of JavaScript's `Temporal` for
+  the date and time types: `Temporal.PlainDate` for `localDate`,
+  `Temporal.PlainTime` for `localTime`, `Temporal.PlainDateTime` for
+  `localDateTime`, and probably `Temporal.Instant` for the instant columns
+  (`timestamptz`, `datetimeoffset`, Oracle `TIMESTAMP WITH TIME ZONE`).
+- **Why deferred:** the work on dates in any time zone keeps `Date`, and makes
+  it right first. Temporal comes after, with its own design.
+- **Known (2026-11-08):**
+  - `Temporal` is a global in Node 26.1 and Bun 1.4.4 (run), and TypeScript 7
+    ships `lib.esnext.temporal.d.ts`. Not checked: Node 22 and 24, and which
+    `lib` the library's consumers compile with.
+  - A plain value has no zone, which is what these types mean: with it, the
+    process zone stops mattering, and a wall clock that doesn't exist locally
+    (the spring-forward hour) no longer moves.
+  - The text the connections send for dates in any time zone (`'2024-01-14'`,
+    `'09:15:30.000'`, a date-time with the process offset on PostgreSQL and SQL
+    Server, without it on MySQL and MariaDB) is close to what Temporal's
+    `toString()` gives; a Temporal value would send its own text, with no
+    offset for a plain value.
+  - Temporal holds nanoseconds and `Date` milliseconds: PostgreSQL keeps
+    microseconds and SQL Server `datetime2` 100 ns. Keeping them on reading
+    needs the driver's text, not its `Date`: the per-query parsers of PGlite,
+    or the driver options that hand text. Rebuilding a `Date` from its UTC
+    components, which the reading side of the time-zone work does on some
+    drivers, is for `Date` only.
+  - Places that check `instanceof Date` today: `transformValueToDB` /
+    `transformValueFromDB` in the connections (`AbstractConnection`,
+    `SqlServerConnection`, `OracleConnection`), the `inferType` of
+    `MssqlPoolQueryRunner`, and the decode of `aggregateAsArray` JSON.
+  - To decide then: whether the choice is per connection or per column type,
+    how the TypeScript types of the three value sources change, and what
+    `Temporal.ZonedDateTime` maps to (only Oracle `TIMESTAMP WITH TIME ZONE`
+    keeps a region name).
+
 ## External dates to watch
 
 - **PostgreSQL 19:** general availability planned for 2026-11-19. The `newest`

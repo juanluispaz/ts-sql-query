@@ -473,7 +473,7 @@ describe(ctx.label, () => {
             .select({ label: tProject.name })
         const result = await arm1.union(arm2).orderBy('label').executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select /* cols */  name as "label" from project where id = :0 union select name as "label" from project where id = :1 order by 1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select /* cols */  name as "label" from project where id = :0 union select name as "label" from project where id = :1 order by "label""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

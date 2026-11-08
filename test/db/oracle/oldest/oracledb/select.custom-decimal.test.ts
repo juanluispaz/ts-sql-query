@@ -331,33 +331,35 @@ describe(ctx.label, () => {
             .where(tExactAmount.id.equals(id))
             .select({ price: tExactAmount.price })
             .customizeQuery({ beforeColumns: ctx.conn.rawFragment`${tExactAmount.id} as "extra_id", ` })
-        ctx.mockNext([{ price: '1.5' }, { price: '-0.25' }])
-        ctx.mockNext([{ price: '1.5', extra_id: 1 }, { price: '-.25', extra_id: 2 }])
+        ctx.mockNext([{ price: '-0.25' }, { price: '1.5' }])
+        ctx.mockNext([{ price: '-.25', extra_id: 2 }, { price: '1.5', extra_id: 1 }])
         const compound = await priceOf(1).union(priceOf(2)).orderBy('price').executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "extra_id",  price as "price" from exact_amount where id = :0 union select id as "extra_id",  price as "price" from exact_amount where id = :1 order by 1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "extra_id",  price as "price" from exact_amount where id = :0 union select id as "extra_id",  price as "price" from exact_amount where id = :1 order by "price""`)
         const compoundDatabaseRows = await ctx.conn.queryRunner.executeSelectManyRows(ctx.lastSql, ctx.lastParams)
         // Oracle doesn't keep the scale of a number
         expect(rows).toEqual([{ price: '-0.25' }, { price: '1.5' }, { price: '1234.56' }])
         // The rows of the database have the text Oracle writes, without the zero before the point
         expect(databaseRows.map(row => [row.price, row.extra_id])).toEqual([['-.25', 2], ['1.5', 1], ['1234.56', 5]])
-        // TODO[BUG]: the order by of the compound query names the column by its position, and position 1 is the column
-        // the customization added: the rows are ordered by extra_id (see test/BUGS.md)
-        expect(compound).toEqual([{ price: '1.5' }, { price: '-0.25' }])
-        expect(compoundDatabaseRows.map(row => [row.price, row.extra_id])).toEqual([['1.5', 1], ['-.25', 2]])
+        // The order by of the compound query names the column, which the columns the customization adds don't move
+        expect(compound).toEqual([{ price: '-0.25' }, { price: '1.5' }])
+        expect(compoundDatabaseRows.map(row => [row.price, row.extra_id])).toEqual([['-.25', 2], ['1.5', 1]])
     })
 
     test('custom-decimal/a-value-wider-than-the-decimals-of-the-database', async () => {
-        // 65 digits before the point and one after, which a number of the database doesn't keep: it has 38 digits; the column exact_amount.amount is a number(38, 10)
+        // 65 digits before the point and one after, and a number of the database keeps 38 significant digits: the value
+        // is rejected before it is sent. A value of 30 digits alone and added to another one keeps every digit
         const wide = '12345678901234567890123456789012345678901234567890123456789012345.5' as Amount
-        ctx.mockNext(wide)
-        ctx.mockNext('12345678901234567890123456789012345678900000000000000000000000000')
-        ctx.mockNext(1)
+        const fits = '12345678901234567890.1234567891' as Amount
+        ctx.mockNext(fits)
+        ctx.mockNext('12345678901234567890.6234567891')
         const outcomes: (Amount | number | TsSqlErrorReason | { reason: string, errorType: string | undefined } | undefined)[] = []
         await ctx.withRollback(async () => {
             for (const query of [
                 () => ctx.conn.selectFromNoTable().selectOneColumn(ctx.conn.const(wide, 'customDecimal', 'Amount')).executeSelectOne(),
                 () => ctx.conn.selectFromNoTable().selectOneColumn(ctx.conn.const(wide, 'customDecimal', 'Amount').add('0.5' as Amount)).executeSelectOne(),
                 () => ctx.conn.insertInto(tExactAmount).set({ id: 6, amount: wide }).executeInsert(),
+                () => ctx.conn.selectFromNoTable().selectOneColumn(ctx.conn.const(fits, 'customDecimal', 'Amount')).executeSelectOne(),
+                () => ctx.conn.selectFromNoTable().selectOneColumn(ctx.conn.const(fits, 'customDecimal', 'Amount').add('0.5' as Amount)).executeSelectOne(),
             ]) {
                 try {
                     outcomes.push(await query())
@@ -368,9 +370,8 @@ describe(ctx.label, () => {
                 }
             }
         })
-        // The column can't hold the value: the database rejects the insert (in mock mode, the insert is done).
-        // TODO[BUG]: the sum is rounded to 40 digits without an error (see test/BUGS.md)
-        expect(outcomes).toEqual([wide, '12345678901234567890123456789012345678900000000000000000000000000', ctx.realDbEnabled ? { reason: 'SQL_INVALID_VALUE', errorType: 'out of range' } : 1])
+        const rejected = { reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: wide, typeName: 'Amount', paramIndex: 0 }
+        expect(outcomes).toEqual([rejected, rejected, { ...rejected, paramIndex: 1, tableName: 'exact_amount', columnPath: 'amount' }, fits, '12345678901234567890.6234567891'])
     })
 
     test('custom-decimal/abs-ceil-floor-round-and-modulo-keep-every-digit', async () => {

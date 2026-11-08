@@ -61,7 +61,7 @@ describe(ctx.label, () => {
             .selectOneColumn(tExactAmount.id)
             .orderBy(tExactAmount.price)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as [result] from exact_amount where amount <> @0 and price > @1 and price <> @2 order by exact_amount.price"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as [result] from exact_amount where amount <> cast(@0 as decimal(30, 10)) and price > cast(@1 as decimal(1, 0)) and price <> cast(@2 as decimal(1, 0)) order by exact_amount.price"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "12345678901234567890.1234567890",
@@ -85,12 +85,12 @@ describe(ctx.label, () => {
             .where(tExactAmount.amount.equals('12345678901234567890.1234567891' as Amount))
             .selectOneColumn(tExactAmount.id)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as [result] from exact_amount where amount = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as [result] from exact_amount where amount = cast(@0 as decimal(30, 10))"`)
         expect(ids).toEqual([1])
     })
 
     test('custom-decimal/adds-and-multiplies-exactly', async () => {
-        ctx.mockNext({ next: '12345678901234567890.1234567892', double: '3.0000', negated: '-1.50' })
+        ctx.mockNext({ next: '12345678901234567890.1234567892', double: '3.00', negated: '-1.50' })
         const row = await ctx.conn.selectFrom(tExactAmount)
             .where(tExactAmount.id.equals(1))
             .select({
@@ -99,7 +99,7 @@ describe(ctx.label, () => {
                 negated: tExactAmount.price.subtract(tExactAmount.price).subtract(tExactAmount.price),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(nvarchar(41), amount + @0) as [next], convert(nvarchar(41), price * @1) as [double], convert(nvarchar(41), price - price - price) as negated from exact_amount where id = @2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(nvarchar(41), amount + cast(@0 as decimal(11, 10))) as [next], convert(nvarchar(41), price * cast(@1 as decimal(1, 0))) as [double], convert(nvarchar(41), price - price - price) as negated from exact_amount where id = @2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0.0000000001",
@@ -108,7 +108,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof row, { next?: Amount; double?: Amount; negated?: Amount }>>()
-        expect(row).toEqual({ next: '12345678901234567890.1234567892', double: '3.0000', negated: '-1.50' })
+        expect(row).toEqual({ next: '12345678901234567890.1234567892', double: '3.00', negated: '-1.50' })
     })
 
     test('custom-decimal/sums-exactly', async () => {
@@ -132,12 +132,12 @@ describe(ctx.label, () => {
             .where(tExactAmount.amount.in(['12345678901234567890.1234567890' as Amount, '1' as Amount]))
             .selectOneColumn(tExactAmount.id)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as [result] from exact_amount where amount in (@0, @1)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as [result] from exact_amount where amount in (cast(@0 as decimal(30, 10)), cast(@1 as decimal(1, 0)))"`)
         const betweenIds = await ctx.conn.selectFrom(tExactAmount)
             .where(tExactAmount.amount.between('12345678901234567890.1234567890' as Amount, '12345678901234567890.1234567890' as Amount))
             .selectOneColumn(tExactAmount.id)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as [result] from exact_amount where amount between @0 and @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as [result] from exact_amount where amount between cast(@0 as decimal(30, 10)) and cast(@1 as decimal(30, 10))"`)
         expect(inIds).toEqual([])
         expect(betweenIds).toEqual([])
     })
@@ -150,7 +150,7 @@ describe(ctx.label, () => {
             .select({ id: tExactAmount.id, shifted: tExactAmount.price.add('9' as Amount) })
             .orderBy('shifted')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, convert(nvarchar(41), price + @0) as shifted from exact_amount where price is not null order by price + @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, convert(nvarchar(41), price + cast(@0 as decimal(1, 0))) as shifted from exact_amount where price is not null order by price + cast(@0 as decimal(1, 0))"`)
         assertType<Exact<typeof rows, { id: number; shifted?: Amount }[]>>()
         expect(rows).toEqual([{ id: 2, shifted: '8.75' }, { id: 3, shifted: '9.00' }, { id: 1, shifted: '10.50' }, { id: 5, shifted: '1243.56' }])
     })
@@ -162,7 +162,7 @@ describe(ctx.label, () => {
             .select({ shifted: tExactAmount.price.add('9' as Amount) })
             .orderBy('shifted')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(nvarchar(41), o_1_.shifted) as shifted from (select distinct price + @0 as shifted from exact_amount where price is not null) as o_1_ order by o_1_.shifted"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(nvarchar(41), o_1_.shifted) as shifted from (select distinct price + cast(@0 as decimal(1, 0)) as shifted from exact_amount where price is not null) as o_1_ order by o_1_.shifted"`)
         assertType<Exact<typeof rows, { shifted?: Amount }[]>>()
         expect(rows).toEqual([{ shifted: '8.75' }, { shifted: '9.00' }, { shifted: '10.50' }, { shifted: '1243.56' }])
     })
@@ -179,7 +179,7 @@ describe(ctx.label, () => {
             )
             .orderBy('shifted')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select o_1_.id as id, convert(nvarchar(41), o_1_.shifted) as shifted from (select id as id, price + @0 as shifted from exact_amount where id in (@1, @2) union select id as id, price + @3 as shifted from exact_amount where id in (@4, @5)) as o_1_ order by o_1_.shifted"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select o_1_.id as id, convert(nvarchar(41), o_1_.shifted) as shifted from (select id as id, price + cast(@0 as decimal(1, 0)) as shifted from exact_amount where id in (@1, @2) union select id as id, price + cast(@3 as decimal(1, 0)) as shifted from exact_amount where id in (@4, @5)) as o_1_ order by o_1_.shifted"`)
         assertType<Exact<typeof rows, { id: number; shifted?: Amount }[]>>()
         expect(rows).toEqual([{ id: 2, shifted: '8.75' }, { id: 3, shifted: '9.00' }, { id: 1, shifted: '10.50' }, { id: 5, shifted: '1243.56' }])
     })
@@ -193,7 +193,7 @@ describe(ctx.label, () => {
             .orderBy('price', 'desc')
             .limit(1)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(nvarchar(41), price) as price, convert(nvarchar(41), sum(amount)) as total from exact_amount group by price having sum(amount) > @0 order by exact_amount.price desc offset 0 rows fetch next @1 rows only"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(nvarchar(41), price) as price, convert(nvarchar(41), sum(amount)) as total from exact_amount group by price having sum(amount) > cast(@0 as decimal(2, 0)) order by exact_amount.price desc offset 0 rows fetch next @1 rows only"`)
         assertType<Exact<typeof rows, { price?: Amount; total?: Amount }[]>>()
         expect(rows).toEqual([{ price: '1234.56', total: '98765432109876543210.9876543210' }])
     })
@@ -206,7 +206,7 @@ describe(ctx.label, () => {
                 .where(tExactAmount.id.equals(1))
                 .returning({ amount: tExactAmount.amount, price: tExactAmount.price })
                 .executeUpdateOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update exact_amount set amount = amount + @0 output convert(nvarchar(41), inserted.amount) as amount, convert(nvarchar(41), inserted.price) as price where id = @1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update exact_amount set amount = amount + cast(@0 as decimal(11, 10)) output convert(nvarchar(41), inserted.amount) as amount, convert(nvarchar(41), inserted.price) as price where id = @1"`)
             assertType<Exact<typeof row, { amount?: Amount; price?: Amount }>>()
             expect(row).toEqual({ amount: '12345678901234567890.1234567892', price: '1.50' })
         })
@@ -224,7 +224,7 @@ describe(ctx.label, () => {
                 prices: ctx.conn.sumDistinct(tExactAmount.price),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(nvarchar(41), min(price + @0)) as smallest, convert(nvarchar(41), max(price + @1)) as largest, convert(nvarchar(41), sum(distinct price)) as prices from exact_amount"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(nvarchar(41), min(price + cast(@0 as decimal(1, 0)))) as smallest, convert(nvarchar(41), max(price + cast(@1 as decimal(1, 0)))) as largest, convert(nvarchar(41), sum(distinct price)) as prices from exact_amount"`)
         assertType<Exact<typeof row, { smallest?: Amount; largest?: Amount; prices?: Amount }>>()
         const rows = await ctx.conn.selectFrom(tExactAmount)
             .where(tExactAmount.price.isNotNull())
@@ -235,14 +235,14 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, convert(nvarchar(41), case when (price + @0) is null then null else greatest(price + @1, @2) end) as atLeast, convert(nvarchar(41), case when (price + @3) is null then null else least(price + @4, @5) end) as atMost from exact_amount where price is not null order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, convert(nvarchar(41), case when (price + cast(@0 as decimal(1, 0))) is null then null else greatest(price + cast(@1 as decimal(1, 0)), cast(@2 as decimal(2, 1))) end) as atLeast, convert(nvarchar(41), case when (price + cast(@3 as decimal(1, 0))) is null then null else least(price + cast(@4 as decimal(1, 0)), cast(@5 as decimal(2, 1))) end) as atMost from exact_amount where price is not null order by id"`)
         const ids = await ctx.conn.selectFrom(tExactAmount)
             .where(tExactAmount.price.notIn(['1.5' as Amount, '-0.25' as Amount]).or(tExactAmount.price.isNull()))
             .and(tExactAmount.price.notBetween('0.5' as Amount, '2000' as Amount).or(tExactAmount.price.isNull()))
             .selectOneColumn(tExactAmount.id)
             .orderBy('result')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as [result] from exact_amount where (price not in (@0, @1) or price is null) and (price not between @2 and @3 or price is null) order by [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as [result] from exact_amount where (price not in (cast(@0 as decimal(2, 1)), cast(@1 as decimal(3, 2))) or price is null) and (price not between cast(@2 as decimal(2, 1)) and cast(@3 as decimal(4, 0)) or price is null) order by [result]"`)
         expect(row).toEqual({ smallest: '8.75', largest: '1243.56', prices: '1235.81' })
         // The larger or the smaller of two decimals has the larger of their scales
         expect(rows).toEqual([{ id: 1, atLeast: '10.50', atMost: '9.50' }, { id: 2, atLeast: '9.50', atMost: '8.75' }, { id: 3, atLeast: '9.50', atMost: '9.00' }, { id: 5, atLeast: '1243.56', atMost: '9.50' }])
@@ -296,13 +296,13 @@ describe(ctx.label, () => {
                 .selectOneColumn(tExactAmount.id)
                 .orderBy('result')
                 .executeSelectMany()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as [result] from exact_amount where case when price = @0 then 1 else 0 end = 1 order by [result]"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as [result] from exact_amount where case when price = cast(@0 as decimal(2, 1)) then 1 else 0 end = 1 order by [result]"`)
             const otherThan = await ctx.conn.selectFrom(tExactAmount)
                 .where(tExactAmount.id.in([1, 4, 6]))
                 .and(tExactAmount.price.isNot('1.5' as Amount))
                 .selectOneColumn(tExactAmount.id)
                 .executeSelectMany()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as [result] from exact_amount where id in (@0, @1, @2) and not (case when price = @3 then 1 else 0 end = 1)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as [result] from exact_amount where id in (@0, @1, @2) and not (case when price = cast(@3 as decimal(2, 1)) then 1 else 0 end = 1)"`)
             assertType<Exact<typeof union, (Amount | null)[]>>()
             // The text shown is the one of one of the rows
             expect(union.map(price => price === '1.5' ? '1.50' : price)).toEqual(['1.50'])
@@ -343,17 +343,20 @@ describe(ctx.label, () => {
     })
 
     test('custom-decimal/a-value-wider-than-the-decimals-of-the-database', async () => {
-        // 65 digits before the point and one after, which a decimal of the database doesn't keep: it has 38 digits; the column exact_amount.amount is a decimal(38, 10)
+        // 65 digits before the point and one after, and the widest decimal of the database is decimal(38): the value is
+        // rejected before it is sent. A value of 30 digits alone and added to another one keeps every digit
         const wide = '12345678901234567890123456789012345678901234567890123456789012345.5' as Amount
-        ctx.mockNext('12345678901234567890123456789012345678901')
-        ctx.mockNext('12345678901234567890123456789012345678901')
-        ctx.mockNext(1)
+        const fits = '12345678901234567890.1234567891' as Amount
+        ctx.mockNext(fits)
+        ctx.mockNext('12345678901234567890.6234567891')
         const outcomes: (Amount | number | TsSqlErrorReason | { reason: string, errorType: string | undefined } | undefined)[] = []
         await ctx.withRollback(async () => {
             for (const query of [
                 () => ctx.conn.selectFromNoTable().selectOneColumn(ctx.conn.const(wide, 'customDecimal', 'Amount')).executeSelectOne(),
                 () => ctx.conn.selectFromNoTable().selectOneColumn(ctx.conn.const(wide, 'customDecimal', 'Amount').add('0.5' as Amount)).executeSelectOne(),
                 () => ctx.conn.insertInto(tExactAmount).set({ id: 6, amount: wide }).executeInsert(),
+                () => ctx.conn.selectFromNoTable().selectOneColumn(ctx.conn.const(fits, 'customDecimal', 'Amount')).executeSelectOne(),
+                () => ctx.conn.selectFromNoTable().selectOneColumn(ctx.conn.const(fits, 'customDecimal', 'Amount').add('0.5' as Amount)).executeSelectOne(),
             ]) {
                 try {
                     outcomes.push(await query())
@@ -364,10 +367,8 @@ describe(ctx.label, () => {
                 }
             }
         })
-        // The column can't hold the value: the database rejects the insert (in mock mode, the insert is done).
-        // TODO[BUG]: the value alone and the sum are cut to 41 characters without an error, and the sum of two texts
-        // is their concatenation (see test/BUGS.md)
-        expect(outcomes).toEqual(['12345678901234567890123456789012345678901', '12345678901234567890123456789012345678901', ctx.realDbEnabled ? { reason: 'SQL_INVALID_VALUE', errorType: 'out of range' } : 1])
+        const rejected = { reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: wide, typeName: 'Amount', paramIndex: 0 }
+        expect(outcomes).toEqual([rejected, rejected, { ...rejected, paramIndex: 1, tableName: 'exact_amount', columnPath: 'amount' }, fits, '12345678901234567890.6234567891'])
     })
 
     test('custom-decimal/abs-ceil-floor-round-and-modulo-keep-every-digit', async () => {
@@ -395,18 +396,12 @@ describe(ctx.label, () => {
             { id: 2, abs: '0.2500000000', ceil: '0', floor: '-1', round: '0.0000000000', roundn: '-0.2500000000' },
         ])
         ctx.mockNext('0.1234567891')
-        let error: unknown
-        try {
-            await ctx.conn.selectFrom(tExactAmount)
-                .where(tExactAmount.id.equals(1))
-                .selectOneColumn(tExactAmount.amount.modulo('7.5' as Amount))
-                .executeSelectOne()
-        } catch (e) {
-            error = e
-        }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(nvarchar(41), amount % @0) as [result] from exact_amount where id = @1"`)
-        // TODO[BUG]: the parameter is an nvarchar, which the database doesn't take in a modulo (see test/BUGS.md)
-        expect(error instanceof TsSqlError ? error.errorReason.reason : undefined).toBe(ctx.realDbEnabled ? 'SQL_INVALID_SQL_STATEMENT' : undefined)
+        const modulo = await ctx.conn.selectFrom(tExactAmount)
+            .where(tExactAmount.id.equals(1))
+            .selectOneColumn(tExactAmount.amount.modulo('7.5' as Amount))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(nvarchar(41), amount % cast(@0 as decimal(2, 1))) as [result] from exact_amount where id = @1"`)
+        expect(modulo).toBe('0.1234567891')
     })
 
     test('custom-decimal/a-root-and-a-power-are-a-double', async () => {
@@ -496,7 +491,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(dynamicSql).toBe(ctx.lastSql)
         expect(dynamicParams).toEqual(ctx.lastParams)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as [result] from exact_amount where price >= @0 and price < @1 order by [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as [result] from exact_amount where price >= cast(@0 as decimal(3, 2)) and price < cast(@1 as decimal(1, 0)) order by [result]"`)
         expect(dynamicIds).toEqual([1])
         expect(ids).toEqual([1])
     })

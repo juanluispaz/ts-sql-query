@@ -185,5 +185,4 @@ db.loadExtension(extensionPath(SQLITE_EXTENSIONS.DECIMAL));
 db.loadExtension(extensionPath(SQLITE_EXTENSIONS.UUID));
 ```
 
-<!-- TODO: the maintainer gives the URL of the issue opened on sqlite-extensions -->
-Known issues are tracked in <issue URL>.
+The issues found in that review (zlib linked into every extension, the build path in the macOS `install_name`, and the `decimal.c` fixes not yet in a SQLite release) are reported in [sqlite-extensions#1](https://github.com/canislupaster/sqlite-extensions/issues/1): check there whether they are resolved in the version you install.

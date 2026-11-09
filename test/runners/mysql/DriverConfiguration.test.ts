@@ -53,6 +53,19 @@ describe.skipIf(!isRealDbEnabled('mysql', 'docker', 'newest', 'mysql2'))('mysql2
         }
     })
 
+    test('a-connection-with-type-cast-false-doesnt-change-the-queries-of-the-runner', async () => {
+        // typeCast: false makes mysql2 give every value as a Buffer
+        const connection = mysql2.createConnection({ ...connectionOptions(), typeCast: false })
+        const pool = mysql2.createPool({ ...connectionOptions(), connectionLimit: 1, typeCast: false })
+        try {
+            expect(await new MySql2QueryRunner(connection).executeSelectOneRow(SQL, [])).toEqual(EXPECTED)
+            expect(await new MySql2PoolQueryRunner(pool).executeSelectOneRow(SQL, [])).toEqual(EXPECTED)
+        } finally {
+            await new Promise<void>(resolve => connection.end(() => resolve()))
+            await new Promise<void>(resolve => pool.end(() => resolve()))
+        }
+    })
+
     test('the-options-of-the-pool-dont-apply-to-the-queries-of-the-runner', async () => {
         const pool = mysql2.createPool({ ...connectionOptions(), connectionLimit: 1, ...USER_OPTIONS })
         try {

@@ -3,6 +3,7 @@
 // SynchronousPromise.
 
 import { createRequire } from 'node:module'
+import { describe, expect, test } from '../../lib/testRunner.js'
 import { SynchronousPromise } from 'synchronous-promise'
 import { NodeSqliteQueryRunner } from '../../../src/queryRunners/NodeSqliteQueryRunner.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
@@ -36,3 +37,33 @@ for (const sync of [false, true]) {
         },
     })
 }
+
+// A database opened with returnArrays gives each row as an array; the runner reads the rows of its statements as objects
+async function returnArraysAvailable(): Promise<boolean> {
+    if (!nodeSqliteAvailable()) {
+        return false
+    }
+    const { DatabaseSync } = await import('node:sqlite')
+    const db = new DatabaseSync(':memory:')
+    try {
+        return typeof db.prepare('select 1').setReturnArrays === 'function'
+    } finally {
+        db.close()
+    }
+}
+
+describe.skipIf(!(await returnArraysAvailable()))('NodeSqliteQueryRunner: the configuration of the database', () => {
+    test('the-rows-are-objects-with-return-arrays-on-the-database', async () => {
+        const { DatabaseSync } = await import('node:sqlite')
+        const db = new DatabaseSync(':memory:', { returnArrays: true })
+        try {
+            const runner = new NodeSqliteQueryRunner(db)
+            expect(await runner.executeSelectOneRow("select 1 as one, 'text' as some_name", [])).toEqual({ one: 1, some_name: 'text' })
+            expect(await runner.executeSelectOneColumnOneRow('select 2 as two', [])).toBe(2)
+            // The database keeps it for its own statements
+            expect(db.prepare('select 1 as one').all()).toEqual([[1]])
+        } finally {
+            db.close()
+        }
+    })
+})

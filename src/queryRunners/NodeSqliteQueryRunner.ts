@@ -53,7 +53,11 @@ export class NodeSqliteQueryRunner extends SqlTransactionQueryRunner {
             return rejected
         }
         try {
-            const rows = this.connection.prepare(query).all(...sqliteDriverParams(params))
+            const statement = this.connection.prepare(query)
+            // A database opened with returnArrays gives each row as an array: the library reads each column by its name.
+            // Per statement, so the database keeps it for its own (setReturnArrays exists since Node 22.16 and 24)
+            statement.setReturnArrays?.(false)
+            const rows = statement.all(...sqliteDriverParams(params))
             return this.promise.resolve(rows)
         } catch (e) {
             return this.statementOfTheTransactionFailed(e)

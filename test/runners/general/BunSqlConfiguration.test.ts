@@ -77,4 +77,17 @@ describe.skipIf(!isBun)('Bun SQL query runners: configuration', () => {
         }
         await Promise.all(created.map(sql => sql.close()))
     })
+
+    test('a-transform-whose-column-is-a-function-is-refused-as-given', async () => {
+        // Bun turns `transform: { column: fn }` into `column.from` today; the check
+        // doesn't depend on it: a Bun.SQL whose options keep the function as it was
+        // given (here the options of a real instance with that transform put back).
+        const { SQL } = await import('bun')
+        const { BunSqlSqliteQueryRunner } = await import('../../../src/queryRunners/BunSqlSqliteQueryRunner.js')
+        const sql = new SQL({ adapter: 'sqlite', filename: ':memory:' })
+        const rename = (name: string) => name.toUpperCase()
+        const given = Object.create(sql, { options: { value: { ...sql.options, transform: { column: rename } } } })
+        expect(reasonOf(errorOf(() => new BunSqlSqliteQueryRunner(given)))).toBe('INVALID_CONFIGURATION')
+        await sql.close()
+    })
 })

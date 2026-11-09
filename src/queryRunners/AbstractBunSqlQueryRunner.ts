@@ -20,7 +20,9 @@ export abstract class AbstractBunSqlQueryRunner extends SqlTransactionQueryRunne
         // The library reads each column of a row by its name: a transform that renames the columns of the results
         // (`transform: SQL.camel`, `SQL.toCamel`, a function, or `column.from`) can't be undone per query. The names it
         // sends (`column.to`, used only by the helpers of sql``) and `undefined` don't change what the library reads.
-        const columnFrom = (connection as { options?: { transform?: { column?: { from?: unknown } } } }).options?.transform?.column?.from
+        // Bun turns a function given as `column` into `column.from`; a function kept as it was given is refused too.
+        const column = (connection as { options?: { transform?: { column?: unknown } } }).options?.transform?.column
+        const columnFrom = typeof column === 'function' ? column : (column as { from?: unknown } | undefined)?.from
         if (columnFrom) {
             throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'transform', value: columnFrom }, this.constructor.name + ' requires a Bun.SQL connection without a transform that renames the columns of the results (transform.column.from, SQL.camel, SQL.toCamel...): the library reads each column by its name')
         }

@@ -24,8 +24,9 @@ Three places own the work. What decides where a thing goes is **whether it condi
 
 - The connection hands the form the SQL depends on. Oracle has no BOOLEAN before 23ai, and the SQL the library writes
   treats a boolean as a number (`(x = 1)`, `case when C then 1 else 0 end`, `case :0 when 1`): `OracleConnection`
-  hands `1` / `0` (`connections/OracleConnection.ts:148-155`). Native `BOOLEAN` columns on Oracle 23 are not supported
-  yet: the library keeps booleans as `NUMBER(1)` (`test/DEFERRED.md`, "Native `BOOLEAN` columns on Oracle 23ai"). SQLite has no date or time types, and the SQL
+  hands `1` / `0`. With `booleanStorage: 'boolean'` (Oracle 23ai's `BOOLEAN`) the builder writes the booleans as the
+  base builder does and the connection hands `true` / `false` (`connections/OracleConnection.ts`,
+  `OracleSqlBuilder._nativeBoolean`). SQLite has no date or time types, and the SQL
   the library writes for dates depends on how they are stored (`strftime`, `julianday`, epoch arithmetic):
   `SqliteConnection` hands the text or number of its date strategy (§2.1).
 - The binding's checks are there because they must see the value after a type adapter (which may replace the
@@ -110,7 +111,7 @@ unless `allowEmptyString` (default `false`, `connections/AbstractConnection.ts:4
 
 | Conversion type | Accepts | Rejects | Hands to the runner | Source |
 |---|---|---|---|---|
-| `boolean` | `boolean` | anything else | the boolean. Oracle: `1` / `0` | `AbstractConnection.ts:1397-1401`; `OracleConnection.ts:148-155` |
+| `boolean` | `boolean` | anything else | the boolean. Oracle: `1` / `0`; with `booleanStorage: 'boolean'` the boolean | `AbstractConnection.ts:1397-1401`; `OracleConnection.ts:148-155` |
 | `int` | an integer `number` (not checked for the safe range) | non-integer number, non-number | the number | `AbstractConnection.ts:1402-1409` |
 | `bigint` | `bigint` | anything else (a `number` too) | the bigint | `AbstractConnection.ts:1410-1414` |
 | `double` | any `number` (`NaN`, `Infinity` included) | non-number | the number | `AbstractConnection.ts:1415-1419` |
@@ -174,7 +175,7 @@ casts). A `Date` reads well: its `toISOString()` shows the UTC digits (`2024-01-
 
 | Data type | PostgreSQL, MySQL, MariaDB, SQL Server | Oracle | SQLite |
 |---|---|---|---|
-| boolean | `true` / `false` | `1` / `0` | `true` / `false` |
+| boolean | `true` / `false` | `1` / `0`; `true` / `false` with `booleanStorage: 'boolean'` | `true` / `false` |
 | int, bigint, double | the number / bigint | same | same (sqlite-wasm: an integer beyond 64 bits as its text) |
 | stringDecimal, customDecimal, string, uuid | the text | the text | the text |
 | localDate, localDateTime | the `Date` | the `Date` | the text or number of the date strategy |
@@ -218,7 +219,7 @@ changes:
 | `MariaDBQueryRunner`, `MariaDBPoolQueryRunner` | `connection.query({ ...mariaDBQueryOptions, sql }, mySqlDriverParams(params))` | — | `MariaDBQueryRunner.ts:83-97,116-119` |
 | `BunSqlMySqlQueryRunner` | `sql.unsafe(query, mySqlDriverParams(params))` | — | `BunSqlMySqlQueryRunner.ts:33-58` |
 | `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner` | `request.input('<i>', type, params[i])` for each param, then `request.query(query)`. Type: `typesByName` (a factory or a type with arguments) → by category (`predefinedTypes`) → by type name → a custom type infers from the value (`inferCustomType`: a string is `NVarChar`) → a param without metadata infers from the value (`inferType`). tedious writes a `Date` with the UTC getters (`useUTC`, true by default) | `ISqlTypeFactory` / `ISqlType` | `MssqlPoolQueryRunner.ts:82-110,264-267,294-416` |
-| `OracleDBQueryRunner`, `OracleDBPoolQueryRunner`, `OracleDBPoolPromiseQueryRunner` | `connection.execute(query, binds, options)`, binds by name `{ '0': …, '1': … }`: `typesByName` → `{ val, type }`; in `executeProcedure`, a param of the `boolean` category (`1`/`0`/null, or a boolean) → `{ val: true/false/null, type: DB_TYPE_BOOLEAN }` (PL/SQL has BOOLEAN on every version); a temporal `Date` → `{ val, type: DB_TYPE_TIMESTAMP_TZ }`; a null of a number/temporal category → `{ val: null, type }`; else the value. `executeFunction` binds as any other query. RETURNING OUT binds (`addOutParam`, `{ dir: BIND_OUT, as }`): a declared type gets it with a `maxSize`; a temporal one `DB_TYPE_TIMESTAMP_TZ`; any other (a text, a number) no type and a `maxSize`, so it comes back as text. `maxSize` is the one declared in `typesByName` (`{ type, maxSize }`), else the config's `returningMaxSize`, else 32767. A `Lob` OUT value (a CLOB declared in `typesByName`) is read with `getData()` | `DbType` or `{ type, maxSize }`, also for OUT binds | `OracleDBQueryRunner.ts:15-38,132-209,272-281,358-384`; `test/runners/oracle/OracleDBOutBinds.test.ts`, `test/runners/oracle/OracleDBReturningAndProcedures.test.ts` |
+| `OracleDBQueryRunner`, `OracleDBPoolQueryRunner`, `OracleDBPoolPromiseQueryRunner` | `connection.execute(query, binds, options)`, binds by name `{ '0': …, '1': … }`: `typesByName` → `{ val, type }`; in `executeProcedure`, or in any query with `booleanStorage: 'boolean'` (read from the connection configuration of the params), a param of the `boolean` category (`1`/`0`/null, or a boolean) → `{ val: true/false/null, type: DB_TYPE_BOOLEAN }` (PL/SQL has BOOLEAN on every version), and a boolean OUT bind gets `DB_TYPE_BOOLEAN`; a temporal `Date` → `{ val, type: DB_TYPE_TIMESTAMP_TZ }`; a null of a number/temporal category → `{ val: null, type }`; else the value. `executeFunction` binds as any other query. RETURNING OUT binds (`addOutParam`, `{ dir: BIND_OUT, as }`): a declared type gets it with a `maxSize`; a temporal one `DB_TYPE_TIMESTAMP_TZ`; any other (a text, a number) no type and a `maxSize`, so it comes back as text. `maxSize` is the one declared in `typesByName` (`{ type, maxSize }`), else the config's `returningMaxSize`, else 32767. A `Lob` OUT value (a CLOB declared in `typesByName`) is read with `getData()` | `DbType` or `{ type, maxSize }`, also for OUT binds | `OracleDBQueryRunner.ts:15-38,132-209,272-281,358-384`; `test/runners/oracle/OracleDBOutBinds.test.ts`, `test/runners/oracle/OracleDBReturningAndProcedures.test.ts` |
 | `BetterSqlite3QueryRunner` | `prepare(query).all/run({ 1: p0, 2: p1, … })` from `sqliteDriverParams(params)` | — | `BetterSqlite3QueryRunner.ts:50-88,102-117` |
 | `BunSqliteQueryRunner` | `prepare(query).all/run(...params)` | — | `BunSqliteQueryRunner.ts:51-89,103-106` |
 | `NodeSqliteQueryRunner` | `prepare(query).all/run(...sqliteDriverParams(params))` | — | `NodeSqliteQueryRunner.ts:50-93,107` |
@@ -235,7 +236,7 @@ After `transformValueToDB` without adapter, the binding and the work of executio
 
 | Data type | PostgreSQL | MySQL / MariaDB | SQL Server (mssql type) | Oracle (bind) | SQLite |
 |---|---|---|---|---|---|
-| boolean | boolean; forced: `bool` | boolean [inferred: the driver writes it as 1/0 or true/false] | `Bit` | number `1`/`0`; null → `DB_TYPE_NUMBER`; in a procedure `DB_TYPE_BOOLEAN` | `1`/`0` (bun:sqlite and Bun SQL: the boolean, bound as `1`/`0` by the driver) |
+| boolean | boolean; forced: `bool` | boolean [inferred: the driver writes it as 1/0 or true/false] | `Bit` | number `1`/`0`; null → `DB_TYPE_NUMBER`; in a procedure, or with `booleanStorage: 'boolean'`, `DB_TYPE_BOOLEAN` (a null too) | `1`/`0` (bun:sqlite and Bun SQL: the boolean, bound as `1`/`0` by the driver) |
 | int, customInt | number; forced: `int4` | number | `Int` | number; null → `DB_TYPE_NUMBER` | number (wasm: beyond 64 bits as `cast(text as real)`) |
 | bigint, customBigint | bigint; forced: `int8` | bigint | `BigInt` | bigint; null → `DB_TYPE_NUMBER` | bigint |
 | double, customDouble | number; forced: `float8` | number | `Float` | number; null → `DB_TYPE_NUMBER` | number |
@@ -437,7 +438,7 @@ Reading:
 - pg/PGlite: no parser registered that changes a type the library reads (`numeric`, `int8`, `text`…): PGlite overrides
   only 1082/1083/1114 per query (`PgLiteQueryRunner.ts:132-136`), and pg only 1082/1114.
 - SQLite: the driver's big-integer mode if an integer may pass 2^53 (else `PRECISION_LOST` or a driver error).
-- Oracle: boolean columns are `NUMBER(1)`; native `BOOLEAN` columns of Oracle 23 are not supported yet (`test/DEFERRED.md`).
+- Oracle: the boolean columns are in the form `booleanStorage` says (`NUMBER(1)` by default, `BOOLEAN` with `'boolean'`, Oracle 23.4 or later); a column of the other form is declared with a `CustomBooleanTypeAdapter`.
 
 Sources: `docs/configuration/query-runners/recommended/{pg,pglite,mysql2,mariadb,oracledb,mssql}.md`, "Connection
 requirements"; `docs/configuration/time-zones.md#known-limits`.

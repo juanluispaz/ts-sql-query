@@ -1184,6 +1184,14 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                     if (/^(-?\d+)$/g.test(value)) {
                         return !!(+value)
                     }
+                    // PostgreSQL writes a boolean as text with 't' and 'f' (a driver that hands the text, or a mock
+                    // that imitates it)
+                    if (value === 't') {
+                        return true
+                    }
+                    if (value === 'f') {
+                        return false
+                    }
                 }
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid boolean value received from the db: ' + value)
             case 'int':

@@ -315,6 +315,25 @@ describe(ctx.label, () => {
         expect(await fromDbValue(tIssue.priority.greaterThan(0), '-5')).toBe(true)
     })
 
+    test('marshalling/from-db-validation/boolean-from-postgresql-text-true', async () => {
+        // PostgreSQL writes a boolean as text with 't' and 'f': a driver that hands
+        // the text (or a mock that imitates it) gives 't' -> true.
+        // MOCK-ONLY: no real driver of this connector hands this representation back, so mockNext is
+        // the only way to reach the transformValueFromDB arm under test.
+        ctx.mockOnlyConnection()
+        expect(await fromDbValue(tIssue.priority.greaterThan(0), 't')).toBe(true)
+    })
+
+    test('marshalling/from-db-validation/boolean-from-postgresql-text-false', async () => {
+        // 'f' -> false, the other side; any other word, like 'true', is rejected
+        // (see boolean-invalid-throws).
+        // MOCK-ONLY: no real driver of this connector hands this representation back, so mockNext is
+        // the only way to reach the transformValueFromDB arm under test.
+        ctx.mockOnlyConnection()
+        expect(await fromDbValue(tIssue.priority.greaterThan(0), 'f')).toBe(false)
+        expect(await fromDbReason(tIssue.priority.greaterThan(0), 'true')).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+    })
+
     test('marshalling/from-db-validation/boolean-from-decimal-string-throws', async () => {
         // A decimal string does NOT match the integer regex, so it falls through
         // to the reject — the boundary between the numeric-string branch and the

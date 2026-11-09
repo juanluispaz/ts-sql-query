@@ -17,10 +17,25 @@ export interface OracleDBQueryRunnerConfig {
     forUseInTransaction?: boolean | undefined
     /**
      * The DbType of oracledb, like `oracledb.DB_TYPE_NUMBER`, each parameter of a type name (the name given to a custom
-     * type, or a built-in one) is bound with, also a RETURNING OUT bind, instead of the one oracledb gives its value
+     * type, or a built-in one) is bound with, also a RETURNING OUT bind, instead of the one oracledb gives its value;
+     * or an object with that DbType and the maxSize, in bytes, of a RETURNING OUT bind of that type name
      */
-    typesByName?: { readonly [typeName: string]: DbType } | undefined
+    typesByName?: { readonly [typeName: string]: DbType | OracleDBBindType } | undefined
+    /**
+     * The maxSize, in bytes, of a RETURNING OUT bind of a text: the longest text a RETURNING of the library can give
+     * (oracledb gives 200 bytes, and fails with NJS-016 beyond it). By default 32767, the longest VARCHAR2.
+     */
+    returningMaxSize?: number | undefined
 }
+
+/** The DbType a parameter of a type name is bound with, and the maxSize, in bytes, of a RETURNING OUT bind of it */
+export interface OracleDBBindType {
+    readonly type: DbType
+    readonly maxSize?: number | undefined
+}
+
+/** The longest VARCHAR2, in bytes, the maxSize of a RETURNING OUT bind of a text by default */
+const defaultReturningMaxSize = 32767
 
 export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     readonly database: DatabaseType
@@ -116,8 +131,16 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     }
     protected override executeMutationReturning(query: string, params: any[] = []): Promise<any[]> {
         return this.connection.execute(query, this.bindParams(params, true), {autoCommit: this.autoCommit()}).then((result) => {
-            return this.processOutBinds(params, result.outBinds)
+            return readLobsOfOutBinds(result.outBinds).then(outBinds => this.processOutBinds(params, outBinds))
         })
+    }
+    /**
+     * A procedure is called in PL/SQL, which has a BOOLEAN type on every version of Oracle: a parameter of the boolean
+     * category, that OracleConnection hands as 1 or 0, is bound as a BOOLEAN (a NUMBER is refused for a BOOLEAN
+     * parameter with PLS-00306).
+     */
+    override executeProcedure(query: string, params: any[] = []): Promise<void> {
+        return this.connection.execute(query, this.bindParams(params, false, true), {autoCommit: this.autoCommit()}).then(() => undefined)
     }
     /**
      * The params as oracledb binds them by name: the placeholders this runner emits are named after the index of their
@@ -126,13 +149,14 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
      * A parameter of a type name in typesByName is bound with the DbType declared there. With resolveOutBinds, a
      * RETURNING OUT bind also gets the DbType of its column. The params of the query are not changed.
      */
-    protected bindParams(params: any[], resolveOutBinds: boolean = false): Record<string, any> {
+    protected bindParams(params: any[], resolveOutBinds: boolean = false, procedure: boolean = false): Record<string, any> {
         const typesByName = this.config?.typesByName
         const result: Record<string, any> = {}
         for (let i = 0, length = params.length; i < length; i++) {
             const value = params[i]
             const typeName = getParamTypeAt(params, i)
-            const declared = typesByName && typeName !== undefined && Object.hasOwn(typesByName, typeName) ? typesByName[typeName] : undefined
+            const declaredBind = typesByName && typeName !== undefined && Object.hasOwn(typesByName, typeName) ? typesByName[typeName] : undefined
+            const declared = isOracleDBBindType(declaredBind) ? declaredBind.type : declaredBind
             if (resolveOutBinds && value && typeof value === 'object' && value.dir === oracleDb.BIND_OUT) {
                 // Each RETURNING OUT bind keeps the category of the type of its column (addOutParam)
                 const category = getParamTypeCategoryAt(params, i)
@@ -140,16 +164,24 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
                 // timestamp column with the zone of the session (UTC, see requireOracleSessionInUtc), and oracledb
                 // gives it as its instant, where it builds a date or a timestamp with the zone of the process
                 const dbType = declared ?? (isTemporalCategory(category) ? oracleDb.DB_TYPE_TIMESTAMP_TZ : this.oracleDbType(category))
+                // A text, or a value received as one, is returned in a buffer of maxSize bytes
+                const maxSize = (isOracleDBBindType(declaredBind) ? declaredBind.maxSize : undefined) ?? this.config?.returningMaxSize ?? defaultReturningMaxSize
                 if (dbType === undefined || (dbType === oracleDb.DB_TYPE_NUMBER && declared === undefined)) {
-                    // Without a type, oracledb returns an OUT number as a string, with all its digits
-                    result[i] = value
-                } else {
+                    // Without a type, oracledb returns an OUT value as a string; a number, with all its digits
+                    result[i] = { ...value, maxSize }
+                } else if (dbType === oracleDb.DB_TYPE_TIMESTAMP_TZ && declared === undefined) {
                     result[i] = { ...value, type: dbType }
+                } else {
+                    result[i] = { ...value, type: dbType, maxSize }
                 }
                 continue
             }
             if (declared !== undefined) {
                 result[i] = { val: value, type: declared }
+                continue
+            }
+            if (procedure && getParamTypeCategoryAt(params, i) === 'boolean' && (value === 1 || value === 0 || value === null || value === undefined || typeof value === 'boolean')) {
+                result[i] = { val: value === null || value === undefined ? null : !!value, type: oracleDb.DB_TYPE_BOOLEAN }
                 continue
             }
             // A localDate, a localTime or a localDateTime is bound as a timestamp with time zone in UTC
@@ -313,6 +345,42 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     static isSqlError(error: unknown): boolean {
         return error instanceof TsSqlError || isOracleDBError(error)
     }
+}
+
+function isOracleDBBindType(value: DbType | OracleDBBindType | undefined): value is OracleDBBindType {
+    return typeof value === 'object' && value !== null && 'type' in value && !('num' in value)
+}
+
+/**
+ * The OUT binds with each Lob read as its value (a text or a Buffer): a RETURNING OUT bind declared a CLOB, an NCLOB or a
+ * BLOB in typesByName gives a Lob, for a value of any length
+ */
+function readLobsOfOutBinds(outBinds: any): Promise<any> {
+    if (!outBinds || typeof outBinds !== 'object' || Array.isArray(outBinds)) {
+        return Promise.resolve(outBinds)
+    }
+    const reads: Promise<void>[] = []
+    const result: Record<string, any> = { ...outBinds }
+    for (const key of Object.keys(result)) {
+        const value = result[key]
+        if (isLob(value)) {
+            reads.push(value.getData().then((data: unknown) => { result[key] = data }))
+        } else if (Array.isArray(value) && value.some(isLob)) {
+            const values = value.slice()
+            result[key] = values
+            values.forEach((item, index) => {
+                if (isLob(item)) {
+                    reads.push(item.getData().then((data: unknown) => { values[index] = data }))
+                }
+            })
+        }
+    }
+    return reads.length > 0 ? Promise.all(reads).then(() => result) : Promise.resolve(outBinds)
+}
+
+function isLob(value: unknown): value is { getData(): Promise<unknown> } {
+    // A Lob of oracledb (its class isn't in its types)
+    return typeof value === 'object' && value !== null && typeof (value as { getData?: unknown }).getData === 'function'
 }
 
 function isTemporalCategory(category: TypeCategory | undefined): boolean {

@@ -12,6 +12,8 @@ import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 export interface OracleDBPoolQueryRunnerConfig {
     /** See OracleDBQueryRunnerConfig */
     typesByName?: OracleDBQueryRunnerConfig['typesByName']
+    /** See OracleDBQueryRunnerConfig */
+    returningMaxSize?: OracleDBQueryRunnerConfig['returningMaxSize']
 }
 
 export class OracleDBPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
@@ -54,7 +56,7 @@ export class OracleDBPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
         return ':' + index
     }
     protected createQueryRunner(): Promise<QueryRunner> {
-        return this.pool.getConnection().then(connection => new OracleDBQueryRunner(connection, { typesByName: this.config?.typesByName }))
+        return this.pool.getConnection().then(connection => new OracleDBQueryRunner(connection, this.config))
     }
     protected releaseQueryRunner(queryRunner: QueryRunner): void {
         (queryRunner.getNativeRunner() as Connection).close()

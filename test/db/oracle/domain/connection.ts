@@ -7,7 +7,7 @@ import { OracleConnection } from '../../../../src/connections/OracleConnection.j
 import type { QueryRunner } from '../../../../src/queryRunners/QueryRunner.js'
 import { Table } from '../../../../src/Table.js'
 import { View } from '../../../../src/View.js'
-import { CustomBooleanTypeAdapter, type TypeAdapter, type TypeCategory } from '../../../../src/TypeAdapter.js'
+import { CustomBooleanTypeAdapter, OracleDateAsTimestampTypeAdapter, type TypeAdapter, type TypeCategory } from '../../../../src/TypeAdapter.js'
 
 const verifiedAdapter  = new CustomBooleanTypeAdapter('Y', 'N')
 // A trailing TypeAdapter for virtualColumnFromFragment that brackets the read
@@ -2229,4 +2229,14 @@ export const tServicePlan = new class TServicePlan extends Table<DBConnection, '
     name        = this.column('name', 'string')
     description = this.optionalColumn('description', 'string')
     constructor() { super('service_plan') }
+}()
+
+// A date and time kept in DATE columns, read as a timestamp so the getters of the time work.
+const dateAsTimestamp = new OracleDateAsTimestampTypeAdapter()
+export const tStandupMeeting = new class TStandupMeeting extends Table<DBConnection, 'TStandupMeeting'> {
+    id       = this.primaryKey('id', 'int')
+    startsAt = this.column('starts_at', 'localDateTime', dateAsTimestamp)
+    endsAt   = this.optionalColumn('ends_at', 'localDateTime', dateAsTimestamp)
+    dailyAt  = this.column('daily_at', 'localTime', dateAsTimestamp)
+    constructor() { super('standup_meeting') }
 }()

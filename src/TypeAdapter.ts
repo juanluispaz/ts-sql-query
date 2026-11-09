@@ -55,6 +55,25 @@ export class CustomBooleanTypeAdapter implements TypeAdapter {
 }
 
 /**
+ * Declares a `localDateTime` or a `localTime` column that Oracle stores in a `DATE`, which holds the date and the time
+ * to the second. Oracle's `extract` reads a `DATE` as a date without time (ORA-30076 for the hour, the minute and the
+ * second) and `to_char` has no fraction of a second for it (ORA-01821), so the getters of the time write the column as
+ * `cast(<column> as timestamp)`, the same digits with the fraction at zero, and `getTime` counts the `DATE` itself.
+ * Everywhere else the column is written as it is. The values sent and received are not changed. On a column of any
+ * other type it does nothing.
+ */
+export class OracleDateAsTimestampTypeAdapter implements TypeAdapter {
+
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+        return next.transformValueFromDB(value, type, typeCategory)
+    }
+
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+        return next.transformValueToDB(value, type, typeCategory)
+    }
+}
+
+/**
  * Asks the query runner to give the database the type of each parameter of the column or the value it is used with,
  * in every position, as the library does in the positions where PostgreSQL can't work out the type of a parameter: the
  * query runner writes a cast in the placeholder, like `$1::int4`, or sends the parameter with its type when the driver

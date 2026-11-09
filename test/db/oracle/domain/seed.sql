@@ -94,3 +94,5 @@ INSERT INTO col_matrix (id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m
 INSERT INTO temporal_precision (id, micro_stamp) VALUES
     (1, TIMESTAMP '2024-01-15 12:30:59.999600');
 INSERT INTO service_plan (id, name, description) VALUES (1, 'Enterprise', NULL);
+INSERT INTO standup_meeting (id, starts_at, ends_at, daily_at) VALUES (1, TO_DATE('2024-03-15 09:05:07', 'YYYY-MM-DD HH24:MI:SS'), TO_DATE('2024-03-15 09:20:45', 'YYYY-MM-DD HH24:MI:SS'), TO_DATE('1970-01-01 08:30:15', 'YYYY-MM-DD HH24:MI:SS'));
+INSERT INTO standup_meeting (id, starts_at, ends_at, daily_at) VALUES (2, TO_DATE('2024-03-18 14:40:00', 'YYYY-MM-DD HH24:MI:SS'), NULL, TO_DATE('1970-01-01 16:45:30', 'YYYY-MM-DD HH24:MI:SS'));

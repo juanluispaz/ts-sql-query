@@ -1,9 +1,9 @@
 import type { ToSql, InsertData, CompoundOperator, SelectData, QueryColumns, FlatQueryColumns, WithSelectData, WithValuesData, OrderByEntry, SqlOperation } from './SqlBuilder.js'
 import { flattenQueryColumns, hasToSql, getQueryColumn, operationOf } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
-import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
+import { CustomBooleanTypeAdapter, OracleDateAsTimestampTypeAdapter } from '../TypeAdapter.js'
 import type { AnyValueSource, __AggregatedArrayColumns, ValueType } from '../expressions/values.js'
-import { isValueSource, __isUuidValueSource, __isBooleanValueSource, __isBooleanValueType, __isUuidValueType } from '../expressions/values.js'
+import { isValueSource, __isUuidValueSource, __isBooleanValueSource, __isBooleanValueType, __isUuidValueType, __isLocalDateTimeValueSource, __isLocalTimeValueSource } from '../expressions/values.js'
 import { isDefault } from '../expressions/Default.js'
 import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
@@ -1238,6 +1238,20 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         return super._isNotNull(params, valueSource)
     }
+    /**
+     * A localDateTime or a localTime column that Oracle stores in a DATE, declared with an
+     * OracleDateAsTimestampTypeAdapter. A DATE holds the time, but `extract` reads it as a date without time
+     * (ORA-30076) and `to_char` has no fraction of a second for it (ORA-01821): only the getters of the time need it as
+     * a timestamp. Everywhere else the column is written as it is, read the same as a TIMESTAMP.
+     */
+    _isDateColumnReadAsTimestamp(value: unknown): value is DBColumn {
+        if (!isColumn(value)) {
+            return false
+        }
+        const columnPrivate = __getColumnPrivate(value)
+        return columnPrivate.__typeAdapter instanceof OracleDateAsTimestampTypeAdapter
+            && (__isLocalDateTimeValueSource(columnPrivate) || __isLocalTimeValueSource(columnPrivate))
+    }
     override _is(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return 'decode(' + this._appendRawColumnName(valueSource, params) + ', ' + this._appendRawColumnName(value, params) + ', 1, 0 ) = 1'
@@ -1336,6 +1350,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // a TIMESTAMP: the digits are counted as UTC, as the library reads a value without zone,
         // so `getTime()` agrees with the Date read in any zone of the process. A TIMESTAMP WITH
         // LOCAL TIME ZONE still depends on the session zone (see docs/configuration/time-zones.md).
+        if (this._isDateColumnReadAsTimestamp(valueSource)) {
+            // A DATE has no fraction of a second: the day count is the whole time
+            return "(" + this._appendRawColumnName(valueSource, params) + " - date '1970-01-01') * 86400000"
+        }
         return "(cast(" + this._appendSql(valueSource, params, false) + " as date) - date '1970-01-01') * 86400000 + to_number(to_char(" + this._appendSql(valueSource, params, false) + ", 'FF3'))"
     }
     override _getFullYear(params: any[], valueSource: ToSql): string {
@@ -1349,16 +1367,27 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return "mod(trunc(" + this._appendSql(valueSource, params, false) + ") - trunc(" + this._appendSql(valueSource, params, false) + ", 'IW') + 1, 7)"
     }
     override _getHours(params: any[], valueSource: ToSql): string {
-        return 'extract(hour from ' + this._appendSql(valueSource, params, false) + ')'
+        return 'extract(hour from ' + this._appendTimestampForTimeGetter(params, valueSource) + ')'
     }
     override _getMinutes(params: any[], valueSource: ToSql): string {
-        return 'extract(minute from ' + this._appendSql(valueSource, params, false) + ')'
+        return 'extract(minute from ' + this._appendTimestampForTimeGetter(params, valueSource) + ')'
     }
     override _getSeconds(params: any[], valueSource: ToSql): string {
+        if (this._isDateColumnReadAsTimestamp(valueSource)) {
+            // A DATE has no fraction of a second to truncate
+            return 'extract(second from ' + this._appendTimestampForTimeGetter(params, valueSource) + ')'
+        }
         return 'trunc(extract(second from ' + this._appendSql(valueSource, params, false) + '))'
     }
     override _getMilliseconds(params: any[], valueSource: ToSql): string {
-        return "to_number(to_char(" + this._appendSql(valueSource, params, false) + ", 'FF3'))"
+        return "to_number(to_char(" + this._appendTimestampForTimeGetter(params, valueSource) + ", 'FF3'))"
+    }
+    /** The value for `extract` of the time or `to_char` of the fraction: a DATE column read as a timestamp is cast */
+    _appendTimestampForTimeGetter(params: any[], valueSource: ToSql): string {
+        if (this._isDateColumnReadAsTimestamp(valueSource)) {
+            return 'cast(' + this._appendRawColumnName(valueSource, params) + ' as timestamp)'
+        }
+        return this._appendSql(valueSource, params, false)
     }
     override _buildCallProcedure(params: any[], procedureName: string, procedureParams: AnyValueSource[]): string {
         let result = 'begin ' + this._escape(procedureName, false) + '('

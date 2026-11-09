@@ -19,6 +19,7 @@
 -- them in sync when a table/sequence is added. (`organization` is quoted to
 -- match its case-sensitive schema declaration; the rest are unquoted.)
 DELETE FROM service_plan;
+DELETE FROM standup_meeting;
 DELETE FROM project_review;
 DELETE FROM release_draft;
 DELETE FROM project_release;

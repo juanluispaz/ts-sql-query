@@ -127,7 +127,7 @@ The executed query is:
         and birthday > @3
     ```
 
-The parameters are: `[ ' ', ' ', 'ACME', '1990-01-01' ]` (on Oracle and SQL Server: `[ ' ', ' ', 'ACME', 1990-01-01T00:00:00.000Z ]`)
+The parameters are: `[ ' ', ' ', 'ACME', 1990-01-01T00:00:00.000Z ]` (on SQLite: `[ ' ', ' ', 'ACME', '1990-01-01' ]`)
 
 These are the operators each property gets. Every operator also has its `IfValue` variant, and it makes no difference whether the property is optional.
 

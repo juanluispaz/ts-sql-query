@@ -642,6 +642,8 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
 `executeProcedure` is a protected method of the connection, so you write a method in your connection class for each procedure. It receives the name of the procedure and its parameters, as values like `this.const(...)`. SQLite has no stored procedures: the method exists, and the database rejects the statement.
 
+On Oracle, a `boolean` parameter is bound as a PL/SQL `BOOLEAN`, so a procedure parameter of type `NUMBER` takes an `int`: see [oracledb](query-runners/recommended/oracledb.md#procedures-with-a-boolean-parameter).
+
 ```ts
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
 

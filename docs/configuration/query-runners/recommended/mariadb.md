@@ -85,6 +85,8 @@ So large integers need nothing: a `bigint` column is exact, and an `int` column 
 
 **Required and not checked**: a `TIMESTAMP` column needs the session `time_zone` in UTC, because MySQL and MariaDB convert it with the zone of the session. The query runner can't read the configuration of the connection, nor the session without a query of its own. See [Time zones](../../time-zones.md#per-database).
 
+A date outside the calendar, that the SQL mode `ALLOW_INVALID_DATES` keeps, or a zero date, kept without `NO_ZERO_DATE`, is rejected when it's read: see [Time zones → Known limits](../../time-zones.md#known-limits).
+
 ## Inside a transaction something else manages
 
 When the connection is already in a transaction that something else began and ends, like your own code or [another library](../combining-with-another-library.md), create the query runner with `forUseInTransaction`. Its statements run in that transaction, and a transaction can't begin on it: `connection.transaction(...)` and `connection.beginTransaction()` reject with `NESTED_TRANSACTION_NOT_SUPPORTED`. Without the option, the `START TRANSACTION` of that inner transaction would commit the outer one.

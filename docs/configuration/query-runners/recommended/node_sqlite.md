@@ -55,6 +55,10 @@ async function main() {
 }
 ```
 
+## Connection requirements
+
+**Not applied to the queries of the library**: `returnArrays`. Each statement of the query runner gives its rows as objects; your own statements keep the option of the database.
+
 ## Large integers
 
 By default, `node:sqlite` reads integers as JavaScript numbers and fails when one is outside JavaScript's safe integer range: the query rejects with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`. If your queries may return larger integers, create the database with `new DatabaseSync('foobar.db', { readBigInts: true })`, where your runtime has that option (Node 24.4 or newer). Every integer then arrives as a `BigInt`, and `ts-sql-query` converts it to the type the column declares: an `int` column still gives a `number`.

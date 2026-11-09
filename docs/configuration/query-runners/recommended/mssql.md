@@ -76,6 +76,7 @@ async function main() {
 
 - **`useUTC: false`** in the `options` of the pool, when the process doesn't run in UTC. With it the driver, tedious, writes and reads a date and a time with the local getters, and the values in the database are in UTC. In a process in UTC it's accepted, and `useUTC` is `true` by default. How the query runner knows the zone of the process is in [Time zones](../../time-zones.md#the-applications-zone).
 - **`camelCaseColumns: true`** or a **`columnNameReplacer`** in the `options` of the pool: tedious renames the columns of the results, and the library reads each column by its name.
+- **A `textsize` below `2147483647`**, the default of tedious, in the `options` of the pool: tedious sets it as the `TEXTSIZE` of each connection, and a longer text of a `varchar(max)`, `nvarchar(max)` or `varbinary(max)` value would be cut without an error.
 
 **Not applied to the queries of the library**: `arrayRowMode`. Each request of the query runner gives its rows as objects; your own requests keep the mode of the pool.
 

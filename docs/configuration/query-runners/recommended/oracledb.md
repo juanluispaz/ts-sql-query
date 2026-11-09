@@ -224,8 +224,9 @@ The second argument of `OracleDBQueryRunner`, optional, is an object of type `Or
 
 - **`forUseInTransaction`**: the connection is in a transaction that something else manages; see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages).
 - **`typesByName`**: the type each parameter of a type name is bound with; see [The type of the parameters](#the-type-of-the-parameters).
+- **`returningMaxSize`**: the longest text, in bytes, a `returning` gives back; 32767 by default, the longest `VARCHAR2`. A longer one fails with oracledb's `NJS-016`; see [Texts returned by returning](#texts-returned-by-returning).
 
-`OracleDBPoolQueryRunner` and `OracleDBPoolPromiseQueryRunner` take `typesByName` too, in an `OracleDBPoolQueryRunnerConfig` and an `OracleDBPoolPromiseQueryRunnerConfig`, and pass it on to the query runner of each connection.
+`OracleDBPoolQueryRunner` and `OracleDBPoolPromiseQueryRunner` take `typesByName` and `returningMaxSize` too, in an `OracleDBPoolQueryRunnerConfig` and an `OracleDBPoolPromiseQueryRunnerConfig`, and pass them on to the query runner of each connection.
 
 ## The type of the parameters
 
@@ -241,3 +242,27 @@ async function main(pool: oracledb.Pool) {
     connection // ...
 }
 ```
+
+## Texts returned by returning
+
+A `returning` of an insert, an update or a delete is executed with `RETURNING ... INTO`, and oracledb receives each value in a buffer of a size given in advance. The query runner gives a text 32767 bytes, the longest `VARCHAR2`; `returningMaxSize` changes it for every text, and `typesByName` takes an object with the `DbType` and the `maxSize` of a type name. A longer text fails with oracledb's `NJS-016`, and, outside a transaction, the row is already written.
+
+Oracle returns a `CLOB` column as text only up to 4000 bytes (`ORA-22835` beyond). Declare its type name as `oracledb.DB_TYPE_CLOB` in `typesByName`, and the value returned is read as its text, of any length:
+
+```ts
+import oracledb from 'oracledb';
+import { OracleDBPoolQueryRunner } from "ts-sql-query/queryRunners/OracleDBPoolQueryRunner";
+
+async function main(pool: oracledb.Pool) {
+    // Texts returned up to 4000 bytes; a value of the type LongText, from a CLOB column, of any length
+    const connection = new DBConnection(new OracleDBPoolQueryRunner(pool, {
+        returningMaxSize: 4000,
+        typesByName: { LongText: oracledb.DB_TYPE_CLOB },
+    }));
+    connection // ...
+}
+```
+
+## Procedures with a boolean parameter
+
+`executeProcedure` calls the procedure in PL/SQL, which has a `BOOLEAN` type on every version of Oracle: a parameter of the `boolean` category is bound as a `BOOLEAN`. A procedure parameter of type `NUMBER` takes an `int`.

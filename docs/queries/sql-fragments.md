@@ -1080,7 +1080,7 @@ The executed query is:
     where id = @2
     ```
 
-The parameters are: `[ 2019-01-01T00:00:00.000Z, 2020-01-01T00:00:00.000Z, 10 ]` (on MariaDB: `[ '2019-01-01 00:00:00.000', '2020-01-01 00:00:00.000', 10 ]`)
+The parameters are: `[ 2019-01-01T00:00:00.000Z, 2020-01-01T00:00:00.000Z, 10 ]`
 
 The result type is:
 ```tsx

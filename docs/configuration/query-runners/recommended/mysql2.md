@@ -94,11 +94,13 @@ async function doYourLogic(connection: DBConnection) {
 
 Nothing is rejected: the query runner gives each of its queries the options it needs, which replace those of the connection or the pool for that query. Your own queries through `mysql2` keep yours.
 
-**Not applied to the queries of the library**: `dateStrings`, `supportBigNumbers`, `bigNumberStrings`, `decimalNumbers`, `rowsAsArray`, `typeCast` and `timezone`. A date or a time is read with its digits as UTC, whatever the zone of the process or of `timezone`; a `BIGINT` and a `DECIMAL` arrive with all their digits; the rows are objects with a property per column; and a `typeCast` of yours isn't called.
+**Not applied to the queries of the library**: `dateStrings`, `supportBigNumbers`, `bigNumberStrings`, `decimalNumbers`, `rowsAsArray`, `typeCast` (a function, or `false`) and `timezone`. A date or a time is read with its digits as UTC, whatever the zone of the process or of `timezone`; a `BIGINT` and a `DECIMAL` arrive with all their digits; the rows are objects with a property per column; and a `typeCast` of yours isn't called.
 
 So large integers need nothing: a `bigint` column is exact, and an `int` column with a value past `Number.MAX_SAFE_INTEGER` (`9_007_199_254_740_991`) is rejected with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` rather than rounded; read it as `bigint`.
 
 **Required and not checked**: a `TIMESTAMP` column needs the session `time_zone` in UTC, because MySQL and MariaDB convert it with the zone of the session. The query runner can't read the session without a query of its own. See [Time zones](../../time-zones.md#per-database).
+
+A date outside the calendar, that the SQL mode `ALLOW_INVALID_DATES` keeps, or a zero date, kept without `NO_ZERO_DATE`, is rejected when it's read: see [Time zones → Known limits](../../time-zones.md#known-limits).
 
 ## Inside a transaction something else manages
 

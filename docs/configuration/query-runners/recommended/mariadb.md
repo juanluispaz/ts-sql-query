@@ -75,9 +75,15 @@ async function main() {
 }
 ```
 
-## Large integers
+## Connection requirements
 
-There is nothing to configure: the query runner asks the driver for large integers as text, and `ts-sql-query` converts them to the type the column declares, so they aren't rounded.
+Nothing is rejected: the query runner gives each of its queries the options it needs, which replace those of the connection or the pool for that query. Your own queries through `mariadb` keep yours.
+
+**Not applied to the queries of the library**: `typeCast`, `rowsAsArray`, `metaAsArray`, `nestTables`, `decimalAsNumber`, `bigIntAsNumber`, `insertIdAsNumber` and `dateStrings`. A date or a time is read with its digits as UTC, whatever the zone of the process; a `BIGINT`, a `DECIMAL` and the id of an inserted row arrive with all their digits; the rows are objects with a property per column; and a `typeCast` of yours isn't called.
+
+So large integers need nothing: a `bigint` column is exact, and an `int` column with a value past `Number.MAX_SAFE_INTEGER` is rejected with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` rather than rounded; read it as `bigint`.
+
+**Required and not checked**: a `TIMESTAMP` column needs the session `time_zone` in UTC, because MySQL and MariaDB convert it with the zone of the session. The query runner can't read the configuration of the connection, nor the session without a query of its own. See [Time zones](../../time-zones.md#per-database).
 
 ## Inside a transaction something else manages
 

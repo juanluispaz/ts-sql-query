@@ -4,25 +4,363 @@ search:
 ---
 # Time zones
 
-A JavaScript `Date` is an **instant** — a single number, milliseconds since the epoch. It is not "half past twelve"; it is a fixed point on the world's timeline that *happens to be* half past twelve if you look at it from a particular place.
+A JavaScript `Date` is an **instant**: a single number, milliseconds since the epoch. It is not "half past twelve"; it is a fixed point on the world's timeline that *happens to be* half past twelve if you look at it from a particular place.
 
-Many temporal columns are not instants. `TIMESTAMP` / `DATETIME` stores a **wall clock**: the characters `2024-01-14 12:30:00`, and nothing else — it does not record whether that is half past twelve in Madrid or in Tokyo, two different instants apart. So turning that column into a `Date` needs a zone, and the column does not supply one. Somebody else does.
+Many temporal columns are not instants. `TIMESTAMP` / `DATETIME` stores a **wall clock**: the characters `2024-01-14 12:30:00`, and nothing else. It doesn't record whether that is half past twelve in Madrid or in Tokyo, two instants hours apart. So turning that column into a `Date` needs a zone, and the column doesn't supply one.
 
-**None of this makes those column types wrong.** A wall clock stored as a wall clock is a perfectly good design, and it is what most schemas use. The problem appears only in one situation, which this page is about:
+ts-sql-query answers that with one rule: **every value in the database is in UTC.** The digits of a column without zone are the UTC digits of the `Date`, when it's sent and when it's read, whatever zone your application runs in. This page answers:
 
-!!! danger "The one thing that causes the bug"
+- What `Date` you receive for each data type, and which getters to read it with.
+- What still depends on a zone: the database session's zone, for a few column types and for SQL that mixes a wall clock with an instant.
+- What each driver needs from its connection, the limits that remain, and what to do with data already written in another zone.
 
-    **The application and the database resolve the wall clock in different time zones.** When they agree — and they usually do in production — nothing on this page can bite you. When they disagree, every wall-clock value silently shifts by the difference, with no error.
+It is not about collations, the other setting of a session: see [Collations & case sensitivity](collations.md). On SQLite the library writes and reads the text or the number itself, with the strategy you choose; see [SQLite → Working with Date and Time](supported-databases/sqlite.md#working-with-date-and-time).
 
-Where you meet it in practice is rarely production: it is **your laptop against a database in Docker or on a server**. The container runs in UTC, your machine runs in `Europe/Madrid`, and the same query gives you a different answer than it gives CI.
+## The rule: every value in the database is in UTC
 
-## The two zones
+| Data type | What you read | What is stored when you send a `Date` |
+|---|---|---|
+| `localDate` | A `Date` at 10:00 UTC of the stored day | The day of its UTC getters |
+| `localTime` | A `Date` on 1970-01-01 whose UTC getters are the stored time | The time of its UTC getters |
+| `localDateTime`, in a column without zone | A `Date` whose UTC getters are the stored digits | The digits of its UTC getters |
+| `localDateTime`, in a column with zone, like `timestamptz` | The instant | The instant |
 
-**The application's zone.** A wall clock with no zone (`'2024-01-14 12:30:00'`) is parsed in the **host process's** zone — whatever `TZ` or the operating system says where your code runs. This holds both for the drivers that hand back a `Date` themselves and for ts-sql-query when it receives a string. (This page says "JavaScript" because that is where you are, but the rule is not specific to it: any client resolving a zone-less wall clock uses its own zone.)
+On SQLite the [strategy of dates](supported-databases/sqlite.md#working-with-date-and-time) decides. With a `localdate` strategy, the default, a `localTime` and a `localDateTime` are in the zone of the application: the stored text is in their **local** getters, and a `Date` is stored with its local getters, so `2024-01-14 12:30:00.000` is read in `Europe/Madrid` as `2024-01-14T11:30:00.000Z`. The `UTC` and numeric strategies follow the rule. A `localDate` is at 10:00 UTC of its day on SQLite too.
 
-**The database's zone.** When a connection is opened, it is given a **session time zone** — usually inherited from the server's configuration or its operating system — and the engine uses it to interpret and render values, and to resolve any SQL that treats a column as an instant. **It is a property of the session, and on most engines you can change it.** Which is what makes this fixable without touching your schema.
+The same holds for a value inside an [aggregated array](../queries/aggregate-as-object-array.md), for a `Date` compared with a column, and for a value you read and send back: it finds its row and stores the same digits.
 
-Here is the whole problem, in one query:
+A `timestamp` column holding `2024-01-14 12:30:00`, read with the process in three zones:
+
+```
+TZ=UTC               value.toISOString() = 2024-01-14T12:30:00.000Z   getUTCHours() = 12   getHours() = 12
+TZ=Europe/Madrid     value.toISOString() = 2024-01-14T12:30:00.000Z   getUTCHours() = 12   getHours() = 13
+TZ=America/New_York  value.toISOString() = 2024-01-14T12:30:00.000Z   getUTCHours() = 12   getHours() = 7
+```
+
+The `Date` is the same in every zone. Only the local getters of JavaScript change, because they convert the instant to the zone of the process.
+
+Sending works the other way round. These two `Date`s, inserted from a process in `Europe/Madrid`:
+
+```ts
+new Date(Date.UTC(2024, 0, 14, 9, 15))   // stored as 2024-01-14 09:15:00, in any zone
+new Date(2024, 0, 14, 9, 15)             // 09:15 in Madrid is 08:15 UTC: stored as 2024-01-14 08:15:00
+```
+
+The local constructor of `Date`, `new Date(2024, 0, 14, 9, 15)`, builds 09:15 *in the zone of the process*, so what is stored depends on where the code runs. Build the values with `Date.UTC(...)`, or from a text with a `Z`, like `new Date('2024-01-14T09:15:00Z')`.
+
+### Read the values with the UTC getters
+
+The value is still a `Date`, and JavaScript gives its local getters and its local formatting just as readily:
+
+```typescriptreact
+row.signedOffAt.getUTCHours()     // 12 — the stored hour, in any zone
+row.signedOffAt.getHours()        // the stored hour converted to the zone of the process
+row.signedOffAt.toISOString()     // 2024-01-14T12:30:00.000Z — the stored digits
+row.signedOffAt.toLocaleString()  // in the zone of the process
+
+row.birthday.getUTCDate()         // 14 — the stored day
+row.birthday.toISOString()        // 2024-01-14T10:00:00.000Z — the 10:00 means nothing
+
+row.opensAt.getUTCHours()         // 9, for a time stored as 09:15
+row.opensAt.getHours()            // 10 in Madrid in winter, 4 in New York
+```
+
+Use the UTC getters (`getUTCFullYear`, `getUTCMonth`, `getUTCDate`, `getUTCHours`, `getUTCMinutes`, `getUTCSeconds`), and format with an explicit zone: `new Intl.DateTimeFormat('en', { timeZone: 'UTC' })`. Convert to a local zone only when you show the value to a person, and only for an instant.
+
+A `localDate` is at 10:00 UTC so that its local getters still give the same day from UTC-10 to UTC+13; outside that range they give another day. Its UTC getters give the stored day everywhere. Its time and `getTime()` mean nothing for a date with no time.
+
+## The four kinds of temporal column
+
+What the library does is the same for all of them. They differ in what the **engine** does with the value, and that decides whether the database session's zone takes part.
+
+### 1. No time-zone handling at all
+
+The value is a wall clock, stored and returned verbatim. The engine never converts it, and the session zone doesn't touch it. This is the most common kind. With the rule above, the library stores and reads its digits as UTC.
+
+Verified on PostgreSQL: the session zone has no effect on a `timestamp` column:
+
+```
+session UTC      2024-01-14 12:30:00
+session Madrid   2024-01-14 12:30:00
+session Tokyo    2024-01-14 12:30:00
+```
+
+### 2. Pinned to a zone, delivered without it
+
+The column stores a normalized instant, and the engine converts on the way in and out **using the session's zone**, but what it hands the client is a bare wall clock. `TIMESTAMP` on MySQL and MariaDB works this way, and so does Oracle's `TIMESTAMP WITH LOCAL TIME ZONE`.
+
+The library sends and reads the wall clock as UTC, so the value is right only when the session is in UTC. With the session in another zone, the engine converts the UTC digits as if they were in that zone, and the instant it stores is wrong by the offset.
+
+### 3. Pinned to a zone, delivered with it
+
+Same storage as kind 2, one normalized instant, but the value reaches the client **qualified**, so it identifies its own instant. PostgreSQL's `timestamptz` is the only type among the supported databases that does this. The same session, the same instant, two columns:
+
+```
+timestamptz  ->  2024-01-14 12:30:00+00
+timestamp    ->  2024-01-14 12:30:00
+```
+
+The name surprises people: insert `12:30+05` and the `+05` is *gone*, because the value is normalized on the way in and re-rendered through the session zone on the way out:
+
+```
+insert  2024-01-14 12:30:00+05
+
+session UTC      2024-01-14 07:30:00+00
+session Madrid   2024-01-14 08:30:00+01
+session Tokyo    2024-01-14 16:30:00+09
+```
+
+All three lines are the **same instant**, and that instant is what a `localDateTime` reads.
+
+### 4. The zone stored with each value
+
+The column keeps the zone or offset each value was written with, so rows can carry different zones at once. Verified on Oracle, two rows, two zones, each preserved:
+
+```
+2024-01-14 12:30 +05:00
+2024-01-14 12:30 -08:00
+```
+
+A `localDateTime` reads the instant of each one: `2024-01-14 18:15:30.123 +09:00` is read as `2024-01-14T09:15:30.123Z`. The offset it was written with doesn't come back, because a `Date` has none.
+
+!!! warning "This is not the safest option: it buys a different set of problems"
+
+    Once values from several zones coexist in one column you inherit questions the other kinds never raise: comparisons and `ORDER BY` need a normalization the engine does for you but that is easy to reason about wrongly; a `GROUP BY` per day depends on *whose* day; two values can be equal as instants yet not identical as values; and every consumer has to decide whether it wants the stored zone or its own.
+
+    Reach for it when **the original zone is part of the fact you are recording**, like an airline schedule. If you only need to know *when* something happened, kind 3 records exactly that.
+
+## What still depends on the database's zone
+
+The zone of your application doesn't change the values the library sends and reads. The zone of the **database session** still does in two places:
+
+- **A column of kind 2**: MySQL and MariaDB `TIMESTAMP`, Oracle `TIMESTAMP WITH LOCAL TIME ZONE`. The engine converts with the session zone, so the session must be in UTC.
+- **SQL that mixes a wall clock with an instant**: on PostgreSQL, a `timestamp` cast to `timestamptz`, a `timestamp` compared with `current_timestamp`, `date_trunc` of a `timestamptz`, a `timestamp` value inserted into a `timestamptz` column. The engine resolves the wall clock in the session zone.
+With the session in UTC, both agree with the rule. The [Per database](#per-database) tabs say where the session zone comes from, and [The database's zone](#the-databases-zone) how to set it.
+
+## Per database
+
+Which column types fall in which kind, and what the session zone does:
+
+=== "MariaDB"
+    | kind | types |
+    |---|---|
+    | 1 — no handling | `DATE`, `TIME`, `DATETIME` |
+    | 2 — pinned, delivered without the zone | `TIMESTAMP` (stored as UTC, converted with the session zone) |
+    | 3 — pinned, delivered with the zone | *none* |
+    | 4 — zone stored per value | *none* |
+
+    The session zone is `time_zone`, which defaults to `SYSTEM`, the server's operating-system zone. A `TIMESTAMP` column needs it in UTC. The query runner can't read it without a query of its own, so it doesn't check it:
+
+    ```sql
+    SELECT @@session.time_zone;
+    SET SESSION time_zone = '+00:00';
+    ```
+
+    !!! warning "`TIMESTAMP` is not this engine's `timestamptz`"
+
+        "Stored as UTC" reads like "safe", but it is kind 2, not kind 3: the conversion uses the **session's** zone and what reaches the driver is a bare wall clock. With the session in UTC it holds the UTC digits, as a `DATETIME` does.
+
+=== "MySQL"
+    | kind | types |
+    |---|---|
+    | 1 — no handling | `DATE`, `TIME`, `DATETIME` |
+    | 2 — pinned, delivered without the zone | `TIMESTAMP` (stored as UTC, converted with the session zone) |
+    | 3 — pinned, delivered with the zone | *none* |
+    | 4 — zone stored per value | *none* |
+
+    The session zone is `time_zone`, which defaults to `SYSTEM`, the server's operating-system zone. A `TIMESTAMP` column needs it in UTC. The query runner can't read it without a query of its own, so it doesn't check it:
+
+    ```sql
+    SELECT @@session.time_zone;
+    SET SESSION time_zone = '+00:00';
+    ```
+
+    !!! warning "`TIMESTAMP` is not this engine's `timestamptz`"
+
+        "Stored as UTC" reads like "safe", but it is kind 2, not kind 3: the conversion uses the **session's** zone and what reaches the driver is a bare wall clock. With the session in UTC it holds the UTC digits, as a `DATETIME` does.
+
+=== "Oracle"
+    | kind | types |
+    |---|---|
+    | 1 — no handling | `DATE`, `TIMESTAMP` |
+    | 2 — pinned, delivered without the zone | `TIMESTAMP WITH LOCAL TIME ZONE` (normalized to the database zone, converted with the session zone) |
+    | 3 — pinned, delivered with the zone | *none* |
+    | 4 — zone stored per value | `TIMESTAMP WITH TIME ZONE` |
+
+    oracledb sets the session zone when it opens a connection: the one of the environment variable `ORA_SDTZ`, or else the offset of the process at that moment. The library sends a date or a time as a `TIMESTAMP WITH TIME ZONE` in UTC, which Oracle converts with the session zone where it is compared with or stored in a `DATE` or a `TIMESTAMP`. So when the process doesn't run in UTC, the query runner requires `ORA_SDTZ` set to UTC: see [oracledb → Connection requirements](query-runners/recommended/oracledb.md#connection-requirements).
+
+    ```sql
+    SELECT sessiontimezone FROM dual;
+    ```
+
+    A `DATE` or `TIMESTAMP` holding a wall clock that doesn't exist in the zone of the process comes back moved: see [Known limits](#known-limits).
+
+===+ "PostgreSQL"
+    | kind | types |
+    |---|---|
+    | 1 — no handling | `date`, `time`, `timestamp` (`timestamp without time zone`) |
+    | 2 — pinned, delivered without the zone | *none* |
+    | 3 — pinned, delivered with the zone | `timestamptz` (`timestamp with time zone`) |
+    | 4 — zone stored per value | *none*: despite the name, `timestamptz` stores no zone |
+
+    The session zone is `TimeZone`, defaulting to the server's `timezone` setting. The values the library sends and reads don't depend on it; only SQL that mixes a `timestamp` with a `timestamptz` does:
+
+    ```sql
+    SHOW TimeZone;
+    SET TIME ZONE 'UTC';
+    ```
+
+    PGlite takes the session zone from the process, as a fixed offset: see [Known limits](#known-limits).
+
+=== "SQLite"
+    SQLite has **no temporal types at all**: a date is text, a number or an integer, and *you* choose which. In ts-sql-query that choice is `getDateTimeFormat()`; see [SQLite → Working with Date and Time](supported-databases/sqlite.md#working-with-date-and-time). The `UTC` text strategies and the numeric ones keep every value in UTC; the `localdate` ones, the default, write and read the wall clock of the zone of the process.
+
+    !!! tip "SQLite has only one zone"
+
+        There is no server and no session: SQLite runs **inside your process**, and it takes the zone the process started with from the C library. `datetime('now', 'localtime')` follows your `TZ`:
+
+        ```
+        TZ=UTC             localtime = 12:37:58   utc = 12:37:58
+        TZ=Europe/Madrid   localtime = 14:37:58   utc = 12:37:58
+        ```
+
+        Set the zone when the process starts: on Bun with `bun:sqlite`, changing `process.env.TZ` afterwards changes JavaScript and not SQLite, and the two disagree. With a `localdate` strategy, pin your application's zone anyway: it is what keeps the stored text consistent across the machines that write it.
+
+        The date functions of the database work in UTC by default, so they can differ from what JavaScript gives when the process doesn't run in UTC. See [The date functions and the time zone](supported-databases/sqlite.md#the-date-functions-and-the-time-zone).
+
+=== "SQL Server"
+    | kind | types |
+    |---|---|
+    | 1 — no handling | `date`, `time`, `datetime`, `datetime2`, `smalldatetime` |
+    | 2 — pinned, delivered without the zone | *none* |
+    | 3 — pinned, delivered with the zone | *none* |
+    | 4 — zone stored per value | `datetimeoffset` |
+
+    !!! warning "SQL Server has no session time zone"
+
+        There is nothing to `SET`: the engine uses the **server's operating-system zone**, and every session sees the same one. The values the library sends and reads don't depend on it.
+
+        ```sql
+        SELECT CURRENT_TIMEZONE();   -- the server's OS zone
+        ```
+
+    The driver, tedious, sends and reads a date and a time in UTC with its option `useUTC`, which is on by default. When the process doesn't run in UTC, the query runner rejects a pool with `useUTC: false`: see [mssql → Connection requirements](query-runners/recommended/mssql.md#connection-requirements).
+
+## Known limits
+
+- **Oracle: a wall clock that doesn't exist in the zone of the process.** oracledb builds the `Date` of a `DATE` or a `TIMESTAMP` in the zone of the process, and the query runner takes its digits back as UTC. A stored time that the zone of the process skips when it changes to summer time, like `2024-03-31 02:30:00` with the process in `Europe/Madrid`, has already been moved an hour by oracledb: it's read as `03:30`, and written back as `03:30`. Inside an [aggregated array](../queries/aggregate-as-object-array.md) the value is built by the database and keeps its time. With the process in UTC every value is exact.
+- **PGlite: a `timestamp` value converted to a `timestamptz` in SQL.** PGlite takes the session zone from the process, as a fixed offset. A wall clock that the SQL turns into an instant, like a constant `localDateTime` selected and inserted into a `timestamptz` column, is converted with that offset when the process doesn't run in UTC. A value sent straight to a `timestamptz` column is right, because the library sends it with its offset.
+- **A column of kind 4** keeps the instant, not the offset it was written with, as said [above](#4-the-zone-stored-with-each-value).
+
+## Setting the zones to UTC
+
+None of what the library sends and reads requires the application to run in UTC. Running it in UTC is still the advice:
+
+- The query runners of Oracle and SQL Server need nothing from you: `ORA_SDTZ` and `useUTC` are only required when the process doesn't run in UTC.
+- The Oracle limit above disappears.
+- Your own code agrees with the database: `new Date(2024, 0, 14)`, `getHours()`, `toString()`, a log line, a library that formats in the local zone.
+- On SQLite, the `localdate` strategies and the date functions agree with the other databases.
+
+It is what cloud providers give you by default, regardless of where the region physically is. Your development machine is the exception: it runs in your own zone.
+
+### The application's zone
+
+Either of these works; the environment variable is not required.
+
+**From the environment:**
+
+```bash
+TZ=UTC node app.js
+```
+
+**From JavaScript**, useful when you do not control how the process is launched, like a serverless entry point, a test runner or a bundled CLI:
+
+```ts
+process.env.TZ = 'UTC'
+```
+
+!!! warning "It has to run first"
+
+    Node caches the zone the first time it is needed, so this must be set **before any `Date` is created**, including by an imported module. Put it at the very top of your entry point, above the other imports, or in a tiny module you import first:
+
+    ```ts
+    // timezone.ts — imported before anything else
+    process.env.TZ = 'UTC'
+    ```
+
+The query runners that need a setting only outside UTC decide whether the process runs in UTC when they are created: by `process.env.TZ` when it is set, with a name of UTC like `UTC`, `Etc/UTC` or `GMT`, and otherwise by the zone the runtime resolves. Never by the current offset, which is 0 in London only in winter.
+
+### The database's zone
+
+Prefer a server that already runs in UTC. Where the engine has a session zone, you can also set it per connection: run the statement of the [Per database](#per-database) tabs when the connection is opened, so every connection in the pool gets it. The hook is driver-specific: see [pg](query-runners/recommended/pg.md#running-a-statement-on-each-new-connection) (`pool.on('connect', …)`). On Oracle, set `ORA_SDTZ`, which oracledb reads when it opens a connection.
+
+### The database's zone in Docker
+
+**The official images already run in UTC.** Every one of these images reports UTC out of the box:
+
+| image | container zone |
+|---|---|
+| `postgres:18-alpine` | `UTC +0000` |
+| `mysql:9` | `UTC +0000` |
+| `mariadb:latest` | `UTC +0000` |
+| `mcr.microsoft.com/mssql/server:2025-latest` | `UTC +0000` |
+| `gvenzl/oracle-free:23-slim-faststart` | `UTC +0000` (and `DBTIMEZONE` / `SESSIONTIMEZONE` both `+00:00`) |
+
+So a stock container usually needs nothing. Pin it explicitly when you build on a base image you do not control, or when you want the setting visible rather than inherited. **One environment variable covers every engine**: it sets the container's operating-system zone, which each engine then picks up:
+
+```bash
+docker run -e TZ=UTC postgres:18
+```
+
+```yaml
+services:
+  db:
+    image: postgres:18
+    environment:
+      TZ: UTC
+```
+
+That it reaches the engine, and not just the container's shell:
+
+```
+docker run -e TZ=Europe/Madrid …
+
+PostgreSQL   SHOW TimeZone         ->  Europe/Madrid
+MySQL        @@system_time_zone    ->  CEST          (now() 14:54 while utc_timestamp() 12:54)
+SQL Server   CURRENT_TIMEZONE()    ->  (UTC+01:00) Brussels, Copenhagen, Madrid, Paris
+```
+
+### Testcontainers
+
+If your integration tests start the database themselves, the same variable goes through the environment the container is built with:
+
+```typescriptreact
+const container = await new PostgreSqlContainer('postgres:18')
+    .withEnvironment({ TZ: 'UTC' })
+    .start()
+```
+
+!!! warning "A suite that never leaves UTC can't see a mistake of zones"
+
+    With the test process and the database both in UTC, local and UTC getters coincide, so code that reads a value with `getHours()` instead of `getUTCHours()`, or builds one with `new Date(2024, 0, 14)`, passes. If your application will run where the zone is another, at least one test should run in that zone, in a process started with it: the zone of a running process can't be changed reliably.
+
+## You already have a database
+
+The rule assumes that the digits of every column without zone are UTC. Check that before anything else:
+
+1. **Find out which kind your temporal columns are.** Kind 3 and kind 4 hold instants, and nothing on this page can shift them.
+2. **For kind 1 and kind 2, find out in which zone the digits were written.** If whoever wrote them ran in UTC, or wrote UTC on purpose, there is nothing to do. For kind 2, also set the session in UTC.
+3. **If they were written in another zone**, the library reads them as UTC, so each value comes out shifted by that zone's offset. Convert the stored values to UTC once, or, if you can't, read and write that column through a type adapter (below).
+
+!!! tip "What if the stored values were written in a zone you cannot change?"
+
+    It happens: a legacy writer keeps storing wall clocks in a fixed zone. Here the value's zone is application knowledge, so put it where application knowledge belongs: a [type adapter](column-types.md#type-adapters) on a `customLocalDateTime` column, converting in `transformValueFromDB` / `transformValueToDB`. Keep that conversion in one place; spreading it through the queries is how the original problem was made.
+
+Moving a kind 1 column to kind 3 removes the question for good, but it is a data migration: the existing values must be interpreted in *some* zone to be converted. Do it on new columns first, and don't reach for kind 4 unless the original zone is part of what you are recording.
+
+## What `getTime()` does and does not promise
+
+`getTime()` mirrors `Date.prototype.getTime()`: milliseconds since the epoch, computed **by the database**, exact across the whole range a JavaScript `Date` can hold, including instants before 1970.
 
 ```ts
 const tRelease = new class TRelease extends Table<DBConnection, 'TRelease'> {
@@ -103,422 +441,12 @@ const row: {
 }
 ```
 
-On a wall-clock column holding `2024-01-14 12:30:00`, with the database session in UTC:
+On a column without zone the database counts from the digits as if they were UTC, as the library reads them, so the two agree in any zone of the process. A PostgreSQL `timestamp` column holding `2024-01-14 12:30:00`:
 
 ```
-TZ=UTC             value.getTime() = 1705235400000   epoch = 1705235400000   agree
-TZ=Europe/Madrid   value.getTime() = 1705231800000   epoch = 1705235400000   DISAGREE by 1h
+TZ=UTC               value.getTime() = 1705235400000   epoch = 1705235400000
+TZ=Europe/Madrid     value.getTime() = 1705235400000   epoch = 1705235400000
+TZ=America/New_York  value.getTime() = 1705235400000   epoch = 1705235400000
 ```
 
-Nothing in that query is wrong and no error is raised — the `Date` is simply not the instant the database meant. **No SQL can reconcile it**: the engine cannot know the host's zone.
-
-### Writing has the same problem, and it lasts longer
-
-Everything above is about reading, but a `Date` you send — in an `INSERT`, an `UPDATE`, or as the value of a `WHERE` comparison — crosses the same boundary in the other direction. The same instant, written by the same code from two machines, lands as two different rows:
-
-```
-new Date('2024-01-14T12:30:00Z')       written from      stored in a wall-clock column
-
-                                       TZ=UTC             2024-01-14 12:30:00
-                                       TZ=Europe/Madrid   2024-01-14 13:30:00
-```
-
-This one deserves its own alarm for two reasons.
-
-**It hides better.** An application that reads and writes in one zone is *self-consistent*: it stores `13:30`, reads `13:30` back, parses it in the same zone, and gets its original instant. Nothing looks wrong, and nothing is — until a second party appears with a different zone. Your laptop seeds a fixture the CI server then reads; a batch job runs in another region; a colleague reproduces a bug and gets different numbers.
-
-**It outlives the fix.** A drifting read is recovered the moment you align the zones. A drifting *write* has already put the wrong wall clock on disk, and no configuration change repairs the rows you already have — you are left having to work out which of them were written from where.
-
-A column that keeps the instant ([kinds 3 and 4](#the-four-kinds-of-temporal-column), below) is unaffected: the value goes out identifying its own instant, so where it was written from does not matter.
-
-!!! tip "Put everything in UTC"
-
-    The current good practice is to run **servers in UTC** and convert to a local zone only at the edges, when displaying to a user. It is what every major cloud provider gives you by default, regardless of where the region physically is, and it is why this bug so rarely reaches production.
-
-    Your development machine is the exception: it runs in your own zone. Pin your application's zone explicitly (below) instead of relying on the host — that is what makes local, CI and production behave the same.
-
-## The four kinds of temporal column
-
-Which of these you are using decides whether you have anything to do at all. They differ along two axes: what the **engine** does with the value, and what reaches **your process** — and it is the second one that decides whether the mismatch can touch you.
-
-### 1. No time-zone handling at all
-
-The value is a wall clock, stored and returned verbatim. The engine never converts it, the session zone does not touch it, and **the meaning is entirely a convention between you and your data**. This is the most common kind, and the one the mismatch above applies to.
-
-Verified on PostgreSQL — the session zone has no effect on a `timestamp` column:
-
-```
-session UTC      2024-01-14 12:30:00
-session Madrid   2024-01-14 12:30:00
-session Tokyo    2024-01-14 12:30:00
-```
-
-### 2. Pinned to a zone, delivered without it
-
-The column stores a normalized instant (UTC, or the database's own zone) and the engine converts on the way in and out **using the session's zone** — but what it hands the client is a bare wall clock, with the zone stripped back off. The session zone is a participant your process cannot see.
-
-`TIMESTAMP` on MySQL and MariaDB works this way, and so does Oracle's `TIMESTAMP WITH LOCAL TIME ZONE`. Because the offset is gone by the time the value reaches the driver, **this kind drifts** — the normalization bought you nothing at the boundary.
-
-!!! warning "Which side breaks depends on where the session zone comes from"
-
-    This is the subtlest case on the page, and it does not fail the same way twice:
-
-    - **MySQL / MariaDB** default the session zone to the **server's** (`time_zone = SYSTEM`). The engine renders the value in the server's zone, your process parses it in its own, and the `Date` you get is wrong.
-    - **Oracle**'s driver sets the session zone from **your process's** zone. The engine renders in your zone and your process parses in your zone — the two cancel out, so the `Date` is *right* — but the `getTime()` the database computes runs on the session-rendered value and comes out wrong.
-
-    So on Oracle the value you look at first is correct and the one you trust the database for is not. Same kind, opposite symptom.
-
-### 3. Pinned to a zone, delivered with it
-
-Same storage behaviour as kind 2 — one normalized instant, no per-value zone — but the value reaches the client **qualified**, so it identifies its own instant and nothing has to be assumed.
-
-PostgreSQL's `timestamptz` is the only type among the supported databases that does this. It is worth seeing the difference on the wire, because it is the whole reason kinds 2 and 3 are separate — the same session, the same instant, two columns:
-
-```
-timestamptz  ->  2024-01-14 12:30:00+00
-timestamp    ->  2024-01-14 12:30:00
-```
-
-The offset is part of the protocol, not something the driver adds. **This is why `timestamptz` is immune and MySQL's `TIMESTAMP` is not**, even though both store a normalized instant.
-
-The name still surprises people: insert `12:30+05` and the `+05` is *gone*, because the value is normalized on the way in and re-rendered through the session zone on the way out:
-
-```
-insert  2024-01-14 12:30:00+05
-
-session UTC      2024-01-14 07:30:00+00
-session Madrid   2024-01-14 08:30:00+01
-session Tokyo    2024-01-14 16:30:00+09
-```
-
-All three lines are the **same instant**. Map it with `localDateTime` and it round-trips correctly with **no custom type and no configuration**.
-
-### 4. The zone stored with each value
-
-The column keeps the zone (or offset) each value was written with, so **rows can carry different zones at once**. Verified on Oracle — two rows, two zones, each preserved:
-
-```
-2024-01-14 12:30 +05:00
-2024-01-14 12:30 -08:00
-```
-
-!!! warning "This is not the safest option — it buys a different set of problems"
-
-    Storing the zone costs more than space. Once values from several zones coexist in one column you inherit questions the other kinds never raise: comparisons and `ORDER BY` need a normalization the engine does for you but that is easy to reason about wrongly; a `GROUP BY` per day depends on *whose* day; two values can be equal as instants yet not identical as values; and every consumer has to decide whether it wants the stored zone or its own.
-
-    Reach for it when **the original zone is part of the fact you are recording** — an airline schedule, a user-entered appointment whose local time matters even after a zone rule changes. If you only need to know *when* something happened, kind 3 records exactly that, with none of the above.
-
-## Which combinations actually drift
-
-The kinds tell you what to expect: **kinds 3 and 4 are immune** — the value reaches your process identifying its own instant — while **kinds 1 and 2 drift**. The table below is the measurement behind that claim, and it carries the one exception.
-
-Every row below was measured the same way: **the database in UTC** (which is how the official images ship), the same stored instant, and the application process moved from UTC to `Europe/Madrid`. `agree` means the `Date` you read and the `getTime()` the database computes are the same instant — which is also the right one.
-
-| engine · type | kind | TZ=UTC | TZ=Europe/Madrid |
-|---|---|---|---|
-| PostgreSQL `timestamp` | 1 | agree | **drifts** — the `Date` is wrong |
-| PostgreSQL `timestamptz` | 3 | agree | **agree** |
-| MySQL `DATETIME` / `TIMESTAMP` | 1 / 2 | agree | **drifts** — the `Date` is wrong |
-| MariaDB `DATETIME` / `TIMESTAMP` | 1 / 2 | agree | **drifts** — the `Date` is wrong |
-| Oracle `TIMESTAMP` | 1 | agree | **drifts** — the `Date` is wrong |
-| Oracle `TIMESTAMP WITH LOCAL TIME ZONE` | 2 | agree | **drifts** — the *SQL* is wrong |
-| Oracle `TIMESTAMP WITH TIME ZONE` | 4 | agree | **agree** |
-| SQL Server `datetime2` | 1 | agree | **agree** — see below |
-| SQL Server `datetimeoffset` | 4 | agree | **agree** |
-| SQLite `UTC` text, Unix time and Julian day formats | — | agree | **agree** |
-| SQLite `localdate` text formats (the default) | 1 | agree | **drifts** — the *SQL* is wrong |
-
-Three rows deserve a second look:
-
-- **Oracle's `TIMESTAMP WITH LOCAL TIME ZONE` drifts on the other side.** It is kind 2, so the drift is expected — but it lands on the `getTime()` the database computes rather than on the `Date` you read, which makes it much harder to spot: the value you look at first is correct.
-- **SQL Server's `datetime2` agrees, and it is the one exception to the kinds.** Its driver pins the interpretation to UTC, which lines up with a server in UTC. That is immunity by coincidence of configuration rather than by design — point it at a server in another zone and it drifts like every other kind 1.
-- **SQLite's `localdate` text formats have only one zone, and still drifts on `getTime()`.** The `Date` is built in your process's zone, and `getTime()` reads the text as UTC. The `Date` itself comes back as it was written. Here there is something to switch on: [`sqliteRunsInApplicationTimeZone`](supported-databases/sqlite.md#the-date-functions-and-the-time-zone). In the UTC and numeric formats `getTime()` agrees, while `getHours()`, `getDate()` and the like read UTC, and that option covers them too.
-
-## Per database
-
-Which column types fall in which kind, and what the session zone does:
-
-=== "MariaDB"
-    | kind | types |
-    |---|---|
-    | 1 — no handling | `DATE`, `TIME`, `DATETIME` |
-    | 2 — pinned, delivered without the zone | `TIMESTAMP` (stored as UTC, converted with the session zone) |
-    | 3 — pinned, delivered with the zone | *none* |
-    | 4 — zone stored per value | *none* |
-
-    The session zone is `time_zone`, which defaults to `SYSTEM` — the server's operating-system zone:
-
-    ```sql
-    SELECT @@session.time_zone;
-    SET SESSION time_zone = '+00:00';
-    ```
-
-    !!! warning "`TIMESTAMP` is not this engine's `timestamptz`"
-
-        "Stored as UTC" reads like "safe", and it is the assumption that costs people an hour. It is kind 2, not kind 3: the conversion targets the **session's** zone and what reaches the driver is a bare wall clock, so it drifts exactly like `DATETIME`:
-
-        ```
-        TZ=Europe/Madrid   DATETIME    value.getTime() = 1705231800000   epoch = 1705235400000   drifts
-        TZ=Europe/Madrid   TIMESTAMP   value.getTime() = 1705231800000   epoch = 1705235400000   drifts
-        ```
-
-        There is no kind 3 here. Align the zones as you would for `DATETIME`.
-
-=== "MySQL"
-    | kind | types |
-    |---|---|
-    | 1 — no handling | `DATE`, `TIME`, `DATETIME` |
-    | 2 — pinned, delivered without the zone | `TIMESTAMP` (stored as UTC, converted with the session zone) |
-    | 3 — pinned, delivered with the zone | *none* |
-    | 4 — zone stored per value | *none* |
-
-    The session zone is `time_zone`, which defaults to `SYSTEM` — the server's operating-system zone:
-
-    ```sql
-    SELECT @@session.time_zone;
-    SET SESSION time_zone = '+00:00';
-    ```
-
-    !!! warning "`TIMESTAMP` is not this engine's `timestamptz`"
-
-        "Stored as UTC" reads like "safe", and it is the assumption that costs people an hour. It is kind 2, not kind 3: the conversion targets the **session's** zone and what reaches the driver is a bare wall clock, so it drifts exactly like `DATETIME`:
-
-        ```
-        TZ=Europe/Madrid   DATETIME    value.getTime() = 1705231800000   epoch = 1705235400000   drifts
-        TZ=Europe/Madrid   TIMESTAMP   value.getTime() = 1705231800000   epoch = 1705235400000   drifts
-        ```
-
-        There is no kind 3 here. Align the zones as you would for `DATETIME`.
-
-=== "Oracle"
-    | kind | types |
-    |---|---|
-    | 1 — no handling | `DATE`, `TIMESTAMP` |
-    | 2 — pinned, delivered without the zone | `TIMESTAMP WITH LOCAL TIME ZONE` (normalized to the database zone, converted with the session zone) |
-    | 3 — pinned, delivered with the zone | *none* |
-    | 4 — zone stored per value | `TIMESTAMP WITH TIME ZONE` |
-
-    Oracle is the only supported database offering both a pinned and a zone-storing type. The session zone:
-
-    ```sql
-    SELECT sessiontimezone FROM dual;
-    ALTER SESSION SET TIME_ZONE = 'UTC';
-    ```
-
-    !!! warning "`TIMESTAMP WITH LOCAL TIME ZONE` drifts on the side you do not check"
-
-        Being kind 2, it drifts — but not where you would look. The driver sets the session zone from **your process's** zone, so the `Date` you read comes out right and the `getTime()` the database computes comes out wrong:
-
-        ```
-        TZ=Europe/Madrid   value.getTime() = 1705235400000   epoch = 1705239000000   drifts
-        ```
-
-        `TIMESTAMP WITH TIME ZONE` (kind 4) carries its own zone and is unaffected.
-
-===+ "PostgreSQL"
-    | kind | types |
-    |---|---|
-    | 1 — no handling | `date`, `time`, `timestamp` (`timestamp without time zone`) |
-    | 2 — pinned, delivered without the zone | *none* |
-    | 3 — pinned, delivered with the zone | `timestamptz` (`timestamp with time zone`) |
-    | 4 — zone stored per value | *none* — despite the name, `timestamptz` stores no zone |
-
-    The session zone is `TimeZone`, defaulting to the server's `timezone` setting:
-
-    ```sql
-    SHOW TimeZone;
-    SET TIME ZONE 'UTC';
-    ```
-
-=== "SQLite"
-    SQLite has **no temporal types at all** — a date is text, a number, or an integer, and *you* choose which. In ts-sql-query that choice is `getDateTimeFormat()`; see [SQLite → Working with Date and Time](supported-databases/sqlite.md#working-with-date-and-time). The `UTC` text strategies pin every value to UTC by convention; the `localdate` ones are kind 1.
-
-    !!! tip "SQLite has only one zone"
-
-        There is no server and no session: SQLite runs **inside your process**, and it takes the zone the process started with from the C library. `datetime('now', 'localtime')` follows your `TZ`:
-
-        ```
-        TZ=UTC             localtime = 12:37:58   utc = 12:37:58
-        TZ=Europe/Madrid   localtime = 14:37:58   utc = 12:37:58
-        ```
-
-        Set the zone when the process starts: on Bun with `bun:sqlite`, changing `process.env.TZ` afterwards changes JavaScript and not SQLite, and the two disagree. Pin your application's zone anyway — it is what keeps the *stored* text consistent across the machines that write it.
-
-        The date functions of the database work in UTC by default, so they can differ from what JavaScript gives when the process doesn't run in UTC. See [The date functions and the time zone](supported-databases/sqlite.md#the-date-functions-and-the-time-zone).
-
-=== "SQL Server"
-    | kind | types |
-    |---|---|
-    | 1 — no handling | `date`, `time`, `datetime`, `datetime2`, `smalldatetime` |
-    | 2 — pinned, delivered without the zone | *none* |
-    | 3 — pinned, delivered with the zone | *none* |
-    | 4 — zone stored per value | `datetimeoffset` |
-
-    !!! warning "SQL Server has no session time zone"
-
-        There is nothing to `SET`: the engine uses the **server's operating-system zone**, and every session sees the same one.
-
-        ```sql
-        SELECT CURRENT_TIMEZONE();   -- the server's OS zone
-        ```
-
-        So the database side is fixed by how the server is deployed. Either run the server in UTC, or convert explicitly per query with `AT TIME ZONE`.
-
-## Aligning the two zones
-
-The rule is short: **the application process and the database must agree on their zone, and that zone should be UTC.** Matching is the important half — but matching on a zone that observes daylight saving is not enough on its own, which is the next section.
-
-### Daylight saving is why it must be UTC, not just the same
-
-If the zone the two sides agree on observes daylight saving, a wall-clock column (kind 1 or 2) loses information that no configuration can give back — because twice a year the mapping between wall clocks and instants stops being one-to-one.
-
-**The hour that happens twice.** When the clocks go back, one wall clock covers two different instants:
-
-```
-2024-10-27T00:30:00Z  ->  wall clock 2024-10-27 02:30:00   (Europe/Madrid, +02)
-2024-10-27T01:30:00Z  ->  wall clock 2024-10-27 02:30:00   (Europe/Madrid, +01)
-```
-
-Two distinct instants, the same characters in the column: stored identically, read back identically, **the difference gone** — with both sides perfectly aligned the whole time.
-
-**The hour that never happens.** When the clocks go forward, some wall clocks do not exist, and JavaScript quietly moves them somewhere else:
-
-```
-TZ=Europe/Madrid
-new Date('2024-03-31 02:30:00')  ->  2024-03-31T01:30:00Z  ->  reads back as 03:30 local
-```
-
-02:30 did not exist that day — the clock jumped from 02:00 to 03:00 — so the value you stored is not the value you get.
-
-**UTC has no daylight saving**, so neither case can arise: every wall clock exists, exactly once. That is the real reason the advice is UTC rather than "any zone, as long as both sides use it" — agreeing on a DST zone still corrupts an hour of data twice a year, silently. (A fixed-offset zone such as `+01:00` — never `Europe/Madrid` — avoids it too, but there is no reason to prefer it to UTC.)
-
-Columns of kind 3 and 4 are unaffected by this as well: they record the instant, so the ambiguity never arises.
-
-### The application's zone
-
-Either of these works; the environment variable is not required.
-
-**From the environment:**
-
-```bash
-TZ=UTC node app.js
-```
-
-**From JavaScript**, useful when you do not control how the process is launched — a serverless entry point, a test runner, a bundled CLI:
-
-```ts
-process.env.TZ = 'UTC'
-```
-
-!!! warning "It has to run first"
-
-    Node caches the zone the first time it is needed, so this must be set **before any `Date` is created**, including by an imported module. Put it at the very top of your entry point, above the other imports, or in a tiny module you import first:
-
-    ```ts
-    // timezone.ts — imported before anything else
-    process.env.TZ = 'UTC'
-    ```
-
-### The database's zone
-
-Prefer a server that already runs in UTC. Where the engine has a session zone (every one except SQL Server and SQLite), you can also set it per connection — run the statement from the **Per database** tabs above when the connection is opened, so every connection in the pool gets it. The hook is driver-specific: see [oracledb](query-runners/recommended/oracledb.md#running-a-statement-on-each-new-connection) (`sessionCallback`) and [pg](query-runners/recommended/pg.md#running-a-statement-on-each-new-connection) (`pool.on('connect', …)`) for the concrete code — the same hook where you would set a [session collation](collations.md#on-the-connection-the-session-collation).
-
-### The database's zone in Docker
-
-**The official images already run in UTC.** This is worth stating plainly, because it is where the confusion starts: people assume a container inherits the machine's zone, spend an afternoon on it, and the container was in UTC all along. Every one of these images reports UTC out of the box:
-
-| image | container zone |
-|---|---|
-| `postgres:18-alpine` | `UTC +0000` |
-| `mysql:9` | `UTC +0000` |
-| `mariadb:latest` | `UTC +0000` |
-| `mcr.microsoft.com/mssql/server:2025-latest` | `UTC +0000` |
-| `gvenzl/oracle-free:23-slim-faststart` | `UTC +0000` (and `DBTIMEZONE` / `SESSIONTIMEZONE` both `+00:00`) |
-
-So a stock container is already aligned with an application you pinned to UTC, and **there is usually nothing to do on the database side** — the zone you have to go and fix is almost always your own machine's.
-
-Pin it explicitly when you build on a base image you do not control, when you want the setting visible rather than inherited, or when you are chasing a difference between two machines. **One environment variable covers every engine** — it sets the container's operating-system zone, which each engine then picks up:
-
-```bash
-docker run -e TZ=UTC postgres:18
-```
-
-```yaml
-services:
-  db:
-    image: postgres:18
-    environment:
-      TZ: UTC
-```
-
-That it reaches the engine, and not just the container's shell, is worth seeing — the same variable, on three engines whose zone you can ask for:
-
-```
-docker run -e TZ=Europe/Madrid …
-
-PostgreSQL   SHOW TimeZone         ->  Europe/Madrid
-MySQL        @@system_time_zone    ->  CEST          (now() 14:54 while utc_timestamp() 12:54)
-SQL Server   CURRENT_TIMEZONE()    ->  (UTC+01:00) Brussels, Copenhagen, Madrid, Paris
-```
-
-!!! tip "For SQL Server this is the only option"
-
-    SQL Server has no session time zone, so the container's `TZ` is the only way to choose the zone it resolves values in. There is nothing to `SET` from the connection.
-
-### Testcontainers
-
-If your integration tests start the database themselves, the same variable goes through the environment the container is built with:
-
-```typescriptreact
-const container = await new PostgreSqlContainer('postgres:18')
-    .withEnvironment({ TZ: 'UTC' })
-    .start()
-```
-
-Pin the **test process** too, with `process.env.TZ` as shown above — a test run is exactly the situation where the two zones drift apart, because the container is UTC and the developer's machine is not. That combination is why a test can pass in CI and fail on a laptop, or the reverse, with nobody having changed a line.
-
-!!! warning "A green suite is not evidence that you got this right"
-
-    The trap is specific and worth naming, because it is easy to walk into with the best intentions:
-
-    - **You pin your process to UTC, and the image happens to be UTC too.** Everything passes — but you have not verified that the two zones agree, you have arranged for them to *coincide*. The day one of them moves (a colleague's base image, a self-hosted server, a managed instance in a regional zone), the tests keep passing while the values quietly shift, because your suite never had a case that could tell the difference.
-    - **Both zones are configured, but only one of them deliberately.** Inheriting UTC from an image default is not the same as choosing it. Pin it explicitly — `TZ: 'UTC'` next to the password you already pass — so it is a decision someone can find and change, rather than a property of a base image nobody read.
-    - **Your tests never leave UTC.** If every value you assert is stored, read and compared under the same zone, right and wrong look identical. If your application will run where the zones can differ, at least one test should say what happens then.
-
-    None of this argues against UTC everywhere — it is still the right default. It argues for making it explicit on **both** sides.
-
-## You already have a database
-
-Most of the time you did not design the schema, it has data in it, and a migration is not on the table. That is fine: **for the common case the fix is configuration, not a migration, and not a change of column type.**
-
-1. **Find out which kind your temporal columns are.** This costs nothing and often ends the discussion: if they are kind 3 or kind 4, the mismatch cannot reach you.
-2. **If they are kind 1, compare the two zones** — your process's and the database session's. If they already match, you are correct today; pin both anyway, so a future deployment does not silently break it.
-3. **If they do not match, align them.** This is the real fix for almost every existing database: no schema change, no data change, no query change. Most projects need nothing else.
-4. **Only then consider the column type.** Moving kind 1 → kind 3 removes the ambiguity for good, but it is a data migration: the existing values must be interpreted in *some* zone to be converted, which is exactly the information the column never had. Do it on new columns first, never as a reflex — and do not reach for kind 4 unless the original zone is genuinely part of what you are recording.
-
-!!! tip "What if the stored values were written in a zone you cannot change?"
-
-    It happens: a legacy writer stored wall clocks in a fixed zone that is neither the server's nor yours. Aligning the two zones does not help, because the *data* agrees with neither. Here the value's zone is application knowledge, so put it where application knowledge belongs — a [type adapter](column-types.md#type-adapters) on a `customLocalDateTime` column, converting in `transformValueFromDB` / `transformValueToDB`. Keep that conversion in one place; spreading it through the queries is how the original problem was made.
-
-## `localDate` and `localTime` are not affected
-
-A birthday, a shop's opening time, a public holiday: the wall clock **is** the fact, and attaching a zone to it would be a mistake rather than a fix. ts-sql-query keeps these stable for you — a `localDate` you read is a `Date` at 10:00 UTC of that day, so its calendar date reads the same in every host zone from `-10` to `+13`, with no configuration.
-
-!!! warning "Read them as wall clocks, not as instants"
-
-    The value is still a `Date`, so JavaScript will happily give you an instant-flavoured answer that means nothing:
-
-    ```typescriptreact
-    row.birthday.getDate()      // 14  — correct: a local getter, reads the wall clock
-    row.birthday.getHours()     // depends on the host zone: a date has no time
-    row.birthday.toISOString()  // 2024-01-14T10:00:00.000Z — the 10:00 means nothing
-    row.birthday.getTime()      // likewise meaningless for a date with no time
-    ```
-
-    Use the local getters (`getFullYear` / `getMonth` / `getDate`, `getHours` / `getMinutes` / `getSeconds`) and format with a library that takes an explicit zone. This is a JavaScript trap rather than a ts-sql-query one, but it is the one people hit with `localDate`.
-
-## What `getTime()` does and does not promise
-
-`getTime()` mirrors `Date.prototype.getTime()`: milliseconds since the epoch, computed **by the database**, exact across the whole range a JavaScript `Date` can hold, including instants before 1970.
-
-What it cannot do is escape any of the above. On a kind 1 column it reads the value in the **database session's** zone, so if that zone and your process's disagree, `getTime()` disagrees with the `Date` you would get by selecting the same column — by the same amount, for the same reason. There is nothing to switch on in the library, except on [SQLite](supported-databases/sqlite.md#the-date-functions-and-the-time-zone): align the zones, or use a column that carries its own.
+On a column of kind 2 the database counts from the wall clock of the session, so `getTime()` is right only with the session in UTC, as the value itself. On SQLite, the `localdate` strategies are read as the zone of the process and `getTime()` reads them as UTC, unless you set [`sqliteRunsInApplicationTimeZone`](supported-databases/sqlite.md#the-date-functions-and-the-time-zone).

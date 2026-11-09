@@ -57,6 +57,13 @@ async function main() {
 }
 ```
 
+## Connection requirements
+
+**Rejected** when the query runner is created, with a `TsSqlProcessingError` of reason `INVALID_CONFIGURATION`; `name` says which:
+
+- **`adapter`** other than `'sqlite'`.
+- **A `transform` that renames the columns of the results**: `transform: SQL.camel`, `SQL.toCamel`, or a `column.from` of your own. The library reads each column by its name. A transform of what is sent only, like `SQL.fromCamel` or `transform: { undefined: null }`, is accepted.
+
 ## Large integers
 
 If your queries may return integers larger than JavaScript's safe integer range, create the connection with `new SQL({ adapter: 'sqlite', filename: './foobar.db', safeIntegers: true })`. Without it an out-of-range value comes back rounded, and `ts-sql-query` rejects it with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` instead of returning a wrong value. With it, every integer arrives as a `BigInt`, and `ts-sql-query` converts it to the type the column declares: an `int` column still gives a `number`.

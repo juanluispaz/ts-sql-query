@@ -1,7 +1,6 @@
 // Documentation snippets for the Time zones page (docs/configuration/time-zones.md).
 //
-// The suite runs under TZ=UTC, the first of the two lines the page shows for this query: the application and the
-// database session agree.
+// The suite runs under TZ=UTC, the first of the lines the page shows for this query.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

@@ -1294,12 +1294,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // the last day before the epoch, with the sign flipped. The sub-second term always
         // adds forward in time, which is correct on both sides of the epoch.
         //
-        // Dropping `sys_extract_utc` also makes this session-time-zone independent, but that
-        // is a SIDE EFFECT of fixing the range, NOT a timezone fix, and it does NOT make
-        // `getTime()` timezone-safe: the dominant drift is that `transformValueFromDB` parses
-        // a wall clock in the HOST's zone while the SQL side resolves it in the ENGINE's
-        // zone. That affects all six dialects equally and cannot be fixed in SQL — see
-        // docs/configuration/time-zones.md.
+        // Without `sys_extract_utc` it is also independent of the session time zone for a DATE or
+        // a TIMESTAMP: the digits are counted as UTC, as the library reads a value without zone,
+        // so `getTime()` agrees with the Date read in any zone of the process. A TIMESTAMP WITH
+        // LOCAL TIME ZONE still depends on the session zone (see docs/configuration/time-zones.md).
         return "(cast(" + this._appendSql(valueSource, params, false) + " as date) - date '1970-01-01') * 86400000 + to_number(to_char(" + this._appendSql(valueSource, params, false) + ", 'FF3'))"
     }
     override _getFullYear(params: any[], valueSource: ToSql): string {

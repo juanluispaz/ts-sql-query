@@ -197,7 +197,7 @@ The zone must be set when the process starts, with `TZ` or in the operating syst
 
 !!! warning "A date outside UTC-10 to UTC+13"
 
-    Outside that range, a `localDate` you read gives another day in the local getters of JavaScript, as [Time zones](../time-zones.md#localdate-and-localtime-are-not-affected) says. If you write that `Date` back, that other day is stored.
+    Outside that range, a `localDate` you read gives another day in the local getters of JavaScript, as [Time zones](../time-zones.md#read-the-values-with-the-utc-getters) says. If you write that `Date` back, that other day is stored.
 
 ## Dealing with different date and time formats coming from the database
 

@@ -732,15 +732,11 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         // it answers 0 on MySQL and NULL on MariaDB — silently, with no error — so a
         // pre-epoch or year-3002 instant came back wrong. `timestampdiff` has no such range.
         //
-        // This also happens to be session-time-zone independent, where `unix_timestamp()`
-        // resolved its argument against the session zone. That is a SIDE EFFECT of fixing
-        // the range, NOT a timezone fix, and it does NOT make `getTime()` timezone-safe:
-        // the dominant drift is that `transformValueFromDB` parses a wall clock in the
-        // HOST's zone while the SQL side resolves it in the ENGINE's zone. That one affects
-        // all six dialects equally, cannot be fixed in SQL (the engine cannot know the
-        // host's zone), and is a deployment-configuration matter — see the chapter in
-        // docs/configuration/time-zones.md. Do not read `timestampdiff` here as the
-        // timezone fix.
+        // It is also independent of the session time zone, where `unix_timestamp()` resolved
+        // its argument against it: the digits are counted as UTC, as the library reads a value
+        // without zone, so `getTime()` agrees with the Date read in any zone of the process. A
+        // TIMESTAMP column still depends on the session zone, which converts it on delivery
+        // (see docs/configuration/time-zones.md).
         return "round(timestampdiff(microsecond, '1970-01-01 00:00:00', " + this._appendSql(valueSource, params, false) + ') / 1000)'
     }
     override _getFullYear(params: any[], valueSource: ToSql): string {

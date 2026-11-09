@@ -72,6 +72,18 @@ async function main() {
 }
 ```
 
+## Connection requirements
+
+**Rejected** when the query runner is created, with a `TsSqlProcessingError` of reason `INVALID_CONFIGURATION` and `name` `'binary'`:
+
+- **`binary: true`**, on the client or on the pool. In the binary mode `pg` reads a `numeric` wrong (`1.50` as `1.51`). With `pg.defaults.binary`, which the clients the pool opens take, `PgPoolQueryRunner` rejects each query, and gives the client back to the pool.
+
+**Not applied to the queries of the library**: the parsers of `date` and `timestamp`, registered with `pg.types.setTypeParser`, `client.setTypeParser` or the `types` of a pool or client. The query runner reads those two types itself, with their digits as UTC, whatever the zone of the process. Your own queries through `pg` keep your parsers.
+
+A parser you register for any other type still applies to the queries of the library: one that changes the value of a type the library reads, like a `numeric` turned into a JavaScript number, changes what the library receives.
+
+The session `TimeZone` doesn't change the values the library sends and reads: see [Time zones](../../time-zones.md#what-still-depends-on-the-databases-zone) for the SQL it does change.
+
 ## Running a statement on each new connection
 
 Some settings are properties of the **database session**, not of the query — notably the [session time zone](../../time-zones.md#per-database). To pin it without touching your schema, run the statement **once per connection**, when the pool opens it. The `pg` pool emits a `connect` event on each brand-new client for exactly this:

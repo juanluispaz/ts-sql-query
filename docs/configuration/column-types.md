@@ -84,12 +84,14 @@ Choose by the values your code handles, not only by the type of the column in th
 | Text | `string` | An empty string [has no value](connection.md#allowing-empty-string) by default. |
 | True or false | `boolean` | Oracle and SQL Server store it as a number or a bit, with `0` and `1`. For other representations, like `'Y'` and `'N'`, see [Custom booleans values](../advanced/custom-booleans-values.md). |
 | A UUID | `uuid` | It's a `string` in your code, and how it's stored depends on the database, as in the tip above. |
-| A date with no time, like a birthday | `localDate` | A `Date`: read it with `getFullYear`, `getMonth` and `getDate`. See [`localDate` and `localTime`](time-zones.md#localdate-and-localtime-are-not-affected). |
-| A time with no date, like an opening time | `localTime` | A `Date`: read it with `getHours`, `getMinutes` and `getSeconds`. |
-| A date with time, like the moment something happened | `localDateTime` | A `Date`. This is the type for a column that stores an instant too, like `timestamptz` on PostgreSQL. Which zone it's read in is in [Time zones](time-zones.md). |
+| A date with no time, like a birthday | `localDate` | A `Date` at 10:00 UTC of the day: read it with `getUTCFullYear`, `getUTCMonth` and `getUTCDate`. See [Read the values with the UTC getters](time-zones.md#read-the-values-with-the-utc-getters). |
+| A time with no date, like an opening time | `localTime` | A `Date` on 1970-01-01: read it with `getUTCHours`, `getUTCMinutes` and `getUTCSeconds`. |
+| A date with time, like the moment something happened | `localDateTime` | A `Date` whose UTC getters are the stored digits, in any zone of your application. This is the type for a column that stores an instant too, like `timestamptz` on PostgreSQL, which gives the instant. See [Time zones](time-zones.md). |
 | One of a fixed list of values | `enum` | With a union of your values as its TypeScript type. |
 | A value your code gives a type of its own, like an id with a TypeScript brand | The `custom...` type with the operations it needs | It's converted as the type of its [category](#custom-types), like a `customInt` as an `int`. |
 | A value that only your code understands, like a JSON document | `custom`, or `customComparable` if the database can order it | With the [conversion registered](#custom-types). |
+
+On SQLite, with a `localdate` [strategy of dates](supported-databases/sqlite.md#working-with-date-and-time), the default, a `localTime` and a `localDateTime` hold the stored text in their local getters instead: see [Time zones](time-zones.md#the-rule-every-value-in-the-database-is-in-utc).
 
 ## Custom types
 

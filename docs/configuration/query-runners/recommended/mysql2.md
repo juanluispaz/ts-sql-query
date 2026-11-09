@@ -90,20 +90,15 @@ async function doYourLogic(connection: DBConnection) {
 }
 ```
 
-## Large integers
+## Connection requirements
 
-If your queries may return integers larger than JavaScript's safe integer range — a `bigint` column, or arithmetic that grows past `Number.MAX_SAFE_INTEGER` (`9_007_199_254_740_991`) — enable `supportBigNumbers` in the connection configuration:
+Nothing is rejected: the query runner gives each of its queries the options it needs, which replace those of the connection or the pool for that query. Your own queries through `mysql2` keep yours.
 
-```ts
-const pool = createPool({
-    // ... the rest of your configuration
-    supportBigNumbers: true
-});
-```
+**Not applied to the queries of the library**: `dateStrings`, `supportBigNumbers`, `bigNumberStrings`, `decimalNumbers`, `rowsAsArray`, `typeCast` and `timezone`. A date or a time is read with its digits as UTC, whatever the zone of the process or of `timezone`; a `BIGINT` and a `DECIMAL` arrive with all their digits; the rows are objects with a property per column; and a `typeCast` of yours isn't called.
 
-Without it the driver reads every integer as a JavaScript `number`, so an out-of-range value comes back rounded; ts-sql-query rejects that rounded number with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` rather than hand back a silently-wrong value. With it, the driver hands those values over as strings and ts-sql-query converts them to the type the column declares (`bigint` stays exact, `int` raises `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` if the exact value doesn't fit — read it as `bigint`). Values within the safe range keep coming back as `number`, so nothing else changes.
+So large integers need nothing: a `bigint` column is exact, and an `int` column with a value past `Number.MAX_SAFE_INTEGER` (`9_007_199_254_740_991`) is rejected with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` rather than rounded; read it as `bigint`.
 
-Add `bigNumberStrings: true` as well only if you want *every* integer as a string, not just the out-of-range ones.
+**Required and not checked**: a `TIMESTAMP` column needs the session `time_zone` in UTC, because MySQL and MariaDB convert it with the zone of the session. The query runner can't read the session without a query of its own. See [Time zones](../../time-zones.md#per-database).
 
 ## Inside a transaction something else manages
 

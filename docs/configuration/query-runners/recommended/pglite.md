@@ -38,6 +38,14 @@ async function main() {
 }
 ```
 
+## Connection requirements
+
+Nothing is rejected.
+
+**Not applied to the queries of the library**: the `parsers` of `date`, `time` and `timestamp` (oids 1082, 1083 and 1114) given to the database or to a query. The query runner gives its own for those types with each query, also on a transaction: the digits are read as UTC, whatever the zone of the process. Your own queries keep your parsers, and a parser of any other type still applies to the queries of the library.
+
+PGlite takes the session zone from the process, as a fixed offset. It doesn't change the values the library sends and reads, except in SQL that converts a wall clock to an instant: see [Time zones → Known limits](../../time-zones.md#known-limits).
+
 ## Inside a transaction something else manages
 
 When your code or [another library](../combining-with-another-library.md) manages the transaction with `db.transaction(...)`, create the query runner with the transaction object it gives you. Inside that function PGlite answers only that object: a query on `db` waits until the transaction ends. The statements of the query runner run in that transaction, which PGlite commits or rolls back when your function ends. A transaction can't begin on it: `connection.transaction(...)` and `connection.beginTransaction()` reject with `NESTED_TRANSACTION_NOT_SUPPORTED`.

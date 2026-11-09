@@ -212,6 +212,7 @@ Everything in this section compiles. These are the changes that alter a result, 
 8. **A filter coming from JSON with an old rule fails.** [Dynamic conditions](#dynamic-conditions-coming-from-outside).
 9. **An old property in your connection class is ignored.** [Properties](#properties-of-the-connection-that-no-longer-exist).
 10. **A custom type without its conversion arrives converted.** [Custom types are converted as their category](#custom-types-are-converted-as-their-category).
+11. **Outside UTC, the dates and times move.** With the process in another zone, a date and time without zone is read and written in UTC, and a query runner can reject the connection. [Dates and times in a process outside UTC](#dates-and-times-in-a-process-outside-utc).
 
 ### Set the version of your database
 
@@ -372,7 +373,7 @@ The errors the library raises itself have a reason instead of a message to compa
 | `There is no open transaction` | `NOT_IN_TRANSACTION` |
 | `Invalid int value received from the db: ...`, and the same for the other types | `INVALID_VALUE_RECEIVED_FROM_DATABASE` |
 
-**A number too big now fails.** Reading an integer above `Number.MAX_SAFE_INTEGER` that the driver already rounded to a `number` rejects with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`. v1 returned the rounded value. Declare the column `'bigint'` and enable the big integers of your driver.
+**A number too big now fails.** Reading an integer above `Number.MAX_SAFE_INTEGER` that the driver already rounded to a `number` rejects with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`. v1 returned the rounded value. Declare the column `'bigint'`. On SQLite, enable the big integers of your driver too; the query runners of `mysql2`, `mariadb` and `oracledb` already receive them exact.
 
 ### Values, with a way back
 
@@ -436,6 +437,26 @@ These returned a wrong value in v1, or depended on something they shouldn't. If 
 ### Custom types are converted as their category
 
 A `customInt`, `customDouble`, `customUuid`, `customLocalDate`, `customLocalTime` or `customLocalDateTime` whose conversion you didn't register was returned as the driver gave it, or as text from an array aggregate. It's now converted as an `int`, a `double`, a `uuid` or the type of its date or time, with the same checks: a number past `Number.MAX_SAFE_INTEGER` in a `customInt` is rejected, and an exact decimal kept as text in a `customDouble` becomes a `number` and loses the digits a `number` doesn't hold. On PostgreSQL, the parameter of these types gets the cast of its category where the library writes one, like `$1::float8` for a `customDouble`. On SQL Server, a `customInt` is bound as `int`, as an `int` is; it was bound as `bigint`, so a value above 2,147,483,647 is now rejected by the database: use `customBigint` for it. To keep a value as it comes, register its conversion: see [Custom types](../../configuration/column-types.md#custom-types). An `enum`, a `custom` and a `customComparable` are not converted, as before.
+
+### Dates and times in a process outside UTC
+
+v2 keeps every date and time of the database in UTC, whatever the zone of the process: the digits of a column without zone are the UTC getters of the `Date`, when it's read and when it's sent (see [Time zones](../../configuration/time-zones.md)). With the process in UTC the values don't change. With the process in another zone, on PostgreSQL, MySQL, MariaDB and Oracle:
+
+- **What you read moves.** v1 gave a `localDateTime` of a column without zone and a `localTime` with the stored digits in their **local** getters with `pg`, `mysql2`, `mariadb` and `oracledb`; v2 gives them in their UTC getters. A `timestamp` holding `2024-01-14 12:30:00`, read in `Europe/Madrid`, was `2024-01-14T11:30:00.000Z`, and is `2024-01-14T12:30:00.000Z`. Replace `getHours()`, `getDate()` and the other local getters with `getUTCHours()`, `getUTCDate()`… where you read these values, and format them with `timeZone: 'UTC'`.
+- **What you send moves.** Those drivers wrote a `Date` with its local getters; v2 writes its UTC getters. `new Date(2024, 0, 14, 9, 15)`, built in Madrid, was stored as `09:15` and is now stored as `08:15`. Build the values with `Date.UTC(...)`.
+- **The rows already written are not converted.** A v1 application that ran outside UTC, with those drivers, wrote the wall clocks of its zone, and v2 reads them as UTC: each value comes out shifted by the offset of that zone, which with summer time is one amount in winter and another in summer. Convert the stored values to UTC once, before v2 writes new ones. On PostgreSQL, for a `timestamp` written from `Europe/Madrid`:
+
+    ```sql
+    update release set signed_off_at = (signed_off_at at time zone 'Europe/Madrid') at time zone 'UTC';
+    ```
+
+    `2024-01-14 10:30:00` becomes `2024-01-14 09:30:00`, and `2024-07-14 14:30:00` becomes `2024-07-14 12:30:00`. If you can't convert them, read and write that column through a [type adapter](../../configuration/column-types.md#type-adapters) on a `customLocalDateTime`.
+- **A query runner can reject the connection**, when it's created: `oracledb` needs the environment variable `ORA_SDTZ` set to UTC, and `mssql` a pool without `useUTC: false` (see [Query runners](#query-runners)).
+- **MySQL and MariaDB `TIMESTAMP`** and Oracle `TIMESTAMP WITH LOCAL TIME ZONE` are converted with the zone of the database session, which must be in UTC.
+
+A column with zone, like `timestamptz` or `datetimeoffset`, keeps its instant, as in v1. On SQLite nothing changes: the strategy of dates decides, as before.
+
+Running the application in UTC (`TZ=UTC`) needs neither `ORA_SDTZ` nor `useUTC`, and is still the advice.
 
 ### SQLite: the precision of the dates and times as text
 
@@ -522,6 +543,8 @@ A property left in your connection class still compiles and does nothing, unless
 
 - `ConsoleLogQueryRunner`: `logResults: true` logged no results and `false` logged them, the other way round. Now `true` logs them.
 - **`BetterSqlite3QueryRunner` no longer forces `safeIntegers(true)`.** Integers come as `number`, and above the safe range [they fail](#errors). To read them as `bigint`, enable `safeIntegers` in the database ([docs](../../configuration/query-runners/recommended/better-sqlite3.md)).
+- **Some configurations of the driver are rejected** when the query runner is created, with `INVALID_CONFIGURATION`: `pg` with `binary: true`; postgres.js with a `transform` of the results, or with `infer: true` outside UTC; `mssql` with `camelCaseColumns` or `columnNameReplacer`, or with `useUTC: false` outside UTC; `oracledb` without `ORA_SDTZ` set to UTC outside UTC. See the *Connection requirements* of each query runner, like [oracledb](../../configuration/query-runners/recommended/oracledb.md#connection-requirements).
+- **The settings of the driver that change a value no longer apply to the queries of the library**: the parsers of `date` and `timestamp` of `pg`; `dateStrings`, `supportBigNumbers`, `typeCast`, `rowsAsArray`, `decimalNumbers` and `timezone` of `mysql2`; `typeCast`, `rowsAsArray`, `metaAsArray`, `nestTables`, `dateStrings`, `decimalAsNumber`, `bigIntAsNumber` and `insertIdAsNumber` of `mariadb`; `arrayRowMode` of `mssql`; the global `fetchTypeHandler`, `fetchAsString`, `fetchAsBuffer` and `maxRows` of `oracledb`. They still apply to your own queries through the driver. If you used one to shape what the library returned, use a [custom type](../../configuration/column-types.md#custom-types) with its conversion instead. The `supportBigNumbers` of `mysql2` and the global `fetchTypeHandler` of `oracledb` that the docs recommended for large integers are no longer needed.
 - **SQL given straight to a query runner** must use the placeholders of the library. Oracle binds by name, so a placeholder is named after the index of its value (`:0`, `:1`). `BetterSqlite3QueryRunner` numbers them (`?1`, `?2`), and doesn't bind a bare `?`.
 
 ### Tests with MockQueryRunner

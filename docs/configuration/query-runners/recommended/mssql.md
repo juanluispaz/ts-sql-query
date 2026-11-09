@@ -70,6 +70,15 @@ async function main() {
 }
 ```
 
+## Connection requirements
+
+**Rejected** when the query runner is created, with a `TsSqlProcessingError` of reason `INVALID_CONFIGURATION`; `name` says which. `MssqlPoolPromiseQueryRunner` sees the configuration of the pool only when its promise resolves, so it rejects its first query instead.
+
+- **`useUTC: false`** in the `options` of the pool, when the process doesn't run in UTC. With it the driver, tedious, writes and reads a date and a time with the local getters, and the values in the database are in UTC. In a process in UTC it's accepted, and `useUTC` is `true` by default. How the query runner knows the zone of the process is in [Time zones](../../time-zones.md#the-applications-zone).
+- **`camelCaseColumns: true`** or a **`columnNameReplacer`** in the `options` of the pool: tedious renames the columns of the results, and the library reads each column by its name.
+
+**Not applied to the queries of the library**: `arrayRowMode`. Each request of the query runner gives its rows as objects; your own requests keep the mode of the pool.
+
 ## Inside a transaction something else manages
 
 When your code or [another library](../combining-with-another-library.md) manages the transaction, create the query runner with the mssql `Transaction`, once it has begun. The query runner runs its statements in that transaction, and whoever began it commits it or rolls it back. A transaction can't begin inside it: `connection.transaction(...)` and `connection.beginTransaction()` reject with `NESTED_TRANSACTION_NOT_SUPPORTED`.

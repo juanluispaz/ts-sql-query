@@ -147,9 +147,31 @@ async function main() {
 }
 ```
 
+## Connection requirements
+
+**Rejected** when the query runner is created, with a `TsSqlProcessingError` of reason `INVALID_CONFIGURATION` and `name` `'ORA_SDTZ'`:
+
+- **The environment variable `ORA_SDTZ` not set to UTC, when the process doesn't run in UTC.** oracledb sets the zone of the session from `ORA_SDTZ` when it opens a connection, or else from the offset of the process at that moment. The library sends a date or a time as a `TIMESTAMP WITH TIME ZONE` in UTC, which Oracle converts with the zone of the session where it is compared with or stored in a `DATE` or a `TIMESTAMP`, so the session must be in UTC. `ORA_SDTZ` is accepted as `UTC` or another name of UTC, or as `+00:00`. In a process in UTC nothing is needed: oracledb already sets the session to `+00:00`. How the query runner knows the zone of the process is in [Time zones](../../time-zones.md#the-applications-zone).
+
+Set it before the first connection is opened, in the environment or at the top of your entry point:
+
+```bash
+ORA_SDTZ=UTC node app.js
+```
+
+```ts
+process.env['ORA_SDTZ'] = 'UTC'
+```
+
+A connection opened before, or a session whose zone you change with `ALTER SESSION SET TIME_ZONE`, isn't seen by the check.
+
+**Not applied to the queries of the library**: the global `oracledb.fetchTypeHandler`, `oracledb.fetchAsString`, `oracledb.fetchAsBuffer` and `oracledb.maxRows`. They don't change what the library receives, and `maxRows` doesn't cut its results; your own executions keep them.
+
+With the process outside UTC, a `DATE` or `TIMESTAMP` holding a wall clock that doesn't exist in the zone of the process comes back moved an hour: see [Time zones → Known limits](../../time-zones.md#known-limits).
+
 ## Running a statement on each new connection
 
-Some settings are properties of the **database session**, not of the query — the [session time zone](../../time-zones.md#per-database) and the [session collation](../../collations.md#on-the-connection-the-session-collation). To pin them without touching your schema, run the statement **once per connection**, when the pool opens it. oracledb pools take a `sessionCallback` for exactly this — it fires on each brand-new connection (and can be told to re-run when a connection is returned tagged for a different value):
+Some settings are properties of the **database session**, not of the query, like the [session collation](../../collations.md#on-the-connection-the-session-collation). To pin them without touching your schema, run the statement **once per connection**, when the pool opens it. For the session time zone use `ORA_SDTZ` instead, which the query runner checks (see [Connection requirements](#connection-requirements)). oracledb pools take a `sessionCallback` for exactly this — it fires on each brand-new connection (and can be told to re-run when a connection is returned tagged for a different value):
 
 ```typescriptreact
 import oracledb from 'oracledb';
@@ -162,8 +184,6 @@ const poolPromise = oracledb.createPool({
         // Runs once per newly created pooled connection.
         connection.execute(`
             BEGIN
-                -- Session time zone (see the Time zones page)
-                EXECUTE IMMEDIATE q'[ALTER SESSION SET TIME_ZONE = 'UTC']';
                 -- Session collation: make comparisons case-insensitive session-wide
                 -- (see the Collations page). Omit if you don't need it.
                 EXECUTE IMMEDIATE 'ALTER SESSION SET NLS_COMP = LINGUISTIC';
@@ -174,30 +194,11 @@ const poolPromise = oracledb.createPool({
 });
 ```
 
-The time-zone statement is what the [Time zones page](../../time-zones.md#the-databases-zone) recommends aligning on connect; the `NLS_COMP` / `NLS_SORT` pair is the [session collation](../../collations.md#on-the-connection-the-session-collation) — on Oracle it reaches every comparison (`equals` / `like` / `distinct` / `order`), so it is the one engine where a pool-level collation is fully effective. Prefer a server / database already configured the way you want, and use this hook when you cannot change it.
+The `NLS_COMP` / `NLS_SORT` pair is the [session collation](../../collations.md#on-the-connection-the-session-collation): on Oracle it reaches every comparison (`equals` / `like` / `distinct` / `order`), so it is the one engine where a pool-level collation is fully effective. Prefer a server / database already configured the way you want, and use this hook when you cannot change it.
 
 ## Large integers
 
-If your queries may return numbers larger than JavaScript's safe integer range — a `bigint` column, or arithmetic that grows past `Number.MAX_SAFE_INTEGER` (`9_007_199_254_740_991`) — install a `fetchTypeHandler` that reads the wide `NUMBER` columns as strings:
-
-```ts
-import oracledb from 'oracledb';
-
-oracledb.fetchTypeHandler = function(metaData) {
-    // A NUMBER wider than 15 digits (or of unknown precision) can't round-trip
-    // through a JavaScript number; fetch it as a string instead.
-    if (metaData.dbType === oracledb.DB_TYPE_NUMBER && (!metaData.precision || metaData.precision > 15)) {
-        return { type: oracledb.STRING };
-    }
-    return undefined;
-};
-```
-
-Without it the driver reads every `NUMBER` as a JavaScript `number`, so an out-of-range value comes back rounded; ts-sql-query rejects that rounded number with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` rather than hand back a silently-wrong value. With it, the driver hands those columns over as strings and ts-sql-query converts them to the type the column declares (`bigint` stays exact, `int` raises `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` if the exact value doesn't fit — read it as `bigint`). Narrow columns keep coming back as `number`, so nothing else changes.
-
-The handler can also be passed per query, or scoped by `metaData.name` if you prefer to name the columns explicitly.
-
-A [`stringDecimal` or `customDecimal`](../../column-types.md#exact-decimals) column needs no handler: the query runner fetches each column of the result that the query expects as one of them as text, with all its digits, with a `fetchTypeHandler` of its own for that query. That one replaces the global `oracledb.fetchTypeHandler` for that execution, so the query runner calls yours for every other column, and it still decides how they are read.
+There is nothing to configure: a `bigint`, a `customBigint`, a [`stringDecimal` or a `customDecimal`](../../column-types.md#exact-decimals) keeps all its digits, whatever the global settings of oracledb. A column read as an `int` arrives as a JavaScript `number`, and a value past `Number.MAX_SAFE_INTEGER` (`9_007_199_254_740_991`) is rejected with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` rather than rounded; read it as `bigint`.
 
 ## Inside a transaction something else manages
 
@@ -228,7 +229,7 @@ The second argument of `OracleDBQueryRunner`, optional, is an object of type `Or
 
 ## The type of the parameters
 
-oracledb binds each value with the type it gives a JavaScript value: a `Date` as a `TIMESTAMP`, for example. The option `typesByName` maps the name of a type, the one you give a custom type or a built-in one like `'int'`, to the `DbType` of oracledb every parameter of that name is bound with, also its `null` and the value returned with `returning`:
+oracledb binds each value with the type it gives a JavaScript value; the query runner binds a `localDate`, `localTime` or `localDateTime` as a `TIMESTAMP WITH TIME ZONE` in UTC. The option `typesByName` maps the name of a type, the one you give a custom type or a built-in one like `'int'`, to the `DbType` of oracledb every parameter of that name is bound with, also its `null` and the value returned with `returning`:
 
 ```ts
 import oracledb from 'oracledb';

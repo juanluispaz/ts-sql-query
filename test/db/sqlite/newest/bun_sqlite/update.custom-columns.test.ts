@@ -194,7 +194,7 @@ describe(ctx.label, () => {
             expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set invoiced = case when ?1 then 1 else 0 end, cost_cents = ?2, billed_amount = ?3 where id = ?4"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
-                1,
+                true,
                 999,
                 42.5,
                 2,

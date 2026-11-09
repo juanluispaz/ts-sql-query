@@ -8,6 +8,7 @@ import { getBunSqlMySqlErrorReason, isBunSqlMySqlAnyError } from './connectorErr
 import { isTransactionOpenAfterMySqlError } from '../utils/mySqlTransactionRollback.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
+import { mySqlDriverParams } from '../utils/mySqlParamTypes.js'
 
 export class BunSqlMySqlQueryRunner extends AbstractBunSqlQueryRunner {
     constructor(connection: SQL, database: 'mySql' | 'mariaDB' = 'mySql') {
@@ -31,7 +32,7 @@ export class BunSqlMySqlQueryRunner extends AbstractBunSqlQueryRunner {
     }
     protected override executeMutation(query: string, params: any[]): Promise<number> {
         const sql = this.transaction || this.lowLevelTransaction || this.connection
-        return this.rejectWhenRolledBackByTheDatabase() || sql.unsafe(query, params).then((result) => {
+        return this.rejectWhenRolledBackByTheDatabase() || sql.unsafe(query, this.driverParams(params)).then((result) => {
             return result.affectedRows
         }, (error) => this.statementOfTheTransactionFailed(error))
     }
@@ -43,10 +44,13 @@ export class BunSqlMySqlQueryRunner extends AbstractBunSqlQueryRunner {
         const sql = this.transaction || this.lowLevelTransaction || this.connection
         // A suppressed `insert ignore` inserts no row and reports insert id 0: fall back to null (the same absence
         // the RETURNING path reports) when nothing was inserted.
-        return this.rejectWhenRolledBackByTheDatabase() || sql.unsafe(query, params).then((result) => result.affectedRows === 0 ? null : result.lastInsertRowid, (error) => this.statementOfTheTransactionFailed(error))
+        return this.rejectWhenRolledBackByTheDatabase() || sql.unsafe(query, this.driverParams(params)).then((result) => result.affectedRows === 0 ? null : result.lastInsertRowid, (error) => this.statementOfTheTransactionFailed(error))
     }
     protected override isTransactionOpenInTheDatabase(error: unknown): boolean | undefined {
         return isTransactionOpenAfterMySqlError(this.getErrorReason(error))
+    }
+    protected override driverParams(params: any[]): any[] {
+        return mySqlDriverParams(params)
     }
     override addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
         // The same binding MockQueryRunner uses to imitate this query runner

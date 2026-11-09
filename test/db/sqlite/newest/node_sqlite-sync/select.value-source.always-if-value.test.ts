@@ -65,7 +65,7 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
-            1,
+            true,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
@@ -91,7 +91,7 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
-            0,
+            false,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()

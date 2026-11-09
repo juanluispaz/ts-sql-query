@@ -355,7 +355,7 @@ describe(ctx.label, () => {
         expect(dynSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable = ?1 order by id"`)
         expect(dynParams).toMatchInlineSnapshot(`
           [
-            1,
+            true,
           ]
         `)
     })

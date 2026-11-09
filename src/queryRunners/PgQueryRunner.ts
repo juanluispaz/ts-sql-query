@@ -8,6 +8,7 @@ import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { parseUtcDateTimeTextOrKeepIt } from '../utils/utcDateTimeText.js'
 import { requirePgTextMode } from '../utils/pgConfiguration.js'
+import { postgreSqlDriverParams } from '../utils/postgreSqlParamTypes.js'
 
 export interface PgQueryRunnerConfig {
     allowNestedTransactions?: boolean | undefined
@@ -56,10 +57,10 @@ export class PgQueryRunner extends SqlTransactionQueryRunner {
     }
 
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
-        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query({ text: query, values: params, types: this.types }).then((result) => result.rows, (error) => this.statementOfTheTransactionFailed(error))
+        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query({ text: query, values: postgreSqlDriverParams(params), types: this.types }).then((result) => result.rows, (error) => this.statementOfTheTransactionFailed(error))
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
-        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query({ text: query, values: params, types: this.types }).then((result) => result.rowCount || 0, (error) => this.statementOfTheTransactionFailed(error))
+        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query({ text: query, values: postgreSqlDriverParams(params), types: this.types }).then((result) => result.rowCount || 0, (error) => this.statementOfTheTransactionFailed(error))
     }
     override executeCommitQuery(query: string, params: any[]): Promise<number> {
         return this.connection.query(query, params).then((result) => {

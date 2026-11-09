@@ -614,7 +614,7 @@ describe(ctx.label, () => {
                 1,
                 "mktg-site",
                 "ignored",
-                1,
+                true,
               ]
             `)
             assertType<Exact<typeof inserted, number>>()
@@ -645,7 +645,7 @@ describe(ctx.label, () => {
                 1,
                 "mktg-site",
                 "ignored",
-                1,
+                true,
               ]
             `)
             assertType<Exact<typeof inserted, number>>()
@@ -682,7 +682,7 @@ describe(ctx.label, () => {
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
-                1,
+                true,
               ]
             `)
             assertType<Exact<typeof inserted, number>>()

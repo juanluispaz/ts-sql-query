@@ -88,7 +88,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"with verifiedOrgs as (select id as id, name as name, (verified = 'Y') as verified from organization) select id as id, name as name from verifiedOrgs where verified = ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1,
+            true,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()

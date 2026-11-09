@@ -610,7 +610,7 @@ describe(ctx.label, () => {
                 "ignored",
                 "mktg-site",
                 "Renamed via shape",
-                "2024-06-15 08:30:00.000+00",
+                2024-06-15T08:30:00.000Z,
               ]
             `)
             assertType<Exact<typeof affected, number>>()

@@ -508,7 +508,7 @@ describe(ctx.label, () => {
                 1,
                 "Archived demo",
                 "archived-demo",
-                "2024-06-15 08:30:00.000+00",
+                2024-06-15T08:30:00.000Z,
               ]
             `)
             assertType<Exact<typeof present, { id: number; meta?: { archivedAt?: Date } }>>()
@@ -582,8 +582,8 @@ describe(ctx.label, () => {
                 1,
                 "R-Z9",
                 900,
-                "2024-06-15",
-                "09:30:00",
+                2024-06-15T00:00:00.000Z,
+                1970-01-01T09:30:00.000Z,
               ]
             `)
             assertType<Exact<typeof ret, { id: number; reviewDate?: Date; reviewTime: Date }>>()
@@ -625,9 +625,9 @@ describe(ctx.label, () => {
                 1,
                 "9.9.9-ret",
                 "beta",
-                "2025-03-10",
-                "18:45:00",
-                "2025-03-11 08:15:00.000+00",
+                2025-03-10T00:00:00.000Z,
+                1970-01-01T18:45:00.000Z,
+                2025-03-11T08:15:00.000Z,
               ]
             `)
             assertType<Exact<typeof ret, { id: number; releasedOn: Date; cutoffTime: Date; publishedAt: Date }>>()
@@ -667,7 +667,7 @@ describe(ctx.label, () => {
                 1,
                 "R-Z8",
                 700,
-                "11:15:00",
+                1970-01-01T11:15:00.000Z,
               ]
             `)
             assertType<Exact<typeof v, Date>>()

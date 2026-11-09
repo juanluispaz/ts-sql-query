@@ -36,8 +36,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, description as description from service_plan for system_time between ? and ?  where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2023-12-01 00:00:00.000",
-            "2024-12-01 00:00:00.000",
+            2023-12-01T00:00:00.000Z,
+            2024-12-01T00:00:00.000Z,
             1,
           ]
         `)
@@ -68,8 +68,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, description as description from service_plan for system_time between ? and ?  where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2023-12-01 00:00:00.000",
-            "2024-12-01 00:00:00.000",
+            2023-12-01T00:00:00.000Z,
+            2024-12-01T00:00:00.000Z,
             2,
           ]
         `)
@@ -98,8 +98,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from service_plan for system_time between ? and ?  where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-02-01 00:00:00.000",
-            "2024-03-01 00:00:00.000",
+            2024-02-01T00:00:00.000Z,
+            2024-03-01T00:00:00.000Z,
             1,
           ]
         `)
@@ -124,8 +124,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from service_plan for system_time between ? and ?  where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-07-01 00:00:00.000",
-            "2024-08-01 00:00:00.000",
+            2024-07-01T00:00:00.000Z,
+            2024-08-01T00:00:00.000Z,
             1,
           ]
         `)
@@ -147,8 +147,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from service_plan for system_time between ? and ?  where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2023-01-01 00:00:00.000",
-            "2023-12-01 00:00:00.000",
+            2023-01-01T00:00:00.000Z,
+            2023-12-01T00:00:00.000Z,
             1,
           ]
         `)

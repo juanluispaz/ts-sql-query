@@ -336,7 +336,7 @@ describe(ctx.label, () => {
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Extended rename",
-                0,
+                false,
               ]
             `)
             assertType<Exact<typeof affected, number>>()

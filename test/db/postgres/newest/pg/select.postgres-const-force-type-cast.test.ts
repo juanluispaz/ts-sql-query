@@ -105,7 +105,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::date as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-15",
+            2024-01-15T00:00:00.000Z,
           ]
         `)
     })
@@ -119,7 +119,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::time as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "12:34:56",
+            1970-01-01T12:34:56.000Z,
           ]
         `)
     })
@@ -133,7 +133,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::timestamp as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-15 12:34:56.000+00",
+            2024-01-15T12:34:56.000Z,
           ]
         `)
     })
@@ -218,7 +218,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::date as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-02-20",
+            2024-02-20T00:00:00.000Z,
           ]
         `)
     })
@@ -267,7 +267,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::time as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "17:00:00",
+            1970-01-01T17:00:00.000Z,
           ]
         `)
     })
@@ -283,7 +283,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::timestamp as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-14 12:30:00.000+00",
+            2024-01-14T12:30:00.000Z,
           ]
         `)
     })
@@ -301,7 +301,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from $1::date) as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-02-20",
+            2024-02-20T00:00:00.000Z,
           ]
         `)
         expect(year).toBe(2024)

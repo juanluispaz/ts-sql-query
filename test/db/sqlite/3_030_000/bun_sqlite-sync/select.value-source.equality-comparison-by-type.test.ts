@@ -1126,7 +1126,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where (invoiced = 1) = ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1,
+            true,
           ]
         `)
         assertType<Exact<typeof eqRows, Array<{ id: number }>>>()
@@ -1141,7 +1141,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where (invoiced = 1) is ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1,
+            true,
           ]
         `)
         expect(isRows).toEqual(expectedTrue)
@@ -1156,7 +1156,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where (invoiced = 1) in (?1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            0,
+            false,
           ]
         `)
         expect(inRows).toEqual(expectedFalse)
@@ -3536,7 +3536,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable is not ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1,
+            true,
           ]
         `)
         assertType<Exact<typeof isNot, Array<{ id: number }>>>()
@@ -3570,7 +3570,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable not in (?1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            0,
+            false,
           ]
         `)
         assertType<Exact<typeof notInRows, Array<{ id: number }>>>()
@@ -3586,7 +3586,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable in (?1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            0,
+            false,
           ]
         `)
         expect(inNRows).toEqual(expectedInN)
@@ -3601,7 +3601,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable not in (?1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1,
+            true,
           ]
         `)
         expect(notInNRows).toEqual(expectedNotInN)
@@ -7391,7 +7391,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable is not ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1,
+            true,
           ]
         `)
         assertType<Exact<typeof isNotF, Array<{ id: number }>>>()
@@ -7410,7 +7410,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable in (?1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1,
+            true,
           ]
         `)
         expect(inF).toEqual([{ id: 1 }])
@@ -7428,7 +7428,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable not in (?1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1,
+            true,
           ]
         `)
         expect(notInF).toEqual([{ id: 2 }])
@@ -10088,7 +10088,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable in (?1, (select billable as result from issue_worklog where id = ?2)) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1,
+            true,
             2,
           ]
         `)

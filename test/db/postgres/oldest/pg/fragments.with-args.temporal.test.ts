@@ -33,7 +33,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date = $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-03-04",
+            2024-03-04T00:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
@@ -51,7 +51,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at = $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "09:15:00",
+            1970-01-01T09:15:00.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
@@ -70,7 +70,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where created_at = $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2020-01-01 00:00:00.000+00",
+            2020-01-01T00:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()

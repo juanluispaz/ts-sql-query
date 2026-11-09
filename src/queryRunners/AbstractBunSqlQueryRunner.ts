@@ -54,14 +54,18 @@ export abstract class AbstractBunSqlQueryRunner extends SqlTransactionQueryRunne
         // Outside a transaction, a connection reserved for fn alone
         return this.connection.reserve().then(reserved => fn(reserved).finally(() => reserved.release()))
     }
+    /** The params as the driver receives them; the params of the query keep the value the connection handed */
+    protected driverParams(params: any[]): any[] {
+        return params
+    }
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
-        return this.rejectWhenRolledBackByTheDatabase() || this.getSql().unsafe(query, params).then((result) => {
+        return this.rejectWhenRolledBackByTheDatabase() || this.getSql().unsafe(query, this.driverParams(params)).then((result) => {
             // then is called to ensure the query is executed
             return result
         }, (error) => this.statementOfTheTransactionFailed(error))
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
-        return this.rejectWhenRolledBackByTheDatabase() || this.getSql().unsafe(query, params).then((result) => {
+        return this.rejectWhenRolledBackByTheDatabase() || this.getSql().unsafe(query, this.driverParams(params)).then((result) => {
             // then is called to ensure the query is executed
             return result.count
         }, (error) => this.statementOfTheTransactionFailed(error))

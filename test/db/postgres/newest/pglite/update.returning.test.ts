@@ -481,8 +481,8 @@ describe(ctx.label, () => {
             expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_review set review_date = $1, review_time = $2 where id = $3 returning review_date as "reviewDate", review_time as "reviewTime""`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
-                "2026-09-09",
-                "07:05:00",
+                2026-09-09T00:00:00.000Z,
+                1970-01-01T07:05:00.000Z,
                 1,
               ]
             `)
@@ -520,9 +520,9 @@ describe(ctx.label, () => {
             expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_release set released_on = $1, cutoff_time = $2, published_at = $3 where id = $4 returning released_on as "releasedOn", cutoff_time as "cutoffTime", published_at as "publishedAt""`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
-                "2026-04-04",
-                "22:10:00",
-                "2026-04-05 06:20:00.000+00",
+                2026-04-04T00:00:00.000Z,
+                1970-01-01T22:10:00.000Z,
+                2026-04-05T06:20:00.000Z,
                 1,
               ]
             `)
@@ -559,7 +559,7 @@ describe(ctx.label, () => {
             expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_review set review_time = $1 where id = $2 returning review_time as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
-                "13:45:00",
+                1970-01-01T13:45:00.000Z,
                 1,
               ]
             `)

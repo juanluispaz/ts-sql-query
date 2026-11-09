@@ -6,6 +6,7 @@ import { getMySql2ErrorReason, isMySql2Error } from './connectorErrorMappers/MyS
 import { isTransactionOpenAfterMySqlError } from '../utils/mySqlTransactionRollback.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
+import { mySqlDriverParams } from '../utils/mySqlParamTypes.js'
 
 
 export interface MySql2QueryRunnerConfig {
@@ -53,7 +54,7 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
 
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
         return this.rejectWhenRolledBackByTheDatabase() || new Promise<any[]>((resolve, reject) => {
-            this.connection.query({ ...this.queryOptions, sql: query }, params, (error: QueryError | null, results: RowDataPacket[]) => {
+            this.connection.query({ ...this.queryOptions, sql: query }, mySqlDriverParams(params), (error: QueryError | null, results: RowDataPacket[]) => {
                 if (error) {
                     reject(error)
                 } else {
@@ -64,7 +65,7 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
         return this.rejectWhenRolledBackByTheDatabase() || new Promise<number>((resolve, reject) => {
-            this.connection.query({ ...this.queryOptions, sql: query }, params, (error: QueryError | null, results: ResultSetHeader) => {
+            this.connection.query({ ...this.queryOptions, sql: query }, mySqlDriverParams(params), (error: QueryError | null, results: ResultSetHeader) => {
                 if (error) {
                     reject(error)
                 } else {
@@ -79,7 +80,7 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
         }
         
         return this.rejectWhenRolledBackByTheDatabase() || new Promise((resolve, reject) => {
-            this.connection.query({ ...this.queryOptions, sql: query }, params, (error: QueryError | null, results: ResultSetHeader) => {
+            this.connection.query({ ...this.queryOptions, sql: query }, mySqlDriverParams(params), (error: QueryError | null, results: ResultSetHeader) => {
                 if (error) {
                     reject(error)
                 } else {

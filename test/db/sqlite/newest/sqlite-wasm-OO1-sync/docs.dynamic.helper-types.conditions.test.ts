@@ -204,7 +204,7 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "SITE",
-            1,
+            true,
             "mktg-site",
             "1990-01-01 00:00:00.000",
             "Acme Corp",

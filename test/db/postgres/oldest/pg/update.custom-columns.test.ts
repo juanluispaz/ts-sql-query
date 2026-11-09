@@ -223,7 +223,7 @@ describe(ctx.label, () => {
             expect(ctx.lastSql).toMatchInlineSnapshot(`"update release_draft set shifted_stamp = $1, shifted_count = $2 where id = $3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
-                "2025-01-15 11:00:00.000+00",
+                2025-01-15T11:00:00.000Z,
                 7000n,
                 1,
               ]

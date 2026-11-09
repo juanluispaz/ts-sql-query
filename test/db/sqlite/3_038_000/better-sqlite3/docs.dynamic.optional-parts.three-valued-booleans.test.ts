@@ -114,7 +114,7 @@ describe(ctx.label, () => {
             null,
             null,
             1,
-            0,
+            false,
           ]
         `)
         assertType<Exact<typeof issues, Array<{
@@ -360,7 +360,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable is not ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            0,
+            false,
           ]
         `)
         assertType<Exact<typeof worklogs, Array<{ id: number }>>>()
@@ -388,8 +388,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billable = ?1 as isBillable, billable <> ?2 as isNotBillable from issue_worklog order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1,
-            1,
+            true,
+            true,
           ]
         `)
         assertType<Exact<typeof worklogs, Array<{ id: number; isBillable?: boolean; isNotBillable?: boolean }>>>()
@@ -419,8 +419,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billable is ?1 as isBillable, billable is not ?2 as isNotBillable, billable is ?3 as hasNoValue, billable is not ?4 as hasValue from issue_worklog order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1,
-            1,
+            true,
+            true,
             null,
             null,
           ]

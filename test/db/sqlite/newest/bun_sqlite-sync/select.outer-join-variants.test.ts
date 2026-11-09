@@ -661,7 +661,7 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
-            0,
+            false,
             2,
             4,
             2,

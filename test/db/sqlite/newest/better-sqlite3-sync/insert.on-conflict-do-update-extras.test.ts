@@ -140,7 +140,7 @@ describe(ctx.label, () => {
                 1,
                 "mktg-site",
                 "ignored",
-                1,
+                true,
                 "Marketing site v5",
               ]
             `)

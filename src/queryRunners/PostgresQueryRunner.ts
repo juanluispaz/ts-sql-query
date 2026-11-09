@@ -7,7 +7,7 @@ import type { Sql, ReservedSql, TransactionSql, Parameter } from 'postgres'
 import { getPostgresJsErrorReason, isPostgresJsError } from './connectorErrorMappers/PostgresErrorMapper.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { getParamForceTypeCastAt, getParamTypeAt, getParamTypeCategoryAt } from '../utils/queryParamsMetadata.js'
-import { postgreSqlParamType } from '../utils/postgreSqlParamTypes.js'
+import { postgreSqlDriverParams, postgreSqlParamType } from '../utils/postgreSqlParamTypes.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { isProcessInUtc } from '../utils/processTimeZone.js'
 
@@ -68,13 +68,15 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
     /**
      * The params as they are given to postgres.js: a parameter of a type name in typesByName is sent with the type
      * declared there, and one whose type the database must receive (forceTypeCast) with the oid of its PostgreSQL
-     * type, so the SQL needs no cast; the other params go untyped, as they are. The params of the query are not changed.
+     * type, so the SQL needs no cast; the other params go untyped. A date or time goes as the text of
+     * postgreSqlDriverParams. The params of the query are not changed.
      */
     private driverParams(sql: Sql | TransactionSql | ReservedSql, params: any[]): any[] {
         const typesByName = this.config?.typesByName
-        let result: any[] | undefined = undefined
+        const values = postgreSqlDriverParams(params)
+        let result: any[] | undefined = values === params ? undefined : values
         for (let i = 0, length = params.length; i < length; i++) {
-            const value = params[i]
+            const value = values[i]
             const type = getParamTypeAt(params, i)
             const declared = typesByName && type !== undefined && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
             let typed: Parameter<any> | undefined
@@ -90,7 +92,7 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
             }
             if (typed !== undefined) {
                 if (!result) {
-                    result = params.slice()
+                    result = values.slice()
                 }
                 result[i] = typed
             }

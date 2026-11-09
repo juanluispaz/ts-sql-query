@@ -151,16 +151,6 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
             // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number#number_coercion
             return Number(value);
         }
-        if (conversionType === 'localTime' && value instanceof Date && !isNaN(value.getTime())) {
-            // Oracle has no TIME type, so a localTime is carried in a TIMESTAMP
-            // anchored at 1970-01-01 (the same anchor used when reading it back).
-            // The default marshalling sends a bare 'HH24:MI:SS' string, which
-            // Oracle feeds through its implicit string→DATE conversion — that has
-            // no month component and raises ORA-01843. Binding a Date instead lets
-            // oracledb send it as a TIMESTAMP, exactly like localDateTime already does.
-            // The time is the one of the UTC getters, whatever the zone of the process.
-            return new Date(Date.UTC(1970, 0, 1, value.getUTCHours(), value.getUTCMinutes(), value.getUTCSeconds(), value.getUTCMilliseconds()))
-        }
         return super.transformValueToDB(value, type, typeCategory)
     }
 }

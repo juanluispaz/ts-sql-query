@@ -39,10 +39,10 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from $1) as y, extract(month from $2) - 1 as mo, extract(day from $3) as d, extract(dow from $4) as dow"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-15",
-            "2024-01-15",
-            "2024-01-15",
-            "2024-01-15",
+            2024-01-15T00:00:00.000Z,
+            2024-01-15T00:00:00.000Z,
+            2024-01-15T00:00:00.000Z,
+            2024-01-15T00:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ y: number; mo: number; d: number; dow: number }>>>()
@@ -66,9 +66,9 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(hour from $1) as h, extract(minute from $2) as m, trunc(extract(second from $3))::integer as s"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "12:34:56",
-            "12:34:56",
-            "12:34:56",
+            1970-01-01T12:34:56.000Z,
+            1970-01-01T12:34:56.000Z,
+            1970-01-01T12:34:56.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ h: number; m: number; s: number }>>>()
@@ -93,10 +93,10 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from $1) as y, extract(month from $2) - 1 as mo, extract(hour from $3) as h, round(extract(epoch from $4) * 1000) as t"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-15 12:34:56.000+00",
-            "2024-01-15 12:34:56.000+00",
-            "2024-01-15 12:34:56.000+00",
-            "2024-01-15 12:34:56.000+00",
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ y: number; mo: number; h: number; t: number }>>>()
@@ -126,10 +126,10 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select round(extract(epoch from $1) * 1000) as pre, round(extract(epoch from $2) * 1000) as eve, round(extract(epoch from $3) * 1000) as sub, round(extract(epoch from $4) * 1000) as far"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "1969-12-30 12:00:00.000+00",
-            "1969-12-31 12:00:00.000+00",
-            "1969-12-30 12:00:00.500+00",
-            "3002-01-01 00:00:00.000+00",
+            1969-12-30T12:00:00.000Z,
+            1969-12-31T12:00:00.000Z,
+            1969-12-30T12:00:00.500Z,
+            3002-01-01T00:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ pre: number; eve: number; sub: number; far: number }>>>()
@@ -152,7 +152,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select trunc(extract(millisecond from $1))::integer % 1000 as ms"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "12:34:56",
+            1970-01-01T12:34:56.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ ms: number }>>>()
@@ -180,11 +180,11 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(day from $1) as d, extract(dow from $2) as dow, extract(minute from $3) as m, trunc(extract(second from $4))::integer as s, trunc(extract(millisecond from $5))::integer % 1000 as ms"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-15 12:34:56.000+00",
-            "2024-01-15 12:34:56.000+00",
-            "2024-01-15 12:34:56.000+00",
-            "2024-01-15 12:34:56.000+00",
-            "2024-01-15 12:34:56.000+00",
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ d: number; dow: number; m: number; s: number; ms: number }>>>()
@@ -214,7 +214,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(month from coalesce(work_date, $1)) - 1 as mo from issue_worklog where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2000-01-01",
+            2000-01-01T00:00:00.000Z,
             1,
           ]
         `)
@@ -239,7 +239,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(month from nullif(work_date, $1)) - 1 as mo from issue_worklog where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2000-01-01",
+            2000-01-01T00:00:00.000Z,
             1,
           ]
         `)
@@ -347,8 +347,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from coalesce(signed_off_at, $1)) as vwn, extract(year from nullif(signed_off_at, $2)) as nif, extract(year from signed_off_at) as rio, extract(year from signed_off_at) as own, extract(year from signed_off_at) as ign from project_release where id = $3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2000-01-01 00:00:00.000+00",
-            "1999-01-01 00:00:00.000+00",
+            2000-01-01T00:00:00.000Z,
+            1999-01-01T00:00:00.000Z,
             1,
           ]
         `)
@@ -381,10 +381,10 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from $1) as y, extract(month from $2) - 1 as mo, extract(day from $3) as d, extract(dow from $4) as dow"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-15",
-            "2024-01-15",
-            "2024-01-15",
-            "2024-01-15",
+            2024-01-15T00:00:00.000Z,
+            2024-01-15T00:00:00.000Z,
+            2024-01-15T00:00:00.000Z,
+            2024-01-15T00:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ y?: number; mo?: number; d?: number; dow?: number }>>>()
@@ -410,10 +410,10 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(hour from $1) as h, extract(minute from $2) as m, trunc(extract(second from $3))::integer as s, trunc(extract(millisecond from $4))::integer % 1000 as ms"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "12:34:56",
-            "12:34:56",
-            "12:34:56",
-            "12:34:56",
+            1970-01-01T12:34:56.000Z,
+            1970-01-01T12:34:56.000Z,
+            1970-01-01T12:34:56.000Z,
+            1970-01-01T12:34:56.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ h?: number; m?: number; s?: number; ms?: number }>>>()
@@ -449,15 +449,15 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from $1) as y, extract(month from $2) - 1 as mo, extract(day from $3) as d, extract(dow from $4) as dow, extract(hour from $5) as h, extract(minute from $6) as m, trunc(extract(second from $7))::integer as s, trunc(extract(millisecond from $8))::integer % 1000 as ms, round(extract(epoch from $9) * 1000) as t"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-15 12:34:56.000+00",
-            "2024-01-15 12:34:56.000+00",
-            "2024-01-15 12:34:56.000+00",
-            "2024-01-15 12:34:56.000+00",
-            "2024-01-15 12:34:56.000+00",
-            "2024-01-15 12:34:56.000+00",
-            "2024-01-15 12:34:56.000+00",
-            "2024-01-15 12:34:56.000+00",
-            "2024-01-15 12:34:56.000+00",
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{
@@ -514,10 +514,10 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select trunc(extract(second from $1))::integer as s1, trunc(extract(millisecond from $2))::integer % 1000 as ms1, trunc(extract(second from $3))::integer as s2, trunc(extract(millisecond from $4))::integer % 1000 as ms2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-15 12:30:59.999+00",
-            "2024-01-15 12:30:59.999+00",
-            "2024-01-15 12:30:01.001+00",
-            "2024-01-15 12:30:01.001+00",
+            2024-01-15T12:30:59.999Z,
+            2024-01-15T12:30:59.999Z,
+            2024-01-15T12:30:01.001Z,
+            2024-01-15T12:30:01.001Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ s1: number; ms1: number; s2: number; ms2: number }>>>()

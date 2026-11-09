@@ -687,8 +687,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(billable, ?1) as bwn, nullif(billable, ?2) as bni from issue_worklog order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1,
-            0,
+            true,
+            false,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number; bwn: boolean; bni?: boolean }>>>()
@@ -725,8 +725,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull((approved = 'A'), ?1) as awn, nullif((approved = 'A'), ?2) as ani from issue_worklog order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1,
-            0,
+            true,
+            false,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number; awn: boolean; ani?: boolean }>>>()
@@ -1690,8 +1690,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull((verified = 'Y'), ?1) as wn, nullif((verified = 'Y'), ?2) as ni from organization order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            0,
-            0,
+            false,
+            false,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number; wn: boolean; ni?: boolean }>>>()
@@ -1725,8 +1725,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull((published = 't'), ?1) as wn, nullif((published = 't'), ?2) as ni from project order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            0,
-            0,
+            false,
+            false,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number; wn: boolean; ni?: boolean }>>>()
@@ -1759,8 +1759,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull((invoiced = 1), ?1) as wn, nullif((invoiced = 1), ?2) as ni from issue_worklog order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            0,
-            0,
+            false,
+            false,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number; wn: boolean; ni?: boolean }>>>()

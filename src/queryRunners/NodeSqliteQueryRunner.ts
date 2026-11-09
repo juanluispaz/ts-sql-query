@@ -7,6 +7,7 @@ import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { sqliteFunctionListQuery, sqliteFunctionsToRegister } from '../utils/sqliteFunctions.js'
 import type { SqliteFunctionsOptions } from '../connections/SqliteConfiguration.js'
+import { sqliteDriverParams } from '../utils/sqliteParamTypes.js'
 
 export interface NodeSqliteQueryRunnerConfig {
     promise?: PromiseProvider | undefined
@@ -52,7 +53,7 @@ export class NodeSqliteQueryRunner extends SqlTransactionQueryRunner {
             return rejected
         }
         try {
-            const rows = this.connection.prepare(query).all(...params)
+            const rows = this.connection.prepare(query).all(...sqliteDriverParams(params))
             return this.promise.resolve(rows)
         } catch (e) {
             return this.statementOfTheTransactionFailed(e)
@@ -64,7 +65,7 @@ export class NodeSqliteQueryRunner extends SqlTransactionQueryRunner {
             return rejected
         }
         try {
-            const changes = this.connection.prepare(query).run(...params).changes
+            const changes = this.connection.prepare(query).run(...sqliteDriverParams(params)).changes
             return this.promise.resolve(Number(changes))
         } catch (e) {
             return this.statementOfTheTransactionFailed(e)
@@ -80,7 +81,7 @@ export class NodeSqliteQueryRunner extends SqlTransactionQueryRunner {
             return rejected
         }
         try {
-            const result = this.connection.prepare(query).run(...params)
+            const result = this.connection.prepare(query).run(...sqliteDriverParams(params))
             // A suppressed `on conflict do nothing` inserts no row; `lastInsertRowid`
             // then still holds the previous statement's id, so fall back to null (the
             // same absence the RETURNING path reports) when nothing was inserted.

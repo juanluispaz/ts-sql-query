@@ -203,7 +203,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable and ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1,
+            true,
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number }>>>()
@@ -224,7 +224,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable or ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            0,
+            false,
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number }>>>()

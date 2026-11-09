@@ -442,7 +442,7 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from project where (published = 't') = ?1 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            1,
+            true,
           ]
         `)
     })
@@ -1397,9 +1397,9 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from project where (published = 't') <> ?1 and (published = 't') in (?2, ?3) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            1,
-            1,
-            0,
+            true,
+            true,
+            false,
           ]
         `)
     })
@@ -1425,7 +1425,7 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable is ?1 and billable is null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            1,
+            true,
           ]
         `)
     })
@@ -1453,9 +1453,9 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable <> ?1 and billable in (?2, ?3) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            1,
-            1,
-            0,
+            true,
+            true,
+            false,
           ]
         `)
     })
@@ -2232,9 +2232,9 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable is not ?1 and billable not in (?2, ?3) and billable is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            1,
-            1,
-            0,
+            true,
+            true,
+            false,
           ]
         `)
     })
@@ -2260,9 +2260,9 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable is not ?1 and billable not in (?2, ?3) and billable is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            1,
-            1,
-            0,
+            true,
+            true,
+            false,
           ]
         `)
     })
@@ -2295,13 +2295,13 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable = ?1 and billable <> ?2 and billable is ?3 and billable is not ?4 and billable in (?5, ?6) and billable not in (?7) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            1,
-            0,
-            1,
-            0,
-            1,
-            0,
-            0,
+            true,
+            false,
+            true,
+            false,
+            true,
+            false,
+            false,
           ]
         `)
     })
@@ -2333,13 +2333,13 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable = ?1 and billable <> ?2 and billable is ?3 and billable is not ?4 and billable in (?5, ?6) and billable not in (?7) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            1,
-            0,
-            1,
-            0,
-            1,
-            0,
-            0,
+            true,
+            false,
+            true,
+            false,
+            true,
+            false,
+            false,
           ]
         `)
     })

@@ -30,7 +30,7 @@ describe(ctx.label, () => {
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "closed",
-                0,
+                false,
               ]
             `)
             assertType<Exact<typeof affected, number>>()

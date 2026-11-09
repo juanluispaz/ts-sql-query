@@ -39,7 +39,7 @@ describe(ctx.label, () => {
               [
                 "Demo Corp",
                 "free",
-                1,
+                true,
               ]
             `)
             assertType<Exact<typeof id, number>>()
@@ -59,7 +59,7 @@ describe(ctx.label, () => {
               [
                 "Other Corp",
                 "free",
-                0,
+                false,
               ]
             `)
 

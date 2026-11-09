@@ -58,7 +58,7 @@ describe(ctx.label, () => {
                 1,
                 "2024-03-12",
                 "coding",
-                1,
+                true,
               ]
             `)
             assertType<Exact<typeof inserted, number>>()

@@ -998,7 +998,7 @@ describe(ctx.label, () => {
                 "mktg-site",
                 "Marketing site v2",
                 "pro",
-                1,
+                true,
                 "Unassigned",
               ]
             `)

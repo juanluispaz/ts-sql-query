@@ -41,8 +41,8 @@ describe(ctx.label, () => {
                 1,
                 "1.2.0",
                 "beta",
-                "2024-06-01",
-                "18:00:00",
+                2024-06-01T10:00:00.000Z,
+                1970-01-01T18:00:00.000Z,
               ]
             `)
             assertType<Exact<typeof affected, number>>()

@@ -1,4 +1,5 @@
 import type { TypeCategory } from '../TypeAdapter.js'
+import { getParamTypeAt, getParamTypeCategoryAt } from './queryParamsMetadata.js'
 import { __conversionType } from './typeCategory.js'
 import { utcDateText, utcTimeText } from './utcDateTimeText.js'
 
@@ -83,14 +84,14 @@ export function postgreSqlPlaceholder(index: number, value: unknown, type: strin
 }
 
 /**
- * The value a parameter is sent as on PostgreSQL, for every query runner of it: a localDate, a localTime or a
+ * The value a parameter is given to the driver as on PostgreSQL, for every query runner of it: a localDate, a localTime or a
  * localDateTime that is a Date goes as the text of its UTC getters, so the database gets the same value whatever the
  * zone of the process (the drivers write a Date with the local getters, or as an instant): `YYYY-MM-DD`,
  * `HH:MM:SS.mmm` and `YYYY-MM-DD HH:MM:SS.mmm+00`, whose offset makes it the same value for a `timestamp` (that ignores
  * it) and a `timestamptz`. A year before 1 is written as PostgreSQL does, `0044-03-15 BC` for the year -43. Any other
  * value is sent as it is.
  */
-export function postgreSqlParamValue(value: unknown, type: string, typeCategory: TypeCategory): unknown {
+export function postgreSqlParamValue(value: unknown, type: string, typeCategory: TypeCategory | undefined): unknown {
     if (!(value instanceof Date) || isNaN(value.getTime())) {
         return value
     }
@@ -108,4 +109,24 @@ export function postgreSqlParamValue(value: unknown, type: string, typeCategory:
         default:
             return value
     }
+}
+
+/**
+ * The params as the drivers of PostgreSQL receive them (see postgreSqlParamValue), from the type of each parameter kept
+ * in the params. The params of the query keep the value the connection handed; a copy is returned when a value changes.
+ */
+export function postgreSqlDriverParams(params: any[]): any[] {
+    let result: any[] | undefined = undefined
+    for (let i = 0, length = params.length; i < length; i++) {
+        const value = params[i]
+        const type = getParamTypeAt(params, i)
+        if (!(value instanceof Date) || type === undefined) {
+            continue
+        }
+        if (!result) {
+            result = params.slice()
+        }
+        result[i] = postgreSqlParamValue(value, type, getParamTypeCategoryAt(params, i))
+    }
+    return result ?? params
 }

@@ -535,7 +535,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "17:00:00",
+            1970-01-01T17:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof v, Date>>()
@@ -551,7 +551,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-14 12:30:00.000+00",
+            2024-01-14T12:30:00.000Z,
           ]
         `)
         assertType<Exact<typeof v, Date>>()
@@ -569,7 +569,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "17:00:00",
+            1970-01-01T17:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof v, Date | null>>()
@@ -585,7 +585,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-14 12:30:00.000+00",
+            2024-01-14T12:30:00.000Z,
           ]
         `)
         assertType<Exact<typeof v, Date | null>>()
@@ -712,7 +712,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "17:00:00",
+            1970-01-01T17:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof v, Date>>()
@@ -728,7 +728,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "17:00:00",
+            1970-01-01T17:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof v, Date | null>>()
@@ -744,7 +744,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-14 12:30:00.000+00",
+            2024-01-14T12:30:00.000Z,
           ]
         `)
         assertType<Exact<typeof v, Date>>()
@@ -760,7 +760,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-14 12:30:00.000+00",
+            2024-01-14T12:30:00.000Z,
           ]
         `)
         assertType<Exact<typeof v, Date | null>>()
@@ -956,7 +956,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "17:00:00",
+            1970-01-01T17:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof v, Date>>()
@@ -972,7 +972,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "17:00:00",
+            1970-01-01T17:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof v, Date | null>>()
@@ -988,7 +988,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-14 12:30:00.000+00",
+            2024-01-14T12:30:00.000Z,
           ]
         `)
         assertType<Exact<typeof v, Date>>()
@@ -1004,7 +1004,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-14 12:30:00.000+00",
+            2024-01-14T12:30:00.000Z,
           ]
         `)
         assertType<Exact<typeof v, Date | null>>()
@@ -1183,7 +1183,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "17:00:00",
+            1970-01-01T17:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof v, Date>>()
@@ -1204,7 +1204,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-14 12:30:00.000+00",
+            2024-01-14T12:30:00.000Z,
           ]
         `)
         assertType<Exact<typeof v, Date>>()

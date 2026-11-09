@@ -205,8 +205,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from \`organization\` order by case when \`organization\`.created_at between ? and ? then 0 else 1 end"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2023-07-01 00:00:00.000",
-            "2024-01-01 00:00:00.000",
+            2023-07-01T00:00:00.000Z,
+            2024-01-01T00:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof organizations, Array<{ id: number; name: string }>>>()

@@ -105,7 +105,7 @@ describe(ctx.label, () => {
             expect(ctx.lastSql).toMatchInlineSnapshot(`"with verified_orgs as (select id as id, name as name from organization where (verified = 'Y') = ?1) update project set name = verified_orgs.name from verified_orgs where project.organization_id = verified_orgs.id and project.id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
-                1,
+                true,
                 99999,
               ]
             `)

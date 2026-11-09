@@ -31,7 +31,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where project_id in (select id as result from project where (published = 't') = ?1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1,
+            true,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
@@ -57,7 +57,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where project_id not in (select id as result from project where (published = 't') = ?1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            0,
+            false,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()

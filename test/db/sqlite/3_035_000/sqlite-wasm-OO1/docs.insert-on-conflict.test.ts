@@ -458,7 +458,7 @@ describe(ctx.label, () => {
                 "ada@acme.test",
                 "Ada Lovelace",
                 "Ada King",
-                1,
+                true,
               ]
             `)
             assertType<Exact<typeof affectedCount, number>>()

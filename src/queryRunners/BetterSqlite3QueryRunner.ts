@@ -7,6 +7,7 @@ import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { sqliteFunctionListQuery, sqliteFunctionsToRegister } from '../utils/sqliteFunctions.js'
 import type { SqliteFunctionsOptions } from '../connections/SqliteConfiguration.js'
+import { sqliteDriverParams } from '../utils/sqliteParamTypes.js'
 
 export interface BetterSqlite3QueryRunnerConfig {
     promise?: PromiseProvider
@@ -104,12 +105,13 @@ export class BetterSqlite3QueryRunner extends SqlTransactionQueryRunner {
     }
     /**
      * The params as better-sqlite3 binds them: an array binds only the anonymous `?` parameters, so the numbered `?NNN`
-     * placeholders this runner emits are bound from an object keyed by their number.
+     * placeholders this runner emits are bound from an object keyed by their number; a boolean goes as 1 or 0.
      */
     protected bindParams(params: any[]): Record<number, any> {
+        const driverParams = sqliteDriverParams(params)
         const result: Record<number, any> = {}
-        for (let i = 0, length = params.length; i < length; i++) {
-            result[i + 1] = params[i]
+        for (let i = 0, length = driverParams.length; i < length; i++) {
+            result[i + 1] = driverParams[i]
         }
         return result
     }

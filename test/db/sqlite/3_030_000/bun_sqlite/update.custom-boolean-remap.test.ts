@@ -223,7 +223,7 @@ describe(ctx.label, () => {
             expect(ctx.lastSql).toMatchInlineSnapshot(`"update organization set verified = case when ?1 then 'Y' else 'N' end where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
-                1,
+                true,
                 2,
               ]
             `)
@@ -247,7 +247,7 @@ describe(ctx.label, () => {
             expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set approved = case ?1 when 1 then 'A' when 0 then 'R' else null end where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
-                0,
+                false,
                 1,
               ]
             `)

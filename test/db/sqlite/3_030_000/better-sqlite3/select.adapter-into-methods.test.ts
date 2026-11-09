@@ -262,7 +262,7 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
-            1,
+            true,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
@@ -286,7 +286,7 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
-            1,
+            true,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number; issueId: number }>>>()
@@ -313,7 +313,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as issueId, issue_worklog.id as worklogId from issue inner join issue_worklog on issue_worklog.issue_id = issue.id and (issue_worklog.invoiced = 1) = ?1 where issue.id = ?2 order by worklogId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1,
+            true,
             1,
           ]
         `)
@@ -394,7 +394,7 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
-            0,
+            false,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()

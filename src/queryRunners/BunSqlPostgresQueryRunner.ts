@@ -7,6 +7,7 @@ import { PostgresTransactionOutcome } from '../utils/postgresTransactionOutcome.
 import { getBunSqlPostgresErrorReason, isBunSqlPostgresError } from './connectorErrorMappers/BunSqlPostgresErrorMapper.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
+import { postgreSqlDriverParams } from '../utils/postgreSqlParamTypes.js'
 
 export interface BunSqlPostgresQueryRunnerConfig {
     /**
@@ -27,6 +28,9 @@ export class BunSqlPostgresQueryRunner extends AbstractBunSqlQueryRunner {
         if (!(adapter == undefined || adapter == 'postgres')) {
             throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'adapter', value: adapter }, 'BunSqlPostgresQueryRunner only supports Bun.SQL connections using the postgres adapter')
         }
+    }
+    protected override driverParams(params: any[]): any[] {
+        return postgreSqlDriverParams(params)
     }
     override addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
         // The same binding MockQueryRunner uses to imitate this query runner

@@ -86,7 +86,7 @@ describe(ctx.label, () => {
                 "08:30:00.000",
                 120,
                 7200000n,
-                1,
+                true,
                 "review",
               ]
             `)
@@ -268,7 +268,7 @@ describe(ctx.label, () => {
                 "coding",
                 12.5,
                 250,
-                1,
+                true,
               ]
             `)
             assertType<Exact<typeof inserted, number>>()

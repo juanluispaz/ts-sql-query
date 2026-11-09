@@ -6,7 +6,7 @@ import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSq
 import { getPgLiteErrorReason, isPgLiteError } from './connectorErrorMappers/PgLiteErrorMapper.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { getParamForceTypeCastAt, getParamTypeAt, getParamTypeCategoryAt } from '../utils/queryParamsMetadata.js'
-import { postgreSqlParamType } from '../utils/postgreSqlParamTypes.js'
+import { postgreSqlDriverParams, postgreSqlParamType } from '../utils/postgreSqlParamTypes.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { parseUtcDateTimeTextOrKeepIt } from '../utils/utcDateTimeText.js'
 
@@ -79,10 +79,10 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
         return paramTypes ? { parsers: pgLiteParsers, paramTypes } : pgLiteQueryOptions
     }
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
-        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query(query, params, this.queryOptions(params)).then((result) => result.rows, (error) => this.statementOfTheTransactionFailed(error))
+        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query(query, postgreSqlDriverParams(params), this.queryOptions(params)).then((result) => result.rows, (error) => this.statementOfTheTransactionFailed(error))
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
-        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query(query, params, this.queryOptions(params)).then((result) => result.affectedRows || 0, (error) => this.statementOfTheTransactionFailed(error))
+        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query(query, postgreSqlDriverParams(params), this.queryOptions(params)).then((result) => result.affectedRows || 0, (error) => this.statementOfTheTransactionFailed(error))
     }
     override executeCommitQuery(query: string, params: any[]): Promise<number> {
         return this.connection.query(query, params).then((result) => {

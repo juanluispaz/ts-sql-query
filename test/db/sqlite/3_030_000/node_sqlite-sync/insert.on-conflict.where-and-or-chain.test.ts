@@ -47,7 +47,7 @@ describe(ctx.label, () => {
                 "ignored",
                 "Marketing site v6",
                 "Marketing site v6",
-                0,
+                false,
               ]
             `)
             assertType<Exact<typeof affected, number>>()
@@ -80,7 +80,7 @@ describe(ctx.label, () => {
                 1,
                 "mktg-site",
                 "ignored",
-                1,
+                true,
                 "Marketing site",
                 "Marketing site v7",
               ]
@@ -128,7 +128,7 @@ describe(ctx.label, () => {
                 "ignored",
                 "Marketing site v6",
                 "Marketing site v6",
-                0,
+                false,
               ]
             `)
             assertType<Exact<typeof affected, number>>()
@@ -172,7 +172,7 @@ describe(ctx.label, () => {
                 1,
                 "mktg-site",
                 "ignored",
-                1,
+                true,
                 "Marketing site",
                 "Marketing site v7",
               ]
@@ -240,7 +240,7 @@ describe(ctx.label, () => {
                 "Upd chain",
                 "Upd chain",
                 "Upd chain",
-                0,
+                false,
               ]
             `)
             assertType<Exact<typeof row, { id: number, name: string } | null>>()
@@ -357,7 +357,7 @@ describe(ctx.label, () => {
                 "ignored",
                 "Marketing site v9",
                 "Marketing site v9",
-                0,
+                false,
               ]
             `)
             assertType<Exact<typeof affected, number>>()
@@ -387,7 +387,7 @@ describe(ctx.label, () => {
                 1,
                 "mktg-site",
                 "ignored",
-                1,
+                true,
                 "Marketing site",
                 "Marketing site v10",
               ]

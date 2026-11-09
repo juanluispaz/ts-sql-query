@@ -7,8 +7,8 @@ import type { QueryRunnerName } from '../queryRunners/MockQueryRunner.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { checkOracleParam } from './oracleParamTypes.js'
-import { mySqlParamValue, mySqlPlaceholder } from './mySqlParamTypes.js'
-import { postgreSqlParamValue, postgreSqlPlaceholder } from './postgreSqlParamTypes.js'
+import { mySqlPlaceholder } from './mySqlParamTypes.js'
+import { postgreSqlPlaceholder } from './postgreSqlParamTypes.js'
 import { setParamTypeAt } from './queryParamsMetadata.js'
 import { sqlServerPlaceholder } from './sqlServerParamTypes.js'
 
@@ -25,22 +25,15 @@ function add(params: any[], value: unknown, type: string, typeCategory: TypeCate
     return index
 }
 
-/** better-sqlite3, bun:sqlite and node:sqlite reject a JavaScript boolean: it goes as 1 or 0 */
-const sqliteNumbered: ParamBinding = (params, value, type, typeCategory, forceTypeCast) => {
-    return '?' + (add(params, typeof value === 'boolean' ? Number(value) : value, type, typeCategory, forceTypeCast) + 1)
-}
-/** Bun SQL on SQLite sends a boolean as it is */
-const bunSqlSqlite: ParamBinding = (params, value, type, typeCategory, forceTypeCast) => {
+/** SQLite: a boolean stays a boolean in the params; the query runners whose driver rejects it give it as 1 or 0 */
+const sqlite: ParamBinding = (params, value, type, typeCategory, forceTypeCast) => {
     return '?' + (add(params, value, type, typeCategory, forceTypeCast) + 1)
 }
 /**
- * sqlite-wasm rejects a JavaScript boolean, and binds a number that is an integer as a 64-bit integer, so one beyond
- * that range would wrap without an error (1e20 → 7766279631452241920): its text converted to a real keeps the value
+ * sqlite-wasm binds a number that is an integer as a 64-bit integer, so one beyond that range would wrap without an
+ * error (1e20 → 7766279631452241920): its text converted to a real keeps the value
  */
 const sqliteWasm: ParamBinding = (params, value, type, typeCategory, forceTypeCast) => {
-    if (typeof value === 'boolean') {
-        return '?' + (add(params, Number(value), type, typeCategory, forceTypeCast) + 1)
-    }
     if (typeof value === 'number' && Number.isInteger(value) && (value >= 2 ** 63 || value < -(2 ** 63))) {
         return 'cast(?' + (add(params, String(value), type, typeCategory, forceTypeCast) + 1) + ' as real)'
     }
@@ -48,18 +41,16 @@ const sqliteWasm: ParamBinding = (params, value, type, typeCategory, forceTypeCa
 }
 /** pg and Bun SQL can't send a parameter with its type: the type goes as a cast in the placeholder */
 const postgreSqlCast: ParamBinding = (params, value, type, typeCategory, forceTypeCast, castTypesByName) => {
-    const sent = postgreSqlParamValue(value, type, typeCategory)
-    const index = add(params, sent, type, typeCategory, forceTypeCast)
-    return postgreSqlPlaceholder(index, sent, type, typeCategory, forceTypeCast, castTypesByName)
+    const index = add(params, value, type, typeCategory, forceTypeCast)
+    return postgreSqlPlaceholder(index, value, type, typeCategory, forceTypeCast, castTypesByName)
 }
 /** postgres.js and PGlite send the parameter with its type: the placeholder needs no cast */
 const postgreSqlTyped: ParamBinding = (params, value, type, typeCategory, forceTypeCast) => {
-    return '$' + (add(params, postgreSqlParamValue(value, type, typeCategory), type, typeCategory, forceTypeCast) + 1)
+    return '$' + (add(params, value, type, typeCategory, forceTypeCast) + 1)
 }
 const mySql: ParamBinding = (params, value, type, typeCategory, forceTypeCast) => {
-    const sent = mySqlParamValue(value, type, typeCategory)
-    const placeholder = mySqlPlaceholder('?', params, params.length, sent, type, typeCategory)
-    add(params, sent, type, typeCategory, forceTypeCast)
+    const placeholder = mySqlPlaceholder('?', params, params.length, value, type, typeCategory)
+    add(params, value, type, typeCategory, forceTypeCast)
     return placeholder
 }
 const sqlServer: ParamBinding = (params, value, type, typeCategory, forceTypeCast) => {
@@ -74,10 +65,10 @@ const oracle: ParamBinding = (params, value, type, typeCategory, forceTypeCast) 
 
 /** The way each query runner of the library that talks to a database adds a parameter */
 export const queryRunnerParamBindings: { readonly [name in QueryRunnerName]: ParamBinding } = {
-    BetterSqlite3QueryRunner: sqliteNumbered,
-    BunSqliteQueryRunner: sqliteNumbered,
-    NodeSqliteQueryRunner: sqliteNumbered,
-    BunSqlSqliteQueryRunner: bunSqlSqlite,
+    BetterSqlite3QueryRunner: sqlite,
+    BunSqliteQueryRunner: sqlite,
+    NodeSqliteQueryRunner: sqlite,
+    BunSqlSqliteQueryRunner: sqlite,
     Sqlite3WasmOO1QueryRunner: sqliteWasm,
     PgQueryRunner: postgreSqlCast,
     PgPoolQueryRunner: postgreSqlCast,
@@ -137,7 +128,7 @@ export function databaseParamBinding(database: DatabaseType): ParamBinding {
         case 'postgreSql':
             return postgreSqlCast
         case 'sqlite':
-            return bunSqlSqlite
+            return sqlite
         case 'sqlServer':
             return sqlServer
         default:

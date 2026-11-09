@@ -1444,36 +1444,10 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid localDate value to send to the db: ' + value)
             case 'localTime':
                 if (value instanceof Date && !isNaN(value.getTime())) {
-                    // The time of a localTime is the one of its UTC getters, whatever the zone of the process
-                    let result = ''
-                    if (value.getUTCHours() > 9) {
-                        result += value.getUTCHours()
-                    } else {
-                        result += '0' + value.getUTCHours()
-                    }
-                    result += ':'
-                    if (value.getUTCMinutes() > 9) {
-                        result += value.getUTCMinutes()
-                    } else {
-                        result += '0' + value.getUTCMinutes()
-                    }
-                    result += ':'
-                    if (value.getUTCSeconds() > 9) {
-                        result += value.getUTCSeconds()
-                    } else {
-                        result += '0' + value.getUTCSeconds()
-                    }
-                    if (value.getUTCMilliseconds() > 0) {
-                        result += '.'
-                        if (value.getUTCMilliseconds() > 99) {
-                            result += value.getUTCMilliseconds()
-                        } else if (value.getUTCMilliseconds() > 9) {
-                            result += '0' + value.getUTCMilliseconds()
-                        } else {
-                            result += '00' + value.getUTCMilliseconds()
-                        }
-                    }
-                    return result
+                    // The time of a localTime is the one of its UTC getters, whatever the zone of the process, on
+                    // 1970-01-01 UTC: the day the value is read back on. Each query runner sends it in the form its
+                    // driver needs (a text, a TIME, a TIMESTAMP).
+                    return new Date(Date.UTC(1970, 0, 1, value.getUTCHours(), value.getUTCMinutes(), value.getUTCSeconds(), value.getUTCMilliseconds()))
                 }
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid localTime value to send to the db: ' + value)
             case 'localDateTime':

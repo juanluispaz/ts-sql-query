@@ -102,7 +102,7 @@ describe(ctx.label, () => {
             7,
             100n,
             2.5,
-            1,
+            true,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ n: number; big: bigint; dbl: number; flag: boolean }>>>()
@@ -168,7 +168,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"with boolAdapterSampler(flag) as (values (case when ?1 then 'Y' else 'N' end)) select (flag = 'Y') as flag from boolAdapterSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1,
+            true,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ flag: boolean }>>>()
@@ -568,7 +568,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"with optSampler(flag, n, big, dbl, str, cents, money, ver, chan, act) as (values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)) select flag as flag, n as n, big as big, dbl as dbl, str as str, cents as cents, money as money, ver as ver, chan as chan, act as act from optSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1,
+            true,
             7,
             100n,
             2.5,
@@ -635,7 +635,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"with optAdapterSampler(flag, big, dbl, str, money, ver, chan, act) as (values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)) select flag as flag, big as big, dbl as dbl, str as str, money as money, ver as ver, chan as chan, act as act from optAdapterSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1,
+            true,
             100n,
             2.5,
             "abc",

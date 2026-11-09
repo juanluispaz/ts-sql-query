@@ -80,7 +80,7 @@ describe(ctx.label, () => {
                 null,
                 "Mixed-B",
                 "pro",
-                1,
+                true,
                 "Mixed-C",
                 "free",
                 null,

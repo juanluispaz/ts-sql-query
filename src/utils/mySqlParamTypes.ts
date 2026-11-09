@@ -1,6 +1,6 @@
 import type { TypeCategory } from '../TypeAdapter.js'
 import { customDecimalDigitsOf, rejectCustomDecimalParam } from './customDecimalParams.js'
-import { isParamValueForColumnAt } from './queryParamsMetadata.js'
+import { getParamTypeAt, getParamTypeCategoryAt, isParamValueForColumnAt } from './queryParamsMetadata.js'
 import { __conversionType, __isDecimalCategory } from './typeCategory.js'
 import { utcDateText, utcTimeText } from './utcDateTimeText.js'
 
@@ -30,14 +30,14 @@ export function mySqlPlaceholder(placeholder: string, params: any[], index: numb
 }
 
 /**
- * The value a parameter is sent as on MySQL and MariaDB, for every query runner of them: a localDate, a localTime or a
+ * The value a parameter is given to the driver as on MySQL and MariaDB, for every query runner of them: a localDate, a localTime or a
  * localDateTime that is a Date goes as the text of its UTC getters, so the database gets the same value whatever the
  * zone of the process (the drivers write a Date with the local getters): `YYYY-MM-DD`, `HH:MM:SS.mmm` and
  * `YYYY-MM-DD HH:MM:SS.mmm`, with a space and without an offset, the form every version reads in every position (MySQL
  * 5.7 and MariaDB reject an offset, and all of them a `Z`). A date sent as a date also compares equal to a `date`
  * column, which the text of a whole date and time doesn't. Any other value is sent as it is.
  */
-export function mySqlParamValue(value: unknown, type: string, typeCategory: TypeCategory): unknown {
+export function mySqlParamValue(value: unknown, type: string, typeCategory: TypeCategory | undefined): unknown {
     if (!(value instanceof Date) || isNaN(value.getTime())) {
         return value
     }
@@ -51,4 +51,25 @@ export function mySqlParamValue(value: unknown, type: string, typeCategory: Type
         default:
             return value
     }
+}
+
+/**
+ * The params as the drivers of MySQL and MariaDB receive them (see mySqlParamValue), from the type of each parameter
+ * kept in the params. The params of the query keep the value the connection handed; a copy is returned when a value
+ * changes.
+ */
+export function mySqlDriverParams(params: any[]): any[] {
+    let result: any[] | undefined = undefined
+    for (let i = 0, length = params.length; i < length; i++) {
+        const value = params[i]
+        const type = getParamTypeAt(params, i)
+        if (!(value instanceof Date) || type === undefined) {
+            continue
+        }
+        if (!result) {
+            result = params.slice()
+        }
+        result[i] = mySqlParamValue(value, type, getParamTypeCategoryAt(params, i))
+    }
+    return result ?? params
 }

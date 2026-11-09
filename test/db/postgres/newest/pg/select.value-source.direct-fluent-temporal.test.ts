@@ -44,7 +44,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date = $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-03-05",
+            2024-03-05T00:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
@@ -60,7 +60,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date <> $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-03-05",
+            2024-03-05T00:00:00.000Z,
           ]
         `)
         expect(ne).toEqual(expectedNe)
@@ -81,7 +81,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date is not distinct from $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-03-05",
+            2024-03-05T00:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
@@ -97,7 +97,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date is distinct from $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-03-05",
+            2024-03-05T00:00:00.000Z,
           ]
         `)
         expect(isNot).toEqual(expectedIsNot)
@@ -118,8 +118,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date between $1 and $2 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-03-04",
-            "2024-03-05",
+            2024-03-04T00:00:00.000Z,
+            2024-03-05T00:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
@@ -135,8 +135,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date not between $1 and $2 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-03-04",
-            "2024-03-05",
+            2024-03-04T00:00:00.000Z,
+            2024-03-05T00:00:00.000Z,
           ]
         `)
         expect(notRows).toEqual(expectedNot)
@@ -159,7 +159,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date < $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-03-05",
+            2024-03-05T00:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof lt, Array<{ id: number }>>>()
@@ -175,7 +175,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date > $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-03-05",
+            2024-03-05T00:00:00.000Z,
           ]
         `)
         expect(gt).toEqual(expectedGt)
@@ -190,7 +190,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date <= $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-03-05",
+            2024-03-05T00:00:00.000Z,
           ]
         `)
         expect(le).toEqual(expectedLe)
@@ -205,7 +205,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date >= $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-03-05",
+            2024-03-05T00:00:00.000Z,
           ]
         `)
         expect(ge).toEqual(expectedGe)
@@ -228,7 +228,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at = $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "14:00:00",
+            1970-01-01T14:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
@@ -244,7 +244,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at <> $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "14:00:00",
+            1970-01-01T14:00:00.000Z,
           ]
         `)
         expect(ne).toEqual(expectedNe)
@@ -265,7 +265,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at is not distinct from $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "14:00:00",
+            1970-01-01T14:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
@@ -281,7 +281,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at is distinct from $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "14:00:00",
+            1970-01-01T14:00:00.000Z,
           ]
         `)
         expect(isNot).toEqual(expectedIsNot)
@@ -302,8 +302,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at between $1 and $2 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "09:00:00",
-            "11:00:00",
+            1970-01-01T09:00:00.000Z,
+            1970-01-01T11:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
@@ -319,8 +319,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at not between $1 and $2 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "09:00:00",
-            "11:00:00",
+            1970-01-01T09:00:00.000Z,
+            1970-01-01T11:00:00.000Z,
           ]
         `)
         expect(notRows).toEqual(expectedNot)
@@ -343,7 +343,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at < $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "10:30:00",
+            1970-01-01T10:30:00.000Z,
           ]
         `)
         assertType<Exact<typeof lt, Array<{ id: number }>>>()
@@ -359,7 +359,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at > $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "10:30:00",
+            1970-01-01T10:30:00.000Z,
           ]
         `)
         expect(gt).toEqual(expectedGt)
@@ -374,7 +374,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at <= $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "10:30:00",
+            1970-01-01T10:30:00.000Z,
           ]
         `)
         expect(le).toEqual(expectedLe)
@@ -389,7 +389,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at >= $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "10:30:00",
+            1970-01-01T10:30:00.000Z,
           ]
         `)
         expect(ge).toEqual(expectedGe)
@@ -412,7 +412,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time = $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "17:00:00",
+            1970-01-01T17:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
@@ -428,7 +428,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time <> $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "17:00:00",
+            1970-01-01T17:00:00.000Z,
           ]
         `)
         expect(ne).toEqual(expectedNe)
@@ -449,8 +449,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time in ($1, $2) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "17:00:00",
-            "16:00:00",
+            1970-01-01T17:00:00.000Z,
+            1970-01-01T16:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof inRows, Array<{ id: number }>>>()
@@ -466,7 +466,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time in ($1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "17:00:00",
+            1970-01-01T17:00:00.000Z,
           ]
         `)
         expect(inNRows).toEqual(expectedInN)
@@ -487,8 +487,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time between $1 and $2 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "16:30:00",
-            "18:00:00",
+            1970-01-01T16:30:00.000Z,
+            1970-01-01T18:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
@@ -504,8 +504,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time not between $1 and $2 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "16:30:00",
-            "18:00:00",
+            1970-01-01T16:30:00.000Z,
+            1970-01-01T18:00:00.000Z,
           ]
         `)
         expect(notRows).toEqual(expectedNot)
@@ -529,7 +529,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at = $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-14 12:30:00.000+00",
+            2024-01-14T12:30:00.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
@@ -545,7 +545,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at <> $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-14 12:30:00.000+00",
+            2024-01-14T12:30:00.000Z,
           ]
         `)
         expect(ne).toEqual(expectedNe)
@@ -566,8 +566,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at in ($1, $2) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-14 12:30:00.000+00",
-            "2024-02-28 09:00:00.000+00",
+            2024-01-14T12:30:00.000Z,
+            2024-02-28T09:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof inRows, Array<{ id: number }>>>()
@@ -583,7 +583,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at in ($1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-14 12:30:00.000+00",
+            2024-01-14T12:30:00.000Z,
           ]
         `)
         expect(inNRows).toEqual(expectedInN)
@@ -605,8 +605,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at between $1 and $2 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-01 00:00:00.000+00",
-            "2024-02-01 00:00:00.000+00",
+            2024-01-01T00:00:00.000Z,
+            2024-02-01T00:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
@@ -622,8 +622,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at not between $1 and $2 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-01 00:00:00.000+00",
-            "2024-02-01 00:00:00.000+00",
+            2024-01-01T00:00:00.000Z,
+            2024-02-01T00:00:00.000Z,
           ]
         `)
         expect(notRows).toEqual(expectedNot)
@@ -1059,7 +1059,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time is not distinct from $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "17:00:00",
+            1970-01-01T17:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
@@ -1075,7 +1075,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time is distinct from $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "17:00:00",
+            1970-01-01T17:00:00.000Z,
           ]
         `)
         expect(isNot).toEqual(expectedIsNot)
@@ -1105,7 +1105,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on > $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-02-20",
+            2024-02-20T00:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof gt, Array<{ id: number }>>>()
@@ -1121,7 +1121,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on <= $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-02-20",
+            2024-02-20T00:00:00.000Z,
           ]
         `)
         expect(le).toEqual(expectedLe)
@@ -1143,8 +1143,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on in ($1, $2) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-15",
-            "2024-03-01",
+            2024-01-15T00:00:00.000Z,
+            2024-03-01T00:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof inRows, Array<{ id: number }>>>()
@@ -1160,7 +1160,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on in ($1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-02-20",
+            2024-02-20T00:00:00.000Z,
           ]
         `)
         expect(inNRows).toEqual(expectedInN)
@@ -1180,7 +1180,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on not in ($1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-15",
+            2024-01-15T00:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof notInRows, Array<{ id: number }>>>()
@@ -1195,7 +1195,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on not in ($1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-15",
+            2024-01-15T00:00:00.000Z,
           ]
         `)
         expect(notInNRows).toEqual(expected)
@@ -1216,7 +1216,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on = $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-15",
+            2024-01-15T00:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof eq, Array<{ id: number }>>>()
@@ -1288,7 +1288,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time > $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "17:00:00",
+            1970-01-01T17:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof gt, Array<{ id: number }>>>()
@@ -1304,7 +1304,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time <= $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "17:00:00",
+            1970-01-01T17:00:00.000Z,
           ]
         `)
         expect(le).toEqual(expectedLe)
@@ -1323,7 +1323,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time not in ($1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "17:00:00",
+            1970-01-01T17:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof notInRows, Array<{ id: number }>>>()
@@ -1338,7 +1338,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time not in ($1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "17:00:00",
+            1970-01-01T17:00:00.000Z,
           ]
         `)
         expect(notInNRows).toEqual(expected)
@@ -1357,7 +1357,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time = $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "17:00:00",
+            1970-01-01T17:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof eq, Array<{ id: number }>>>()
@@ -1441,8 +1441,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(month from coalesce(released_on, $1)) - 1 as mo, extract(dow from nullif(released_on, $2)) as dow from project_release where id = $3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2000-01-01",
-            "1999-06-06",
+            2000-01-01T00:00:00.000Z,
+            1999-06-06T00:00:00.000Z,
             1,
           ]
         `)
@@ -1469,8 +1469,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(hour from coalesce(cutoff_time, $1)) as h, trunc(extract(second from nullif(cutoff_time, $2)))::integer as s from project_release where id = $3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "00:00:00",
-            "12:00:00",
+            1970-01-01T00:00:00.000Z,
+            1970-01-01T12:00:00.000Z,
             1,
           ]
         `)
@@ -1497,8 +1497,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from coalesce(created_at, $1)) as y, extract(hour from nullif(created_at, $2)) as h from organization where id = $3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "1970-01-01 00:00:00.000+00",
-            "1999-01-01 00:00:00.000+00",
+            1970-01-01T00:00:00.000Z,
+            1999-01-01T00:00:00.000Z,
             1,
           ]
         `)

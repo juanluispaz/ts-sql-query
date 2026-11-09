@@ -317,11 +317,11 @@ describe(ctx.label, () => {
                 1,
                 "Shaped FA A",
                 "shaped-fa-a",
-                1,
+                true,
                 1,
                 "Shaped FA B",
                 "shaped-fa-b",
-                1,
+                true,
               ]
             `)
             assertType<Exact<typeof inserted, number>>()
@@ -356,11 +356,11 @@ describe(ctx.label, () => {
                 1,
                 "Shaped FAIV A",
                 "shaped-faiv-a",
-                1,
+                true,
                 1,
                 "Shaped FAIV B",
                 "shaped-faiv-b",
-                0,
+                false,
               ]
             `)
             assertType<Exact<typeof inserted, number>>()
@@ -411,11 +411,11 @@ describe(ctx.label, () => {
                 1,
                 "Shaped FAW A",
                 "shaped-faw-a",
-                0,
+                false,
                 1,
                 "Shaped FAW B",
                 "shaped-faw-b",
-                0,
+                false,
               ]
             `)
             expect(trueParams).toMatchInlineSnapshot(`
@@ -423,11 +423,11 @@ describe(ctx.label, () => {
                 1,
                 "Shaped FAW C",
                 "shaped-faw-c",
-                1,
+                true,
                 1,
                 "Shaped FAW D",
                 "shaped-faw-d",
-                1,
+                true,
               ]
             `)
             expect(trueParams).not.toEqual(falseParams)
@@ -1853,7 +1853,7 @@ describe(ctx.label, () => {
                 "mktg-site",
                 "Marketing site v6",
                 "Marketing site v6",
-                0,
+                false,
               ]
             `)
             assertType<Exact<typeof affected, number>>()

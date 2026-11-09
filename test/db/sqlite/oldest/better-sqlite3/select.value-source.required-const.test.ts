@@ -59,7 +59,7 @@ describe(ctx.label, () => {
             7,
             1.5,
             9n,
-            1,
+            true,
           ]
         `)
         assertType<Exact<typeof row, { i: number; d: number; bi: bigint; b: boolean }>>()

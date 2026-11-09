@@ -359,7 +359,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(work_date, $1) as d from issue_worklog where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-03-04",
+            2024-03-04T00:00:00.000Z,
             2,
           ]
         `)
@@ -380,7 +380,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(started_at, $1) as t from issue_worklog where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "08:00:00",
+            1970-01-01T08:00:00.000Z,
             1,
           ]
         `)
@@ -424,7 +424,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(released_on, $1) as d from project_release where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-15",
+            2024-01-15T00:00:00.000Z,
             2,
           ]
         `)
@@ -447,7 +447,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(signed_off_at, $1) as x from project_release where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2099-01-01 00:00:00.000+00",
+            2099-01-01T00:00:00.000Z,
             2,
           ]
         `)
@@ -500,7 +500,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(work_date, $1) as d, coalesce(work_date, work_date) as d2 from issue_worklog where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2024-01-01",
+            2024-01-01T00:00:00.000Z,
             2,
           ]
         `)
@@ -532,7 +532,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(created_at, $1) as d, coalesce(created_at, created_at) as d2 from organization where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2099-01-01 00:00:00.000+00",
+            2099-01-01T00:00:00.000Z,
             1,
           ]
         `)
@@ -563,7 +563,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(released_on, $1) as d, coalesce(released_on, released_on) as d2 from project_release where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2099-01-01",
+            2099-01-01T00:00:00.000Z,
             2,
           ]
         `)
@@ -591,7 +591,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(started_at, $1) as t, nullif(started_at, started_at) as t2 from issue_worklog where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "08:00:00",
+            1970-01-01T08:00:00.000Z,
             1,
           ]
         `)
@@ -619,7 +619,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(cutoff_time, $1) as t, nullif(cutoff_time, cutoff_time) as t2 from project_release where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "16:00:00",
+            1970-01-01T16:00:00.000Z,
             1,
           ]
         `)
@@ -648,7 +648,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(signed_off_at, $1) as x, nullif(signed_off_at, signed_off_at) as x2 from project_release where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2099-01-01 00:00:00.000+00",
+            2099-01-01T00:00:00.000Z,
             1,
           ]
         `)
@@ -1554,7 +1554,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(cutoff_time, $1) as x from project_release where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "08:00:00",
+            1970-01-01T08:00:00.000Z,
             1,
           ]
         `)
@@ -1575,7 +1575,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(created_at, $1) as d from organization where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "2000-01-01 00:00:00.000+00",
+            2000-01-01T00:00:00.000Z,
             1,
           ]
         `)

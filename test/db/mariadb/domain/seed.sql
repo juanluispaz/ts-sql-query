@@ -72,9 +72,18 @@ INSERT INTO col_matrix (id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m
 -- express. getSeconds() reads 59, getMilliseconds() reads 999.
 INSERT INTO temporal_precision (id, micro_stamp) VALUES
     (1, '2024-01-15 12:30:59.999600');
--- service_plan: plan 1 has two versions, plan 2 only one. Each statement commits
--- on its own, which is what gives the update a version to leave behind.
+-- service_plan: plan 1 was 'Basic' from 2024-01-01 and is 'Standard' since
+-- 2024-06-01, plan 2 is 'Enterprise' since 2024-01-01. A system-versioned row
+-- takes the time of its statement, and SET timestamp fixes that time for the
+-- session, so the versions get the same periods on every run, not the clock of
+-- the engine. The instants are seconds since the epoch, in UTC whatever the
+-- zone of the session: 1704067200 is 2024-01-01 00:00:00 UTC and 1717200000 is
+-- 2024-06-01 00:00:00 UTC. The seed may run on a connection the tests use next,
+-- so the clock is given back at the end.
+SET timestamp = 1704067200;
 INSERT INTO service_plan (id, name, description) VALUES
     (1, 'Basic', 'Entry plan'),
     (2, 'Enterprise', NULL);
+SET timestamp = 1717200000;
 UPDATE service_plan SET name = 'Standard' WHERE id = 1;
+SET timestamp = DEFAULT;

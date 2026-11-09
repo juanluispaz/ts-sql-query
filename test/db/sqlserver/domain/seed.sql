@@ -86,15 +86,33 @@ INSERT INTO col_matrix (id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m
 -- express. getSeconds() reads 59, getMilliseconds() reads 999.
 INSERT INTO temporal_precision (id, micro_stamp) VALUES
     (1, '2024-01-15 12:30:59.999600');
--- service_plan: plan 1 has two versions, plan 2 only one. Each statement commits
--- on its own, and the update waits until the clock of the engine has moved past
--- the instant of the insert: FOR SYSTEM_TIME ignores a version whose validity
--- period has zero duration. A fixed wait isn't enough: the clock of an engine
--- under load (an emulated image) can stay on the same instant for hundreds of
--- milliseconds, and the two statements then get the same time.
-INSERT INTO service_plan (id, name, description) VALUES
-    (1, 'Basic', 'Entry plan'),
-    (2, 'Enterprise', NULL);
-DECLARE @service_plan_inserted_at DATETIME2 = (SELECT MAX(valid_from) FROM service_plan);
-WHILE SYSUTCDATETIME() <= @service_plan_inserted_at WAITFOR DELAY '00:00:00.005';
-UPDATE service_plan SET name = 'Standard' WHERE id = 1;
+GO
+-- service_plan: plan 1 was 'Basic' from 2024-01-01 and is 'Standard' since
+-- 2024-06-01, plan 2 is 'Enterprise' since 2024-01-01. The versions are restored
+-- with their periods, not produced by the clock of the engine: while the period
+-- exists the engine writes the period columns itself, even with versioning off,
+-- so the period is dropped to write them and added again. That makes the
+-- columns GENERATED ALWAYS again but not HIDDEN, which is set back. Versioning
+-- is turned back on over the same history table, with the consistency check.
+-- The period of a current row ends at the largest DATETIME2. The inserts and
+-- the new period go through EXEC because the batch is compiled while the
+-- period still exists.
+BEGIN TRY
+    BEGIN TRANSACTION;
+    ALTER TABLE service_plan SET (SYSTEM_VERSIONING = OFF);
+    ALTER TABLE service_plan DROP PERIOD FOR SYSTEM_TIME;
+    EXEC('INSERT INTO service_plan (id, name, description, valid_from, valid_to) VALUES
+        (1, ''Standard'', ''Entry plan'', ''2024-06-01 00:00:00'', ''9999-12-31 23:59:59.9999999''),
+        (2, ''Enterprise'', NULL, ''2024-01-01 00:00:00'', ''9999-12-31 23:59:59.9999999'');
+    INSERT INTO service_plan_history (id, name, description, valid_from, valid_to) VALUES
+        (1, ''Basic'', ''Entry plan'', ''2024-01-01 00:00:00'', ''2024-06-01 00:00:00'');');
+    EXEC('ALTER TABLE service_plan ADD PERIOD FOR SYSTEM_TIME (valid_from, valid_to);
+    ALTER TABLE service_plan ALTER COLUMN valid_from ADD HIDDEN;
+    ALTER TABLE service_plan ALTER COLUMN valid_to ADD HIDDEN;');
+    ALTER TABLE service_plan SET (SYSTEM_VERSIONING = ON (HISTORY_TABLE = dbo.service_plan_history, DATA_CONSISTENCY_CHECK = ON));
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+    THROW;
+END CATCH;

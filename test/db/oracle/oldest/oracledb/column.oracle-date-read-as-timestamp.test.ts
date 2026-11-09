@@ -340,4 +340,41 @@ describe(ctx.label, () => {
         }>>()
         expect(result).toEqual(expected)
     })
+
+    test('value-when-null-with-the-column-second-needs-no-cast', async () => {
+        // Oracle's nvl has the type of its first operand: a value bound as a timestamp first makes the result a
+        // timestamp, the getters of the time work on it, and the result doesn't keep the adapter of the column
+        const expected = { hours: 9, seconds: 7, milliseconds: 0, time: 1710493507000 }
+        ctx.mockNext(expected)
+
+        const noValue = ctx.conn.optionalConst(null, 'localDateTime')
+        const result = await ctx.conn.selectFrom(tStandupMeeting)
+            .where(tStandupMeeting.id.equals(1))
+            .select({
+                hours:        noValue.valueWhenNull(tStandupMeeting.startsAt).getHours(),
+                seconds:      noValue.valueWhenNull(tStandupMeeting.startsAt).getSeconds(),
+                milliseconds: noValue.valueWhenNull(tStandupMeeting.startsAt).getMilliseconds(),
+                time:         noValue.valueWhenNull(tStandupMeeting.startsAt).getTime(),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(hour from nvl(:0, starts_at)) as "hours", trunc(extract(second from nvl(:1, starts_at))) as "seconds", to_number(to_char(nvl(:2, starts_at), 'FF3')) as "milliseconds", (cast(nvl(:3, starts_at) as date) - date '1970-01-01') * 86400000 + to_number(to_char(nvl(:4, starts_at), 'FF3')) as "time" from standup_meeting where id = :5"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            null,
+            null,
+            null,
+            null,
+            null,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, {
+            hours:        number
+            seconds:      number
+            milliseconds: number
+            time:         number
+        }>>()
+        expect(result).toEqual(expected)
+    })
 })

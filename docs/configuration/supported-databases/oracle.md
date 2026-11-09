@@ -133,7 +133,7 @@ And its parameters are: `[ 2024-03-15T00:00:00.000Z ]`
 
 The result is `[ { id: 1, startsAt: 2024-03-15T09:05:07.000Z, hour: 9, minute: 5, time: 1710493507000 }, { id: 2, startsAt: 2024-03-18T14:40:00.000Z, hour: 14, minute: 40, time: 1710772800000 } ]`.
 
-A column of a `with`, or of a subquery used as a table, made from that column is still a `DATE`, and keeps the adapter: its getters of the time cast it too. So do `max`, `min`, `nullIfValue` and an inline select of the column. `valueWhenNull` writes `nvl(cast(ends_at as timestamp), …)`: Oracle's `nvl` has the type of its first operand, so the result is a `TIMESTAMP`, and a value given for the null keeps its fraction of a second. A value with a fraction of a second is stored without it: `10:00:15.723` is stored as `10:00:15`.
+A column of a `with`, or of a subquery used as a table, made from that column is still a `DATE`, and keeps the adapter: its getters of the time cast it too. So do `max`, `min`, `nullIfValue` and an inline select of the column. Oracle's `nvl` has the type of its first operand: `valueWhenNull` of two such columns stays a `DATE` (`nvl(ends_at, starts_at)`) and keeps the adapter, and with a value of another type it writes `nvl(cast(ends_at as timestamp), :0)`, a `TIMESTAMP`, so the value given for the null keeps its fraction of a second. A value with a fraction of a second is stored without it: `10:00:15.723` is stored as `10:00:15`.
 
 ```ts
 const updated = connection.update(tMeeting)

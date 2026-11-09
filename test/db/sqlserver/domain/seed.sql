@@ -87,10 +87,14 @@ INSERT INTO col_matrix (id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m
 INSERT INTO temporal_precision (id, micro_stamp) VALUES
     (1, '2024-01-15 12:30:59.999600');
 -- service_plan: plan 1 has two versions, plan 2 only one. Each statement commits
--- on its own and the wait keeps their instants apart: FOR SYSTEM_TIME ignores a
--- version whose validity period has zero duration.
+-- on its own, and the update waits until the clock of the engine has moved past
+-- the instant of the insert: FOR SYSTEM_TIME ignores a version whose validity
+-- period has zero duration. A fixed wait isn't enough: the clock of an engine
+-- under load (an emulated image) can stay on the same instant for hundreds of
+-- milliseconds, and the two statements then get the same time.
 INSERT INTO service_plan (id, name, description) VALUES
     (1, 'Basic', 'Entry plan'),
     (2, 'Enterprise', NULL);
-WAITFOR DELAY '00:00:00.020';
+DECLARE @service_plan_inserted_at DATETIME2 = (SELECT MAX(valid_from) FROM service_plan);
+WHILE SYSUTCDATETIME() <= @service_plan_inserted_at WAITFOR DELAY '00:00:00.005';
 UPDATE service_plan SET name = 'Standard' WHERE id = 1;

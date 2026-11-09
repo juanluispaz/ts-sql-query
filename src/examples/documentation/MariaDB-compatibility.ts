@@ -12,6 +12,9 @@ import { CustomBooleanTypeAdapter } from '../../TypeAdapter.js'
 import { View } from '../../View.js'
 import { assertEquals } from '../assertEquals.js'
 
+// The mock results build their Dates with the local constructor: in UTC they are the ones a query runner gives
+process.env.TZ = 'UTC'
+
 class DBConnection extends MariaDBConnection<'DBConnection'> {
     override compatibilityVersion = 10_002_000
     // insensitiveCollation = 'acs'

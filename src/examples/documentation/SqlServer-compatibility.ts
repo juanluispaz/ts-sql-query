@@ -13,6 +13,9 @@ import { Values } from '../../Values.js'
 import { View } from '../../View.js'
 import { assertEquals } from '../assertEquals.js'
 
+// The mock results build their Dates with the local constructor: in UTC they are the ones a query runner gives
+process.env.TZ = 'UTC'
+
 class DBConnection extends SqlServerConnection<'DBConnection'> {
     override compatibilityVersion = 15_000_000
     // insensitiveCollation = 'acs'

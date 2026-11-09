@@ -465,5 +465,75 @@ requirements"; `docs/configuration/time-zones.md#known-limits`.
 7. A lossy delivery that is detected (an unsafe number for an integer, a number for a decimal) is acceptable:
    `transformValueFromDB` rejects it. An undetectable one (a Date built in the process zone, a cut text, a renamed
    key, a lost row) is not.
-8. Tests in `test/runners/<db>/` against the real engine, including `LocalTemporalValuesInAnyZone` (spawned processes
-   in UTC, Madrid, New York, Tokyo: `test/runners/lib/localTemporalValues.ts:11`) and `DriverConfiguration`.
+8. Tests in `test/runners/<db>/` against the real engine, including `LocalTemporalValuesInAnyZone` (the rungs of §7.3: spawned
+   processes in UTC, Madrid, New York, Tokyo, `test/runners/lib/localTemporalValues.ts:11`) and `DriverConfiguration`.
+
+## 7. Dates and times: the ladder the runners climb
+
+### 7.1 How to reason about a temporal value
+
+A JavaScript `Date` is an instant: milliseconds since the epoch, in UTC, with no zone of its own (`new
+Date('…+09:00')` keeps only the instant). Its "local" getters use the zone of the process, never the one it was
+built with. The library reads and writes a `Date` with its **UTC** methods only, so it does no zone arithmetic.
+
+At every hop, ask what zone is in front of you: an **instant** (a `Date`, a `timestamptz`, a value with its offset)
+or a **wall clock without zone** (`DATE`, `TIMESTAMP`, `datetime2`, `DATETIME`, a time). Turning one into the other
+needs a zone, and whoever does it picks one: the process (a driver converting a `Date`), the database session (a cast
+in the SQL, a column of kind 2), or the library's convention (UTC). A value without zone travels without zone from end
+to end: the `Date` only carries its digits.
+
+The kinds of column (`docs/configuration/time-zones.md`):
+
+| Kind | The engine | What the program gets | Examples |
+|---|---|---|---|
+| 1 | stores and returns the wall clock as it is | a wall clock | PostgreSQL `date`, `time`, `timestamp`; MySQL/MariaDB `DATE`, `TIME`, `DATETIME`; Oracle `DATE`, `TIMESTAMP`; SQL Server `date`, `time`, `datetime`, `smalldatetime`, `datetime2` |
+| 2 | converts in and out with the session zone | a wall clock | MySQL/MariaDB `TIMESTAMP`, Oracle `TIMESTAMP WITH LOCAL TIME ZONE` |
+| 3 | stores one normalized instant | an instant | PostgreSQL `timestamptz` |
+| 4 | keeps the zone of each value | the value and its zone | Oracle `TIMESTAMP WITH TIME ZONE`, SQL Server `datetimeoffset`, PostgreSQL `timetz` |
+
+The date functions of a query (`getFullYear` … `getMilliseconds`) give the parts in UTC, as the `getUTC…` methods of
+the `Date` read, and `getTime` its `getTime()` (`docs/configuration/time-zones.md`, "The date functions of a query
+give the parts in UTC"). SQLite has its own strategies (§0) and `sqliteRunsInApplicationTimeZone`.
+
+### 7.2 Kind 4 through the drivers
+
+| Database | Driver | What it delivers | Source |
+|---|---|---|---|
+| Oracle | oracledb (Thin) | a `Date`: the instant, to the millisecond; the zone is discarded when the value is decoded. Fetched as text it is that `Date`'s `toString()`; RAW and TIMESTAMP fail with NJS-119 | `node_modules/oracledb/lib/impl/datahandlers/buffer.js` (`parseOracleDate`), `lib/impl/resultset.js` |
+| SQL Server | mssql (tedious) | a `Date`: the instant; `readDateTimeOffset` reads the offset and discards it, and keeps the time below the millisecond in a hidden `nanosecondsDelta`. No option changes it (`useUTC` isn't passed to it) | `node_modules/mssql/node_modules/tedious/lib/value-parser.js` (`readDateTimeOffset`) |
+| PostgreSQL | pg, postgres.js, Bun SQL, PGlite | `timetz` as text with its offset (`19:30:15.123+09`); `timestamptz` (kind 3) as a `Date` | [inferred] (measured, no test here) |
+
+So the drivers deliver a kind-4 column as kind 3. A runner can't recover the zone: in Oracle and SQL Server a value
+with its zone exists only if the SQL formats it (`to_char(x, '…TZH:TZM')` / `TZR`, `convert(nvarchar(40), x, 126)`),
+which is the user's SQL (a fragment) and never the runner's (§0). Writing a `Date` stores it in UTC (`+00:00`).
+
+### 7.3 The ladder
+
+Each rung adds one zone that isn't UTC. A runner meets a rung when, there, a value read and sent has the same digits
+(no zone) or the same instant (with zone) as with everything in UTC. A rung never makes the SQL of a lower rung worse.
+
+| Rung | Process (backend) | Data in the database | Session | Status |
+|---|---|---|---|---|
+| 0 | UTC | UTC (a zoned value carries `+00:00`) | UTC | met by every runner; the test matrix runs here; v1 required it |
+| 1 | another zone | UTC | UTC | each runner keeps the driver from assuming the process zone (below); to confirm with the columns of kind 2 and the SQL the library writes |
+| 2 | another zone | UTC | the process zone, copied by the driver | Oracle: not reachable, the runner requires the session in UTC; PGlite: copies it (known limit) |
+| 3 | any | UTC | another zone, from the server | not covered |
+| 4 | any | all in one known zone that isn't UTC | — | not covered: needs that zone, for the driver or for the library |
+| 5 | — | a different zone per column | — | out of reach: a common zone at most, the user compensates with type adapters |
+
+What each runner does at rung 1 (a driver converting a `Date` would use the process zone):
+
+| Runner | Reading a value without zone | Sending | Session zone by default |
+|---|---|---|---|
+| pg, PGlite | text (`date`, `timestamp`, and `time` on PGlite) parsed as UTC (§3.1) | text, `…+00` for a `localDateTime` (§2.4) | the server's (pg); the process zone (PGlite) [inferred] |
+| postgres.js | the UTC digits in any zone of the process (§3.1) | text (§2.4) | the server's |
+| Bun SQL PostgreSQL | UTC `Date`s [inferred] | text (§2.4) | the server's |
+| mysql2, mariadb | text (`dateStrings`) | text without offset (§2.4) | the server's (`SYSTEM`) |
+| Bun SQL MySQL/MariaDB | UTC `Date`s | text (§2.4) | `+00:00`, set by Bun [inferred] |
+| mssql | `Date`s with the UTC digits (`useUTC`) | `Date`s with `useUTC` | none (SQL Server has no session zone) |
+| oracledb | a `Date` built in the process zone, rebuilt from its local getters as UTC; a wall clock the process zone skips in its change to summer time is moved an hour (known limit) | `TIMESTAMP WITH TIME ZONE` in UTC | `ORA_SDTZ`, else the process offset; the runner requires UTC (`requireOracleSessionInUtc`) |
+| SQLite runners | per `SqliteDateTimeFormat` (§0) | per format | — (one party) |
+
+Tests: `test/runners/<db>/LocalTemporalValuesInAnyZone.test.ts` (rungs 1 and 2: spawned processes in UTC, Madrid, New
+York and Tokyo, the database in UTC). A runner that changes how it reads or sends a temporal value states here the
+rung it meets, with the test that proves it.

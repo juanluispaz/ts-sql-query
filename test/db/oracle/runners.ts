@@ -476,6 +476,10 @@ async function ensureWorkerUserExists(host: string, port: number, workerUser: st
             await sys.execute(`GRANT CREATE VIEW TO ${workerUser}`)
             await sys.commit()
         }
+        // Reading v$session, to wait for a statement of another session to be running (the runner tests); `system`
+        // can't grant v_$session itself (ORA-01031). Idempotent, so it also repairs a user of a reused container.
+        await sys.execute(`GRANT SELECT_CATALOG_ROLE TO ${workerUser}`)
+        await sys.commit()
     } finally {
         await sys.close()
     }

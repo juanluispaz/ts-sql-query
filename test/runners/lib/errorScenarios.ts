@@ -1657,12 +1657,15 @@ const oracleScenarios: readonly ErrorScenario[] = [
     {
         name: 'statement-broken-off-by-the-client',
         onlyRunners: ['OracleDBQueryRunner'],
-        run: async ({ runner }) => {
-            const connection = runner.getNativeRunner() as { break(): Promise<void> }
-            const sleeping = failureOf(runner.executeUpdate('begin dbms_session.sleep(5); end;'))
-            // A fixed wait, not the engine: seeing that the block runs needs v$session, and the user of the tests has
-            // only the roles CONNECT, RESOURCE and SODA_APP, and reading v$session fails with ORA-00942.
-            await new Promise(resolve => setTimeout(resolve, 300))
+        serverOnly: true,
+        run: async (ctx) => {
+            const other = await ctx.otherSession()
+            const connection = ctx.runner.getNativeRunner() as { break(): Promise<void> }
+            const sid = await ctx.runner.executeSelectOneColumnOneRow(`select sys_context('USERENV', 'SID') from dual`)
+            const sleeping = failureOf(ctx.runner.executeUpdate('begin dbms_session.sleep(5); end;'))
+            // The user of the tests reads v$session through SELECT_CATALOG_ROLE
+            await waitForTheEngine('dbms_session.sleep running', async () => Number(await other.executeSelectOneColumnOneRow(
+                `select count(*) from v$session where sid = ${Number(sid)} and status = 'ACTIVE' and event = 'PL/SQL lock timer'`)) === 1)
             await connection.break()
             throw await sleeping
         },

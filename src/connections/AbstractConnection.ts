@@ -1184,12 +1184,13 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                     if (/^(-?\d+)$/g.test(value)) {
                         return !!(+value)
                     }
-                    // PostgreSQL writes a boolean as text with 't' and 'f' (a driver that hands the text, or a mock
-                    // that imitates it)
-                    if (value === 't') {
+                    // A boolean as text, in any case: PostgreSQL writes 't' and 'f' (a driver that hands the text,
+                    // or a mock that imitates it), Oracle 'TRUE' and 'FALSE' (the RETURNING of a BOOLEAN column)
+                    const lowerCase = value.toLowerCase()
+                    if (lowerCase === 't' || lowerCase === 'true') {
                         return true
                     }
-                    if (value === 'f') {
+                    if (lowerCase === 'f' || lowerCase === 'false') {
                         return false
                     }
                 }

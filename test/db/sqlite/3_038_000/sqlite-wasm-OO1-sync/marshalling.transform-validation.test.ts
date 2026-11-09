@@ -326,13 +326,29 @@ describe(ctx.label, () => {
     })
 
     test('marshalling/from-db-validation/boolean-from-postgresql-text-false', async () => {
-        // 'f' -> false, the other side; any other word, like 'true', is rejected
+        // 'f' -> false, the other side; any other word, like 'yes', is rejected
         // (see boolean-invalid-throws).
         // MOCK-ONLY: no real driver of this connector hands this representation back, so mockNext is
         // the only way to reach the transformValueFromDB arm under test.
         ctx.mockOnlyConnection()
         expect(await fromDbValue(tIssue.priority.greaterThan(0), 'f')).toBe(false)
-        expect(await fromDbReason(tIssue.priority.greaterThan(0), 'true')).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+        expect(await fromDbReason(tIssue.priority.greaterThan(0), 'yes')).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+    })
+
+    test('marshalling/from-db-validation/boolean-from-text-in-any-case', async () => {
+        // A boolean as text is read in any case: 'true'/'false' (Oracle's RETURNING of
+        // a BOOLEAN column gives 'TRUE'/'FALSE') and 't'/'f'.
+        // MOCK-ONLY: no real driver of this connector hands this representation back, so mockNext is
+        // the only way to reach the transformValueFromDB arm under test.
+        ctx.mockOnlyConnection()
+        expect(await fromDbValue(tIssue.priority.greaterThan(0), 'TRUE')).toBe(true)
+        expect(await fromDbValue(tIssue.priority.greaterThan(0), 'True')).toBe(true)
+        expect(await fromDbValue(tIssue.priority.greaterThan(0), 'true')).toBe(true)
+        expect(await fromDbValue(tIssue.priority.greaterThan(0), 'T')).toBe(true)
+        expect(await fromDbValue(tIssue.priority.greaterThan(0), 'FALSE')).toBe(false)
+        expect(await fromDbValue(tIssue.priority.greaterThan(0), 'False')).toBe(false)
+        expect(await fromDbValue(tIssue.priority.greaterThan(0), 'false')).toBe(false)
+        expect(await fromDbValue(tIssue.priority.greaterThan(0), 'F')).toBe(false)
     })
 
     test('marshalling/from-db-validation/boolean-from-decimal-string-throws', async () => {
@@ -553,6 +569,38 @@ describe(ctx.label, () => {
         // the only way to reach the transformValueFromDB arm under test.
         ctx.mockOnlyConnection()
         expect(await fromDbReason(ctx.conn.const(new Date(0), 'localDateTime'), 'not-a-datetime')).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+    })
+
+    test('marshalling/from-db-validation/localdate-day-out-of-month-throws', async () => {
+        // A day the month doesn't have (MySQL keeps 2024-02-30 with ALLOW_INVALID_DATES)
+        // is rejected: the Date would be another day.
+        // MOCK-ONLY: no real driver of this connector hands this representation back, so mockNext is
+        // the only way to reach the transformValueFromDB arm under test.
+        ctx.mockOnlyConnection()
+        expect(await fromDbReason(ctx.conn.const(new Date(0), 'localDate'), '2024-02-30')).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+    })
+
+    test('marshalling/from-db-validation/localdatetime-day-out-of-month-throws', async () => {
+        // MOCK-ONLY: no real driver of this connector hands this representation back, so mockNext is
+        // the only way to reach the transformValueFromDB arm under test.
+        ctx.mockOnlyConnection()
+        expect(await fromDbReason(ctx.conn.const(new Date(0), 'localDateTime'), '2024-02-30 10:00:00')).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+    })
+
+    test('marshalling/from-db-validation/localtime-end-of-day-throws', async () => {
+        // The end of the day 24:00:00 (PostgreSQL's time, MySQL's TIME) is rejected:
+        // a time of day on 1970-01-01 can't represent it.
+        // MOCK-ONLY: no real driver of this connector hands this representation back, so mockNext is
+        // the only way to reach the transformValueFromDB arm under test.
+        ctx.mockOnlyConnection()
+        expect(await fromDbReason(ctx.conn.const(new Date(0), 'localTime'), '24:00:00')).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+    })
+
+    test('marshalling/from-db-validation/localdatetime-end-of-day-throws', async () => {
+        // MOCK-ONLY: no real driver of this connector hands this representation back, so mockNext is
+        // the only way to reach the transformValueFromDB arm under test.
+        ctx.mockOnlyConnection()
+        expect(await fromDbReason(ctx.conn.const(new Date(0), 'localDateTime'), '2024-01-14 24:00:00')).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
     })
 
     test('marshalling/from-db-validation/localdatetime-non-primitive-throws', async () => {

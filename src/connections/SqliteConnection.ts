@@ -15,6 +15,7 @@ import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { SameDB } from '../utils/ITableOrView.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { __conversionType } from '../utils/typeCategory.js'
+import { isDateTimeTextOutOfCalendar } from '../utils/utcDateTimeText.js'
 
 export abstract class SqliteConnection<NAME extends string> extends AbstractConnection<NConnection<'sqlite', NAME>> {
 
@@ -157,6 +158,9 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                 if (value instanceof Date) {
                     result = new Date(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()))
                 } else if (typeof value === 'string') {
+                    if (isDateTimeTextOutOfCalendar(value)) {
+                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, `Invalid localDate value received from the db: ${value} (out of the calendar)`)
+                    }
                     if (containsTimezone(value)) {
                         result = utcDateOnly(new Date(value))
                     } else switch (dateTimeFormat) {
@@ -242,6 +246,9 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                 if (value instanceof Date) {
                     result = new Date(value.getTime())
                 } else if (typeof value === 'string') {
+                    if (isDateTimeTextOutOfCalendar(value)) {
+                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, `Invalid localTime value received from the db: ${value} (out of the calendar)`)
+                    }
                     if (containsTimezone(value)) {
                         if (containsDate(value)) {
                             result = new Date(value)
@@ -339,6 +346,9 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                 if (value instanceof Date) {
                     result = value
                 } else if (typeof value === 'string') {
+                    if (isDateTimeTextOutOfCalendar(value)) {
+                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, `Invalid localDateTime value received from the db: ${value} (out of the calendar)`)
+                    }
                     if (containsTimezone(value)) {
                         result = new Date(value)
                     } else switch (dateTimeFormat) {

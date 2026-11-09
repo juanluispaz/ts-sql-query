@@ -21,7 +21,6 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { TsSqlError } from '../../../../../src/TsSqlError.js'
 import { tIssue, tIssueWorklog } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -168,28 +167,21 @@ describe(ctx.label, () => {
 
     test('marshalling/bigint-column-scalar-read-past-2p53', async () => {
         // A bigint column value beyond 2^53 read DIRECTLY as a scalar column (not inside a JSON
-        // aggregate) through the driver's DEFAULT reader. 9007199254740993 is the first odd
-        // integer a double cannot represent. This connector's default reader hands wide integers
-        // back as a rounded JavaScript number (its big-integer mode is off), so the exact value
-        // is already lost; the marshaller refuses it with PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE
-        // rather than return a clean-but-wrong bigint. The mock seeds the same rounded number the
-        // real driver returns, so mock and real agree.
+        // aggregate). 9007199254740993 is the first odd integer a double cannot represent. The query
+        // runner asks mysql2 for the big integers as text on every query (supportBigNumbers and
+        // bigNumberStrings), so the value round-trips intact. The mock seeds the same text the real
+        // driver returns, so mock and real agree.
         await ctx.withRollback(async () => {
             ctx.mockNext(1)
             await ctx.conn.update(tIssue).set({ viewCount: 9007199254740993n }).where(tIssue.id.equals(1)).executeUpdate()
 
-            ctx.mockNext({ views: 9007199254740996 })
-            let err: unknown
-            try {
-                await ctx.conn.selectFrom(tIssue)
-                    .where(tIssue.id.equals(1))
-                    .select({ views: tIssue.viewCount })
-                    .executeSelectOne()
-            } catch (e) {
-                err = e
-            }
-            expect(err).toBeInstanceOf(TsSqlError)
-            expect((err as TsSqlError).errorReason.reason).toBe('PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE')
+            ctx.mockNext({ views: '9007199254740993' })
+            const row = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({ views: tIssue.viewCount })
+                .executeSelectOne()
+            assertType<Exact<typeof row, { views: bigint }>>()
+            expect(row.views).toBe(9007199254740993n)
         })
     })
 

@@ -1,11 +1,13 @@
 import type { BeginTransactionOpts, DatabaseType } from './QueryRunner.js'
-import type { ClientBase } from 'pg'
+import type { ClientBase, CustomTypesConfig } from 'pg'
 import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
 import { PostgresTransactionOutcome } from '../utils/postgresTransactionOutcome.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getPgErrorReason, isPgError } from './connectorErrorMappers/PgErrorMapper.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
+import { parseUtcDateTimeTextOrKeepIt } from '../utils/utcDateTimeText.js'
+import { requirePgTextMode } from '../utils/pgConfiguration.js'
 
 export interface PgQueryRunnerConfig {
     allowNestedTransactions?: boolean | undefined
@@ -23,10 +25,14 @@ export class PgQueryRunner extends SqlTransactionQueryRunner {
     protected override readonly transactionOutcome = new PostgresTransactionOutcome()
     readonly connection: ClientBase
     private config?: PgQueryRunnerConfig | undefined
+    /** The parsers of the values received, given to every query of the library (see pgQueryTypes) */
+    private readonly types: CustomTypesConfig
 
     constructor(connection: ClientBase, config?: PgQueryRunnerConfig) {
         super()
+        requirePgTextMode(connection, 'PgQueryRunner')
         this.connection = connection
+        this.types = pgQueryTypes(connection)
         this.database = 'postgreSql'
         this.config = config
     }
@@ -50,10 +56,10 @@ export class PgQueryRunner extends SqlTransactionQueryRunner {
     }
 
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
-        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query(query, params).then((result) => result.rows, (error) => this.statementOfTheTransactionFailed(error))
+        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query({ text: query, values: params, types: this.types }).then((result) => result.rows, (error) => this.statementOfTheTransactionFailed(error))
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
-        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query(query, params).then((result) => result.rowCount || 0, (error) => this.statementOfTheTransactionFailed(error))
+        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query({ text: query, values: params, types: this.types }).then((result) => result.rowCount || 0, (error) => this.statementOfTheTransactionFailed(error))
     }
     override executeCommitQuery(query: string, params: any[]): Promise<number> {
         return this.connection.query(query, params).then((result) => {
@@ -93,3 +99,19 @@ export class PgQueryRunner extends SqlTransactionQueryRunner {
     }
 
 }
+
+/**
+ * The parsers pg uses for the values of a query of the library: a `date` (1082) and a `timestamp` (1114) are the Date
+ * whose UTC getters are their digits, the values in the database being in UTC (the parsers of pg build that Date with
+ * the zone of the process); every other type is parsed as the client parses it, with the parsers the user registered.
+ */
+function pgQueryTypes(connection: ClientBase): CustomTypesConfig {
+    const getTypeParser = (oid: number, format?: 'text' | 'binary'): any => {
+        if ((oid === 1082 || oid === 1114) && format !== 'binary') {
+            return parseUtcDateTimeTextOrKeepIt
+        }
+        return connection.getTypeParser(oid, format as any)
+    }
+    return { getTypeParser: getTypeParser as CustomTypesConfig['getTypeParser'] }
+}
+

@@ -9,6 +9,7 @@ import type { TypeCategory } from '../TypeAdapter.js'
 import { getParamForceTypeCastAt, getParamTypeAt, getParamTypeCategoryAt } from '../utils/queryParamsMetadata.js'
 import { postgreSqlParamType } from '../utils/postgreSqlParamTypes.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
+import { isProcessInUtc } from '../utils/processTimeZone.js'
 
 export interface PostgresQueryRunnerConfig {
     /**
@@ -31,6 +32,7 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
     /** connection: the client of a pool, a connection reserved from it, or a transaction begun with it */
     constructor(connection: Sql | TransactionSql | ReservedSql, config?: PostgresQueryRunnerConfig) {
         super()
+        requirePostgresJsOptions(connection)
         // Only a pool client is asked to reserve or begin (see givenConnection)
         this.connection = connection as Sql
         this.givenConnection = getGivenSqlConnection(connection)
@@ -275,5 +277,27 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
 
     static isSqlError(error: unknown): boolean {
         return error instanceof TsSqlError || isPostgresJsError(error)
+    }
+}
+
+/**
+ * What postgres.js must not do with the values of the library, which can't be undone per query; read from the options
+ * of the client (a transaction or a reserved connection doesn't expose them). Thrown when the query runner is created.
+ * - A transform of the results (`transform.column.from`, `value.from`, `row.from`, or `postgres.camel`...): it renames
+ *   the columns the library reads by their name, or changes their values.
+ * - `infer: true`, when the process doesn't run in UTC: with it postgres.js reads a `timestamp` with the zone of the
+ *   process, and the values in the database are in UTC.
+ */
+function requirePostgresJsOptions(connection: unknown): void {
+    const options = (connection as { options?: { transform?: any, infer?: unknown } }).options
+    const transform = options?.transform
+    for (const name of ['column', 'value', 'row'] as const) {
+        const from = transform?.[name]?.from
+        if (from) {
+            throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'transform', value: transform }, 'PostgresQueryRunner requires a postgres.js client without a transform of the results (transform.' + name + '.from): the library reads each column by its name, with its value as the database gives it')
+        }
+    }
+    if (options?.infer === true && !isProcessInUtc()) {
+        throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'infer', value: true }, 'PostgresQueryRunner requires a postgres.js client without infer: true when the process does not run in UTC: with it postgres.js reads a timestamp with the zone of the process, and the date and time values are in UTC')
     }
 }

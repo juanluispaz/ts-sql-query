@@ -1,6 +1,7 @@
 import type { DatabaseType, QueryRunner } from './QueryRunner.js'
 import type { Pool, PoolClient } from 'pg'
 import { PgQueryRunner } from './PgQueryRunner.js'
+import { requirePgTextMode } from '../utils/pgConfiguration.js'
 import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
 import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import type { TypeCategory } from '../TypeAdapter.js'
@@ -22,6 +23,7 @@ export class PgPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
 
     constructor(pool: Pool, config?: PgPoolQueryRunnerConfig) {
         super()
+        requirePgTextMode(pool, 'PgPoolQueryRunner')
         this.pool = pool
         this.database = 'postgreSql'
         this.config = config
@@ -43,7 +45,15 @@ export class PgPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
         return queryRunnerParamBindings.PgPoolQueryRunner(params, value, type, typeCategory, forceTypeCast, this.config?.typesByName)
     }
     protected createQueryRunner(): Promise<QueryRunner> {
-        return this.pool.connect().then(connection => new PgQueryRunner(connection, this.config))
+        return this.pool.connect().then(connection => {
+            try {
+                return new PgQueryRunner(connection, this.config)
+            } catch (error) {
+                // A client the pool gives in the binary mode (pg.defaults.binary) is given back
+                connection.release()
+                throw error
+            }
+        })
     }
     protected releaseQueryRunner(queryRunner: QueryRunner): void {
         (queryRunner.getNativeRunner() as PoolClient).release()

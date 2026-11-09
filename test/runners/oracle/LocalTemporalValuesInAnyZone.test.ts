@@ -1,0 +1,58 @@
+// localDate, localTime and localDateTime through every Oracle runner, with the process in UTC and in other zones:
+// what is stored when a Date is sent, what is read from a stored value, and that a value read and sent back stays the
+// same. The zone is set when a process starts, so each runner runs in a process of its own:
+// see localTemporalValuesInAnyZone/probe.ts and ../lib/localTemporalValuesProbe.ts for the contract.
+
+import { fileURLToPath } from 'node:url'
+import { isRealDbEnabled } from '../../lib/backends.js'
+import { acquireRunnerTestDatabase } from '../../db/oracle/runners.js'
+import { describeLocalTemporalValuesInAnyZone, describeRunnerRequirements } from '../lib/localTemporalValues.js'
+import { oracleTemporalDialect } from '../lib/localTemporalValuesProbe.js'
+
+const probe = fileURLToPath(new URL('./localTemporalValuesInAnyZone/probe.ts', import.meta.url))
+const enabled = isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb')
+
+async function acquire() {
+    const db = await acquireRunnerTestDatabase()
+    return { info: { user: db.user, password: db.password, connectString: db.connectString }, release: () => db.release() }
+}
+
+const runners = ['OracleDBQueryRunner', 'OracleDBPoolQueryRunner', 'OracleDBPoolPromiseQueryRunner']
+
+// oracledb builds the Date of a DATE or a TIMESTAMP with the zone of the process, and the runner takes its local getters
+// back: a stored time the zone skips when it changes to summer time doesn't exist there, and oracledb has already moved
+// it an hour (the JSON of aggregateAsArray is built by the server and keeps it)
+const springForwardGapOf: Record<string, string> = { 'Europe/Madrid': 'the Madrid spring-forward gap', 'America/New_York': 'the New York spring-forward gap' }
+function oracleLimitOf(zone: string, caseName: string): string | undefined {
+    const gap = springForwardGapOf[zone]
+    if (gap && /^(read|round trip equals|round trip update set) \| (dt|dtx) /.test(caseName) && caseName.includes('(' + gap + ')')) {
+        return 'oracledb moves a stored time that does not exist in the zone of the process'
+    }
+    return undefined
+}
+
+describeLocalTemporalValuesInAnyZone({
+    database: 'Oracle',
+    dialect: oracleTemporalDialect,
+    probe,
+    acquire,
+    // ORA_SDTZ = UTC is what the runners require when the process isn't in UTC (see the requirements below)
+    runners: runners.map(runner => ({ runner, enabled, needsConnection: true, envFor: (zone: string) => zone === 'UTC' ? {} : { ORA_SDTZ: 'UTC' }, limitOf: oracleLimitOf })),
+})
+
+// What the runners of oracledb must validate when created: the session in UTC (process.env.ORA_SDTZ = UTC), unless the
+// process is in UTC
+describeRunnerRequirements({
+    title: 'Oracle: the runners of oracledb require ORA_SDTZ = UTC unless the process is in UTC',
+    probe,
+    acquire,
+    enabled,
+    requirements: runners.flatMap(runner => [
+        { title: `${runner} without ORA_SDTZ is rejected in Europe/Madrid`, runner, zone: 'Europe/Madrid', expected: 'rejected' as const },
+        { title: `${runner} without ORA_SDTZ is rejected in America/New_York`, runner, zone: 'America/New_York', expected: 'rejected' as const },
+        { title: `${runner} with ORA_SDTZ = Europe/Madrid is rejected in Europe/Madrid`, runner, zone: 'Europe/Madrid', env: { ORA_SDTZ: 'Europe/Madrid' }, expected: 'rejected' as const },
+        { title: `${runner} with ORA_SDTZ = UTC is accepted in Europe/Madrid`, runner, zone: 'Europe/Madrid', env: { ORA_SDTZ: 'UTC' }, expected: 'created' as const },
+        { title: `${runner} without ORA_SDTZ is accepted in UTC`, runner, zone: 'UTC', expected: 'created' as const },
+        { title: `${runner} without ORA_SDTZ is accepted in Etc/UTC`, runner, zone: 'Etc/UTC', expected: 'created' as const },
+    ]),
+})

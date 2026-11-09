@@ -31,6 +31,7 @@ import type { DataToProject, GetDataToProjectSource } from '../complexProjection
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
 import { __conversionType, __typeCategoryOf } from '../utils/typeCategory.js'
+import { parseUtcDateTimeText } from '../utils/utcDateTimeText.js'
 
 export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements IConnection<DB> {
     [connection]!: DB
@@ -1312,80 +1313,45 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 }
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid uuid value received from the db: ' + value)
             case 'localDate': {
-                // A localDate has no time-of-day. If it were pinned at UTC midnight the
-                // CALENDAR DATE would shift when the value is read in another timezone
-                // (00:00Z is the previous day everywhere west of UTC), so the decoded Date is
-                // offset to 10:00 UTC (`setUTCMinutes(600)`): a buffer that preserves the
-                // intended day across every inhabited offset (UTC-10..+13; only the
-                // effectively-uninhabited +14/-11/-12 would still roll over). A future move to
+                // Every value in the database is in UTC: the day of a Date received is the one of its UTC getters, and
+                // a text is read as UTC (or as its instant, when it has an offset). Some engines write a date with a
+                // time (Oracle's DATE inside a JSON aggregate is "2024-01-15T00:00:00"): only its day is kept.
+                // A localDate has no time-of-day. If it were pinned at UTC midnight the CALENDAR DATE would shift when
+                // the value is read in another timezone (00:00Z is the previous day everywhere west of UTC), so the
+                // decoded Date is at 10:00 UTC: a buffer that preserves the intended day across every inhabited offset
+                // (UTC-10..+13; only the effectively-uninhabited +14/-11/-12 would still roll over). A future move to
                 // Temporal's plain-date type would remove the need for this offset.
-                let result: Date
-                if (value instanceof Date) {
-                    result = new Date(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()))
-                    result.setUTCMinutes(600) // date-stability offset (see note atop this case)
-                } else if (typeof value === 'string') {
-                    // A localDate is date-only, but some engines serialise it WITH a time
-                    // component: Oracle's `DATE` inside a JSON aggregate comes back as
-                    // "2024-01-15T00:00:00", not the bare "2024-01-15" the other dialects emit.
-                    // Appending ' 00:00' to the full datetime would produce an Invalid Date, so
-                    // keep only the date part. A bare date has no separator and is used as-is —
-                    // no substring is allocated on that common path; only a datetime pays for one.
-                    let sep = value.indexOf('T')
-                    if (sep < 0) sep = value.indexOf(' ')
-                    const dateOnly = sep < 0 ? value : value.slice(0, sep)
-                    result = new Date(dateOnly + ' 00:00') // If time is omited, UTC timezone will be used instead the local one
-                    result = new Date(Date.UTC(result.getFullYear(), result.getMonth(), result.getDate()))
-                    result.setUTCMinutes(600) // date-stability offset (see note atop this case)
-                } else {
+                const received = this.__receivedDate(value)
+                if (!received) {
                     throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid localDate value received from the db: ' + value)
                 }
-                if (isNaN(result.getTime())) {
-                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid localDate value received from the db: ' + value)
-                }
-                (result as any).___type___ = 'localDate'
+                const result: any = new Date(0)
+                result.setUTCFullYear(received.getUTCFullYear(), received.getUTCMonth(), received.getUTCDate())
+                result.setUTCHours(10) // date-stability offset (see the note above)
+                result.___type___ = 'localDate'
                 return result
             }
             case 'localTime': {
-                let result: Date
-                if (value instanceof Date) {
-                    result = value
-                } else if (typeof value === 'string') {
-                    // A localTime is time-only, but some engines serialise it WITH a date
-                    // component: Oracle's `TIME`/`TIMESTAMP` inside a JSON aggregate comes
-                    // back as "1970-01-01T09:15:00" (or space-separated), not the bare
-                    // "09:15:00" the other dialects emit. Prepending '1970-01-01 ' to the
-                    // full datetime would produce an Invalid Date, so keep only the time
-                    // part — the tail after the date/time separator. `T` or a space are
-                    // accepted as the separator, the same as the localDate case above; a
-                    // bare time has neither and is used as-is (no substring on that common
-                    // path, only a datetime pays for one).
-                    let sep = value.indexOf('T')
-                    if (sep < 0) sep = value.indexOf(' ')
-                    const timeOnly = sep < 0 ? value : value.slice(sep + 1)
-                    result = new Date('1970-01-01 ' + timeOnly)
-                } else {
+                // The time of a Date received is the one of its UTC getters, and a text is read as UTC (or as its
+                // instant, when it has an offset). Some engines write a time with a date (Oracle's TIMESTAMP inside a
+                // JSON aggregate is "1970-01-01T09:15:00"): only its time is kept, on 1970-01-01.
+                const received = this.__receivedDate(value)
+                if (!received) {
                     throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid localTime value received from the db: ' + value)
                 }
-                if (isNaN(result.getTime())) {
-                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid localTime value received from the db: ' + value)
-                }
-                (result as any).___type___ = 'localTime'
+                const result: any = new Date(Date.UTC(1970, 0, 1, received.getUTCHours(), received.getUTCMinutes(), received.getUTCSeconds(), received.getUTCMilliseconds()))
+                result.___type___ = 'localTime'
                 return result
             }
             case 'localDateTime': {
-                let result: Date
-                if (value instanceof Date) {
-                    result = value
-                } else if (typeof value === 'string') {
-                    result = new Date(value)
-                } else {
+                // A Date received is kept: the query runner gives the UTC digits of a value without zone in its UTC
+                // getters, and the instant of a zoned one. A text is read as UTC, or as its instant when it has an offset.
+                const received = this.__receivedDate(value)
+                if (!received) {
                     throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid localDateTime value received from the db: ' + value)
                 }
-                if (isNaN(result.getTime())) {
-                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid localDateTime value received from the db: ' + value)
-                }
-                (result as any).___type___ = 'localDateTime'
-                return result
+                (received as any).___type___ = 'localDateTime'
+                return received
             }
             case 'aggregatedArray': {
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'This would not happened, something went wrong handling aggregate arrays coming from the database')
@@ -1393,6 +1359,19 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             default:
                 return value
         }
+    }
+    /**
+     * The Date of a localDate, a localTime or a localDateTime received from the database: a valid Date as it is, a text
+     * read as UTC, or as its instant when it has an offset (see parseUtcDateTimeText); undefined for anything else
+     */
+    private __receivedDate(value: unknown): Date | undefined {
+        if (value instanceof Date) {
+            return isNaN(value.getTime()) ? undefined : value
+        }
+        if (typeof value === 'string') {
+            return parseUtcDateTimeText(value)
+        }
+        return undefined
     }
     protected transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
         const conversionType = __conversionType(type, typeCategory)

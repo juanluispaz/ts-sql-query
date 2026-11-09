@@ -1,6 +1,7 @@
 // The Bun SQL query runners check the Bun.SQL instance they are given: its
-// adapter must be the one the runner speaks, and MySQL needs foundRows. Bun
-// only; nothing connects (Bun.SQL connects on the first query).
+// adapter must be the one the runner speaks, MySQL needs foundRows, and no
+// transform may rename the columns of the results. Bun only; nothing connects
+// (Bun.SQL connects on the first query).
 
 import { describe, expect, test } from '../../lib/testRunner.js'
 import { reasonOf } from '../lib/runnerContract.js'
@@ -40,5 +41,40 @@ describe.skipIf(!isBun)('Bun SQL query runners: configuration', () => {
         expect(new BunSqlMySqlQueryRunner(withFoundRows, 'mariaDB').database).toBe('mariaDB')
         await withoutFoundRows.close()
         await withFoundRows.close()
+    })
+
+    test('a-transform-that-renames-the-columns-of-the-results-is-refused', async () => {
+        const { SQL } = await import('bun')
+        const { BunSqlMySqlQueryRunner } = await import('../../../src/queryRunners/BunSqlMySqlQueryRunner.js')
+        const { BunSqlPostgresQueryRunner } = await import('../../../src/queryRunners/BunSqlPostgresQueryRunner.js')
+        const { BunSqlSqliteQueryRunner } = await import('../../../src/queryRunners/BunSqlSqliteQueryRunner.js')
+        const created: InstanceType<typeof SQL>[] = []
+        const sqlite = (transform?: unknown) => {
+            const sql = new SQL({ adapter: 'sqlite', filename: ':memory:', ...(transform === undefined ? {} : { transform }) } as any)
+            created.push(sql)
+            return sql
+        }
+        const postgres = (transform?: unknown) => {
+            const sql = new SQL({ adapter: 'postgres', url: 'postgres://user:pwd@127.0.0.1:1/db', ...(transform === undefined ? {} : { transform }) } as any)
+            created.push(sql)
+            return sql
+        }
+        const mysql = (transform?: unknown) => {
+            const sql = new SQL({ adapter: 'mysql', hostname: '127.0.0.1', port: 1, username: 'u', password: 'p', database: 'd', foundRows: true, ...(transform === undefined ? {} : { transform }) } as any)
+            created.push(sql)
+            return sql
+        }
+        for (const transform of [SQL.camel, SQL.toCamel, { column: { from: (name: string) => name.toUpperCase() } }]) {
+            expect(reasonOf(errorOf(() => new BunSqlSqliteQueryRunner(sqlite(transform))))).toBe('INVALID_CONFIGURATION')
+            expect(reasonOf(errorOf(() => new BunSqlPostgresQueryRunner(postgres(transform))))).toBe('INVALID_CONFIGURATION')
+            expect(reasonOf(errorOf(() => new BunSqlMySqlQueryRunner(mysql(transform))))).toBe('INVALID_CONFIGURATION')
+        }
+        // The names sent by the helpers of sql`` and the value of undefined don't change what the library reads
+        for (const transform of [undefined, SQL.fromCamel, { undefined: null }]) {
+            expect(new BunSqlSqliteQueryRunner(sqlite(transform)).database).toBe('sqlite')
+            expect(new BunSqlPostgresQueryRunner(postgres(transform)).database).toBe('postgreSql')
+            expect(new BunSqlMySqlQueryRunner(mysql(transform)).database).toBe('mySql')
+        }
+        await Promise.all(created.map(sql => sql.close()))
     })
 })

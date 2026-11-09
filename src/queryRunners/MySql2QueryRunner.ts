@@ -19,10 +19,13 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
     readonly connection: Connection
 
     private config: MySql2QueryRunnerConfig
+    /** The options of every query of the library (see mySql2QueryOptions) */
+    private readonly queryOptions: MySql2QueryOptions
 
     constructor(connection: Connection, databaseOrConfig: 'mariaDB' | 'mySql' | MySql2QueryRunnerConfig = 'mySql') {
         super()
         this.connection = connection
+        this.queryOptions = mySql2QueryOptions(connection)
         this.config = typeof databaseOrConfig === 'string' ? { database: databaseOrConfig } : databaseOrConfig
         this.database = this.config.database || 'mySql'
     }
@@ -50,7 +53,7 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
 
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
         return this.rejectWhenRolledBackByTheDatabase() || new Promise<any[]>((resolve, reject) => {
-            this.connection.query(query, params, (error: QueryError | null, results: RowDataPacket[]) => {
+            this.connection.query({ ...this.queryOptions, sql: query }, params, (error: QueryError | null, results: RowDataPacket[]) => {
                 if (error) {
                     reject(error)
                 } else {
@@ -61,7 +64,7 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
         return this.rejectWhenRolledBackByTheDatabase() || new Promise<number>((resolve, reject) => {
-            this.connection.query(query, params, (error: QueryError | null, results: ResultSetHeader) => {
+            this.connection.query({ ...this.queryOptions, sql: query }, params, (error: QueryError | null, results: ResultSetHeader) => {
                 if (error) {
                     reject(error)
                 } else {
@@ -76,7 +79,7 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
         }
         
         return this.rejectWhenRolledBackByTheDatabase() || new Promise((resolve, reject) => {
-            this.connection.query(query, params, (error: QueryError | null, results: ResultSetHeader) => {
+            this.connection.query({ ...this.queryOptions, sql: query }, params, (error: QueryError | null, results: ResultSetHeader) => {
                 if (error) {
                     reject(error)
                 } else {
@@ -150,4 +153,39 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
     static isSqlError(error: unknown): boolean {
         return error instanceof TsSqlError || isMySql2Error(error)
     }
+}
+
+interface MySql2QueryOptions {
+    readonly dateStrings: true
+    readonly supportBigNumbers: true
+    readonly bigNumberStrings: true
+    readonly rowsAsArray: false
+    readonly typeCast?: (field: { type: string, string(encoding?: string): string | null }, next: () => unknown) => unknown
+}
+
+/**
+ * The options mysql2 is given with every query of the library, over the ones of the connection, so the values are
+ * received as the library reads them whatever the connection was configured with:
+ * - `dateStrings`: a DATE, a DATETIME and a TIMESTAMP as their text, which the library reads as UTC (mysql2 builds a
+ *   Date from the zone of the process or of `timezone`), with the microseconds;
+ * - `supportBigNumbers` and `bigNumberStrings`: a BIGINT and a DECIMAL as their exact text;
+ * - `rowsAsArray: false`: the rows as objects, the library reads each column by its name;
+ * - a `typeCast` only when the connection has one of its own or `decimalNumbers` (which mysql2 reads only from the
+ *   connection): a typeCast given with the query replaces the one of the connection, and this one reads a DECIMAL as its
+ *   text and every other value as mysql2 does with the options above (`next`).
+ */
+function mySql2QueryOptions(connection: Connection): MySql2QueryOptions {
+    const config = (connection as { config?: { typeCast?: unknown, decimalNumbers?: unknown } }).config
+    const options = { dateStrings: true, supportBigNumbers: true, bigNumberStrings: true, rowsAsArray: false } as const
+    if (typeof config?.typeCast === 'function' || config?.decimalNumbers === true) {
+        return { ...options, typeCast: mySql2TypeCast }
+    }
+    return options
+}
+
+function mySql2TypeCast(field: { type: string, string(encoding?: string): string | null }, next: () => unknown): unknown {
+    if (field.type === 'NEWDECIMAL' || field.type === 'DECIMAL') {
+        return field.string('ascii')
+    }
+    return next()
 }

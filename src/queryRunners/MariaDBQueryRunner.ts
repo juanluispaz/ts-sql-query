@@ -1,11 +1,37 @@
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, RollbackOpts } from './QueryRunner.js'
-import type { Connection } from 'mariadb'
+import type { Connection, QueryOptions } from 'mariadb'
 import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getMariaDbErrorReason, isMariaDbError } from './connectorErrorMappers/MariaDBErrorMapper.js'
 import { isTransactionOpenAfterMySqlError } from '../utils/mySqlTransactionRollback.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
+
+/**
+ * The options the mariadb connector is given with every query of the library, which replace the ones of the
+ * connection, so the values are received as the library reads them whatever the connection was configured with:
+ * - `dateStrings`: a DATE, a DATETIME and a TIMESTAMP as their text, which the library reads as UTC (the connector
+ *   builds a Date from the zone of the process or of `timezone`), with the microseconds;
+ * - `supportBigNumbers: false`, `bigIntAsNumber: false`, `decimalAsNumber: false` and `insertIdAsNumber: false`: a
+ *   BIGINT and the id of an inserted row as a bigint, and a DECIMAL as its text, all exact (with supportBigNumbers the
+ *   connector gives a BIGINT and the id as text, exact too, but a bigint is what the library always received; without
+ *   it bigNumberStrings has no effect);
+ * - `rowsAsArray: false`, `metaAsArray: false`, `nestTables: false`: the rows as objects with a key per column,
+ *   the library reads each column by its name;
+ * - `typeCast: undefined`: no function of the user changes the values (the connector skips a typeCast that is not
+ *   set, and its typing doesn't admit undefined).
+ */
+const mariaDBQueryOptions = {
+    dateStrings: true,
+    supportBigNumbers: false,
+    bigIntAsNumber: false,
+    decimalAsNumber: false,
+    insertIdAsNumber: false,
+    rowsAsArray: false,
+    metaAsArray: false,
+    nestTables: false,
+    typeCast: undefined,
+} as unknown as Omit<QueryOptions, 'sql'>
 
 type UpsertResult = {
     affectedRows: number
@@ -54,10 +80,10 @@ export class MariaDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     }
 
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
-        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query({ sql: query, bigNumberStrings: true }, params).catch((error) => this.statementOfTheTransactionFailed(error))
+        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query({ ...mariaDBQueryOptions, sql: query }, params).catch((error) => this.statementOfTheTransactionFailed(error))
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
-        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query({ sql: query, bigNumberStrings: true }, params).then((result: UpsertResult) => result.affectedRows, (error) => this.statementOfTheTransactionFailed(error))
+        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query({ ...mariaDBQueryOptions, sql: query }, params).then((result: UpsertResult) => result.affectedRows, (error) => this.statementOfTheTransactionFailed(error))
     }
     override executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         if (this.containsInsertReturningClause(query, params)) {
@@ -66,7 +92,7 @@ export class MariaDBQueryRunner extends DelegatedSetTransactionQueryRunner {
 
         // A suppressed `insert ignore` inserts no row and reports insert id 0: fall back to null (the same absence
         // the RETURNING path reports) when nothing was inserted.
-        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query({ sql: query, bigNumberStrings: true }, params).then((result: UpsertResult) => result.affectedRows === 0 ? null : result.insertId, (error) => this.statementOfTheTransactionFailed(error))
+        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query({ ...mariaDBQueryOptions, sql: query }, params).then((result: UpsertResult) => result.affectedRows === 0 ? null : result.insertId, (error) => this.statementOfTheTransactionFailed(error))
     }
     protected override isTransactionOpenInTheDatabase(error: unknown): boolean | undefined {
         return isTransactionOpenAfterMySqlError(this.getErrorReason(error))

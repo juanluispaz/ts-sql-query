@@ -1,6 +1,8 @@
 // OracleDBQueryRunner reads the expected type of each result column on the params: a column expected as a
-// customDecimal is fetched as text, with every digit, where oracledb would give a JavaScript number. The other columns
-// keep what oracledb gives them, also with a global oracledb.fetchTypeHandler of the application.
+// customDecimal or a bigint is fetched as text, with every digit, where oracledb would give a JavaScript number. The
+// fetch type handler of the runner answers for every column, so the global settings of oracledb of the application
+// (oracledb.fetchTypeHandler, fetchAsString, fetchAsBuffer, maxRows) don't change what the library receives; a DATE or
+// a TIMESTAMP is the Date whose UTC getters are its digits, a CLOB is text.
 
 import oracledb from 'oracledb'
 import { afterAll, beforeAll, describe, expect, test } from '../../lib/testRunner.js'
@@ -50,14 +52,38 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
         expect(await runner!.executeSelectOneColumnOneRow('select cast(12345678901234567890.1234567891 as number(38, 10)) from dual', params)).toBe('12345678901234567890.1234567891')
     })
 
-    test('the-global-fetch-type-handler-still-decides-for-the-other-columns', async () => {
-        const previous = oracledb.fetchTypeHandler
+    test('a-bigint-column-is-fetched-as-text', async () => {
+        const params = paramsExpecting([{ name: 'big', path: 'big', type: 'bigint', typeCategory: 'bigint' }, double('plain')])
+        const row = await runner!.executeSelectOneRow('select cast(123456789012345678901 as number(21)) as "big", 1.5 as "plain" from dual', params)
+        expect(row).toEqual({ big: '123456789012345678901', plain: 1.5 })
+    })
+
+    test('the-global-settings-of-oracledb-are-not-applied', async () => {
+        const previousHandler = oracledb.fetchTypeHandler
+        const previousAsString = oracledb.fetchAsString
+        const previousAsBuffer = oracledb.fetchAsBuffer
+        const previousMaxRows = oracledb.maxRows
         oracledb.fetchTypeHandler = (metadata) => metadata.name === 'plain' || metadata.name === 'amount' ? { converter: (value: unknown) => 'global ' + String(value) } : undefined
+        oracledb.fetchAsString = [oracledb.NUMBER, oracledb.DATE]
+        oracledb.fetchAsBuffer = [oracledb.BLOB]
+        oracledb.maxRows = 1
         try {
             const row = await runner!.executeSelectOneRow(sql, paramsExpecting([decimal('amount'), double('price'), double('plain')]))
-            expect(row).toEqual({ amount: '12345678901234567890.1234567891', price: -0.25, plain: 'global 1.5' })
+            expect(row).toEqual({ amount: '12345678901234567890.1234567891', price: -0.25, plain: 1.5 })
+            const dates = await runner!.executeSelectOneRow(`select date '2024-01-14' as "d", timestamp '2024-01-14 09:15:30.123' as "ts" from dual`, [])
+            expect(dates).toEqual({ d: new Date(Date.UTC(2024, 0, 14)), ts: new Date(Date.UTC(2024, 0, 14, 9, 15, 30, 123)) })
+            const rows = await runner!.executeSelectManyRows('select level as "n" from dual connect by level <= 3', [])
+            expect(rows).toEqual([{ n: 1 }, { n: 2 }, { n: 3 }])
         } finally {
-            oracledb.fetchTypeHandler = previous
+            oracledb.fetchTypeHandler = previousHandler
+            oracledb.fetchAsString = previousAsString
+            oracledb.fetchAsBuffer = previousAsBuffer
+            oracledb.maxRows = previousMaxRows
         }
+    })
+
+    test('a-clob-is-fetched-as-text', async () => {
+        const row = await runner!.executeSelectOneRow(`select to_clob('some text') as "c" from dual`, [])
+        expect(row).toEqual({ c: 'some text' })
     })
 })

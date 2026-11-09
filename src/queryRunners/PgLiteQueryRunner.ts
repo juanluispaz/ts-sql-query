@@ -1,5 +1,5 @@
 import type { BeginTransactionOpts, DatabaseType } from './QueryRunner.js'
-import type { PGlite, Transaction } from '@electric-sql/pglite'
+import type { PGlite, QueryOptions, Transaction } from '@electric-sql/pglite'
 import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
 import { PostgresTransactionOutcome } from '../utils/postgresTransactionOutcome.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
@@ -8,6 +8,7 @@ import type { TypeCategory } from '../TypeAdapter.js'
 import { getParamForceTypeCastAt, getParamTypeAt, getParamTypeCategoryAt } from '../utils/queryParamsMetadata.js'
 import { postgreSqlParamType } from '../utils/postgreSqlParamTypes.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
+import { parseUtcDateTimeTextOrKeepIt } from '../utils/utcDateTimeText.js'
 
 export interface PgLiteQueryRunnerConfig {
     allowNestedTransactions?: boolean | undefined
@@ -54,11 +55,12 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
     }
 
     /**
-     * The query options with the types of the params, when one has a type: a parameter of a type name in typesByName is
-     * sent with the type declared there, and one whose type the database must receive (forceTypeCast) with the oid of
-     * its PostgreSQL type, so the SQL needs no cast; the other params go untyped (0).
+     * The query options: the parsers of the values received (see pgLiteParsers), and the types of the params, when one
+     * has a type: a parameter of a type name in typesByName is sent with the type declared there, and one whose type the
+     * database must receive (forceTypeCast) with the oid of its PostgreSQL type, so the SQL needs no cast; the other
+     * params go untyped (0).
      */
-    private queryOptions(params: any[]): { paramTypes: number[] } | undefined {
+    private queryOptions(params: any[]): QueryOptions {
         const typesByName = this.config?.typesByName
         let paramTypes: number[] | undefined = undefined
         for (let i = 0, length = params.length; i < length; i++) {
@@ -74,7 +76,7 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
                 paramTypes[i] = oid
             }
         }
-        return paramTypes ? { paramTypes } : undefined
+        return paramTypes ? { parsers: pgLiteParsers, paramTypes } : pgLiteQueryOptions
     }
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
         return this.rejectWhenRolledBackByTheDatabase() || this.connection.query(query, params, this.queryOptions(params)).then((result) => result.rows, (error) => this.statementOfTheTransactionFailed(error))
@@ -120,3 +122,16 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
     }
 
 }
+
+/**
+ * The parsers PGlite uses for the values of a query of the library, over the ones of the database (PGlite merges them
+ * per type): a `date` (1082) and a `timestamp` (1114) are the Date whose UTC getters are their digits, the values in the
+ * database being in UTC (PGlite reads a timestamp with the zone of the process, and a year below 100 as 19xx), and a
+ * `time` (1083) is its text, whatever parser the database was given for these types.
+ */
+const pgLiteParsers: NonNullable<QueryOptions['parsers']> = {
+    1082: parseUtcDateTimeTextOrKeepIt,
+    1083: (text: string) => text,
+    1114: parseUtcDateTimeTextOrKeepIt,
+}
+const pgLiteQueryOptions: QueryOptions = { parsers: pgLiteParsers }

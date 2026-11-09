@@ -44,6 +44,12 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
             // time values are in UTC (a Transaction gives the configuration of its pool)
             throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'useUTC', value: false }, 'MssqlPoolQueryRunner requires a pool without useUTC: false (true is the default of tedious) when the process does not run in UTC: the date and time values are in UTC')
         }
+        const options = (pool as { config?: { options?: { camelCaseColumns?: unknown, columnNameReplacer?: unknown } } }).config?.options
+        if (options?.camelCaseColumns === true || options?.columnNameReplacer) {
+            // tedious renames the columns of the results, which the library reads by their name
+            const name = options.camelCaseColumns === true ? 'camelCaseColumns' : 'columnNameReplacer'
+            throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name, value: options[name] }, 'MssqlPoolQueryRunner requires a pool without ' + name + ': tedious renames with it the columns of the results, and the library reads each column by its name')
+        }
         // A transaction gives its requests like the pool, and only a pool is asked to begin (see executeBeginTransaction)
         this.pool = pool as ConnectionPool
         this.database = 'sqlServer'
@@ -274,11 +280,11 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     }
 
     protected request(): Request {
-        if (this.transaction) {
-            return this.transaction.request()
-        } else {
-            return this.pool.request()
-        }
+        const request = this.transaction ? this.transaction.request() : this.pool.request()
+        // The rows as objects whatever the pool was configured with (arrayRowMode): the library reads each column by
+        // its name
+        request.arrayRowMode = false
+        return request
     }
 
     protected predefinedTypes: {[type: string]: ISqlTypeFactory | undefined} = {

@@ -54,46 +54,52 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     }
 
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
-        const options: ExecuteOptions = {outFormat: oracleDb.OUT_FORMAT_OBJECT, autoCommit: this.autoCommit()}
-        const fetchTypeHandler = this.fetchTypeHandlerFor(query, params)
-        if (fetchTypeHandler) {
-            options.fetchTypeHandler = fetchTypeHandler
+        const options: ExecuteOptions = {
+            outFormat: oracleDb.OUT_FORMAT_OBJECT,
+            autoCommit: this.autoCommit(),
+            // Every row, whatever oracledb.maxRows says
+            maxRows: 0,
+            fetchTypeHandler: this.fetchTypeHandlerFor(query, params),
         }
         return this.connection.execute(query, this.bindParams(params), options).then((result) => result.rows || [])
     }
     /**
-     * oracledb gives a NUMBER as a JavaScript number, which loses digits and the scale: the columns of the result
-     * expected as a customDecimal are fetched as text, with all their digits. The column is the one with the name
-     * expected, or the only column of a query that returns one value without a name. The handler given for one
-     * execution replaces the global one of oracledb (`oracledb.fetchTypeHandler`), which still decides for the
-     * other columns. Undefined when no column is a customDecimal.
+     * The fetch type handler of an execution of the library, which replaces the global one of oracledb
+     * (`oracledb.fetchTypeHandler`) and, answering for every column, its `fetchAsString` and `fetchAsBuffer` too, so the
+     * values are received as the library reads them whatever oracledb was configured with:
+     * - a column expected as a customDecimal, a stringDecimal, a bigint or a customBigint is fetched as text, with all
+     *   its digits (oracledb gives a NUMBER as a JavaScript number, which loses digits and the scale). The column is the
+     *   one with the name expected, or the only column of a query that returns one value without a name;
+     * - a DATE or a TIMESTAMP is the Date whose UTC getters are its digits, the values in the database being in UTC:
+     *   oracledb builds it with the zone of the process, and the converter takes its local getters back (see
+     *   utcDateOfLocalGetters);
+     * - a CLOB or an NCLOB is fetched as text, and a BLOB as a Buffer, not as a Lob to read;
+     * - every other column as oracledb gives its type.
      */
-    protected fetchTypeHandlerFor(query: string, params: any[]): ((metadata: Metadata<any>, rowsetMetaData: ReadonlyArray<Metadata<any>>) => FetchTypeResponse | undefined) | undefined {
+    protected fetchTypeHandlerFor(query: string, params: any[]): (metadata: Metadata<any>, rowsetMetaData: ReadonlyArray<Metadata<any>>) => FetchTypeResponse {
         const columns = getQueryResultColumns(query, params)
-        if (!columns) {
-            return undefined
-        }
         let unnamed = false
-        const names = new Set<string>()
-        for (const column of columns) {
-            if (!__isDecimalCategory(column.typeCategory)) {
-                continue
-            }
-            if (column.name) {
-                names.add(column.name)
-            } else {
-                unnamed = true
+        let names: Set<string> | undefined
+        if (columns) {
+            for (const column of columns) {
+                if (!__isDecimalCategory(column.typeCategory) && column.typeCategory !== 'bigint' && column.typeCategory !== 'customBigint') {
+                    continue
+                }
+                if (column.name) {
+                    (names ??= new Set<string>()).add(column.name)
+                } else {
+                    unnamed = true
+                }
             }
         }
-        if (!unnamed && names.size === 0) {
-            return undefined
+        if (!unnamed && !names) {
+            return oracleFetchTypeHandler
         }
         return (metadata, rowsetMetaData) => {
-            if (names.has(metadata.name) || (unnamed && rowsetMetaData.length === 1)) {
+            if (names?.has(metadata.name) || (unnamed && rowsetMetaData.length === 1)) {
                 return { type: oracleDb.DB_TYPE_VARCHAR }
             }
-            const globalFetchTypeHandler = (oracleDb as { fetchTypeHandler?: typeof oracleDb.fetchTypeHandler | undefined }).fetchTypeHandler
-            return globalFetchTypeHandler ? globalFetchTypeHandler(metadata, rowsetMetaData) : undefined
+            return oracleFetchTypeHandler(metadata)
         }
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
@@ -129,7 +135,11 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
             const declared = typesByName && typeName !== undefined && Object.hasOwn(typesByName, typeName) ? typesByName[typeName] : undefined
             if (resolveOutBinds && value && typeof value === 'object' && value.dir === oracleDb.BIND_OUT) {
                 // Each RETURNING OUT bind keeps the category of the type of its column (addOutParam)
-                const dbType = declared ?? this.oracleDbType(getParamTypeCategoryAt(params, i))
+                const category = getParamTypeCategoryAt(params, i)
+                // A date or a time is returned as a timestamp with time zone: Oracle converts the value of a date or a
+                // timestamp column with the zone of the session (UTC, see requireOracleSessionInUtc), and oracledb
+                // gives it as its instant, where it builds a date or a timestamp with the zone of the process
+                const dbType = declared ?? (isTemporalCategory(category) ? oracleDb.DB_TYPE_TIMESTAMP_TZ : this.oracleDbType(category))
                 if (dbType === undefined || (dbType === oracleDb.DB_TYPE_NUMBER && declared === undefined)) {
                     // Without a type, oracledb returns an OUT number as a string, with all its digits
                     result[i] = value
@@ -302,5 +312,52 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
 
     static isSqlError(error: unknown): boolean {
         return error instanceof TsSqlError || isOracleDBError(error)
+    }
+}
+
+function isTemporalCategory(category: TypeCategory | undefined): boolean {
+    switch (category) {
+        case 'localDate':
+        case 'customLocalDate':
+        case 'localTime':
+        case 'customLocalTime':
+        case 'localDateTime':
+        case 'customLocalDateTime':
+            return true
+        default:
+            return false
+    }
+}
+
+/**
+ * The Date whose UTC getters are the local getters of the one oracledb built for a DATE or a TIMESTAMP, which has the
+ * digits stored in its local getters (it is built with the zone of the process): the values in the database are in
+ * UTC. Exact, except for a stored time that doesn't exist in the zone of the process (the hour a change to summer time
+ * skips), which oracledb has already moved, and a year below 100, that oracledb builds as 19xx.
+ */
+function utcDateOfLocalGetters(value: unknown): unknown {
+    if (!(value instanceof Date)) {
+        return value
+    }
+    const result = new Date(0)
+    result.setUTCFullYear(value.getFullYear(), value.getMonth(), value.getDate())
+    result.setUTCHours(value.getHours(), value.getMinutes(), value.getSeconds(), value.getMilliseconds())
+    return result
+}
+
+/** The fetch type of every column that is not expected as text (see fetchTypeHandlerFor) */
+function oracleFetchTypeHandler(metadata: Metadata<any>): FetchTypeResponse {
+    const dbType = metadata.dbType
+    switch (dbType) {
+        case oracleDb.DB_TYPE_DATE:
+        case oracleDb.DB_TYPE_TIMESTAMP:
+            return { type: dbType, converter: utcDateOfLocalGetters }
+        case oracleDb.DB_TYPE_CLOB:
+        case oracleDb.DB_TYPE_NCLOB:
+            return { type: oracleDb.STRING }
+        case oracleDb.DB_TYPE_BLOB:
+            return { type: oracleDb.BUFFER }
+        default:
+            return { type: dbType as DbType }
     }
 }

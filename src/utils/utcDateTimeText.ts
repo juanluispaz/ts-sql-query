@@ -18,3 +18,64 @@ export function utcDateText(value: Date, year: number = value.getUTCFullYear()):
 export function utcTimeText(value: Date): string {
     return pad(value.getUTCHours(), 2) + ':' + pad(value.getUTCMinutes(), 2) + ':' + pad(value.getUTCSeconds(), 2) + '.' + pad(value.getUTCMilliseconds(), 3)
 }
+
+// A date, a time or both, with an optional offset and an optional PostgreSQL era: `2024-01-14`, `09:15:30.123`,
+// `2024-01-14 09:15:30.123456`, `2024-01-14T09:15:30.1230000`, `2024-01-14 09:15:30+09`, `...+05:30`, `...+00:14:44`,
+// `...Z`, `0044-03-15 BC`
+const dateTimeTextPattern = /^(?:([+-]?\d{4,6})-(\d\d)-(\d\d))?(?:(?:^|[T ])(\d\d):(\d\d)(?::(\d\d)(?:[.,](\d+))?)?)?(?:\s*(Z|[+-]\d\d(?::?\d\d(?::?\d\d)?)?))?( BC)?$/i
+
+/**
+ * The Date of a text of a date, a time or both: its digits are the UTC getters of the Date when the text has no offset,
+ * and with an offset (`Z`, `+09`, `+05:30`, `-03:30:45`) it is the instant the text gives. A date without a time is at
+ * 00:00, a time without a date is on 1970-01-01. The fraction of a second is truncated to milliseconds. Every year is
+ * read as it is written (`0099` is the year 99), and `BC` (PostgreSQL) is a year before 1 (`0044 BC` is the year -43).
+ * Undefined when the text is not one of these forms or its digits are out of range.
+ */
+export function parseUtcDateTimeText(text: string): Date | undefined {
+    const match = dateTimeTextPattern.exec(text.trim())
+    if (!match) {
+        return undefined
+    }
+    const [, yearText, monthText, dayText, hoursText, minutesText, secondsText, fractionText, offsetText, eraText] = match
+    if (yearText === undefined && hoursText === undefined) {
+        return undefined
+    }
+    let year = 1970
+    let month = 1
+    let day = 1
+    if (yearText !== undefined) {
+        year = Number(yearText)
+        month = Number(monthText)
+        day = Number(dayText)
+        if (eraText) {
+            // The year 1 BC is the year 0
+            year = 1 - year
+        }
+    }
+    const hours = hoursText === undefined ? 0 : Number(hoursText)
+    const minutes = minutesText === undefined ? 0 : Number(minutesText)
+    const seconds = secondsText === undefined ? 0 : Number(secondsText)
+    const milliseconds = fractionText === undefined ? 0 : Number((fractionText + '00').slice(0, 3))
+    if (month < 1 || month > 12 || day < 1 || day > 31 || hours > 24 || minutes > 59 || seconds > 60) {
+        return undefined
+    }
+    const result = new Date(0)
+    // setUTCFullYear, not Date.UTC, that reads the years 0 to 99 as 1900 to 1999
+    result.setUTCFullYear(year, month - 1, day)
+    result.setUTCHours(hours, minutes, seconds, milliseconds)
+    if (offsetText !== undefined && offsetText.toUpperCase() !== 'Z') {
+        const digits = offsetText.slice(1).replace(/:/g, '')
+        const offset = (Number(digits.slice(0, 2)) * 3600 + Number(digits.slice(2, 4) || '0') * 60 + Number(digits.slice(4, 6) || '0')) * 1000
+        result.setTime(result.getTime() - (offsetText[0] === '-' ? -offset : offset))
+    }
+    return isNaN(result.getTime()) ? undefined : result
+}
+
+/**
+ * The parser of a driver for the text of a date or a timestamp without zone (PostgreSQL's `date` and `timestamp`): the
+ * Date whose UTC getters are its digits, where the parsers of the drivers build it with the local ones, from the zone
+ * of the process. A text in another form (`infinity`) is given as it is.
+ */
+export function parseUtcDateTimeTextOrKeepIt(text: string): Date | string {
+    return parseUtcDateTimeText(text) ?? text
+}

@@ -502,7 +502,7 @@ cell_mode() {
 # (MAIN_PATHS + the resolved DOCKER_* / WASM_* / NATIVE_* selections), so the
 # result tracks exactly which cells the run will hit on a real container.
 real_docker_rep_cells() {
-    local cell verdict ann rest db version r2 connector seen=" "
+    local cell verdict ann rest db version r2 connector seen=" " bunOnly=" "
     while IFS= read -r cell; do
         [ -n "$cell" ] || continue
         cell="${cell%/}"
@@ -517,14 +517,34 @@ real_docker_rep_cells() {
         # `bun:sql`, and under the tsx/node warmup path the import fails. They
         # share their cell's container with a node-safe sibling (pg / mariadb /
         # mysql2 / …), so skipping them as reps loses no coverage — the
-        # container is still reached through that sibling.
-        case "$connector" in bun_*) continue ;; esac
+        # container is still reached through that sibling. A selection with only
+        # `bun_*` cells of an (engine, version) gets that sibling as its rep below,
+        # even though it isn't selected: it resolves to the same image.
         rest="${cell#test/db/}"; db="${rest%%/*}"
         r2="${rest#*/}"; version="${r2%%/*}"
+        case "$connector" in
+            bun_*)
+                case "$bunOnly" in *" $db/$version "*) ;; *) bunOnly="$bunOnly$db/$version " ;; esac
+                continue ;;
+        esac
         case "$seen" in *" $db/$version "*) continue ;; esac
         seen="$seen$db/$version "
         printf '%s\n' "$rest"
     done < <(list_cells_from_main_paths 2>/dev/null)
+    local pair sibling name
+    for pair in $bunOnly; do
+        case "$seen" in *" $pair "*) continue ;; esac
+        for sibling in "test/db/$pair"/*/; do
+            sibling="${sibling%/}"
+            name="${sibling##*/}"
+            case "$name" in bun_*) continue ;; esac
+            case " ${WASM_CONNECTOR_NAMES[*]} ${NATIVE_CONNECTOR_NAMES[*]} " in *" $name "*) continue ;; esac
+            [ -f "$sibling/setup.ts" ] || continue
+            seen="$seen$pair "
+            printf '%s\n' "${sibling#test/db/}"
+            break
+        done
+    done
 }
 
 # Guardrail for `--docker-version closest`. The resolved real docker selection

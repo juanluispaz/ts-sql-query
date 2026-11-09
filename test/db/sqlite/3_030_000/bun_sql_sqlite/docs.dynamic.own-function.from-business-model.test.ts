@@ -41,7 +41,7 @@ describe(ctx.label, () => {
                 .executeSelectMany()
         }
 
-        ctx.mockNext([{ id: 4, name: 'Legacy app', archivedAt: new Date('2024-01-02T03:04:05Z') }])
+        ctx.mockNext([{ id: 4, name: 'Legacy app', archivedAt: new Date('2024-02-01T00:00:00.000Z') }])
 
         const result = await filterProjects(ctx.conn, {
             name: { containsInsensitive: 'LEGACY' },
@@ -57,8 +57,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, ProjectFilterRow[]>>()
-        // archived_at of the seed is the time of the insert.
-        expect(result.map((row) => [row.id, row.name, row.archivedAt instanceof Date])).toEqual([[4, 'Legacy app', true]])
+        expect(result).toEqual([{ id: 4, name: 'Legacy app', archivedAt: new Date('2024-02-01T00:00:00.000Z') }])
     })
 
     test('docs:from-business-model/pick-columns', async () => {

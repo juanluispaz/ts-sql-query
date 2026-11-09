@@ -483,13 +483,13 @@ describe(ctx.label, () => {
         // kind on the DELETE side (project 4 carries archived_at; it has no child rows).
         // Read BEFORE the delete; SELECT == DELETE RETURNING.
         await ctx.withRollback(async () => {
-            ctx.mockNext({ archivedAt: new Date(Date.UTC(2024, 5, 15, 8, 30, 0)) })
+            ctx.mockNext({ archivedAt: new Date('2024-02-01T00:00:00.000Z') })
             const before = await ctx.conn.selectFrom(tProject)
                 .where(tProject.id.equals(4))
                 .select({ archivedAt: tProject.archivedAt })
                 .executeSelectOne()
 
-            ctx.mockNext({ archivedAt: new Date(Date.UTC(2024, 5, 15, 8, 30, 0)) })
+            ctx.mockNext({ archivedAt: new Date('2024-02-01T00:00:00.000Z') })
             const ret = await ctx.conn.deleteFrom(tProject)
                 .where(tProject.id.equals(4))
                 .returning({ archivedAt: tProject.archivedAt })
@@ -501,7 +501,7 @@ describe(ctx.label, () => {
               ]
             `)
             assertType<Exact<typeof ret, { archivedAt?: Date }>>()
-            expect(ret.archivedAt).toBeInstanceOf(Date)
+            expect(ret.archivedAt).toEqual(new Date('2024-02-01T00:00:00.000Z'))
             expect(ret.archivedAt).toEqual(before.archivedAt)
         })
     })

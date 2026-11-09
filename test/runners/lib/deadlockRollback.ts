@@ -4,6 +4,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../lib/testRunner.js'
 import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
 import { reasonOf, rejectionOf } from './runnerContract.js'
+import { waitForTheEngine } from './errorScenarios.js'
 
 export interface DeadlockRunners {
     readonly runner: QueryRunner
@@ -11,8 +12,6 @@ export interface DeadlockRunners {
     other(sql: string): Promise<unknown>
     close(): Promise<void>
 }
-
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 export function describeDeadlockRollback(label: string, realEnabled: boolean, create: () => Promise<DeadlockRunners>): void {
     describe.skipIf(!realEnabled)(label + ': transaction rolled back by a deadlock', () => {
@@ -41,11 +40,15 @@ export function describeDeadlockRollback(label: string, realEnabled: boolean, cr
         async function deadlockTheRunner(): Promise<unknown> {
             const { runner, other } = u()
             await runner.executeUpdate('update rt_deadlock set v = 1 where id = 1')
+            const runnerConnection = Number(await runner.executeSelectOneColumnOneRow('select connection_id()'))
             await other('start transaction')
             await other('insert into rt_deadlock values (100, 0), (101, 0), (102, 0), (103, 0), (104, 0)')
             await other('update rt_deadlock set v = 1 where id = 2')
             const waiting = rejectionOf(runner.executeUpdate('update rt_deadlock set v = 2 where id = 2'))
-            await delay(300)
+            // The deadlock closes only once the runner's update waits for the lock of row 2. InnoDB refreshes what
+            // innodb_trx shows only when nobody has read it for 100 ms, so it is asked every 150 ms
+            await waitForTheEngine('the update of the runner waiting for a lock', async () => Number((await other(
+                `select count(*) n from information_schema.innodb_trx where trx_mysql_thread_id = ${runnerConnection} and trx_state = 'LOCK WAIT'`) as any[])[0].n) === 1, 150)
             await other('update rt_deadlock set v = 2 where id = 1')
             const failure = await waiting
             await other('rollback')

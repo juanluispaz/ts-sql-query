@@ -5061,11 +5061,11 @@ describe(ctx.label, () => {
     })
 
     test('localDateTime-less-than-const', async () => {
-        // created_at defaults to a seed-time CURRENT_TIMESTAMP, so a far-future
-        // bound keeps every issue. The point under test is the `< $1` emission
-        // on a plain localDateTime const operand.
-        const dt = new Date(Date.UTC(2100, 0, 1, 0, 0, 0))
-        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        // created_at: issue 1 -> 2024-02-26 09:00, 2 -> 2024-02-27 10:30,
+        // 3 -> 2024-02-28 08:45, 4 -> 2024-02-29 14:00. The bound is issue 3's
+        // created_at, so the strict `<` keeps issues 1 and 2.
+        const dt = new Date(Date.UTC(2024, 1, 28, 8, 45, 0))
+        const expected = [{ id: 1 }, { id: 2 }]
         ctx.mockNext(expected)
         const rows = await ctx.conn.selectFrom(tIssue)
             .where(tIssue.createdAt.lessThan(dt))
@@ -5075,7 +5075,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where created_at < :0 order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2100-01-01T00:00:00.000Z,
+            2024-02-28T08:45:00.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
@@ -5083,10 +5083,11 @@ describe(ctx.label, () => {
     })
 
     test('localDateTime-greater-than-const', async () => {
-        // Far-past bound: `.greaterThan(2000-01-01)` keeps every issue
-        // (created_at defaults to a seed-time CURRENT_TIMESTAMP after 2000).
-        const dt = new Date(Date.UTC(2000, 0, 1, 0, 0, 0))
-        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        // created_at: issue 1 -> 2024-02-26 09:00, 2 -> 2024-02-27 10:30,
+        // 3 -> 2024-02-28 08:45, 4 -> 2024-02-29 14:00. The bound is issue 2's
+        // created_at, so the strict `>` keeps issues 3 and 4.
+        const dt = new Date(Date.UTC(2024, 1, 27, 10, 30, 0))
+        const expected = [{ id: 3 }, { id: 4 }]
         ctx.mockNext(expected)
         const rows = await ctx.conn.selectFrom(tIssue)
             .where(tIssue.createdAt.greaterThan(dt))
@@ -5096,7 +5097,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where created_at > :0 order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2000-01-01T00:00:00.000Z,
+            2024-02-27T10:30:00.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
@@ -5127,10 +5128,9 @@ describe(ctx.label, () => {
 
     test('localDateTime-less-than-value-source-operand', async () => {
         // Ordered comparison against another plain localDateTime COLUMN operand.
-        // created_at and updated_at are both filled by the same statement-stable
-        // CURRENT_TIMESTAMP default in the seed INSERT (equal per row), so
-        // `created_at < updated_at` matches no issue.
-        const expected: Array<{ id: number }> = []
+        // Issues 1, 2 and 4 were updated after they were created; issue 3 never
+        // was (its updated_at is its created_at), so the strict `<` leaves it out.
+        const expected = [{ id: 1 }, { id: 2 }, { id: 4 }]
         ctx.mockNext(expected)
         const rows = await ctx.conn.selectFrom(tIssue)
             .where(tIssue.createdAt.lessThan(tIssue.updatedAt))
@@ -5340,10 +5340,10 @@ describe(ctx.label, () => {
     })
 
     test('localDateTime-not-in-n', async () => {
-        // created_at defaults to a seed-time CURRENT_TIMESTAMP, so a fixed past
-        // instant is never one of them: `.notInN(2000-01-01)` matches all four.
-        const dt = new Date(Date.UTC(2000, 0, 1, 0, 0, 0))
-        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        // created_at of issue 3 is 2024-02-28 08:45; `.notInN(it)` drops issue 3
+        // and keeps the other three.
+        const dt = new Date(Date.UTC(2024, 1, 28, 8, 45, 0))
+        const expected = [{ id: 1 }, { id: 2 }, { id: 4 }]
         ctx.mockNext(expected)
         const rows = await ctx.conn.selectFrom(tIssue)
             .where(tIssue.createdAt.notInN(dt))
@@ -5353,7 +5353,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where created_at not in (:0) order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2000-01-01T00:00:00.000Z,
+            2024-02-28T08:45:00.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()

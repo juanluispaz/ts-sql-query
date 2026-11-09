@@ -690,7 +690,7 @@ describe(ctx.label, () => {
                 { id: 2, name: 'Internal tools', archivedAt: null },
             ])
             expect(sorted[1]!.projects.find(p => p.id === 3)).toEqual({ id: 3, name: 'Public API', archivedAt: null })
-            expect(sorted[1]!.projects.find(p => p.id === 4)!.archivedAt instanceof Date).toBe(true)
+            expect(sorted[1]!.projects.find(p => p.id === 4)!.archivedAt).toEqual(archivedDate)
         }
         // The null `archivedAt` leaf stays PRESENT-null under UNION ALL, matching the
         // type and a standalone nullable aggregate.
@@ -994,7 +994,7 @@ describe(ctx.label, () => {
                 { id: 2, name: 'Internal tools', archivedAt: null },
             ])
             expect(sorted[1]!.wrap.projects.find(p => p.id === 3)).toEqual({ id: 3, name: 'Public API', archivedAt: null })
-            expect(sorted[1]!.wrap.projects.find(p => p.id === 4)!.archivedAt instanceof Date).toBe(true)
+            expect(sorted[1]!.wrap.projects.find(p => p.id === 4)!.archivedAt).toEqual(archivedDate)
         }
         // The null `archivedAt` leaf stays PRESENT-null through the nested-object compound.
         expect('archivedAt' in sorted[0]!.wrap.projects[0]!).toBe(true)
@@ -1073,7 +1073,7 @@ describe(ctx.label, () => {
                 { id: 2, name: 'Internal tools', archivedAt: null },
             ])
             expect(sorted[1]!.projects.find(p => p.id === 3)).toEqual({ id: 3, name: 'Public API', archivedAt: null })
-            expect(sorted[1]!.projects.find(p => p.id === 4)!.archivedAt instanceof Date).toBe(true)
+            expect(sorted[1]!.projects.find(p => p.id === 4)!.archivedAt).toEqual(archivedDate)
         }
         // Projecting-then-modifier: the null `archivedAt` leaf stays PRESENT-null.
         expect('archivedAt' in sorted[0]!.projects[0]!).toBe(true)
@@ -1151,7 +1151,7 @@ describe(ctx.label, () => {
                 { id: 2, name: 'Internal tools', archivedAt: null },
             ])
             expect(sorted[1]!.projects.find(p => p.id === 3)).toEqual({ id: 3, name: 'Public API', archivedAt: null })
-            expect(sorted[1]!.projects.find(p => p.id === 4)!.archivedAt instanceof Date).toBe(true)
+            expect(sorted[1]!.projects.find(p => p.id === 4)!.archivedAt).toEqual(archivedDate)
         }
         expect('archivedAt' in sorted[0]!.projects[0]!).toBe(true)
     })
@@ -1228,7 +1228,7 @@ describe(ctx.label, () => {
                 { id: 2, name: 'Internal tools', archivedAt: null },
             ])
             expect(sorted[1]!.meta.projects.find(p => p.id === 3)).toEqual({ id: 3, name: 'Public API', archivedAt: null })
-            expect(sorted[1]!.meta.projects.find(p => p.id === 4)!.archivedAt instanceof Date).toBe(true)
+            expect(sorted[1]!.meta.projects.find(p => p.id === 4)!.archivedAt).toEqual(archivedDate)
         }
         expect('archivedAt' in sorted[0]!.meta.projects[0]!).toBe(true)
     })

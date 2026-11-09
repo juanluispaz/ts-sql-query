@@ -278,8 +278,7 @@ describe(ctx.label, () => {
         // query. Here the seed projects the optional column `archivedAt`, so
         // the merged column stays optional (`a?`). Both branches filter to
         // the NULL-archivedAt projects so the union dedups to a single absent
-        // value (project 4's archived_at is a non-deterministic
-        // CURRENT_TIMESTAMP, so it is excluded).
+        // value (project 4, the only archived one, is excluded).
         const expected = [{}]
         ctx.mockNext(expected)
         const optSeed = ctx.conn.selectFrom(tProject)

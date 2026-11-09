@@ -151,10 +151,9 @@ describe(ctx.label, () => {
 
     test('execute-function-returning-optional-local-date-time', async () => {
         // latest_issue_at(1) returns an optional localDateTime: MAX(created_at)
-        // of project 1's issues → Promise<Date | null>. created_at is seeded at
-        // insert time, so the exact value is non-deterministic — asserted via
-        // the mock, and structurally on the real DB.
-        ctx.mockNext(new Date('2024-01-01T00:00:00Z'))
+        // of project 1's issues → Promise<Date | null>. Issue 2, the latest of
+        // project 1, was created at 2024-02-27 10:30:00.
+        ctx.mockNext(new Date('2024-02-27T10:30:00.000Z'))
         const at = await ctx.conn.callLatestIssueAt(1)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select latest_issue_at(?)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -163,10 +162,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof at, Date | null>>()
-        // MAX(created_at) is a real, seed-time timestamp — assert it is a
-        // present Date identically in both modes (the exact value is
-        // non-deterministic).
-        expect(at).toBeInstanceOf(Date)
+        expect(at).toEqual(new Date('2024-02-27T10:30:00.000Z'))
     })
 
     test('execute-function-returning-custom-double', async () => {
@@ -217,9 +213,8 @@ describe(ctx.label, () => {
 
     test('execute-function-returning-required-local-date-time', async () => {
         // latest_issue_at with the 'required' flag -> `Date`. MAX(created_at) of
-        // project 1's issues is a real seed-time timestamp (non-deterministic);
-        // asserted structurally in both modes.
-        ctx.mockNext(new Date('2024-01-01T00:00:00Z'))
+        // project 1's issues: issue 2, created at 2024-02-27 10:30:00.
+        ctx.mockNext(new Date('2024-02-27T10:30:00.000Z'))
         const at = await ctx.conn.callLatestIssueAtRequired(1)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select latest_issue_at(?)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -228,7 +223,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof at, Date>>()
-        expect(at).toBeInstanceOf(Date)
+        expect(at).toEqual(new Date('2024-02-27T10:30:00.000Z'))
     })
 
     test('execute-function-returning-optional-custom-double', async () => {
@@ -627,9 +622,9 @@ describe(ctx.label, () => {
 
     test('execute-function-returning-custom-local-date-time', async () => {
         // latest_issue_at(1) read as the branded customLocalDateTime kind
-        // (SignOffStamp). MAX(created_at) is a real seed-time timestamp
-        // (non-deterministic); asserted structurally in both modes.
-        ctx.mockNext(new Date('2024-01-01T00:00:00Z'))
+        // (SignOffStamp). MAX(created_at) of project 1's issues: issue 2,
+        // created at 2024-02-27 10:30:00.
+        ctx.mockNext(new Date('2024-02-27T10:30:00.000Z'))
         const value = await ctx.conn.callRetCustomLocalDateTime(1)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select latest_issue_at(?)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -638,13 +633,14 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof value, Date>>()
-        expect(value).toBeInstanceOf(Date)
+        expect(value).toEqual(new Date('2024-02-27T10:30:00.000Z'))
     })
 
     test('execute-function-returning-optional-custom-local-date-time', async () => {
         // latest_issue_at read as customLocalDateTime with the 'optional' flag →
-        // `Date | null`. MAX(created_at) is a real present timestamp.
-        ctx.mockNext(new Date('2024-01-01T00:00:00Z'))
+        // `Date | null`. MAX(created_at) of project 1's issues: issue 2, created
+        // at 2024-02-27 10:30:00.
+        ctx.mockNext(new Date('2024-02-27T10:30:00.000Z'))
         const value = await ctx.conn.callRetCustomLocalDateTimeOptional(1)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select latest_issue_at(?)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -653,7 +649,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof value, Date | null>>()
-        expect(value).toBeInstanceOf(Date)
+        expect(value).toEqual(new Date('2024-02-27T10:30:00.000Z'))
     })
 
     test('execute-function-with-two-params', async () => {

@@ -73,6 +73,22 @@ function failureOf(statement: Promise<unknown>): Promise<unknown> {
     return statement.then(() => { throw new Error('Expected the statement to be interrupted') }, (error: unknown) => error)
 }
 
+/**
+ * Asks `isReady` every `intervalMs` until it answers true: the engine itself
+ * says the other session has reached the point the test needs (the statement
+ * running, the lock wait in place), instead of a fixed wait that may be too
+ * short on a busy engine. Fails with `what` after `limitMs`.
+ */
+export async function waitForTheEngine(what: string, isReady: () => Promise<boolean>, intervalMs = 10, limitMs = 10_000): Promise<void> {
+    const deadline = Date.now() + limitMs
+    while (!await isReady()) {
+        if (Date.now() > deadline) {
+            throw new Error('The engine did not show ' + what + ' within ' + limitMs + ' ms')
+        }
+        await new Promise(resolve => setTimeout(resolve, intervalMs))
+    }
+}
+
 /** Runs `fn` inside a transaction of `runner` and rolls it back whatever happens. */
 async function inTransaction(runner: QueryRunner, fn: () => Promise<unknown>): Promise<unknown> {
     await runner.executeBeginTransaction()
@@ -498,7 +514,8 @@ const postgresScenarios: readonly ErrorScenario[] = [
             return inTransaction(ctx.runner, async () => {
                 const pid = await ctx.runner.executeSelectOneColumnOneRow('select pg_backend_pid()')
                 const sleeping = failureOf(ctx.runner.executeSelectManyRows('select pg_sleep(5)'))
-                await new Promise(resolve => setTimeout(resolve, 300))
+                await waitForTheEngine('pg_sleep running', async () => Number(await other.executeSelectOneColumnOneRow(
+                    `select count(*) from pg_stat_activity where pid = ${Number(pid)} and state = 'active' and query = 'select pg_sleep(5)'`)) === 1)
                 await other.executeSelectManyRows(`select pg_cancel_backend(${Number(pid)})`)
                 throw await sleeping
             })
@@ -813,7 +830,8 @@ const mysqlLikeScenarios: readonly ErrorScenario[] = [
             return inTransaction(victim, async () => {
                 const id = await victim.executeSelectOneColumnOneRow('select connection_id()')
                 const sleeping = failureOf(victim.executeSelectManyRows('select count(*) from rt_probe where sleep(5) = 0'))
-                await new Promise(resolve => setTimeout(resolve, 300))
+                await waitForTheEngine('the sleep running', async () => Number(await ctx.runner.executeSelectOneColumnOneRow(
+                    `select count(*) from information_schema.processlist where id = ${Number(id)} and info like 'select count(*) from rt_probe where sleep(5) = 0%'`)) === 1)
                 await ctx.runner.executeUpdate(`kill query ${Number(id)}`)
                 throw await sleeping
             })
@@ -1642,6 +1660,8 @@ const oracleScenarios: readonly ErrorScenario[] = [
         run: async ({ runner }) => {
             const connection = runner.getNativeRunner() as { break(): Promise<void> }
             const sleeping = failureOf(runner.executeUpdate('begin dbms_session.sleep(5); end;'))
+            // A fixed wait, not the engine: seeing that the block runs needs v$session, and the user of the tests has
+            // only the roles CONNECT, RESOURCE and SODA_APP, and reading v$session fails with ORA-00942.
             await new Promise(resolve => setTimeout(resolve, 300))
             await connection.break()
             throw await sleeping

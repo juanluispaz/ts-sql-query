@@ -1,34 +1,37 @@
 -- Canonical seed dataset shared by every postgres variant (real pg + pglite).
 -- IDs are stable on purpose so tests can refer to them by literal.
 
--- created_at carries explicit, distinct timestamps (instead of the
--- CURRENT_TIMESTAMP default) so localDateTime equality / membership / range
--- comparisons on tOrganization.createdAt are deterministic.
+-- Every date and time of the seed is a fixed instant, never the clock of the
+-- engine: the seed is a backup of known data, so a result that reads a
+-- created_at, updated_at or archived_at is the same on every run and every
+-- database. The defaults of schema.sql are left for the rows the tests insert.
+-- The rows are created in the order of their ids; issue 3 was never updated,
+-- its updated_at is its created_at.
 INSERT INTO organization (id, name, plan, verified, created_at) VALUES
     (1, 'Acme Corp', 'pro',  'Y', '2023-06-15 08:00:00'),
     (2, 'Globex Ltd', 'free', 'N', '2023-09-20 14:30:00');
 
-INSERT INTO app_user (id, email, full_name, verified) VALUES
-    (1, 'ada@acme.test',    'Ada Lovelace', 'Y'),
-    (2, 'grace@acme.test',  'Grace Hopper', 'Y'),
-    (3, 'alan@globex.test', 'Alan Turing',  'N');
+INSERT INTO app_user (id, email, full_name, verified, created_at) VALUES
+    (1, 'ada@acme.test',    'Ada Lovelace', 'Y', '2023-06-16 09:00:00'),
+    (2, 'grace@acme.test',  'Grace Hopper', 'Y', '2023-07-03 10:15:00'),
+    (3, 'alan@globex.test', 'Alan Turing',  'N', '2023-09-21 11:45:00');
 
-INSERT INTO project (id, organization_id, name, slug, published) VALUES
-    (1, 1, 'Marketing site',  'mktg-site',  't'),
-    (2, 1, 'Internal tools',  'tools',      'f'),
-    (3, 2, 'Public API',      'public-api', 't');
-INSERT INTO project (id, organization_id, name, slug, published, archived_at) VALUES
-    (4, 2, 'Legacy app', 'legacy', 'f', CURRENT_TIMESTAMP);
+INSERT INTO project (id, organization_id, name, slug, published, created_at) VALUES
+    (1, 1, 'Marketing site',  'mktg-site',  't', '2023-07-10 09:30:00'),
+    (2, 1, 'Internal tools',  'tools',      'f', '2023-08-01 13:00:00'),
+    (3, 2, 'Public API',      'public-api', 't', '2023-10-02 10:00:00');
+INSERT INTO project (id, organization_id, name, slug, published, archived_at, created_at) VALUES
+    (4, 2, 'Legacy app', 'legacy', 'f', '2024-02-01 00:00:00', '2023-10-15 16:20:00');
 
 -- Issues 1 and 2 carry a uuid `external_ref`; issues 3 and 4 leave it NULL
 -- (not every issue has an external reference). The two uuids are distinct in
 -- every substring the insensitive-`like` tests probe and neither contains
 -- the `abc` token the dynamic-condition tests filter on.
-INSERT INTO issue (id, project_id, number, title, body, status, priority, assignee_id, external_ref) VALUES
-    (1, 1, 1, 'Update hero copy',     NULL,            'open',        2, 1,    '0a8f9c1e-1111-4222-8333-444455556666'),
-    (2, 1, 2, 'Redesign navbar',      'Use new tokens', 'in_progress', 1, 2,   '7b3e9d20-2222-4c55-9b66-dddd00009999'),
-    (3, 2, 1, 'Migrate to ESM',       NULL,            'open',        3, NULL,  NULL),
-    (4, 3, 1, 'Document /v2/users',   'See ADR-014',   'closed',      2, 3,    NULL);
+INSERT INTO issue (id, project_id, number, title, body, status, priority, assignee_id, external_ref, created_at, updated_at) VALUES
+    (1, 1, 1, 'Update hero copy',     NULL,            'open',        2, 1,    '0a8f9c1e-1111-4222-8333-444455556666', '2024-02-26 09:00:00', '2024-03-04 11:00:00'),
+    (2, 1, 2, 'Redesign navbar',      'Use new tokens', 'in_progress', 1, 2,   '7b3e9d20-2222-4c55-9b66-dddd00009999', '2024-02-27 10:30:00', '2024-03-05 15:00:00'),
+    (3, 2, 1, 'Migrate to ESM',       NULL,            'open',        3, NULL,  NULL, '2024-02-28 08:45:00', '2024-02-28 08:45:00'),
+    (4, 3, 1, 'Document /v2/users',   'See ADR-014',   'closed',      2, 3,    NULL, '2024-02-29 14:00:00', '2024-03-07 16:00:00');
 
 INSERT INTO country (code, name, region) VALUES
     ('US', 'United States',  'Americas'),

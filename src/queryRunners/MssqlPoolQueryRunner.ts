@@ -44,7 +44,11 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
             // time values are in UTC (a Transaction gives the configuration of its pool)
             throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'useUTC', value: false }, 'MssqlPoolQueryRunner requires a pool without useUTC: false (true is the default of tedious) when the process does not run in UTC: the date and time values are in UTC')
         }
-        const options = (pool as { config?: { options?: { camelCaseColumns?: unknown, columnNameReplacer?: unknown } } }).config?.options
+        const options = (pool as { config?: { options?: { camelCaseColumns?: unknown, columnNameReplacer?: unknown, textsize?: unknown } } }).config?.options
+        if (typeof options?.textsize === 'number' && options.textsize < 2147483647) {
+            // tedious sets the TEXTSIZE of each connection: a text of a max type beyond it is cut without an error
+            throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'textsize', value: options.textsize }, 'MssqlPoolQueryRunner requires a pool without a textsize below the default of tedious (2147483647): a longer text of a varchar(max), nvarchar(max) or varbinary(max) value would be cut without an error')
+        }
         if (options?.camelCaseColumns === true || options?.columnNameReplacer) {
             // tedious renames the columns of the results, which the library reads by their name
             const name = options.camelCaseColumns === true ? 'camelCaseColumns' : 'columnNameReplacer'

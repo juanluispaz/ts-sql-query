@@ -279,13 +279,13 @@ interface UuidValueSource extends ComparableValueSource<string, 'uuid'> {
  * Represents a local date without time (using a Date object)
  */
 interface LocalDateValueSource extends ComparableValueSource<Date, 'localDate'> {
-    /** Gets the year */
+    /** Gets the year, in UTC (as getUTCFullYear) */
     getFullYear(): NumberValueSource
-    /** Gets the month (value between 0 to 11)*/
+    /** Gets the month (value between 0 to 11), in UTC (as getUTCMonth) */
     getMonth(): NumberValueSource
-    /** Gets the day-of-the-month */
+    /** Gets the day-of-the-month, in UTC (as getUTCDate) */
     getDate(): NumberValueSource
-    /** Gets the day of the week (0 represents Sunday) */
+    /** Gets the day of the week (0 represents Sunday), in UTC (as getUTCDay) */
     getDay(): NumberValueSource
 }
 
@@ -293,13 +293,13 @@ interface LocalDateValueSource extends ComparableValueSource<Date, 'localDate'> 
  * Represents a local time without date (using a Date object)
  */
 interface LocalTimeValueSource extends ComparableValueSource<Date, 'localTime'> {
-    /** Gets the hours */
+    /** Gets the hours, in UTC (as getUTCHours) */
     getHours(): NumberValueSource
-    /** Gets the minutes */
+    /** Gets the minutes, in UTC (as getUTCMinutes) */
     getMinutes(): NumberValueSource
-    /** Gets the seconds */
+    /** Gets the seconds, in UTC (as getUTCSeconds) */
     getSeconds(): NumberValueSource
-    /** Gets the milliseconds */
+    /** Gets the milliseconds, in UTC (as getUTCMilliseconds) */
     getMilliseconds(): NumberValueSource
 }
 
@@ -307,21 +307,21 @@ interface LocalTimeValueSource extends ComparableValueSource<Date, 'localTime'> 
  * Represents a local date with time (using a Date object)
  */
 interface LocalDateTimeValueSource extends ComparableValueSource<Date, 'localDateTime'> {
-    /** Gets the year */
+    /** Gets the year, in UTC (as getUTCFullYear) */
     getFullYear(): NumberValueSource
-    /** Gets the month (value between 0 to 11)*/
+    /** Gets the month (value between 0 to 11), in UTC (as getUTCMonth) */
     getMonth(): NumberValueSource
-    /** Gets the day-of-the-month */
+    /** Gets the day-of-the-month, in UTC (as getUTCDate) */
     getDate(): NumberValueSource
-    /** Gets the day of the week (0 represents Sunday) */
+    /** Gets the day of the week (0 represents Sunday), in UTC (as getUTCDay) */
     getDay(): NumberValueSource
-    /** Gets the hours */
+    /** Gets the hours, in UTC (as getUTCHours) */
     getHours(): NumberValueSource
-    /** Gets the minutes */
+    /** Gets the minutes, in UTC (as getUTCMinutes) */
     getMinutes(): NumberValueSource
-    /** Gets the seconds */
+    /** Gets the seconds, in UTC (as getUTCSeconds) */
     getSeconds(): NumberValueSource
-    /** Gets the milliseconds */
+    /** Gets the milliseconds, in UTC (as getUTCMilliseconds) */
     getMilliseconds(): NumberValueSource
     /** Gets the time value in milliseconds */
     getTime(): NumberValueSource
@@ -505,13 +505,13 @@ interface CustomUuidValueSource<T, TYPE_NAME extends string> extends ComparableV
  * Represents a custom local date without time (using a Date object)
  */
 interface CustomLocalDateValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
-    /** Gets the year */
+    /** Gets the year, in UTC (as getUTCFullYear) */
     getFullYear(): NumberValueSource
-    /** Gets the month (value between 0 to 11)*/
+    /** Gets the month (value between 0 to 11), in UTC (as getUTCMonth) */
     getMonth(): NumberValueSource
-    /** Gets the day-of-the-month */
+    /** Gets the day-of-the-month, in UTC (as getUTCDate) */
     getDate(): NumberValueSource
-    /** Gets the day of the week (0 represents Sunday) */
+    /** Gets the day of the week (0 represents Sunday), in UTC (as getUTCDay) */
     getDay(): NumberValueSource
 }
 
@@ -519,13 +519,13 @@ interface CustomLocalDateValueSource<T, TYPE_NAME extends string> extends Compar
  * Represents a custom local time without date (using a Date object)
  */
 interface CustomLocalTimeValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
-    /** Gets the hours */
+    /** Gets the hours, in UTC (as getUTCHours) */
     getHours(): NumberValueSource
-    /** Gets the minutes */
+    /** Gets the minutes, in UTC (as getUTCMinutes) */
     getMinutes(): NumberValueSource
-    /** Gets the seconds */
+    /** Gets the seconds, in UTC (as getUTCSeconds) */
     getSeconds(): NumberValueSource
-    /** Gets the milliseconds */
+    /** Gets the milliseconds, in UTC (as getUTCMilliseconds) */
     getMilliseconds(): NumberValueSource
 }
 
@@ -533,21 +533,21 @@ interface CustomLocalTimeValueSource<T, TYPE_NAME extends string> extends Compar
  * Represents a custom local date with time (using a Date object)
  */
 interface CustomLocalDateTimeValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
-    /** Gets the year */
+    /** Gets the year, in UTC (as getUTCFullYear) */
     getFullYear(): NumberValueSource
-    /** Gets the month (value between 0 to 11)*/
+    /** Gets the month (value between 0 to 11), in UTC (as getUTCMonth) */
     getMonth(): NumberValueSource
-    /** Gets the day-of-the-month */
+    /** Gets the day-of-the-month, in UTC (as getUTCDate) */
     getDate(): NumberValueSource
-    /** Gets the day of the week (0 represents Sunday) */
+    /** Gets the day of the week (0 represents Sunday), in UTC (as getUTCDay) */
     getDay(): NumberValueSource
-    /** Gets the hours */
+    /** Gets the hours, in UTC (as getUTCHours) */
     getHours(): NumberValueSource
-    /** Gets the minutes */
+    /** Gets the minutes, in UTC (as getUTCMinutes) */
     getMinutes(): NumberValueSource
-    /** Gets the seconds */
+    /** Gets the seconds, in UTC (as getUTCSeconds) */
     getSeconds(): NumberValueSource
-    /** Gets the milliseconds */
+    /** Gets the milliseconds, in UTC (as getUTCMilliseconds) */
     getMilliseconds(): NumberValueSource
     /** Gets the time value in milliseconds */
     getTime(): NumberValueSource

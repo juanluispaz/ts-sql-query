@@ -1097,13 +1097,13 @@ export interface ILocalDateValueSource</*in|out*/ SOURCE extends NSource, /*in|o
 }
 
 export interface LocalDateValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<SOURCE, Date, 'DateValueSource', OPTIONAL_TYPE>, ILocalDateValueSource<SOURCE, OPTIONAL_TYPE> {
-    /** Gets the year */
+    /** Gets the year, in UTC (as getUTCFullYear) */
     getFullYear(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
-    /** Gets the month (value between 0 to 11)*/
+    /** Gets the month (value between 0 to 11), in UTC (as getUTCMonth) */
     getMonth(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
-    /** Gets the day-of-the-month */
+    /** Gets the day-of-the-month, in UTC (as getUTCDate) */
     getDate(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
-    /** Gets the day of the week (0 represents Sunday) */
+    /** Gets the day of the week (0 represents Sunday), in UTC (as getUTCDay) */
     getDay(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
     // Redefined methods
     valueWhenNull(value: Date): LocalDateValueSource<SOURCE, 'required'>
@@ -1121,13 +1121,13 @@ export interface ILocalTimeValueSource</*in|out*/ SOURCE extends NSource, /*in|o
 }
 
 export interface LocalTimeValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<SOURCE, Date, 'TimeValueSource', OPTIONAL_TYPE>, ILocalTimeValueSource<SOURCE, OPTIONAL_TYPE> {
-    /** Gets the hours */
+    /** Gets the hours, in UTC (as getUTCHours) */
     getHours(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
-    /** Gets the minutes */
+    /** Gets the minutes, in UTC (as getUTCMinutes) */
     getMinutes(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
-    /** Gets the seconds */
+    /** Gets the seconds, in UTC (as getUTCSeconds) */
     getSeconds(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
-    /** Gets the milliseconds */
+    /** Gets the milliseconds, in UTC (as getUTCMilliseconds) */
     getMilliseconds(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
     // Redefined methods
     valueWhenNull(value: Date): LocalTimeValueSource<SOURCE, 'required'>
@@ -1145,21 +1145,21 @@ export interface ILocalDateTimeValueSource</*in|out*/ SOURCE extends NSource, /*
 }
 
 export interface LocalDateTimeValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<SOURCE, Date, 'DateTimeValueSource', OPTIONAL_TYPE>, ILocalDateTimeValueSource<SOURCE, OPTIONAL_TYPE> {
-    /** Gets the year */
+    /** Gets the year, in UTC (as getUTCFullYear) */
     getFullYear(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
-    /** Gets the month (value between 0 to 11)*/
+    /** Gets the month (value between 0 to 11), in UTC (as getUTCMonth) */
     getMonth(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
-    /** Gets the day-of-the-month */
+    /** Gets the day-of-the-month, in UTC (as getUTCDate) */
     getDate(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
-    /** Gets the day of the week (0 represents Sunday) */
+    /** Gets the day of the week (0 represents Sunday), in UTC (as getUTCDay) */
     getDay(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
-    /** Gets the hours */
+    /** Gets the hours, in UTC (as getUTCHours) */
     getHours(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
-    /** Gets the minutes */
+    /** Gets the minutes, in UTC (as getUTCMinutes) */
     getMinutes(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
-    /** Gets the seconds */
+    /** Gets the seconds, in UTC (as getUTCSeconds) */
     getSeconds(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
-    /** Gets the milliseconds */
+    /** Gets the milliseconds, in UTC (as getUTCMilliseconds) */
     getMilliseconds(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
     /** Gets the time value in milliseconds */
     getTime(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
@@ -1179,13 +1179,13 @@ export interface ICustomLocalDateValueSource</*in|out*/ SOURCE extends NSource, 
 }
 
 export interface CustomLocalDateValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>, ICustomLocalDateValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
-    /** Gets the year */
+    /** Gets the year, in UTC (as getUTCFullYear) */
     getFullYear(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
-    /** Gets the month (value between 0 to 11)*/
+    /** Gets the month (value between 0 to 11), in UTC (as getUTCMonth) */
     getMonth(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
-    /** Gets the day-of-the-month */
+    /** Gets the day-of-the-month, in UTC (as getUTCDate) */
     getDate(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
-    /** Gets the day of the week (0 represents Sunday) */
+    /** Gets the day of the week (0 represents Sunday), in UTC (as getUTCDay) */
     getDay(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
     valueWhenNull(value: TYPE): CustomLocalDateValueSource<SOURCE, TYPE, TYPE_NAME, 'required'>
     valueWhenNull<VALUE extends IValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): CustomLocalDateValueSource<SOURCE | VALUE[typeof source], TYPE, TYPE_NAME, VALUE[typeof optionalType]>
@@ -1202,13 +1202,13 @@ export interface ICustomLocalTimeValueSource</*in|out*/ SOURCE extends NSource, 
 }
 
 export interface CustomLocalTimeValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>, ICustomLocalTimeValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
-    /** Gets the hours */
+    /** Gets the hours, in UTC (as getUTCHours) */
     getHours(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
-    /** Gets the minutes */
+    /** Gets the minutes, in UTC (as getUTCMinutes) */
     getMinutes(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
-    /** Gets the seconds */
+    /** Gets the seconds, in UTC (as getUTCSeconds) */
     getSeconds(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
-    /** Gets the milliseconds */
+    /** Gets the milliseconds, in UTC (as getUTCMilliseconds) */
     getMilliseconds(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
     // Redefined methods
     valueWhenNull(value: TYPE): CustomLocalTimeValueSource<SOURCE, TYPE, TYPE_NAME, 'required'>
@@ -1226,21 +1226,21 @@ export interface ICustomLocalDateTimeValueSource</*in|out*/ SOURCE extends NSour
 }
 
 export interface CustomLocalDateTimeValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE, /*in|out*/ TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>, ICustomLocalDateTimeValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
-    /** Gets the year */
+    /** Gets the year, in UTC (as getUTCFullYear) */
     getFullYear(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
-    /** Gets the month (value between 0 to 11)*/
+    /** Gets the month (value between 0 to 11), in UTC (as getUTCMonth) */
     getMonth(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
-    /** Gets the day-of-the-month */
+    /** Gets the day-of-the-month, in UTC (as getUTCDate) */
     getDate(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
-    /** Gets the day of the week (0 represents Sunday) */
+    /** Gets the day of the week (0 represents Sunday), in UTC (as getUTCDay) */
     getDay(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
-    /** Gets the hours */
+    /** Gets the hours, in UTC (as getUTCHours) */
     getHours(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
-    /** Gets the minutes */
+    /** Gets the minutes, in UTC (as getUTCMinutes) */
     getMinutes(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
-    /** Gets the seconds */
+    /** Gets the seconds, in UTC (as getUTCSeconds) */
     getSeconds(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
-    /** Gets the milliseconds */
+    /** Gets the milliseconds, in UTC (as getUTCMilliseconds) */
     getMilliseconds(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
     /** Gets the time value in milliseconds */
     getTime(): NumberValueSource<SOURCE, OPTIONAL_TYPE>

@@ -309,7 +309,8 @@ interface UuidValueSource extends ComparableValueSource<string, 'uuid'> {
 
 ```typescript
 /**
- * Represents a local date without time (using a Date object)
+ * Represents a local date without time (using a Date object). The getters give its parts in UTC, as the
+ * getUTC… methods of the Date read
  */
 interface LocalDateValueSource extends ComparableValueSource<Date, 'localDate'> {
     /** Gets the year */
@@ -325,7 +326,8 @@ interface LocalDateValueSource extends ComparableValueSource<Date, 'localDate'> 
 
 ```typescript
 /**
- * Represents a local time without date (using a Date object)
+ * Represents a local time without date (using a Date object). The getters give its parts in UTC, as the
+ * getUTC… methods of the Date read
  */
 interface LocalTimeValueSource extends ComparableValueSource<Date, 'localTime'> {
     /** Gets the hours */
@@ -341,7 +343,8 @@ interface LocalTimeValueSource extends ComparableValueSource<Date, 'localTime'> 
 
 ```typescript
 /**
- * Represents a local date with time (using a Date object)
+ * Represents a local date with time (using a Date object). The getters give its parts in UTC, as the
+ * getUTC… methods of the Date read
  */
 interface LocalDateTimeValueSource extends ComparableValueSource<Date, 'localDateTime'> {
     /** Gets the year */
@@ -554,7 +557,8 @@ interface CustomUuidValueSource<T, TYPE_NAME extends string> extends ComparableV
 
 ```typescript
 /**
- * Represents a custom local date without time (using a Date object)
+ * Represents a custom local date without time (using a Date object). The getters give its parts in UTC, as the
+ * getUTC… methods of the Date read
  */
 interface CustomLocalDateValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
     /** Gets the year */
@@ -570,7 +574,8 @@ interface CustomLocalDateValueSource<T, TYPE_NAME extends string> extends Compar
 
 ```typescript
 /**
- * Represents a custom local time without date (using a Date object)
+ * Represents a custom local time without date (using a Date object). The getters give its parts in UTC, as the
+ * getUTC… methods of the Date read
  */
 interface CustomLocalTimeValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
     /** Gets the hours */
@@ -586,7 +591,8 @@ interface CustomLocalTimeValueSource<T, TYPE_NAME extends string> extends Compar
 
 ```typescript
 /**
- * Represents a custom local date with time (using a Date object)
+ * Represents a custom local date with time (using a Date object). The getters give its parts in UTC, as the
+ * getUTC… methods of the Date read
  */
 interface CustomLocalDateTimeValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
     /** Gets the year */

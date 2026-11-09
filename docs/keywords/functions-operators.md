@@ -135,14 +135,14 @@ The results follow the methods of the JavaScript `Date`. The SQL is the one of e
 | CURRENT_TIME | connection `.currentTime()` | Current time. | [Connection API](../api/connection.md) |
 | CURRENT_TIMESTAMP, GETDATE() | connection `.currentDateTime()` | Current date and time. | [Connection API](../api/connection.md) |
 | CURRENT_TIMESTAMP, GETDATE() | connection `.currentTimestamp()` | Same as `.currentDateTime()`. | [Connection API](../api/connection.md) |
-| EXTRACT(YEAR FROM value), YEAR(value), DATEPART(year, value), STRFTIME('%Y', value) | value `.getFullYear()` | The year. | [Value expressions API](../api/value-expressions.md) |
-| EXTRACT(MONTH FROM value), MONTH(value), DATEPART(month, value), STRFTIME('%m', value) | value `.getMonth()` | The month, from 0, as JavaScript. | [Value expressions API](../api/value-expressions.md) |
-| EXTRACT(DAY FROM value), DAYOFMONTH(value), DATEPART(day, value), STRFTIME('%d', value) | value `.getDate()` | The day of the month. | [Value expressions API](../api/value-expressions.md) |
-| EXTRACT(DOW FROM value), DAYOFWEEK(value), DATEPART(weekday, value), STRFTIME('%w', value) | value `.getDay()` | The day of the week, with Sunday as 0, as JavaScript. | [Value expressions API](../api/value-expressions.md) |
-| EXTRACT(HOUR FROM value), HOUR(value), DATEPART(hour, value), STRFTIME('%H', value) | value `.getHours()` | The hour. | [Value expressions API](../api/value-expressions.md) |
-| EXTRACT(MINUTE FROM value), MINUTE(value), DATEPART(minute, value), STRFTIME('%M', value) | value `.getMinutes()` | The minute. | [Value expressions API](../api/value-expressions.md) |
-| EXTRACT(SECOND FROM value), SECOND(value), DATEPART(second, value), STRFTIME('%S', value) | value `.getSeconds()` | The second. | [Value expressions API](../api/value-expressions.md) |
-| EXTRACT(MILLISECOND FROM value), MICROSECOND(value), DATEPART(millisecond, value), STRFTIME('%f', value) | value `.getMilliseconds()` | The milliseconds. | [Value expressions API](../api/value-expressions.md) |
+| EXTRACT(YEAR FROM value), YEAR(value), DATEPART(year, value), STRFTIME('%Y', value) | value `.getFullYear()` | The year, in UTC. | [Value expressions API](../api/value-expressions.md) |
+| EXTRACT(MONTH FROM value), MONTH(value), DATEPART(month, value), STRFTIME('%m', value) | value `.getMonth()` | The month, from 0, in UTC, as JavaScript's `getUTCMonth`. | [Value expressions API](../api/value-expressions.md) |
+| EXTRACT(DAY FROM value), DAYOFMONTH(value), DATEPART(day, value), STRFTIME('%d', value) | value `.getDate()` | The day of the month, in UTC. | [Value expressions API](../api/value-expressions.md) |
+| EXTRACT(DOW FROM value), DAYOFWEEK(value), DATEPART(weekday, value), STRFTIME('%w', value) | value `.getDay()` | The day of the week, with Sunday as 0, in UTC, as JavaScript's `getUTCDay`. | [Value expressions API](../api/value-expressions.md) |
+| EXTRACT(HOUR FROM value), HOUR(value), DATEPART(hour, value), STRFTIME('%H', value) | value `.getHours()` | The hour, in UTC. | [Value expressions API](../api/value-expressions.md) |
+| EXTRACT(MINUTE FROM value), MINUTE(value), DATEPART(minute, value), STRFTIME('%M', value) | value `.getMinutes()` | The minute, in UTC. | [Value expressions API](../api/value-expressions.md) |
+| EXTRACT(SECOND FROM value), SECOND(value), DATEPART(second, value), STRFTIME('%S', value) | value `.getSeconds()` | The second, in UTC. | [Value expressions API](../api/value-expressions.md) |
+| EXTRACT(MILLISECOND FROM value), MICROSECOND(value), DATEPART(millisecond, value), STRFTIME('%f', value) | value `.getMilliseconds()` | The milliseconds, in UTC. | [Value expressions API](../api/value-expressions.md) |
 | EXTRACT(EPOCH FROM value), UNIXEPOCH(value), DATEDIFF_BIG(millisecond, ...) | value `.getTime()` | The milliseconds since 1970, as JavaScript. | [Value expressions API](../api/value-expressions.md) |
 
 ## Aggregate functions

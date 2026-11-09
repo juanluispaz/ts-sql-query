@@ -391,9 +391,13 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(amount) as abs, ceil(amount) as ceil, floor(amount) as floor, round(amount) as round, round(amount, ?) as roundn, amount % cast(? as decimal(2, 1)) as modulo from exact_amount where id in (?, ?) order by id"`)
         assertType<Exact<typeof rows, { id: number; abs?: Amount; ceil?: Amount; floor?: Amount; round?: Amount; roundn?: Amount; modulo?: Amount }[]>>()
+        // Bun SQL prepares the query on the server. MySQL 5.7, the engine of this cell, gives the result the decimals
+        // of the rounding; MySQL 8.0 and later, the image a run without --docker-version closest uses, don't see them
+        // when preparing it: the result keeps the scale of the column
+        const scaleOfTheColumn = ctx.realDbOnTheNewestImage
         expect(rows).toEqual([
-            { id: 1, abs: '12345678901234567890.1234567891', ceil: '12345678901234567891', floor: '12345678901234567890', round: '12345678901234567890', roundn: '12345678901234567890.1235', modulo: '0.1234567891' },
-            { id: 2, abs: '0.2500000000', ceil: '0', floor: '-1', round: '0', roundn: '-0.2500', modulo: '-0.2500000000' },
+            { id: 1, abs: '12345678901234567890.1234567891', ceil: '12345678901234567891', floor: '12345678901234567890', round: '12345678901234567890', roundn: scaleOfTheColumn ? '12345678901234567890.1235000000' : '12345678901234567890.1235', modulo: '0.1234567891' },
+            { id: 2, abs: '0.2500000000', ceil: '0', floor: '-1', round: '0', roundn: scaleOfTheColumn ? '-0.2500000000' : '-0.2500', modulo: '-0.2500000000' },
         ])
     })
 

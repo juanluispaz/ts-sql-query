@@ -25,6 +25,7 @@
 import type { BeginTransactionOpts, DatabaseType, PromiseProvider, QueryRunner } from '../../src/queryRunners/QueryRunner.js'
 import { MockQueryRunner, type QueryRunnerName } from '../../src/queryRunners/MockQueryRunner.js'
 import { CaptureInterceptor } from './captureInterceptor.js'
+import { closestVersionEnabled } from './dockerImages.js'
 import { FaultInjectingQueryRunner, type FaultInjectingQueryRunnerOptions } from './FaultInjectingQueryRunner.js'
 import { SwitchableQueryRunner } from './switchableRunner.js'
 
@@ -33,6 +34,11 @@ export interface TestContext<CONN> {
     readonly canonicalForDocs: boolean
     readonly compatibilityVersion: number | undefined
     readonly realDbEnabled: boolean
+    /**
+     * The cell runs against a real database on the newest image of its engine, not on the image of its version
+     * folder: a real run without `--docker-version closest`. False with the mock.
+     */
+    readonly realDbOnTheNewestImage: boolean
     readonly timeoutMs: number
 
     /** Available after `up()` resolves; throws if read earlier. */
@@ -387,6 +393,7 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
         canonicalForDocs: opts.canonicalForDocs === true,
         compatibilityVersion: opts.compatibilityVersion,
         realDbEnabled: opts.realDbEnabled,
+        realDbOnTheNewestImage: opts.realDbEnabled && !closestVersionEnabled(),
         // Default timeout for `beforeAll(() => ctx.up(), ctx.timeoutMs)` /
         // `afterAll(() => ctx.down(), ctx.timeoutMs)` hooks. Covers the
         // worst-case container cold start (Oracle ~30–60s legit) under

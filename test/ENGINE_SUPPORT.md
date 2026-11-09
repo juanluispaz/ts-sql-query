@@ -869,6 +869,25 @@ MySQL 5.7 behaves the same way (verified against `mysql:5.7`, which also returns
 fragment and `temporal/*-null-if-value*` tests are commented out in
 `mysql/oldest/bun_sql_mysql` and run live on `mysql2` and on the MySQL 8.0+ tiers.
 
+## MySQL 8.0 and later keep the column's scale in `round(x, ?)` of a prepared statement (Bun SQL)
+
+In a **server-side prepared statement**, MySQL 8.0 and later fix the type of
+`round(decimal_column, ?)` when they prepare it, without the number of decimals
+of the parameter: the result keeps the scale of the column (`round(amount, ?)`
+with 4 over a `decimal(30,10)` gives `12345678901234567890.1235000000`). The text
+protocol, and a literal number of decimals, give the scale of the rounding
+(`…1235`), and so does MySQL 5.7 even when prepared (verified on 5.7.44, 8.0.46
+and 26.10.0 with `mysql2` `query` and `execute`, and Bun SQL). It is the same
+number with another text: a `customDecimal` or `stringDecimal` read through Bun
+SQL has the trailing zeros. The `mysql2` connector is not affected; **Bun SQL
+always prepares the statement**.
+
+`abs-ceil-floor-round-and-modulo-keep-every-digit` in `select.custom-decimal` and
+`select.string-decimal` expects the scale of the column in the `bun_sql_mysql`
+cells of MySQL 8.0 and later. The `oldest` cell (MySQL 5.7) expects the scale of
+the rounding on its own engine (`--docker-version closest`) and the scale of the
+column on the newest image, which a run without that flag uses.
+
 ### Oracle rejects a cycle in a recursive `with` even with a limit on the depth
 
 When the rows of a recursive `with` form a cycle, Oracle answers `ORA-32044: cycle detected while executing recursive WITH query`, also when a condition on a level column would end the walk (verified on the `newest` and `oldest` images). PostgreSQL, MySQL, MariaDB, SQLite and SQL Server follow the cycle until the condition stops it. On Oracle, `connectByNoCycle` is the way to walk data with a cycle. The test `docs:recursive-select/depth-limit` is commented out with `// NOT-SUPPORTED:` on the Oracle cells.

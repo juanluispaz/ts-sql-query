@@ -1110,7 +1110,7 @@ The executed query is:
     -- SQL Server doesn't support insert on conflict
     ```
 
-The parameters are: `[ 'John', 'Smith', 1, 1, 1990-01-01T00:00:00.000Z ]`
+The parameters are: `[ 'John', 'Smith', 1, 1, '1990-01-01' ]`
 
 The result type is:
 ```tsx

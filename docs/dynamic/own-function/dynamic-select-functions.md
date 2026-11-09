@@ -584,7 +584,7 @@ The executed query is:
         ) and parent_id = @3
     ```
 
-The parameters are: `[ " ", "John", 2000-03-01T00:00:00.000Z, 23 ]`
+The parameters are: `[ " ", "John", "2000-03-01", 23 ]` (on Oracle and SQL Server: `[ " ", "John", 2000-03-01T00:00:00.000Z, 23 ]`)
 
 The result type is:
 ```tsx

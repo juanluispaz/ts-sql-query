@@ -78,7 +78,7 @@ The executed query is:
     values (@0, @1, @2, @3)
     ```
 
-The parameters are: `[ 'John', 'Smith', 1, 2019-08-16T15:02:32.849Z ]` (On [Oracle](../configuration/supported-databases/oracle.md), output parameters are added at the corresponding position with the structure `{dir:3003}`) 
+The parameters are: `[ 'John', 'Smith', 1, '2019-08-16' ]` (on Oracle and SQL Server: `[ 'John', 'Smith', 1, 2019-08-16T15:02:32.849Z ]`; on [Oracle](../configuration/supported-databases/oracle.md), output parameters are added at the corresponding position with the structure `{dir:3003}`) 
 
 The result type is a promise with the id of the last inserted row:
 ```tsx

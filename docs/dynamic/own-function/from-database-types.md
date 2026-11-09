@@ -132,7 +132,7 @@ The executed query is:
         and birthday > @3
     ```
 
-The parameters are: `[ ' ', ' ', 'ACME', '1990-01-01T00:00:00.000Z' ]` (on SQLite: `[ ' ', ' ', 'ACME', '1990-01-01' ]`)
+The parameters are: `[ ' ', ' ', 'ACME', '1990-01-01' ]` (on Oracle and SQL Server: `[ ' ', ' ', 'ACME', 1990-01-01T00:00:00.000Z ]`)
 
 The compiler checks the filters written in your code: a key that isn't in the map, or an operator its column doesn't have, doesn't compile. A filter that arrives as data at runtime has no types, and [`withValues` checks it when it runs](../caller-decides/filters.md#a-filter-that-is-wrong).
 

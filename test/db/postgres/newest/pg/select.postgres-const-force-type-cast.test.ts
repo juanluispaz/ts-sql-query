@@ -105,7 +105,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::date as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2024-01-15T00:00:00.000Z,
+            "2024-01-15",
           ]
         `)
     })
@@ -133,7 +133,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::timestamp as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2024-01-15T12:34:56.000Z,
+            "2024-01-15 12:34:56.000+00",
           ]
         `)
     })
@@ -218,7 +218,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::date as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2024-02-20T00:00:00.000Z,
+            "2024-02-20",
           ]
         `)
     })
@@ -283,7 +283,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::timestamp as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2024-01-14T12:30:00.000Z,
+            "2024-01-14 12:30:00.000+00",
           ]
         `)
     })
@@ -301,7 +301,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from $1::date) as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2024-02-20T00:00:00.000Z,
+            "2024-02-20",
           ]
         `)
         expect(year).toBe(2024)

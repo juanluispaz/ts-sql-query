@@ -1,7 +1,8 @@
 import type { TypeCategory } from '../TypeAdapter.js'
 import { customDecimalDigitsOf, rejectCustomDecimalParam } from './customDecimalParams.js'
 import { isParamValueForColumnAt } from './queryParamsMetadata.js'
-import { __isDecimalCategory } from './typeCategory.js'
+import { __conversionType, __isDecimalCategory } from './typeCategory.js'
+import { utcDateText, utcTimeText } from './utcDateTimeText.js'
 
 /**
  * The placeholder of a parameter on MySQL and MariaDB, for every query runner of them. A customDecimal is sent as
@@ -26,4 +27,28 @@ export function mySqlPlaceholder(placeholder: string, params: any[], index: numb
         return placeholder
     }
     return 'cast(' + placeholder + ' as decimal(' + digits.precision + ', ' + digits.scale + '))'
+}
+
+/**
+ * The value a parameter is sent as on MySQL and MariaDB, for every query runner of them: a localDate, a localTime or a
+ * localDateTime that is a Date goes as the text of its UTC getters, so the database gets the same value whatever the
+ * zone of the process (the drivers write a Date with the local getters): `YYYY-MM-DD`, `HH:MM:SS.mmm` and
+ * `YYYY-MM-DD HH:MM:SS.mmm`, with a space and without an offset, the form every version reads in every position (MySQL
+ * 5.7 and MariaDB reject an offset, and all of them a `Z`). A date sent as a date also compares equal to a `date`
+ * column, which the text of a whole date and time doesn't. Any other value is sent as it is.
+ */
+export function mySqlParamValue(value: unknown, type: string, typeCategory: TypeCategory): unknown {
+    if (!(value instanceof Date) || isNaN(value.getTime())) {
+        return value
+    }
+    switch (__conversionType(type, typeCategory)) {
+        case 'localDate':
+            return utcDateText(value)
+        case 'localTime':
+            return utcTimeText(value)
+        case 'localDateTime':
+            return utcDateText(value) + ' ' + utcTimeText(value)
+        default:
+            return value
+    }
 }

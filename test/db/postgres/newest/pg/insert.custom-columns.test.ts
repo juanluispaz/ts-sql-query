@@ -43,9 +43,9 @@ describe(ctx.label, () => {
                 "2.0.0",
                 "stable",
                 "11111111-2222-4333-8444-555566667777",
-                2024-06-01T10:00:00.000Z,
+                "2024-06-01",
                 "18:00:00",
-                2024-06-01T09:00:00.000Z,
+                "2024-06-01 09:00:00.000+00",
               ]
             `)
             assertType<Exact<typeof inserted, number>>()
@@ -81,7 +81,7 @@ describe(ctx.label, () => {
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
-                2024-03-10T10:00:00.000Z,
+                "2024-03-10",
                 "08:30:00",
                 120,
                 7200000n,
@@ -119,7 +119,7 @@ describe(ctx.label, () => {
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,
-                2024-03-11T10:00:00.000Z,
+                "2024-03-11",
                 null,
                 null,
                 "meeting",
@@ -195,7 +195,7 @@ describe(ctx.label, () => {
                 1,
                 "3.0.0",
                 "canary",
-                2024-07-01T10:00:00.000Z,
+                "2024-07-01",
                 "12:00:00",
               ]
             `)
@@ -226,7 +226,7 @@ describe(ctx.label, () => {
                 1,
                 "R-9",
                 85,
-                2024-07-01T00:00:00.000Z,
+                "2024-07-01",
                 "09:30:00",
               ]
             `)
@@ -264,7 +264,7 @@ describe(ctx.label, () => {
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
-                2024-03-12T10:00:00.000Z,
+                "2024-03-12",
                 "coding",
                 12.5,
                 250,

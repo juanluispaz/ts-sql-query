@@ -139,9 +139,9 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "17:00:00",
-            2024-01-14T12:30:00.000Z,
+            "2024-01-14 12:30:00.000+00",
             "17:00:00",
-            2024-01-14T12:30:00.000Z,
+            "2024-01-14 12:30:00.000+00",
           ]
         `)
         assertType<Exact<typeof row, {

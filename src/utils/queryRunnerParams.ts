@@ -7,8 +7,8 @@ import type { QueryRunnerName } from '../queryRunners/MockQueryRunner.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { checkOracleParam } from './oracleParamTypes.js'
-import { mySqlPlaceholder } from './mySqlParamTypes.js'
-import { postgreSqlPlaceholder } from './postgreSqlParamTypes.js'
+import { mySqlParamValue, mySqlPlaceholder } from './mySqlParamTypes.js'
+import { postgreSqlParamValue, postgreSqlPlaceholder } from './postgreSqlParamTypes.js'
 import { setParamTypeAt } from './queryParamsMetadata.js'
 import { sqlServerPlaceholder } from './sqlServerParamTypes.js'
 
@@ -48,16 +48,18 @@ const sqliteWasm: ParamBinding = (params, value, type, typeCategory, forceTypeCa
 }
 /** pg and Bun SQL can't send a parameter with its type: the type goes as a cast in the placeholder */
 const postgreSqlCast: ParamBinding = (params, value, type, typeCategory, forceTypeCast, castTypesByName) => {
-    const index = add(params, value, type, typeCategory, forceTypeCast)
-    return postgreSqlPlaceholder(index, value, type, typeCategory, forceTypeCast, castTypesByName)
+    const sent = postgreSqlParamValue(value, type, typeCategory)
+    const index = add(params, sent, type, typeCategory, forceTypeCast)
+    return postgreSqlPlaceholder(index, sent, type, typeCategory, forceTypeCast, castTypesByName)
 }
 /** postgres.js and PGlite send the parameter with its type: the placeholder needs no cast */
 const postgreSqlTyped: ParamBinding = (params, value, type, typeCategory, forceTypeCast) => {
-    return '$' + (add(params, value, type, typeCategory, forceTypeCast) + 1)
+    return '$' + (add(params, postgreSqlParamValue(value, type, typeCategory), type, typeCategory, forceTypeCast) + 1)
 }
 const mySql: ParamBinding = (params, value, type, typeCategory, forceTypeCast) => {
-    const placeholder = mySqlPlaceholder('?', params, params.length, value, type, typeCategory)
-    add(params, value, type, typeCategory, forceTypeCast)
+    const sent = mySqlParamValue(value, type, typeCategory)
+    const placeholder = mySqlPlaceholder('?', params, params.length, sent, type, typeCategory)
+    add(params, sent, type, typeCategory, forceTypeCast)
     return placeholder
 }
 const sqlServer: ParamBinding = (params, value, type, typeCategory, forceTypeCast) => {

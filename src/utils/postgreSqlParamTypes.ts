@@ -1,5 +1,6 @@
 import type { TypeCategory } from '../TypeAdapter.js'
 import { __conversionType } from './typeCategory.js'
+import { utcDateText, utcTimeText } from './utcDateTimeText.js'
 
 /**
  * The PostgreSQL type a parameter is given where the position it is written in doesn't give it one (forceTypeCast):
@@ -79,4 +80,32 @@ export function postgreSqlPlaceholder(index: number, value: unknown, type: strin
         return placeholder + '::' + cast
     }
     return placeholder
+}
+
+/**
+ * The value a parameter is sent as on PostgreSQL, for every query runner of it: a localDate, a localTime or a
+ * localDateTime that is a Date goes as the text of its UTC getters, so the database gets the same value whatever the
+ * zone of the process (the drivers write a Date with the local getters, or as an instant): `YYYY-MM-DD`,
+ * `HH:MM:SS.mmm` and `YYYY-MM-DD HH:MM:SS.mmm+00`, whose offset makes it the same value for a `timestamp` (that ignores
+ * it) and a `timestamptz`. A year before 1 is written as PostgreSQL does, `0044-03-15 BC` for the year -43. Any other
+ * value is sent as it is.
+ */
+export function postgreSqlParamValue(value: unknown, type: string, typeCategory: TypeCategory): unknown {
+    if (!(value instanceof Date) || isNaN(value.getTime())) {
+        return value
+    }
+    const year = value.getUTCFullYear()
+    const era = year < 1 ? ' BC' : ''
+    // The year 0 is 1 BC
+    const eraYear = year < 1 ? 1 - year : year
+    switch (__conversionType(type, typeCategory)) {
+        case 'localDate':
+            return utcDateText(value, eraYear) + era
+        case 'localTime':
+            return utcTimeText(value)
+        case 'localDateTime':
+            return utcDateText(value, eraYear) + ' ' + utcTimeText(value) + '+00' + era
+        default:
+            return value
+    }
 }

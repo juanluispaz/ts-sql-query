@@ -8,6 +8,7 @@ import { getMssqlErrorReason, isMssqlError } from './connectorErrorMappers/Mssql
 import { databaseIsolationLevel } from '../utils/transactionIsolationLevel.js'
 import { getParamTypeAt, getParamTypeCategoryAt } from '../utils/queryParamsMetadata.js'
 import type { TypeCategory } from '../TypeAdapter.js'
+import { isProcessInUtc } from '../utils/processTimeZone.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 
 const { TYPES, ISOLATION_LEVEL } = mssql
@@ -38,6 +39,11 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     /** pool: the pool, or a transaction begun with it, which something else commits or rolls back */
     constructor(pool: ConnectionPool | Transaction, config?: MssqlPoolQueryRunnerConfig) {
         super()
+        if (!isProcessInUtc() && (pool as any).config?.options?.useUTC === false) {
+            // With useUTC false, tedious writes and reads a date and time with the local getters, and the date and
+            // time values are in UTC (a Transaction gives the configuration of its pool)
+            throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'useUTC', value: false }, 'MssqlPoolQueryRunner requires a pool without useUTC: false (true is the default of tedious) when the process does not run in UTC: the date and time values are in UTC')
+        }
         // A transaction gives its requests like the pool, and only a pool is asked to begin (see executeBeginTransaction)
         this.pool = pool as ConnectionPool
         this.database = 'sqlServer'

@@ -277,7 +277,7 @@ describe(ctx.label, () => {
                 "mktg-site",
                 "Marketing web",
                 1,
-                1990-01-01T00:00:00.000Z,
+                "1990-01-01 00:00:00.000+00",
               ]
             `)
             assertType<Exact<typeof insertedCount, number>>()

@@ -388,7 +388,7 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where created_at >= $1 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            2020-01-01T00:00:00.000Z,
+            "2020-01-01 00:00:00.000+00",
           ]
         `)
     })
@@ -878,8 +878,8 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date >= $1 and work_date < $2 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            2024-03-01T00:00:00.000Z,
-            2024-03-31T00:00:00.000Z,
+            "2024-03-01",
+            "2024-03-31",
           ]
         `)
     })
@@ -1033,8 +1033,8 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on >= $1 and released_on < $2 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            2024-01-01T10:00:00.000Z,
-            2024-12-31T10:00:00.000Z,
+            "2024-01-01",
+            "2024-12-31",
           ]
         `)
     })
@@ -1092,8 +1092,8 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at >= $1 and signed_off_at < $2 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            2024-01-01T00:00:00.000Z,
-            2024-12-31T00:00:00.000Z,
+            "2024-01-01 00:00:00.000+00",
+            "2024-12-31 00:00:00.000+00",
           ]
         `)
     })
@@ -1279,8 +1279,8 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on >= $1 and released_on < $2 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            2024-01-01T10:00:00.000Z,
-            2024-12-31T10:00:00.000Z,
+            "2024-01-01",
+            "2024-12-31",
           ]
         `)
     })
@@ -1341,8 +1341,8 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at >= $1 and signed_off_at < $2 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            2024-01-01T00:00:00.000Z,
-            2024-12-31T00:00:00.000Z,
+            "2024-01-01 00:00:00.000+00",
+            "2024-12-31 00:00:00.000+00",
           ]
         `)
     })
@@ -1642,8 +1642,8 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date >= $1 and work_date < $2 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            2024-03-01T00:00:00.000Z,
-            2024-03-31T00:00:00.000Z,
+            "2024-03-01",
+            "2024-03-31",
           ]
         `)
     })
@@ -1735,7 +1735,7 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where created_at >= $1 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            2020-01-01T00:00:00.000Z,
+            "2020-01-01 00:00:00.000+00",
           ]
         `)
     })
@@ -2771,15 +2771,15 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date = $1 and work_date <> $2 and work_date is not distinct from $3 and work_date is distinct from $4 and work_date in ($5, $6) and work_date not in ($7) and work_date <= $8 and work_date > $9 and work_date is null and work_date is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            2024-01-01T00:00:00.000Z,
-            2024-04-01T00:00:00.000Z,
-            2024-07-01T00:00:00.000Z,
-            2024-01-01T00:00:00.000Z,
-            2024-01-01T00:00:00.000Z,
-            2024-04-01T00:00:00.000Z,
-            2024-07-01T00:00:00.000Z,
-            2024-04-01T00:00:00.000Z,
-            2024-01-01T00:00:00.000Z,
+            "2024-01-01",
+            "2024-04-01",
+            "2024-07-01",
+            "2024-01-01",
+            "2024-01-01",
+            "2024-04-01",
+            "2024-07-01",
+            "2024-04-01",
+            "2024-01-01",
           ]
         `)
     })
@@ -2813,15 +2813,15 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date = $1 and work_date <> $2 and work_date is not distinct from $3 and work_date is distinct from $4 and work_date in ($5, $6) and work_date not in ($7) and work_date <= $8 and work_date > $9 and work_date is null and work_date is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            2024-01-01T00:00:00.000Z,
-            2024-04-01T00:00:00.000Z,
-            2024-07-01T00:00:00.000Z,
-            2024-01-01T00:00:00.000Z,
-            2024-01-01T00:00:00.000Z,
-            2024-04-01T00:00:00.000Z,
-            2024-07-01T00:00:00.000Z,
-            2024-04-01T00:00:00.000Z,
-            2024-01-01T00:00:00.000Z,
+            "2024-01-01",
+            "2024-04-01",
+            "2024-07-01",
+            "2024-01-01",
+            "2024-01-01",
+            "2024-04-01",
+            "2024-07-01",
+            "2024-04-01",
+            "2024-01-01",
           ]
         `)
     })
@@ -2857,15 +2857,15 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date = $1 and work_date <> $2 and work_date is not distinct from $3 and work_date is distinct from $4 and work_date in ($5, $6) and work_date not in ($7) and work_date <= $8 and work_date > $9 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            2024-01-01T00:00:00.000Z,
-            2024-04-01T00:00:00.000Z,
-            2024-07-01T00:00:00.000Z,
-            2024-01-01T00:00:00.000Z,
-            2024-01-01T00:00:00.000Z,
-            2024-04-01T00:00:00.000Z,
-            2024-07-01T00:00:00.000Z,
-            2024-04-01T00:00:00.000Z,
-            2024-01-01T00:00:00.000Z,
+            "2024-01-01",
+            "2024-04-01",
+            "2024-07-01",
+            "2024-01-01",
+            "2024-01-01",
+            "2024-04-01",
+            "2024-07-01",
+            "2024-04-01",
+            "2024-01-01",
           ]
         `)
     })
@@ -2900,15 +2900,15 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date = $1 and work_date <> $2 and work_date is not distinct from $3 and work_date is distinct from $4 and work_date in ($5, $6) and work_date not in ($7) and work_date <= $8 and work_date > $9 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            2024-01-01T00:00:00.000Z,
-            2024-04-01T00:00:00.000Z,
-            2024-07-01T00:00:00.000Z,
-            2024-01-01T00:00:00.000Z,
-            2024-01-01T00:00:00.000Z,
-            2024-04-01T00:00:00.000Z,
-            2024-07-01T00:00:00.000Z,
-            2024-04-01T00:00:00.000Z,
-            2024-01-01T00:00:00.000Z,
+            "2024-01-01",
+            "2024-04-01",
+            "2024-07-01",
+            "2024-01-01",
+            "2024-01-01",
+            "2024-04-01",
+            "2024-07-01",
+            "2024-04-01",
+            "2024-01-01",
           ]
         `)
     })
@@ -3148,16 +3148,16 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where created_at = $1 and created_at <> $2 and created_at is not distinct from $3 and created_at is distinct from $4 and created_at in ($5, $6) and created_at not in ($7) and created_at < $8 and created_at <= $9 and created_at > $10 and created_at is null and created_at is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            2020-01-01T00:00:00.000Z,
-            2021-06-15T12:00:00.000Z,
-            2022-12-31T23:00:00.000Z,
-            2020-01-01T00:00:00.000Z,
-            2020-01-01T00:00:00.000Z,
-            2021-06-15T12:00:00.000Z,
-            2022-12-31T23:00:00.000Z,
-            2022-12-31T23:00:00.000Z,
-            2021-06-15T12:00:00.000Z,
-            2020-01-01T00:00:00.000Z,
+            "2020-01-01 00:00:00.000+00",
+            "2021-06-15 12:00:00.000+00",
+            "2022-12-31 23:00:00.000+00",
+            "2020-01-01 00:00:00.000+00",
+            "2020-01-01 00:00:00.000+00",
+            "2021-06-15 12:00:00.000+00",
+            "2022-12-31 23:00:00.000+00",
+            "2022-12-31 23:00:00.000+00",
+            "2021-06-15 12:00:00.000+00",
+            "2020-01-01 00:00:00.000+00",
           ]
         `)
     })
@@ -3192,16 +3192,16 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where created_at = $1 and created_at <> $2 and created_at is not distinct from $3 and created_at is distinct from $4 and created_at in ($5, $6) and created_at not in ($7) and created_at < $8 and created_at <= $9 and created_at > $10 and created_at is null and created_at is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            2020-01-01T00:00:00.000Z,
-            2021-06-15T12:00:00.000Z,
-            2022-12-31T23:00:00.000Z,
-            2020-01-01T00:00:00.000Z,
-            2020-01-01T00:00:00.000Z,
-            2021-06-15T12:00:00.000Z,
-            2022-12-31T23:00:00.000Z,
-            2022-12-31T23:00:00.000Z,
-            2021-06-15T12:00:00.000Z,
-            2020-01-01T00:00:00.000Z,
+            "2020-01-01 00:00:00.000+00",
+            "2021-06-15 12:00:00.000+00",
+            "2022-12-31 23:00:00.000+00",
+            "2020-01-01 00:00:00.000+00",
+            "2020-01-01 00:00:00.000+00",
+            "2021-06-15 12:00:00.000+00",
+            "2022-12-31 23:00:00.000+00",
+            "2022-12-31 23:00:00.000+00",
+            "2021-06-15 12:00:00.000+00",
+            "2020-01-01 00:00:00.000+00",
           ]
         `)
     })
@@ -3238,16 +3238,16 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where created_at = $1 and created_at <> $2 and created_at is not distinct from $3 and created_at is distinct from $4 and created_at in ($5, $6) and created_at not in ($7) and created_at < $8 and created_at <= $9 and created_at > $10 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            2020-01-01T00:00:00.000Z,
-            2021-06-15T12:00:00.000Z,
-            2022-12-31T23:00:00.000Z,
-            2020-01-01T00:00:00.000Z,
-            2020-01-01T00:00:00.000Z,
-            2021-06-15T12:00:00.000Z,
-            2022-12-31T23:00:00.000Z,
-            2022-12-31T23:00:00.000Z,
-            2021-06-15T12:00:00.000Z,
-            2020-01-01T00:00:00.000Z,
+            "2020-01-01 00:00:00.000+00",
+            "2021-06-15 12:00:00.000+00",
+            "2022-12-31 23:00:00.000+00",
+            "2020-01-01 00:00:00.000+00",
+            "2020-01-01 00:00:00.000+00",
+            "2021-06-15 12:00:00.000+00",
+            "2022-12-31 23:00:00.000+00",
+            "2022-12-31 23:00:00.000+00",
+            "2021-06-15 12:00:00.000+00",
+            "2020-01-01 00:00:00.000+00",
           ]
         `)
     })
@@ -3283,16 +3283,16 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where created_at = $1 and created_at <> $2 and created_at is not distinct from $3 and created_at is distinct from $4 and created_at in ($5, $6) and created_at not in ($7) and created_at < $8 and created_at <= $9 and created_at > $10 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            2020-01-01T00:00:00.000Z,
-            2021-06-15T12:00:00.000Z,
-            2022-12-31T23:00:00.000Z,
-            2020-01-01T00:00:00.000Z,
-            2020-01-01T00:00:00.000Z,
-            2021-06-15T12:00:00.000Z,
-            2022-12-31T23:00:00.000Z,
-            2022-12-31T23:00:00.000Z,
-            2021-06-15T12:00:00.000Z,
-            2020-01-01T00:00:00.000Z,
+            "2020-01-01 00:00:00.000+00",
+            "2021-06-15 12:00:00.000+00",
+            "2022-12-31 23:00:00.000+00",
+            "2020-01-01 00:00:00.000+00",
+            "2020-01-01 00:00:00.000+00",
+            "2021-06-15 12:00:00.000+00",
+            "2022-12-31 23:00:00.000+00",
+            "2022-12-31 23:00:00.000+00",
+            "2021-06-15 12:00:00.000+00",
+            "2020-01-01 00:00:00.000+00",
           ]
         `)
     })
@@ -4028,15 +4028,15 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on = $1 and released_on <> $2 and released_on is not distinct from $3 and released_on is distinct from $4 and released_on in ($5, $6) and released_on not in ($7) and released_on <= $8 and released_on > $9 and released_on is null and released_on is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            2024-01-01T10:00:00.000Z,
-            2024-06-01T10:00:00.000Z,
-            2024-12-01T10:00:00.000Z,
-            2024-01-01T10:00:00.000Z,
-            2024-01-01T10:00:00.000Z,
-            2024-06-01T10:00:00.000Z,
-            2024-12-01T10:00:00.000Z,
-            2024-06-01T10:00:00.000Z,
-            2024-01-01T10:00:00.000Z,
+            "2024-01-01",
+            "2024-06-01",
+            "2024-12-01",
+            "2024-01-01",
+            "2024-01-01",
+            "2024-06-01",
+            "2024-12-01",
+            "2024-06-01",
+            "2024-01-01",
           ]
         `)
     })
@@ -4070,15 +4070,15 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on = $1 and released_on <> $2 and released_on is not distinct from $3 and released_on is distinct from $4 and released_on in ($5, $6) and released_on not in ($7) and released_on <= $8 and released_on > $9 and released_on is null and released_on is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            2024-01-01T10:00:00.000Z,
-            2024-06-01T10:00:00.000Z,
-            2024-12-01T10:00:00.000Z,
-            2024-01-01T10:00:00.000Z,
-            2024-01-01T10:00:00.000Z,
-            2024-06-01T10:00:00.000Z,
-            2024-12-01T10:00:00.000Z,
-            2024-06-01T10:00:00.000Z,
-            2024-01-01T10:00:00.000Z,
+            "2024-01-01",
+            "2024-06-01",
+            "2024-12-01",
+            "2024-01-01",
+            "2024-01-01",
+            "2024-06-01",
+            "2024-12-01",
+            "2024-06-01",
+            "2024-01-01",
           ]
         `)
     })
@@ -4114,15 +4114,15 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on = $1 and released_on <> $2 and released_on is not distinct from $3 and released_on is distinct from $4 and released_on in ($5, $6) and released_on not in ($7) and released_on <= $8 and released_on > $9 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            2024-01-01T10:00:00.000Z,
-            2024-06-01T10:00:00.000Z,
-            2024-12-01T10:00:00.000Z,
-            2024-01-01T10:00:00.000Z,
-            2024-01-01T10:00:00.000Z,
-            2024-06-01T10:00:00.000Z,
-            2024-12-01T10:00:00.000Z,
-            2024-06-01T10:00:00.000Z,
-            2024-01-01T10:00:00.000Z,
+            "2024-01-01",
+            "2024-06-01",
+            "2024-12-01",
+            "2024-01-01",
+            "2024-01-01",
+            "2024-06-01",
+            "2024-12-01",
+            "2024-06-01",
+            "2024-01-01",
           ]
         `)
     })
@@ -4157,15 +4157,15 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on = $1 and released_on <> $2 and released_on is not distinct from $3 and released_on is distinct from $4 and released_on in ($5, $6) and released_on not in ($7) and released_on <= $8 and released_on > $9 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            2024-01-01T10:00:00.000Z,
-            2024-06-01T10:00:00.000Z,
-            2024-12-01T10:00:00.000Z,
-            2024-01-01T10:00:00.000Z,
-            2024-01-01T10:00:00.000Z,
-            2024-06-01T10:00:00.000Z,
-            2024-12-01T10:00:00.000Z,
-            2024-06-01T10:00:00.000Z,
-            2024-01-01T10:00:00.000Z,
+            "2024-01-01",
+            "2024-06-01",
+            "2024-12-01",
+            "2024-01-01",
+            "2024-01-01",
+            "2024-06-01",
+            "2024-12-01",
+            "2024-06-01",
+            "2024-01-01",
           ]
         `)
     })
@@ -4404,15 +4404,15 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at = $1 and signed_off_at <> $2 and signed_off_at is not distinct from $3 and signed_off_at is distinct from $4 and signed_off_at in ($5, $6) and signed_off_at not in ($7) and signed_off_at <= $8 and signed_off_at > $9 and signed_off_at is null and signed_off_at is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            2024-01-01T00:00:00.000Z,
-            2024-06-15T12:00:00.000Z,
-            2024-12-31T00:00:00.000Z,
-            2024-01-01T00:00:00.000Z,
-            2024-01-01T00:00:00.000Z,
-            2024-06-15T12:00:00.000Z,
-            2024-12-31T00:00:00.000Z,
-            2024-06-15T12:00:00.000Z,
-            2024-01-01T00:00:00.000Z,
+            "2024-01-01 00:00:00.000+00",
+            "2024-06-15 12:00:00.000+00",
+            "2024-12-31 00:00:00.000+00",
+            "2024-01-01 00:00:00.000+00",
+            "2024-01-01 00:00:00.000+00",
+            "2024-06-15 12:00:00.000+00",
+            "2024-12-31 00:00:00.000+00",
+            "2024-06-15 12:00:00.000+00",
+            "2024-01-01 00:00:00.000+00",
           ]
         `)
     })
@@ -4446,15 +4446,15 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at = $1 and signed_off_at <> $2 and signed_off_at is not distinct from $3 and signed_off_at is distinct from $4 and signed_off_at in ($5, $6) and signed_off_at not in ($7) and signed_off_at <= $8 and signed_off_at > $9 and signed_off_at is null and signed_off_at is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            2024-01-01T00:00:00.000Z,
-            2024-06-15T12:00:00.000Z,
-            2024-12-31T00:00:00.000Z,
-            2024-01-01T00:00:00.000Z,
-            2024-01-01T00:00:00.000Z,
-            2024-06-15T12:00:00.000Z,
-            2024-12-31T00:00:00.000Z,
-            2024-06-15T12:00:00.000Z,
-            2024-01-01T00:00:00.000Z,
+            "2024-01-01 00:00:00.000+00",
+            "2024-06-15 12:00:00.000+00",
+            "2024-12-31 00:00:00.000+00",
+            "2024-01-01 00:00:00.000+00",
+            "2024-01-01 00:00:00.000+00",
+            "2024-06-15 12:00:00.000+00",
+            "2024-12-31 00:00:00.000+00",
+            "2024-06-15 12:00:00.000+00",
+            "2024-01-01 00:00:00.000+00",
           ]
         `)
     })
@@ -4490,15 +4490,15 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at = $1 and signed_off_at <> $2 and signed_off_at is not distinct from $3 and signed_off_at is distinct from $4 and signed_off_at in ($5, $6) and signed_off_at not in ($7) and signed_off_at <= $8 and signed_off_at > $9 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            2024-01-01T00:00:00.000Z,
-            2024-06-15T12:00:00.000Z,
-            2024-12-31T00:00:00.000Z,
-            2024-01-01T00:00:00.000Z,
-            2024-01-01T00:00:00.000Z,
-            2024-06-15T12:00:00.000Z,
-            2024-12-31T00:00:00.000Z,
-            2024-06-15T12:00:00.000Z,
-            2024-01-01T00:00:00.000Z,
+            "2024-01-01 00:00:00.000+00",
+            "2024-06-15 12:00:00.000+00",
+            "2024-12-31 00:00:00.000+00",
+            "2024-01-01 00:00:00.000+00",
+            "2024-01-01 00:00:00.000+00",
+            "2024-06-15 12:00:00.000+00",
+            "2024-12-31 00:00:00.000+00",
+            "2024-06-15 12:00:00.000+00",
+            "2024-01-01 00:00:00.000+00",
           ]
         `)
     })
@@ -4533,15 +4533,15 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at = $1 and signed_off_at <> $2 and signed_off_at is not distinct from $3 and signed_off_at is distinct from $4 and signed_off_at in ($5, $6) and signed_off_at not in ($7) and signed_off_at <= $8 and signed_off_at > $9 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            2024-01-01T00:00:00.000Z,
-            2024-06-15T12:00:00.000Z,
-            2024-12-31T00:00:00.000Z,
-            2024-01-01T00:00:00.000Z,
-            2024-01-01T00:00:00.000Z,
-            2024-06-15T12:00:00.000Z,
-            2024-12-31T00:00:00.000Z,
-            2024-06-15T12:00:00.000Z,
-            2024-01-01T00:00:00.000Z,
+            "2024-01-01 00:00:00.000+00",
+            "2024-06-15 12:00:00.000+00",
+            "2024-12-31 00:00:00.000+00",
+            "2024-01-01 00:00:00.000+00",
+            "2024-01-01 00:00:00.000+00",
+            "2024-06-15 12:00:00.000+00",
+            "2024-12-31 00:00:00.000+00",
+            "2024-06-15 12:00:00.000+00",
+            "2024-01-01 00:00:00.000+00",
           ]
         `)
     })
@@ -5304,8 +5304,8 @@ describe(ctx.label, () => {
             50,
             500,
             100,
-            2024-03-31T00:00:00.000Z,
-            2024-03-01T00:00:00.000Z,
+            "2024-03-31",
+            "2024-03-01",
             "17:00:00",
             "09:00:00",
           ]
@@ -5352,7 +5352,7 @@ describe(ctx.label, () => {
           [
             2.5,
             3.5,
-            2020-01-01T00:00:00.000Z,
+            "2020-01-01 00:00:00.000+00",
             "a",
             "b",
             "c",
@@ -5404,12 +5404,12 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on < $1 and released_on >= $2 and cutoff_time < $3 and cutoff_time >= $4 and signed_off_at < $5 and signed_off_at >= $6 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            2024-12-31T10:00:00.000Z,
-            2024-01-01T10:00:00.000Z,
+            "2024-12-31",
+            "2024-01-01",
             "20:00:00",
             "09:00:00",
-            2024-12-31T00:00:00.000Z,
-            2024-01-01T00:00:00.000Z,
+            "2024-12-31 00:00:00.000+00",
+            "2024-01-01 00:00:00.000+00",
           ]
         `)
     })

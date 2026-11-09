@@ -453,7 +453,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(signed_off_at, ?) as x from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2099-01-01T00:00:00.000Z,
+            "2099-01-01 00:00:00.000",
             2,
           ]
         `)
@@ -506,7 +506,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(work_date, ?) as d, ifnull(work_date, work_date) as d2 from issue_worklog where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2024-01-01T00:00:00.000Z,
+            "2024-01-01",
             2,
           ]
         `)
@@ -538,7 +538,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(created_at, ?) as d, ifnull(created_at, created_at) as d2 from \`organization\` where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2099-01-01T00:00:00.000Z,
+            "2099-01-01 00:00:00.000",
             1,
           ]
         `)
@@ -569,7 +569,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(released_on, ?) as d, ifnull(released_on, released_on) as d2 from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2099-01-01T00:00:00.000Z,
+            "2099-01-01",
             2,
           ]
         `)

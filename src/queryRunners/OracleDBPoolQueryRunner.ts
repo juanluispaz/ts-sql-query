@@ -6,6 +6,7 @@ import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQuery
 import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { setQueryParamType } from './QueryRunner.js'
+import { requireOracleSessionInUtc } from '../utils/processTimeZone.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 
 export interface OracleDBPoolQueryRunnerConfig {
@@ -21,6 +22,7 @@ export class OracleDBPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
 
     constructor(pool: Pool, config?: OracleDBPoolQueryRunnerConfig) {
         super()
+        requireOracleSessionInUtc('OracleDBPoolQueryRunner')
         this.pool = pool
         this.database = 'oracle'
         this.config = config

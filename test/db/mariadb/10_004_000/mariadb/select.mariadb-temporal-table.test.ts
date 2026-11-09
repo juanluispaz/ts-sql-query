@@ -36,8 +36,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, description as description from service_plan for system_time between ? and ?  where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2000-01-01T00:00:00.000Z,
-            2100-01-01T00:00:00.000Z,
+            "2000-01-01 00:00:00.000",
+            "2100-01-01 00:00:00.000",
             1,
           ]
         `)
@@ -68,8 +68,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, description as description from service_plan for system_time between ? and ?  where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2000-01-01T00:00:00.000Z,
-            2100-01-01T00:00:00.000Z,
+            "2000-01-01 00:00:00.000",
+            "2100-01-01 00:00:00.000",
             2,
           ]
         `)
@@ -95,8 +95,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from service_plan for system_time between ? and ?  where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2000-01-01T00:00:00.000Z,
-            2001-01-01T00:00:00.000Z,
+            "2000-01-01 00:00:00.000",
+            "2001-01-01 00:00:00.000",
             1,
           ]
         `)

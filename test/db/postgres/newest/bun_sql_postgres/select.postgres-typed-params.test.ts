@@ -109,8 +109,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from $1::date) as year, extract(dow from $2::date) as "dayOfWeek""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2024-01-15T00:00:00.000Z,
-            2024-01-15T00:00:00.000Z,
+            "2024-01-15",
+            "2024-01-15",
           ]
         `)
         expect(forceTypeCasts()).toEqual([true, true])

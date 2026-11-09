@@ -1,6 +1,7 @@
 // The DbType OracleDBQueryRunner binds a parameter with when its type name is
 // declared in typesByName: an IN bind (read back with dump(), whose Typ is the
-// type Oracle received: 12 a DATE, 180 a TIMESTAMP) and a RETURNING OUT bind
+// type Oracle received: 12 a DATE, 180 a TIMESTAMP, 181 a TIMESTAMP WITH TIME
+// ZONE) and a RETURNING OUT bind
 // (the value comes back converted to that type). The pool runners pass it on
 // to the runner of each connection.
 
@@ -44,10 +45,10 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
     }
 
     test('an-in-bind-of-a-declared-type-name', async () => {
-        // A Date goes as a TIMESTAMP, unless its type name is declared as a DATE
-        expect(await dumpOf(runner!, 'Day')).toMatch(/^Typ=180 /)
+        // A local date and time goes as a TIMESTAMP WITH TIME ZONE, unless its type name is declared as a DATE
+        expect(await dumpOf(runner!, 'Day')).toMatch(/^Typ=181 /)
         expect(await dumpOf(declared!, 'Day')).toMatch(/^Typ=12 /)
-        expect(await dumpOf(declared!, 'SignOffStamp')).toMatch(/^Typ=180 /)
+        expect(await dumpOf(declared!, 'SignOffStamp')).toMatch(/^Typ=181 /)
     })
 
     test('a-null-in-bind-of-a-declared-type-name', async () => {

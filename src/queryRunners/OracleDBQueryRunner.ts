@@ -7,8 +7,10 @@ import { getOracleDBErrorReason, isOracleDBError } from './connectorErrorMappers
 import { getParamTypeAt, getParamTypeCategoryAt } from '../utils/queryParamsMetadata.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { getQueryResultColumns, setQueryParamType } from './QueryRunner.js'
+import { requireOracleSessionInUtc } from '../utils/processTimeZone.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { __isDecimalCategory } from '../utils/typeCategory.js'
+import { oracleUtcTimestampBindValue } from '../utils/oracleParamTypes.js'
 
 export interface OracleDBQueryRunnerConfig {
     /** The connection is in a transaction that something else manages, and that something else ends: the statements don't commit, and none begins, commits or rolls back through this query runner */
@@ -27,6 +29,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
 
     constructor(connection: Connection, config?: OracleDBQueryRunnerConfig) {
         super()
+        requireOracleSessionInUtc('OracleDBQueryRunner')
         this.connection = connection
         this.database = 'oracle'
         this.config = config
@@ -137,6 +140,12 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
             }
             if (declared !== undefined) {
                 result[i] = { val: value, type: declared }
+                continue
+            }
+            // A localDate, a localTime or a localDateTime is bound as a timestamp with time zone in UTC
+            const utcTimestamp = oracleUtcTimestampBindValue(value, typeName, getParamTypeCategoryAt(params, i))
+            if (utcTimestamp) {
+                result[i] = { val: utcTimestamp, type: oracleDb.DB_TYPE_TIMESTAMP_TZ }
                 continue
             }
             if (value === null || value === undefined) {

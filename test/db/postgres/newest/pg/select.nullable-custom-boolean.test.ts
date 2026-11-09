@@ -56,7 +56,7 @@ describe(ctx.label, () => {
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
-                2024-03-12T10:00:00.000Z,
+                "2024-03-12",
                 "coding",
                 true,
               ]
@@ -85,7 +85,7 @@ describe(ctx.label, () => {
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,
-                2024-03-13T10:00:00.000Z,
+                "2024-03-13",
                 "review",
                 null,
               ]

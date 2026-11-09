@@ -1457,32 +1457,33 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid localDate value to send to the db: ' + value)
             case 'localTime':
                 if (value instanceof Date && !isNaN(value.getTime())) {
+                    // The time of a localTime is the one of its UTC getters, whatever the zone of the process
                     let result = ''
-                    if (value.getHours() > 9) {
-                        result += value.getHours()
+                    if (value.getUTCHours() > 9) {
+                        result += value.getUTCHours()
                     } else {
-                        result += '0' + value.getHours()
+                        result += '0' + value.getUTCHours()
                     }
                     result += ':'
-                    if (value.getMinutes() > 9) {
-                        result += value.getMinutes()
+                    if (value.getUTCMinutes() > 9) {
+                        result += value.getUTCMinutes()
                     } else {
-                        result += '0' + value.getMinutes()
+                        result += '0' + value.getUTCMinutes()
                     }
                     result += ':'
-                    if (value.getSeconds() > 9) {
-                        result += value.getSeconds()
+                    if (value.getUTCSeconds() > 9) {
+                        result += value.getUTCSeconds()
                     } else {
-                        result += '0' + value.getSeconds()
+                        result += '0' + value.getUTCSeconds()
                     }
-                    if (value.getMilliseconds() > 0) {
+                    if (value.getUTCMilliseconds() > 0) {
                         result += '.'
-                        if (value.getMilliseconds() > 99) {
-                            result += value.getMilliseconds()
-                        } else if (value.getMilliseconds() > 9) {
-                            result += '0' + value.getMilliseconds()
+                        if (value.getUTCMilliseconds() > 99) {
+                            result += value.getUTCMilliseconds()
+                        } else if (value.getUTCMilliseconds() > 9) {
+                            result += '0' + value.getUTCMilliseconds()
                         } else {
-                            result += '00' + value.getMilliseconds()
+                            result += '00' + value.getUTCMilliseconds()
                         }
                     }
                     return result

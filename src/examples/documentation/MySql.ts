@@ -639,7 +639,7 @@ async function main() {
     result = 1
     expectedResult.push(result)
     expectedQuery.push(`insert into customer (first_name, last_name, company_id, birthday) values (?, ?, ?, ?)`)
-    expectedParams.push(`["John","Smith",1,"2000-03-01T00:00:00.000Z"]`)
+    expectedParams.push(`["John","Smith",1,"2000-03-01"]`)
     expectedType.push(`insertReturningLastInsertedId`)
     
     /* *** Example ****************************************************************/
@@ -1698,7 +1698,7 @@ async function main() {
     result = []
     expectedResult.push(result)
     expectedQuery.push(`select id as id, first_name as firstName, last_name as lastName, birthday as birthday from customer for system_time between ? and ?  where id = ?`)
-    expectedParams.push(`["2019-01-01T00:00:00.000Z","2020-01-01T00:00:00.000Z",10]`)
+    expectedParams.push(`["2019-01-01 00:00:00.000","2020-01-01 00:00:00.000",10]`)
     expectedType.push(`selectManyRows`)
     
     /* *** Example ****************************************************************/
@@ -4037,7 +4037,7 @@ async function main() {
     result = []
     expectedResult.push(result)
     expectedQuery.push("select id as id, `name` as `name` from company where (exists(select id as result from customer where lower(concat(first_name, ?, last_name)) like concat('%', lower(?), '%')) or exists(select id as result from customer where birthday = ?)) and parent_id = ?")
-    expectedParams.push(`[" ","John","2000-03-01T00:00:00.000Z",23]`)
+    expectedParams.push(`[" ","John","2000-03-01",23]`)
     expectedType.push(`selectManyRows`)
 
     /* *** Example ****************************************************************/

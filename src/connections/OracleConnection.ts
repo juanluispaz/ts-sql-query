@@ -158,7 +158,8 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
             // Oracle feeds through its implicit string→DATE conversion — that has
             // no month component and raises ORA-01843. Binding a Date instead lets
             // oracledb send it as a TIMESTAMP, exactly like localDateTime already does.
-            return new Date(1970, 0, 1, value.getHours(), value.getMinutes(), value.getSeconds(), value.getMilliseconds())
+            // The time is the one of the UTC getters, whatever the zone of the process.
+            return new Date(Date.UTC(1970, 0, 1, value.getUTCHours(), value.getUTCMinutes(), value.getUTCSeconds(), value.getUTCMilliseconds()))
         }
         return super.transformValueToDB(value, type, typeCategory)
     }

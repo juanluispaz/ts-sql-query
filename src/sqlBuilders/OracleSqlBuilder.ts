@@ -385,8 +385,21 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     // produced by `_escapeLikeWildcard` need an explicit `escape '\'` clause.
     override _likeEscape = " escape '\\'"
     _nullValueForCondition = '(0=null)'
+    /**
+     * The booleans are stored as Oracle's BOOLEAN (`booleanStorage: 'boolean'`, Oracle 23ai): they are written as in the
+     * SQL standard, like the base builder does; otherwise a boolean is a number 1 / 0
+     */
+    _nativeBoolean(): boolean {
+        return this._connectionConfiguration.booleanStorage === 'boolean'
+    }
+    override _true(params: any): string {
+        return this._nativeBoolean() ? 'true' : super._true(params)
+    }
+    override _false(params: any): string {
+        return this._nativeBoolean() ? 'false' : super._false(params)
+    }
     override _appendSql(value: ToSql | AnyValueSource, params: any[], forceTypeCast: boolean): string {
-        if (isValueSource(value) && !isColumn(value)) {
+        if (!this._nativeBoolean() && isValueSource(value) && !isColumn(value)) {
             const valueSourcePrivate = __getValueSourcePrivate(value)
             if (valueSourcePrivate.__isBooleanForCondition) {
                 if (valueSourcePrivate.__optionalType === 'required') {
@@ -399,13 +412,23 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return super._appendSql(value, params, forceTypeCast)
     }
     override _appendSelectColumnReferenceForCondition(column: AnyValueSource, params: any[]): string {
+        if (this._nativeBoolean()) {
+            if (isColumn(column) && !(__getColumnPrivate(column).__typeAdapter instanceof CustomBooleanTypeAdapter)) {
+                // A BOOLEAN column of the table is a condition by itself
+                return super._appendSelectColumnReferenceForCondition(column, params)
+            }
+            // A boolean expression of the select (a custom boolean column is one too) is read by Oracle in the having
+            // as a condition over the columns it uses, which aren't grouped (ORA-00979): compared with true it is the
+            // grouped value
+            return '((' + this._appendSelectColumnReference(column, params) + ') = true)'
+        }
         // The select list writes a boolean as a value (1 / 0), and the having must refer to that same expression
         // (the grouped one): it is compared with 1 to make it a condition, like _appendConditionSql does with a
         // boolean value. Only a reference to a column gets here: _appendConditionSql handles the other ones
         return '(' + this._appendSelectColumnReference(column, params) + ' = 1)'
     }
     override _appendConditionSql(value: ToSql | AnyValueSource, params: any[], forceTypeCast: boolean): string {
-        if (isValueSource(value) && !isColumn(value) && hasToSql(value)) {
+        if (!this._nativeBoolean() && isValueSource(value) && !isColumn(value) && hasToSql(value)) {
             const valueSourcePrivate = __getValueSourcePrivate(value)
             if (__isBooleanValueSource(valueSourcePrivate) && !valueSourcePrivate.__isBooleanForCondition) {
                 // A boolean value used as a condition is a `1`/`0` number; coerce
@@ -429,6 +452,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return super._appendConditionSql(value, params, forceTypeCast)
     }
     override _appendConditionParam(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+        if (this._nativeBoolean()) {
+            return super._appendConditionParam(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
+        }
         if (__isBooleanValueType(columnType)) {
             if (isColumn(value)) {
                 const columnPrivate = __getColumnPrivate(value)
@@ -442,6 +468,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return this._appendParam(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
     override _appendColumnName(column: DBColumn, params: any[]): string {
+        if (this._nativeBoolean()) {
+            return super._appendColumnName(column, params)
+        }
         const columnPrivate = __getColumnPrivate(column)
         const typeAdapter = columnPrivate.__typeAdapter
         if (__isBooleanValueSource(columnPrivate)) {
@@ -457,6 +486,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return this._appendRawColumnName(column, params)
     }
     override _appendColumnNameForCondition(column: DBColumn, params: any[]): string {
+        if (this._nativeBoolean()) {
+            return super._appendColumnNameForCondition(column, params)
+        }
         const columnPrivate = __getColumnPrivate(column)
         const typeAdapter = columnPrivate.__typeAdapter
         if (__isBooleanValueSource(columnPrivate)) {
@@ -470,6 +502,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return this._appendRawColumnName(column, params)
     }
     override _inlineSelectAsValueForCondition(query: SelectData, params: any[]): string {
+        if (this._nativeBoolean()) {
+            return super._inlineSelectAsValueForCondition(query, params)
+        }
         if (query.__oneColumn) {
             const columns = query.__columns
             for (const prop in columns) {
@@ -484,6 +519,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return this._buildInlineSelect(query, params)
     }
     override _appendCustomBooleanRemapForColumnIfRequired(column: DBColumn, value: any, params: any[], forceTypeCast: boolean): string | null {
+        if (this._nativeBoolean()) {
+            return super._appendCustomBooleanRemapForColumnIfRequired(column, value, params, forceTypeCast)
+        }
         const columnPrivate = __getColumnPrivate(column)
         const columnTypeAdapter = columnPrivate.__typeAdapter
         const columnTypeName = columnPrivate.__valueTypeName
@@ -1173,7 +1211,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return this._appendRawColumnName(valueSource, params) + ' is null'
         } else if (isValueSource(valueSource)) {
             const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-            if (valueSourcePrivate.__isBooleanForCondition) {
+            if (valueSourcePrivate.__isBooleanForCondition && !this._nativeBoolean()) {
                 if (valueSourcePrivate.__optionalType === 'required') {
                     return this._falseValueForCondition
                 } else {
@@ -1189,7 +1227,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return this._appendRawColumnName(valueSource, params) + ' is not null'
         } else if (isValueSource(valueSource)) {
             const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-            if (valueSourcePrivate.__isBooleanForCondition) {
+            if (valueSourcePrivate.__isBooleanForCondition && !this._nativeBoolean()) {
                 if (valueSourcePrivate.__optionalType === 'required') {
                     return this._trueValueForCondition
                 } else {

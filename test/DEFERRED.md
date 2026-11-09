@@ -28,21 +28,6 @@ Each entry says what it is, why it waits, and what is already known.
 - **Known:** `customDecimal` has no `divide`; its rejection is in the
   `types.negative` cells (`expressions.test.ts`).
 
-## Native `BOOLEAN` columns on Oracle 23ai
-
-- **What:** let a boolean column be a native `BOOLEAN` on Oracle from 23ai,
-  sending its values as `DB_TYPE_BOOLEAN`.
-- **Why deferred:** the library keeps booleans as numbers on Oracle (`NUMBER(1)`
-  columns, `1`/`0`), which works the same on 21 and 23ai: `OracleConnection`
-  turns `true`/`false` into `1`/`0`, and `OracleDBQueryRunner` binds a null
-  boolean as `NUMBER`.
-- **Known:** `oracledb` binds a JavaScript `boolean` as `DB_TYPE_BOOLEAN`
-  (`dump(:0)` gives `Typ=252` on 23ai and on 21). Choosing it by version needs
-  the `compatibilityVersion` in the query runner: it can't come through
-  `useDatabase`, which the connection calls in its constructor, before the field
-  of a subclass that sets the version is initialized; it would go hidden in the
-  params of each query, with a public reader like `getQueryExecutionName`.
-
 ## Splitting an insert by the parameter limit of each engine
 
 - **What:** split a multi-row insert into several statements when it would pass

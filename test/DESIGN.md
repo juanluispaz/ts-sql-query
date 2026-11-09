@@ -63,7 +63,7 @@ Three categories of real-DB connector with very different cost:
 | Category | Connectors | Real-DB by default? | Cost per cell |
 |---|---|---|---|
 | **Embedded SQLite** | better-sqlite3, bun_sqlite, bun_sql_sqlite, node_sqlite (and their `-sync` twins) | yes, no flag needed | as cheap as the mock |
-| **Docker-backed** | postgres (pg, postgres, bun_sql_postgres), mysql and mariadb (mysql2 / mariadb, bun_sql_mysql), oracle, sqlserver | no — opt in with `--docker` | seconds to minutes (depends on warm reuse) |
+| **Docker-backed** | postgres (pg, postgres, bun_sql_postgres), mysql and mariadb (mysql2 / mariadb, bun_sql_mysql), oracle (oracledb, oracledb-boolean), sqlserver | no — opt in with `--docker` | seconds to minutes (depends on warm reuse) |
 | **WASM** | pglite, sqlite-wasm-OO1 (and its `-sync` twin) | no — opt in with `--wasm` | seconds to minutes (CPU-bound bootstrap) |
 
 See [`ENGINE_LIFECYCLE.md`](./ENGINE_LIFECYCLE.md) for the lifecycle of each
@@ -246,6 +246,14 @@ for how the report should look.
     mock resolve through `SynchronousPromise`, so a query is unwrapped with
     `sync(...)` instead of `await`. See
     [`NEW_DATABASE.md` § Sync runners](./NEW_DATABASE.md#sync-runners).
+    A **storage twin** is a cell of the same kind for a configuration that
+    changes how the data is stored: `oracle/newest/oracledb-boolean` is the
+    oracledb runner with `booleanStorage = 'boolean'` (Oracle 23ai's
+    `BOOLEAN`), against a variant of the domain schema with the plain boolean
+    columns declared `BOOLEAN`. Same files and test names; its SQL, params and
+    snapshots differ where a boolean is involved. It exists only in `newest`,
+    since the older engines have no `BOOLEAN`. See
+    [`NEW_DATABASE.md` § Storage twins](./NEW_DATABASE.md#storage-twins).
 
 16. **`src/examples/` coexists with this suite.** The new suite must reach
     equivalent coverage before `src/examples/` is retired; until then, both stay

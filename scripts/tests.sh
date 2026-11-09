@@ -248,7 +248,7 @@ Runner flags
                 the coords — it excludes, it does not mock.
   --run-connectors <all|docker|wasm|native>
         Which connector KINDS run. all (default) | docker (pg, postgres,
-        bun_sql_postgres, mariadb, mysql2, bun_sql_mysql, oracledb, mssql) |
+        bun_sql_postgres, mariadb, mysql2, bun_sql_mysql, oracledb(+boolean), mssql) |
         wasm (pglite, sqlite-wasm-OO1) | native (better-sqlite3, bun_sqlite,
         bun_sql_sqlite, node_sqlite). A pure path filter: EXCLUDES the other kinds from the run
         (does NOT mock them). `types.negative/` folders are dialect-level

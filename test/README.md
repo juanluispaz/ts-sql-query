@@ -240,8 +240,10 @@ test/
   `10_005_000`, `8_000_017`), or `oldest` (the `< lowest-breakpoint` zone).
 - `<connector>` = a query runner of that database, named after its page in
   `docs/configuration/query-runners/recommended/*.md` or `additional/*.md`;
-  `<connector>-sync`, the same runner driven synchronously; or `documentation`,
-  the tests generated from the docs.
+  `<connector>-sync`, the same runner driven synchronously; a storage twin such
+  as `oracledb-boolean` (the same runner with the booleans stored as Oracle
+  23ai's `BOOLEAN`, `newest` only); or `documentation`, the tests generated from
+  the docs.
 
 Not every (version × connector) cell is valid. Folders for invalid
 cells simply do not exist. A WASM engine bundles one database version

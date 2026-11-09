@@ -191,6 +191,8 @@ export interface ConnectionConfiguration {
     readonly minValueFunction?: string
     /** PostgreSQL and SQL Server: the function of yours that gives the greater of two values (`maxValueFunction`) */
     readonly maxValueFunction?: string
+    /** Oracle: how a boolean is stored, `'number'` (`NUMBER(1)`, 1 / 0) or `'boolean'` (`BOOLEAN`, Oracle 23ai) (`booleanStorage`) */
+    readonly booleanStorage?: string
     /** Oracle: a concatenation reads a null as the empty string (`ignoreNullInConcat`) */
     readonly ignoreNullInConcat?: boolean
     /** Oracle: the function of yours that concatenates propagating a null (`concatFunction`) */

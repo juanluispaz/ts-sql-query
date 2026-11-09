@@ -4,7 +4,7 @@ import oracleDb from 'oracledb'
 import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getOracleDBErrorReason, isOracleDBError } from './connectorErrorMappers/OracleDBErrorMapper.js'
-import { getParamTypeAt, getParamTypeCategoryAt } from '../utils/queryParamsMetadata.js'
+import { getParamTypeAt, getParamTypeCategoryAt, getQueryConnectionConfigurationOf } from '../utils/queryParamsMetadata.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { getQueryResultColumns, setQueryParamType } from './QueryRunner.js'
 import { requireOracleSessionInUtc } from '../utils/processTimeZone.js'
@@ -151,6 +151,8 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
      */
     protected bindParams(params: any[], resolveOutBinds: boolean = false, procedure: boolean = false): Record<string, any> {
         const typesByName = this.config?.typesByName
+        // With booleanStorage 'boolean' (Oracle 23ai) a boolean is bound as a BOOLEAN, as in a procedure
+        const nativeBoolean = getQueryConnectionConfigurationOf(params)?.booleanStorage === 'boolean'
         const result: Record<string, any> = {}
         for (let i = 0, length = params.length; i < length; i++) {
             const value = params[i]
@@ -163,7 +165,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
                 // A date or a time is returned as a timestamp with time zone: Oracle converts the value of a date or a
                 // timestamp column with the zone of the session (UTC, see requireOracleSessionInUtc), and oracledb
                 // gives it as its instant, where it builds a date or a timestamp with the zone of the process
-                const dbType = declared ?? (isTemporalCategory(category) ? oracleDb.DB_TYPE_TIMESTAMP_TZ : this.oracleDbType(category))
+                const dbType = declared ?? (isTemporalCategory(category) ? oracleDb.DB_TYPE_TIMESTAMP_TZ : this.oracleDbType(category, nativeBoolean))
                 // A text, or a value received as one, is returned in a buffer of maxSize bytes
                 const maxSize = (isOracleDBBindType(declaredBind) ? declaredBind.maxSize : undefined) ?? this.config?.returningMaxSize ?? defaultReturningMaxSize
                 if (dbType === undefined || (dbType === oracleDb.DB_TYPE_NUMBER && declared === undefined)) {
@@ -180,7 +182,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
                 result[i] = { val: value, type: declared }
                 continue
             }
-            if (procedure && getParamTypeCategoryAt(params, i) === 'boolean' && (value === 1 || value === 0 || value === null || value === undefined || typeof value === 'boolean')) {
+            if ((procedure || nativeBoolean) && getParamTypeCategoryAt(params, i) === 'boolean' && (value === 1 || value === 0 || value === null || value === undefined || typeof value === 'boolean')) {
                 result[i] = { val: value === null || value === undefined ? null : !!value, type: oracleDb.DB_TYPE_BOOLEAN }
                 continue
             }
@@ -194,7 +196,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
                 // oracledb binds a null without a type Oracle can use where nothing else gives it one: a row of a
                 // union (ORA-01790) or a `case :0 when 1` (ORA-00932). A null of a number, a date or a time is bound
                 // with its type.
-                const type = this.oracleDbType(getParamTypeCategoryAt(params, i))
+                const type = this.oracleDbType(getParamTypeCategoryAt(params, i), nativeBoolean)
                 if (type !== undefined) {
                     result[i] = { val: null, type: type }
                     continue
@@ -208,9 +210,10 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     // or a bigint is a NUMBER, a boolean is sent as a number (see OracleConnection), and a Date is a TIMESTAMP, also
     // for a localDate and a localTime (Oracle has no TIME type). A text has no DbType here: it's how oracledb binds a
     // null.
-    private oracleDbType(typeCategory: TypeCategory | undefined): DbType | undefined {
+    private oracleDbType(typeCategory: TypeCategory | undefined, nativeBoolean: boolean): DbType | undefined {
         switch (typeCategory) {
             case 'boolean':
+                return nativeBoolean ? oracleDb.DB_TYPE_BOOLEAN : oracleDb.DB_TYPE_NUMBER
             case 'int':
             case 'bigint':
             case 'customInt':

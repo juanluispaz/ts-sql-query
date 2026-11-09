@@ -9,6 +9,7 @@ database has to satisfy see [`PER_DATABASE_LAYOUT.md`](./PER_DATABASE_LAYOUT.md)
 - [Adding a compatibility version](#adding-a-compatibility-version)
 - [Mirror cells from EXTERNAL_CAVEATS](#mirror-cells-from-external_caveats)
 - [Sync runners](#sync-runners)
+- [Storage twins](#storage-twins)
 
 ## Adding a database
 
@@ -255,3 +256,35 @@ To add a `-sync` twin of an existing connector:
 3. Add the folder name to the list of its twin in
    [`_test-common.sh`](../scripts/_test-common.sh) (`WASM_CONNECTOR_NAMES` or
    `NATIVE_CONNECTOR_NAMES`).
+
+## Storage twins
+
+A storage twin is a cell that runs the same runner with a configuration of the
+connection that changes how a value is stored, against a schema of its own. The
+one there is today is `oracle/newest/oracledb-boolean`: the oracledb runner with
+`booleanStorage = 'boolean'`, so the booleans are Oracle 23ai's `BOOLEAN`.
+
+- **Same files and test names** as its twin (the [symmetry
+  rule](./DESIGN.md#symmetry-rule)); the snapshots differ where a boolean is
+  involved, so they are baked in the twin itself. `tests:propagate all` reaches
+  it like any other cell of the database.
+- **Only the tiers the engine has.** `BOOLEAN` needs Oracle 23ai, so the twin
+  exists only in `newest`. Nothing lists the connector per tier: the audit, the
+  `--list-*` flags, the `validate:tests` split and the docker image map
+  (keyed by version folder) all walk the folders on disk.
+- **The context factory takes the option**: `createOracleDBPoolTestContext({
+  …, booleanStorage: 'boolean' })` in `test/db/oracle/runners.ts`. Every
+  connection of the context stores booleans natively, the subclasses passed to
+  `withConnection` included. A test that builds `new DBConnection(...)` on its
+  own runner (the error and synchronous-runner tests) still gets the default
+  storage.
+- **The schema is generated, not copied**: the factory reads
+  `domain/schema.sql` and declares `BOOLEAN` the columns listed in
+  `NATIVE_BOOLEAN_COLUMNS` (each must appear once as `NUMBER(1)`, or the
+  bootstrap fails). The seed and the reset are shared: Oracle 23ai stores the
+  1 / 0 of the seed in a `BOOLEAN` column as true / false. A column with a
+  `CustomBooleanTypeAdapter(1, 0)` (`invoiced`) stays `NUMBER(1)`.
+- **Worker users of its own** (`tsappbool`, `tsappbool_w<n>`), so a worker
+  process that runs both cells never shares a table between the two schemas.
+  The schema hash on the reused container covers both variants, and a stale
+  hash drops the users of both.

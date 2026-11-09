@@ -1,0 +1,270 @@
+// Impl-branch coverage of `createSqlOperation1ofOverloadedNumber` (the shared
+// dispatcher behind add/subtract/multiply/modulo/maximumBetweenTwoValues/
+// minimumBetweenTwoValues) for an INT receiver. When the OTHER operand is a
+// non-int value source the dispatcher PROMOTES the result to `double` (rather
+// than carrying it as `int`). This is the value-source double-promotion arm,
+// previously unexercised: an `int` column added to a `double` column.
+//
+// The promotion is value-observable: with a fractional right operand the
+// fractional result only survives because the operation is carried as double —
+// an int carry would lose the fraction. A real DOUBLE COLUMN is used as the
+// right operand (not a bare parameter) so the engine resolves `int + double`
+// from the column's own declared type, which is what this arm is about.
+//
+// Seed: issue 1 has priority 2; estimated_hours is set to 1.5 inside the
+// rollback so the promoted result is the fractional 3.5.
+
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { tIssue } from '../../domain/connection.js'
+import { ctx } from './setup.js'
+
+describe(ctx.label, () => {
+    beforeAll(() => ctx.up(), ctx.timeoutMs)
+    afterAll(() => ctx.down(), ctx.timeoutMs)
+    beforeEach(() => { ctx.reset() })
+
+    test('int-receiver-plus-double-column-promotes-result-to-double', async () => {
+        // `priority.add(estimatedHours)` — the right operand is a `double`
+        // column (a non-int value source), so the dispatcher carries the
+        // result as double. With estimated_hours = 1.5, issue 1 priority 2 +
+        // 1.5 = 3.5; the fraction survives only because the result is double.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue)
+                .set({ estimatedHours: 1.5 })
+                .where(tIssue.id.equals(1))
+                .executeUpdate()
+
+            const expected = { id: 1, bumped: 3.5 }
+            ctx.mockNext({ id: 1, bumped: 3.5 })
+            const row = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({ id: tIssue.id, bumped: tIssue.priority.add(tIssue.estimatedHours) })
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", priority + estimated_hours as "bumped" from issue where id = :0"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; bumped?: number }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+
+    test('int-receiver-comparisons-accept-a-fractional-literal', async () => {
+        // A fractional bound against an `int` column is a query the engine answers, so
+        // the library builds it instead of refusing it: issue 1 has priority 2, which is
+        // below 2.5, is not 0.5, sits inside [0.5, 2.5] and is in the list. The static
+        // type cannot tell `2.5` from `2` — `number` has no integer literal type — so the
+        // operand is bound in the data type that can hold the value and the engine judges
+        // the rest. `between` widens both bounds together, `in` the whole list.
+        const expected = { id: 1, p: 2 }
+        ctx.mockNext(expected)
+
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1)
+                .and(tIssue.priority.lessThan(2.5))
+                .and(tIssue.priority.notEquals(0.5))
+                .and(tIssue.priority.between(0.5, 2.5))
+                .and(tIssue.priority.in([0.5, 2])))
+            .select({ id: tIssue.id, p: tIssue.priority })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", priority as "p" from issue where id = :0 and priority < :1 and priority <> :2 and priority between :3 and :4 and priority in (:5, :6)"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2.5,
+            0.5,
+            0.5,
+            2.5,
+            0.5,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; p: number }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('int-receiver-subtract-double-column-promotes-result-to-double', async () => {
+        // `priority.subtract(estimatedHours)` — the int-receiver + double-column
+        // arm of the promotion dispatcher. The right operand is a `double` column
+        // (a non-int value source), so the dispatcher carries the result as
+        // double. With
+        // estimated_hours = 1.5, issue 1 priority 2 - 1.5 = 0.5; the fraction
+        // survives only because the result is double.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue)
+                .set({ estimatedHours: 1.5 })
+                .where(tIssue.id.equals(1))
+                .executeUpdate()
+
+            const expected = { id: 1, net: 0.5 }
+            ctx.mockNext({ id: 1, net: 0.5 })
+            const row = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({ id: tIssue.id, net: tIssue.priority.subtract(tIssue.estimatedHours) })
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", priority - estimated_hours as "net" from issue where id = :0"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; net?: number }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+
+    test('int-receiver-multiply-double-column-promotes-result-to-double', async () => {
+        // The same value-source promotion arm on a different overloaded op
+        // (`multiply`), confirming the branch is shared across the family. With
+        // estimated_hours = 2.25, issue 1 priority 2 * 2.25 = 4.5.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue)
+                .set({ estimatedHours: 2.25 })
+                .where(tIssue.id.equals(1))
+                .executeUpdate()
+
+            const expected = { id: 1, scaled: 4.5 }
+            ctx.mockNext({ id: 1, scaled: 4.5 })
+            const row = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({ id: tIssue.id, scaled: tIssue.priority.multiply(tIssue.estimatedHours) })
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", priority * estimated_hours as "scaled" from issue where id = :0"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; scaled?: number }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+
+    test('int-receiver-modulo-double-column-promotes-result-to-double', async () => {
+        // `priority.modulo(estimatedHours)` — the int-side mirror of the
+        // `double % x` arm. The right operand is a `double` column, so the
+        // dispatcher promotes the receiver to double; Oracle's `_modulo` emits the
+        // built-in `MOD(...)`, which accepts the floating-point operand. With
+        // estimated_hours = 1.5, issue 1 priority 2 mod 1.5 = 0.5; the fraction
+        // survives only because the operation is carried as double.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue)
+                .set({ estimatedHours: 1.5 })
+                .where(tIssue.id.equals(1))
+                .executeUpdate()
+
+            const expected = { id: 1, rest: 0.5 }
+            ctx.mockNext({ id: 1, rest: 0.5 })
+            const row = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({ id: tIssue.id, rest: tIssue.priority.modulo(tIssue.estimatedHours) })
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", mod(priority, estimated_hours) as "rest" from issue where id = :0"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; rest?: number }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+
+    test('int-receiver-maxValue-double-column-promotes-result-to-double', async () => {
+        // `priority.maxValue(estimatedHours)` caps the receiver from above
+        // (maxValue = "no more than x" → `least(...)`) and shares the promotion
+        // dispatcher. With estimated_hours = 1.5, least(priority 2, 1.5) = 1.5 —
+        // the fractional operand survives only because the result is double.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue)
+                .set({ estimatedHours: 1.5 })
+                .where(tIssue.id.equals(1))
+                .executeUpdate()
+
+            const expected = { id: 1, hi: 1.5 }
+            ctx.mockNext({ id: 1, hi: 1.5 })
+            const row = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({ id: tIssue.id, hi: tIssue.priority.maxValue(tIssue.estimatedHours) })
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", least(priority, estimated_hours) as "hi" from issue where id = :0"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; hi?: number }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+
+    test('int-receiver-minValue-double-column-promotes-result-to-double', async () => {
+        // `priority.minValue(estimatedHours)` floors the receiver from below
+        // (minValue = "no less than x" → `greatest(...)`) on the same promotion
+        // arm. With estimated_hours = 2.5, greatest(priority 2, 2.5) = 2.5 — the
+        // fractional operand survives only because the result is double.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue)
+                .set({ estimatedHours: 2.5 })
+                .where(tIssue.id.equals(1))
+                .executeUpdate()
+
+            const expected = { id: 1, lo: 2.5 }
+            ctx.mockNext({ id: 1, lo: 2.5 })
+            const row = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({ id: tIssue.id, lo: tIssue.priority.minValue(tIssue.estimatedHours) })
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", greatest(priority, estimated_hours) as "lo" from issue where id = :0"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; lo?: number }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+
+    test('int-receiver-chained-fractional-literal-add-then-modulo', async () => {
+        // `priority.add(2.5).modulo(2)` — an int receiver with a fractional LITERAL
+        // operand chained into modulo. Issue 1 has priority 2, so (2 + 2.5) mod 2 = 0.5.
+        // The modulo dialect override casts the operands so the fractional remainder
+        // survives.
+        await ctx.withRollback(async () => {
+            const expected = { id: 1, rest: 0.5 }
+            ctx.mockNext({ id: 1, rest: 0.5 })
+            const row = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({ id: tIssue.id, rest: tIssue.priority.add(2.5).modulo(2) })
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", mod(priority + :0, :1) as "rest" from issue where id = :2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                2.5,
+                2,
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; rest: number }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+})

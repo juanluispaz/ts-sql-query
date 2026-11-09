@@ -29,6 +29,7 @@ import {
 } from '../../lib/containerLifecycle.js'
 import { imageForCell, newestImage } from '../../lib/dockerImages.js'
 import { createTestContext, type TestContext } from '../../lib/testContext.js'
+import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
 import { DBConnection } from './domain/connection.js'
 
 
@@ -147,6 +148,60 @@ const SEED_PATH = resolve(__dirname, './domain/seed.sql')
 // every worker user shares one instance's data dictionary.
 const RESET_PATH = resolve(__dirname, './domain/reset.sql')
 
+// ---- Boolean storage ----------------------------------------------------
+//
+// A cell stores booleans one of two ways (`booleanStorage` of
+// `OracleConnection`): `'number'`, a `NUMBER(1)` with 1 / 0 (the default, every
+// Oracle version), or `'boolean'`, Oracle 23ai's `BOOLEAN` (only the `newest`
+// tier: the older engines have no BOOLEAN).
+//
+// The `'boolean'` cells run against a variant of the shared domain, generated
+// from schema.sql when it is read: the columns the domain declares as plain
+// `boolean` (no CustomBooleanTypeAdapter) become `BOOLEAN`. `invoiced` stays a
+// `NUMBER(1)`: it is declared with `CustomBooleanTypeAdapter(1, 0)`, the form a
+// `NUMBER(1)` column takes when the storage is `'boolean'`. Each listed
+// column must be declared exactly once as `NUMBER(1)`, so a change of
+// schema.sql that moves one fails loud instead of leaving it a number.
+//
+// The variant lives in worker users of its own (`tsappbool`, `tsappbool_w<n>`),
+// so a worker that runs cells of both storages never shares a table between
+// the two schemas.
+type BooleanStorage = 'number' | 'boolean'
+
+const BOOLEAN_STORAGE_ORACLE_USER = `${BASE_ORACLE_USER}bool`
+
+const NATIVE_BOOLEAN_COLUMNS = ['billable', 'is_signed', 'm_bool'] as const
+
+function toNativeBooleanSchema(schemaSql: string): string {
+    let out = schemaSql
+    for (const column of NATIVE_BOOLEAN_COLUMNS) {
+        const re = new RegExp(`^(\\s+${column}\\s+)NUMBER\\(1\\)`, 'gm')
+        const count = out.match(re)?.length ?? 0
+        if (count !== 1) {
+            throw new Error(`test/db/oracle/runners.ts: the column ${column} must be declared once as NUMBER(1) in ${SCHEMA_PATH} to get its BOOLEAN variant, found ${count}`)
+        }
+        out = out.replace(re, '$1BOOLEAN')
+    }
+    return out
+}
+
+// The schema, seed and reset of a storage. The seed and the reset are the same
+// for both: Oracle 23ai converts the 1 / 0 the seed inserts into a BOOLEAN
+// column to true / false.
+async function readDomainSql(storage: BooleanStorage): Promise<{ schema: string, seed: string, reset: string }> {
+    const [schema, seed, reset] = await Promise.all([
+        readFile(SCHEMA_PATH, 'utf8'),
+        readFile(SEED_PATH, 'utf8'),
+        readFile(RESET_PATH, 'utf8'),
+    ])
+    return { schema: storage === 'boolean' ? toNativeBooleanSchema(schema) : schema, seed, reset }
+}
+
+// The connection of a `'boolean'` cell.
+class BooleanStorageDBConnection extends DBConnection {
+    protected override booleanStorage: 'number' | 'boolean' = 'boolean'
+}
+
 const ORACLE_PASSWORD = 'OracleTestPass1!'
 
 // The Oracle service name depends on the image: gvenzl/oracle-free (23ai,
@@ -210,11 +265,11 @@ const containers = createContainerRegistry<StartedContainer>(async (image) => {
 })
 
 async function validateOrResetForReuse(host: string, port: number, serviceName: string): Promise<void> {
-    const [schemaSql, seedSql] = await Promise.all([
-        readFile(SCHEMA_PATH, 'utf8'),
-        readFile(SEED_PATH, 'utf8'),
-    ])
-    const currentHash = await hashSqlFiles(schemaSql, seedSql)
+    // One hash covers both storages: the SQL the `number` users get and the SQL
+    // the `boolean` users get, so a change of either rebuilds every worker user.
+    const numberSql = await readDomainSql('number')
+    const booleanSql = await readDomainSql('boolean')
+    const currentHash = await hashSqlFiles(numberSql.schema, numberSql.seed, booleanSql.schema, booleanSql.seed)
 
     // `DBMS_LOCK` requires EXECUTE privilege; `system` has it. The lock
     // handle is released automatically when the session closes (we
@@ -261,21 +316,24 @@ async function validateOrResetForReuse(host: string, port: number, serviceName: 
 
             if (storedHash === currentHash) return
 
-            // Enumerate and drop every existing worker user — both the
-            // parallel-on pattern (`tsapp_w%`) and the parallel-off
-            // bare name (`tsapp`). DROP USER ... CASCADE deletes the
-            // user and every object it owns. ORA-01918 means the user
-            // didn't exist (fresh container); ignore it.
-            const userRes = await conn.execute<{ USERNAME: string }>(
-                `SELECT username FROM dba_users
-                  WHERE username = :base OR username LIKE :pat ESCAPE '\\'`,
-                {
-                    base: BASE_ORACLE_USER.toUpperCase(),
-                    pat: workerNameLikePattern(BASE_ORACLE_USER).toUpperCase(),
-                },
-                { outFormat: oracledb.OUT_FORMAT_OBJECT },
-            )
-            const usersToDrop = (userRes.rows ?? []).map(r => r.USERNAME)
+            // Enumerate and drop every existing worker user of both storages —
+            // the parallel-on pattern (`tsapp_w%`, `tsappbool_w%`) and the
+            // parallel-off bare name (`tsapp`, `tsappbool`). DROP USER ...
+            // CASCADE deletes the user and every object it owns. ORA-01918
+            // means the user didn't exist (fresh container); ignore it.
+            const usersToDrop: string[] = []
+            for (const baseUser of [BASE_ORACLE_USER, BOOLEAN_STORAGE_ORACLE_USER]) {
+                const userRes = await conn.execute<{ USERNAME: string }>(
+                    `SELECT username FROM dba_users
+                      WHERE username = :base OR username LIKE :pat ESCAPE '\\'`,
+                    {
+                        base: baseUser.toUpperCase(),
+                        pat: workerNameLikePattern(baseUser).toUpperCase(),
+                    },
+                    { outFormat: oracledb.OUT_FORMAT_OBJECT },
+                )
+                usersToDrop.push(...(userRes.rows ?? []).map(r => r.USERNAME))
+            }
             // Add the meta user so we recreate it from scratch with a
             // fresh hash row.
             usersToDrop.push(META_DB_NAME.toUpperCase())
@@ -372,14 +430,15 @@ function stripSqlLineComments(sql: string): string {
     return sql.replace(/--[^\n]*/g, '')
 }
 
-// Once-per-process flag: the worker user only needs creating the first
+// Once-per-process record: a worker user only needs creating the first
 // time the runner starts inside a given process. Subsequent
 // `bootstrapWorkerUserSchemaAndSeed` / `applySchemaAndSeedToOpenedConnection`
-// calls skip the system connection.
-let workerUserEnsured = false
+// calls skip the system connection. Keyed by user: a process that runs cells
+// of both boolean storages owns one user of each.
+const workerUsersEnsured = new Set<string>()
 
 async function ensureWorkerUserExists(host: string, port: number, workerUser: string, image: string): Promise<void> {
-    if (workerUserEnsured) return
+    if (workerUsersEnsured.has(workerUser)) return
     const serviceName = serviceNameForImage(image)
     const oracledb = (await import('oracledb')).default
     const sys = await oracledb.getConnection({
@@ -420,18 +479,15 @@ async function ensureWorkerUserExists(host: string, port: number, workerUser: st
     } finally {
         await sys.close()
     }
-    workerUserEnsured = true
+    workerUsersEnsured.add(workerUser)
 }
 
-async function applySchemaAndSeedToOpenedConnection(conn: import('oracledb').Connection): Promise<void> {
-    const [schemaSql, seedSql] = await Promise.all([
-        readFile(SCHEMA_PATH, 'utf8'),
-        readFile(SEED_PATH, 'utf8'),
-    ])
-    for (const stmt of splitStatements(schemaSql)) {
+async function applySchemaAndSeedToOpenedConnection(conn: import('oracledb').Connection, storage: BooleanStorage): Promise<void> {
+    const sql = await readDomainSql(storage)
+    for (const stmt of splitStatements(sql.schema)) {
         await conn.execute(stmt)
     }
-    for (const stmt of splitStatements(seedSql)) {
+    for (const stmt of splitStatements(sql.seed)) {
         await conn.execute(stmt)
     }
     await conn.commit()
@@ -441,15 +497,12 @@ async function applySchemaAndSeedToOpenedConnection(conn: import('oracledb').Con
 // identity/sequence rewind) instead of the heavy schema.sql, then the same
 // seed. Leaves the exact post-bootstrap state without the DROP+CREATE
 // shared-dictionary churn.
-async function applyResetAndSeedToOpenedConnection(conn: import('oracledb').Connection): Promise<void> {
-    const [resetSql, seedSql] = await Promise.all([
-        readFile(RESET_PATH, 'utf8'),
-        readFile(SEED_PATH, 'utf8'),
-    ])
-    for (const stmt of splitStatements(resetSql)) {
+async function applyResetAndSeedToOpenedConnection(conn: import('oracledb').Connection, storage: BooleanStorage): Promise<void> {
+    const sql = await readDomainSql(storage)
+    for (const stmt of splitStatements(sql.reset)) {
         await conn.execute(stmt)
     }
-    for (const stmt of splitStatements(seedSql)) {
+    for (const stmt of splitStatements(sql.seed)) {
         await conn.execute(stmt)
     }
     await conn.commit()
@@ -502,9 +555,9 @@ async function applyUuidCompatFunctions(conn: import('oracledb').Connection): Pr
 // user must be created before the pool can authenticate against it. This
 // path opens a one-shot direct connection to bootstrap the schema/seed.
 // Subsequent reseeds borrow from the runner's pool — see `onReseed` below.
-async function bootstrapWorkerUserSchemaAndSeed(host: string, port: number, image: string): Promise<string> {
+async function bootstrapWorkerUserSchemaAndSeed(host: string, port: number, image: string, storage: BooleanStorage = 'number'): Promise<string> {
     const serviceName = serviceNameForImage(image)
-    const workerUser = workerName(BASE_ORACLE_USER)
+    const workerUser = workerName(storage === 'boolean' ? BOOLEAN_STORAGE_ORACLE_USER : BASE_ORACLE_USER)
     await ensureWorkerUserExists(host, port, workerUser, image)
 
     const oracledb = (await import('oracledb')).default
@@ -519,7 +572,7 @@ async function bootstrapWorkerUserSchemaAndSeed(host: string, port: number, imag
         if (isOracleXeImage(image)) {
             await applyUuidCompatFunctions(conn)
         }
-        await applySchemaAndSeedToOpenedConnection(conn)
+        await applySchemaAndSeedToOpenedConnection(conn, storage)
     } finally {
         await conn.close()
     }
@@ -532,6 +585,14 @@ export interface OracleTestSpec {
     label: string
     canonicalForDocs?: boolean
     compatibilityVersion?: number
+    /**
+     * How the connection stores a boolean (`booleanStorage` of
+     * `OracleConnection`): `'number'` (the default, `NUMBER(1)` 1 / 0) or
+     * `'boolean'` (Oracle 23ai's `BOOLEAN`). With `'boolean'` the cell gets
+     * the schema variant of `readDomainSql('boolean')` in worker users of its
+     * own, and every connection of the context stores booleans natively.
+     */
+    booleanStorage?: BooleanStorage
 }
 
 export function createOracleDBPoolTestContext(spec: OracleTestSpec): OracleTestContext {
@@ -540,6 +601,7 @@ export function createOracleDBPoolTestContext(spec: OracleTestSpec): OracleTestC
     const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ true, version, connector)
     const image = imageForCell(DATABASE, version, realDbEnabled)
     const serviceName = serviceNameForImage(image)
+    const booleanStorage: BooleanStorage = spec.booleanStorage ?? 'number'
     const buildRunner = memoizeSharedRunner(async (params: { host: string; port: number; workerUser: string }) => {
         const oracledb = (await import('oracledb')).default
         const { OracleDBPoolQueryRunner } = await import('../../../src/queryRunners/OracleDBPoolQueryRunner.js')
@@ -593,7 +655,7 @@ export function createOracleDBPoolTestContext(spec: OracleTestSpec): OracleTestC
         }
     })
 
-    return decorateOracleContext(createTestContext<DBConnection>({
+    const base = createTestContext<DBConnection>({
         label: spec.label,
         mockQueryRunner: 'OracleDBPoolQueryRunner',
         canonicalForDocs: spec.canonicalForDocs,
@@ -605,7 +667,7 @@ export function createOracleDBPoolTestContext(spec: OracleTestSpec): OracleTestC
             const container = await containers.getFor(image).acquire()
             const host = container.getHost()
             const port = container.getMappedPort(1521)
-            const workerUser = await bootstrapWorkerUserSchemaAndSeed(host, port, image)
+            const workerUser = await bootstrapWorkerUserSchemaAndSeed(host, port, image, booleanStorage)
             // `forceNew` rebuilds a fresh runner (clean transaction state) when
             // the harness discards a connection poisoned by a failed commit.
             return await buildRunner({ host, port, workerUser }, forceNew)
@@ -618,7 +680,7 @@ export function createOracleDBPoolTestContext(spec: OracleTestSpec): OracleTestC
             const pool = runner.getNativeRunner() as import('oracledb').Pool
             const conn = await pool.getConnection()
             try {
-                await applyResetAndSeedToOpenedConnection(conn)
+                await applyResetAndSeedToOpenedConnection(conn, booleanStorage)
             } finally {
                 await conn.close()  // releases back to pool
             }
@@ -627,9 +689,26 @@ export function createOracleDBPoolTestContext(spec: OracleTestSpec): OracleTestC
             await containers.getFor(image).release()
         },
         buildConnection(interceptor, compatibilityVersion) {
-            return new DBConnection(interceptor, compatibilityVersion)
+            return booleanStorage === 'boolean'
+                ? new BooleanStorageDBConnection(interceptor, compatibilityVersion)
+                : new DBConnection(interceptor, compatibilityVersion)
         },
-    }))
+    })
+    if (booleanStorage === 'boolean') {
+        // Every connection a test builds through the context stores booleans
+        // natively too: the subclass a test passes to `withConnection` (and the
+        // ones the `withXxx` helpers build) is extended once more with the
+        // storage pinned to `'boolean'`.
+        const withConnection = base.withConnection.bind(base)
+        base.withConnection = <T extends DBConnection>(subclass: new (queryRunner: QueryRunner, compatibilityVersion?: number) => T): T => {
+            const Subclass = subclass as unknown as new (queryRunner: QueryRunner, compatibilityVersion?: number) => DBConnection
+            class WithBooleanStorage extends Subclass {
+                protected override booleanStorage: 'number' | 'boolean' = 'boolean'
+            }
+            return withConnection(WithBooleanStorage) as unknown as T
+        }
+    }
+    return decorateOracleContext(base)
 }
 
 // ---- Direct query-runner tests (test/runners/) --------------------------

@@ -18,6 +18,14 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
     protected uuidStrategy: 'string' | 'custom-functions' | 'built-in' = 'built-in'
 
     /**
+     * How a boolean is stored: `'number'` (the default), a `NUMBER(1)` with 1 / 0, the form every version of Oracle
+     * has; or `'boolean'`, the `BOOLEAN` type of Oracle 23ai (it needs Oracle 23.4 or later). The SQL is written for
+     * the one chosen; a column of the other form is declared with a `CustomBooleanTypeAdapter` (with `'boolean'`, a
+     * `NUMBER(1)` column takes `new CustomBooleanTypeAdapter(1, 0)`).
+     */
+    protected booleanStorage: 'number' | 'boolean' = 'number'
+
+    /**
      * Keep Oracle's native NULL handling for concatenation (`.concat(...)` and the affix
      * predicates `startsWith` / `endsWith` / `contains` and their `Insensitive` variants).
      *
@@ -147,7 +155,7 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
 
     protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
         const conversionType = __conversionType(type, typeCategory)
-        if (conversionType === 'boolean' && typeof value === 'boolean') {
+        if (conversionType === 'boolean' && typeof value === 'boolean' && this.booleanStorage !== 'boolean') {
             // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number#number_coercion
             return Number(value);
         }

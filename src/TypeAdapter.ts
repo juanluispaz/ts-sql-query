@@ -57,9 +57,10 @@ export class CustomBooleanTypeAdapter implements TypeAdapter {
 /**
  * Declares a `localDateTime` or a `localTime` column that Oracle stores in a `DATE`, which holds the date and the time
  * to the second. Oracle's `extract` reads a `DATE` as a date without time (ORA-30076 for the hour, the minute and the
- * second) and `to_char` has no fraction of a second for it (ORA-01821), so the getters of the time write the column as
- * `cast(<column> as timestamp)`, the same digits with the fraction at zero, and `getTime` counts the `DATE` itself.
- * Everywhere else the column is written as it is. The values sent and received are not changed. On a column of any
+ * second) and `to_char` has no fraction of a second for it (ORA-01821), so the getters of the time write the column, or
+ * a value made from it (`max`, `min`, `nullIfValue`, an inline select), as `cast(<column> as timestamp)`, the same
+ * digits with the fraction at zero, and `getTime` counts the `DATE` itself. `valueWhenNull` writes
+ * `nvl(cast(<column> as timestamp), …)`, a TIMESTAMP. Everywhere else the column is written as it is. The values sent and received are not changed. On a column of any
  * other type it does nothing.
  */
 export class OracleDateAsTimestampTypeAdapter implements TypeAdapter {

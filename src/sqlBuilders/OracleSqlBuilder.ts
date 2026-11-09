@@ -1239,18 +1239,19 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return super._isNotNull(params, valueSource)
     }
     /**
-     * A localDateTime or a localTime column that Oracle stores in a DATE, declared with an
-     * OracleDateAsTimestampTypeAdapter. A DATE holds the time, but `extract` reads it as a date without time
-     * (ORA-30076) and `to_char` has no fraction of a second for it (ORA-01821): only the getters of the time need it as
-     * a timestamp. Everywhere else the column is written as it is, read the same as a TIMESTAMP.
+     * A localDateTime or a localTime that Oracle holds in a DATE: a column declared with an
+     * OracleDateAsTimestampTypeAdapter, or a value made from it that keeps the adapter (max, min, nullIfValue, an
+     * inline select). A DATE holds the time, but `extract` reads it as a date without time (ORA-30076) and `to_char`
+     * has no fraction of a second for it (ORA-01821): only the getters of the time need it as a timestamp, and
+     * valueWhenNull, which turns it into one. Everywhere else it is written as it is, read the same as a TIMESTAMP.
      */
-    _isDateColumnReadAsTimestamp(value: unknown): value is DBColumn {
-        if (!isColumn(value)) {
+    _isDateReadAsTimestamp(value: unknown): boolean {
+        if (!isValueSource(value)) {
             return false
         }
-        const columnPrivate = __getColumnPrivate(value)
-        return columnPrivate.__typeAdapter instanceof OracleDateAsTimestampTypeAdapter
-            && (__isLocalDateTimeValueSource(columnPrivate) || __isLocalTimeValueSource(columnPrivate))
+        const valueSourcePrivate = __getValueSourcePrivate(value)
+        return valueSourcePrivate.__typeAdapter instanceof OracleDateAsTimestampTypeAdapter
+            && (__isLocalDateTimeValueSource(valueSourcePrivate) || __isLocalTimeValueSource(valueSourcePrivate))
     }
     override _is(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
@@ -1282,6 +1283,11 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return 'localtimestamp'
     }
     override _valueWhenNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        if (this._isDateReadAsTimestamp(valueSource)) {
+            // nvl has the type of its first operand: a DATE read as a timestamp makes it a TIMESTAMP, so the result
+            // needs nothing more (it doesn't keep the adapter). A first operand of another type already decides it
+            return 'nvl(cast(' + this._appendSql(valueSource, params, false) + ' as timestamp), ' + this._appendValue(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
+        }
         return 'nvl(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
     }
     override _divide(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
@@ -1350,9 +1356,11 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // a TIMESTAMP: the digits are counted as UTC, as the library reads a value without zone,
         // so `getTime()` agrees with the Date read in any zone of the process. A TIMESTAMP WITH
         // LOCAL TIME ZONE still depends on the session zone (see docs/configuration/time-zones.md).
-        if (this._isDateColumnReadAsTimestamp(valueSource)) {
-            // A DATE has no fraction of a second: the day count is the whole time
-            return "(" + this._appendRawColumnName(valueSource, params) + " - date '1970-01-01') * 86400000"
+        if (this._isDateReadAsTimestamp(valueSource)) {
+            // A DATE has no fraction of a second: the day count is the whole time. A value made from the column may
+            // not be a DATE (nullif with a timestamp gives a TIMESTAMP, and a TIMESTAMP minus a DATE is an interval)
+            const date = isColumn(valueSource) ? this._appendSql(valueSource, params, false) : 'cast(' + this._appendSql(valueSource, params, false) + ' as date)'
+            return "(" + date + " - date '1970-01-01') * 86400000"
         }
         return "(cast(" + this._appendSql(valueSource, params, false) + " as date) - date '1970-01-01') * 86400000 + to_number(to_char(" + this._appendSql(valueSource, params, false) + ", 'FF3'))"
     }
@@ -1373,7 +1381,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return 'extract(minute from ' + this._appendTimestampForTimeGetter(params, valueSource) + ')'
     }
     override _getSeconds(params: any[], valueSource: ToSql): string {
-        if (this._isDateColumnReadAsTimestamp(valueSource)) {
+        if (this._isDateReadAsTimestamp(valueSource)) {
             // A DATE has no fraction of a second to truncate
             return 'extract(second from ' + this._appendTimestampForTimeGetter(params, valueSource) + ')'
         }
@@ -1384,8 +1392,8 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     }
     /** The value for `extract` of the time or `to_char` of the fraction: a DATE column read as a timestamp is cast */
     _appendTimestampForTimeGetter(params: any[], valueSource: ToSql): string {
-        if (this._isDateColumnReadAsTimestamp(valueSource)) {
-            return 'cast(' + this._appendRawColumnName(valueSource, params) + ' as timestamp)'
+        if (this._isDateReadAsTimestamp(valueSource)) {
+            return 'cast(' + this._appendSql(valueSource, params, false) + ' as timestamp)'
         }
         return this._appendSql(valueSource, params, false)
     }

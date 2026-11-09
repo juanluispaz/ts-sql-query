@@ -3,7 +3,7 @@ import { hasToSql } from '../sqlBuilders/SqlBuilder.js'
 import type { BooleanValueSource, NumberValueSource, StringValueSource, IValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, __ValueSourcePrivate, IfValueSource, BigintValueSource, AlwaysIfValueSource, IAnyBooleanValueSource, AnyValueSource, ValueSource, OptionalType, IAggregatedArrayValueSource, AggregatedArrayValueSource, __AggregatedArrayColumns, __AggregatedArrayMode, UuidValueSource, AggregatedArrayValueSourceProjectableAsNullable, ValueType, CustomIntValueSource, CustomBigintValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource } from '../expressions/values.js'
 import { isValueSource } from '../expressions/values.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
-import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
+import { CustomBooleanTypeAdapter, OracleDateAsTimestampTypeAdapter } from '../TypeAdapter.js'
 import type { AnyTableOrView, IQueryDataDiscovery, HasIsValue, IWithView } from '../utils/ITableOrView.js'
 import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import { valueType as valueType_, optionalType as optionalType_ , booleanValueSource, comparableValueSource, localDateTimeValueSource, localDateValueSource, equalableValueSource, nullableValueSource, numberValueSource, stringValueSource, localTimeValueSource, ifValueSource, bigintValueSource, typeName, anyBooleanValueSource, isValueSourceObject, aggregatedArrayValueSource, isSelectQueryObject, uuidValueSource, customIntValueSource, customBigintValueSource, customDoubleValueSource, customDecimalValueSource, customUuidValueSource, customLocalDateValueSource, customLocalTimeValueSource, customLocalDateTimeValueSource, source } from '../utils/symbols.js'
@@ -649,7 +649,13 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
                 valueTypeName = 'double'
             }
         }
-        return new SqlOperationValueWhenNullValueSource(this, value, valueType, valueTypeName, getOptionalType2(this, value), getTypeAdapter2(this, value))
+        let typeAdapter = getTypeAdapter2(this, value)
+        if (typeAdapter instanceof OracleDateAsTimestampTypeAdapter) {
+            // Oracle's nvl has the type of its first operand: a DATE read as a timestamp is turned into a TIMESTAMP
+            // there, and any other first operand already decides the type
+            typeAdapter = undefined
+        }
+        return new SqlOperationValueWhenNullValueSource(this, value, valueType, valueTypeName, getOptionalType2(this, value), typeAdapter)
     }
     nullIfValue(value: any): any {
         return new SqlOperation1ValueSource('_nullIfValue', this, value, this.__valueType, this.__valueTypeName, 'optional', getTypeAdapter2(this, value))

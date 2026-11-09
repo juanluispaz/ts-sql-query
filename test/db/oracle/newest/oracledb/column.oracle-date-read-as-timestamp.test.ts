@@ -274,4 +274,70 @@ describe(ctx.label, () => {
             expect(result).toEqual(expected)
         })
     })
+
+    test('values-made-from-the-column-keep-the-getters-of-the-time', async () => {
+        // valueWhenNull turns the DATE into a TIMESTAMP (Oracle's nvl has the type of its first operand), so a
+        // value with a fraction of a second keeps it; nullIfValue, max and an inline select keep the DATE
+        const expected = [
+            { id: 1, endOrStartHours: 9,  endOrStartTime: 1710494445000, endOrValueMilliseconds: 0,   startNullIfEndHours: 9,  startNullIfEndTime: 1710493507000, firstStartMinutes: 5 },
+            { id: 2, endOrStartHours: 14, endOrStartTime: 1710772800000, endOrValueMilliseconds: 123, startNullIfEndHours: 14, startNullIfEndTime: 1710772800000, firstStartMinutes: 5 },
+        ]
+        ctx.mockNext(expected)
+
+        const firstStart = ctx.conn.selectFrom(tStandupMeeting)
+            .where(tStandupMeeting.id.equals(1))
+            .selectOneColumn(tStandupMeeting.startsAt)
+            .forUseAsInlineQueryValue()
+
+        const result = await ctx.conn.selectFrom(tStandupMeeting)
+            .select({
+                id:                     tStandupMeeting.id,
+                endOrStartHours:        tStandupMeeting.endsAt.valueWhenNull(tStandupMeeting.startsAt).getHours(),
+                endOrStartTime:         tStandupMeeting.endsAt.valueWhenNull(tStandupMeeting.startsAt).getTime(),
+                endOrValueMilliseconds: tStandupMeeting.endsAt.valueWhenNull(new Date('2024-01-01T00:00:00.123Z')).getMilliseconds(),
+                startNullIfEndHours:         tStandupMeeting.startsAt.nullIfValue(tStandupMeeting.endsAt).getHours(),
+                startNullIfEndTime:          tStandupMeeting.startsAt.nullIfValue(tStandupMeeting.endsAt).getTime(),
+                firstStartMinutes:      firstStart.getMinutes(),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", extract(hour from nvl(cast(ends_at as timestamp), starts_at)) as "endOrStartHours", (cast(nvl(cast(ends_at as timestamp), starts_at) as date) - date '1970-01-01') * 86400000 + to_number(to_char(nvl(cast(ends_at as timestamp), starts_at), 'FF3')) as "endOrStartTime", to_number(to_char(nvl(cast(ends_at as timestamp), :0), 'FF3')) as "endOrValueMilliseconds", extract(hour from cast(nullif(starts_at, ends_at) as timestamp)) as "startNullIfEndHours", (cast(nullif(starts_at, ends_at) as date) - date '1970-01-01') * 86400000 as "startNullIfEndTime", extract(minute from cast((select starts_at as "result" from standup_meeting where id = :1) as timestamp)) as "firstStartMinutes" from standup_meeting order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-01-01T00:00:00.123Z,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            id:                     number
+            endOrStartHours:        number
+            endOrStartTime:         number
+            endOrValueMilliseconds: number
+            startNullIfEndHours?:        number
+            startNullIfEndTime?:         number
+            firstStartMinutes?:     number
+        }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('max-of-the-column-keeps-the-getters-of-the-time', async () => {
+        const expected = { latestHours: 14, latestTime: 1710772800000 }
+        ctx.mockNext(expected)
+
+        const result = await ctx.conn.selectFrom(tStandupMeeting)
+            .select({
+                latestHours: ctx.conn.max(tStandupMeeting.startsAt).getHours(),
+                latestTime:  ctx.conn.max(tStandupMeeting.startsAt).getTime(),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(hour from cast(max(starts_at) as timestamp)) as "latestHours", (cast(max(starts_at) as date) - date '1970-01-01') * 86400000 as "latestTime" from standup_meeting"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, {
+            latestHours?: number
+            latestTime?:  number
+        }>>()
+        expect(result).toEqual(expected)
+    })
 })

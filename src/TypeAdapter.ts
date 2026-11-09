@@ -59,8 +59,8 @@ export class CustomBooleanTypeAdapter implements TypeAdapter {
  * to the second. Oracle's `extract` reads a `DATE` as a date without time (ORA-30076 for the hour, the minute and the
  * second) and `to_char` has no fraction of a second for it (ORA-01821), so the getters of the time write the column, or
  * a value made from it (`max`, `min`, `nullIfValue`, an inline select), as `cast(<column> as timestamp)`, the same
- * digits with the fraction at zero, and `getTime` counts the `DATE` itself. `valueWhenNull` writes
- * `nvl(cast(<column> as timestamp), …)`, a TIMESTAMP. Everywhere else the column is written as it is. The values sent and received are not changed. On a column of any
+ * digits with the fraction at zero, and `getTime` counts the `DATE` itself. `valueWhenNull` with a
+ * value of another type writes `nvl(cast(<column> as timestamp), …)`, a TIMESTAMP; of two of them, it stays a `DATE`. Everywhere else the column is written as it is. The values sent and received are not changed. On a column of any
  * other type it does nothing.
  */
 export class OracleDateAsTimestampTypeAdapter implements TypeAdapter {

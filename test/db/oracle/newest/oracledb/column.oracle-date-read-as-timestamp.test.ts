@@ -276,8 +276,9 @@ describe(ctx.label, () => {
     })
 
     test('values-made-from-the-column-keep-the-getters-of-the-time', async () => {
-        // valueWhenNull turns the DATE into a TIMESTAMP (Oracle's nvl has the type of its first operand), so a
-        // value with a fraction of a second keeps it; nullIfValue, max and an inline select keep the DATE
+        // valueWhenNull of two such columns stays a DATE, and of the column with a value it turns the DATE into a
+        // TIMESTAMP (Oracle's nvl has the type of its first operand), so the value keeps its fraction of a second;
+        // nullIfValue, max and an inline select keep the DATE
         const expected = [
             { id: 1, endOrStartHours: 9,  endOrStartTime: 1710494445000, endOrValueMilliseconds: 0,   startNullIfEndHours: 9,  startNullIfEndTime: 1710493507000, firstStartMinutes: 5 },
             { id: 2, endOrStartHours: 14, endOrStartTime: 1710772800000, endOrValueMilliseconds: 123, startNullIfEndHours: 14, startNullIfEndTime: 1710772800000, firstStartMinutes: 5 },
@@ -302,7 +303,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", extract(hour from nvl(cast(ends_at as timestamp), starts_at)) as "endOrStartHours", (cast(nvl(cast(ends_at as timestamp), starts_at) as date) - date '1970-01-01') * 86400000 + to_number(to_char(nvl(cast(ends_at as timestamp), starts_at), 'FF3')) as "endOrStartTime", to_number(to_char(nvl(cast(ends_at as timestamp), :0), 'FF3')) as "endOrValueMilliseconds", extract(hour from cast(nullif(starts_at, ends_at) as timestamp)) as "startNullIfEndHours", (cast(nullif(starts_at, ends_at) as date) - date '1970-01-01') * 86400000 as "startNullIfEndTime", extract(minute from cast((select starts_at as "result" from standup_meeting where id = :1) as timestamp)) as "firstStartMinutes" from standup_meeting order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", extract(hour from cast(nvl(ends_at, starts_at) as timestamp)) as "endOrStartHours", (cast(nvl(ends_at, starts_at) as date) - date '1970-01-01') * 86400000 as "endOrStartTime", to_number(to_char(nvl(cast(ends_at as timestamp), :0), 'FF3')) as "endOrValueMilliseconds", extract(hour from cast(nullif(starts_at, ends_at) as timestamp)) as "startNullIfEndHours", (cast(nullif(starts_at, ends_at) as date) - date '1970-01-01') * 86400000 as "startNullIfEndTime", extract(minute from cast((select starts_at as "result" from standup_meeting where id = :1) as timestamp)) as "firstStartMinutes" from standup_meeting order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-01T00:00:00.123Z,
@@ -375,6 +376,80 @@ describe(ctx.label, () => {
             milliseconds: number
             time:         number
         }>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('value-when-null-with-the-column-first-casts-it', async () => {
+        // The same operands in the other order: the column first makes nvl a DATE, so it is cast to a timestamp, the
+        // value of the second keeps its fraction of a second, and the result doesn't keep the adapter of the column
+        const expected = [
+            { id: 1, hours: 9, seconds: 45, milliseconds: 0,   time: 1710494445000 },
+            { id: 2, hours: 0, seconds: 0,  milliseconds: 123, time: 1704067200123 },
+        ]
+        ctx.mockNext(expected)
+
+        const value = ctx.conn.const(new Date('2024-01-01T00:00:00.123Z'), 'localDateTime')
+        const result = await ctx.conn.selectFrom(tStandupMeeting)
+            .select({
+                id:           tStandupMeeting.id,
+                hours:        tStandupMeeting.endsAt.valueWhenNull(value).getHours(),
+                seconds:      tStandupMeeting.endsAt.valueWhenNull(value).getSeconds(),
+                milliseconds: tStandupMeeting.endsAt.valueWhenNull(value).getMilliseconds(),
+                time:         tStandupMeeting.endsAt.valueWhenNull(value).getTime(),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", extract(hour from nvl(cast(ends_at as timestamp), :0)) as "hours", trunc(extract(second from nvl(cast(ends_at as timestamp), :1))) as "seconds", to_number(to_char(nvl(cast(ends_at as timestamp), :2), 'FF3')) as "milliseconds", (cast(nvl(cast(ends_at as timestamp), :3) as date) - date '1970-01-01') * 86400000 + to_number(to_char(nvl(cast(ends_at as timestamp), :4), 'FF3')) as "time" from standup_meeting order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-01-01T00:00:00.123Z,
+            2024-01-01T00:00:00.123Z,
+            2024-01-01T00:00:00.123Z,
+            2024-01-01T00:00:00.123Z,
+            2024-01-01T00:00:00.123Z,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            id:           number
+            hours:        number
+            seconds:      number
+            milliseconds: number
+            time:         number
+        }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('value-when-null-of-two-date-columns-stays-a-date-read-as-timestamp', async () => {
+        // Both operands are DATE columns with the adapter: nvl stays a DATE, written as it is, and the result keeps
+        // the adapter, so the getters of the time cast it
+        const expected = [
+            { id: 1, hours: 9,  seconds: 45, milliseconds: 0, time: 1710494445000 },
+            { id: 2, hours: 14, seconds: 0,  milliseconds: 0, time: 1710772800000 },
+        ]
+        ctx.mockNext(expected)
+
+        const endOrStart = tStandupMeeting.endsAt.valueWhenNull(tStandupMeeting.startsAt)
+        const result = await ctx.conn.selectFrom(tStandupMeeting)
+            .select({
+                id:           tStandupMeeting.id,
+                hours:        endOrStart.getHours(),
+                seconds:      endOrStart.getSeconds(),
+                milliseconds: endOrStart.getMilliseconds(),
+                time:         endOrStart.getTime(),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", extract(hour from cast(nvl(ends_at, starts_at) as timestamp)) as "hours", extract(second from cast(nvl(ends_at, starts_at) as timestamp)) as "seconds", to_number(to_char(cast(nvl(ends_at, starts_at) as timestamp), 'FF3')) as "milliseconds", (cast(nvl(ends_at, starts_at) as date) - date '1970-01-01') * 86400000 as "time" from standup_meeting order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{
+            id:           number
+            hours:        number
+            seconds:      number
+            milliseconds: number
+            time:         number
+        }>>>()
         expect(result).toEqual(expected)
     })
 })

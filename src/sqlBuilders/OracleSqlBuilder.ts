@@ -1283,9 +1283,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return 'localtimestamp'
     }
     override _valueWhenNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        if (this._isDateReadAsTimestamp(valueSource)) {
-            // nvl has the type of its first operand: a DATE read as a timestamp makes it a TIMESTAMP, so the result
-            // needs nothing more (it doesn't keep the adapter). A first operand of another type already decides it
+        if (this._isDateReadAsTimestamp(valueSource) && !this._isDateReadAsTimestamp(value)) {
+            // nvl has the type of its first operand: a DATE read as a timestamp with something else makes it a
+            // TIMESTAMP, so the result needs nothing more (it doesn't keep the adapter). A first operand of another
+            // type already decides it, and two of them stay a DATE that keeps the adapter
             return 'nvl(cast(' + this._appendSql(valueSource, params, false) + ' as timestamp), ' + this._appendValue(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
         }
         return 'nvl(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'

@@ -650,9 +650,10 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
             }
         }
         let typeAdapter = getTypeAdapter2(this, value)
-        if (typeAdapter instanceof OracleDateAsTimestampTypeAdapter) {
-            // Oracle's nvl has the type of its first operand: a DATE read as a timestamp is turned into a TIMESTAMP
-            // there, and any other first operand already decides the type
+        if (typeAdapter instanceof OracleDateAsTimestampTypeAdapter && !(this.__typeAdapter instanceof OracleDateAsTimestampTypeAdapter && isValueSource(value) && __getValueSourcePrivate(value).__typeAdapter instanceof OracleDateAsTimestampTypeAdapter)) {
+            // Oracle's nvl has the type of its first operand: a DATE read as a timestamp with something else is
+            // turned into a TIMESTAMP there, and any other first operand already decides the type. Two of them stay a
+            // DATE, and the result keeps the adapter
             typeAdapter = undefined
         }
         return new SqlOperationValueWhenNullValueSource(this, value, valueType, valueTypeName, getOptionalType2(this, value), typeAdapter)

@@ -117,6 +117,17 @@ export class AbstractQueryBuilder {
         return this.__transformRootObject(!!this.__projectOptionalValuesAsNullable, '', columns, row, index)
     }
 
+    /**
+     * The value of the only column of a query that selects or returns one column: an aggregated array goes through the
+     * same handling it gets as a property of an object (its JSON parsed, and each element transformed)
+     */
+    __transformOneColumnValue(valueSource: AnyValueSource, value: any, index?: number): any {
+        const valueSourcePrivate = __getValueSourcePrivate(valueSource)
+        if (valueSourcePrivate.__aggregatedArrayColumns) {
+            return this.__transformAggregatedArray(!!valueSourcePrivate.__aggreagtedProjectingOptionalValuesAsNullable, '', valueSource, value, index)
+        }
+        return this.__transformValueFromDB(valueSource, value, undefined, index)
+    }
     __transformRootObject(projectOptionalValuesAsNullable: boolean, errorPrefix: string, columns: QueryColumns, row: any, index?: number): any {
         const result: any = {}
         for (let prop in columns) {

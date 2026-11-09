@@ -7,7 +7,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { isQueryAllowed } from '../../../../lib/queryIntrospection.js'
-import { tIssue, tProject } from '../../domain/connection.js'
+import { tIssue, tProject, vReleaseOverview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -1135,6 +1135,87 @@ describe(ctx.label, () => {
         expect(rows).toEqual([
             { pid: 3, meta: { issues: [{ id: 4, title: 'Document /v2/users' }] } },
             { pid: 4 },
+        ])
+    })
+
+    test('one-column-aggregate-of-one-column-executed-directly', async () => {
+        // The query's only column is the aggregated array. Releases 1 and 3
+        // have a download count (4200000042 and 100); release 2 has none.
+        ctx.mockNext([4200000042, 100])
+        const counts = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.downloadCount.isNotNull())
+            .selectOneColumn(ctx.conn.aggregateAsArrayOfOneColumn(vReleaseOverview.downloadCount))
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select json_group_array(download_count) as result from release_overview where download_count is not null"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof counts, bigint[]>>()
+        // the array aggregate has no ORDER BY, so the array order is not deterministic
+        // on the real engine — sort it before comparing.
+        expect([...counts].sort()).toEqual([100n, 4200000042n])
+    })
+
+    test('one-column-aggregate-of-objects-executed-directly', async () => {
+        // Project 1 has issues 1 ('Update hero copy') and 2 ('Redesign navbar').
+        ctx.mockNext([{ id: 1, title: 'Update hero copy' }, { id: 2, title: 'Redesign navbar' }])
+        const issues = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.projectId.equals(1))
+            .selectOneColumn(ctx.conn.aggregateAsArray({ id: tIssue.id, title: tIssue.title }))
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select json_group_array(json_object('id', id, 'title', title)) as result from issue where project_id = ?1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof issues, Array<{ id: number; title: string }>>>()
+        expect([...issues].sort((a, b) => a.id - b.id)).toEqual([
+            { id: 1, title: 'Update hero copy' },
+            { id: 2, title: 'Redesign navbar' },
+        ])
+    })
+
+    test('one-column-aggregate-none-or-one-without-rows', async () => {
+        // No issue belongs to project 99. Without group by the aggregate still
+        // returns one row, whose array is empty.
+        ctx.mockNext(null)
+        const titles = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.projectId.equals(99))
+            .selectOneColumn(ctx.conn.aggregateAsArrayOfOneColumn(tIssue.title))
+            .executeSelectNoneOrOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select json_group_array(title) as result from issue where project_id = ?1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            99,
+          ]
+        `)
+        assertType<Exact<typeof titles, string[] | null>>()
+        expect(titles).toEqual([])
+    })
+
+    test('one-column-aggregate-many-groups-executed-directly', async () => {
+        // One array of titles per project with issues: project 1 has two,
+        // projects 2 and 3 have one each.
+        ctx.mockNext([
+            ['Update hero copy', 'Redesign navbar'],
+            ['Migrate to ESM'],
+            ['Document /v2/users'],
+        ])
+        const titlesPerProject = await ctx.conn.selectFrom(tIssue)
+            .groupBy(tIssue.projectId)
+            .selectOneColumn(ctx.conn.aggregateAsArrayOfOneColumn(tIssue.title))
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select json_group_array(title) as result from issue group by project_id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof titlesPerProject, string[][]>>()
+        // neither the groups nor the arrays have an order: sort both.
+        expect(titlesPerProject.map(titles => [...titles].sort()).sort((a, b) => a[0]!.localeCompare(b[0]!))).toEqual([
+            ['Document /v2/users'],
+            ['Migrate to ESM'],
+            ['Redesign navbar', 'Update hero copy'],
         ])
     })
 })

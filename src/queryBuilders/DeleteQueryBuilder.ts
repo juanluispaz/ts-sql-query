@@ -77,7 +77,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     if (value === undefined) {
                         return null
                     }
-                    return this.__transformValueFromDB(valueSource, value)
+                    return this.__transformOneColumnValue(valueSource, value)
                 }).catch((e) => {
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
@@ -113,7 +113,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     if (value === undefined) {
                         throw new TsSqlProcessingError({ reason: 'NO_RESULT' }, 'No result returned by the database')
                     }
-                    return this.__transformValueFromDB(valueSource, value)
+                    return this.__transformOneColumnValue(valueSource, value)
                 }).catch((e) => {
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
@@ -154,7 +154,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                         if (value === undefined) {
                             value = null
                         }
-                        output[i] = this.__transformValueFromDB(valueSource, value, undefined, i)
+                        output[i] = this.__transformOneColumnValue(valueSource, value, i)
                     }
                     return output
                 }).catch((e) => {

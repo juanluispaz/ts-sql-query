@@ -584,10 +584,12 @@ warmup_docker_engines() {
         case " $_engines " in *" $_e "*) ;; *) _engines="$_engines $_e" ;; esac
     done
     echo "Pre-warming docker engine(s) sequentially before the run:$_engines" >&2
+    # In UTC like the test processes (test/lib/setupTimezone.ts): the query runners the warmup creates require some
+    # settings only when the process isn't in UTC (oracledb: ORA_SDTZ)
     if [ "$runtime" = "bun" ]; then
-        bun test/lib/dockerPreflight.ts "$@"
+        TZ=UTC bun test/lib/dockerPreflight.ts "$@"
     else
-        tsx test/lib/dockerPreflight.ts "$@"
+        TZ=UTC tsx test/lib/dockerPreflight.ts "$@"
     fi
 }
 

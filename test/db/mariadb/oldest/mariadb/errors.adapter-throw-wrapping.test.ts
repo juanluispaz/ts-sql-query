@@ -515,7 +515,9 @@ describe(ctx.label, () => {
     test('insert-returning-last-inserted-id-with-a-rejecting-pk-adapter-reports-the-raw-id', async () => {
         // The generated entry number differs between runs; the adapter records
         // the raw id it was handed, which is the value the error must carry.
-        // Without RETURNING the id is the driver's insert id, a bigint.
+        // Without RETURNING the id is the driver's insert id: an exact integer, as a
+        // bigint or as its text (both are lossless; which one depends on the driver's
+        // options).
         await ctx.withRollback(async () => {
             ctx.mockNext(2n)
             let caught: unknown
@@ -534,7 +536,7 @@ describe(ctx.label, () => {
             `)
             expect(caught).toBeInstanceOf(TsSqlQueryExecutionError)
             expect(seenByAdapter.length).toBe(1)
-            expect(typeof seenByAdapter[0]).toBe('bigint')
+            expect(/^\d+$/.test(String(seenByAdapter[0])) && (typeof seenByAdapter[0] === 'bigint' || typeof seenByAdapter[0] === 'string')).toBe(true)
             expect(reasonOf(caught)).toEqual({
                 reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE',
                 value: seenByAdapter[0],

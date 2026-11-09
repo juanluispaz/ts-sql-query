@@ -5,7 +5,7 @@ search:
 <!-- doc-code-template: oracle -->
 # Oracle
 
-This page has what is particular to Oracle: what it offers and what it doesn't, how to declare its version, how a boolean is stored, how `concat` treats `null`, `replaceAll`, and the UUID strategies. To define the connection and map your tables, the pages to read are [Connection](../connection.md) and [Mapping](../mapping.md).
+This page has what is particular to Oracle: what it offers and what it doesn't, how to declare its version, [how a boolean is stored](#how-a-boolean-is-stored), how `concat` treats `null`, `replaceAll`, and the UUID strategies. To define the connection and map your tables, the pages to read are [Connection](../connection.md) and [Mapping](../mapping.md).
 
 ## Defining the connection
 
@@ -16,10 +16,6 @@ class DBConnection extends OracleConnection<'DBConnection'> { }
 ```
 
 Create a connection object for each request, and don't share it between concurrent requests: see [Instantiating the connection](../connection.md#instantiating-the-connection-with-the-database-connection).
-
-!!! tip
-
-    `ts-sql-query` assumes that a boolean is stored in a number where `0` is false, and `1` is true, and converts the values for you. If you need a different way to store a boolean, see [Custom booleans values](../../advanced/custom-booleans-values.md) for more information.
 
 ## What it offers and what it doesn't
 
@@ -62,6 +58,25 @@ class DBConnection extends OracleConnection<'DBConnection'> {
 !!! info "Minimum Oracle version for `stringConcatDistinct`"
 
     Independent of `compatibilityVersion`, `stringConcatDistinct` emits `LISTAGG(DISTINCT …)`, which requires Oracle Database 19c or later (the `DISTINCT` keyword inside `LISTAGG` was added in 19c). Targeting an older Oracle release means avoiding this aggregate.
+
+## How a boolean is stored
+
+Oracle has a `BOOLEAN` type only from Oracle 23ai. The `booleanStorage` property of the connection says how your boolean columns are stored, and the SQL is written for it:
+
+| `booleanStorage` | Column | Values | SQL written |
+|---|---|---|---|
+| `'number'` (the default) | `NUMBER(1)` | `1` true, `0` false | A condition used as a value becomes `case when … then 1 else 0 end`, and a boolean used as a condition is compared with `1`. Every version of Oracle |
+| `'boolean'` | `BOOLEAN` | `true`, `false` | As in the SQL standard: a condition is a value, and a boolean column is a condition. Oracle 23.4 or later |
+
+```ts
+import { OracleConnection } from "ts-sql-query/connections/OracleConnection";
+
+class DBConnection extends OracleConnection<'DBConnection'> {
+    protected override booleanStorage: 'number' | 'boolean' = 'boolean'
+}
+```
+
+A column stored the other way is declared with a [custom boolean](../../advanced/custom-booleans-values.md): with `'boolean'`, a `NUMBER(1)` column takes `new CustomBooleanTypeAdapter(1, 0)`; with `'number'`, a `CHAR(1)` column with `'Y'` and `'N'` takes `new CustomBooleanTypeAdapter('Y', 'N')`. The library then writes that column in the form you chose wherever it's used as a boolean, so it can be compared, combined and assigned with the other boolean columns: with `'boolean'`, a `NUMBER(1)` column `invoiced` is read as `(invoiced = 1)`, and `select billable ... union select (invoiced = 1) ...` works. Without the custom boolean, Oracle rejects a `NUMBER(1)` and a `BOOLEAN` in the two sides of a `union` (`ORA-01790`).
 
 ## Concatenation and NULL
 

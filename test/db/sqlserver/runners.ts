@@ -179,6 +179,8 @@ const containers = createContainerRegistry<StartedContainer>(async (image) => {
         })
         .withExposedPorts(1433)
         .withWaitStrategy(Wait.forLogMessage(/SQL Server is now ready for client connections/, 1))
+        // A cold start next to the other engines can take longer than the default 60 s of testcontainers
+        .withStartupTimeout(300_000)
     if (isVersionSpecific) {
         // The older SQL Server images (2019 / 2022, reached only under
         // `--docker-version closest`) crash on boot under arm64 (qemu) emulation
@@ -349,6 +351,8 @@ function splitBatch(sql: string): string[] {
 // time the runner starts inside a given process. Subsequent
 // `applySchemaAndSeedToWorkerDb` calls skip the master pool entirely.
 let workerDbEnsured = false
+// The worker databases whose schema this process already built (host:port/database)
+const schemaAppliedTo = new Set<string>()
 
 async function applySchemaAndSeedOnPool(pool: import('mssql').ConnectionPool): Promise<void> {
     const [schemaSql, seedSql] = await Promise.all([
@@ -431,7 +435,15 @@ async function bootstrapWorkerDbSchemaAndSeed(host: string, port: number): Promi
         options: { encrypt: false, trustServerCertificate: true },
     })
     try {
-        await applySchemaAndSeedOnPool(pool)
+        // The schema is built once per process and container: no test changes it, so the next files of the worker
+        // only restore the data, as the reseed before each test does (the schema rebuild was ~40% of the wall time)
+        const key = host + ':' + port + '/' + workerDb
+        if (schemaAppliedTo.has(key)) {
+            await applyResetAndSeedOnPool(pool)
+        } else {
+            await applySchemaAndSeedOnPool(pool)
+            schemaAppliedTo.add(key)
+        }
     } finally {
         await pool.close()
     }

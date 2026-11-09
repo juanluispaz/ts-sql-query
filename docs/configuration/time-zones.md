@@ -125,7 +125,14 @@ The column keeps the zone or offset each value was written with, so rows can car
 2024-01-14 12:30 -08:00
 ```
 
-A `localDateTime` reads the instant of each one: `2024-01-14 18:15:30.123 +09:00` is read as `2024-01-14T09:15:30.123Z`. The offset it was written with doesn't come back, because a `Date` has none.
+A `localDateTime` reads the instant of each one: `2024-01-14 18:15:30.123 +09:00` is read as `2024-01-14T09:15:30.123Z`. The offset it was written with doesn't come back, because a `Date` has none: the drivers deliver this column as kind 3. oracledb (Thin mode) and tedious, the driver of mssql, discard the zone of an Oracle `TIMESTAMP WITH TIME ZONE` and of a SQL Server `datetimeoffset` when they decode the value, before the library sees it, and keep the time to the millisecond. A PostgreSQL `timetz` arrives as text with its offset, like `19:30:15.123+09`.
+
+So a column of kind 4 works as a `localDateTime` as long as its instant is what you need, knowing what happens when you write it:
+
+- **A value written from a `Date` is stored in UTC**: a row with `2024-01-14 17:30:15.123 +05:00` updated with the same instant keeps the instant and becomes `2024-01-14 12:30:15.123 +00:00`. The zone it had is lost.
+- **A value assigned from another column** (`set a = b`) keeps the zone of that column, because it doesn't go through a `Date`.
+
+When the zone is part of the value you need, read the column as text formatted by the database, with a [fragment](../queries/sql-fragments.md) of type `string`: on Oracle `to_char(<column>, 'YYYY-MM-DD"T"HH24:MI:SS.FF9TZH:TZM')`, which gives `2024-01-14T19:30:15.123456000+09:00`, or with `TZR` instead of `TZH:TZM` for the name of the region, like `EUROPE/MADRID`; on SQL Server `convert(nvarchar(40), <column>, 126)`, which gives `2024-01-14T19:30:15.1234567+09:00`. The text keeps the zone and the whole fraction of a second. To write a zone, send the text and convert it in the SQL: on Oracle `to_timestamp_tz(<text>, 'YYYY-MM-DD"T"HH24:MI:SS.FF TZR')`, which reads an offset (`2024-01-14T19:30:15.123+09:00`) or a region (`2024-07-01T19:30:15.123 Europe/Madrid`); on SQL Server `cast(<text> as datetimeoffset)`. If you only need to show a value in the zone it belongs to, keep the name of that zone in a column of its own, next to the instant.
 
 !!! warning "This is not the safest option: it buys a different set of problems"
 

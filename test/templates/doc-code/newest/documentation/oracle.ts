@@ -3,7 +3,7 @@ import { MockQueryRunner } from '../../../../../src/queryRunners/MockQueryRunner
 import { OracleConnection } from '../../../../../src/connections/OracleConnection.js'
 import { DocCodeMockRunner } from '../../../../lib/mockRunners/DocCodeMockRunner.js'
 import { Table } from '../../../../../src/Table.js'
-import { CustomBooleanTypeAdapter, type TypeCategory } from '../../../../../src/TypeAdapter.js'
+import { CustomBooleanTypeAdapter, OracleDateAsTimestampTypeAdapter, type TypeCategory } from '../../../../../src/TypeAdapter.js'
 export type { TypeCategory }
 import { View } from '../../../../../src/View.js'
 import { Values } from '../../../../../src/Values.js'
@@ -144,6 +144,17 @@ const tRecord = new class TRecord extends Table<DBConnection, 'TRecord'> {
         super('record'); // table name in the database
     }
 }()
+
+const tMeeting = new class TMeeting extends Table<DBConnection, 'TMeeting'> {
+    id = this.primaryKey('id', 'int')
+    startsAt = this.column('starts_at', 'localDateTime', new OracleDateAsTimestampTypeAdapter())
+    endsAt = this.optionalColumn('ends_at', 'localDateTime', new OracleDateAsTimestampTypeAdapter())
+    reminderTime = this.column('reminder_time', 'localTime', new OracleDateAsTimestampTypeAdapter())
+    constructor() {
+        super('meeting'); // table name in the database
+    }
+}()
+void tMeeting;
 
 const docCodeMock = new DocCodeMockRunner()
 const connection = new DBConnection(docCodeMock)

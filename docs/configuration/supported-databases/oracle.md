@@ -5,7 +5,7 @@ search:
 <!-- doc-code-template: oracle -->
 # Oracle
 
-This page has what is particular to Oracle: what it offers and what it doesn't, how to declare its version, [how a boolean is stored](#how-a-boolean-is-stored), how `concat` treats `null`, `replaceAll`, and the UUID strategies. To define the connection and map your tables, the pages to read are [Connection](../connection.md) and [Mapping](../mapping.md).
+This page has what is particular to Oracle: what it offers and what it doesn't, how to declare its version, [how a boolean is stored](#how-a-boolean-is-stored), [a date and time in a `DATE` column](#a-date-and-time-in-a-date-column), how `concat` treats `null`, `replaceAll`, and the UUID strategies. To define the connection and map your tables, the pages to read are [Connection](../connection.md) and [Mapping](../mapping.md).
 
 ## Defining the connection
 
@@ -77,6 +77,81 @@ class DBConnection extends OracleConnection<'DBConnection'> {
 ```
 
 A column stored the other way is declared with a [custom boolean](../../advanced/custom-booleans-values.md): with `'boolean'`, a `NUMBER(1)` column takes `new CustomBooleanTypeAdapter(1, 0)`; with `'number'`, a `CHAR(1)` column with `'Y'` and `'N'` takes `new CustomBooleanTypeAdapter('Y', 'N')`. The library then writes that column in the form you chose wherever it's used as a boolean, so it can be compared, combined and assigned with the other boolean columns: with `'boolean'`, a `NUMBER(1)` column `invoiced` is read as `(invoiced = 1)`, and `select billable ... union select (invoiced = 1) ...` works. Without the custom boolean, Oracle rejects a `NUMBER(1)` and a `BOOLEAN` in the two sides of a `union` (`ORA-01790`).
+
+## A date and time in a `DATE` column
+
+An Oracle `DATE` holds a date and a time to the second, with no fraction of a second and no time zone. Many schemas keep a `localDateTime`, or a `localTime`, in a `DATE` column. Reading it, comparing it and writing it work as with a `TIMESTAMP`, but the getters of the time fail, because Oracle's `extract` reads a `DATE` as a date without time, and `to_char` has no fraction of a second for it:
+
+| Getter | SQL written for a `DATE` column `starts_at` | Oracle answers |
+|---|---|---|
+| `getFullYear`, `getMonth`, `getDate`, `getDay` | `extract(year from starts_at)`, … | The value |
+| `getHours`, `getMinutes`, `getSeconds` | `extract(hour from starts_at)`, … | `ORA-30076: invalid extract field for extract source` |
+| `getMilliseconds`, `getTime` | `to_char(starts_at, 'FF3')`, … | `ORA-01821: date format not recognized` |
+
+Declare that column with an `OracleDateAsTimestampTypeAdapter`, as the third argument of the column, on a `localDateTime` or a `localTime`, required or optional:
+
+```ts
+import { OracleDateAsTimestampTypeAdapter } from "ts-sql-query/TypeAdapter";
+
+const tMeeting = new class TMeeting extends Table<DBConnection, 'TMeeting'> {
+    id = this.primaryKey('id', 'int')
+    startsAt = this.column('starts_at', 'localDateTime', new OracleDateAsTimestampTypeAdapter())
+    endsAt = this.optionalColumn('ends_at', 'localDateTime', new OracleDateAsTimestampTypeAdapter())
+    reminderTime = this.column('reminder_time', 'localTime', new OracleDateAsTimestampTypeAdapter())
+    constructor() {
+        super('meeting'); // table name in the database
+    }
+}()
+```
+
+The getters of the time write the column as `cast(starts_at as timestamp)`, a `TIMESTAMP` with the same digits and the fraction at zero, and `getTime` counts the `DATE` itself. Everywhere else the column is written as it is: in the select list, in a comparison (so an index of the column can still be used), in an `order by`, and as the column that receives a value. The values sent and received are the same as without the adapter. With a meeting that starts on 2024-03-15 at 09:05:07 and another on 2024-03-18 at 14:40:00:
+
+```ts
+const from = new Date('2024-03-15T00:00:00.000Z')
+
+const meetings = connection.selectFrom(tMeeting)
+    .where(tMeeting.startsAt.greaterOrEqual(from))
+    .select({
+        id: tMeeting.id,
+        startsAt: tMeeting.startsAt,
+        hour: tMeeting.startsAt.getHours(),
+        minute: tMeeting.startsAt.getMinutes(),
+        time: tMeeting.startsAt.getTime(),
+    })
+    .orderBy('startsAt')
+    .executeSelectMany()
+```
+
+```oracle
+select id as "id", starts_at as "startsAt", extract(hour from cast(starts_at as timestamp)) as "hour", extract(minute from cast(starts_at as timestamp)) as "minute", (starts_at - date '1970-01-01') * 86400000 as "time"
+from meeting
+where starts_at >= :0
+order by "startsAt"
+```
+
+And its parameters are: `[ 2024-03-15T00:00:00.000Z ]`
+
+The result is `[ { id: 1, startsAt: 2024-03-15T09:05:07.000Z, hour: 9, minute: 5, time: 1710493507000 }, { id: 2, startsAt: 2024-03-18T14:40:00.000Z, hour: 14, minute: 40, time: 1710772800000 } ]`.
+
+A column of a `with`, or of a subquery used as a table, made from that column is still a `DATE`, and keeps the adapter: its getters of the time cast it too. A value with a fraction of a second is stored without it: `10:00:15.723` is stored as `10:00:15`.
+
+```ts
+const updated = connection.update(tMeeting)
+    .set({
+        endsAt: tMeeting.startsAt,
+        reminderTime: new Date('1970-01-01T08:45:00.000Z'),
+    })
+    .where(tMeeting.id.equals(2))
+    .executeUpdate()
+```
+
+```oracle
+update meeting set ends_at = starts_at, reminder_time = :0 where id = :1
+```
+
+And its parameters are: `[ 1970-01-01T08:45:00.000Z, 2 ]`
+
+On a column of any other type, the adapter does nothing. A column stored in a `TIMESTAMP` doesn't need it.
 
 ## Concatenation and NULL
 

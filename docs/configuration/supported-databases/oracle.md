@@ -5,7 +5,7 @@ search:
 <!-- doc-code-template: oracle -->
 # Oracle
 
-This page has what is particular to Oracle: what it offers and what it doesn't, how to declare its version, [how a boolean is stored](#how-a-boolean-is-stored), [a date and time in a `DATE` column](#a-date-and-time-in-a-date-column), how `concat` treats `null`, `replaceAll`, and the UUID strategies. To define the connection and map your tables, the pages to read are [Connection](../connection.md) and [Mapping](../mapping.md).
+This page has what is particular to Oracle: what it offers and what it doesn't, how to declare its version, [how a boolean is stored](#how-a-boolean-is-stored), [a date and time in a `DATE` column](#a-date-and-time-in-a-date-column), [dates before 1582](#dates-before-1582), how `concat` treats `null`, `replaceAll`, and the UUID strategies. To define the connection and map your tables, the pages to read are [Connection](../connection.md) and [Mapping](../mapping.md).
 
 ## Defining the connection
 
@@ -152,6 +152,10 @@ update meeting set ends_at = starts_at, reminder_time = :0 where id = :1
 And its parameters are: `[ 1970-01-01T08:45:00.000Z, 2 ]`
 
 On a column of any other type, the adapter does nothing. A column stored in a `TIMESTAMP` doesn't need it.
+
+## Dates before 1582
+
+Oracle counts the dates before 15 October 1582 in the Julian calendar, and a JavaScript `Date` in the Gregorian one for every year. The digits the library sends and reads are the same, but what Oracle computes from a date before that day doesn't agree with JavaScript: `getDay()` of `0999-01-14` is `6` (a Saturday, for Oracle) where the `Date` gives `1` (a Monday), and `getTime()` is five days later than the `Date`'s. The days from 5 to 14 October 1582 don't exist in Oracle: `to_date('1582-10-10', 'YYYY-MM-DD')` is 15 October 1582. Dates from 15 October 1582 on agree.
 
 ## Concatenation and NULL
 

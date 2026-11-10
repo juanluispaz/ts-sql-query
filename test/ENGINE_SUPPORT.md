@@ -726,6 +726,30 @@ and run live on `newest` and on `mysql2`. Verified with `--docker-version
 closest`.
 
 
+### Oracle counts the dates before 15 October 1582 in the Julian calendar
+
+Verified against Oracle 21 (`gvenzl/oracle-xe:21`) and 23 (`gvenzl/oracle-free:23`):
+
+```
+date '1582-10-15' - date '1582-10-04'                -> 1        (JavaScript: 11)
+date '1970-01-01' - date '0999-01-14'                -> 354632   (JavaScript: 354637)
+to_char(date '0999-01-14', 'Dy')                     -> Sat      (JavaScript getUTCDay: 1, Monday)
+to_char(date '1600-01-14', 'Dy')                     -> Fri      (JavaScript: 5, Friday)
+to_date('1582-10-10', 'YYYY-MM-DD')                  -> 15-OCT-82 (the day doesn't exist)
+```
+
+A JavaScript `Date` uses the proleptic Gregorian calendar. The digits the library sends
+and reads before 1582 are the same on both sides; what differs is what Oracle computes
+from them: `getDay()` and `getTime()` of a date before 15 October 1582 (5 days off in
+year 999). The library writes the same SQL as for any other date; a Gregorian-aware
+emission would make every `getDay()` / `getTime()` worse for a range few schemas hold.
+
+**What this means for tests** — the `read getters` and `send getters` cases of
+`getDay` and `getTime` for the `0999-01-14` values in
+`test/runners/oracle/LocalTemporalValuesInAnyZone.test.ts` are declared as this engine
+limit (`oracleLimitOf`). Documented for users in
+`docs/configuration/supported-databases/oracle.md` ("Dates before 1582").
+
 ### Oracle multi-table `UPDATE … FROM` / `DELETE … USING` requires Oracle Database 23ai
 
 Oracle added the ANSI `UPDATE … FROM` and `DELETE … USING` forms in

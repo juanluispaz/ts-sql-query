@@ -421,7 +421,7 @@ this.column<RgbColor, 'RgbColor'>('ColumnName', 'custom', 'RgbColor', new RgbCol
 
 `transformValueFromDB` receives the value as the driver gives it. When the database must give the value in another form, for example as a text the driver doesn't change, `transformProjection` writes the SQL of the value as it leaves the database, and `transformValueFromDB` reads what arrives. It's the pair of `transformPlaceholder`, which writes the SQL of a value sent to the database.
 
-It receives the SQL of the value as the library writes it, the name of the type, its category and where the value leaves: `'resultColumn'`, a column of the result of the query. It returns the SQL to write there. `next.transformProjection(...)` writes the conversion of the library: SQL Server writes a decimal of a column of the result as its text, `convert(nvarchar(41), ...)`, so the driver doesn't round it; on the other databases, and for the other types, it returns the SQL it receives.
+It receives the SQL of the value as the library writes it, the name of the type, its category and where the value leaves: `'resultColumn'`, a column of the result of the query, also of the `returning` of an insert, an update or a delete. It returns the SQL to write there. `next.transformProjection(...)` writes the conversion of the library: SQL Server writes a decimal of a column of the result as its text, `convert(nvarchar(41), ...)`, so the driver doesn't round it; on the other databases, and for the other types, it returns the SQL it receives.
 
 For example, on PostgreSQL, an adapter that has the database give a day as the text `DD/MM/YYYY` and reads that text as the day:
 
@@ -489,7 +489,8 @@ The text `DD/MM/YYYY` doesn't order as the day does (`01/03/2024` comes before `
 
 | Where the column is | What is written |
 |---|---|
-| The columns of the select that is executed, and the value of a function called with `executeFunction` | The SQL of `transformProjection` |
+| The columns of the select that is executed, the columns of the `returning` of an insert, an update or a delete, and the value of a function called with `executeFunction` | The SQL of `transformProjection` |
+| The id that `executeInsert` reads by itself, in an insert without `returning` | The value |
 | An order by of the column, like `orderBy('birthday')` | The value: the order by writes the column, not its alias, which is the text |
 | The where, the group by and the having | The value |
 | A subquery or a `with` | The value; the select that returns a column of the `with` converts it |
@@ -499,6 +500,8 @@ The text `DD/MM/YYYY` doesn't order as the day does (`01/03/2024` comes before `
 
     - `transformProjection` only writes SQL: it can't add parameters.
     - When it doesn't convert the value, return what `next.transformProjection(...)` returns. The library calls it with an empty `sql` to know whether a column is converted, so it must return an empty text when it doesn't convert.
+    - On Oracle, the `returning` of a converted column is received in an out parameter of text, whatever the type of the column.
+    - On MariaDB, a converted old value of an update (`oldValues()`) is inside the SQL of the conversion, and MariaDB 13.0.2 returns the new value there ([MDEV-40126](https://jira.mariadb.org/browse/MDEV-40126)); see [Update returning old values](../queries/update.md#update-returning-old-values).
 
 ## Global type adapter
 

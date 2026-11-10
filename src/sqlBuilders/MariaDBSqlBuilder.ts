@@ -76,6 +76,14 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         this._setContainsInsertReturningClause(params, false)
         return ''
     }
+    /**
+     * The distinct of an aggregated array stays inside `json_arrayagg`, which compares what goes in the JSON, also a
+     * converted value: MariaDB doesn't see a column of the outer query inside a derived table (error 1054, `Unknown
+     * column`), so a correlated select can't be written over a select of the distinct values
+     */
+    override _getDistinctAggregatedArrayToWrap(_query: SelectData, _columns: FlatQueryColumns): undefined {
+        return undefined
+    }
     override _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], query: SelectData | undefined): string {
         const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         let result = ''

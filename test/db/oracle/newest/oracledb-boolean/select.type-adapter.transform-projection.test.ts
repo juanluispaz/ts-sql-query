@@ -4,10 +4,15 @@
 // 2024-03-01, 2024-01-15 and 2024-02-20), so an order by of the converted text would give the rows in another order.
 // `monthYear` gives a day as the text MM/YYYY and reads it back as the first day of that month: two days of the same
 // month give the same text, so a union of the converted texts would merge them.
+// Their `projectionComparison` says it: DD/MM/YYYY is `'equality'` (equal days give equal texts, but the texts order
+// otherwise) and MM/YYYY is `'none'`. `isoDay` gives the day as the text YYYY-MM-DD, which compares and orders as the
+// day: it declares nothing, the default `'value'`, and the query only converts the column in place.
+// `dayMonthYearOfColumn` writes DD/MM/YYYY too but declares `'columnEquality'`, as the text of a decimal whose scale
+// depends on the column: a distinct compares one column and converts in place, a compound query is wrapped.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import type { DefaultTypeAdapter, ProjectionOutput, TypeAdapter, TypeCategory } from '../../../../../src/TypeAdapter.js'
+import type { DefaultTypeAdapter, ProjectionComparison, ProjectionOutput, TypeAdapter, TypeCategory } from '../../../../../src/TypeAdapter.js'
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
@@ -37,6 +42,9 @@ const dayMonthYear: TypeAdapter = {
         }
         return next.transformProjection(sql, type, typeCategory, output)
     },
+    projectionComparison(_type: string, _typeCategory: TypeCategory, _output: ProjectionOutput, _next: DefaultTypeAdapter): ProjectionComparison {
+        return 'equality'
+    },
 }
 
 const monthYear: TypeAdapter = {
@@ -55,6 +63,41 @@ const monthYear: TypeAdapter = {
             return "to_char(" + sql + ", 'MM/YYYY')"
         }
         return next.transformProjection(sql, type, typeCategory, output)
+    },
+    projectionComparison(_type: string, _typeCategory: TypeCategory, _output: ProjectionOutput, _next: DefaultTypeAdapter): ProjectionComparison {
+        return 'none'
+    },
+}
+
+// The day as YYYY-MM-DD, which compares and orders as the day
+const isoDay: TypeAdapter = {
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+        return next.transformValueFromDB(value, type, typeCategory)
+    },
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+        return next.transformValueToDB(value, type, typeCategory)
+    },
+    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string {
+        if (output === 'resultColumn') {
+            return "to_char(" + sql + ", 'YYYY-MM-DD')"
+        }
+        return next.transformProjection(sql, type, typeCategory, output)
+    },
+}
+
+// The day as DD/MM/YYYY, declared as comparing only among the values of one column
+const dayMonthYearOfColumn: TypeAdapter = {
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+        return dayMonthYear.transformValueFromDB(value, type, typeCategory, next)
+    },
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+        return next.transformValueToDB(value, type, typeCategory)
+    },
+    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string {
+        return dayMonthYear.transformProjection!(sql, type, typeCategory, output, next)
+    },
+    projectionComparison(_type: string, _typeCategory: TypeCategory, _output: ProjectionOutput, _next: DefaultTypeAdapter): ProjectionComparison {
+        return 'columnEquality'
     },
 }
 
@@ -94,6 +137,18 @@ const tReleaseDay = new class TReleaseDay extends Table<DBConnection, 'TReleaseD
     constructor() { super('project_release') }
 }()
 
+const tReleaseIsoDay = new class TReleaseIsoDay extends Table<DBConnection, 'TReleaseIsoDay'> {
+    id         = this.primaryKey('id', 'int')
+    releasedOn = this.column<ReleaseDay, 'ReleaseDay'>('released_on', 'customLocalDate', 'ReleaseDay', isoDay)
+    constructor() { super('project_release') }
+}()
+
+const tReleaseDayOfColumn = new class TReleaseDayOfColumn extends Table<DBConnection, 'TReleaseDayOfColumn'> {
+    id         = this.primaryKey('id', 'int')
+    releasedOn = this.column<ReleaseDay, 'ReleaseDay'>('released_on', 'customLocalDate', 'ReleaseDay', dayMonthYearOfColumn)
+    constructor() { super('project_release') }
+}()
+
 const tReleaseDayDelegating = new class TReleaseDayDelegating extends Table<DBConnection, 'TReleaseDayDelegating'> {
     id         = this.primaryKey('id', 'int')
     releasedOn = this.column<ReleaseDay, 'ReleaseDay'>('released_on', 'customLocalDate', 'ReleaseDay', delegating)
@@ -127,6 +182,12 @@ class DayAsTextConnection extends DBConnection {
             return "to_char(" + sql + ", 'DD/MM/YYYY')"
         }
         return super.transformProjection(sql, type, typeCategory, output)
+    }
+    protected override projectionComparison(type: string, typeCategory: TypeCategory, output: ProjectionOutput): ProjectionComparison {
+        if (type === 'ReleaseDay' && output === 'resultColumn') {
+            return 'equality'
+        }
+        return super.projectionComparison(type, typeCategory, output)
     }
     protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
         const parts = type === 'ReleaseDay' && typeof value === 'string' ? /^(\d\d)\/(\d\d)\/(\d{4})$/.exec(value) : null
@@ -385,5 +446,190 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof result, string>>()
         expect(result).toBe('mixed case')
+    })
+
+    test('transform-projection/a-value-conversion-orders-by-the-alias', async () => {
+        // YYYY-MM-DD orders as the day: the order by is the alias of the converted column
+        ctx.mockNext([
+            { id: 1, day: '2024-01-15' },
+            { id: 2, day: '2024-02-20' },
+            { id: 3, day: '2024-03-01' },
+        ])
+        const rows = await ctx.conn.selectFrom(tReleaseIsoDay)
+            .select({ id: tReleaseIsoDay.id, day: tReleaseIsoDay.releasedOn })
+            .orderBy('day')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", to_char(released_on, 'YYYY-MM-DD') as "day" from project_release order by "day""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, { id: number; day: ReleaseDay }[]>>()
+        expect(rows).toEqual([
+            { id: 1, day: dayOf(2024, 1, 15) },
+            { id: 2, day: dayOf(2024, 2, 20) },
+            { id: 3, day: dayOf(2024, 3, 1) },
+        ])
+    })
+
+    test('transform-projection/a-value-conversion-distinct-order-by-is-not-wrapped', async () => {
+        ctx.mockNext(['2024-03-01', '2024-02-20', '2024-01-15'])
+        const days = await ctx.conn.selectDistinctFrom(tReleaseIsoDay)
+            .selectOneColumn(tReleaseIsoDay.releasedOn)
+            .orderBy('result', 'desc')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select distinct to_char(released_on, 'YYYY-MM-DD') as "result" from project_release order by "result" desc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof days, ReleaseDay[]>>()
+        expect(days).toEqual([dayOf(2024, 3, 1), dayOf(2024, 2, 20), dayOf(2024, 1, 15)])
+    })
+
+    test('transform-projection/a-value-conversion-compound-is-not-wrapped', async () => {
+        // The arms convert the column, and the union and the order by use the texts, which compare and order as the days
+        ctx.mockNext([
+            { id: 1, day: '2024-01-15' },
+            { id: 2, day: '2024-02-20' },
+            { id: 3, day: '2024-03-01' },
+        ])
+        const rows = await ctx.conn.selectFrom(tReleaseIsoDay)
+            .where(tReleaseIsoDay.id.equals(3))
+            .select({ id: tReleaseIsoDay.id, day: tReleaseIsoDay.releasedOn })
+            .union(
+                ctx.conn.selectFrom(tReleaseIsoDay)
+                    .where(tReleaseIsoDay.id.in([1, 2]))
+                    .select({ id: tReleaseIsoDay.id, day: tReleaseIsoDay.releasedOn })
+            )
+            .orderBy('day')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", to_char(released_on, 'YYYY-MM-DD') as "day" from project_release where id = :0 union select id as "id", to_char(released_on, 'YYYY-MM-DD') as "day" from project_release where id in (:1, :2) order by 2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, { id: number; day: ReleaseDay }[]>>()
+        expect(rows).toEqual([
+            { id: 1, day: dayOf(2024, 1, 15) },
+            { id: 2, day: dayOf(2024, 2, 20) },
+            { id: 3, day: dayOf(2024, 3, 1) },
+        ])
+    })
+
+    test('transform-projection/an-equality-conversion-compound-without-order-by-is-not-wrapped', async () => {
+        // DD/MM/YYYY gives equal texts for equal days and different texts for different days: the union of the texts
+        // keeps the rows the union of the days keeps
+        ctx.mockNext([
+            { id: 3, day: '01/03/2024' },
+            { id: 1, day: '15/01/2024' },
+            { id: 2, day: '20/02/2024' },
+        ])
+        const rows = await ctx.conn.selectFrom(tReleaseDay)
+            .where(tReleaseDay.id.equals(3))
+            .select({ id: tReleaseDay.id, day: tReleaseDay.releasedOn })
+            .union(
+                ctx.conn.selectFrom(tReleaseDay)
+                    .where(tReleaseDay.id.in([1, 2]))
+                    .select({ id: tReleaseDay.id, day: tReleaseDay.releasedOn })
+            )
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", to_char(released_on, 'DD/MM/YYYY') as "day" from project_release where id = :0 union select id as "id", to_char(released_on, 'DD/MM/YYYY') as "day" from project_release where id in (:1, :2)"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, { id: number; day: ReleaseDay }[]>>()
+        expect([...rows].sort((a, b) => a.id - b.id)).toEqual([
+            { id: 1, day: dayOf(2024, 1, 15) },
+            { id: 2, day: dayOf(2024, 2, 20) },
+            { id: 3, day: dayOf(2024, 3, 1) },
+        ])
+    })
+
+    test('transform-projection/an-equality-conversion-distinct-is-not-wrapped', async () => {
+        ctx.mockNext(['15/01/2024', '20/02/2024', '01/03/2024'])
+        const days = await ctx.conn.selectDistinctFrom(tReleaseDay)
+            .selectOneColumn(tReleaseDay.releasedOn)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select distinct to_char(released_on, 'DD/MM/YYYY') as "result" from project_release"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof days, ReleaseDay[]>>()
+        expect([...days].sort((a, b) => a.getTime() - b.getTime())).toEqual([dayOf(2024, 1, 15), dayOf(2024, 2, 20), dayOf(2024, 3, 1)])
+    })
+
+    test('transform-projection/distinct-compares-the-values', async () => {
+        // 2024-03-04, 2024-03-05 and 2024-03-06 are three values with the same text 03/2024: the distinct keeps them
+        ctx.mockNext(['03/2024', '03/2024', '03/2024'])
+        const months = await ctx.conn.selectDistinctFrom(tWorkMonth)
+            .selectOneColumn(tWorkMonth.workDate)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select to_char(o_1_."result", 'MM/YYYY') as "result" from (select distinct work_date as "result" from issue_worklog) o_1_"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof months, ReleaseDay[]>>()
+        expect(months).toEqual([dayOf(2024, 3, 1), dayOf(2024, 3, 1), dayOf(2024, 3, 1)])
+    })
+
+    test('transform-projection/a-column-equality-conversion-distinct-is-not-wrapped', async () => {
+        ctx.mockNext(['15/01/2024', '20/02/2024', '01/03/2024'])
+        const days = await ctx.conn.selectDistinctFrom(tReleaseDayOfColumn)
+            .selectOneColumn(tReleaseDayOfColumn.releasedOn)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select distinct to_char(released_on, 'DD/MM/YYYY') as "result" from project_release"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof days, ReleaseDay[]>>()
+        expect([...days].sort((a, b) => a.getTime() - b.getTime())).toEqual([dayOf(2024, 1, 15), dayOf(2024, 2, 20), dayOf(2024, 3, 1)])
+    })
+
+    test('transform-projection/a-column-equality-conversion-compound-is-wrapped', async () => {
+        // The arms compare values of two selects: the union compares the days and the wrapper converts them
+        ctx.mockNext([
+            { id: 3, day: '01/03/2024' },
+            { id: 1, day: '15/01/2024' },
+            { id: 2, day: '20/02/2024' },
+        ])
+        const rows = await ctx.conn.selectFrom(tReleaseDayOfColumn)
+            .where(tReleaseDayOfColumn.id.equals(3))
+            .select({ id: tReleaseDayOfColumn.id, day: tReleaseDayOfColumn.releasedOn })
+            .union(
+                ctx.conn.selectFrom(tReleaseDayOfColumn)
+                    .where(tReleaseDayOfColumn.id.in([1, 2]))
+                    .select({ id: tReleaseDayOfColumn.id, day: tReleaseDayOfColumn.releasedOn })
+            )
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select o_1_."id" as "id", to_char(o_1_."day", 'DD/MM/YYYY') as "day" from (select id as "id", released_on as "day" from project_release where id = :0 union select id as "id", released_on as "day" from project_release where id in (:1, :2)) o_1_"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, { id: number; day: ReleaseDay }[]>>()
+        expect([...rows].sort((a, b) => a.id - b.id)).toEqual([
+            { id: 1, day: dayOf(2024, 1, 15) },
+            { id: 2, day: dayOf(2024, 2, 20) },
+            { id: 3, day: dayOf(2024, 3, 1) },
+        ])
+    })
+
+    test('transform-projection/a-column-equality-conversion-orders-by-the-value', async () => {
+        ctx.mockNext([
+            { id: 1, day: '15/01/2024' },
+            { id: 2, day: '20/02/2024' },
+            { id: 3, day: '01/03/2024' },
+        ])
+        const rows = await ctx.conn.selectFrom(tReleaseDayOfColumn)
+            .select({ id: tReleaseDayOfColumn.id, day: tReleaseDayOfColumn.releasedOn })
+            .orderBy('day')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", to_char(released_on, 'DD/MM/YYYY') as "day" from project_release order by project_release.released_on"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, { id: number; day: ReleaseDay }[]>>()
+        expect(rows).toEqual([
+            { id: 1, day: dayOf(2024, 1, 15) },
+            { id: 2, day: dayOf(2024, 2, 20) },
+            { id: 3, day: dayOf(2024, 3, 1) },
+        ])
     })
 })

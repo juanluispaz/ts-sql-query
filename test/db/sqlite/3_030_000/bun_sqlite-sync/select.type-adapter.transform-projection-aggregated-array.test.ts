@@ -5,10 +5,13 @@
 // the day (01/03/2024 < 15/01/2024 < 20/02/2024 for 2024-03-01, 2024-01-15 and 2024-02-20). `monthText` gives a day as
 // the text MM/YYYY and reads it back as the first day of that month: two days of the same month give the same text, so
 // a distinct or a union of the texts would merge them. `quotedDayText` gives the day between a quote and a backslash.
+// Their `projectionComparison` says it: DD/MM/YYYY is `'equality'` (equal days give equal texts, but the texts order
+// otherwise) and MM/YYYY is `'none'`. `isoText` gives the day as the text YYYY-MM-DD inside the JSON, which compares and
+// orders as the day: it declares nothing, the default `'value'`, and the value is converted in place.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import type { DefaultTypeAdapter, ProjectionOutput, TypeAdapter, TypeCategory } from '../../../../../src/TypeAdapter.js'
+import type { DefaultTypeAdapter, ProjectionComparison, ProjectionOutput, TypeAdapter, TypeCategory } from '../../../../../src/TypeAdapter.js'
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
@@ -47,6 +50,12 @@ const dayText: TypeAdapter = {
         }
         return next.transformProjection(sql, type, typeCategory, output)
     },
+    projectionComparison(type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): ProjectionComparison {
+        if (output === 'aggregatedArrayValue') {
+            return 'equality'
+        }
+        return next.projectionComparison(type, typeCategory, output)
+    },
 }
 
 const monthText: TypeAdapter = {
@@ -66,6 +75,9 @@ const monthText: TypeAdapter = {
         }
         return next.transformProjection(sql, type, typeCategory, output)
     },
+    projectionComparison(_type: string, _typeCategory: TypeCategory, _output: ProjectionOutput, _next: DefaultTypeAdapter): ProjectionComparison {
+        return 'none'
+    },
 }
 
 const quotedDayText: TypeAdapter = {
@@ -82,6 +94,25 @@ const quotedDayText: TypeAdapter = {
     transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string {
         if (output === 'aggregatedArrayValue') {
             return "'\"' || strftime('%d/%m/%Y', " + sql + ") || '\\'"
+        }
+        return next.transformProjection(sql, type, typeCategory, output)
+    },
+    projectionComparison(_type: string, _typeCategory: TypeCategory, _output: ProjectionOutput, _next: DefaultTypeAdapter): ProjectionComparison {
+        return 'equality'
+    },
+}
+
+// The day as YYYY-MM-DD inside the JSON, which compares and orders as the day
+const isoText: TypeAdapter = {
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+        return next.transformValueFromDB(value, type, typeCategory)
+    },
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+        return next.transformValueToDB(value, type, typeCategory)
+    },
+    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string {
+        if (output === 'aggregatedArrayValue') {
+            return "strftime('%Y-%m-%d', " + sql + ")"
         }
         return next.transformProjection(sql, type, typeCategory, output)
     },
@@ -116,6 +147,12 @@ const tReleaseQuotedDay = new class TReleaseQuotedDay extends Table<DBConnection
     constructor() { super('project_release') }
 }()
 
+const tReleaseIsoText = new class TReleaseIsoText extends Table<DBConnection, 'TReleaseIsoText'> {
+    id         = this.primaryKey('id', 'int')
+    releasedOn = this.column<ReleaseDay, 'ReleaseDay'>('released_on', 'customLocalDate', 'ReleaseDay', isoText)
+    constructor() { super('project_release') }
+}()
+
 const tReleaseDayDelegating = new class TReleaseDayDelegating extends Table<DBConnection, 'TReleaseDayDelegating'> {
     id         = this.primaryKey('id', 'int')
     projectId  = this.column('project_id', 'int')
@@ -139,8 +176,15 @@ const tProjectOf = new class TProjectOf extends Table<DBConnection, 'TProjectOf'
 // issue_worklog: 1 on 2024-03-04, 2 on 2024-03-05, 3 on 2024-03-06
 const tWorkMonth = new class TWorkMonth extends Table<DBConnection, 'TWorkMonth'> {
     id       = this.primaryKey('id', 'int')
+    issueId  = this.column('issue_id', 'int')
     workDate = this.column<ReleaseDay, 'ReleaseDay'>('work_date', 'customLocalDate', 'ReleaseDay', monthText)
     constructor() { super('issue_worklog') }
+}()
+
+// issue: 1 has the worklogs 1 and 3
+const tIssueOf = new class TIssueOf extends Table<DBConnection, 'TIssueOf'> {
+    id = this.primaryKey('id', 'int')
+    constructor() { super('issue') }
 }()
 
 // Every ReleaseDay of the connection, without a type adapter, given inside the JSON as the text DD/MM/YYYY
@@ -150,6 +194,12 @@ class DayAsTextConnection extends DBConnection {
             return "strftime('%d/%m/%Y', " + sql + ")"
         }
         return super.transformProjection(sql, type, typeCategory, output)
+    }
+    protected override projectionComparison(type: string, typeCategory: TypeCategory, output: ProjectionOutput): ProjectionComparison {
+        if (type === 'ReleaseDay' && output === 'aggregatedArrayValue') {
+            return 'equality'
+        }
+        return super.projectionComparison(type, typeCategory, output)
     }
     protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
         const parts = type === 'ReleaseDay' && typeof value === 'string' ? /^(\d\d)\/(\d\d)\/(\d{4})$/.exec(value) : null
@@ -467,5 +517,81 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, { day: ReleaseDay; days: ReleaseDay[] }[]>>()
         expect(rows).toEqual([{ day: dayOf(2024, 1, 15), days: [dayOf(2024, 1, 15)] }])
+    })
+
+    test('transform-projection-aggregated-array/a-value-conversion-distinct-converts-in-place', async () => {
+        ctx.mockNext({ id: 1, days: JSON.stringify([{ day: '2024-01-15' }, { day: '2024-02-20' }, { day: '2024-03-01' }]) })
+        const days = ctx.conn.selectDistinctFrom(tReleaseIsoText)
+            .select({ day: tReleaseIsoText.releasedOn })
+            .forUseAsInlineAggregatedArrayValue()
+        const row = sync(ctx.conn.selectFrom(tProjectOf)
+            .where(tProjectOf.id.equals(1))
+            .select({ id: tProjectOf.id, days })
+            .executeSelectOne())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(json_object('day', strftime('%Y-%m-%d', a_1_.day))) from (select distinct released_on as day from project_release) as a_1_) as days from project where id = ?1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; days: { day: ReleaseDay }[] }>>()
+        expect(byTime(row.days.map(value => value.day))).toEqual([dayOf(2024, 1, 15), dayOf(2024, 2, 20), dayOf(2024, 3, 1)])
+    })
+
+    test('transform-projection-aggregated-array/the-distinct-of-an-aggregate-function-alone-compares-the-values', async () => {
+        // The aggregate is the only column of the select: the distinct is applied to the days, and the aggregate over
+        // them converts them. The three days of March 2024 are three values
+        ctx.mockNext(JSON.stringify(['03/2024', '03/2024', '03/2024']))
+        const months = sync(ctx.conn.selectFrom(tWorkMonth)
+            .selectOneColumn(ctx.conn.aggregateAsArrayOfOneColumnDistinct(tWorkMonth.workDate))
+            .executeSelectOne())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select json_group_array(strftime('%m/%Y', a_1_.result)) as result from (select distinct work_date as result from issue_worklog) as a_1_"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof months, ReleaseDay[]>>()
+        expect(months).toEqual([dayOf(2024, 3, 1), dayOf(2024, 3, 1), dayOf(2024, 3, 1)])
+    })
+
+    test('transform-projection-aggregated-array/the-distinct-of-an-aggregate-function-of-objects-alone-compares-the-values', async () => {
+        ctx.mockNext({ months: JSON.stringify([{ month: '03/2024' }, { month: '03/2024' }, { month: '03/2024' }]) })
+        const row = sync(ctx.conn.selectFrom(tWorkMonth)
+            .select({ months: ctx.conn.aggregateAsArrayDistinct({ month: tWorkMonth.workDate }) })
+            .executeSelectOne())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select json_group_array(json_object('month', strftime('%m/%Y', a_1_.month))) as months from (select distinct work_date as month from issue_worklog) as a_1_"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, { months: { month: ReleaseDay }[] }>>()
+        expect(row).toEqual({ months: [{ month: dayOf(2024, 3, 1) }, { month: dayOf(2024, 3, 1) }, { month: dayOf(2024, 3, 1) }] })
+    })
+
+    test('transform-projection-aggregated-array/the-distinct-of-a-correlated-aggregate-function-compares-the-values', async () => {
+        // Issue 1 has two worklogs of March 2024, two values
+        ctx.mockNext({ id: 1, months: JSON.stringify(['03/2024', '03/2024']) })
+        const months = ctx.conn.subSelectUsing(tIssueOf).from(tWorkMonth)
+            .where(tWorkMonth.issueId.equals(tIssueOf.id))
+            .selectOneColumn(ctx.conn.aggregateAsArrayOfOneColumnDistinct(tWorkMonth.workDate))
+            .forUseAsInlineQueryValue()
+        const row = sync(ctx.conn.selectFrom(tIssueOf)
+            .where(tIssueOf.id.equals(1))
+            .select({ id: tIssueOf.id, months })
+            .executeSelectOne())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(strftime('%m/%Y', a_1_.result)) as result from (select distinct work_date as result from issue_worklog where issue_id = issue.id) as a_1_) as months from issue where id = ?1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; months?: ReleaseDay[] }>>()
+        expect(row).toEqual({ id: 1, months: [dayOf(2024, 3, 1), dayOf(2024, 3, 1)] })
+    })
+
+    test('transform-projection-aggregated-array/a-value-conversion-distinct-of-an-aggregate-function-stays-inside', async () => {
+        // YYYY-MM-DD compares as the day: the distinct stays inside the aggregate, over the texts
+        ctx.mockNext(JSON.stringify(['2024-01-15', '2024-02-20', '2024-03-01']))
+        const days = sync(ctx.conn.selectFrom(tReleaseIsoText)
+            .selectOneColumn(ctx.conn.aggregateAsArrayOfOneColumnDistinct(tReleaseIsoText.releasedOn))
+            .executeSelectOne())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select json_group_array(distinct strftime('%Y-%m-%d', released_on)) as result from project_release"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof days, ReleaseDay[]>>()
+        expect(byTime(days)).toEqual([dayOf(2024, 1, 15), dayOf(2024, 2, 20), dayOf(2024, 3, 1)])
     })
 })

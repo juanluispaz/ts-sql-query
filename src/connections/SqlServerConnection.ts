@@ -4,7 +4,7 @@ import { SqlServerSqlBuilder } from '../sqlBuilders/SqlServerSqlBuilder.js'
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
 import type { TransactionIsolationLevel } from './AbstractConnection.js'
 import type { Default } from '../expressions/Default.js'
-import type { ProjectionOutput, TypeCategory } from '../TypeAdapter.js'
+import type { ProjectionComparison, ProjectionOutput, TypeCategory } from '../TypeAdapter.js'
 import { __isDecimalCategory } from '../utils/typeCategory.js'
 import { DefaultImpl } from '../expressions/Default.js'
 
@@ -19,6 +19,18 @@ export abstract class SqlServerConnection<NAME extends string> extends AbstractA
             return 'convert(nvarchar(41), ' + sql + ')'
         }
         return super.transformProjection(sql, type, typeCategory, output)
+    }
+
+    /**
+     * The text of a decimal of a column of the result orders as a text, not as the number; two equal decimals of a
+     * column give the same text, but of two columns of different scales (in the arms of a compound query) not, 1.5 and
+     * 1.50
+     */
+    protected override projectionComparison(type: string, typeCategory: TypeCategory, output: ProjectionOutput): ProjectionComparison {
+        if (output === 'resultColumn' && __isDecimalCategory(typeCategory)) {
+            return 'columnEquality'
+        }
+        return super.projectionComparison(type, typeCategory, output)
     }
 
     /**

@@ -11,7 +11,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import type { DefaultTypeAdapter, ProjectionOutput, TypeAdapter, TypeCategory } from '../../../../../src/TypeAdapter.js'
+import type { DefaultTypeAdapter, ProjectionComparison, ProjectionOutput, TypeAdapter, TypeCategory } from '../../../../../src/TypeAdapter.js'
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
@@ -47,6 +47,19 @@ const zonedDateTimeAsText: TypeAdapter = {
         }
         return next.transformProjection(sql, type, typeCategory, output)
     },
+    // The text of a date and time with its offset neither compares nor orders as the instant: the same instant written
+    // with two offsets gives two texts, and the texts order otherwise
+    projectionComparison(type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): ProjectionComparison {
+        if (type === 'ZonedDateTime') {
+            return 'none'
+        }
+        return next.projectionComparison(type, typeCategory, output)
+    },
+}
+
+// The instant of a text read, to the millisecond
+function instantOf(text: ZonedDateTime): number {
+    return Date.parse(text.replace(/(\.\d{3})\d*/, '$1'))
 }
 
 const tFlightLeg = new class TFlightLeg extends Table<DBConnection, 'TFlightLeg'> {
@@ -291,5 +304,48 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, { id: number; departsAt: ZonedDateTime }[]>>()
         expect(rows).toEqual(expected)
+    })
+
+    test('union-compares-the-instant', async () => {
+        // 1 and 2 depart at the same instant, written with +09:00 and +00:00: the union compares the instants and keeps
+        // one row, whichever of the two texts
+        ctx.mockNext(['2024-07-01T10:30:15.1234567+09:00'])
+        const departures = await ctx.conn.selectFrom(tFlightLeg)
+            .where(tFlightLeg.id.equals(1))
+            .selectOneColumn(tFlightLeg.departsAt)
+            .union(
+                ctx.conn.selectFrom(tFlightLeg)
+                    .where(tFlightLeg.id.equals(2))
+                    .selectOneColumn(tFlightLeg.departsAt)
+            )
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(nvarchar(40), o_1_.[result], 126) as [result] from (select departs_at as [result] from flight_leg where id = @0 union select departs_at as [result] from flight_leg where id = @1) as o_1_"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof departures, ZonedDateTime[]>>()
+        expect(departures.map(instantOf)).toEqual([Date.UTC(2024, 6, 1, 1, 30, 15, 123)])
+    })
+
+    test('distinct-compares-the-instant', async () => {
+        ctx.mockNext(['2024-07-01T10:30:15.1234567+09:00'])
+        const departures = await ctx.conn.selectDistinctFrom(tFlightLeg)
+            .where(tFlightLeg.id.in([1, 2]))
+            .selectOneColumn(tFlightLeg.departsAt)
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(nvarchar(40), o_1_.[result], 126) as [result] from (select distinct departs_at as [result] from flight_leg where id in (@0, @1)) as o_1_"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof departures, ZonedDateTime[]>>()
+        expect(departures.map(instantOf)).toEqual([Date.UTC(2024, 6, 1, 1, 30, 15, 123)])
     })
 })

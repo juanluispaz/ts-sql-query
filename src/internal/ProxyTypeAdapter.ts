@@ -1,4 +1,4 @@
-import type { DefaultTypeAdapter, ProjectionOutput, TypeAdapter, TypeCategory } from '../TypeAdapter.js'
+import type { DefaultTypeAdapter, ProjectionComparison, ProjectionOutput, TypeAdapter, TypeCategory } from '../TypeAdapter.js'
 
 export class ProxyTypeAdapter implements TypeAdapter {
     typeAdapter: TypeAdapter
@@ -34,6 +34,13 @@ export class ProxyTypeAdapter implements TypeAdapter {
             return this.typeAdapter.transformProjection(sql, type, typeCategory, output, next)
         }
         return next.transformProjection(sql, type, typeCategory, output)
+    }
+
+    projectionComparison(type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): ProjectionComparison {
+        if (this.typeAdapter.projectionComparison) {
+            return this.typeAdapter.projectionComparison(type, typeCategory, output, next)
+        }
+        return next.projectionComparison(type, typeCategory, output)
     }
 }
 

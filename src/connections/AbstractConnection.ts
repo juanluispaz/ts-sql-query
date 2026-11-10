@@ -6,7 +6,7 @@ import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDat
 import type { NoTableOrViewRequired, ITableOrView, ITable, SameDB, HasSource, ForUseInLeftJoin, AnyTableOrView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery } from '../expressions/select.js'
-import type { TypeAdapter, DefaultTypeAdapter, TypeCategory, ProjectionOutput } from '../TypeAdapter.js'
+import type { TypeAdapter, DefaultTypeAdapter, TypeCategory, ProjectionComparison, ProjectionOutput } from '../TypeAdapter.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import type { IConnection } from '../utils/IConnection.js'
 import type { BooleanFragmentExpression, NumberFragmentExpression, StringFragmentExpression, LocalDateFragmentExpression, LocalTimeFragmentExpression, LocalDateTimeFragmentExpression, EqualableFragmentExpression, ComparableFragmentExpression, FragmentBuilder0, FragmentBuilder1, FragmentBuilder2, FragmentBuilder3, FragmentBuilder4, FragmentBuilder5, FragmentBuilder0IfValue, FragmentBuilder1IfValue, FragmentBuilder2IfValue, FragmentBuilder3IfValue, FragmentBuilder4IfValue, FragmentBuilder5IfValue, BigintFragmentExpression, UuidFragmentExpression, StringDecimalFragmentExpression, CustomIntFragmentExpression, CustomBigintFragmentExpression, CustomDoubleFragmentExpression, CustomUuidFragmentExpression, CustomDecimalFragmentExpression, CustomLocalDateFragmentExpression, CustomLocalTimeFragmentExpression, CustomLocalDateTimeFragmentExpression, FragmentBuilderMaybeOptional0, FragmentBuilderMaybeOptional1, FragmentBuilderMaybeOptional2, FragmentBuilderMaybeOptional3, FragmentBuilderMaybeOptional4, FragmentBuilderMaybeOptional5 } from '../expressions/fragment.js'
@@ -1474,6 +1474,16 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
      */
     protected transformProjection(sql: string, _type: string, _typeCategory: TypeCategory, _output: ProjectionOutput): string {
         return sql
+    }
+
+    /**
+     * How the SQL of `transformProjection` compares with the value (see `ProjectionComparison`): `'value'` for every
+     * value, the conversion of the library changes none, except where a connection of a database says otherwise (SQL
+     * Server, for the text of a decimal of a column of the result). A connection that converts a value in
+     * `transformProjection` in a way that compares or orders otherwise returns `'equality'`, `'columnEquality'` or `'none'` for it
+     */
+    protected projectionComparison(_type: string, _typeCategory: TypeCategory, _output: ProjectionOutput): ProjectionComparison {
+        return 'value'
     }
 
     /**

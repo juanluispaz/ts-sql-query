@@ -9,7 +9,7 @@ import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import type { DefaultTypeAdapter, ProjectionOutput, TypeAdapter, TypeCategory } from '../../../../../src/TypeAdapter.js'
+import type { DefaultTypeAdapter, ProjectionComparison, ProjectionOutput, TypeAdapter, TypeCategory } from '../../../../../src/TypeAdapter.js'
 
 interface RgbColor { r: number, g: number, b: number }
 
@@ -98,6 +98,10 @@ class DayAsTextTypeAdapter implements TypeAdapter {
             return "to_char(" + sql + ", 'DD/MM/YYYY')"
         }
         return next.transformProjection(sql, type, typeCategory, output)
+    }
+    projectionComparison(_type: string, _typeCategory: TypeCategory, _output: ProjectionOutput, _next: DefaultTypeAdapter): ProjectionComparison {
+        // Equal days give equal texts, but DD/MM/YYYY doesn't order as the day
+        return 'equality'
     }
 }
 

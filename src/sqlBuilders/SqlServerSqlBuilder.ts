@@ -1205,22 +1205,36 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     _useForJsonInAggreagteArrayWhenPossible = true
     /**
      * The inline aggregated array of a select of objects is the select itself with `for json path`, whose columns are
-     * the leaves. A converted leaf (`_isConvertedAggregatedArrayValue`) can't be one of its columns, because the
-     * distinct and the order by of the select would compare and order the converted value: the leaves are then written
+     * the leaves, converted in place (`_isSelectOfAggregatedArrayValues`). A converted leaf can't be one of its columns
+     * when the select would compare or order the converted value instead of the value: a leaf whose conversion doesn't
+     * compare like the value (`_needsTheValueOfAggregatedArrayValueToCompare`), or one whose conversion doesn't order
+     * like the value (`_needsTheValueOfAggregatedArrayValueToOrder`) named by the order by. The leaves are then written
      * by the library, over the select wrapped when it needs it
      */
     _isForJsonPathAggregatedArray(query: SelectData): boolean {
-        return this._useForJsonInAggreagteArrayWhenPossible && !!query.__asInlineAggregatedArrayValue && !query.__oneColumn && query.__type === 'plain' && !this._hasConvertedAggregatedArrayValue(query.__columns)
+        return this._useForJsonInAggreagteArrayWhenPossible && !!query.__asInlineAggregatedArrayValue && !query.__oneColumn && query.__type === 'plain' && !this._hasAggregatedArrayValueNeedingTheValue(query)
     }
-    _hasConvertedAggregatedArrayValue(queryColumns: QueryColumns): boolean {
+    _hasAggregatedArrayValueNeedingTheValue(query: SelectData): boolean {
         const columns: FlatQueryColumns = {}
-        flattenQueryColumns(queryColumns, columns, '')
+        flattenQueryColumns(query.__columns, columns, '')
         for (const property in columns) {
-            if (this._isConvertedAggregatedArrayValue(columns[property]!)) {
+            if (this._needsTheValueOfAggregatedArrayValueToCompare(columns[property]!)) {
                 return true
             }
         }
+        const orderBy = query.__orderBy
+        if (orderBy) {
+            for (const entry of orderBy) {
+                const column = typeof entry.expression === 'string' ? columns[entry.expression] : undefined
+                if (column && this._needsTheValueOfAggregatedArrayValueToOrder(column)) {
+                    return true
+                }
+            }
+        }
         return false
+    }
+    override _isSelectOfAggregatedArrayValues(query: SelectData): boolean {
+        return this._isForJsonPathAggregatedArray(query)
     }
     override _buildSelectAsAggregatedArray(query: SelectData, _params: any[]): string {
         if (this._isForJsonPathAggregatedArray(query)) {

@@ -25,6 +25,16 @@ export type TypeCategory = 'boolean'
  */
 export type ProjectionOutput = 'resultColumn' | 'aggregatedArrayValue'
 
+/**
+ * How the SQL that `transformProjection` returns for a value compares with the value, given by `projectionComparison`:
+ * `'value'` compares and orders like the value (equal values give equal SQL, different values give different SQL, and
+ * the SQL orders as the values do); `'equality'` compares like the value but orders otherwise; `'columnEquality'`
+ * compares like the value only among the values of the same column (two equal values of two columns or expressions can
+ * give different SQL, like two decimals of different scales) and orders otherwise; `'none'` neither compares nor orders
+ * like the value (two different values can give the same SQL, or two equal values different SQL).
+ */
+export type ProjectionComparison = 'value' | 'equality' | 'columnEquality' | 'none'
+
 export interface DefaultTypeAdapter {
     transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
     transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
@@ -36,6 +46,12 @@ export interface DefaultTypeAdapter {
      * JSON of an aggregated array, and every value on the other databases, keeps the SQL it receives
      */
     transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput): string
+    /**
+     * How the SQL of the conversion of the library (`transformProjection`) compares with the value: `'value'` for every
+     * value, except a decimal of a column of the result on SQL Server, `'columnEquality'` (its text orders otherwise,
+     * and two equal decimals of different scales give different texts)
+     */
+    projectionComparison(type: string, typeCategory: TypeCategory, output: ProjectionOutput): ProjectionComparison
 }
 
 export interface TypeAdapter {
@@ -61,6 +77,28 @@ export interface TypeAdapter {
      * text)
      */
     transformProjection?(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string
+    /**
+     * How the SQL that `transformProjection` returns for the value in `output` compares with the value, which decides
+     * what the library does where the query compares (equality, distinct, union, intersect, except) or orders it:
+     * - `'value'`: it compares and orders like the value; the converted SQL is written in place and nothing else changes
+     *   in the query.
+     * - `'equality'`: equal values give equal SQL and different values different SQL, but it orders otherwise (a
+     *   DD/MM/YYYY text of a date); the order by of the column orders by the value, a distinct or a compound select
+     *   ordered by it is wrapped and converted over the wrapper, and the select of an aggregated array ordered by it
+     *   orders the values.
+     * - `'columnEquality'`: as `'equality'`, but only among the values of the same column: two equal values of two
+     *   columns or expressions can give different SQL (the text of a decimal, `1.5` in a `decimal(10, 1)` and `1.50` in
+     *   a `decimal(10, 2)`); besides the above, a compound query, whose arms compare values of different columns, is
+     *   wrapped and converted over the wrapper. A distinct compares the values of one column, so it isn't wrapped.
+     * - `'none'`: it neither compares nor orders like the value (a MM/YYYY text of a date, the text of a date and time
+     *   with its offset); besides the above, a distinct select is wrapped and converted over the wrapper, and the
+     *   distinct of an aggregated array is applied to the values before converting them, where the database allows it.
+     *
+     * Without this method the connection answers, as for its own conversion (`next.projectionComparison(...)`):
+     * `'value'`, except for a decimal of a column of the result on SQL Server (`'columnEquality'`). It isn't asked when
+     * `transformProjection` doesn't convert the value
+     */
+    projectionComparison?(type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): ProjectionComparison
 }
 
 export class CustomBooleanTypeAdapter implements TypeAdapter {

@@ -9,7 +9,7 @@ import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
-import type { TypeCategory, DefaultTypeAdapter, ProjectionOutput, TypeAdapter } from '../../../../../src/TypeAdapter.js'
+import type { TypeCategory, DefaultTypeAdapter, ProjectionComparison, ProjectionOutput, TypeAdapter } from '../../../../../src/TypeAdapter.js'
 
 interface RgbColor { r: number, g: number, b: number }
 
@@ -98,6 +98,10 @@ class DayAsTextTypeAdapter implements TypeAdapter {
             return "strftime('%d/%m/%Y', " + sql + ")"
         }
         return next.transformProjection(sql, type, typeCategory, output)
+    }
+    projectionComparison(_type: string, _typeCategory: TypeCategory, _output: ProjectionOutput, _next: DefaultTypeAdapter): ProjectionComparison {
+        // Equal days give equal texts, but DD/MM/YYYY doesn't order as the day
+        return 'equality'
     }
 }
 

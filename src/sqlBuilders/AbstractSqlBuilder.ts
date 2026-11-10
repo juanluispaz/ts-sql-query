@@ -8,10 +8,10 @@ import { isDefault } from '../expressions/Default.js'
 import type { __ColumnPrivate, DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
 import { isColumn } from '../utils/Column.js'
-import type { DefaultTypeAdapter, ProjectionOutput, TypeAdapter } from '../TypeAdapter.js'
+import type { DefaultTypeAdapter, ProjectionComparison, ProjectionOutput, TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import type { ConnectionConfiguration } from '../queryRunners/QueryRunner.js'
-import { SequenceValueSource } from '../internal/ValueSourceImpl.js'
+import { AggregateValueAsArrayValueSource, AllowWhenAggregateValueAsArrayValueSource, SequenceValueSource } from '../internal/ValueSourceImpl.js'
 import { RawFragmentImpl } from '../internal/RawFragmentImpl.js'
 import { hasToSql, operationOf } from './SqlBuilder.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
@@ -180,6 +180,32 @@ export class AbstractSqlBuilder implements SqlBuilder {
     /** The column is converted in the outermost query (`_appendResultColumnProjection` changes it) */
     _isConvertedResultColumn(value: AnyValueSource, params: any[]): boolean {
         return this._appendResultColumnProjection(value, '', params) !== ''
+    }
+    /**
+     * The column is converted in the outermost query, and its converted SQL doesn't compare like the value
+     * (`projectionComparison` is `'none'`): where the query compares it, it must use the value, not the converted SQL
+     */
+    _needsTheValueOfResultColumnToCompare(value: AnyValueSource, params: any[]): boolean {
+        return this._isConvertedResultColumn(value, params) && this._projectionComparison(value, 'resultColumn') === 'none'
+    }
+    /**
+     * The column is converted in the outermost query, and its converted SQL doesn't compare like the value of another
+     * column or expression (`projectionComparison` is `'columnEquality'` or `'none'`): where the query compares it with
+     * other values, like the arms of a compound query, it must use the value
+     */
+    _needsTheValueOfResultColumnToCompareAcrossColumns(value: AnyValueSource, params: any[]): boolean {
+        if (!this._isConvertedResultColumn(value, params)) {
+            return false
+        }
+        const comparison = this._projectionComparison(value, 'resultColumn')
+        return comparison === 'none' || comparison === 'columnEquality'
+    }
+    /**
+     * The column is converted in the outermost query, and its converted SQL doesn't order like the value
+     * (`projectionComparison` isn't `'value'`): where the query orders it, it must use the value, not the converted SQL
+     */
+    _needsTheValueOfResultColumnToOrder(value: AnyValueSource, params: any[]): boolean {
+        return this._isConvertedResultColumn(value, params) && this._projectionComparison(value, 'resultColumn') !== 'value'
     }
     /** A select of the query, or of one of its compound queries, adds columns of its own (`beforeColumns`) */
     _hasCustomizedColumns(query: SelectData): boolean {
@@ -755,6 +781,36 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _isConvertedAggregatedArrayValue(value: AnyValueSource): boolean {
         return this._appendAggregatedArrayValueProjection(value, '') !== ''
     }
+    /**
+     * The value inside the JSON of an aggregated array is converted, and its converted SQL doesn't compare like the
+     * value (`projectionComparison` is `'none'`)
+     */
+    _needsTheValueOfAggregatedArrayValueToCompare(value: AnyValueSource): boolean {
+        return this._isConvertedAggregatedArrayValue(value) && this._projectionComparison(value, 'aggregatedArrayValue') === 'none'
+    }
+    /**
+     * The value inside the JSON of an aggregated array is converted, and its converted SQL doesn't order like the
+     * value (`projectionComparison` isn't `'value'`)
+     */
+    _needsTheValueOfAggregatedArrayValueToOrder(value: AnyValueSource): boolean {
+        return this._isConvertedAggregatedArrayValue(value) && this._projectionComparison(value, 'aggregatedArrayValue') !== 'value'
+    }
+    /**
+     * The `projectionComparison` of the type adapter of the value, or of the connection, for `output`: how the SQL of
+     * `_appendValueProjection` compares with the value
+     */
+    _projectionComparison(value: AnyValueSource, output: ProjectionOutput): ProjectionComparison {
+        if (!isValueSource(value)) {
+            return 'value'
+        }
+        const valueSourcePrivate = __getValueSourcePrivate(value)
+        const typeAdapter = valueSourcePrivate.__typeAdapter
+        const typeCategory = __typeCategoryOf(valueSourcePrivate.__valueType)
+        if (typeAdapter && typeAdapter.projectionComparison) {
+            return typeAdapter.projectionComparison(valueSourcePrivate.__valueTypeName, typeCategory, output, this._defaultTypeAdapter)
+        }
+        return this._defaultTypeAdapter.projectionComparison(valueSourcePrivate.__valueTypeName, typeCategory, output)
+    }
     /** The `transformProjection` of the type adapter of the value, or of the connection, for `output` */
     _appendValueProjection(value: AnyValueSource, sql: string, output: ProjectionOutput): string {
         if (!isValueSource(value)) {
@@ -771,9 +827,31 @@ export class AbstractSqlBuilder implements SqlBuilder {
     /**
      * The outermost query must be wrapped in a select that converts its columns (`_appendResultColumnProjection`),
      * because the conversion can't be written in the query itself: in the arms of a compound, a conversion would
-     * change how the rows are compared and ordered. True when a column of the query is converted.
+     * change how the rows are compared, and the order by of the alias of a column would order the converted value.
+     * True when a column of the query is converted and its conversion doesn't compare like the value of the other arm
+     * (`_needsTheValueOfResultColumnToCompareAcrossColumns`), or the order by names a column whose conversion doesn't
+     * order like the value (`_isOrderByAliasNeedingTheValue`); any other conversion is written in the query itself.
      */
     _needsResultConversionWrap(query: SelectData, params: any[]): boolean {
+        const queryColumns = query.__columns
+        if (!queryColumns) {
+            return false
+        }
+        const columns: FlatQueryColumns = {}
+        flattenQueryColumns(queryColumns, columns, '')
+        for (const property in columns) {
+            if (this._needsTheValueOfResultColumnToCompareAcrossColumns(columns[property]!, params)) {
+                return true
+            }
+        }
+        const orderBy = query.__orderBy
+        if (orderBy) {
+            return orderBy.some(entry => this._isOrderByAliasNeedingTheValue(entry, query, params))
+        }
+        return false
+    }
+    /** A column of the query is converted in the outermost query (`_isConvertedResultColumn`) */
+    _hasConvertedResultColumn(query: SelectData, params: any[]): boolean {
         const queryColumns = query.__columns
         if (!queryColumns) {
             return false
@@ -786,6 +864,95 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
         }
         return false
+    }
+    /**
+     * A distinct select must be wrapped in a select that converts its columns: the distinct of the select itself would
+     * compare the converted SQL of a column whose conversion doesn't compare like the value
+     * (`_needsTheValueOfResultColumnToCompare`, a distinct compares the values of each column with each other, so
+     * `'columnEquality'` doesn't need it), or order by the converted SQL of a column named by the order by whose
+     * conversion doesn't order like the value (`_isOrderByAliasNeedingTheValue`). The distinct is applied to the values,
+     * and the wrapper converts them.
+     */
+    _needsDistinctConversionWrap(query: SelectData, params: any[]): boolean {
+        if (query.__type !== 'plain' || !query.__distinct || query.__asInlineAggregatedArrayValue || this._isResultConversionDeferred(params) || !this._isCurrentRootQuery(query, params)) {
+            return false
+        }
+        const columns: FlatQueryColumns = {}
+        flattenQueryColumns(query.__columns, columns, '')
+        for (const property in columns) {
+            if (this._needsTheValueOfResultColumnToCompare(columns[property]!, params)) {
+                return true
+            }
+        }
+        const orderBy = query.__orderBy
+        if (orderBy) {
+            return orderBy.some(entry => this._isOrderByAliasNeedingTheValue(entry, query, params))
+        }
+        return false
+    }
+    /**
+     * The distinct of `aggregateAsArrayDistinct` and `aggregateAsArrayOfOneColumnDistinct` is inside the JSON function
+     * of the database, which compares what goes in the JSON: a value converted by a conversion that doesn't compare
+     * like the value (`_needsTheValueOfAggregatedArrayValueToCompare`) would be compared as its converted SQL. When the
+     * aggregate is the only column of a select that isn't grouped (one row, over every row of the from), the select is
+     * written as the aggregate, without the distinct, over a select of the distinct values
+     * (`select json_agg(<converted a_N_.result>) from (select distinct <value> as result from ...) a_N_`). Undefined
+     * when that isn't the case, and the distinct stays inside the aggregate.
+     */
+    _getDistinctAggregatedArrayToWrap(query: SelectData, columns: FlatQueryColumns): { property: string, __aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource } | undefined {
+        if (query.__type !== 'plain' || query.__asInlineAggregatedArrayValue || query.__groupBy.length > 0 || query.__having || query.__orderBy) {
+            return undefined
+        }
+        const customization = query.__customization
+        if (customization && (customization.afterSelectKeyword || customization.beforeColumns || customization.customWindow || customization.beforeOrderByItems || customization.afterOrderByItems)) {
+            return undefined
+        }
+        let property: string | undefined
+        for (const name in columns) {
+            if (property !== undefined) {
+                return undefined
+            }
+            property = name
+        }
+        if (property === undefined) {
+            return undefined
+        }
+        const column = columns[property]
+        if (!(column instanceof AggregateValueAsArrayValueSource) || !column.__aggregatedArrayDistinct) {
+            return undefined
+        }
+        if (column instanceof AllowWhenAggregateValueAsArrayValueSource && !column.__allowed) {
+            return undefined
+        }
+        const aggregatedArrayColumns = column.__aggregatedArrayColumns
+        const values: FlatQueryColumns = {}
+        if (isValueSource(aggregatedArrayColumns)) {
+            values['result'] = aggregatedArrayColumns
+        } else {
+            flattenQueryColumns(aggregatedArrayColumns, values, '')
+        }
+        for (const name in values) {
+            if (this._needsTheValueOfAggregatedArrayValueToCompare(values[name]!)) {
+                return { property, __aggregatedArrayColumns: aggregatedArrayColumns }
+            }
+        }
+        return undefined
+    }
+    /** The columns of the select of the distinct values of an aggregated array (`_getDistinctAggregatedArrayToWrap`) */
+    _appendDistinctAggregatedArrayValues(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, params: any[]): string {
+        if (isValueSource(aggregatedArrayColumns)) {
+            return this._appendColumnValue(aggregatedArrayColumns, params, false) + ' as ' + this._appendColumnAlias('result', params)
+        }
+        const values: FlatQueryColumns = {}
+        flattenQueryColumns(aggregatedArrayColumns, values, '')
+        let result = ''
+        for (const name in values) {
+            if (result) {
+                result += ', '
+            }
+            result += this._appendColumnValue(values[name]!, params, false) + ' as ' + this._appendColumnAlias(name, params)
+        }
+        return result
     }
     /**
      * The columns of the select that wraps a query to convert them (`_needsResultConversionWrap`), read from the
@@ -1276,7 +1443,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
             selectQuery += this._appendRawFragment(customization.afterSelectKeyword, params) + ' '
         }
 
-        if (query.__distinct) {
+        const columns: FlatQueryColumns = {}
+        flattenQueryColumns(query.__columns, columns, '')
+
+        // The distinct of an aggregated array whose values are converted, applied to the values: see
+        // `_getDistinctAggregatedArrayToWrap`
+        const distinctAggregatedArray = this._getDistinctAggregatedArrayToWrap(query, columns)
+
+        if (query.__distinct || distinctAggregatedArray) {
             selectQuery += 'distinct '
         }
 
@@ -1284,13 +1458,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
             selectQuery += this._appendRawFragment(customization.beforeColumns, params) + ' '
         }
 
-        const columns: FlatQueryColumns = {}
-        flattenQueryColumns(query.__columns, columns, '')
-
         // An order by written over a query that wraps the select; the columns of the outermost select are converted
         // there when they can't be converted in the select itself
         const emitOrderBy = !query.__asInlineAggregatedArrayValue || !this._supportOrderByWhenAggregateArray || this._isAggregateArrayWrapped(params)
-        const conversionOnWrapper = isOutermostQuery && !this._isResultConversionDeferred(params) && this._needsResultConversionWrap(query, params) && emitOrderBy && !needAgggregateArrayWrapper && this._needsSelectOrderByWrap(query, params)
+        const distinctConversionWrap = isOutermostQuery && !needAgggregateArrayWrapper && this._needsDistinctConversionWrap(query, params)
+        const conversionOnWrapper = distinctConversionWrap || (isOutermostQuery && !this._isResultConversionDeferred(params) && this._hasConvertedResultColumn(query, params) && emitOrderBy && !needAgggregateArrayWrapper && this._needsSelectOrderByWrap(query, params))
         const convertColumns = isOutermostQuery && !conversionOnWrapper && !this._isResultConversionDeferred(params)
         const oldResultConversionWithAllColumns = this._isResultConversionWithAllColumns(params)
         if (conversionOnWrapper) {
@@ -1299,9 +1471,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // The columns the query that wraps this select converts, when it passes on every column, have another alias here
         const innerAliases = isOutermostQuery && !convertColumns && this._isResultConversionWithAllColumns(params)
 
+        // The columns of the select are the values of the JSON of an aggregated array
+        const selectOfAggregatedArrayValues = !isOutermostQuery && this._isSelectOfAggregatedArrayValues(query)
         // The SQL of each column of the select, for the group by, the having and the order by that refer to it
         const selectColumnsSql = new Map<AnyValueSource, SelectColumnSql>()
-        if (needAgggregateArrayWrapper || !this._needAgggregateArrayColumnsTransformation(query, params)) {
+        if (distinctAggregatedArray) {
+            selectQuery += this._appendDistinctAggregatedArrayValues(distinctAggregatedArray.__aggregatedArrayColumns, params)
+        } else if (needAgggregateArrayWrapper || !this._needAgggregateArrayColumnsTransformation(query, params)) {
             let requireComma = false
             let position = 0
             for (const property in columns) {
@@ -1317,6 +1493,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 }
                 if (convertColumns && !columnForInsert) {
                     selectQuery += this._appendResultColumnProjection(columns[property]!, columnSql, params)
+                } else if (selectOfAggregatedArrayValues) {
+                    selectQuery += this._appendAggregatedArrayValueProjection(columns[property]!, columnSql)
                 } else {
                     selectQuery += columnSql
                 }
@@ -1399,6 +1577,24 @@ export class AbstractSqlBuilder implements SqlBuilder {
             selectQuery += this._appendRawFragment(customization.customWindow, params)
         }
 
+        if (distinctAggregatedArray) {
+            // The aggregate over the distinct values, which it converts
+            const aggregateId = this._generateUnique()
+            const wrapperAlias = 'a_' + aggregateId + '_'
+            const property = distinctAggregatedArray.property
+            let aggregate = this._appendAggragateArrayWrappedColumns(distinctAggregatedArray.__aggregatedArrayColumns, params, aggregateId)
+            if (isOutermostQuery) {
+                aggregate = this._finalizeAggregatedArrayResult(aggregate)
+                if (convertColumns) {
+                    aggregate = this._appendResultColumnProjection(columns[property]!, aggregate, params)
+                }
+            }
+            if (property) {
+                aggregate += ' as ' + this._appendColumnAlias(property, params)
+            }
+            selectQuery = selectQuery.substring(0, selectStart) + 'select ' + aggregate + ' from (' + selectQuery.substring(selectStart) + ')' + (this._supportTableAliasWithAs ? ' as ' : ' ') + wrapperAlias
+        }
+
         if (emitOrderBy) {
             const oldSafeTableOrViewInOrderBy = this._getSafeTableOrView(params)
             const oldOrderBySafeTableOrView = this._getOrderBySafeTableOrView(params)
@@ -1406,9 +1602,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
             this._setSafeTableOrView(params, undefined)
             this._setOrderBySafeTableOrView(params, oldSafeTableOrViewInOrderBy)
             this._setSelectColumnsSql(params, selectColumnsSql)
-            if (!needAgggregateArrayWrapper && this._needsSelectOrderByWrap(query, params)) {
-                // The order by can't be written over the select: it is written over a query that wraps it, where the
-                // columns of the select are the columns of the from
+            if (distinctConversionWrap || (!needAgggregateArrayWrapper && this._needsSelectOrderByWrap(query, params))) {
+                // The order by can't be written over the select, or the distinct must compare the values: the select is
+                // wrapped, and the order by is written over the query that wraps it, where the columns of the select are
+                // the columns of the from
                 const wrapperAlias = 'o_' + this._generateUnique() + '_'
                 selectQuery = selectQuery.substring(0, selectStart) + 'select ' + (conversionOnWrapper ? this._appendResultConversionWrapperColumns(query, params, wrapperAlias) : '*') + ' from (' + selectQuery.substring(selectStart) + ')'
                 selectQuery += this._supportTableAliasWithAs ? ' as ' + wrapperAlias : ' ' + wrapperAlias
@@ -1560,7 +1757,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     /**
      * The order by names a column of the select that is converted in the outermost query
-     * (`_isConvertedResultColumn`): a bare alias would order by the converted value
+     * (`_isConvertedResultColumn`)
      */
     _isConvertedOrderByAlias(entry: OrderByEntry, query: SelectData, params: any[]): boolean {
         const expression = entry.expression
@@ -1570,14 +1767,26 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const column = getQueryColumn(query.__columns, expression)
         return !!column && this._isConvertedResultColumn(column, params)
     }
+    /**
+     * The order by names a column of the select that is converted in the outermost query, and its conversion doesn't
+     * order like the value (`_needsTheValueOfResultColumnToOrder`): a bare alias would order by the converted value
+     */
+    _isOrderByAliasNeedingTheValue(entry: OrderByEntry, query: SelectData, params: any[]): boolean {
+        const expression = entry.expression
+        if (typeof expression !== 'string') {
+            return false
+        }
+        const column = getQueryColumn(query.__columns, expression)
+        return !!column && this._needsTheValueOfResultColumnToOrder(column, params)
+    }
     _appendOrderByColumnAlias(entry: OrderByEntry, query: SelectData, params: any[]): string {
-        if (this._isConvertedOrderByAlias(entry, query, params)) {
-            const wrapperAlias = this._getResultConversionWrapperAlias(params)
-            if (wrapperAlias) {
-                // Over the query that wraps the select, the column of the wrapped query, not the converted one
-                const name = entry.expression as string
-                return wrapperAlias + '.' + this._appendColumnAlias(this._isResultConversionWithAllColumns(params) ? this._resultConversionInnerAlias(name) : name, params)
-            }
+        const wrapperAlias = this._getResultConversionWrapperAlias(params)
+        if (wrapperAlias && this._isConvertedOrderByAlias(entry, query, params)) {
+            // Over the query that wraps the select, the column of the wrapped query, not the converted one
+            const name = entry.expression as string
+            return wrapperAlias + '.' + this._appendColumnAlias(this._isResultConversionWithAllColumns(params) ? this._resultConversionInnerAlias(name) : name, params)
+        }
+        if (!wrapperAlias && this._isOrderByAliasNeedingTheValue(entry, query, params)) {
             if (query.__type === 'plain' && !this._isOrderByOnWrapper(params) && !this._isResultConversionDeferred(params) && this._isCurrentRootQuery(query, params)) {
                 // The expression of the column before converting it. An expression with parameters is written as the select
                 // list writes it, with the same parameters; otherwise it is written qualified, because a bare column with
@@ -1680,12 +1889,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * ...`), because no way of writing it over the select itself is right
      */
     _needsSelectOrderByWrap(query: SelectData, params: any[]): boolean {
-        // A distinct select can only order by what it selects, and the converted column is another value: the order by
-        // goes over a query that wraps the select, which converts the columns
+        // A distinct select can only order by what it selects, and the converted column is another value that doesn't
+        // order like it: the order by goes over a query that wraps the select, which converts the columns
         if (query.__type !== 'plain' || !query.__distinct || !query.__orderBy || this._isResultConversionDeferred(params) || !this._isCurrentRootQuery(query, params)) {
             return false
         }
-        return query.__orderBy.some(entry => this._isConvertedOrderByAlias(entry, query, params))
+        return query.__orderBy.some(entry => this._isOrderByAliasNeedingTheValue(entry, query, params))
     }
     _appendHavingCondition(having: IAnyBooleanValueSource<any, any>, params: any[]): string {
         return this._appendCondition(having, params)
@@ -4500,6 +4709,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const aggregatedArrayColumns = valueSourcePrivate.__aggregatedArrayColumns!
         const aggregatedArrayDistinct = valueSourcePrivate.__aggregatedArrayDistinct!
         return this._appendAggragateArrayColumns(aggregatedArrayColumns, aggregatedArrayDistinct, params, undefined)
+    }
+    /**
+     * The columns of the select are the values of the JSON of an aggregated array, as the database writes them in the
+     * JSON (SQL Server's `for json path`): each one is written as `_appendAggregatedArrayValueProjection` converts it
+     */
+    _isSelectOfAggregatedArrayValues(_query: SelectData): boolean {
+        return false
     }
     _needAgggregateArrayColumnsTransformation(query: SelectData, _params: any[]): boolean {
         return !!query.__asInlineAggregatedArrayValue

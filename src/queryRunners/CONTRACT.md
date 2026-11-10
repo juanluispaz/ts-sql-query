@@ -492,7 +492,7 @@ The kinds of column (`docs/configuration/time-zones.md`):
 | 4 | keeps the zone of each value | the value and its zone | Oracle `TIMESTAMP WITH TIME ZONE`, SQL Server `datetimeoffset`, PostgreSQL `timetz` |
 
 The date functions of a query (`getFullYear` … `getMilliseconds`) give the parts in UTC, as the `getUTC…` methods of
-the `Date` read, and `getTime` its `getTime()` (`docs/configuration/time-zones.md`, "The date functions of a query
+the `Date` read, and `getTime` its `getTime()`, the instant, also for a value stored with another offset (Oracle `OracleSqlBuilder._getTime`) (`docs/configuration/time-zones.md`, "The date functions of a query
 give the parts in UTC"). SQLite has its own strategies (§0) and `sqliteRunsInApplicationTimeZone`.
 
 ### 7.2 Kind 4 through the drivers

@@ -19,23 +19,15 @@ async function acquire() {
 
 const runners = ['MssqlPoolQueryRunner', 'MssqlPoolPromiseQueryRunner']
 
-// The zoned values are stored at +09:00 (the same instant). The value read is its instant, but datepart of a
-// datetimeoffset gives the parts of the offset it was stored with, not UTC: the hour of 18:15 +09:00 is 18
-// (docs/configuration/time-zones.md, "Known limits"). getTime counts the instant
-const storedOffsetHour = /^read getters \| dtz datetimeoffset\(3\) \| [^|]*\+09:00[^|]* \| getHours$/
-function sqlServerLimitOf(_zone: string, caseName: string): string | undefined {
-    return storedOffsetHour.test(caseName) ? 'the parts of a datetimeoffset are those of the offset it was stored with' : undefined
-}
-
 describeLocalTemporalValuesInAnyZone({
     database: 'SQL Server',
     dialect: sqlServerTemporalDialect,
     probe,
     acquire,
     runners: runners.flatMap(runner => [
-        { runner, label: `${runner} (useUTC: true)`, options: { useUTC: true }, enabled, needsConnection: true, limitOf: sqlServerLimitOf },
+        { runner, label: `${runner} (useUTC: true)`, options: { useUTC: true }, enabled, needsConnection: true },
         // useUTC: false is only valid with the process in UTC (see the requirements below)
-        { runner, label: `${runner} (useUTC: false)`, options: { useUTC: false }, enabled, needsConnection: true, zones: ['UTC'], limitOf: sqlServerLimitOf },
+        { runner, label: `${runner} (useUTC: false)`, options: { useUTC: false }, enabled, needsConnection: true, zones: ['UTC'] },
     ]),
 })
 

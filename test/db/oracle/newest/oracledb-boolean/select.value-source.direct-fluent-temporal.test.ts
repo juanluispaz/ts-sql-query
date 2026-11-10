@@ -658,7 +658,7 @@ describe(ctx.label, () => {
                 t:   tProjectRelease.publishedAt.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from published_at) as "y", extract(month from published_at) - 1 as "mo", extract(day from published_at) as "d", mod(trunc(published_at) - trunc(published_at, 'IW') + 1, 7) as "dow", extract(hour from published_at) as "h", extract(minute from published_at) as "m", trunc(extract(second from published_at)) as "s", to_number(to_char(published_at, 'FF3')) as "ms", (trunc(timestamp '1970-01-01 00:00:00' + (published_at - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (published_at - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')) as "t" from project_release where id = :0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from published_at) as "y", extract(month from published_at) - 1 as "mo", extract(day from published_at) as "d", mod(trunc(timestamp '1970-01-01 00:00:00' + (published_at - timestamp '1970-01-01 00:00:00')) - trunc(timestamp '1970-01-01 00:00:00' + (published_at - timestamp '1970-01-01 00:00:00'), 'IW') + 1, 7) as "dow", extract(hour from published_at) as "h", extract(minute from published_at) as "m", trunc(extract(second from published_at)) as "s", to_number(to_char(published_at, 'FF3')) as "ms", (trunc(timestamp '1970-01-01 00:00:00' + (published_at - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (published_at - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')) as "t" from project_release where id = :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -727,7 +727,7 @@ describe(ctx.label, () => {
                 t:   vReleaseOverview.publishStampPlain.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from published_stamp_plain) as "y", extract(month from published_stamp_plain) - 1 as "mo", extract(day from published_stamp_plain) as "d", mod(trunc(published_stamp_plain) - trunc(published_stamp_plain, 'IW') + 1, 7) as "dow", extract(hour from published_stamp_plain) as "h", extract(minute from published_stamp_plain) as "m", trunc(extract(second from published_stamp_plain)) as "s", to_number(to_char(published_stamp_plain, 'FF3')) as "ms", (trunc(timestamp '1970-01-01 00:00:00' + (published_stamp_plain - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (published_stamp_plain - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')) as "t" from release_overview where id = :0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from published_stamp_plain) as "y", extract(month from published_stamp_plain) - 1 as "mo", extract(day from published_stamp_plain) as "d", mod(trunc(timestamp '1970-01-01 00:00:00' + (published_stamp_plain - timestamp '1970-01-01 00:00:00')) - trunc(timestamp '1970-01-01 00:00:00' + (published_stamp_plain - timestamp '1970-01-01 00:00:00'), 'IW') + 1, 7) as "dow", extract(hour from published_stamp_plain) as "h", extract(minute from published_stamp_plain) as "m", trunc(extract(second from published_stamp_plain)) as "s", to_number(to_char(published_stamp_plain, 'FF3')) as "ms", (trunc(timestamp '1970-01-01 00:00:00' + (published_stamp_plain - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (published_stamp_plain - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')) as "t" from release_overview where id = :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -759,7 +759,7 @@ describe(ctx.label, () => {
                 t:   vReleaseOverview.publishStamp.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from published_stamp) as "y", extract(month from published_stamp) - 1 as "mo", extract(day from published_stamp) as "d", mod(trunc(published_stamp) - trunc(published_stamp, 'IW') + 1, 7) as "dow", extract(hour from published_stamp) as "h", extract(minute from published_stamp) as "m", trunc(extract(second from published_stamp)) as "s", to_number(to_char(published_stamp, 'FF3')) as "ms", (trunc(timestamp '1970-01-01 00:00:00' + (published_stamp - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (published_stamp - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')) as "t" from release_overview where id = :0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from published_stamp) as "y", extract(month from published_stamp) - 1 as "mo", extract(day from published_stamp) as "d", mod(trunc(timestamp '1970-01-01 00:00:00' + (published_stamp - timestamp '1970-01-01 00:00:00')) - trunc(timestamp '1970-01-01 00:00:00' + (published_stamp - timestamp '1970-01-01 00:00:00'), 'IW') + 1, 7) as "dow", extract(hour from published_stamp) as "h", extract(minute from published_stamp) as "m", trunc(extract(second from published_stamp)) as "s", to_number(to_char(published_stamp, 'FF3')) as "ms", (trunc(timestamp '1970-01-01 00:00:00' + (published_stamp - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (published_stamp - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')) as "t" from release_overview where id = :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -831,7 +831,7 @@ describe(ctx.label, () => {
                     t:   vProjectOverview.archivedAt.getTime(),
                 })
                 .executeSelectMany()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from archived_at) as "y", extract(month from archived_at) - 1 as "mo", extract(day from archived_at) as "d", mod(trunc(archived_at) - trunc(archived_at, 'IW') + 1, 7) as "dow", extract(hour from archived_at) as "h", extract(minute from archived_at) as "m", trunc(extract(second from archived_at)) as "s", to_number(to_char(archived_at, 'FF3')) as "ms", (trunc(timestamp '1970-01-01 00:00:00' + (archived_at - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (archived_at - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')) as "t" from project_overview where id = :0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from archived_at) as "y", extract(month from archived_at) - 1 as "mo", extract(day from archived_at) as "d", mod(trunc(timestamp '1970-01-01 00:00:00' + (archived_at - timestamp '1970-01-01 00:00:00')) - trunc(timestamp '1970-01-01 00:00:00' + (archived_at - timestamp '1970-01-01 00:00:00'), 'IW') + 1, 7) as "dow", extract(hour from archived_at) as "h", extract(minute from archived_at) as "m", trunc(extract(second from archived_at)) as "s", to_number(to_char(archived_at, 'FF3')) as "ms", (trunc(timestamp '1970-01-01 00:00:00' + (archived_at - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (archived_at - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')) as "t" from project_overview where id = :0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1430,11 +1430,10 @@ describe(ctx.label, () => {
                 dow: tProjectRelease.releasedOn.nullIfValue(probe).getDay(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(month from nvl(released_on, :0)) - 1 as "mo", mod(trunc(nullif(released_on, :1)) - trunc(nullif(released_on, :2), 'IW') + 1, 7) as "dow" from project_release where id = :3"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(month from nvl(released_on, :0)) - 1 as "mo", mod(trunc(nullif(released_on, :1)) - trunc(nullif(released_on, :1), 'IW') + 1, 7) as "dow" from project_release where id = :2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2000-01-01T00:00:00.000Z,
-            1999-06-06T00:00:00.000Z,
             1999-06-06T00:00:00.000Z,
             1,
           ]

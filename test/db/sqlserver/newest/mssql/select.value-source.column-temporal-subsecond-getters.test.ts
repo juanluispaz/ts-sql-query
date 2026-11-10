@@ -90,7 +90,7 @@ describe(ctx.label, () => {
                 t:   tReleaseDraft.shiftedStamp.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, shifted_stamp) as y, datepart(month, shifted_stamp) - 1 as mo, datepart(day, shifted_stamp) as d, (datepart(weekday, shifted_stamp) + @@datefirst - 1) % 7 as dow, datepart(hour, shifted_stamp) as h, datepart(minute, shifted_stamp) as m, datepart(second, shifted_stamp) as s, datepart(millisecond, shifted_stamp) as ms, datediff_big(millisecond, '1970-01-01 00:00:00', shifted_stamp) as t from release_draft where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, switchoffset(shifted_stamp, '+00:00')) as y, datepart(month, switchoffset(shifted_stamp, '+00:00')) - 1 as mo, datepart(day, switchoffset(shifted_stamp, '+00:00')) as d, (datepart(weekday, switchoffset(shifted_stamp, '+00:00')) + @@datefirst - 1) % 7 as dow, datepart(hour, switchoffset(shifted_stamp, '+00:00')) as h, datepart(minute, switchoffset(shifted_stamp, '+00:00')) as m, datepart(second, shifted_stamp) as s, datepart(millisecond, shifted_stamp) as ms, datediff_big(millisecond, '1970-01-01 00:00:00', shifted_stamp) as t from release_draft where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

@@ -1350,15 +1350,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         if (this._isDateReadAsTimestamp(valueSource)) {
             // A DATE has no fraction of a second: the day count is the whole time. A value made from the column may
             // not be a DATE (nullif with a timestamp gives a TIMESTAMP, and a TIMESTAMP minus a DATE is an interval)
+            // The difference of two DATEs is a decimal number of days, inexact for a second (1/86400): rounded to seconds
             const date = isColumn(valueSource) ? this._appendSql(valueSource, params, false) : 'cast(' + this._appendSql(valueSource, params, false) + ' as date)'
-            return "(" + date + " - date '1970-01-01') * 86400000"
+            return "round((" + date + " - date '1970-01-01') * 86400) * 1000"
         }
-        // The value as a TIMESTAMP with the UTC digits of its instant: the epoch without zone plus the interval from it.
-        // A DATE or a TIMESTAMP has no zone and none takes part; a value with zone (an offset, a region, or a local time
-        // zone) is compared with the epoch in the session zone, UTC (see requireOracleSessionInUtc), which gives its
-        // instant. Whole days from trunc, the seconds since midnight and the milliseconds from 'SSSSSFF3' (FF3
-        // truncates, like a Date): the time of day is always forward, so it is exact before 1970 too
-        const utc = "timestamp '1970-01-01 00:00:00' + (" + this._appendSql(valueSource, params, false) + " - timestamp '1970-01-01 00:00:00')"
+        // Whole days from trunc, the seconds since midnight and the milliseconds from 'SSSSSFF3' (FF3 truncates, like a
+        // Date): the time of day is always forward, so it is exact before 1970 too
+        const utc = this._appendUtcTimestamp(params, valueSource)
         return "(trunc(" + utc + ") - date '1970-01-01') * 86400000 + to_number(to_char(" + utc + ", 'SSSSSFF3'))"
     }
     override _getFullYear(params: any[], valueSource: ToSql): string {
@@ -1369,7 +1367,20 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     }
     override _getDay(params: any[], valueSource: ToSql): string {
         // https://riptutorial.com/oracle/example/31649/getting-the-day-of-the-week
-        return "mod(trunc(" + this._appendSql(valueSource, params, false) + ") - trunc(" + this._appendSql(valueSource, params, false) + ", 'IW') + 1, 7)"
+        // trunc of a value with zone gives the day of the zone it was stored with: a localDateTime is taken to the
+        // UTC digits of its instant first. A localDate, and a DATE read as a timestamp, have no zone
+        const day = isValueSource(valueSource) && __isLocalDateTimeValueSource(__getValueSourcePrivate(valueSource)) && !this._isDateReadAsTimestamp(valueSource)
+            ? this._appendUtcTimestamp(params, valueSource)
+            : this._appendSql(valueSource, params, false)
+        return "mod(trunc(" + day + ") - trunc(" + day + ", 'IW') + 1, 7)"
+    }
+    /**
+     * The value as a TIMESTAMP with the UTC digits of its instant: the epoch without zone plus the interval from it. A
+     * DATE or a TIMESTAMP has no zone and none takes part; a value with zone (an offset, a region, or a local time zone)
+     * is compared with the epoch in the session zone, UTC (see requireOracleSessionInUtc), which gives its instant
+     */
+    _appendUtcTimestamp(params: any[], valueSource: ToSql): string {
+        return "timestamp '1970-01-01 00:00:00' + (" + this._appendSql(valueSource, params, false) + " - timestamp '1970-01-01 00:00:00')"
     }
     override _getHours(params: any[], valueSource: ToSql): string {
         return 'extract(hour from ' + this._appendTimestampForTimeGetter(params, valueSource) + ')'

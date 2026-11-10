@@ -47,7 +47,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from starts_at) as "fullYear", extract(month from starts_at) - 1 as "month", extract(day from starts_at) as "date", mod(trunc(starts_at) - trunc(starts_at, 'IW') + 1, 7) as "day", extract(hour from cast(starts_at as timestamp)) as "hours", extract(minute from cast(starts_at as timestamp)) as "minutes", extract(second from cast(starts_at as timestamp)) as "seconds", to_number(to_char(cast(starts_at as timestamp), 'FF3')) as "milliseconds", (starts_at - date '1970-01-01') * 86400000 as "time", starts_at as "startsAt" from standup_meeting where id = :0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from starts_at) as "fullYear", extract(month from starts_at) - 1 as "month", extract(day from starts_at) as "date", mod(trunc(starts_at) - trunc(starts_at, 'IW') + 1, 7) as "day", extract(hour from cast(starts_at as timestamp)) as "hours", extract(minute from cast(starts_at as timestamp)) as "minutes", extract(second from cast(starts_at as timestamp)) as "seconds", to_number(to_char(cast(starts_at as timestamp), 'FF3')) as "milliseconds", round((starts_at - date '1970-01-01') * 86400) * 1000 as "time", starts_at as "startsAt" from standup_meeting where id = :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -303,7 +303,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", extract(hour from cast(nvl(ends_at, starts_at) as timestamp)) as "endOrStartHours", (cast(nvl(ends_at, starts_at) as date) - date '1970-01-01') * 86400000 as "endOrStartTime", to_number(to_char(nvl(cast(ends_at as timestamp), :0), 'FF3')) as "endOrValueMilliseconds", extract(hour from cast(nullif(starts_at, ends_at) as timestamp)) as "startNullIfEndHours", (cast(nullif(starts_at, ends_at) as date) - date '1970-01-01') * 86400000 as "startNullIfEndTime", extract(minute from cast((select starts_at as "result" from standup_meeting where id = :1) as timestamp)) as "firstStartMinutes" from standup_meeting order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", extract(hour from cast(nvl(ends_at, starts_at) as timestamp)) as "endOrStartHours", round((cast(nvl(ends_at, starts_at) as date) - date '1970-01-01') * 86400) * 1000 as "endOrStartTime", to_number(to_char(nvl(cast(ends_at as timestamp), :0), 'FF3')) as "endOrValueMilliseconds", extract(hour from cast(nullif(starts_at, ends_at) as timestamp)) as "startNullIfEndHours", round((cast(nullif(starts_at, ends_at) as date) - date '1970-01-01') * 86400) * 1000 as "startNullIfEndTime", extract(minute from cast((select starts_at as "result" from standup_meeting where id = :1) as timestamp)) as "firstStartMinutes" from standup_meeting order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-01T00:00:00.123Z,
@@ -333,7 +333,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(hour from cast(max(starts_at) as timestamp)) as "latestHours", (cast(max(starts_at) as date) - date '1970-01-01') * 86400000 as "latestTime" from standup_meeting"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(hour from cast(max(starts_at) as timestamp)) as "latestHours", round((cast(max(starts_at) as date) - date '1970-01-01') * 86400) * 1000 as "latestTime" from standup_meeting"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, {
             latestHours?: number
@@ -439,7 +439,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", extract(hour from cast(nvl(ends_at, starts_at) as timestamp)) as "hours", extract(second from cast(nvl(ends_at, starts_at) as timestamp)) as "seconds", to_number(to_char(cast(nvl(ends_at, starts_at) as timestamp), 'FF3')) as "milliseconds", (cast(nvl(ends_at, starts_at) as date) - date '1970-01-01') * 86400000 as "time" from standup_meeting order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", extract(hour from cast(nvl(ends_at, starts_at) as timestamp)) as "hours", extract(second from cast(nvl(ends_at, starts_at) as timestamp)) as "seconds", to_number(to_char(cast(nvl(ends_at, starts_at) as timestamp), 'FF3')) as "milliseconds", round((cast(nvl(ends_at, starts_at) as date) - date '1970-01-01') * 86400) * 1000 as "time" from standup_meeting order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{
             id:           number

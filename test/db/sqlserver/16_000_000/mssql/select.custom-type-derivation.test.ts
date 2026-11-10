@@ -194,7 +194,7 @@ describe(ctx.label, () => {
                     .getFullYear(),
             )
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, max(signed_off_at)) as [result] from project_release"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, switchoffset(max(signed_off_at), '+00:00')) as [result] from project_release"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(2024)

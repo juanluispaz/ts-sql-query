@@ -36,10 +36,9 @@ describe(ctx.label, () => {
                 dow: d.getDay(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from :0) as "y", extract(month from :1) - 1 as "mo", extract(day from :2) as "d", mod(trunc(:3) - trunc(:4, 'IW') + 1, 7) as "dow" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from :0) as "y", extract(month from :1) - 1 as "mo", extract(day from :2) as "d", mod(trunc(:3) - trunc(:3, 'IW') + 1, 7) as "dow" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2024-01-15T00:00:00.000Z,
             2024-01-15T00:00:00.000Z,
             2024-01-15T00:00:00.000Z,
             2024-01-15T00:00:00.000Z,
@@ -178,10 +177,9 @@ describe(ctx.label, () => {
                 ms:  ts.getMilliseconds(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(day from :0) as "d", mod(trunc(:1) - trunc(:2, 'IW') + 1, 7) as "dow", extract(minute from :3) as "m", trunc(extract(second from :4)) as "s", to_number(to_char(:5, 'FF3')) as "ms" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(day from :0) as "d", mod(trunc(timestamp '1970-01-01 00:00:00' + (:1 - timestamp '1970-01-01 00:00:00')) - trunc(timestamp '1970-01-01 00:00:00' + (:1 - timestamp '1970-01-01 00:00:00'), 'IW') + 1, 7) as "dow", extract(minute from :2) as "m", trunc(extract(second from :3)) as "s", to_number(to_char(:4, 'FF3')) as "ms" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2024-01-15T12:34:56.000Z,
             2024-01-15T12:34:56.000Z,
             2024-01-15T12:34:56.000Z,
             2024-01-15T12:34:56.000Z,
@@ -380,10 +378,9 @@ describe(ctx.label, () => {
                 dow: d.getDay(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from :0) as "y", extract(month from :1) - 1 as "mo", extract(day from :2) as "d", mod(trunc(:3) - trunc(:4, 'IW') + 1, 7) as "dow" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from :0) as "y", extract(month from :1) - 1 as "mo", extract(day from :2) as "d", mod(trunc(:3) - trunc(:3, 'IW') + 1, 7) as "dow" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2024-01-15T00:00:00.000Z,
             2024-01-15T00:00:00.000Z,
             2024-01-15T00:00:00.000Z,
             2024-01-15T00:00:00.000Z,
@@ -449,10 +446,9 @@ describe(ctx.label, () => {
                 t:   ts.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from :0) as "y", extract(month from :1) - 1 as "mo", extract(day from :2) as "d", mod(trunc(:3) - trunc(:4, 'IW') + 1, 7) as "dow", extract(hour from :5) as "h", extract(minute from :6) as "m", trunc(extract(second from :7)) as "s", to_number(to_char(:8, 'FF3')) as "ms", (trunc(timestamp '1970-01-01 00:00:00' + (:9 - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (:9 - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')) as "t" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from :0) as "y", extract(month from :1) - 1 as "mo", extract(day from :2) as "d", mod(trunc(timestamp '1970-01-01 00:00:00' + (:3 - timestamp '1970-01-01 00:00:00')) - trunc(timestamp '1970-01-01 00:00:00' + (:3 - timestamp '1970-01-01 00:00:00'), 'IW') + 1, 7) as "dow", extract(hour from :4) as "h", extract(minute from :5) as "m", trunc(extract(second from :6)) as "s", to_number(to_char(:7, 'FF3')) as "ms", (trunc(timestamp '1970-01-01 00:00:00' + (:8 - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (:8 - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')) as "t" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2024-01-15T12:34:56.000Z,
             2024-01-15T12:34:56.000Z,
             2024-01-15T12:34:56.000Z,
             2024-01-15T12:34:56.000Z,

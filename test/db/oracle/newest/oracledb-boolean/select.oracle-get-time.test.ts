@@ -1,4 +1,4 @@
-// getTime() of a localDateTime is the milliseconds of its instant, the same as the getTime() of the Date read,
+// getTime() and getDay() of a localDateTime are those of its instant in UTC: getTime() is the milliseconds, the same as the getTime() of the Date read,
 // whatever Oracle type holds the value: a DATE, a TIMESTAMP with nanoseconds (truncated to the millisecond, as a
 // Date), a TIMESTAMP WITH TIME ZONE stored with an offset or a region, a TIMESTAMP WITH LOCAL TIME ZONE, before
 // 1970 too, and a parameter. The values come from SQL fragments of each type.
@@ -63,6 +63,29 @@ describe(ctx.label, () => {
             lastDayBeforeEpoch: number
             parameter:          number
         }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('get-day-is-the-day-of-the-instant-in-utc', async () => {
+        // 2024-01-15 02:30 +09:00 is Sunday 2024-01-14 17:30 UTC (getDay 0), the day of its offset is a Monday
+        const value = () => ctx.conn.fragmentWithType('localDateTime', 'required')
+        const withOffset = value().sql`timestamp '2024-01-15 02:30:15.123 +09:00'`
+        const withRegion = value().sql`timestamp '2024-01-15 00:30:15.123 Europe/Madrid'`
+        const timestamp = value().sql`timestamp '2024-01-14 17:30:15.123'`
+        const expected = { withOffset: 0, withRegion: 0, timestamp: 0 }
+        ctx.mockNext(expected)
+
+        const row = await ctx.conn.selectFromNoTable()
+            .select({
+                withOffset: withOffset.getDay(),
+                withRegion: withRegion.getDay(),
+                timestamp:  timestamp.getDay(),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select mod(trunc(timestamp '1970-01-01 00:00:00' + (timestamp '2024-01-15 02:30:15.123 +09:00' - timestamp '1970-01-01 00:00:00')) - trunc(timestamp '1970-01-01 00:00:00' + (timestamp '2024-01-15 02:30:15.123 +09:00' - timestamp '1970-01-01 00:00:00'), 'IW') + 1, 7) as "withOffset", mod(trunc(timestamp '1970-01-01 00:00:00' + (timestamp '2024-01-15 00:30:15.123 Europe/Madrid' - timestamp '1970-01-01 00:00:00')) - trunc(timestamp '1970-01-01 00:00:00' + (timestamp '2024-01-15 00:30:15.123 Europe/Madrid' - timestamp '1970-01-01 00:00:00'), 'IW') + 1, 7) as "withRegion", mod(trunc(timestamp '1970-01-01 00:00:00' + (timestamp '2024-01-14 17:30:15.123' - timestamp '1970-01-01 00:00:00')) - trunc(timestamp '1970-01-01 00:00:00' + (timestamp '2024-01-14 17:30:15.123' - timestamp '1970-01-01 00:00:00'), 'IW') + 1, 7) as "timestamp" from dual"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, { withOffset: number; withRegion: number; timestamp: number }>>()
         expect(row).toEqual(expected)
     })
 })

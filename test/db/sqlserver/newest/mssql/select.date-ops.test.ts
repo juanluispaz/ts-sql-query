@@ -50,7 +50,7 @@ describe(ctx.label, () => {
                 year: tOrganization.createdAt.getFullYear(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, datepart(year, created_at) as [year] from organization where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, datepart(year, switchoffset(created_at, '+00:00')) as [year] from organization where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -73,7 +73,7 @@ describe(ctx.label, () => {
                 date:  tOrganization.createdAt.getDate(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, datepart(month, created_at) - 1 as [month], datepart(day, created_at) as [date] from organization where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, datepart(month, switchoffset(created_at, '+00:00')) - 1 as [month], datepart(day, switchoffset(created_at, '+00:00')) as [date] from organization where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -101,7 +101,7 @@ describe(ctx.label, () => {
                 s:  tIssue.createdAt.getSeconds(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, datepart(hour, created_at) as h, datepart(minute, created_at) as m, datepart(second, created_at) as s from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, datepart(hour, switchoffset(created_at, '+00:00')) as h, datepart(minute, switchoffset(created_at, '+00:00')) as m, datepart(second, created_at) as s from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -127,7 +127,7 @@ describe(ctx.label, () => {
                 dow: tOrganization.createdAt.getDay(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (datepart(weekday, created_at) + @@datefirst - 1) % 7 as dow from organization where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (datepart(weekday, switchoffset(created_at, '+00:00')) + @@datefirst - 1) % 7 as dow from organization where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -411,7 +411,7 @@ describe(ctx.label, () => {
                 ms:  tProjectRelease.signedOffAt.getMilliseconds(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, signed_off_at) as y, datepart(month, signed_off_at) - 1 as mo, datepart(day, signed_off_at) as d, (datepart(weekday, signed_off_at) + @@datefirst - 1) % 7 as dow, datepart(hour, signed_off_at) as h, datepart(minute, signed_off_at) as m, datepart(second, signed_off_at) as s, datepart(millisecond, signed_off_at) as ms from project_release where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, switchoffset(signed_off_at, '+00:00')) as y, datepart(month, switchoffset(signed_off_at, '+00:00')) - 1 as mo, datepart(day, switchoffset(signed_off_at, '+00:00')) as d, (datepart(weekday, switchoffset(signed_off_at, '+00:00')) + @@datefirst - 1) % 7 as dow, datepart(hour, switchoffset(signed_off_at, '+00:00')) as h, datepart(minute, switchoffset(signed_off_at, '+00:00')) as m, datepart(second, signed_off_at) as s, datepart(millisecond, signed_off_at) as ms from project_release where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -688,7 +688,7 @@ describe(ctx.label, () => {
                     t:   tProject.archivedAt.getTime(),
                 })
                 .executeSelectMany()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, archived_at) as y, datepart(month, archived_at) - 1 as mo, datepart(day, archived_at) as d, (datepart(weekday, archived_at) + @@datefirst - 1) % 7 as dow, datepart(hour, archived_at) as h, datepart(minute, archived_at) as m, datepart(second, archived_at) as s, datepart(millisecond, archived_at) as ms, datediff_big(millisecond, '1970-01-01 00:00:00', archived_at) as t from project where id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, switchoffset(archived_at, '+00:00')) as y, datepart(month, switchoffset(archived_at, '+00:00')) - 1 as mo, datepart(day, switchoffset(archived_at, '+00:00')) as d, (datepart(weekday, switchoffset(archived_at, '+00:00')) + @@datefirst - 1) % 7 as dow, datepart(hour, switchoffset(archived_at, '+00:00')) as h, datepart(minute, switchoffset(archived_at, '+00:00')) as m, datepart(second, archived_at) as s, datepart(millisecond, archived_at) as ms, datediff_big(millisecond, '1970-01-01 00:00:00', archived_at) as t from project where id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -759,7 +759,7 @@ describe(ctx.label, () => {
                 t:   vReleaseOverview.signedOffAt.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, signed_off_at) as y, datepart(month, signed_off_at) - 1 as mo, datepart(day, signed_off_at) as d, (datepart(weekday, signed_off_at) + @@datefirst - 1) % 7 as dow, datepart(hour, signed_off_at) as h, datepart(minute, signed_off_at) as m, datepart(second, signed_off_at) as s, datepart(millisecond, signed_off_at) as ms, datediff_big(millisecond, '1970-01-01 00:00:00', signed_off_at) as t from release_overview where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, switchoffset(signed_off_at, '+00:00')) as y, datepart(month, switchoffset(signed_off_at, '+00:00')) - 1 as mo, datepart(day, switchoffset(signed_off_at, '+00:00')) as d, (datepart(weekday, switchoffset(signed_off_at, '+00:00')) + @@datefirst - 1) % 7 as dow, datepart(hour, switchoffset(signed_off_at, '+00:00')) as h, datepart(minute, switchoffset(signed_off_at, '+00:00')) as m, datepart(second, signed_off_at) as s, datepart(millisecond, signed_off_at) as ms, datediff_big(millisecond, '1970-01-01 00:00:00', signed_off_at) as t from release_overview where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

@@ -90,7 +90,7 @@ describe(ctx.label, () => {
                 t:  ts.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, @0) as y, datepart(month, @1) - 1 as mo, datepart(hour, @2) as h, datediff_big(millisecond, '1970-01-01 00:00:00', @3) as t"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, switchoffset(@0, '+00:00')) as y, datepart(month, switchoffset(@1, '+00:00')) - 1 as mo, datepart(hour, switchoffset(@2, '+00:00')) as h, datediff_big(millisecond, '1970-01-01 00:00:00', @3) as t"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-15T12:34:56.000Z,
@@ -177,7 +177,7 @@ describe(ctx.label, () => {
                 ms:  ts.getMilliseconds(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(day, @0) as d, (datepart(weekday, @1) + @@datefirst - 1) % 7 as dow, datepart(minute, @2) as m, datepart(second, @3) as s, datepart(millisecond, @4) as ms"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(day, switchoffset(@0, '+00:00')) as d, (datepart(weekday, switchoffset(@1, '+00:00')) + @@datefirst - 1) % 7 as dow, datepart(minute, switchoffset(@2, '+00:00')) as m, datepart(second, @3) as s, datepart(millisecond, @4) as ms"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-15T12:34:56.000Z,
@@ -344,7 +344,7 @@ describe(ctx.label, () => {
                 ign: tProjectRelease.signedOffAt.ignoreWhenAsNull(false).getFullYear(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, coalesce(signed_off_at, @0)) as vwn, datepart(year, nullif(signed_off_at, @1)) as nif, datepart(year, signed_off_at) as rio, datepart(year, signed_off_at) as own, datepart(year, signed_off_at) as ign from project_release where id = @2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, switchoffset(coalesce(signed_off_at, @0), '+00:00')) as vwn, datepart(year, switchoffset(nullif(signed_off_at, @1), '+00:00')) as nif, datepart(year, switchoffset(signed_off_at, '+00:00')) as rio, datepart(year, switchoffset(signed_off_at, '+00:00')) as own, datepart(year, switchoffset(signed_off_at, '+00:00')) as ign from project_release where id = @2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2000-01-01T00:00:00.000Z,
@@ -446,7 +446,7 @@ describe(ctx.label, () => {
                 t:   ts.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, @0) as y, datepart(month, @1) - 1 as mo, datepart(day, @2) as d, (datepart(weekday, @3) + @@datefirst - 1) % 7 as dow, datepart(hour, @4) as h, datepart(minute, @5) as m, datepart(second, @6) as s, datepart(millisecond, @7) as ms, datediff_big(millisecond, '1970-01-01 00:00:00', @8) as t"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, switchoffset(@0, '+00:00')) as y, datepart(month, switchoffset(@1, '+00:00')) - 1 as mo, datepart(day, switchoffset(@2, '+00:00')) as d, (datepart(weekday, switchoffset(@3, '+00:00')) + @@datefirst - 1) % 7 as dow, datepart(hour, switchoffset(@4, '+00:00')) as h, datepart(minute, switchoffset(@5, '+00:00')) as m, datepart(second, @6) as s, datepart(millisecond, @7) as ms, datediff_big(millisecond, '1970-01-01 00:00:00', @8) as t"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-15T12:34:56.000Z,

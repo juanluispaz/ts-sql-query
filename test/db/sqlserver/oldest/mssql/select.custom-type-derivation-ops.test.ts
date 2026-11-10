@@ -2083,7 +2083,7 @@ describe(ctx.label, () => {
                     .getHours(),
             )
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(hour, published_at) as [result] from project_release where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(hour, switchoffset(published_at, '+00:00')) as [result] from project_release where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -2105,7 +2105,7 @@ describe(ctx.label, () => {
                     .getMinutes(),
             )
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(minute, published_at) as [result] from project_release where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(minute, switchoffset(published_at, '+00:00')) as [result] from project_release where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

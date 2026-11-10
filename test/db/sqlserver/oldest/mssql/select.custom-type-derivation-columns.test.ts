@@ -1159,7 +1159,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.signOff.getFullYear())
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, m_datetime) as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, switchoffset(m_datetime, '+00:00')) as [result] from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(2024)

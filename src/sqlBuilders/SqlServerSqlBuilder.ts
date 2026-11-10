@@ -3,7 +3,7 @@ import { hasToSql, flattenQueryColumns, getQueryColumn } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import type { AnyValueSource, IExecutableSelectQuery, __AggregatedArrayColumns, ValueType } from '../expressions/values.js'
-import { isValueSource, __isUuidValueSource, __isBooleanValueSource, __isBooleanValueType } from '../expressions/values.js'
+import { isValueSource, __isUuidValueSource, __isBooleanValueSource, __isBooleanValueType, __isLocalDateTimeValueSource } from '../expressions/values.js'
 import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
@@ -1113,16 +1113,16 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return 'iif(' + this._appendSql(valueSource, params, false) + ' ' + operator + ' ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter, false) + ', ' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter, false) + ')'
     }
     override _getDate(params: any[], valueSource: ToSql): string {
-        return 'datepart(day, ' + this._appendSql(valueSource, params, false) + ')'
+        return 'datepart(day, ' + this._appendDateTimeInUtc(params, valueSource) + ')'
     }
     override _getTime(params: any[], valueSource: ToSql): string {
         return "datediff_big(millisecond, '1970-01-01 00:00:00', " + this._appendSql(valueSource, params, false) + ")"
     }
     override _getFullYear(params: any[], valueSource: ToSql): string {
-        return 'datepart(year, ' + this._appendSql(valueSource, params, false) + ')'
+        return 'datepart(year, ' + this._appendDateTimeInUtc(params, valueSource) + ')'
     }
     override _getMonth(params: any[], valueSource: ToSql): string {
-        return 'datepart(month, ' + this._appendSql(valueSource, params, false) + ') - 1'
+        return 'datepart(month, ' + this._appendDateTimeInUtc(params, valueSource) + ') - 1'
     }
     override _getDay(params: any[], valueSource: ToSql): string {
         // `getDay()` mirrors JavaScript's `Date.getDay()`, where 0 is always Sunday. T-SQL
@@ -1132,13 +1132,26 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // European languages). A bare `- 1` is only correct under DATEFIRST 7, and silently
         // shifts every day otherwise. Rebasing on `@@DATEFIRST` pins Sunday to 0 whatever
         // the session says.
-        return '(datepart(weekday, ' + this._appendSql(valueSource, params, false) + ') + @@datefirst - 1) % 7'
+        return '(datepart(weekday, ' + this._appendDateTimeInUtc(params, valueSource) + ') + @@datefirst - 1) % 7'
     }
     override _getHours(params: any[], valueSource: ToSql): string {
-        return 'datepart(hour, ' + this._appendSql(valueSource, params, false) + ')'
+        return 'datepart(hour, ' + this._appendDateTimeInUtc(params, valueSource) + ')'
     }
     override _getMinutes(params: any[], valueSource: ToSql): string {
-        return 'datepart(minute, ' + this._appendSql(valueSource, params, false) + ')'
+        return 'datepart(minute, ' + this._appendDateTimeInUtc(params, valueSource) + ')'
+    }
+    /**
+     * The value of a getter of a part that an offset changes. A localDateTime may be held in a datetimeoffset, whose
+     * datepart gives the parts of the offset it was stored with: switchoffset to +00:00 gives the parts of its instant,
+     * as the getUTC… methods of the Date read. A datetime2, datetime or smalldatetime is converted with +00:00, no zone
+     * of a session (SQL Server has none) takes part, and the digits stay. A localDate or a localTime has no offset, and
+     * the seconds and milliseconds don't depend on one (offsets are whole minutes): they are written as they are
+     */
+    _appendDateTimeInUtc(params: any[], valueSource: ToSql): string {
+        if (isValueSource(valueSource) && __isLocalDateTimeValueSource(__getValueSourcePrivate(valueSource))) {
+            return 'switchoffset(' + this._appendSql(valueSource, params, false) + ", '+00:00')"
+        }
+        return this._appendSql(valueSource, params, false)
     }
     override _getSeconds(params: any[], valueSource: ToSql): string {
         return 'datepart(second, ' + this._appendSql(valueSource, params, false) + ')'

@@ -98,7 +98,7 @@ Nothing is rejected: the query runner gives each of its queries the options it n
 
 So large integers need nothing: a `bigint` column is exact, and an `int` column with a value past `Number.MAX_SAFE_INTEGER` (`9_007_199_254_740_991`) is rejected with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` rather than rounded; read it as `bigint`.
 
-**Required and not checked**: a `TIMESTAMP` column needs the session `time_zone` in UTC, because MySQL and MariaDB convert it with the zone of the session. The query runner can't read the session without a query of its own. See [Time zones](../../time-zones.md#per-database).
+**Required and not checked**: the server's `time_zone` in UTC, which is the zone of the database, and the session left in it: a `TIMESTAMP` column and `now()` follow the session. mysql2 sets no session zone. The query runner can't read either without a query of its own. See [Time zones](../../time-zones.md#the-zone-of-the-database-and-the-session).
 
 A date outside the calendar, that the SQL mode `ALLOW_INVALID_DATES` keeps, or a zero date, kept without `NO_ZERO_DATE`, is rejected when it's read: see [Time zones → Known limits](../../time-zones.md#known-limits).
 

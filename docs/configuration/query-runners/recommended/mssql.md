@@ -78,6 +78,8 @@ async function main() {
 - **`camelCaseColumns: true`** or a **`columnNameReplacer`** in the `options` of the pool: tedious renames the columns of the results, and the library reads each column by its name.
 - **A `textsize` below `2147483647`**, the default of tedious, in the `options` of the pool: tedious sets it as the `TEXTSIZE` of each connection, and a longer text of a `varchar(max)`, `nvarchar(max)` or `varbinary(max)` value would be cut without an error.
 
+**Required and not checked**: the server's operating system in UTC, which is the zone of the database: `getdate()`, `current_timestamp`, `currentDate()`, `currentTime()` and `currentDateTime()` give the date and time in it. SQL Server has no session zone. See [Time zones](../../time-zones.md#the-zone-of-the-database-and-the-session).
+
 **Not applied to the queries of the library**: `arrayRowMode`. Each request of the query runner gives its rows as objects; your own requests keep the mode of the pool.
 
 ## Inside a transaction something else manages

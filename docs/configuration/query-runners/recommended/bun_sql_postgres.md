@@ -80,6 +80,8 @@ async function main() {
 - **`adapter`** other than `'postgres'`.
 - **A `transform` that renames the columns of the results**: `transform: SQL.camel`, `SQL.toCamel`, or a `column.from` of your own. The library reads each column by its name. A transform of what is sent only, like `SQL.fromCamel` or `transform: { undefined: null }`, is accepted.
 
+**Required and not checked**: the database in UTC, and the session `TimeZone` left in it. Bun SQL sets none unless you give it `connection: { TimeZone: … }` or `options` in the URL; don't give it one other than the zone of the database. See [Time zones](../../time-zones.md#the-zone-of-the-database-and-the-session).
+
 ## Inside a transaction you began with Bun SQL
 
 Created with the transaction object of `sql.begin(...)`, the query runner runs its statements in that transaction, which Bun SQL commits or rolls back when your function ends. A transaction can't begin inside it: `connection.transaction(...)` and `connection.beginTransaction()` are rejected with `NESTED_TRANSACTION_NOT_SUPPORTED`.

@@ -56,8 +56,8 @@ Start with the file of the area of your task. These files are written for you: o
 | Let the caller choose columns, filters and order, fill a table or offer a query API from a request, hide or refuse values, or write values with a shape | [`llms-extreme-dynamic-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-extreme-dynamic-postgresql.txt) | 15k |
 | Write a function that returns a dynamic select, and type it | [`llms-dynamic-functions-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-dynamic-functions-postgresql.txt) | 21k |
 | Type a row of a table | [`llms-types.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-types.txt) | 6k |
-| Declare the tables and the connection | [`llms-configuration-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-configuration-postgresql.txt) | 37k |
-| Connect a driver | The page of your driver, listed in `llms.txt`, or all of them in [`llms-query-runners.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-query-runners.txt) | 44k |
+| Declare the tables and the connection | [`llms-configuration-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-configuration-postgresql.txt) | 38k |
+| Connect a driver | The page of your driver, listed in `llms.txt`, or all of them in [`llms-query-runners.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-query-runners.txt) | 45k |
 | Look up a method | [`llms-api.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-api.txt) | 54k |
 | Understand an error | [`llms-errors.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-errors.txt) | 22k |
 | Find what writes a SQL keyword | [`llms-keywords.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-keywords.txt) | 12k |

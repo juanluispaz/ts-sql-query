@@ -63,6 +63,8 @@ The query runner refuses a connection that doesn't have these: its constructor t
 - **No `transform` that renames the columns of the results**: `transform: SQL.camel`, `SQL.toCamel` or a `column.from` of your own are refused, because the library reads each column by its name. A transform of what is sent only, like `SQL.fromCamel` or `transform: { undefined: null }`, is accepted.
 - **`foundRows: true`** (or `?foundRows=true` in the connection URL). Without it, an `UPDATE` only counts the rows whose values actually changed: a row that matches the `WHERE` clause but already holds the values being set is not counted. The number returned by `executeUpdate()` would then be lower than the number of rows the update matched, and the `min` / `max` row checks of `executeUpdate(min, max)` would be evaluated against that lower number.
 
+**Required and not checked**: the server's `time_zone` in UTC, which is the zone of the database. Bun sets the session to `+00:00`, which is right only with the server in UTC: over a server in another zone, `now()` and a `TIMESTAMP` column would follow UTC while the rest of the data is in the zone of the server. See [Time zones](../../time-zones.md#the-zone-of-the-database-and-the-session).
+
 ## Authentication without TLS
 
 When the MySQL server authenticates with `caching_sha2_password` (the default since MySQL 8) and the connection does not use TLS, Bun SQL can reject the connection with `ERR_MYSQL_PUBLIC_KEY_RETRIEVAL_NOT_ALLOWED`. Enable TLS on the connection, or set `allowPublicKeyRetrieval: true` if you accept retrieving the server's public key over an insecure connection.

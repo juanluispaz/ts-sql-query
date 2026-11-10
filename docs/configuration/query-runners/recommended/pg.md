@@ -82,11 +82,11 @@ async function main() {
 
 A parser you register for any other type still applies to the queries of the library: one that changes the value of a type the library reads, like a `numeric` turned into a JavaScript number, changes what the library receives.
 
-The session `TimeZone` doesn't change the values the library sends and reads: see [Time zones](../../time-zones.md#what-still-depends-on-the-databases-zone) for the SQL it does change.
+**Required and not checked**: the database in UTC, and the session `TimeZone` left in it. pg sets none, so the session has the zone of the database; a session in another zone changes what the database computes in it. See [Time zones](../../time-zones.md#the-zone-of-the-database-and-the-session).
 
 ## Running a statement on each new connection
 
-Some settings are properties of the **database session**, not of the query — notably the [session time zone](../../time-zones.md#per-database). To pin it without touching your schema, run the statement **once per connection**, when the pool opens it. The `pg` pool emits a `connect` event on each brand-new client for exactly this:
+Some settings are properties of the **database session**, not of the query, like a statement timeout. To pin one without touching your schema, run the statement **once per connection**, when the pool opens it. Not the time zone: the session must stay in the zone of the database (see [Time zones](../../time-zones.md#the-zone-of-the-database-and-the-session)). The `pg` pool emits a `connect` event on each brand-new client for exactly this:
 
 ```ts
 import { Pool } from 'pg';
@@ -95,7 +95,7 @@ const pool = new Pool({ /* … */ });
 
 pool.on('connect', (client) => {
     // Runs once per newly created pooled connection.
-    client.query("SET TIME ZONE 'UTC'"); // session time zone — see the Time zones page
+    client.query("SET statement_timeout = '30s'");
 });
 ```
 

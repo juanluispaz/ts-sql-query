@@ -73,6 +73,8 @@ async function main() {
 - **A `transform` of the results**: `transform: postgres.camel`, `postgres.toCamel`, or a `column.from`, `value.from` or `row.from` of your own. The library reads each column by its name, with its value as the database gives it, and a transform of the client can't be turned off for one query. A transform of what is sent only, like `postgres.fromCamel` or `transform: { undefined: null }`, is accepted.
 - **`infer: true`**, when the process doesn't run in UTC: with it postgres.js reads a `timestamp` in the zone of the process. In a process in UTC it's accepted. How the query runner knows the zone of the process is in [Time zones](../../time-zones.md#the-applications-zone).
 
+**Required and not checked**: the database in UTC, and the session `TimeZone` left in it. postgres.js sets none unless you give it `connection: { TimeZone: … }`; don't give it one other than the zone of the database. See [Time zones](../../time-zones.md#the-zone-of-the-database-and-the-session).
+
 The query runner reads the options of the `sql` object: a connection you reserved or a transaction doesn't give them, so create the query runner from `sql` to have them checked.
 
 ## Inside a transaction you began with postgres.js

@@ -526,6 +526,15 @@ give the parts in UTC"). SQLite has its own strategies (§0) and `sqliteRunsInAp
 So the drivers deliver a kind-4 column as kind 3. A runner can't recover the zone: in Oracle and SQL Server a value
 with its zone exists only if the SQL formats it (`to_char(x, '…TZH:TZM')` / `TZR`, `convert(nvarchar(40), x, 126)`),
 which is the user's SQL (a fragment, or the `transformProjection` of a type adapter or of the connection) and never the runner's (§0). Writing a `Date` stores it in UTC (`+00:00`).
+A type adapter on the column does it for every query: its `transformProjection` gives the column as that text in
+`'resultColumn'` (the select, the `returning` / `output`) and `'aggregatedArrayValue'`, its `transformPlaceholder` converts
+the text sent (`to_timestamp_tz(:0, 'YYYY-MM-DD"T"HH24:MI:SS.FF TZR')`, `cast(@0 as datetimeoffset)`), and the value is the
+text. A `customComparable` (or a `custom`) text is sent as text; a `customLocalDateTime` is bound by its category, on SQL
+Server as a `datetime2`, which tedious makes from a `Date`: the offset and the digits below the millisecond are lost
+(measured on SQL Server 2019). Everywhere else the column keeps its SQL, so the
+where and the order by compare instants. `test/db/oracle/*/*/column.oracle-zoned-date-time-as-text.test.ts`,
+`test/db/sqlserver/*/mssql/column.sqlserver-zoned-date-time-as-text.test.ts` (real on Oracle 21 and 23, SQL Server 2019,
+2022 and 2025).
 
 ### 7.3 The ladder
 

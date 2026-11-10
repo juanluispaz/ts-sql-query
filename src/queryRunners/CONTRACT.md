@@ -516,7 +516,7 @@ Each rung adds one zone that isn't UTC. A runner meets a rung when, there, a val
 |---|---|---|---|---|
 | 0 | UTC | UTC (a zoned value carries `+00:00`) | UTC | met by every runner; the test matrix runs here; v1 required it |
 | 1 | another zone | UTC | UTC | each runner keeps the driver from assuming the process zone (below); to confirm with the columns of kind 2 and the SQL the library writes |
-| 2 | another zone | UTC | the process zone, copied by the driver | Oracle: not reachable, the runner requires the session in UTC; PGlite: copies it (known limit) |
+| 2 | another zone | UTC | the process zone, copied by the driver | not reached: oracledb, the runner requires `ORA_SDTZ` in UTC (`requireOracleSessionInUtc`); PGlite, created with `postgresqlconf: ["timezone = 'UTC'"]`, documented and not checked (only readable with a query) |
 | 3 | any | UTC | another zone, from the server | not covered |
 | 4 | any | all in one known zone that isn't UTC | — | not covered: needs that zone, for the driver or for the library |
 | 5 | — | a different zone per column | — | out of reach: a common zone at most, the user compensates with type adapters |
@@ -525,7 +525,7 @@ What each runner does at rung 1 (a driver converting a `Date` would use the proc
 
 | Runner | Reading a value without zone | Sending | Session zone by default |
 |---|---|---|---|
-| pg, PGlite | text (`date`, `timestamp`, and `time` on PGlite) parsed as UTC (§3.1) | text, `…+00` for a `localDateTime` (§2.4) | the server's (pg); the process zone (PGlite) [inferred] |
+| pg, PGlite | text (`date`, `timestamp`, and `time` on PGlite) parsed as UTC (§3.1) | text, `…+00` for a `localDateTime` (§2.4) | the server's (pg); UTC when created with `timezone = 'UTC'`, else the process offset (PGlite) |
 | postgres.js | the UTC digits in any zone of the process (§3.1) | text (§2.4) | the server's |
 | Bun SQL PostgreSQL | UTC `Date`s [inferred] | text (§2.4) | the server's |
 | mysql2, mariadb | text (`dateStrings`) | text without offset (§2.4) | the server's (`SYSTEM`) |

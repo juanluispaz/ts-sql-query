@@ -1203,8 +1203,27 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
     }
     _useForJsonInAggreagteArrayWhenPossible = true
+    /**
+     * The inline aggregated array of a select of objects is the select itself with `for json path`, whose columns are
+     * the leaves. A converted leaf (`_isConvertedAggregatedArrayValue`) can't be one of its columns, because the
+     * distinct and the order by of the select would compare and order the converted value: the leaves are then written
+     * by the library, over the select wrapped when it needs it
+     */
+    _isForJsonPathAggregatedArray(query: SelectData): boolean {
+        return this._useForJsonInAggreagteArrayWhenPossible && !!query.__asInlineAggregatedArrayValue && !query.__oneColumn && query.__type === 'plain' && !this._hasConvertedAggregatedArrayValue(query.__columns)
+    }
+    _hasConvertedAggregatedArrayValue(queryColumns: QueryColumns): boolean {
+        const columns: FlatQueryColumns = {}
+        flattenQueryColumns(queryColumns, columns, '')
+        for (const property in columns) {
+            if (this._isConvertedAggregatedArrayValue(columns[property]!)) {
+                return true
+            }
+        }
+        return false
+    }
     override _buildSelectAsAggregatedArray(query: SelectData, _params: any[]): string {
-        if (this._useForJsonInAggreagteArrayWhenPossible && query.__asInlineAggregatedArrayValue && !query.__oneColumn && query.__type === 'plain') {
+        if (this._isForJsonPathAggregatedArray(query)) {
             return ' for json path'
         }
         return ''
@@ -1213,16 +1232,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         if (!query.__asInlineAggregatedArrayValue) {
             return false
         }
-        if (!this._useForJsonInAggreagteArrayWhenPossible) {
-            return true
-        }
-        if (query.__oneColumn) {
-            return true
-        }
-        return false
+        return !this._isForJsonPathAggregatedArray(query)
     }
     override _needAgggregateArrayWrapper(query: SelectData, params: any[]): boolean {
-        if (this._useForJsonInAggreagteArrayWhenPossible && query.__asInlineAggregatedArrayValue && !query.__oneColumn && query.__type === 'plain') {
+        if (this._isForJsonPathAggregatedArray(query)) {
             return false
         }
         return super._needAgggregateArrayWrapper(query, params)
@@ -1236,7 +1249,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                 if (requireComma) {
                     result += ', '
                 }
-                result += 'a_' + aggregateId + '_.' + this._escape(property, true)
+                // Over the compound, whose arms compare the values: a converted leaf is a text, a string for FOR JSON
+                const column = columns[property]!
+                const leaf = 'a_' + aggregateId + '_.' + this._escape(property, true)
+                result += isValueSource(column) ? this._appendAggregatedArrayValueProjection(column, leaf) : leaf
                 if (property) {
                     result += ' as ' + this._appendColumnAlias(property, params)
                 }
@@ -1265,7 +1281,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], _query: SelectData | undefined): string {
         if (this._useJsonAggregatesWhenPossible() && !aggregatedArrayDistinct) {
             if (isValueSource(aggregatedArrayColumns)) {
-                return 'json_arrayagg(' + this._appendSql(aggregatedArrayColumns, params, false) + ' null on null)'
+                return 'json_arrayagg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._appendSql(aggregatedArrayColumns, params, false)) + ' null on null)'
             }
             const columns: FlatQueryColumns = {}
             flattenQueryColumns(aggregatedArrayColumns, columns, '')
@@ -1274,7 +1290,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                 if (jsonObject) {
                     jsonObject += ', '
                 }
-                jsonObject += "'" + prop + "':" + this._appendSql(columns[prop]!, params, false)
+                jsonObject += "'" + prop + "':" + this._appendAggregatedArrayValueProjection(columns[prop]!, this._appendSql(columns[prop]!, params, false))
             }
             return 'json_arrayagg(json_object(' + jsonObject + '))'
         }
@@ -1307,18 +1323,27 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
     }
     _appendJsonValueForAggregate(valueSource: AnyValueSource, params: any[]): string {
+        return this._appendJsonValue(valueSource, this._appendSql(valueSource, params, false))
+    }
+    /** A leaf of the JSON written by the library, as JSON text: `sql` is the value */
+    _appendJsonValue(valueSource: AnyValueSource, sql: string): string {
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
         const type = valueSourcePrivate.__valueType
 
         let result: string
 
-        switch(type) {
+        if (this._isConvertedAggregatedArrayValue(valueSource)) {
+            // The text of the type adapter (or of the connection), as a JSON string
+            result = 'convert(nvarchar(max), ' + this._appendAggregatedArrayValueProjection(valueSource, sql) + ')'
+            result = 'string_escape(' + result + ", 'json')"
+            result = `'"' + ` + result + ` + '"'`
+        } else switch(type) {
         // A number leaf is converted with room for any decimal(38): 38 digits, the sign, the point and a leading
         // zero. The length-less convert defaults to nvarchar(30), and a custom number type mapped to a wide decimal
         // column overflows it
         case 'boolean':
         case 'int':
-            result = 'convert(nvarchar(41), ' + this._appendSql(valueSource, params, false) + ')'
+            result = 'convert(nvarchar(41), ' + sql + ')'
             break
         case 'double':
             // FINDING B: this manual `string_agg` JSON builder (SQL Server compat < 17M) is the
@@ -1326,31 +1351,31 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             // a styleless convert keeps only ≤6 significant figures. Style 3 is the only convert
             // style that round-trips a float exactly. It emits scientific notation, a valid
             // (unquoted) JSON number, so the lossless number parser preserves the digits.
-            result = 'convert(nvarchar(41), ' + this._appendSql(valueSource, params, false) + ', 3)'
+            result = 'convert(nvarchar(41), ' + sql + ', 3)'
             break
         case 'bigint':
         case 'customInt':
         case 'customBigint':
         case 'stringDecimal':
         case 'customDecimal':
-            result = `'"' + convert(nvarchar(41), ` + this._appendSql(valueSource, params, false) + `) + '"'`
+            result = `'"' + convert(nvarchar(41), ` + sql + `) + '"'`
             break
         case 'customDouble':
             // A quoted float leaf: the same lossless style-3 form as `double` (finding B).
-            result = `'"' + convert(nvarchar(41), ` + this._appendSql(valueSource, params, false) + `, 3) + '"'`
+            result = `'"' + convert(nvarchar(41), ` + sql + `, 3) + '"'`
             break
         case 'uuid':
         case 'customUuid':
             // A uniqueidentifier's text form is 36 chars; the length-less
             // convert defaults to nvarchar(30) and overflows. nvarchar(36)
             // matches the upper-cased representation native FOR JSON emits.
-            result = `'"' + convert(nvarchar(36), ` + this._appendSql(valueSource, params, false) + `) + '"'`
+            result = `'"' + convert(nvarchar(36), ` + sql + `) + '"'`
             break
         case 'string':
         case 'aggregatedArray':
             // Strings are unbounded; the length-less convert defaults to
             // nvarchar(30) and truncates. nvarchar(max) preserves the value.
-            result = 'convert(nvarchar(max), ' + this._appendSql(valueSource, params, false) + ')'
+            result = 'convert(nvarchar(max), ' + sql + ')'
             result = 'string_escape(' + result + ", 'json')"
             result = `'"' + ` + result + ` + '"'`
             break
@@ -1360,11 +1385,11 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         case 'customLocalDate':
         case 'customLocalTime':
         case 'customLocalDateTime':
-            result = 'convert(nvarchar, ' + this._appendSql(valueSource, params, false) + ', 127)'
+            result = 'convert(nvarchar, ' + sql + ', 127)'
             result = `'"' + ` + result + ` + '"'`
             break
         default:
-            result = 'convert(nvarchar(max), ' + this._appendSql(valueSource, params, false) + ')'
+            result = 'convert(nvarchar(max), ' + sql + ')'
             result = 'string_escape(' + result + ", 'json')"
             result = `'"' + ` + result + ` + '"'`
         }
@@ -1378,7 +1403,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, params: any[], aggregateId: number): string {
         if (this._useJsonAggregatesWhenPossible()) {
             if (isValueSource(aggregatedArrayColumns)) {
-                return 'json_arrayagg(a_' + aggregateId + '_.' + this._escape('result', true) + ' null on null)'
+                return 'json_arrayagg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'a_' + aggregateId + '_.' + this._escape('result', true)) + ' null on null)'
             }
             const columns: FlatQueryColumns = {}
             flattenQueryColumns(aggregatedArrayColumns, columns, '')
@@ -1387,7 +1412,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                 if (jsonObject) {
                     jsonObject += ', '
                 }
-                jsonObject += "'" + prop + "':a_" + aggregateId + '_.' + this._escape(prop, true)
+                jsonObject += "'" + prop + "':" + this._appendAggregatedArrayValueProjection(columns[prop]!, 'a_' + aggregateId + '_.' + this._escape(prop, true))
             }
             return 'json_arrayagg(json_object(' + jsonObject + '))'
         }
@@ -1410,67 +1435,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
     }
     _appendJsonValueForWrappedAggregate(prop: string, valueSource: AnyValueSource, _params: any[], aggregateId: number): string {
-        const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-        const type = valueSourcePrivate.__valueType
-
-        let result: string
-
-        switch(type) {
-        case 'boolean':
-        case 'int':
-            result = 'convert(nvarchar(41), a_' + aggregateId + '_.' + this._escape(prop, true) + ')'
-            break
-        case 'double':
-            // FINDING B: style 3 is the only lossless float→text convert (styleless keeps
-            // ≤6 significant figures). Scientific notation is a valid unquoted JSON number.
-            result = 'convert(nvarchar(41), a_' + aggregateId + '_.' + this._escape(prop, true) + ', 3)'
-            break
-        case 'bigint':
-        case 'customInt':
-        case 'customBigint':
-        case 'stringDecimal':
-        case 'customDecimal':
-            result = `'"' + convert(nvarchar(41), a_` + aggregateId + `_.` + this._escape(prop, true) + `) + '"'`
-            break
-        case 'customDouble':
-            // Quoted float leaf, lossless style-3 form (see `_appendJsonValueForAggregate`).
-            result = `'"' + convert(nvarchar(41), a_` + aggregateId + `_.` + this._escape(prop, true) + `, 3) + '"'`
-            break
-        case 'uuid':
-        case 'customUuid':
-            // A uniqueidentifier's text form is 36 chars; the length-less
-            // convert defaults to nvarchar(30) and overflows. nvarchar(36)
-            // matches the upper-cased representation native FOR JSON emits.
-            result = `'"' + convert(nvarchar(36), a_` + aggregateId + `_.` + this._escape(prop, true) + `) + '"'`
-            break
-        case 'string':
-        case 'aggregatedArray':
-            // Strings are unbounded; the length-less convert defaults to
-            // nvarchar(30) and truncates. nvarchar(max) preserves the value.
-            result = 'convert(nvarchar(max), a_' + aggregateId + '_.' + this._escape(prop, true) + ')'
-            result = 'string_escape(' + result + ", 'json')"
-            result = `'"' + ` + result + ` + '"'`
-            break
-        case 'localDate':
-        case 'localTime':
-        case 'localDateTime':
-        case 'customLocalDate':
-        case 'customLocalTime':
-        case 'customLocalDateTime':
-            result = 'convert(nvarchar, a_' + aggregateId + '_.' + this._escape(prop, true) + ', 127)'
-            result = `'"' + ` + result + ` + '"'`
-            break
-        default:
-            result = 'convert(nvarchar(max), a_' + aggregateId + '_.' + this._escape(prop, true) + ')'
-            result = 'string_escape(' + result + ", 'json')"
-            result = `'"' + ` + result + ` + '"'`
-        }
-
-        if (valueSourcePrivate.__optionalType !== 'required') {
-            result = `isnull(` + result + `, 'null')`
-        }
-
-        return result
+        return this._appendJsonValue(valueSource, 'a_' + aggregateId + '_.' + this._escape(prop, true))
     }
     override _fragment(params: any[], sql: TemplateStringsArray, sqlParams: AnyValueSource[]): string {
         if (sqlParams.length <= 0) {

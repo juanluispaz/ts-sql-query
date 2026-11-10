@@ -19,7 +19,9 @@ export type TypeCategory = 'boolean'
  * Where a value leaves the database, given to `transformProjection`: `'resultColumn'` is a column of the result of the
  * query (a column of the outermost select, of the returning of an insert, an update or a delete, or the value of a
  * function called with `executeFunction`).
- * `'aggregatedArrayValue'` is a value inside the JSON of an aggregated array; the library doesn't ask for it yet.
+ * `'aggregatedArrayValue'` is a value inside the JSON of an aggregated array (`aggregateAsArray`,
+ * `aggregateAsArrayOfOneColumn`, a select used as an aggregated array): a converted value there is the SQL of a text,
+ * which the library writes in the JSON as a string.
  */
 export type ProjectionOutput = 'resultColumn' | 'aggregatedArrayValue'
 
@@ -30,8 +32,8 @@ export interface DefaultTypeAdapter {
     forceTypeCast(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean): boolean
     /**
      * The SQL of a value as it leaves the database, with the conversion of the library: SQL Server writes a decimal of
-     * a column of the result as its text (`convert(nvarchar(41), <sql>)`); every other value, and every value on the
-     * other databases, keeps the SQL it receives
+     * a column of the result as its text (`convert(nvarchar(41), <sql>)`); every other value, every value inside the
+     * JSON of an aggregated array, and every value on the other databases, keeps the SQL it receives
      */
     transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput): string
 }
@@ -49,11 +51,14 @@ export interface TypeAdapter {
     /**
      * The SQL of a value as it leaves the database, the pair of `transformValueFromDB`, which reads what it gives:
      * `sql` is the value as the library writes it, and the SQL returned is what the database returns in `output`.
-     * `next.transformProjection(...)` applies the conversion of the library (on SQL Server, a decimal of a column of
-     * the result is written as its text). The value keeps its SQL everywhere else in the query: the arms of a compound
-     * query compare the values, the order by of a column of the select orders by the value, and a subquery, a `with`,
-     * the group by and the having use the value. It only writes SQL: it adds no parameter, and when it doesn't convert
-     * the value it returns the SQL it receives (an empty `sql` gives an empty text)
+     * In `'aggregatedArrayValue'` it is the SQL of a text, which the library writes in the JSON as a string, and
+     * `transformValueFromDB` receives that text. `next.transformProjection(...)` applies the conversion of the library
+     * (on SQL Server, a decimal of a column of the result is written as its text). The value keeps its SQL everywhere
+     * else in the query: the arms of a compound query compare the values, the order by of a column of the select orders
+     * by the value, the distinct, the order by and the limit of a select used as an aggregated array compare and order
+     * the values, and a subquery, a `with`, the group by and the having use the value. It only writes SQL: it adds no
+     * parameter, and when it doesn't convert the value it returns the SQL it receives (an empty `sql` gives an empty
+     * text)
      */
     transformProjection?(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string
 }

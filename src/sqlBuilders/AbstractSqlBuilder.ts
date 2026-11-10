@@ -8,7 +8,7 @@ import { isDefault } from '../expressions/Default.js'
 import type { __ColumnPrivate, DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
 import { isColumn } from '../utils/Column.js'
-import type { DefaultTypeAdapter, TypeAdapter } from '../TypeAdapter.js'
+import type { DefaultTypeAdapter, ProjectionOutput, TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import type { ConnectionConfiguration } from '../queryRunners/QueryRunner.js'
 import { SequenceValueSource } from '../internal/ValueSourceImpl.js'
@@ -738,6 +738,25 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * converted form.
      */
     _appendResultColumnProjection(value: AnyValueSource, sql: string, _params: any[]): string {
+        return this._appendValueProjection(value, sql, 'resultColumn')
+    }
+    /**
+     * A value inside the JSON of an aggregated array, as the JSON function of the database receives it: the
+     * `transformProjection` of the type adapter of the value, or the conversion of the library (the identity). A
+     * converted value is the SQL of a text, written in the JSON as a string. The leaf of an aggregated array is written
+     * outside the select whose distinct, order by and limit compare and order the value: in the aggregate over the
+     * wrapped select (`a_N_.<prop>`), or in an aggregate without them (MariaDB orders inside the aggregate by the
+     * expression of the column, not by the leaf).
+     */
+    _appendAggregatedArrayValueProjection(value: AnyValueSource, sql: string): string {
+        return this._appendValueProjection(value, sql, 'aggregatedArrayValue')
+    }
+    /** The value inside the JSON of an aggregated array is converted (`_appendAggregatedArrayValueProjection` changes it) */
+    _isConvertedAggregatedArrayValue(value: AnyValueSource): boolean {
+        return this._appendAggregatedArrayValueProjection(value, '') !== ''
+    }
+    /** The `transformProjection` of the type adapter of the value, or of the connection, for `output` */
+    _appendValueProjection(value: AnyValueSource, sql: string, output: ProjectionOutput): string {
         if (!isValueSource(value)) {
             return sql
         }
@@ -745,9 +764,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const typeAdapter = valueSourcePrivate.__typeAdapter
         const typeCategory = __typeCategoryOf(valueSourcePrivate.__valueType)
         if (typeAdapter && typeAdapter.transformProjection) {
-            return typeAdapter.transformProjection(sql, valueSourcePrivate.__valueTypeName, typeCategory, 'resultColumn', this._defaultTypeAdapter)
+            return typeAdapter.transformProjection(sql, valueSourcePrivate.__valueTypeName, typeCategory, output, this._defaultTypeAdapter)
         }
-        return this._defaultTypeAdapter.transformProjection(sql, valueSourcePrivate.__valueTypeName, typeCategory, 'resultColumn')
+        return this._defaultTypeAdapter.transformProjection(sql, valueSourcePrivate.__valueTypeName, typeCategory, output)
     }
     /**
      * The outermost query must be wrapped in a select that converts its columns (`_appendResultColumnProjection`),
@@ -4546,7 +4565,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], _query: SelectData | undefined): string {
         const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         if (isValueSource(aggregatedArrayColumns)) {
-            return 'json_agg(' + distict + this._appendSql(this._typedOperand(aggregatedArrayColumns, []), params, false) + ')'
+            return 'json_agg(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._appendSql(this._typedOperand(aggregatedArrayColumns, []), params, false)) + ')'
         } else {
             const columns: FlatQueryColumns = {}
             flattenQueryColumns(aggregatedArrayColumns, columns, '')
@@ -4556,7 +4575,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 if (result) {
                     result += ', '
                 }
-                result += "'" + prop + "', " + this._appendSql(this._typedOperand(columns[prop]!, []), params, false)
+                result += "'" + prop + "', " + this._appendAggregatedArrayValueProjection(columns[prop]!, this._appendSql(this._typedOperand(columns[prop]!, []), params, false))
             }
 
             return 'json_agg(' +  distict + 'json_build_object(' + result + '))'
@@ -4564,7 +4583,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _params: any[], aggregateId: number): string {
         if (isValueSource(aggregatedArrayColumns)) {
-            return 'json_agg(a_' + aggregateId + '_.result)'
+            return 'json_agg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'a_' + aggregateId + '_.result') + ')'
         } else {
             const columns: FlatQueryColumns = {}
             flattenQueryColumns(aggregatedArrayColumns, columns, '')
@@ -4574,7 +4593,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 if (result) {
                     result += ', '
                 }
-                result += "'" + prop + "', a_" + aggregateId + "_." + this._escape(prop, true)
+                result += "'" + prop + "', " + this._appendAggregatedArrayValueProjection(columns[prop]!, 'a_' + aggregateId + '_.' + this._escape(prop, true))
             }
 
             return 'json_agg(json_build_object(' + result + '))'

@@ -1454,9 +1454,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         if (isValueSource(aggregatedArrayColumns)) {
             if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._uuidUsesRawFunctions()) {
-                return 'json_arrayagg(' + distict + 'raw_to_uuid(' + this._appendSql(aggregatedArrayColumns, params, false) + '))'
+                return 'json_arrayagg(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'raw_to_uuid(' + this._appendSql(aggregatedArrayColumns, params, false) + ')') + ')'
             }
-            return 'json_arrayagg(' + distict + this._appendSql(aggregatedArrayColumns, params, false) + ')'
+            return 'json_arrayagg(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._appendSql(aggregatedArrayColumns, params, false)) + ')'
         } else {
             const columns: FlatQueryColumns = {}
             flattenQueryColumns(aggregatedArrayColumns, columns, '')
@@ -1469,9 +1469,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 result += "'" + prop + "' value "
                 const column = columns[prop]!
                 if (__isUuidValueSource(__getValueSourcePrivate(column)) && this._uuidUsesRawFunctions()) {
-                    result += 'raw_to_uuid(' + this._appendSql(column, params, false) + ')'
+                    result += this._appendAggregatedArrayValueProjection(column, 'raw_to_uuid(' + this._appendSql(column, params, false) + ')')
                 } else {
-                    result += this._appendSql(column, params, false)
+                    result += this._appendAggregatedArrayValueProjection(column, this._appendSql(column, params, false))
                 }
             }
 
@@ -1481,9 +1481,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     override _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _params: any[], aggregateId: number): string {
         if (isValueSource(aggregatedArrayColumns)) {
             if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._uuidUsesRawFunctions()) {
-                return 'json_arrayagg(raw_to_uuid(a_' + aggregateId + '_.result))'
+                return 'json_arrayagg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'raw_to_uuid(a_' + aggregateId + '_.result)') + ')'
             }
-            return 'json_arrayagg(a_' + aggregateId + '_.result)'
+            return 'json_arrayagg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'a_' + aggregateId + '_.result') + ')'
         } else {
             const columns: FlatQueryColumns = {}
             flattenQueryColumns(aggregatedArrayColumns, columns, '')
@@ -1496,9 +1496,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 result += "'" + prop + "' value "
                 const column = columns[prop]!
                 if (__isUuidValueSource(__getValueSourcePrivate(column)) && this._uuidUsesRawFunctions()) {
-                    result += 'raw_to_uuid(a_' + aggregateId + '_.' + this._escape(prop, true) + ')'
+                    result += this._appendAggregatedArrayValueProjection(column, 'raw_to_uuid(a_' + aggregateId + '_.' + this._escape(prop, true) + ')')
                 } else {
-                    result += 'a_' + aggregateId + '_.' + this._escape(prop, true)
+                    result += this._appendAggregatedArrayValueProjection(column, 'a_' + aggregateId + '_.' + this._escape(prop, true))
                 }
             }
 

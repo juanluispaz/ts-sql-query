@@ -667,13 +667,14 @@ real engine version, not the `newest` label.
 
 `aggregateAsArray` emits `json_arrayagg(...)` over a correlated derived table (e.g.
 `(select json_arrayagg(a_1_.result) from (select … where fk = outer.id …) as a_1_)`).
-Both pieces need MySQL **8.0.14**: `json_arrayagg` was added there, and a derived table
-that references an outer column needs `LATERAL` (also 8.0.14). MySQL 5.7 rejects the query
-— the correlated reference surfaces first as `ER_BAD_FIELD_ERROR (1054)` (`Unknown column
-'…' in 'where clause'`). There is no `group_concat`-based form the builder falls back to.
+`json_arrayagg` itself exists on 5.7 (a plain correlated `json_arrayagg` runs on 5.7.44); what
+needs MySQL **8.0.14** is the derived table that references an outer column: "Prior to MySQL
+8.0.14, a derived table cannot contain outer references" (MySQL reference manual, Derived
+Tables). MySQL 5.7 rejects the query with `ER_BAD_FIELD_ERROR (1054)` (`Unknown column '…' in
+'where clause'`). There is no `group_concat`-based form the builder falls back to.
 
-Verified against real `mysql:5.7`: the inline aggregate-as-array queries fail with 1054;
-they run live on every MySQL 8.0.14+ engine.
+Verified against real `mysql:5.7` (5.7.44): the inline aggregate-as-array queries fail with
+1054; they run live on every MySQL 8.0.14+ engine (8.0.46, 8.4.13, 26.10.0 measured).
 
 **What this means for tests** — the affected cases in
 `select.aggregate-as-array-inline-wrapped`, `docs.aggregate-as-object-array`,
@@ -683,6 +684,19 @@ they run live on every MySQL 8.0.14+ engine.
 real engine version, not the `newest` label.
 
 
+
+### MySQL before 26 writes a `TIME` of 100 hours or more wrongly in JSON
+
+MySQL's `TIME` is a duration, from `-838:59:59` to `838:59:59`, not only a time of day. Read as
+a column it comes back right (`100:00:00`), but written into JSON on 5.7.44, 8.0.46 and
+8.4.13 the hours are wrong: `json_array(time '-838:59:59')` gives `"-06:59:59.000000"`,
+`time '100:00:00'` gives `"04:00:00…"`, and in 8.0 `json_arrayagg` gave `"-630:59:59.000000"`.
+26.10.0 and MariaDB are right. Measured 2026-11-10 with the `mysql` client on each image.
+
+**What this means** — the library's `localTime` is a time of day: a stored `100:00:00` is
+rejected when read (`INVALID_VALUE_RECEIVED_FROM_DATABASE`, hours above 23), so no library
+data type carries such a value. Only a custom type over a `TIME` used as a duration would meet
+it, inside an aggregated array on MySQL before 26. No test covers it.
 
 ### MySQL `EXCEPT` / `INTERSECT` compound operators require MySQL 8.0.31+
 

@@ -103,6 +103,18 @@ Each entry says what it is, why it waits, and what is already known.
     `Temporal.ZonedDateTime` maps to (only Oracle `TIMESTAMP WITH TIME ZONE`
     keeps a region name).
 
+## `aggregateAsArrayDistinct` on MySQL
+
+- **What:** offering `aggregateAsArrayDistinct` / `aggregateAsArrayOfOneColumnDistinct` on
+  MySQL, which rejects `json_arrayagg(distinct …)` (1064 on 5.7, 8.0, 8.4, 26.10).
+- **Why deferred:** on 8.0.14+ it works only in the subquery form, through a correlated
+  derived table with the distinct inside (`(select json_arrayagg(a_1_.x) from (select distinct
+  t.x … where t.fk = p.id) a_1_)`: same rows as `select distinct` for 7 data types, no extra
+  cost). The grouped form (the aggregate in a query with `group by`) has no emission: JSON_TABLE
+  over the group's `json_arrayagg` fails with 1210 and a correlated derived table with 1054. A
+  method that works in one form and fails in the other; in principle not done.
+- **Known:** measured 2026-11-10 on 5.7.44 (impossible: 1054), 8.0.46, 8.4.13 and 26.10.0.
+
 ## External dates to watch
 
 - **PostgreSQL 19:** general availability planned for 2026-11-19. The `newest`

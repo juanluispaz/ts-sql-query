@@ -24,6 +24,7 @@ DELETE FROM ledger_entry;
 DELETE FROM issue_worklog;
 DELETE FROM col_matrix;
 DELETE FROM temporal_precision;
+DELETE FROM flight_leg;
 DELETE FROM country;
 DELETE FROM issue;
 DELETE FROM project;

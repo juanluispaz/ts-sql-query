@@ -89,6 +89,13 @@ INSERT INTO col_matrix (id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m
 -- express. getSeconds() reads 59, getMilliseconds() reads 999.
 INSERT INTO temporal_precision (id, micro_stamp) VALUES
     (1, '2024-01-15 12:30:59.999600');
+-- flight_leg: 1 and 2 depart at the same instant (2024-07-01 01:30:15.1234567 UTC)
+-- written with different offsets; 3 departs later (03:00 UTC), but its text, with
+-- -05:00, is the smallest.
+INSERT INTO flight_leg (id, departs_at, arrives_at) VALUES
+    (1, '2024-07-01 10:30:15.1234567 +09:00', '2024-07-01 07:45:00 +02:00'),
+    (2, '2024-07-01 01:30:15.1234567 +00:00', NULL),
+    (3, '2024-06-30 22:00:00 -05:00', NULL);
 GO
 -- service_plan: plan 1 was 'Basic' from 2024-01-01 and is 'Standard' since
 -- 2024-06-01, plan 2 is 'Enterprise' since 2024-01-01. The versions are restored

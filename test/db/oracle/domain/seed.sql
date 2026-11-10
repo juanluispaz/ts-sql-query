@@ -96,3 +96,9 @@ INSERT INTO temporal_precision (id, micro_stamp) VALUES
 INSERT INTO service_plan (id, name, description) VALUES (1, 'Enterprise', NULL);
 INSERT INTO standup_meeting (id, starts_at, ends_at, daily_at) VALUES (1, TO_DATE('2024-03-15 09:05:07', 'YYYY-MM-DD HH24:MI:SS'), TO_DATE('2024-03-15 09:20:45', 'YYYY-MM-DD HH24:MI:SS'), TO_DATE('1970-01-01 08:30:15', 'YYYY-MM-DD HH24:MI:SS'));
 INSERT INTO standup_meeting (id, starts_at, ends_at, daily_at) VALUES (2, TO_DATE('2024-03-18 14:40:00', 'YYYY-MM-DD HH24:MI:SS'), NULL, TO_DATE('1970-01-01 16:45:30', 'YYYY-MM-DD HH24:MI:SS'));
+-- flight_leg: 1 and 2 depart at the same instant (2024-07-01 01:30:15.123456 UTC)
+-- written with different offsets; 3 departs later (03:00 UTC), but its text, with
+-- -05:00, is the smallest. 1 arrives with a region.
+INSERT INTO flight_leg (id, departs_at, arrives_at) VALUES (1, TIMESTAMP '2024-07-01 10:30:15.123456 +09:00', TIMESTAMP '2024-07-01 07:45:00 Europe/Madrid');
+INSERT INTO flight_leg (id, departs_at, arrives_at) VALUES (2, TIMESTAMP '2024-07-01 01:30:15.123456 +00:00', NULL);
+INSERT INTO flight_leg (id, departs_at, arrives_at) VALUES (3, TIMESTAMP '2024-06-30 22:00:00 -05:00', NULL);

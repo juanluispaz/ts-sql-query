@@ -20,6 +20,7 @@
 -- match its case-sensitive schema declaration; the rest are unquoted.)
 DELETE FROM service_plan;
 DELETE FROM standup_meeting;
+DELETE FROM flight_leg;
 DELETE FROM project_review;
 DELETE FROM release_draft;
 DELETE FROM project_release;

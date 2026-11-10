@@ -16,6 +16,7 @@ IF OBJECT_ID('ledger_entry', 'U') IS NOT NULL DROP TABLE ledger_entry;
 IF OBJECT_ID('issue_worklog', 'U') IS NOT NULL DROP TABLE issue_worklog;
 IF OBJECT_ID('col_matrix', 'U') IS NOT NULL DROP TABLE col_matrix;
 IF OBJECT_ID('temporal_precision', 'U') IS NOT NULL DROP TABLE temporal_precision;
+IF OBJECT_ID('flight_leg', 'U') IS NOT NULL DROP TABLE flight_leg;
 IF OBJECT_ID('country', 'U') IS NOT NULL DROP TABLE country;
 IF OBJECT_ID('issue', 'U') IS NOT NULL DROP TABLE issue;
 IF OBJECT_ID('project', 'U') IS NOT NULL DROP TABLE project;
@@ -404,6 +405,16 @@ GO
 CREATE TABLE temporal_precision (
     id INT PRIMARY KEY,
     micro_stamp DATETIME2(7) NOT NULL
+);
+GO
+
+-- flight_leg: a date and time stored with the offset it was written with
+-- (DATETIMEOFFSET(7)), read and written as text by a type adapter, so the
+-- offset is kept.
+CREATE TABLE flight_leg (
+    id INT PRIMARY KEY,
+    departs_at DATETIMEOFFSET(7) NOT NULL,
+    arrives_at DATETIMEOFFSET(7) NULL
 );
 GO
 

@@ -402,6 +402,13 @@ interface Connection {
      * the conversion of the library: SQL Server writes a decimal as its text; every other value keeps its SQL
      */
     transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput): string
+    /**
+     * Protected method that says how the SQL of transformProjection compares with the value: 'value' (it compares and
+     * orders like the value), 'equality' (it compares like the value but orders otherwise), 'columnEquality' (as
+     * 'equality', only among the values of one column) or 'none'. By default, 'value', and 'columnEquality' for a
+     * decimal of a column of the result on SQL Server
+     */
+    projectionComparison(type: string, typeCategory: TypeCategory, output: ProjectionOutput): ProjectionComparison
 
     /** Protected method that returns true if the provided string is a reserved keyword */
     isReservedKeyword(word: string): boolean

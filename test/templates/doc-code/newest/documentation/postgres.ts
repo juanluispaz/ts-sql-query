@@ -72,7 +72,7 @@ import {
 import { deepPick, deepOmit, type DeepPick, type DeepOmit, type DeepPickPaths } from '../../../../../src/extras/deepUtilities.js'
 
 import { fromRef, type TableOrViewLeftJoinOf, type TableOrViewOf } from '../../../../../src/extras/types.js'
-import { type DefaultTypeAdapter, type ProjectionOutput, type TypeAdapter, type TypeCategory } from '../../../../../src/TypeAdapter.js'
+import { type DefaultTypeAdapter, type ProjectionComparison, type ProjectionOutput, type TypeAdapter, type TypeCategory } from '../../../../../src/TypeAdapter.js'
 
 import { Pool } from 'pg';
 import { PgPoolQueryRunner } from '../../../../../src/queryRunners/PgPoolQueryRunner.js'
@@ -199,6 +199,12 @@ class DayAsTextTypeAdapter implements TypeAdapter {
             return "to_char(" + sql + ", 'DD/MM/YYYY')"
         }
         return next.transformProjection(sql, type, typeCategory, output)
+    }
+    projectionComparison(type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): ProjectionComparison {
+        if (output === 'resultColumn' || output === 'aggregatedArrayValue') {
+            return 'equality'
+        }
+        return next.projectionComparison(type, typeCategory, output)
     }
 }
 
@@ -393,6 +399,7 @@ void function(
     _ta: TypeAdapter,
     _tc: TypeCategory,
     _po: ProjectionOutput,
+    _pc: ProjectionComparison,
     _dc: DynamicCondition<any>
 ) {}
 

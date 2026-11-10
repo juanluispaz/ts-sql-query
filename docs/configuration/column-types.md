@@ -426,7 +426,7 @@ It receives the SQL of the value as the library writes it, the name of the type,
 For example, on PostgreSQL, an adapter that has the database give a day as the text `DD/MM/YYYY` and reads that text as the day:
 
 ```ts
-import { type DefaultTypeAdapter, type ProjectionOutput, type TypeAdapter, type TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
+import { type DefaultTypeAdapter, type ProjectionComparison, type ProjectionOutput, type TypeAdapter, type TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
 
 class DayAsTextTypeAdapter implements TypeAdapter {
     transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
@@ -448,6 +448,14 @@ class DayAsTextTypeAdapter implements TypeAdapter {
             return "to_char(" + sql + ", 'DD/MM/YYYY')"
         }
         return next.transformProjection(sql, type, typeCategory, output)
+    }
+
+    projectionComparison(type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): ProjectionComparison {
+        // Two equal days give the same text and two different days different texts, but the texts don't order as the days
+        if (output === 'resultColumn' || output === 'aggregatedArrayValue') {
+            return 'equality'
+        }
+        return next.projectionComparison(type, typeCategory, output)
     }
 }
 
@@ -493,11 +501,25 @@ The text `DD/MM/YYYY` doesn't order as the day does (`01/03/2024` comes before `
 |---|---|
 | The columns of the select that is executed, the columns of the `returning` of an insert, an update or a delete, and the value of a function called with `executeFunction` | The SQL of `transformProjection` |
 | The id that `executeInsert` reads by itself, in an insert without `returning` | The value |
-| An order by of the column, like `orderBy('birthday')` | The value: the order by writes the column, not its alias, which is the text |
 | The where, the group by and the having | The value |
 | A subquery or a `with` | The value; the select that returns a column of the `with` converts it |
-| A compound select (`union`, `intersect`, `except`), or a `selectDistinct` ordered by the column | The value: the query is written inside a select that converts its columns, so the rows are compared and ordered by the value: `select to_char(o_1_.birthday, 'DD/MM/YYYY') as birthday from (select ... union select ...) as o_1_ order by o_1_.birthday` |
+| An order by of the column, like `orderBy('birthday')` | The value when the converted SQL doesn't order like it (`'equality'`, `'columnEquality'` or `'none'`): the order by writes the column, not its alias, which is the text. With `'value'`, the alias |
+| A compound select (`union`, `intersect`, `except`) | The value when the converted SQL doesn't compare like it across the arms (`'columnEquality'` or `'none'`), or the order by names a column that doesn't order like it: the query is written inside a select that converts its columns, `select to_char(o_1_.birthday, 'DD/MM/YYYY') as birthday from (select ... union select ...) as o_1_ order by o_1_.birthday`. Otherwise each arm converts the column |
+| A `selectDistinct` | The value when the converted SQL doesn't compare like it (`'none'`), or the select is ordered by a column that doesn't order like it: the select is written inside a select that converts its columns, `select to_char(o_1_.birthday, 'DD/MM/YYYY') as birthday from (select distinct birthday as birthday from customer) as o_1_`. Otherwise the distinct select converts the column |
 | A value inside the JSON of an aggregated array | The SQL of `transformProjection` with `'aggregatedArrayValue'`, written as a JSON string; see [Inside the JSON of an aggregated array](#inside-the-json-of-an-aggregated-array) |
+
+### How the converted SQL compares
+
+Where the query compares or orders the value, the converted SQL can give another result than the value: two days written as `MM/YYYY` are the same text when they are in the same month, and `DD/MM/YYYY` orders otherwise than the day. `projectionComparison` says, for each type and each `output`, how the SQL that `transformProjection` returns compares with the value, and the query uses the value only where it has to:
+
+| `projectionComparison` | The converted SQL | Example | The query |
+|---|---|---|---|
+| `'value'` (the default) | Compares and orders like the value | A day as `YYYY-MM-DD` | Has the converted SQL in place, and nothing else changes: the order by is the alias, a union and a distinct compare the texts |
+| `'equality'` | Equal values give equal SQL and different values different SQL, but it orders otherwise | A day as `DD/MM/YYYY` | Orders by the value: the order by writes the column, a distinct select ordered by it is wrapped, and so is a compound select ordered by it |
+| `'columnEquality'` | As `'equality'`, but only among the values of one column: equal values of two columns or expressions can give different SQL | The text of a decimal, whose scale is the one of its column: `1.5` in a `decimal(10, 1)` and `1.50` in a `decimal(10, 2)` | Orders by the value as with `'equality'`, and a compound select is wrapped, because its arms compare values of different selects. A distinct select compares the values of one column, so it converts in place |
+| `'none'` | Neither compares nor orders like the value | A day as `MM/YYYY`; a date and time as text with its offset, where the same instant has several texts | Also compares the value: a compound select and a distinct select are wrapped, and the distinct of an aggregated array is applied to the values |
+
+When the type adapter doesn't implement it, `next.projectionComparison(...)` answers for the conversion of the library: `'value'`, except for a decimal in a column of the result on SQL Server, whose text answers `'columnEquality'` (it orders as a text, and two equal decimals of columns of different scales give different texts). So an adapter that converts a value without saying how it compares gets the converted SQL in place: return `'equality'` or `'none'` when the converted SQL doesn't keep the order or the equality of the value. It isn't asked when `transformProjection` doesn't convert the value.
 
 ### Inside the JSON of an aggregated array
 
@@ -542,8 +564,8 @@ const companies: Promise<{
 
 | Where the value is | What is compared or ordered |
 |---|---|
-| The distinct, the order by and the limit of a select used with `forUseAsInlineAggregatedArrayValue`, and the arms of a compound select used so | The value: the JSON is written over that select, `json_agg(json_build_object('birthday', to_char(a_1_.birthday, 'DD/MM/YYYY'))) from (select distinct birthday as birthday from customer) as a_1_` |
-| The distinct of `aggregateAsArrayDistinct` and `aggregateAsArrayOfOneColumnDistinct` | The text: the distinct is inside the aggregate, over what goes in the JSON, `json_agg(distinct to_char(birthday, 'DD/MM/YYYY'))`. When two values give the same text, the array has that text once |
+| The distinct, the order by and the limit of a select used with `forUseAsInlineAggregatedArrayValue`, and the arms of a compound select used so | The value: the JSON is written over that select, `json_agg(json_build_object('birthday', to_char(a_1_.birthday, 'DD/MM/YYYY'))) from (select distinct birthday as birthday from customer) as a_1_`. On SQL Server, the JSON of a select of objects is the select itself with `for json path`, with the converted SQL in place, when that compares and orders as the select needs: with `'value'`, and with `'equality'` when the order by doesn't name the value; otherwise the library writes the JSON over the select |
+| The distinct of `aggregateAsArrayDistinct` and `aggregateAsArrayOfOneColumnDistinct` | The text when the converted SQL compares like the value (`'value'`, `'equality'` or `'columnEquality'`, which compares the values of one column): the distinct is inside the aggregate, over what goes in the JSON, `json_agg(distinct to_char(birthday, 'DD/MM/YYYY'))`. With `'none'`, when the aggregate is the only column of a select without group by, the value: the select is written as the aggregate over a select of the distinct values, `select json_agg(to_char(a_1_.result, 'MM/YYYY')) from (select distinct birthday as result from customer) as a_1_`. Otherwise, and always on MariaDB, the text: two values with the same text are in the array once |
 
 !!! important
 
@@ -551,6 +573,7 @@ const companies: Promise<{
     - Inside the JSON it must return the SQL of a text, which the library writes as a JSON string (with the quotes and backslashes it holds escaped).
     - When it doesn't convert the value, return what `next.transformProjection(...)` returns. The library calls it with an empty `sql` to know whether a column is converted, so it must return an empty text when it doesn't convert.
     - On Oracle, the `returning` of a converted column is received in an out parameter of text, whatever the type of the column.
+    - On MariaDB, the distinct of `aggregateAsArrayDistinct` and `aggregateAsArrayOfOneColumnDistinct` is always inside the aggregate: MariaDB doesn't see a column of the outer query in a derived table, so a correlated select can't be written over the distinct values.
     - On MariaDB, a converted old value of an update (`oldValues()`) is inside the SQL of the conversion, and MariaDB 13.0.2 returns the new value there ([MDEV-40126](https://jira.mariadb.org/browse/MDEV-40126)); see [Update returning old values](../queries/update.md#update-returning-old-values).
 
 ## Global type adapter
@@ -603,10 +626,10 @@ And you can define the column as:
 this.column<RgbColor, 'RgbColor'>('ColumnName', 'custom', 'RgbColor')
 ```
 
-The connection's `transformProjection` is overridden the same way. It's the `next` of the type adapters, so it converts every column of the type, unless the type adapter of the column writes its SQL without calling `next`. Call `super.transformProjection(...)` for the values it doesn't convert:
+The connection's `transformProjection` and `projectionComparison` are overridden the same way. They're the `next` of the type adapters, so they convert every column of the type, unless the type adapter of the column writes its SQL without calling `next`. Call `super.transformProjection(...)` and `super.projectionComparison(...)` for the values it doesn't convert:
 
 ```ts
-import type { ProjectionOutput, TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
+import type { ProjectionComparison, ProjectionOutput, TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     protected override transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput): string {
@@ -614,6 +637,12 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
             return "to_char(" + sql + ", 'DD/MM/YYYY')"
         }
         return super.transformProjection(sql, type, typeCategory, output)
+    }
+    protected override projectionComparison(type: string, typeCategory: TypeCategory, output: ProjectionOutput): ProjectionComparison {
+        if (type === 'Birthday' && output === 'resultColumn') {
+            return 'equality'
+        }
+        return super.projectionComparison(type, typeCategory, output)
     }
 }
 ```

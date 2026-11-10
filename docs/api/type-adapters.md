@@ -38,14 +38,18 @@ interface TypeAdapter {
     transformPlaceholder?(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, next: DefaultTypeAdapter): string
     forceTypeCast?(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean, next: DefaultTypeAdapter): boolean
     transformProjection?(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string
+    projectionComparison?(type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): ProjectionComparison
 }
 
 type ProjectionOutput = 'resultColumn' | 'aggregatedArrayValue'
+
+type ProjectionComparison = 'value' | 'equality' | 'columnEquality' | 'none'
 ```
 
 - `transformPlaceholder` receives the placeholder as the query runner wrote it, like `$1` or `$1::int4`, and returns the one written in the SQL.
 - `forceTypeCast` decides whether the database must receive the type of the parameter: it receives `true` where the position in the SQL gives the parameter no type, and returns the value to use. The query runner then writes a cast, like `$1::int4`, or sends the parameter with its type when the driver can. Only the PostgreSQL query runners use it.
 - `transformProjection` receives the SQL of a value as it leaves the database, as the library writes it, and returns the SQL to write: `'resultColumn'` is a column of the result of the query (a column of the select that is executed or of the `returning` of an insert, an update or a delete, or the value of a function called), and `'aggregatedArrayValue'` is a value inside the JSON of an aggregated array, where it returns the SQL of a text that the library writes as a JSON string. `transformValueFromDB` reads what it gives. `next.transformProjection` writes the conversion of the library, which on SQL Server writes a decimal of a column of the result as its text; inside the JSON it has none. It adds no parameter, and when it doesn't convert the value it returns the SQL it receives. See [The SQL of a value read from the database](../configuration/column-types.md#the-sql-of-a-value-read-from-the-database).
+- `projectionComparison` says how the SQL that `transformProjection` returns compares with the value, in the same `output`: `'value'`, it compares and orders like the value, and the query only has the converted SQL in place; `'equality'`, equal values give equal SQL and different values different SQL, but it orders otherwise, so the query orders by the value; `'columnEquality'`, as `'equality'` but only among the values of one column (the text of a decimal, whose scale is the one of its column), so the query also compares the value in a compound select; `'none'`, it neither compares nor orders like the value, so the query also compares the value in a distinct. Without it, `next.projectionComparison` answers for the conversion of the library: `'value'`, and `'columnEquality'` for a decimal of a column of the result on SQL Server. It isn't asked when `transformProjection` doesn't convert the value. See [How the converted SQL compares](../configuration/column-types.md#how-the-converted-sql-compares).
 
 ```typescript
 interface DefaultTypeAdapter {
@@ -54,6 +58,7 @@ interface DefaultTypeAdapter {
     transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown): string
     forceTypeCast(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean): boolean
     transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput): string
+    projectionComparison(type: string, typeCategory: TypeCategory, output: ProjectionOutput): ProjectionComparison
 }
 ```
 

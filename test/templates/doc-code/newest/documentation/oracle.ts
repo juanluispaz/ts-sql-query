@@ -3,7 +3,7 @@ import { MockQueryRunner } from '../../../../../src/queryRunners/MockQueryRunner
 import { OracleConnection } from '../../../../../src/connections/OracleConnection.js'
 import { DocCodeMockRunner } from '../../../../lib/mockRunners/DocCodeMockRunner.js'
 import { Table } from '../../../../../src/Table.js'
-import { CustomBooleanTypeAdapter, OracleDateAsTimestampTypeAdapter, type DefaultTypeAdapter, type ProjectionOutput, type TypeAdapter, type TypeCategory } from '../../../../../src/TypeAdapter.js'
+import { CustomBooleanTypeAdapter, OracleDateAsTimestampTypeAdapter, type DefaultTypeAdapter, type ProjectionComparison, type ProjectionOutput, type TypeAdapter, type TypeCategory } from '../../../../../src/TypeAdapter.js'
 export type { TypeCategory }
 import { View } from '../../../../../src/View.js'
 import { Values } from '../../../../../src/Values.js'
@@ -196,6 +196,12 @@ class ZonedDateTimeTypeAdapter implements TypeAdapter {
             return "to_char(" + sql + ", 'YYYY-MM-DD\"T\"HH24:MI:SS.FF9TZH:TZM')"
         }
         return next.transformProjection(sql, type, typeCategory, output)
+    }
+    projectionComparison(type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): ProjectionComparison {
+        if (type === 'ZonedDateTime') {
+            return 'none'
+        }
+        return next.projectionComparison(type, typeCategory, output)
     }
 }
 const tFlight = new class TFlight extends Table<DBConnection, 'TFlight'> {

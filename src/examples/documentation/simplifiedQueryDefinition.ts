@@ -964,6 +964,8 @@ interface Connection {
     forceTypeCast(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean): boolean
     /** Protected method that writes the SQL of a value as it leaves the database, in a column of the result */
     transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput): string
+    /** Protected method that says how the SQL of transformProjection compares with the value */
+    projectionComparison(type: string, typeCategory: TypeCategory, output: ProjectionOutput): ProjectionComparison
 
     /** Protected method that returns true if the provided string is a reserved keyword */
     isReservedKeyword(word: string): boolean
@@ -2759,9 +2761,12 @@ interface TypeAdapter {
     transformPlaceholder?(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, next: DefaultTypeAdapter): string
     forceTypeCast?(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean, next: DefaultTypeAdapter): boolean
     transformProjection?(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string
+    projectionComparison?(type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): ProjectionComparison
 }
 
 type ProjectionOutput = 'resultColumn' | 'aggregatedArrayValue'
+
+type ProjectionComparison = 'value' | 'equality' | 'columnEquality' | 'none'
 
 interface DefaultTypeAdapter {
     transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
@@ -2769,6 +2774,7 @@ interface DefaultTypeAdapter {
     transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown): string
     forceTypeCast(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean): boolean
     transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput): string
+    projectionComparison(type: string, typeCategory: TypeCategory, output: ProjectionOutput): ProjectionComparison
 }
 
 declare class CustomBooleanTypeAdapter implements TypeAdapter {

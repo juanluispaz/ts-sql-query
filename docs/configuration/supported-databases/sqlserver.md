@@ -131,13 +131,14 @@ A `datetimeoffset` keeps, with each value, the offset it was written with, like 
 
 - `transformProjection` has the database give the value as text, with `convert(nvarchar(40), …, 126)`, in the columns of the result (also those of an `output`) and inside the JSON of an aggregated array (see [The SQL of a value read from the database](../column-types.md#the-sql-of-a-value-read-from-the-database)).
 - `transformPlaceholder` converts the text sent with a `cast` to `datetimeoffset`.
+- `projectionComparison` returns `'none'`: the text doesn't compare as the instant (the same instant written with two offsets is two texts), nor order as it, so the query compares and orders the values (see [How the converted SQL compares](../column-types.md#how-the-converted-sql-compares)).
 - `transformValueFromDB` and `transformValueToDB` keep the text as the value.
 
 The column is a `customComparable` of `string`: it can be compared and ordered, its values aren't converted by the library, and the text is sent as an `nvarchar`. A `customLocalDateTime` doesn't serve for it: its parameters are sent as a `datetime2`, which the driver makes from a `Date`, so `'2024-07-01T10:30:15.1234567+09:00'` is stored as `2024-07-01T01:30:15.1230000+00:00`.
 
 <!-- doc-code-snippet-template: sqlserver -->
 ```ts
-import type { DefaultTypeAdapter, ProjectionOutput, TypeAdapter, TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
+import type { DefaultTypeAdapter, ProjectionComparison, ProjectionOutput, TypeAdapter, TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
 
 // A date and time with the offset it was written with, as text, like '2024-07-01T10:30:15.1234567+09:00'
 type ZonedDateTime = string
@@ -169,6 +170,14 @@ class ZonedDateTimeTypeAdapter implements TypeAdapter {
             return 'convert(nvarchar(40), ' + sql + ', 126)'
         }
         return next.transformProjection(sql, type, typeCategory, output)
+    }
+
+    projectionComparison(type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): ProjectionComparison {
+        if (type === 'ZonedDateTime') {
+            // The same instant written with two zones is two texts, and the texts don't order as the instants
+            return 'none'
+        }
+        return next.projectionComparison(type, typeCategory, output)
     }
 }
 
@@ -205,6 +214,24 @@ And its parameters are: `[]`
 The result is `[ { id: 1, departsAt: '2024-07-01T10:30:15.1234567+09:00' }, { id: 2, departsAt: '2024-07-01T01:30:15.1234567+00:00' }, { id: 3, departsAt: '2024-06-30T22:00:00-05:00' } ]`: each value with its offset, ordered by the instant. Ordered by the text, flight 3 would come first.
 
 The style 126 writes the seven digits of the fraction of a second, and no fraction when it is zero, like in flight 3. Outside the result, the column keeps its SQL: the `where`, the `order by` (which writes the column, not its alias) and the `group by` use the value, and SQL Server compares two values by their instants. `tFlight.departsAt.equals('2024-07-01T01:30:15.1234567+00:00')` finds flights 1 and 2, and so does the same instant written `'2024-07-01T10:30:15.1234567+09:00'`; `tFlight.departsAt.lessThan('2024-07-01T02:00:00+00:00')` doesn't find flight 3, although its text is the smallest.
+
+A `union` or a `selectDistinct` of the column compares the instants too. Flights 1 and 2 depart at the same instant:
+
+```ts
+const departures = connection.selectDistinctFrom(tFlight)
+    .where(tFlight.id.in([1, 2]))
+    .selectOneColumn(tFlight.departsAt)
+    .executeSelectMany()
+```
+
+```sqlserver
+select convert(nvarchar(40), o_1_.[result], 126) as [result]
+from (select distinct departs_at as [result] from flight where id in (@0, @1)) as o_1_
+```
+
+And its parameters are: `[ 1, 2 ]`
+
+The result is one row, `[ '2024-07-01T10:30:15.1234567+09:00' ]` or `[ '2024-07-01T01:30:15.1234567+00:00' ]`: the distinct is applied to the values, and the select that wraps it converts them. Which of the two texts is kept is up to the database.
 
 A value written keeps the offset of its text:
 

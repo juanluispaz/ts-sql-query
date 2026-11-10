@@ -46,10 +46,11 @@ describeLocalTemporalValuesInAnyZone({
     runners: runners.map(runner => ({ runner, enabled, needsConnection: true, envFor: (zone: string) => zone === 'UTC' ? {} : { ORA_SDTZ: 'UTC' }, limitOf: oracleLimitOf })),
 })
 
-// What the runners of oracledb must validate when created: the session in UTC (process.env.ORA_SDTZ = UTC), unless the
-// process is in UTC
+// What the runners of oracledb must validate when created: the session in the zone of the database, taken as UTC.
+// oracledb sets the session from process.env.ORA_SDTZ, or else from the offset of the process: ORA_SDTZ in UTC, or
+// unset with the process in UTC
 describeRunnerRequirements({
-    title: 'Oracle: the runners of oracledb require ORA_SDTZ = UTC unless the process is in UTC',
+    title: 'Oracle: the runners of oracledb require the session in UTC, from ORA_SDTZ or from a process in UTC',
     probe,
     acquire,
     enabled,
@@ -57,7 +58,10 @@ describeRunnerRequirements({
         { title: `${runner} without ORA_SDTZ is rejected in Europe/Madrid`, runner, zone: 'Europe/Madrid', expected: 'rejected' as const },
         { title: `${runner} without ORA_SDTZ is rejected in America/New_York`, runner, zone: 'America/New_York', expected: 'rejected' as const },
         { title: `${runner} with ORA_SDTZ = Europe/Madrid is rejected in Europe/Madrid`, runner, zone: 'Europe/Madrid', env: { ORA_SDTZ: 'Europe/Madrid' }, expected: 'rejected' as const },
+        { title: `${runner} with ORA_SDTZ = Europe/Madrid is rejected in UTC`, runner, zone: 'UTC', env: { ORA_SDTZ: 'Europe/Madrid' }, expected: 'rejected' as const },
+        { title: `${runner} with ORA_SDTZ = DBTIMEZONE is rejected in UTC`, runner, zone: 'UTC', env: { ORA_SDTZ: 'DBTIMEZONE' }, expected: 'rejected' as const },
         { title: `${runner} with ORA_SDTZ = UTC is accepted in Europe/Madrid`, runner, zone: 'Europe/Madrid', env: { ORA_SDTZ: 'UTC' }, expected: 'created' as const },
+        { title: `${runner} with ORA_SDTZ = +00:00 is accepted in Europe/Madrid`, runner, zone: 'Europe/Madrid', env: { ORA_SDTZ: '+00:00' }, expected: 'created' as const },
         { title: `${runner} without ORA_SDTZ is accepted in UTC`, runner, zone: 'UTC', expected: 'created' as const },
         { title: `${runner} without ORA_SDTZ is accepted in Etc/UTC`, runner, zone: 'Etc/UTC', expected: 'created' as const },
     ]),

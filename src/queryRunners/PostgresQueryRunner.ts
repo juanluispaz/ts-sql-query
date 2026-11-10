@@ -9,7 +9,7 @@ import type { TypeCategory } from '../TypeAdapter.js'
 import { getParamForceTypeCastAt, getParamTypeAt, getParamTypeCategoryAt } from '../utils/queryParamsMetadata.js'
 import { postgreSqlDriverParams, postgreSqlParamType } from '../utils/postgreSqlParamTypes.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
-import { isProcessInUtc } from '../utils/processTimeZone.js'
+import { isProcessInUtc, postgreSqlOptionsTimeZone, requireSessionInDatabaseZone } from '../utils/processTimeZone.js'
 
 export interface PostgresQueryRunnerConfig {
     /**
@@ -287,16 +287,28 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
  * of the client (a transaction or a reserved connection doesn't expose them). Thrown when the query runner is created.
  * - A transform of the results (`transform.column.from`, `value.from`, `row.from`, or `postgres.camel`...): it renames
  *   the columns the library reads by their name, or changes their values.
+ * - A zone of the session (`connection: { TimeZone }`) other than the zone of the database, taken as UTC.
  * - `infer: true`, when the process doesn't run in UTC: with it postgres.js reads a `timestamp` with the zone of the
  *   process, and the values in the database are in UTC.
  */
 function requirePostgresJsOptions(connection: unknown): void {
-    const options = (connection as { options?: { transform?: any, infer?: unknown } }).options
+    const options = (connection as { options?: { transform?: any, infer?: unknown, connection?: unknown } }).options
     const transform = options?.transform
     for (const name of ['column', 'value', 'row'] as const) {
         const from = transform?.[name]?.from
         if (from) {
             throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'transform', value: transform }, 'PostgresQueryRunner requires a postgres.js client without a transform of the results (transform.' + name + '.from): the library reads each column by its name, with its value as the database gives it')
+        }
+    }
+    // The session in the zone of the database: postgres.js sends the entries of `connection` (with the parameters of
+    // the URL that aren't its own options) as settings of the session when it connects; the names of the settings
+    // in any case, and `options` as the command-line options of the server (-c TimeZone=…)
+    const connectionSettings = options?.connection
+    if (connectionSettings && typeof connectionSettings === 'object') {
+        for (const [key, value] of Object.entries(connectionSettings)) {
+            const name = key.toLowerCase()
+            const timeZone = name === 'timezone' ? (value === undefined || value === null ? undefined : String(value)) : name === 'options' ? postgreSqlOptionsTimeZone(value) : undefined
+            requireSessionInDatabaseZone('PostgresQueryRunner', timeZone, 'connection', connectionSettings, "postgres.js's connection." + key)
         }
     }
     if (options?.infer === true && !isProcessInUtc()) {

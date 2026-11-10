@@ -7,7 +7,7 @@ import { getOracleDBErrorReason, isOracleDBError } from './connectorErrorMappers
 import { getParamTypeAt, getParamTypeCategoryAt, getQueryConnectionConfigurationOf } from '../utils/queryParamsMetadata.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { getQueryResultColumns, setQueryParamType } from './QueryRunner.js'
-import { requireOracleSessionInUtc } from '../utils/processTimeZone.js'
+import { requireOracleSessionInDatabaseZone } from '../utils/processTimeZone.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { __isDecimalCategory } from '../utils/typeCategory.js'
 import { oracleUtcTimestampBindValue } from '../utils/oracleParamTypes.js'
@@ -44,7 +44,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
 
     constructor(connection: Connection, config?: OracleDBQueryRunnerConfig) {
         super()
-        requireOracleSessionInUtc('OracleDBQueryRunner')
+        requireOracleSessionInDatabaseZone('OracleDBQueryRunner')
         this.connection = connection
         this.database = 'oracle'
         this.config = config
@@ -163,7 +163,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
                 // Each RETURNING OUT bind keeps the category of the type of its column (addOutParam)
                 const category = getParamTypeCategoryAt(params, i)
                 // A date or a time is returned as a timestamp with time zone: Oracle converts the value of a date or a
-                // timestamp column with the zone of the session (UTC, see requireOracleSessionInUtc), and oracledb
+                // timestamp column with the zone of the session (UTC, see requireOracleSessionInDatabaseZone), and oracledb
                 // gives it as its instant, where it builds a date or a timestamp with the zone of the process
                 const dbType = declared ?? (isTemporalCategory(category) ? oracleDb.DB_TYPE_TIMESTAMP_TZ : this.oracleDbType(category, nativeBoolean))
                 // A text, or a value received as one, is returned in a buffer of maxSize bytes

@@ -7,7 +7,7 @@ import { getPgErrorReason, isPgError } from './connectorErrorMappers/PgErrorMapp
 import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { parseUtcDateTimeTextOrKeepIt } from '../utils/utcDateTimeText.js'
-import { requirePgTextMode } from '../utils/pgConfiguration.js'
+import { requirePgSessionInDatabaseZone, requirePgTextMode } from '../utils/pgConfiguration.js'
 import { postgreSqlDriverParams } from '../utils/postgreSqlParamTypes.js'
 
 export interface PgQueryRunnerConfig {
@@ -32,6 +32,7 @@ export class PgQueryRunner extends SqlTransactionQueryRunner {
     constructor(connection: ClientBase, config?: PgQueryRunnerConfig) {
         super()
         requirePgTextMode(connection, 'PgQueryRunner')
+        requirePgSessionInDatabaseZone(connection, 'PgQueryRunner')
         this.connection = connection
         this.types = pgQueryTypes(connection)
         this.database = 'postgreSql'

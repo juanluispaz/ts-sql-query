@@ -74,15 +74,16 @@ async function main() {
 
 ## Connection requirements
 
-**Rejected** when the query runner is created, with a `TsSqlProcessingError` of reason `INVALID_CONFIGURATION` and `name` `'binary'`:
+**Rejected** when the query runner is created, with a `TsSqlProcessingError` of reason `INVALID_CONFIGURATION`; `name` says which:
 
 - **`binary: true`**, on the client or on the pool. In the binary mode `pg` reads a `numeric` wrong (`1.50` as `1.51`). With `pg.defaults.binary`, which the clients the pool opens take, `PgPoolQueryRunner` rejects each query, and gives the client back to the pool.
+- **A session `TimeZone` other than UTC** in `options` (`-c TimeZone=…` or `--timezone=…`), given in the configuration, in the `options` of the connection string or in `PGOPTIONS`; `name` is `'options'`. The library takes the database as UTC, and the session must be in its zone: in another, what the database computes (`now()`, `current_date`, a default) comes in that zone. `UTC`, another name of UTC and `+00:00` are accepted. A pool is checked with the configuration you gave it; what it adds from the connection string or `PGOPTIONS` is seen in each client it opens, so `PgPoolQueryRunner` rejects the query and gives the client back to the pool. If your database isn't in UTC, don't move the session to UTC to pass the check: a database outside UTC isn't supported yet (see [Time zones](../../time-zones.md#the-zone-of-the-database-and-the-session)).
 
 **Not applied to the queries of the library**: the parsers of `date` and `timestamp`, registered with `pg.types.setTypeParser`, `client.setTypeParser` or the `types` of a pool or client. The query runner reads those two types itself, with their digits as UTC, whatever the zone of the process. Your own queries through `pg` keep your parsers.
 
 A parser you register for any other type still applies to the queries of the library: one that changes the value of a type the library reads, like a `numeric` turned into a JavaScript number, changes what the library receives.
 
-**Required and not checked**: the database in UTC, and the session `TimeZone` left in it. pg sets none, so the session has the zone of the database; a session in another zone changes what the database computes in it. See [Time zones](../../time-zones.md#the-zone-of-the-database-and-the-session).
+**Required and not checked**: the database in UTC, and the session `TimeZone` left in it. pg sets none, so the session has the zone of the database; a `SET TIME ZONE` of yours isn't seen by the check. See [Time zones](../../time-zones.md#the-zone-of-the-database-and-the-session).
 
 ## Running a statement on each new connection
 

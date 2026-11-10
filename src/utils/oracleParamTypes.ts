@@ -21,7 +21,7 @@ export function checkOracleParam(index: number, value: unknown, type: string, ty
  * The Date a localDate, a localTime or a localDateTime that is a Date is bound with by every query runner of Oracle,
  * as a timestamp with time zone (oracledb's DB_TYPE_TIMESTAMP_TZ), which oracledb writes with the UTC getters, where a
  * timestamp or a date (the bind it gives a Date) is written with the local ones. The values are in UTC, and Oracle
- * converts that bind with the zone of the session (UTC, see requireOracleSessionInUtc) where it is compared with or
+ * converts that bind with the zone of the session (UTC, see requireOracleSessionInDatabaseZone) where it is compared with or
  * stored in a date or a timestamp. A localDate is bound at the start of its UTC day, so it equals the value of a date
  * column with that day. Undefined for any other value, which is bound as it is. The params of the query don't change.
  */

@@ -262,7 +262,7 @@ Which column types fall in which kind, and what the session zone does:
 - **Oracle: a wall clock that doesn't exist in the zone of the process.** oracledb builds the `Date` of a `DATE` or a `TIMESTAMP` in the zone of the process, and the query runner takes its digits back as UTC. A stored time that the zone of the process skips when it changes to summer time, like `2024-03-31 02:30:00` with the process in `Europe/Madrid`, has already been moved an hour by oracledb: it's read as `03:30`, and written back as `03:30`. Inside an [aggregated array](../queries/aggregate-as-object-array.md) the value is built by the database and keeps its time. With the process in UTC every value is exact.
 - **PGlite created without `timezone = 'UTC'`, in a process that doesn't run in UTC.** PGlite takes the session zone from the process, as a fixed offset. The values the library sends and reads are right, but what the database computes in the session zone isn't: a wall clock that the SQL turns into an instant, like a constant `localDateTime` selected and inserted into a `timestamptz` column, and the date functions of a `timestamptz`, like `getHours()`. Create the database with `postgresqlconf: ["timezone = 'UTC'"]` (see [pglite → Connection requirements](query-runners/recommended/pglite.md#connection-requirements)).
 - **A column of kind 4** keeps the instant, not the offset it was written with, as said [above](#4-the-zone-stored-with-each-value).
-- **A column of kind 4 with a value stored with an offset other than `+00:00`**, written by another program or a session in another zone: the value read is its instant, but some date functions of a query give the parts of its own offset instead of UTC: on SQL Server the date and time parts of a `datetimeoffset` (its `getTime()` is right), on PostgreSQL `getHours()` of a `timetz`, and on Oracle `getDay()` and `getTime()` of a `TIMESTAMP WITH TIME ZONE`. Values the library writes are stored in UTC and are not affected.
+- **A column of kind 4 with a value stored with an offset other than `+00:00`**, written by another program or a session in another zone: the value read is its instant, but some date functions of a query give the parts of its own offset instead of UTC: on SQL Server the date and time parts of a `datetimeoffset` (its `getTime()` is right), on PostgreSQL `getHours()` of a `timetz`, and on Oracle `getDay()` of a `TIMESTAMP WITH TIME ZONE`. Values the library writes are stored in UTC and are not affected.
 - **A value outside the calendar.** A date or a time whose digits a `Date` of that day can't keep is rejected with `INVALID_VALUE_RECEIVED_FROM_DATABASE`, instead of becoming another day: a day the month doesn't have, like `2024-02-30`, that MySQL and MariaDB keep with the SQL mode `ALLOW_INVALID_DATES`, a zero date like `0000-00-00`, that they keep without `NO_ZERO_DATE`, and the end of the day `24:00:00`, that PostgreSQL's `time` and MySQL's and MariaDB's `TIME` accept. To keep such a value, read it with a custom type of your own.
 
 ## Setting the zones to UTC
@@ -415,7 +415,7 @@ The executed query is:
     ```oracle
     select 
         signed_off_at as "value", 
-        (cast(signed_off_at as date) - date '1970-01-01') * 86400000 + to_number(to_char(signed_off_at, 'FF3')) as "epoch" 
+        (trunc(timestamp '1970-01-01 00:00:00' + (signed_off_at - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (signed_off_at - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')) as "epoch" 
     from project_release 
     where id = :0
     ```
@@ -462,4 +462,4 @@ TZ=Europe/Madrid     value.getTime() = 1705235400000   epoch = 1705235400000
 TZ=America/New_York  value.getTime() = 1705235400000   epoch = 1705235400000
 ```
 
-On a column of kind 2 the database counts from the wall clock of the session, so `getTime()` is right only with the session in UTC, as the value itself. On SQLite, the `localdate` strategies are read as the zone of the process and `getTime()` reads them as UTC, unless you set [`sqliteRunsInApplicationTimeZone`](supported-databases/sqlite.md#the-date-functions-and-the-time-zone).
+On a column with zone it counts the instant, the same as the `getTime()` of the `Date` read, whatever offset the value was stored with. On a column of kind 2 the database counts from the wall clock of the session, so `getTime()` is right only with the session in UTC, as the value itself. On SQLite, the `localdate` strategies are read as the zone of the process and `getTime()` reads them as UTC, unless you set [`sqliteRunsInApplicationTimeZone`](supported-databases/sqlite.md#the-date-functions-and-the-time-zone).

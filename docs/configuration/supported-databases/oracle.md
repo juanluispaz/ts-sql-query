@@ -123,7 +123,7 @@ const meetings = connection.selectFrom(tMeeting)
 ```
 
 ```oracle
-select id as "id", starts_at as "startsAt", extract(hour from cast(starts_at as timestamp)) as "hour", extract(minute from cast(starts_at as timestamp)) as "minute", (starts_at - date '1970-01-01') * 86400000 as "time"
+select id as "id", starts_at as "startsAt", extract(hour from cast(starts_at as timestamp)) as "hour", extract(minute from cast(starts_at as timestamp)) as "minute", round((starts_at - date '1970-01-01') * 86400) * 1000 as "time"
 from meeting
 where starts_at >= :0
 order by "startsAt"

@@ -548,7 +548,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ projectId: 1, ords: [1001 as ReleaseTag] }])
     })
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('aggregate-of-double-column-as-wrapped-array', async () => {
         // WRAPPED single-column inline aggregate: the inner `order by` forces the
@@ -593,7 +593,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('aggregate-of-bigint-column-as-wrapped-array', async () => {
         // WRAPPED single-column inline aggregate of a `bigint` column — pins the
@@ -632,7 +632,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('aggregate-of-uuid-column-as-wrapped-array', async () => {
         // WRAPPED single-column aggregate of an optional `uuid` column — pins the
@@ -671,7 +671,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('aggregate-of-local-date-time-column-as-wrapped-array', async () => {
         // WRAPPED single-column aggregate of a `localDateTime` column — pins the
@@ -710,7 +710,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('aggregate-of-boolean-column-as-wrapped-array', async () => {
         // WRAPPED single-column aggregate of an optional `boolean` column — pins the
@@ -748,7 +748,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('aggregate-of-local-date-column-as-wrapped-array', async () => {
         // WRAPPED single-column aggregate of a `localDate` column — pins the
@@ -779,7 +779,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('aggregate-of-custom-double-column-as-wrapped-array', async () => {
         // WRAPPED single-column aggregate of a `customDouble` (branded `Money`)
@@ -832,7 +832,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ issueId: 1, amounts: [200, 200] }])
     })
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('aggregate-of-local-time-column-as-wrapped-array', async () => {
         // WRAPPED single-column aggregate of a `localTime` column — pins the
@@ -863,7 +863,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('aggregate-of-custom-uuid-column-as-wrapped-array', async () => {
         // WRAPPED single-column aggregate of a `customUuid` column — pins the
@@ -893,7 +893,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('aggregate-of-custom-local-date-column-as-wrapped-array', async () => {
         // WRAPPED single-column aggregate of a `customLocalDate` column — pins the
@@ -923,7 +923,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('aggregate-of-custom-local-time-column-as-wrapped-array', async () => {
         // WRAPPED single-column aggregate of a `customLocalTime` column — pins the
@@ -953,7 +953,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('aggregate-of-custom-local-date-time-column-as-wrapped-array', async () => {
         // WRAPPED single-column aggregate of a `customLocalDateTime` column — pins
@@ -983,7 +983,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('aggregate-of-wrapped-object-with-uuid-column', async () => {
         // WRAPPED-object aggregate whose object carries a uuid column, grouped so the
@@ -1053,7 +1053,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('aggregate-of-enum-column-as-wrapped-array', async () => {
         // WRAPPED single-column aggregate of an `enum` column: the ordered inner

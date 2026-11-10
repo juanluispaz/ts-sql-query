@@ -14,7 +14,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-of-object-with-group-by', async () => {
         // Inline aggregate carrying its own `group by` — forces the
@@ -70,7 +70,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-of-object-with-having', async () => {
         // `having` is one of the wrap triggers in
@@ -121,7 +121,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-use-empty-array-for-no-value-explicit', async () => {
         // `forUseAsInlineAggregatedArrayValue()` already defaults to a
@@ -172,7 +172,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-as-optional-non-empty-array', async () => {
         // `asOptionalNonEmptyArray()` on the inline value source
@@ -222,7 +222,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-only-when-or-null-true-is-passthrough', async () => {
         // `onlyWhenOrNull(true)` returns `this`;
@@ -272,7 +272,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-ignore-when-as-null-false-is-passthrough', async () => {
         // `ignoreWhenAsNull(false)` returns `this`
@@ -395,7 +395,7 @@ describe(ctx.label, () => {
         expect(row).toEqual({ id: 1, name: 'Acme Corp' })
     })
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-as-required-in-optional-object', async () => {
         // `asRequiredInOptionalObject()` on the inline-aggregate value
@@ -481,7 +481,7 @@ describe(ctx.label, () => {
         }>>>()
         expect(rows).toEqual([{ pid: 3 }, { pid: 4 }])
     })
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-order-by-asc-nulls-last', async () => {
         ctx.mockNext({
@@ -516,7 +516,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-order-by-desc-nulls-first', async () => {
         ctx.mockNext({
@@ -551,7 +551,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-order-by-asc-insensitive', async () => {
         ctx.mockNext({
@@ -586,7 +586,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-order-by-asc-nulls-last-insensitive', async () => {
         ctx.mockNext({
@@ -648,7 +648,7 @@ describe(ctx.label, () => {
         expect({ ...row, channels: [...row.channels].sort() }).toEqual({ id: 1, channels: ['beta', 'stable'] })
     })
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-of-compound-union', async () => {
         // A compound (UNION) select used as the inline aggregated array. The
@@ -703,7 +703,7 @@ describe(ctx.label, () => {
     */
 
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
 //     test('inline-aggregate-of-compound-union-with-customize-query-survives-in-derived-table', async () => {
 //         // A compound (UNION) consumed via `forUseAsInlineAggregatedArrayValue()` that
 //         // also carries `.customizeQuery({...})`. The compound is wrapped in a derived
@@ -760,7 +760,7 @@ describe(ctx.label, () => {
 //         })
 //     })
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-of-distinct-one-column', async () => {
         // A `select distinct` source consumed via forUseAsInlineAggregatedArrayValue().
@@ -792,7 +792,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-of-distinct-object', async () => {
         // The distinct-source wrap with a multi-column projection → object array.
@@ -836,7 +836,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-with-group-by-projecting-optionals-as-nullable', async () => {
         // The `projectingOptionalValuesAsNullable()` marker coexists with a `group by`
@@ -891,7 +891,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-with-having-projecting-optionals-as-nullable', async () => {
         // The nullable marker coexisting with a `having` wrap (a `group by` is required
@@ -942,7 +942,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-of-distinct-object-projecting-optionals-as-nullable', async () => {
         // The nullable marker coexisting with a `select distinct` wrap. The distinct
@@ -1033,7 +1033,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-of-compound-union-projecting-optionals-as-nullable', async () => {
         // The nullable marker applied on BOTH arms BEFORE `.union(...)`, consumed as an
@@ -1279,7 +1279,7 @@ describe(ctx.label, () => {
     // site' and 'Internal tools' (both non-null, distinct first letters), so the
     // nulls and insensitivity modifiers don't reorder the two elements — only
     // asc vs desc.
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-order-by-asc', async () => {
         ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Internal tools', 'Marketing site']) })
@@ -1305,7 +1305,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-order-by-asc-nulls-first', async () => {
         ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Internal tools', 'Marketing site']) })
@@ -1331,7 +1331,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-order-by-desc', async () => {
         ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Marketing site', 'Internal tools']) })
@@ -1357,7 +1357,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-order-by-desc-nulls-last', async () => {
         ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Marketing site', 'Internal tools']) })
@@ -1383,7 +1383,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-order-by-insensitive', async () => {
         ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Internal tools', 'Marketing site']) })
@@ -1409,7 +1409,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-order-by-desc-insensitive', async () => {
         ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Marketing site', 'Internal tools']) })
@@ -1435,7 +1435,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-order-by-desc-nulls-last-insensitive', async () => {
         ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Marketing site', 'Internal tools']) })
@@ -1461,7 +1461,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-order-by-desc-nulls-first-insensitive', async () => {
         ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Marketing site', 'Internal tools']) })
@@ -1487,7 +1487,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-with-limit-and-no-order-by', async () => {
         // `limit` with no `order by` caps the element count without fixing which
@@ -1517,7 +1517,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-order-by-value-source-then-raw-fragment', async () => {
         // Two order-by entries — a value source with an explicit mode, then a raw
@@ -1548,7 +1548,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-order-by-items-hooks-without-order-by', async () => {
         // `beforeOrderByItems` / `afterOrderByItems` with no `orderBy`: the two
@@ -1580,7 +1580,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregate-order-by-items-hooks-around-order-by', async () => {
         // The hooks wrap the `orderBy('result')` entry: priority descending

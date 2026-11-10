@@ -1174,7 +1174,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('inline-aggregated-array-with-group-by-and-order-by', async () => {
         // An inline aggregated-array subquery (`forUseAsInlineAggregatedArrayValue`)

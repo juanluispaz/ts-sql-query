@@ -330,7 +330,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('collation: aggregate-array-order-by-insensitive', async () => {
         // An inline aggregate whose inner `order by` uses an INSENSITIVE mode, on

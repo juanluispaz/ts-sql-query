@@ -415,7 +415,7 @@ describe(ctx.label, () => {
         expect(rows[1]!.m).toBe(null)
     })
 
-    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, both requiring MySQL 8.0.14+; MySQL 5.7 rejects it (no json_arrayagg; correlated derived table needs LATERAL).
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
     test('compound-inline-array-keeps-an-optional-join-named-only-by-its-first-arm', async () => {
         // The assignee's own issue titles plus every closed issue title.

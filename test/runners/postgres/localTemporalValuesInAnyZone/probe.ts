@@ -6,7 +6,7 @@
 import { PostgreSqlConnection } from '../../../../src/connections/PostgreSqlConnection.js'
 import { Table } from '../../../../src/Table.js'
 import type { QueryRunner } from '../../../../src/queryRunners/QueryRunner.js'
-import { creationOutcome, postgresTemporalDialect, printResult, probeConfig, runTemporalProbe, type TemporalColumnOps } from '../../lib/localTemporalValuesProbe.js'
+import { creationOutcome, dateGetterOf, postgresTemporalDialect, printResult, probeConfig, runTemporalProbe, timeGetterOf, type TemporalColumnOps } from '../../lib/localTemporalValuesProbe.js'
 
 interface Config {
     mode: 'cases' | 'create'
@@ -43,7 +43,8 @@ async function createRunner(): Promise<{ runner: QueryRunner, close: () => Promi
         case 'PgLiteQueryRunner': {
             const { PGlite } = await import('@electric-sql/pglite')
             const { PgLiteQueryRunner } = await import('../../../../src/queryRunners/PgLiteQueryRunner.js')
-            const db = await PGlite.create('memory://')
+            // PGlite runs inside the process: created in UTC, its session doesn't take the zone of the process
+            const db = await PGlite.create('memory://', { postgresqlconf: ["timezone = 'UTC'"] })
             return { runner: new PgLiteQueryRunner(db), close: () => db.close() }
         }
         case 'BunSqlPostgresQueryRunner': {
@@ -91,8 +92,10 @@ function opsFor(conn: DBConnection): Partial<Record<'d' | 't' | DateTimeName, Te
             in: (id, values) => byId(id).and(column.in(values)).selectOneColumn(tValues.id).executeSelectMany(),
             between: (id, from, to) => byId(id).and(column.between(from, to)).selectOneColumn(tValues.id).executeSelectMany(),
             selectConst: (value) => conn.selectFromNoTable().selectOneColumn(conn.const(value, 'localDateTime')).executeSelectOne(),
+            selectConstGetter: (value, getter) => conn.selectFromNoTable().selectOneColumn(conn.const(value, 'localDateTime')[getter]()).executeSelectOne(),
             read: (id) => byId(id).selectOneColumn(column).executeSelectOne(),
             readAggregateAsArray: (id) => byId(id).select({ values: conn.aggregateAsArray({ v: column }) }).executeSelectOne().then(row => row.values.map(element => element.v ?? null)),
+            readGetter: (id, getter) => byId(id).selectOneColumn(column[getter]()).executeSelectOne(),
         }
     }
     return {
@@ -104,8 +107,10 @@ function opsFor(conn: DBConnection): Partial<Record<'d' | 't' | DateTimeName, Te
             in: (id, values) => byId(id).and(tValues.d.in(values)).selectOneColumn(tValues.id).executeSelectMany(),
             between: (id, from, to) => byId(id).and(tValues.d.between(from, to)).selectOneColumn(tValues.id).executeSelectMany(),
             selectConst: (value) => conn.selectFromNoTable().selectOneColumn(conn.const(value, 'localDate')).executeSelectOne(),
+            selectConstGetter: (value, getter) => conn.selectFromNoTable().selectOneColumn(conn.const(value, 'localDate')[dateGetterOf(getter)]()).executeSelectOne(),
             read: (id) => byId(id).selectOneColumn(tValues.d).executeSelectOne(),
             readAggregateAsArray: (id) => byId(id).select({ values: conn.aggregateAsArray({ v: tValues.d }) }).executeSelectOne().then(row => row.values.map(element => element.v ?? null)),
+            readGetter: (id, getter) => byId(id).selectOneColumn(tValues.d[dateGetterOf(getter)]()).executeSelectOne(),
         },
         t: {
             insert: (id, value) => conn.insertInto(tValues).set({ id, t: value }).executeInsert(),
@@ -115,8 +120,10 @@ function opsFor(conn: DBConnection): Partial<Record<'d' | 't' | DateTimeName, Te
             in: (id, values) => byId(id).and(tValues.t.in(values)).selectOneColumn(tValues.id).executeSelectMany(),
             between: (id, from, to) => byId(id).and(tValues.t.between(from, to)).selectOneColumn(tValues.id).executeSelectMany(),
             selectConst: (value) => conn.selectFromNoTable().selectOneColumn(conn.const(value, 'localTime')).executeSelectOne(),
+            selectConstGetter: (value, getter) => conn.selectFromNoTable().selectOneColumn(conn.const(value, 'localTime')[timeGetterOf(getter)]()).executeSelectOne(),
             read: (id) => byId(id).selectOneColumn(tValues.t).executeSelectOne(),
             readAggregateAsArray: (id) => byId(id).select({ values: conn.aggregateAsArray({ v: tValues.t }) }).executeSelectOne().then(row => row.values.map(element => element.v ?? null)),
+            readGetter: (id, getter) => byId(id).selectOneColumn(tValues.t[timeGetterOf(getter)]()).executeSelectOne(),
         },
         dt: localDateTime('dt'),
         dtz: localDateTime('dtz'),

@@ -13,15 +13,6 @@ const probe = fileURLToPath(new URL('./localTemporalValuesInAnyZone/probe.ts', i
 const isBun = typeof globalThis.Bun !== 'undefined'
 const pgEnabled = isRealDbEnabled('postgres', 'docker', 'newest', 'pg')
 
-// A const localDateTime in the select list is sent as a timestamp, and PGlite converts a timestamp to a timestamptz with
-// the zone of its session, which it takes from the process as a fixed offset (the other runners' sessions are in UTC)
-function pgLiteLimitOf(zone: string, caseName: string): string | undefined {
-    if (zone !== 'UTC' && caseName.startsWith('send insert from a select of consts | dtz timestamptz |')) {
-        return 'PGlite converts the const timestamp to timestamptz with the zone of the process'
-    }
-    return undefined
-}
-
 async function acquire() {
     const db = await acquireRunnerTestDatabase()
     return { info: { uri: db.uri }, release: () => db.release() }
@@ -36,7 +27,7 @@ describeLocalTemporalValuesInAnyZone({
         { runner: 'PgPoolQueryRunner', enabled: pgEnabled, needsConnection: true },
         { runner: 'PgQueryRunner', enabled: pgEnabled, needsConnection: true },
         { runner: 'PostgresQueryRunner', enabled: isRealDbEnabled('postgres', 'docker', 'newest', 'postgres'), needsConnection: true },
-        { runner: 'PgLiteQueryRunner', enabled: isRealDbEnabled('postgres', 'wasm', 'newest', 'pglite'), needsConnection: false, limitOf: pgLiteLimitOf },
+        { runner: 'PgLiteQueryRunner', enabled: isRealDbEnabled('postgres', 'wasm', 'newest', 'pglite'), needsConnection: false },
         { runner: 'BunSqlPostgresQueryRunner', enabled: isBun && isRealDbEnabled('postgres', 'docker', 'newest', 'bun_sql_postgres'), needsConnection: true },
     ],
 })

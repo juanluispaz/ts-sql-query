@@ -6,7 +6,11 @@
 //   - localDate read: a Date at 10:00 UTC of its day; sent: its UTC day is stored.
 //   - localTime read: a Date on 1970-01-01 with the time in its UTC getters; sent: its UTC time is stored.
 //   - localDateTime read: in a column without zone, a Date whose UTC getters are the stored digits; in a zoned column,
-//     the instant. Sent: its UTC digits in a column without zone, its instant in a zoned column.
+//     the instant. Sent: its UTC digits in a column without zone, its instant in a zoned column. A column the engine
+//     converts with the zone of the session (MySQL/MariaDB TIMESTAMP, Oracle TIMESTAMP WITH LOCAL TIME ZONE) holds an
+//     instant and gives the wall clock of the session, which is UTC here: read and sent like a column without zone.
+//   - The date functions of a query (getFullYear … getMilliseconds, getTime), computed by the database: of a column, the
+//     UTC parts of the Date the library must read, and its getTime(); of a const, the UTC parts of the Date sent.
 
 import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
 
@@ -14,8 +18,12 @@ export const TEMPORAL_TABLE = 'rt_tz_values'
 export const PROBE_ENV = 'RT_TZ_PROBE'
 export const RESULT_MARKER = '@@RT_TZ_RESULT@@'
 
-export type TemporalKind = 'date' | 'time' | 'datetime' | 'zoned'
-export type TemporalColumnName = 'd' | 't' | 'dt' | 'dtx' | 'dtz'
+/**
+ * date, time, datetime: the engine keeps the wall clock as it is (kind 1). session: the engine converts it with the zone
+ * of the session, in and out (kind 2). zoned: the engine keeps an instant (kinds 3 and 4).
+ */
+export type TemporalKind = 'date' | 'time' | 'datetime' | 'session' | 'zoned'
+export type TemporalColumnName = 'd' | 't' | 'dt' | 'dtx' | 'dtl' | 'dtz'
 
 export interface TemporalColumn {
     readonly name: TemporalColumnName
@@ -30,6 +38,8 @@ export interface TemporalColumn {
     readonly msMultipleOf?: number
     /** The first year the column holds */
     readonly minYear: number
+    /** The last year the column holds, when it has one */
+    readonly maxYear?: number
 }
 
 export interface TemporalDialect {
@@ -71,22 +81,29 @@ const mysqlColumns: readonly TemporalColumn[] = [
     { name: 'd', sqlType: 'DATE', kind: 'date', ms: true, minYear: 1 },
     { name: 't', sqlType: 'TIME(3)', kind: 'time', ms: true, minYear: 1 },
     { name: 'dt', sqlType: 'DATETIME(3)', kind: 'datetime', ms: true, minYear: 1 },
+    // TIMESTAMP holds 1970-01-01 00:00:01 to 2038-01-19 03:14:07 UTC
+    { name: 'dtl', sqlType: 'TIMESTAMP(3)', kind: 'session', ms: true, minYear: 1970, maxYear: 2037 },
 ]
 
 export const mysqlTemporalDialect: TemporalDialect = {
     columns: mysqlColumns,
     dropTable: `drop table if exists ${TEMPORAL_TABLE}`,
-    createTable: `create table ${TEMPORAL_TABLE} (id int primary key, d date, t time(3), dt datetime(3))`,
+    // null: without it a TIMESTAMP column can get a default and an on update of the current time
+    createTable: `create table ${TEMPORAL_TABLE} (id int primary key, d date, t time(3), dt datetime(3), dtl timestamp(3) null)`,
     selectOne: 'select 1',
     text(column) {
         switch (column.kind) {
             case 'date': return `date_format(${column.name}, '%Y-%m-%d')`
             case 'time': return `left(time_format(${column.name}, '%H:%i:%s.%f'), 12)`
+            // The TIMESTAMP is read as the wall clock of the session zone, and convert_tz takes it from that zone to
+            // UTC: the text is in UTC whatever the zone of the session
+            case 'session': return `left(date_format(convert_tz(${column.name}, @@session.time_zone, '+00:00'), '%Y-%m-%d %H:%i:%s.%f'), 23)`
             default: return `left(date_format(${column.name}, '%Y-%m-%d %H:%i:%s.%f'), 23)`
         }
     },
-    literal(_column, digits) {
-        return `'${digits}'`
+    literal(column, digits) {
+        // A TIMESTAMP takes a text as a wall clock of the session zone: convert_tz gives it the UTC digits in that zone
+        return column.kind === 'session' ? `convert_tz('${digits}', '+00:00', @@session.time_zone)` : `'${digits}'`
     },
 }
 
@@ -120,16 +137,20 @@ export const oracleTemporalDialect: TemporalDialect = {
         { name: 't', sqlType: 'TIMESTAMP(3)', kind: 'time', ms: true, minYear: 1 },
         { name: 'dt', sqlType: 'TIMESTAMP(3)', kind: 'datetime', ms: true, minYear: 1 },
         { name: 'dtx', sqlType: 'DATE', kind: 'datetime', ms: false, minYear: 1 },
+        { name: 'dtl', sqlType: 'TIMESTAMP(3) WITH LOCAL TIME ZONE', kind: 'session', ms: true, minYear: 1 },
         { name: 'dtz', sqlType: 'TIMESTAMP(3) WITH TIME ZONE', kind: 'zoned', ms: true, minYear: 1 },
     ],
     dropTable: `begin execute immediate 'drop table ${TEMPORAL_TABLE}'; exception when others then if sqlcode != -942 then raise; end if; end;`,
-    createTable: `create table ${TEMPORAL_TABLE} (id number(10) primary key, d date, t timestamp(3), dt timestamp(3), dtx date, dtz timestamp(3) with time zone)`,
+    createTable: `create table ${TEMPORAL_TABLE} (id number(10) primary key, d date, t timestamp(3), dt timestamp(3), dtx date, dtl timestamp(3) with local time zone, dtz timestamp(3) with time zone)`,
     selectOne: 'select 1 from dual',
     text(column) {
         switch (column.kind) {
             case 'date': return `to_char(${column.name}, 'YYYY-MM-DD')`
             case 'time': return `to_char(${column.name}, 'HH24:MI:SS.FF3')`
             case 'zoned': return `to_char(sys_extract_utc(${column.name}), 'YYYY-MM-DD HH24:MI:SS.FF3')`
+            // at time zone 'UTC' turns the instant the column keeps into a TIMESTAMP WITH TIME ZONE in UTC: the zone of
+            // the session isn't used
+            case 'session': return `to_char(${column.name} at time zone 'UTC', 'YYYY-MM-DD HH24:MI:SS.FF3')`
             default: return column.ms ? `to_char(${column.name}, 'YYYY-MM-DD HH24:MI:SS.FF3')` : `to_char(${column.name}, 'YYYY-MM-DD HH24:MI:SS')`
         }
     },
@@ -138,6 +159,8 @@ export const oracleTemporalDialect: TemporalDialect = {
             case 'date': return `DATE '${digits}'`
             case 'time': return `TIMESTAMP '1970-01-01 ${digits}'`
             case 'zoned': return `TIMESTAMP '${digits} ${offset}'`
+            // A TIMESTAMP WITH TIME ZONE in UTC: stored as that instant, without the zone of the session
+            case 'session': return `TIMESTAMP '${digits} +00:00'`
             default: return column.ms ? `TIMESTAMP '${digits}'` : `TO_DATE('${digits}', 'YYYY-MM-DD HH24:MI:SS')`
         }
     },
@@ -155,7 +178,10 @@ const DAY = 24 * HOUR
 
 function valuesOf(column: TemporalColumn, values: TemporalValue[]): TemporalValue[] {
     return values
-        .filter(value => new Date(value.utc).getUTCFullYear() >= column.minYear)
+        .filter(value => {
+            const year = new Date(value.utc).getUTCFullYear()
+            return year >= column.minYear && (column.maxYear === undefined || year <= column.maxYear)
+        })
         .map(value => {
             if (!column.ms) {
                 return { label: value.label, utc: Math.floor(value.utc / 1000) * 1000 }
@@ -203,7 +229,8 @@ function readValues(column: TemporalColumn): TemporalValue[] {
             { label: '09:15:30.123', utc: Date.UTC(1970, 0, 1, 9, 15, 30, 123) },
             { label: '23:45:10.500', utc: Date.UTC(1970, 0, 1, 23, 45, 10, 500) },
         ])
-        case 'datetime': return valuesOf(column, [
+        case 'datetime':
+        case 'session': return valuesOf(column, [
             { label: '2024-01-14 09:15:30.123', utc: Date.UTC(2024, 0, 14, 9, 15, 30, 123) },
             { label: '2024-03-31 02:30:00 (the Madrid spring-forward gap)', utc: Date.UTC(2024, 2, 31, 2, 30) },
             { label: '2024-03-10 02:30:00 (the New York spring-forward gap)', utc: Date.UTC(2024, 2, 10, 2, 30) },
@@ -250,6 +277,53 @@ function readDate(column: TemporalColumn, utc: number): Date {
     }
 }
 
+// The date functions of a query
+
+export type TemporalDateGetter = 'getFullYear' | 'getMonth' | 'getDate' | 'getDay'
+export type TemporalTimeGetter = 'getHours' | 'getMinutes' | 'getSeconds' | 'getMilliseconds'
+export type TemporalGetter = TemporalDateGetter | TemporalTimeGetter | 'getTime'
+
+const DATE_GETTERS: readonly TemporalDateGetter[] = ['getFullYear', 'getMonth', 'getDate', 'getDay']
+const TIME_GETTERS: readonly TemporalTimeGetter[] = ['getHours', 'getMinutes', 'getSeconds', 'getMilliseconds']
+
+/** The getters a value of the column offers: localDate the date ones, localTime the time ones, localDateTime all */
+function gettersOf(column: TemporalColumn): readonly TemporalGetter[] {
+    switch (column.kind) {
+        case 'date': return DATE_GETTERS
+        case 'time': return TIME_GETTERS
+        default: return [...DATE_GETTERS, ...TIME_GETTERS, 'getTime']
+    }
+}
+
+/** The getter of a localDate, for a probe; the plan only asks a localDate for these */
+export function dateGetterOf(getter: TemporalGetter): TemporalDateGetter {
+    const found = DATE_GETTERS.find(dateGetter => dateGetter === getter)
+    if (!found) throw new Error('a localDate has no ' + getter)
+    return found
+}
+
+/** The getter of a localTime, for a probe; the plan only asks a localTime for these */
+export function timeGetterOf(getter: TemporalGetter): TemporalTimeGetter {
+    const found = TIME_GETTERS.find(timeGetter => timeGetter === getter)
+    if (!found) throw new Error('a localTime has no ' + getter)
+    return found
+}
+
+/** What the date function must give for this Date: its UTC part, or its getTime() */
+function utcPartOf(date: Date, getter: TemporalGetter): number {
+    switch (getter) {
+        case 'getFullYear': return date.getUTCFullYear()
+        case 'getMonth': return date.getUTCMonth()
+        case 'getDate': return date.getUTCDate()
+        case 'getDay': return date.getUTCDay()
+        case 'getHours': return date.getUTCHours()
+        case 'getMinutes': return date.getUTCMinutes()
+        case 'getSeconds': return date.getUTCSeconds()
+        case 'getMilliseconds': return date.getUTCMilliseconds()
+        case 'getTime': return date.getTime()
+    }
+}
+
 function otherValue(column: TemporalColumn, utc: number): Date {
     return new Date(utc + (column.kind === 'time' ? HOUR : 2 * DAY))
 }
@@ -264,8 +338,10 @@ export type TemporalStep =
     | 'send in'
     | 'send between'
     | 'send const in the select list'
+    | 'send getters'
     | 'read'
     | 'read aggregateAsArray'
+    | 'read getters'
     | 'round trip equals'
     | 'round trip update set'
 
@@ -274,6 +350,8 @@ interface PlannedCase {
     readonly step: TemporalStep
     readonly column: TemporalColumn
     readonly value: TemporalValue
+    /** The date function of a getters step */
+    readonly getter?: TemporalGetter
 }
 
 const sendSteps: TemporalStep[] = ['send insert', 'send update set', 'send insert from a select of consts', 'send equals', 'send in', 'send between']
@@ -286,13 +364,20 @@ export function planOf(dialect: TemporalDialect): PlannedCase[] {
     const add = (step: TemporalStep, column: TemporalColumn, value: TemporalValue) => {
         cases.push({ name: `${step} | ${column.name} ${column.sqlType} | ${value.label}`, step, column, value })
     }
+    const addGetter = (step: TemporalStep, column: TemporalColumn, value: TemporalValue, getter: TemporalGetter) => {
+        cases.push({ name: `${step} | ${column.name} ${column.sqlType} | ${value.label} | ${getter}`, step, column, value, getter })
+    }
     for (const column of dialect.columns) {
         for (const value of sendValues(column)) {
             for (const step of sendSteps) add(step, column, value)
-            if (constColumns.includes(column.name)) add('send const in the select list', column, value)
+            if (constColumns.includes(column.name)) {
+                add('send const in the select list', column, value)
+                for (const getter of gettersOf(column)) addGetter('send getters', column, value, getter)
+            }
         }
         for (const value of readValues(column)) {
             for (const step of readSteps) add(step, column, value)
+            for (const getter of gettersOf(column)) addGetter('read getters', column, value, getter)
         }
     }
     return cases
@@ -312,8 +397,12 @@ export interface TemporalColumnOps {
     in(id: number, values: Date[]): Promise<number[]>
     between(id: number, from: Date, to: Date): Promise<number[]>
     selectConst(value: Date): Promise<Date | null>
+    /** The date function of a const of the value, selected from no table */
+    selectConstGetter(value: Date, getter: TemporalGetter): Promise<number | null>
     read(id: number): Promise<Date | null>
     readAggregateAsArray(id: number): Promise<Array<Date | null>>
+    /** The date function of the column */
+    readGetter(id: number, getter: TemporalGetter): Promise<number | null>
 }
 
 export interface TemporalCaseResult {
@@ -332,6 +421,15 @@ function describeDate(value: unknown): string {
 function describeError(error: unknown): string {
     const message = error instanceof Error ? error.message : String(error)
     return 'error: ' + message.split('\n')[0]!.slice(0, 300)
+}
+
+function describeNumber(value: unknown): string {
+    return typeof value === 'number' ? String(value) : 'not a number: ' + JSON.stringify(value)
+}
+
+const getterOf = (planned: PlannedCase): TemporalGetter => {
+    if (!planned.getter) throw new Error('the case has no getter')
+    return planned.getter
 }
 
 const found = (ids: number[], id: number) => ids.map(Number).includes(id) ? 'found' : 'not found'
@@ -403,6 +501,12 @@ export async function runTemporalProbe(dialect: TemporalDialect, runner: QueryRu
                     expected = read
                     actual = describeDate(await columnOps.selectConst(sent))
                     break
+                case 'send getters': {
+                    const getter = getterOf(planned)
+                    expected = String(utcPartOf(sent, getter))
+                    actual = describeNumber(await columnOps.selectConstGetter(sent, getter))
+                    break
+                }
                 case 'read':
                     expected = read
                     await rawInsert(id, column, value.utc)
@@ -413,6 +517,13 @@ export async function runTemporalProbe(dialect: TemporalDialect, runner: QueryRu
                     await rawInsert(id, column, value.utc)
                     const values = await columnOps.readAggregateAsArray(id)
                     actual = JSON.stringify(Array.isArray(values) ? values.map(describeDate) : values)
+                    break
+                }
+                case 'read getters': {
+                    const getter = getterOf(planned)
+                    expected = String(utcPartOf(readDate(column, value.utc), getter))
+                    await rawInsert(id, column, value.utc)
+                    actual = describeNumber(await columnOps.readGetter(id, getter))
                     break
                 }
                 case 'round trip equals': {

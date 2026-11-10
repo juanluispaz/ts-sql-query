@@ -23,7 +23,13 @@ const runners = ['OracleDBQueryRunner', 'OracleDBPoolQueryRunner', 'OracleDBPool
 // back: a stored time the zone skips when it changes to summer time doesn't exist there, and oracledb has already moved
 // it an hour (the JSON of aggregateAsArray is built by the server and keeps it)
 const springForwardGapOf: Record<string, string> = { 'Europe/Madrid': 'the Madrid spring-forward gap', 'America/New_York': 'the New York spring-forward gap' }
+// Oracle counts the days before 1582-10-15 in the Julian calendar, a Date in the Gregorian one: the digits sent and read
+// agree, the day of the week and the epoch milliseconds Oracle computes don't (test/ENGINE_SUPPORT.md)
+const julianGetter = /^(read|send) getters \| [a-z]+ [^|]+ \| [^|]*0999-01-14[^|]* \| (getDay|getTime)$/
 function oracleLimitOf(zone: string, caseName: string): string | undefined {
+    if (julianGetter.test(caseName)) {
+        return 'Oracle computes the dates before 1582-10-15 in the Julian calendar'
+    }
     const gap = springForwardGapOf[zone]
     if (gap && /^(read|round trip equals|round trip update set) \| (dt|dtx) /.test(caseName) && caseName.includes('(' + gap + ')')) {
         return 'oracledb moves a stored time that does not exist in the zone of the process'

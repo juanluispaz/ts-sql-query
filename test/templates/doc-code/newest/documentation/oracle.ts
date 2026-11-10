@@ -3,7 +3,7 @@ import { MockQueryRunner } from '../../../../../src/queryRunners/MockQueryRunner
 import { OracleConnection } from '../../../../../src/connections/OracleConnection.js'
 import { DocCodeMockRunner } from '../../../../lib/mockRunners/DocCodeMockRunner.js'
 import { Table } from '../../../../../src/Table.js'
-import { CustomBooleanTypeAdapter, OracleDateAsTimestampTypeAdapter, type TypeCategory } from '../../../../../src/TypeAdapter.js'
+import { CustomBooleanTypeAdapter, OracleDateAsTimestampTypeAdapter, type DefaultTypeAdapter, type ProjectionOutput, type TypeAdapter, type TypeCategory } from '../../../../../src/TypeAdapter.js'
 export type { TypeCategory }
 import { View } from '../../../../../src/View.js'
 import { Values } from '../../../../../src/Values.js'
@@ -169,6 +169,43 @@ const tExactAmount = new class TExactAmount extends Table<DBConnection, 'TExactA
     }
 }()
 void tExactAmount
+
+// A date and time with its zone, read and written as text (docs/configuration/supported-databases/oracle.md)
+type ZonedDateTime = string
+class ZonedDateTimeTypeAdapter implements TypeAdapter {
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+        if (type === 'ZonedDateTime') {
+            return value
+        }
+        return next.transformValueFromDB(value, type, typeCategory)
+    }
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+        if (type === 'ZonedDateTime') {
+            return value
+        }
+        return next.transformValueToDB(value, type, typeCategory)
+    }
+    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, next: DefaultTypeAdapter): string {
+        if (type === 'ZonedDateTime') {
+            return "to_timestamp_tz(" + placeholder + ", 'YYYY-MM-DD\"T\"HH24:MI:SS.FF TZR')"
+        }
+        return next.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB)
+    }
+    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string {
+        if (type === 'ZonedDateTime' && (output === 'resultColumn' || output === 'aggregatedArrayValue')) {
+            return "to_char(" + sql + ", 'YYYY-MM-DD\"T\"HH24:MI:SS.FF9TZH:TZM')"
+        }
+        return next.transformProjection(sql, type, typeCategory, output)
+    }
+}
+const tFlight = new class TFlight extends Table<DBConnection, 'TFlight'> {
+    id = this.primaryKey('id', 'int')
+    departsAt = this.column<ZonedDateTime, 'ZonedDateTime'>('departs_at', 'customComparable', 'ZonedDateTime', new ZonedDateTimeTypeAdapter())
+    constructor() {
+        super('flight'); // table name in the database
+    }
+}()
+void tFlight
 
 /******************** 
  * Generated code

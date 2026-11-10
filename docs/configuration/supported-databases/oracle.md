@@ -153,6 +153,108 @@ And its parameters are: `[ 1970-01-01T08:45:00.000Z, 2 ]`
 
 On a column of any other type, the adapter does nothing. A column stored in a `TIMESTAMP` doesn't need it.
 
+## A date and time with its time zone
+
+A `TIMESTAMP WITH TIME ZONE` keeps, with each value, the zone it was written with: an offset like `+09:00`, or a region like `Europe/Madrid`. A `localDateTime` column reads only its instant, because oracledb gives a `Date`, which has no zone (see [The zone stored with each value](../time-zones.md#4-the-zone-stored-with-each-value)). When the zone is part of the value, like the local time of departure of a flight, declare the column with a [type adapter](../column-types.md#type-adapters) that keeps the value as the text the database writes:
+
+- `transformProjection` has the database give the value as text, with `to_char`, in the columns of the result (also those of a `returning`) and inside the JSON of an aggregated array (see [The SQL of a value read from the database](../column-types.md#the-sql-of-a-value-read-from-the-database)).
+- `transformPlaceholder` converts the text sent with `to_timestamp_tz`, which reads an offset or a region.
+- `transformValueFromDB` and `transformValueToDB` keep the text as the value.
+
+The column is a `customComparable` of `string`: it can be compared and ordered, its values aren't converted by the library, and the text is sent as text.
+
+<!-- doc-code-snippet-template: oracle -->
+```ts
+import type { DefaultTypeAdapter, ProjectionOutput, TypeAdapter, TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
+
+// A date and time with the zone it was written with, as text, like '2024-07-01T10:30:15.123456000+09:00'
+type ZonedDateTime = string
+
+class ZonedDateTimeTypeAdapter implements TypeAdapter {
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+        if (type === 'ZonedDateTime') {
+            return value // the text, or null
+        }
+        return next.transformValueFromDB(value, type, typeCategory)
+    }
+
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+        if (type === 'ZonedDateTime') {
+            return value
+        }
+        return next.transformValueToDB(value, type, typeCategory)
+    }
+
+    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, next: DefaultTypeAdapter): string {
+        if (type === 'ZonedDateTime') {
+            return "to_timestamp_tz(" + placeholder + ", 'YYYY-MM-DD\"T\"HH24:MI:SS.FF TZR')"
+        }
+        return next.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB)
+    }
+
+    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string {
+        if (type === 'ZonedDateTime' && (output === 'resultColumn' || output === 'aggregatedArrayValue')) {
+            return "to_char(" + sql + ", 'YYYY-MM-DD\"T\"HH24:MI:SS.FF9TZH:TZM')"
+        }
+        return next.transformProjection(sql, type, typeCategory, output)
+    }
+}
+
+const tFlight = new class TFlight extends Table<DBConnection, 'TFlight'> {
+    id = this.primaryKey('id', 'int')
+    departsAt = this.column<ZonedDateTime, 'ZonedDateTime'>('departs_at', 'customComparable', 'ZonedDateTime', new ZonedDateTimeTypeAdapter())
+    constructor() {
+        super('flight'); // table name in the database
+    }
+}()
+```
+
+With three flights: 1 departs on 2024-07-01 at 10:30:15.123456 `+09:00`, 2 at the same instant written with `+00:00` (01:30:15.123456), and 3 on 2024-06-30 at 22:00 `-05:00`, which is 03:00 UTC:
+
+```ts
+const flights = connection.selectFrom(tFlight)
+    .select({
+        id: tFlight.id,
+        departsAt: tFlight.departsAt,
+    })
+    .orderBy('departsAt')
+    .orderBy('id')
+    .executeSelectMany()
+```
+
+```oracle
+select id as "id", to_char(departs_at, 'YYYY-MM-DD"T"HH24:MI:SS.FF9TZH:TZM') as "departsAt"
+from flight
+order by flight.departs_at, "id"
+```
+
+And its parameters are: `[]`
+
+The result is `[ { id: 1, departsAt: '2024-07-01T10:30:15.123456000+09:00' }, { id: 2, departsAt: '2024-07-01T01:30:15.123456000+00:00' }, { id: 3, departsAt: '2024-06-30T22:00:00.000000000-05:00' } ]`: each value with its offset, ordered by the instant. Ordered by the text, flight 3 would come first.
+
+The text read has the nine digits of the fraction of a second (`FF9`). Outside the result, the column keeps its SQL: the `where`, the `order by` (which writes the column, not its alias) and the `group by` use the value, and Oracle compares two values by their instants. `tFlight.departsAt.equals('2024-07-01T01:30:15.123456+00:00')` finds flights 1 and 2, and so does the same instant written `'2024-07-01T03:30:15.123456 Europe/Madrid'`; `tFlight.departsAt.lessThan('2024-07-01T02:00:00+00:00')` doesn't find flight 3, although its text is the smallest.
+
+A value written keeps the zone of its text:
+
+```ts
+const inserted = connection.insertInto(tFlight)
+    .set({
+        id: 4,
+        departsAt: '2024-07-01T10:30:15.123+09:00',
+    })
+    .executeInsert()
+```
+
+```oracle
+insert into flight (id, departs_at) values (:0, to_timestamp_tz(:1, 'YYYY-MM-DD"T"HH24:MI:SS.FF TZR'))
+```
+
+And its parameters are: `[ 4, '2024-07-01T10:30:15.123+09:00' ]`
+
+Read back, the value is `'2024-07-01T10:30:15.123000000+09:00'`. The format of `to_timestamp_tz` reads an offset written right after the time, like this one, and a region after a space, like `'2024-07-01T07:45:00.5 Europe/Madrid'`. A value assigned from another column of this type keeps the zone of that column, because it doesn't go through the text, and the `returning` of an insert or an update gives the text too.
+
+To keep the name of a region, write `TZR` in the `to_char` instead of `TZH:TZM`, with a space before it (`'YYYY-MM-DD"T"HH24:MI:SS.FF9 TZR'`): a value written with a region is read as `'2024-07-01T07:45:00.000000000 EUROPE/MADRID'`, and one written with an offset as `'2024-06-30T22:00:00.000000000 -05:00'`.
+
 ## Dates before 1582
 
 Oracle counts the dates before 15 October 1582 in the Julian calendar, and a JavaScript `Date` in the Gregorian one for every year. The digits the library sends and reads are the same, but what Oracle computes from a date before that day doesn't agree with JavaScript: `getDay()` of `0999-01-14` is `6` (a Saturday, for Oracle) where the `Date` gives `1` (a Monday), and `getTime()` is five days later than the `Date`'s. The days from 5 to 14 October 1582 don't exist in Oracle: `to_date('1582-10-10', 'YYYY-MM-DD')` is 15 October 1582. Dates from 15 October 1582 on agree.

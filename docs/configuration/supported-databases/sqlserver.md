@@ -125,6 +125,106 @@ class DBConnection extends SqlServerConnection<'DBConnection'> {
 
     Prefer **UUID v7** over UUID v4 — v7 keeps the rest of the supported databases time-ordered on the primary-key index. SQL Server's `uniqueidentifier` is the exception: it uses a non-byte-order comparison that ignores the leading bytes, so the chronological ordering of v7 is not preserved inside the index. Uniqueness and cross-database identifier portability are still preserved. SQL Server has no server-side v7 generator, but provides `NEWID()` (random) and `NEWSEQUENTIALID()` (which produces GUIDs that match `uniqueidentifier`'s sort order — useful as a column `DEFAULT` if you accept a SQL Server-specific format instead of RFC 9562 v7). See the [column types](../column-types.md) page for more context.
 
+## A date and time with its offset
+
+A `datetimeoffset` keeps, with each value, the offset it was written with, like `+09:00`. A `localDateTime` column reads only its instant, because tedious, the driver of mssql, gives a `Date`, which has no zone (see [The zone stored with each value](../time-zones.md#4-the-zone-stored-with-each-value)). When the offset is part of the value, like the local time of departure of a flight, declare the column with a [type adapter](../column-types.md#type-adapters) that keeps the value as the text the database writes:
+
+- `transformProjection` has the database give the value as text, with `convert(nvarchar(40), …, 126)`, in the columns of the result (also those of an `output`) and inside the JSON of an aggregated array (see [The SQL of a value read from the database](../column-types.md#the-sql-of-a-value-read-from-the-database)).
+- `transformPlaceholder` converts the text sent with a `cast` to `datetimeoffset`.
+- `transformValueFromDB` and `transformValueToDB` keep the text as the value.
+
+The column is a `customComparable` of `string`: it can be compared and ordered, its values aren't converted by the library, and the text is sent as an `nvarchar`. A `customLocalDateTime` doesn't serve for it: its parameters are sent as a `datetime2`, which the driver makes from a `Date`, so `'2024-07-01T10:30:15.1234567+09:00'` is stored as `2024-07-01T01:30:15.1230000+00:00`.
+
+<!-- doc-code-snippet-template: sqlserver -->
+```ts
+import type { DefaultTypeAdapter, ProjectionOutput, TypeAdapter, TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
+
+// A date and time with the offset it was written with, as text, like '2024-07-01T10:30:15.1234567+09:00'
+type ZonedDateTime = string
+
+class ZonedDateTimeTypeAdapter implements TypeAdapter {
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+        if (type === 'ZonedDateTime') {
+            return value // the text, or null
+        }
+        return next.transformValueFromDB(value, type, typeCategory)
+    }
+
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+        if (type === 'ZonedDateTime') {
+            return value
+        }
+        return next.transformValueToDB(value, type, typeCategory)
+    }
+
+    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, next: DefaultTypeAdapter): string {
+        if (type === 'ZonedDateTime') {
+            return 'cast(' + placeholder + ' as datetimeoffset)'
+        }
+        return next.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB)
+    }
+
+    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string {
+        if (type === 'ZonedDateTime' && (output === 'resultColumn' || output === 'aggregatedArrayValue')) {
+            return 'convert(nvarchar(40), ' + sql + ', 126)'
+        }
+        return next.transformProjection(sql, type, typeCategory, output)
+    }
+}
+
+const tFlight = new class TFlight extends Table<DBConnection, 'TFlight'> {
+    id = this.primaryKey('id', 'int')
+    departsAt = this.column<ZonedDateTime, 'ZonedDateTime'>('departs_at', 'customComparable', 'ZonedDateTime', new ZonedDateTimeTypeAdapter())
+    constructor() {
+        super('flight'); // table name in the database
+    }
+}()
+```
+
+With three flights: 1 departs on 2024-07-01 at 10:30:15.1234567 `+09:00`, 2 at the same instant written with `+00:00` (01:30:15.1234567), and 3 on 2024-06-30 at 22:00 `-05:00`, which is 03:00 UTC:
+
+```ts
+const flights = connection.selectFrom(tFlight)
+    .select({
+        id: tFlight.id,
+        departsAt: tFlight.departsAt,
+    })
+    .orderBy('departsAt')
+    .orderBy('id')
+    .executeSelectMany()
+```
+
+```sqlserver
+select id as id, convert(nvarchar(40), departs_at, 126) as departsAt
+from flight
+order by flight.departs_at, id
+```
+
+And its parameters are: `[]`
+
+The result is `[ { id: 1, departsAt: '2024-07-01T10:30:15.1234567+09:00' }, { id: 2, departsAt: '2024-07-01T01:30:15.1234567+00:00' }, { id: 3, departsAt: '2024-06-30T22:00:00-05:00' } ]`: each value with its offset, ordered by the instant. Ordered by the text, flight 3 would come first.
+
+The style 126 writes the seven digits of the fraction of a second, and no fraction when it is zero, like in flight 3. Outside the result, the column keeps its SQL: the `where`, the `order by` (which writes the column, not its alias) and the `group by` use the value, and SQL Server compares two values by their instants. `tFlight.departsAt.equals('2024-07-01T01:30:15.1234567+00:00')` finds flights 1 and 2, and so does the same instant written `'2024-07-01T10:30:15.1234567+09:00'`; `tFlight.departsAt.lessThan('2024-07-01T02:00:00+00:00')` doesn't find flight 3, although its text is the smallest.
+
+A value written keeps the offset of its text:
+
+```ts
+const inserted = connection.insertInto(tFlight)
+    .set({
+        id: 4,
+        departsAt: '2024-07-01T10:30:15.123+09:00',
+    })
+    .executeInsert()
+```
+
+```sqlserver
+insert into flight (id, departs_at) values (@0, cast(@1 as datetimeoffset))
+```
+
+And its parameters are: `[ 4, '2024-07-01T10:30:15.123+09:00' ]`
+
+Read back, the value is `'2024-07-01T10:30:15.1230000+09:00'`. A value assigned from another column of this type keeps the offset of that column, because it doesn't go through the text, and the `output` of an insert or an update gives the text too. `datetimeoffset` has no regions: to show a value in the zone it belongs to, like `Europe/Madrid`, keep the name of the zone in a column of its own.
+
 ## `.length()` and trailing blanks
 
 `.length()` mirrors JavaScript's `String.length`, which counts trailing blanks; T-SQL's native `LEN()` excludes them (`LEN('Draft  ')` is 5, not 7). To match JavaScript, ts-sql-query appends a sentinel and subtracts it back — `len(<x> + '.') - 1` — which is character-correct for every string **except one exact extreme**: a value whose length already equals its column's declared maximum. T-SQL string `+` on two non-`max` character types caps the concatenation at the type's maximum and silently drops the appended sentinel, so `.length()` under-reports that one value by one.

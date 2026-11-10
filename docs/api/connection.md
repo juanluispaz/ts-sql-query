@@ -411,8 +411,10 @@ interface Connection {
      * Protected method that returns the provided identifier escaped.
      * The default implementation quotes the identifier only if it is a reserved keyword.
      * To quote all identifiers, reimplement this function returning the result of forceAsIdentifier.
+     * allowReservedKeyword is true for the name of a function or a procedure (executeFunction, executeProcedure):
+     * a reserved word is kept as it is, as quoted it would no longer be the built-in function of that name.
      */
-    escape(identifier: string, strict: boolean): string
+    escape(identifier: string, strict: boolean, allowReservedKeyword?: boolean): string
 }
 ```
 

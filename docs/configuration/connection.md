@@ -146,7 +146,7 @@ The names of the tables, views and columns are written as they are, and quoted o
 
 - `isReservedKeyword(word)`: whether the word is a reserved keyword (quoted when used as an identifier); override it to add the words of your database version, or of an extension.
 - `forceAsIdentifier(identifier)`: the identifier quoted the way the database does it (`"name"`, `` `name` ``, `[name]`).
-- `escape(identifier, strict)`: the identifier as it is written in the query; by default it calls `forceAsIdentifier` only when the identifier needs it.
+- `escape(identifier, strict, allowReservedKeyword)`: the identifier as it is written in the query; by default it calls `forceAsIdentifier` only when the identifier needs it. `allowReservedKeyword` is `true` for the name of a function or a procedure called with `executeFunction` or `executeProcedure`: a reserved word is kept as it is there, because quoted it would no longer be the built-in function of that name (SQL Server reads `[upper](@0)` as a function of yours without its schema).
 
 To quote every identifier, override `escape`:
 
@@ -154,7 +154,11 @@ To quote every identifier, override `escape`:
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> { 
-    protected override escape(identifier: string, _strict: boolean): string {
+    protected override escape(identifier: string, strict: boolean, allowReservedKeyword?: boolean): string {
+        if (allowReservedKeyword) {
+            // The name of a function or a procedure, which quoted wouldn't be the built-in one
+            return super.escape(identifier, strict, allowReservedKeyword)
+        }
         return this.forceAsIdentifier(identifier)
     }
 }

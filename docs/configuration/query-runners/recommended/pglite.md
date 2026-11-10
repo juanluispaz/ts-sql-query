@@ -29,7 +29,7 @@ Every statement runs on the session of the PGlite instance you give the query ru
 import { PGlite } from '@electric-sql/pglite'
 import { PgLiteQueryRunner } from 'ts-sql-query/queryRunners/PgLiteQueryRunner'
 
-const db = await PGlite.create('memory://')
+const db = await PGlite.create('memory://', { postgresqlconf: ["timezone = 'UTC'"] })
 
 async function main() {
     const connection = new DBConnection(new PgLiteQueryRunner(db));
@@ -44,7 +44,7 @@ Nothing is rejected.
 
 **Not applied to the queries of the library**: the `parsers` of `date`, `time` and `timestamp` (oids 1082, 1083 and 1114) given to the database or to a query. The query runner gives its own for those types with each query, also on a transaction: the digits are read as UTC, whatever the zone of the process. Your own queries keep your parsers, and a parser of any other type still applies to the queries of the library.
 
-PGlite takes the session zone from the process, as a fixed offset. It doesn't change the values the library sends and reads, except in SQL that converts a wall clock to an instant: see [Time zones → Known limits](../../time-zones.md#known-limits).
+**Create the database in UTC when the process doesn't run in UTC**, with `postgresqlconf: ["timezone = 'UTC'"]`, as in the examples on this page. PGlite runs inside the process, and without it its session takes the zone of the process, as a fixed offset (`Etc/GMT-9` in `Asia/Tokyo`, `Etc/GMT-1` in `Europe/Madrid` even in summer): the values the library sends and reads stay right, but the SQL that the database computes in the session zone doesn't, like a wall clock converted to an instant or the date functions of a `timestamptz` (`getHours()` of `09:15 UTC` is `18` in Tokyo). The query runner can't check it without running a query: see [Time zones → Known limits](../../time-zones.md#known-limits). Don't use `startParams` for it: it replaces the parameters PGlite starts with, and PGlite fails to start.
 
 ## Inside a transaction something else manages
 
@@ -56,7 +56,7 @@ For `ts-sql-query` there is no transaction open, so `executeAfterNextCommit`, th
 import { PGlite } from '@electric-sql/pglite'
 import { PgLiteQueryRunner } from 'ts-sql-query/queryRunners/PgLiteQueryRunner'
 
-const db = await PGlite.create('memory://')
+const db = await PGlite.create('memory://', { postgresqlconf: ["timezone = 'UTC'"] })
 
 async function main() {
     await db.transaction(async (transaction) => {

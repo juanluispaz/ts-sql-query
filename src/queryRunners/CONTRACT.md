@@ -82,8 +82,8 @@ temporal values and UTC applies to the other databases.
 
 ### Reading
 
-0. The SQL builder writes each column of the result of the outermost select, of the returning of an insert, an update
-   or a delete (the `output` of SQL Server, the `returning … into` of Oracle), and the value of `executeFunction`, with
+0. The SQL builder writes each column of the result of the outermost select, of the returning of an outermost insert,
+   update or delete (a returning inside another query isn't converted) (the `output` of SQL Server, the `returning … into` of Oracle), and the value of `executeFunction`, with
    the `transformProjection` of its type adapter, which receives the connection as `next`, or the connection's
    (`_appendResultColumnProjection`, `sqlBuilders/AbstractSqlBuilder.ts`). By default it is the conversion of the
    library (the `transformProjection` of the connection): the identity, and on SQL Server `convert(nvarchar(41), …)` of a decimal (`SqlServerConnection.transformProjection`). The

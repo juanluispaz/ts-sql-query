@@ -678,7 +678,8 @@ Verified against real `mysql:5.7` (5.7.44): the inline aggregate-as-array querie
 
 **What this means for tests** — the affected cases in
 `select.aggregate-as-array-inline-wrapped`, `docs.aggregate-as-object-array`,
-`select.compound` and `select.runtime-value-coverage` are commented out with
+`select.compound`, `select.runtime-value-coverage` and the ordered aggregated array of
+`config.type-adapter.transform-projection-decoded` are commented out with
 `// NOT-SUPPORTED: see ENGINE_SUPPORT.md` on any cell whose engine is below MySQL
 8.0.14 (today only the 5.7 `oldest` cell) and run live on the rest — keyed to the
 real engine version, not the `newest` label.

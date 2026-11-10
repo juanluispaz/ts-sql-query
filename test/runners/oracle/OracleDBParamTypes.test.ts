@@ -13,6 +13,9 @@ import { OracleDBQueryRunner } from '../../../src/queryRunners/OracleDBQueryRunn
 import { OracleDBPoolQueryRunner } from '../../../src/queryRunners/OracleDBPoolQueryRunner.js'
 import { OracleDBPoolPromiseQueryRunner } from '../../../src/queryRunners/OracleDBPoolPromiseQueryRunner.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
+import { OracleConnection } from '../../../src/connections/OracleConnection.js'
+import { Table } from '../../../src/Table.js'
+import { OracleDateAsTimestampTypeAdapter } from '../../../src/TypeAdapter.js'
 import { acquireRunnerTestDatabase } from '../../db/oracle/runners.js'
 
 describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('OracleDBQueryRunner: typesByName', () => {
@@ -89,6 +92,15 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
 // A date or a time compared with a column: bound as a DATE or a TIMESTAMP, the column compares as it is, and its index
 // is used. Bound as a TIMESTAMP WITH TIME ZONE, Oracle would convert a DATE or a TIMESTAMP column
 // (SYS_EXTRACT_UTC(INTERNAL_FUNCTION(column))), and read the whole table.
+class DBConnection extends OracleConnection<'DBConnection'> { }
+class TIndexed extends Table<DBConnection, 'TIndexed'> {
+    id = this.primaryKey('id', 'int')
+    d = this.optionalColumn('d', 'localDateTime', new OracleDateAsTimestampTypeAdapter())
+    constructor() {
+        super('rt_indexed')
+    }
+}
+
 describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('OracleDBQueryRunner: a date or a time compared with an indexed column', () => {
     let db: Awaited<ReturnType<typeof acquireRunnerTestDatabase>> | undefined
     let connection: oracledb.Connection | undefined
@@ -132,6 +144,33 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
 
     test('a-local-date-uses-the-index-of-a-date-column', async () => {
         expect(await idsAndPlan('d', new Date('2024-01-11T10:00:00.000Z'), 'localDate')).toEqual({ ids: [10], index: true })
+    })
+
+    test('a-local-date-time-of-a-date-column-declared-with-its-adapter-uses-its-index-when-it-has-no-fraction', async () => {
+        // d is a DATE: row 10 is 2024-01-11 00:00:00. Declared with OracleDateAsTimestampTypeAdapter, a value of whole
+        // seconds is bound as a DATE; one with a fraction stays a TIMESTAMP, so it compares with its fraction
+        const conn = new DBConnection(runner!)
+        const tIndexed = new TIndexed()
+        async function run(query: { query(): string, params(): any[], executeSelectMany(): Promise<any[]> }): Promise<{ ids: unknown, index: boolean }> {
+            const ids = (await query.executeSelectMany()).map(row => row.id)
+            const params = query.params()
+            await runner!.executeUpdate('explain plan for ' + query.query(), params)
+            const plan = await runner!.executeSelectOneColumnManyRows("select plan_table_output from table(dbms_xplan.display(null, null, 'BASIC'))", [])
+            return { ids, index: plan.some(line => String(line).includes('INDEX RANGE SCAN') && String(line).toUpperCase().includes('RT_INDEXED_D')) }
+        }
+        const whole = new Date('2024-01-11T00:00:00.000Z')
+        const fraction = new Date('2024-01-11T00:00:00.500Z')
+        expect(await run(conn.selectFrom(tIndexed).where(tIndexed.d.equals(whole)).select({ id: tIndexed.id }))).toEqual({ ids: [10], index: true })
+        expect(await run(conn.selectFrom(tIndexed).where(tIndexed.d.between(whole, new Date('2024-01-12T00:00:00.000Z'))).select({ id: tIndexed.id }).orderBy('id'))).toEqual({ ids: [10, 11], index: true })
+        expect(await run(conn.selectFrom(tIndexed).where(tIndexed.d.in([whole, new Date('2024-01-12T00:00:00.000Z')])).select({ id: tIndexed.id }).orderBy('id'))).toEqual({ ids: [10, 11], index: true })
+        // 2024-01-11 00:00:00 is before 00:00:00.500: bound as a DATE, the value would lose its fraction and exclude it
+        expect((await run(conn.selectFrom(tIndexed).where(tIndexed.d.lessThan(fraction)).select({ id: tIndexed.id }).orderBy('id'))).ids).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+        expect((await run(conn.selectFrom(tIndexed).where(tIndexed.d.equals(fraction)).select({ id: tIndexed.id }))).ids).toEqual([])
+        // A null given to the column, in a union with the column, goes as a DATE
+        const rows = await conn.selectFrom(tIndexed).where(tIndexed.id.equals(10)).select({ v: tIndexed.d })
+            .unionAll(conn.selectFromNoTable().select({ v: conn.optionalConst(null, 'localDateTime', new OracleDateAsTimestampTypeAdapter()) }))
+            .executeSelectMany()
+        expect(rows).toEqual([{ v: whole }, {}])
     })
 })
 

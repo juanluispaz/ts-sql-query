@@ -1,3 +1,6 @@
+import { oracleDateParam, queryParamsInfo } from './utils/valueSymbols.js'
+import { __conversionType } from './utils/typeCategory.js'
+
 /**
  * The category of the type of a value: the first argument of a column, like `'customInt'` in
  * `column('id', 'customInt', 'MyIntTypeName')`, or `''` when it isn't known. The transforms receive it with the name
@@ -40,6 +43,8 @@ export interface DefaultTypeAdapter {
     transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
     transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown): string
     forceTypeCast(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean): boolean
+    /** Keeps the metadata of the connection for the parameter at that index (none by default) */
+    addQueryParamMetadata(params: any[], index: number, type: string, typeCategory: TypeCategory, valueSentToDB: unknown): void
     /**
      * The SQL of a value as it leaves the database, with the conversion of the library: SQL Server writes a decimal of
      * a column of the result as its text (`convert(nvarchar(41), <sql>)`); every other value, every value inside the
@@ -64,6 +69,12 @@ export interface TypeAdapter {
      * parameter is written, and returns the one to use
      */
     forceTypeCast?(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean, next: DefaultTypeAdapter): boolean
+    /**
+     * Keeps, for the query runner, what the adapter knows of the parameter at `index` of the params, which is about to
+     * be added (also a `null`): `setQueryParamMetadata(params, index, key, value)`, under a symbol of its own. Called
+     * after `transformValueToDB`, with the value sent; `next.addQueryParamMetadata(...)` keeps the one of the connection
+     */
+    addQueryParamMetadata?(params: any[], index: number, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, next: DefaultTypeAdapter): void
     /**
      * The SQL of a value as it leaves the database, the pair of `transformValueFromDB`, which reads what it gives:
      * `sql` is the value as the library writes it, and the SQL returned is what the database returns in `output`.
@@ -99,6 +110,25 @@ export interface TypeAdapter {
      * `transformProjection` doesn't convert the value
      */
     projectionComparison?(type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): ProjectionComparison
+}
+
+/**
+ * Keeps a value of the parameter at that index of the params for the query runner, which reads it with
+ * `getQueryParamMetadata`, under a symbol of whoever sets it: a type adapter in its `addQueryParamMetadata`. Each one
+ * defines its own symbol, so they can't collide. Hidden: it isn't a param, and it isn't listed nor serialised.
+ */
+export function setQueryParamMetadata(params: any[], index: number, key: symbol, value: unknown): void {
+    let paramsInfo = (params as any)[queryParamsInfo] as Array<{ [key: symbol]: unknown }> | undefined
+    if (!paramsInfo) {
+        paramsInfo = []
+        Object.defineProperty(params, queryParamsInfo, { value: paramsInfo, writable: true, enumerable: false, configurable: true })
+    }
+    let info = paramsInfo[index]
+    if (!info) {
+        info = {}
+        paramsInfo[index] = info
+    }
+    info[key] = value
 }
 
 export class CustomBooleanTypeAdapter implements TypeAdapter {
@@ -138,6 +168,15 @@ export class OracleDateAsTimestampTypeAdapter implements TypeAdapter {
 
     transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
         return next.transformValueToDB(value, type, typeCategory)
+    }
+
+    /** Marks a localDateTime or a localTime parameter of the column as one of a DATE: the query runner binds it as one */
+    addQueryParamMetadata(params: any[], index: number, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, next: DefaultTypeAdapter): void {
+        next.addQueryParamMetadata(params, index, type, typeCategory, valueSentToDB)
+        const conversionType = __conversionType(type, typeCategory)
+        if (conversionType === 'localDateTime' || conversionType === 'localTime') {
+            setQueryParamMetadata(params, index, oracleDateParam, true)
+        }
     }
 }
 

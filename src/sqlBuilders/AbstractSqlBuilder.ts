@@ -703,6 +703,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (this._isAssigningValueToColumn(params)) {
             setParamValueForColumnAt(params, params.length)
         }
+        // What the type adapter or the connection keeps for the query runner, before the parameter is added
+        if (typeAdapter && typeAdapter.addQueryParamMetadata) {
+            typeAdapter.addQueryParamMetadata(params, params.length, columnTypeName, typeCategory, value, this._defaultTypeAdapter)
+        } else {
+            this._defaultTypeAdapter.addQueryParamMetadata(params, params.length, columnTypeName, typeCategory, value)
+        }
         let placeholder = this._queryRunner.addParam(params, value, columnTypeName, typeCategory, forceTypeCast)
         if (typeAdapter && typeAdapter.transformPlaceholder) {
             placeholder = typeAdapter.transformPlaceholder(placeholder, columnTypeName, typeCategory, value, this._defaultTypeAdapter)

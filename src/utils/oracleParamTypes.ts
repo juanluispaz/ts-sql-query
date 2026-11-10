@@ -36,13 +36,14 @@ class OracleUtcDigitsDate extends Date {
 
 /**
  * The bind every query runner of Oracle gives a localDate, a localTime or a localDateTime that is a Date: a DATE (a
- * localDate, at the start of its UTC day) or a TIMESTAMP with the digits of its UTC getters, so a date or a timestamp
+ * localDate, at the start of its UTC day, and a value of whole seconds of a DATE column) or a TIMESTAMP with the digits
+ * of its UTC getters, so a date or a timestamp
  * column compares with it as it is, and its index can be used (compared with a timestamp with time zone, Oracle converts
  * the column: SYS_EXTRACT_UTC(INTERNAL_FUNCTION(column))). In a process in UTC the local getters are the UTC ones and the
  * Date goes as it is; otherwise a copy whose local getters are the UTC ones. Undefined for any other value, which is
  * bound as it is. Called when the query is executed: the params of the query don't change.
  */
-export function oracleTemporalBind(value: unknown, type: string | undefined, typeCategory: TypeCategory | undefined, processInUtc: boolean): { val: Date, type: 'date' | 'timestamp' } | undefined {
+export function oracleTemporalBind(value: unknown, type: string | undefined, typeCategory: TypeCategory | undefined, processInUtc: boolean, ofDate: boolean): { val: Date, type: 'date' | 'timestamp' } | undefined {
     if (!(value instanceof Date) || isNaN(value.getTime()) || type === undefined) {
         return undefined
     }
@@ -53,7 +54,9 @@ export function oracleTemporalBind(value: unknown, type: string | undefined, typ
         }
         case 'localTime':
         case 'localDateTime':
-            return { val: processInUtc ? value : new OracleUtcDigitsDate(value.getTime()), type: 'timestamp' }
+            // Of a DATE (oracleDateParam of valueSymbols.ts), a value of whole seconds is a DATE, which the column compares with as it
+            // is; one with a fraction stays a TIMESTAMP, which keeps it (10:00:00.500 is after a DATE of 10:00:00)
+            return { val: processInUtc ? value : new OracleUtcDigitsDate(value.getTime()), type: ofDate && value.getUTCMilliseconds() === 0 ? 'date' : 'timestamp' }
         default:
             return undefined
     }

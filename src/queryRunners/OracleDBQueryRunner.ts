@@ -4,13 +4,14 @@ import oracleDb from 'oracledb'
 import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getOracleDBErrorReason, isOracleDBError } from './connectorErrorMappers/OracleDBErrorMapper.js'
-import { getParamTypeAt, getParamTypeCategoryAt, getQueryConnectionConfigurationOf } from '../utils/queryParamsMetadata.js'
+import { getParamMetadataAt, getParamTypeAt, getParamTypeCategoryAt, getQueryConnectionConfigurationOf } from '../utils/queryParamsMetadata.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { getQueryResultColumns, setQueryParamType } from './QueryRunner.js'
 import { isProcessInUtc, requireOracleSessionInDatabaseZone } from '../utils/processTimeZone.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { __isDecimalCategory } from '../utils/typeCategory.js'
 import { oracleTemporalBind } from '../utils/oracleParamTypes.js'
+import { oracleDateParam } from '../utils/valueSymbols.js'
 
 export interface OracleDBQueryRunnerConfig {
     /** The connection is in a transaction that something else manages, and that something else ends: the statements don't commit, and none begins, commits or rolls back through this query runner */
@@ -189,7 +190,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
                 continue
             }
             // A localDate is bound as a date, a localTime or a localDateTime as a timestamp, with their UTC digits
-            const temporal = oracleTemporalBind(value, typeName, getParamTypeCategoryAt(params, i), processInUtc)
+            const temporal = oracleTemporalBind(value, typeName, getParamTypeCategoryAt(params, i), processInUtc, getParamMetadataAt(params, i, oracleDateParam) === true)
             if (temporal) {
                 result[i] = { val: temporal.val, type: temporal.type === 'date' ? oracleDb.DB_TYPE_DATE : oracleDb.DB_TYPE_TIMESTAMP }
                 continue
@@ -197,8 +198,8 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
             if (value === null || value === undefined) {
                 // oracledb binds a null without a type Oracle can use where nothing else gives it one: a row of a
                 // union (ORA-01790) or a `case :0 when 1` (ORA-00932). A null of a number, a date or a time is bound
-                // with its type.
-                const type = this.oracleDbType(getParamTypeCategoryAt(params, i), nativeBoolean)
+                // with its type: a DATE for a parameter of a DATE column (oracleDateParam).
+                const type = getParamMetadataAt(params, i, oracleDateParam) === true ? oracleDb.DB_TYPE_DATE : this.oracleDbType(getParamTypeCategoryAt(params, i), nativeBoolean)
                 if (type !== undefined) {
                     result[i] = { val: null, type: type }
                     continue

@@ -1468,6 +1468,10 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         return placeholder
     }
 
+    /** The metadata of the connection for the parameter at that index: none */
+    protected addQueryParamMetadata(_params: any[], _index: number, _type: string, _typeCategory: TypeCategory, _valueSentToDB: unknown): void {
+    }
+
     /**
      * The SQL of a value as it leaves the database, with the conversion of the library: the SQL it receives, unless the
      * connection of a database changes it (SQL Server writes a decimal of a column of the result as its text)

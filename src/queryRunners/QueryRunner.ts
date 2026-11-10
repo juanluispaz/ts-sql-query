@@ -1,6 +1,6 @@
 import type { TsSqlErrorReason, QueryExecutionSource } from "../TsSqlError.js"
 import type { TypeCategory } from '../TypeAdapter.js'
-import { getParamForceTypeCastAt, isParamValueForColumnAt, getParamTypeAt, getParamTypeCategoryAt, getQueryConnectionConfigurationOf, getQueryExecutionMetadataOf, getQueryExecutionSourceOf, getQueryResultColumnsOf, isSelectPageCountQueryParams, setParamTypeAt } from '../utils/queryParamsMetadata.js'
+import { getParamForceTypeCastAt, getParamMetadataAt, isParamValueForColumnAt, getParamTypeAt, getParamTypeCategoryAt, getQueryConnectionConfigurationOf, getQueryExecutionMetadataOf, getQueryExecutionSourceOf, getQueryResultColumnsOf, isSelectPageCountQueryParams, setParamTypeAt } from '../utils/queryParamsMetadata.js'
 
 export interface QueryRunner {
     readonly database: DatabaseType
@@ -147,6 +147,11 @@ export function getQueryParamForceTypeCast(query: string, params: any[], index: 
 export function isQueryParamValueForColumn(query: string, params: any[], index: number): boolean {
     query
     return isParamValueForColumnAt(params, index)
+}
+/** The value kept under that symbol (`setQueryParamMetadata` of TypeAdapter) for the parameter at that index, or undefined when none was set */
+export function getQueryParamMetadata(query: string, params: any[], index: number, key: symbol): unknown {
+    query
+    return getParamMetadataAt(params, index, key)
 }
 /**
  * The configuration of the connection that executes a query: the connection itself, as its SQL builder reads it, so

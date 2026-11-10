@@ -104,7 +104,7 @@ const tMeeting = new class TMeeting extends Table<DBConnection, 'TMeeting'> {
 }()
 ```
 
-The getters of the time write the column as `cast(starts_at as timestamp)`, a `TIMESTAMP` with the same digits and the fraction at zero, and `getTime` counts the `DATE` itself. Everywhere else the column is written as it is: in the select list, in a comparison (so an index of the column can still be used), in an `order by`, and as the column that receives a value. The values sent and received are the same as without the adapter. With a meeting that starts on 2024-03-15 at 09:05:07 and another on 2024-03-18 at 14:40:00:
+The getters of the time write the column as `cast(starts_at as timestamp)`, a `TIMESTAMP` with the same digits and the fraction at zero, and `getTime` counts the `DATE` itself. Everywhere else the column is written as it is: in the select list, in a comparison, in an `order by`, and as the column that receives a value. A value compared with the column, or given to it, is sent as a `DATE` when it has no fraction of a second, so an index of the column can be used; with a fraction it is sent as a `TIMESTAMP`, which keeps it in the comparison (`10:00:00` is before `10:00:00.500`). The values sent and received are the same as without the adapter. With a meeting that starts on 2024-03-15 at 09:05:07 and another on 2024-03-18 at 14:40:00:
 
 ```ts
 const from = new Date('2024-03-15T00:00:00.000Z')

@@ -6,7 +6,8 @@
  */
 
 import type { QueryExecutionSource } from '../TsSqlError.js'
-import type { TypeCategory } from '../TypeAdapter.js'
+import { setQueryParamMetadata, type TypeCategory } from '../TypeAdapter.js'
+import { queryParamsInfo } from './valueSymbols.js'
 import type { ConnectionConfiguration, QueryResultColumn } from '../queryRunners/QueryRunner.js'
 
 function defineHiddenParamsProperty(params: any[], name: string, value: unknown): void {
@@ -96,31 +97,15 @@ export function isSelectPageCountQueryParams(params: any[]): boolean {
 }
 
 // The information of each parameter, at its index of the params: one object per parameter, whose keys are symbols, so
-// what the library keeps and what anyone else adds can't collide. Hidden in the params array under a symbol too.
-const paramsInfoKey = Symbol('paramsInfo')
+// what the library keeps and what anyone else adds (setQueryParamMetadata of TypeAdapter) can't collide. Hidden in the
+// params array under a symbol too.
 const typeKey = Symbol('type')
 const typeCategoryKey = Symbol('typeCategory')
 const forceTypeCastKey = Symbol('forceTypeCast')
 const valueForColumnKey = Symbol('valueForColumn')
 
-type ParamInfo = { [key: symbol]: unknown }
-
-function paramInfoAt(params: any[], index: number): ParamInfo | undefined {
-    return ((params as any)[paramsInfoKey] as ParamInfo[] | undefined)?.[index]
-}
-
-function writableParamInfoAt(params: any[], index: number): ParamInfo {
-    let paramsInfo = (params as any)[paramsInfoKey] as ParamInfo[] | undefined
-    if (!paramsInfo) {
-        paramsInfo = []
-        Object.defineProperty(params, paramsInfoKey, { value: paramsInfo, writable: true, enumerable: false, configurable: true })
-    }
-    let info = paramsInfo[index]
-    if (!info) {
-        info = {}
-        paramsInfo[index] = info
-    }
-    return info
+function paramInfoAt(params: any[], index: number): { [key: symbol]: unknown } | undefined {
+    return ((params as any)[queryParamsInfo] as Array<{ [key: symbol]: unknown }> | undefined)?.[index]
 }
 
 /**
@@ -129,10 +114,9 @@ function writableParamInfoAt(params: any[], index: number): ParamInfo {
  * adds the parameter. A parameter added without them has none.
  */
 export function setParamTypeAt(params: any[], index: number, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): void {
-    const info = writableParamInfoAt(params, index)
-    info[typeKey] = type
-    info[typeCategoryKey] = typeCategory
-    info[forceTypeCastKey] = forceTypeCast
+    setQueryParamMetadata(params, index, typeKey, type)
+    setQueryParamMetadata(params, index, typeCategoryKey, typeCategory)
+    setQueryParamMetadata(params, index, forceTypeCastKey, forceTypeCast)
 }
 
 export function getParamTypeAt(params: any[], index: number): string | undefined {
@@ -153,11 +137,16 @@ export function getParamForceTypeCastAt(params: any[], index: number): boolean |
  * parameter; a parameter elsewhere has no mark.
  */
 export function setParamValueForColumnAt(params: any[], index: number): void {
-    writableParamInfoAt(params, index)[valueForColumnKey] = true
+    setQueryParamMetadata(params, index, valueForColumnKey, true)
 }
 
 export function isParamValueForColumnAt(params: any[], index: number): boolean {
     return paramInfoAt(params, index)?.[valueForColumnKey] === true
+}
+
+/** A value of the parameter at that index, under a symbol of whoever set it (setQueryParamMetadata of TypeAdapter) */
+export function getParamMetadataAt(params: any[], index: number, key: symbol): unknown {
+    return paramInfoAt(params, index)?.[key]
 }
 
 /**

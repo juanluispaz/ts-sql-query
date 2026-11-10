@@ -7,7 +7,7 @@ export { Table } from './Table.js'
 
 export { View } from './View.js'
 
-export { CustomBooleanTypeAdapter, ForceTypeCast } from './TypeAdapter.js'
+export { CustomBooleanTypeAdapter, ForceTypeCast, setQueryParamMetadata } from './TypeAdapter.js'
 export type { DefaultTypeAdapter, ProjectionComparison, ProjectionOutput, TypeAdapter, TypeCategory } from './TypeAdapter.js'
 
 export { Values } from './Values.js'

@@ -235,14 +235,16 @@ changes:
 - **SQLite** `sqliteDriverParams` (`utils/sqliteParamTypes.ts:6-19`): a boolean as `1` / `0`, the value SQLite stores
   for it. Used by better-sqlite3, node:sqlite and sqlite-wasm, which reject a JavaScript boolean; bun:sqlite and Bun SQL
   SQLite take the params as they are and bind a boolean as `1` / `0` themselves.
-- **Oracle** `oracleTemporalBind` (`utils/oracleParamTypes.ts:37-60`; `OracleDBQueryRunner.ts:192`): a valid `Date`
-  of a temporal conversion type is bound as `DB_TYPE_DATE` (a `localDate`, at 00:00 UTC of its UTC day) or
-  `DB_TYPE_TIMESTAMP` (a `localTime`, a `localDateTime`) with its UTC digits, so a `DATE` or `TIMESTAMP` column compares
+- **Oracle** `oracleTemporalBind` (`utils/oracleParamTypes.ts:31-50`; `OracleDBQueryRunner.ts:193`): a valid `Date`
+  of a temporal conversion type is bound as `DB_TYPE_DATE` (a `localDate`, at 00:00 UTC of its UTC day; a `localTime`
+  or `localDateTime` of whole seconds marked `oracleDateParam`, §4) or `DB_TYPE_TIMESTAMP` (a `localTime`, a
+  `localDateTime`, also a marked one with a fraction, which a `DATE` would lose in a comparison) with its UTC digits;
+  a `null` marked `oracleDateParam` as a `DATE`, so a `DATE` or `TIMESTAMP` column compares
   with it as it is and its index is used (a `TIMESTAMP WITH TIME ZONE` bind made Oracle convert the column,
   `SYS_EXTRACT_UTC(INTERNAL_FUNCTION(column))`, and read the whole table; measured on 23). oracledb writes a `DATE` or
   `TIMESTAMP` bind with the local getters of the `Date` it receives, without copying it (Thin: `writeOracleDate`,
   `lib/impl/datahandlers/buffer.js`; `lib/transformer.js` passes the `Date` as it is), with the zone the process has
-  when it binds: read at each execution, in a process in UTC the `Date` goes as it is, otherwise a copy, `OracleUtcDigitsDate` (`:26-35`), whose local getters give the UTC ones, also for a
+  when it binds: read at each execution, in a process in UTC the `Date` goes as it is, otherwise a copy, `OracleUtcDigitsDate` (`:20-29`), whose local getters give the UTC ones, also for a
   time the zone of the process skips. This relies on how oracledb reads the `Date`: the `send …` cases of
   `test/runners/oracle/LocalTemporalValuesInAnyZone.test.ts`, with the process in Madrid and New York, check the stored
   text and fail if it changes (621 fail with a plain `Date`). Thick isn't covered by the tests.
@@ -399,14 +401,17 @@ calendar check, used by `SqliteConnection` before its strategies.
 
 Non-enumerable properties on the params array (`utils/queryParamsMetadata.ts`): they travel with the params and are
 never sent. What belongs to each parameter is one object per parameter, at its index, in a single array hidden under a
-symbol (`paramsInfoKey`, `queryParamsMetadata.ts:98-127`); its keys are symbols too, so what the library keeps and what
-anyone else adds can't collide. A runner reads them through the public functions of `queryRunners/QueryRunner.ts`; all are optional extra
+symbol (`queryParamsInfo`, `utils/valueSymbols.ts`, the symbols that are keys of values, unlike `utils/symbols.ts`); its
+keys are symbols too, so what the library keeps and what anyone else adds can't collide. Every write goes through the
+public `setQueryParamMetadata` (`TypeAdapter.ts:115-132`); the library's own keys are private to
+`queryParamsMetadata.ts` (`:99-105`). A runner reads them through the public functions of `queryRunners/QueryRunner.ts`; all are optional extra
 information, so a runner must still work with params built by hand (no metadata: `undefined`).
 
 | Property | Written by | Public reader | What it is for |
 |---|---|---|---|
-| the type name, type category and forceTypeCast of each parameter | the binding, through `setParamTypeAt` (`queryParamsMetadata.ts:131-136`); `setQueryParamType` (`QueryRunner.ts:121-123`) for a runner of its own, also for OUT params | `getQueryParamType`, `getQueryParamTypeCategory`, `getQueryParamForceTypeCast` (`QueryRunner.ts:125-141`) | the type of each param at execution: the UTC text of a `Date` (PostgreSQL, MySQL/MariaDB), OIDs (postgres.js, PGlite), mssql types, Oracle bind types, `typesByName` lookups. A param added without them leaves a hole, and is sent as it is |
-| whether a parameter is the value of a column | the SQL builder before `addParam`, inside an insert's values or an update's set (`AbstractSqlBuilder.ts:703-705`; `queryParamsMetadata.ts:155-161`) | `isQueryParamValueForColumn` (`QueryRunner.ts:147-150`) | the column gives the type: no decimal cast on MySQL/MariaDB and SQL Server (`mySqlParamTypes.ts:26-28`, `sqlServerParamTypes.ts:24-26`) |
+| the type name, type category and forceTypeCast of each parameter | the binding, through `setParamTypeAt` (`queryParamsMetadata.ts:114-119`); `setQueryParamType` (`QueryRunner.ts:121-123`) for a runner of its own, also for OUT params | `getQueryParamType`, `getQueryParamTypeCategory`, `getQueryParamForceTypeCast` (`QueryRunner.ts:125-141`) | the type of each param at execution: the UTC text of a `Date` (PostgreSQL, MySQL/MariaDB), OIDs (postgres.js, PGlite), mssql types, Oracle bind types, `typesByName` lookups. A param added without them leaves a hole, and is sent as it is |
+| whether a parameter is the value of a column | the SQL builder before `addParam`, inside an insert's values or an update's set (`AbstractSqlBuilder.ts:703-705`; `queryParamsMetadata.ts:138-144`) | `isQueryParamValueForColumn` (`QueryRunner.ts:147-150`) | the column gives the type: no decimal cast on MySQL/MariaDB and SQL Server (`mySqlParamTypes.ts:26-28`, `sqlServerParamTypes.ts:24-26`) |
+| what a type adapter keeps for a parameter, under a symbol of its own | the type adapter's `addQueryParamMetadata`, which the SQL builder calls before `addParam`, also for a `null` (`AbstractSqlBuilder.ts:706-712`), through `setQueryParamMetadata` | `getQueryParamMetadata` (`QueryRunner.ts:151-155`) | `OracleDateAsTimestampTypeAdapter` marks its `localDateTime`/`localTime` parameters with `oracleDateParam` (`TypeAdapter.ts:173-180`): the Oracle runners bind one of whole seconds as a `DATE`, and a `null` as a `DATE` (§2.4) |
 | `$resultColumns` | `__setQueryMetadata` (`queryBuilders/AbstractQueryBuilder.ts:560`), from `__resultColumnsOf` / `__unnamedResultColumn` (`:533-558`) | `getQueryResultColumns`, `getQueryResultColumn` (`QueryRunner.ts:226-234`) | the expected type of each result column (`name` = key in the row, `path`, `type`, `typeCategory`; `''` for an aggregated array): Oracle fetches decimals and bigints as text (`OracleDBQueryRunner.ts:94-118`). `[]` when the query returns no columns, `undefined` for a query the library didn't build |
 | `$connectionConfiguration` | `__setQueryMetadata` | `getQueryConnectionConfiguration` (`QueryRunner.ts:239-242`) | the connection's settings (`ConnectionConfiguration`, `QueryRunner.ts:156-204`: `allowEmptyString`, `compatibilityVersion`, `uuidStrategy`, `decimalStrategy`, SQLite date formats, …), read live from the connection |
 | `$source`, `$metadata` | `__setQueryMetadata` | `getQueryExecutionSource`, `getQueryExecutionStack`, `getFunctionExecutingQuery`, `getQueryExecutionName`, `getQueryExecutionMetadata` (`QueryRunner.ts:243-302`) | logging and errors |

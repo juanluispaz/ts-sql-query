@@ -1092,7 +1092,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return 'datepart(millisecond, ' + this._appendSql(valueSource, params, false) + ')'
     }
     override _buildCallProcedure(params: any[], functionName: string, functionParams: AnyValueSource[]): string {
-        let result = 'exec ' + this._escape(functionName, false)
+        let result = 'exec ' + this._escape(functionName, false, true)
         for (let i = 0, length = functionParams.length; i < length; i++) {
             result += (i === 0 ? ' ' : ', ') + this._appendSql(functionParams[i]!, params, false)
         }

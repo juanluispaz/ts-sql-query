@@ -158,9 +158,10 @@ export interface ConnectionConfiguration {
     readonly allowEmptyString: boolean
     /**
      * The identifier written in the SQL: quoted when it is a reserved word or has a space, or, when `strict`, when it
-     * isn't made only of letters, digits and underscores
+     * isn't made only of letters, digits and underscores. With `allowReservedKeyword` a reserved word is kept as it is
+     * (the name of a function or a procedure)
      */
-    escape(identifier: string, strict: boolean): string
+    escape(identifier: string, strict: boolean, allowReservedKeyword?: boolean): string
     /** The collation the insensitive operations use (`insensitiveCollation`) */
     readonly insensitiveCollation?: string
     /** SQLite: the format a value of the type `'date'`, `'time'` or `'dateTime'` is stored with */

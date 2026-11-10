@@ -1492,11 +1492,17 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     protected forceAsIdentifier(identifier: string): string {
         return this.__sqlBuilder._forceAsIdentifier(identifier)
     }
-    protected escape(identifier: string, strict: boolean): string {
+    /**
+     * The identifier written in the SQL: quoted when it is a reserved word or has a space, or, when `strict`, when it
+     * isn't made only of letters, digits and underscores. `allowReservedKeyword` keeps a reserved word as it is: the name
+     * of a function or a procedure called with executeFunction or executeProcedure, which quoted would no longer be the
+     * built-in one of that name (SQL Server reads `[upper](@0)` as a function of the user without its schema)
+     */
+    protected escape(identifier: string, strict: boolean, allowReservedKeyword?: boolean): string {
         if (strict && !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(identifier)) {
             return this.forceAsIdentifier(identifier)
         }
-        if (this.isReservedKeyword(identifier) || identifier.indexOf(' ') >= 0) {
+        if ((!allowReservedKeyword && this.isReservedKeyword(identifier)) || identifier.indexOf(' ') >= 0) {
             return this.forceAsIdentifier(identifier)
         }
         return identifier

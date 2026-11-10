@@ -15,6 +15,10 @@ import { ctx } from './setup.js'
 // (`mod` is a reserved word here: the call quotes it, and a quoted name is
 // resolved as a stored function, not the built-in.)
 class FunctionCallConnection extends DBConnection {
+    // A built-in function whose name is a reserved word of some databases (SQL Server's UPPER)
+    callUpper(text: string) {
+        return this.executeFunction('upper', [this.const(text, 'string')], 'string', 'required')
+    }
     callLeast(first: number, second: number) {
         return this.executeFunction('least', [this.const(first, 'int'), this.const(second, 'int')], 'int', 'required')
     }
@@ -667,5 +671,21 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof smallest, number>>()
         expect(smallest).toBe(5)
+    })
+
+    test('execute-function-whose-name-is-a-reserved-word', async () => {
+        // The name of the function is written as given, not quoted as a reserved word: upper(…) is the built-in
+        // function ([upper](…) on SQL Server would be a function of the user without its schema)
+        const conn = ctx.withConnection(FunctionCallConnection)
+        ctx.mockNext('ABC')
+        const upper = await conn.callUpper('aBc')
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select upper(?)"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "aBc",
+          ]
+        `)
+        assertType<Exact<typeof upper, string>>()
+        expect(upper).toBe('ABC')
     })
 })

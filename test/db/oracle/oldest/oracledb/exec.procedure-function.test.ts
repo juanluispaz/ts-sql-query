@@ -13,6 +13,10 @@ import { ctx } from './setup.js'
 // `executeFunction` is protected; a subclass exposes a call with TWO parameters
 // through the engine's built-in `mod(n, m)`, so no schema function is needed.
 class FunctionCallConnection extends DBConnection {
+    // A built-in function whose name is a reserved word of some databases (SQL Server's UPPER)
+    callUpper(text: string) {
+        return this.executeFunction('upper', [this.const(text, 'string')], 'string', 'required')
+    }
     callMod(dividend: number, divisor: number) {
         return this.executeFunction('mod', [this.const(dividend, 'int'), this.const(divisor, 'int')], 'int', 'required')
     }
@@ -665,5 +669,21 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof remainder, number>>()
         expect(remainder).toBe(2)
+    })
+
+    test('execute-function-whose-name-is-a-reserved-word', async () => {
+        // The name of the function is written as given, not quoted as a reserved word: upper(…) is the built-in
+        // function ([upper](…) on SQL Server would be a function of the user without its schema)
+        const conn = ctx.withConnection(FunctionCallConnection)
+        ctx.mockNext('ABC')
+        const upper = await conn.callUpper('aBc')
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select upper(:0) from dual"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "aBc",
+          ]
+        `)
+        assertType<Exact<typeof upper, string>>()
+        expect(upper).toBe('ABC')
     })
 })

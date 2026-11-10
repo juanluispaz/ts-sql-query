@@ -369,8 +369,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _forceAsIdentifier(identifier: string): string {
         return '"' + identifier + '"'
     }
-    _escape(identifier: string, strict: boolean): string {
-        return this._connectionConfiguration.escape(identifier, strict)
+    _escape(identifier: string, strict: boolean, allowReservedKeyword?: boolean): string {
+        return this._connectionConfiguration.escape(identifier, strict, allowReservedKeyword)
     }
     _needParenthesis(value: any): boolean {
         const operation = operationOf(value)
@@ -4362,7 +4362,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _buildCallProcedure(params: any[], procedureName: string, procedureParams: AnyValueSource[]): string {
         const forceTypeCast = this._forceTypeCastInCallArguments()
-        let result = 'call ' + this._escape(procedureName, false) + '('
+        let result = 'call ' + this._escape(procedureName, false, true) + '('
         if (procedureParams.length > 0) {
             result += this._appendSql(procedureParams[0]!, params, forceTypeCast)
 
@@ -4383,7 +4383,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _appendFunctionCall(params: any[], functionName: string, functionParams: AnyValueSource[]): string {
         const forceTypeCast = this._forceTypeCastInCallArguments()
-        let result = this._escape(functionName, false) + '('
+        let result = this._escape(functionName, false, true) + '('
         if (functionParams.length > 0) {
             result += this._appendSql(functionParams[0]!, params, forceTypeCast)
 

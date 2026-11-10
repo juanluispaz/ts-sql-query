@@ -1414,7 +1414,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return this._appendSql(valueSource, params, false)
     }
     override _buildCallProcedure(params: any[], procedureName: string, procedureParams: AnyValueSource[]): string {
-        let result = 'begin ' + this._escape(procedureName, false) + '('
+        let result = 'begin ' + this._escape(procedureName, false, true) + '('
         if (procedureParams.length > 0) {
             result += this._appendSql(procedureParams[0]!, params, false)
 

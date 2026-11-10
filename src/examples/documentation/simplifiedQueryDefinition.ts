@@ -962,6 +962,8 @@ interface Connection {
     transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown): string
     /** Protected method that decides whether the database must receive the type of the parameter */
     forceTypeCast(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean): boolean
+    /** Protected method that writes the SQL of a value as it leaves the database, in a column of the result */
+    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput): string
 
     /** Protected method that returns true if the provided string is a reserved keyword */
     isReservedKeyword(word: string): boolean
@@ -2756,13 +2758,17 @@ interface TypeAdapter {
     transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown
     transformPlaceholder?(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, next: DefaultTypeAdapter): string
     forceTypeCast?(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean, next: DefaultTypeAdapter): boolean
+    transformProjection?(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string
 }
+
+type ProjectionOutput = 'resultColumn' | 'aggregatedArrayValue'
 
 interface DefaultTypeAdapter {
     transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
     transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
     transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown): string
     forceTypeCast(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean): boolean
+    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput): string
 }
 
 declare class CustomBooleanTypeAdapter implements TypeAdapter {

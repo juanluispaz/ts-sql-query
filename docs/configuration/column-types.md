@@ -417,6 +417,89 @@ this.column<RgbColor, 'RgbColor'>('ColumnName', 'custom', 'RgbColor', new RgbCol
 
     However, when the transformation is generic and applicable to many columns or tables — such as with the `RgbColor` example — it's better to define the adapter globally in the connection object. This improves consistency and avoids repeating the logic for every field.
 
+## The SQL of a value read from the database
+
+`transformValueFromDB` receives the value as the driver gives it. When the database must give the value in another form, for example as a text the driver doesn't change, `transformProjection` writes the SQL of the value as it leaves the database, and `transformValueFromDB` reads what arrives. It's the pair of `transformPlaceholder`, which writes the SQL of a value sent to the database.
+
+It receives the SQL of the value as the library writes it, the name of the type, its category and where the value leaves: `'resultColumn'`, a column of the result of the query. It returns the SQL to write there. `next.transformProjection(...)` writes the conversion of the library: SQL Server writes a decimal of a column of the result as its text, `convert(nvarchar(41), ...)`, so the driver doesn't round it; on the other databases, and for the other types, it returns the SQL it receives.
+
+For example, on PostgreSQL, an adapter that has the database give a day as the text `DD/MM/YYYY` and reads that text as the day:
+
+```ts
+import { type DefaultTypeAdapter, type ProjectionOutput, type TypeAdapter, type TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
+
+class DayAsTextTypeAdapter implements TypeAdapter {
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+        const parts = typeof value === 'string' ? /^(\d\d)\/(\d\d)\/(\d{4})$/.exec(value) : null
+        if (parts) {
+            // The text DD/MM/YYYY, read as the day YYYY-MM-DD
+            return next.transformValueFromDB(parts[3] + '-' + parts[2] + '-' + parts[1], type, typeCategory)
+        }
+        return next.transformValueFromDB(value, type, typeCategory)
+    }
+
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+        return next.transformValueToDB(value, type, typeCategory)
+    }
+
+    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string {
+        if (output === 'resultColumn') {
+            return "to_char(" + sql + ", 'DD/MM/YYYY')"
+        }
+        return next.transformProjection(sql, type, typeCategory, output)
+    }
+}
+
+const tCustomerBirthday = new class TCustomerBirthday extends Table<DBConnection, 'TCustomerBirthday'> {
+    id = this.primaryKey('id', 'int')
+    birthday = this.optionalColumn<Date, 'Birthday'>('birthday', 'customLocalDate', 'Birthday', new DayAsTextTypeAdapter())
+    constructor() {
+        super('customer')
+    }
+}()
+
+const customers = connection.selectFrom(tCustomerBirthday)
+    .where(tCustomerBirthday.birthday.greaterOrEqual(new Date('2000-01-01')))
+    .select({
+        id: tCustomerBirthday.id,
+        birthday: tCustomerBirthday.birthday
+    })
+    .orderBy('birthday')
+    .executeSelectMany()
+```
+
+```postgresql
+select id as id, to_char(birthday, 'DD/MM/YYYY') as birthday 
+from customer 
+where birthday >= $1 
+order by customer.birthday
+```
+
+The parameters are: `[ 2000-01-01T00:00:00.000Z ]`
+
+The result type is:
+```tsx
+const customers: Promise<{
+    id: number;
+    birthday?: Date;
+}[]>
+```
+
+The text `DD/MM/YYYY` doesn't order as the day does (`01/03/2024` comes before `15/01/2024`), and the conversion only changes what the database returns, not how the query uses the value:
+
+| Where the column is | What is written |
+|---|---|
+| The columns of the select that is executed, and the value of a function called with `executeFunction` | The SQL of `transformProjection` |
+| An order by of the column, like `orderBy('birthday')` | The value: the order by writes the column, not its alias, which is the text |
+| The where, the group by and the having | The value |
+| A subquery or a `with` | The value; the select that returns a column of the `with` converts it |
+| A compound select (`union`, `intersect`, `except`), or a `selectDistinct` ordered by the column | The value: the query is written inside a select that converts its columns, so the rows are compared and ordered by the value: `select to_char(o_1_.birthday, 'DD/MM/YYYY') as birthday from (select ... union select ...) as o_1_ order by o_1_.birthday` |
+
+!!! important
+
+    - `transformProjection` only writes SQL: it can't add parameters.
+    - When it doesn't convert the value, return what `next.transformProjection(...)` returns. The library calls it with an empty `sql` to know whether a column is converted, so it must return an empty text when it doesn't convert.
+
 ## Global type adapter
 
 When the same conversion applies to every column of a type, write it in the connection object, so it isn't repeated in each column definition:
@@ -465,4 +548,19 @@ And you can define the column as:
 
 ```typescriptreact
 this.column<RgbColor, 'RgbColor'>('ColumnName', 'custom', 'RgbColor')
+```
+
+The connection's `transformProjection` is overridden the same way. It's the `next` of the type adapters, so it converts every column of the type, unless the type adapter of the column writes its SQL without calling `next`. Call `super.transformProjection(...)` for the values it doesn't convert:
+
+```ts
+import type { ProjectionOutput, TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
+
+class DBConnection extends PostgreSqlConnection<'DBConnection'> {
+    protected override transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput): string {
+        if (type === 'Birthday' && output === 'resultColumn') {
+            return "to_char(" + sql + ", 'DD/MM/YYYY')"
+        }
+        return super.transformProjection(sql, type, typeCategory, output)
+    }
+}
 ```

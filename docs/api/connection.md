@@ -397,6 +397,11 @@ interface Connection {
      * with its type (PostgreSQL only). By default, it returns what it receives
      */
     forceTypeCast(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean): boolean
+    /**
+     * Protected method that writes the SQL of a value as it leaves the database, in a column of the result. By default,
+     * the conversion of the library: SQL Server writes a decimal as its text; every other value keeps its SQL
+     */
+    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput): string
 
     /** Protected method that returns true if the provided string is a reserved keyword */
     isReservedKeyword(word: string): boolean

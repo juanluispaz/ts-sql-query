@@ -8,7 +8,7 @@ import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import type { TypeCategory } from '../../../../../src/TypeAdapter.js'
+import type { TypeCategory, DefaultTypeAdapter, ProjectionOutput, TypeAdapter } from '../../../../../src/TypeAdapter.js'
 
 interface RgbColor { r: number, g: number, b: number }
 
@@ -81,6 +81,32 @@ const tExactAmount = new class TExactAmount extends Table<DBConnection, 'TExactA
     }
 }()
 
+class DayAsTextTypeAdapter implements TypeAdapter {
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+        const parts = typeof value === 'string' ? /^(\d\d)\/(\d\d)\/(\d{4})$/.exec(value) : null
+        if (parts) {
+            return next.transformValueFromDB(parts[3] + '-' + parts[2] + '-' + parts[1], type, typeCategory)
+        }
+        return next.transformValueFromDB(value, type, typeCategory)
+    }
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+        return next.transformValueToDB(value, type, typeCategory)
+    }
+    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string {
+        if (output === 'resultColumn') {
+            return "to_char(" + sql + ", 'DD/MM/YYYY')"
+        }
+        return next.transformProjection(sql, type, typeCategory, output)
+    }
+}
+
+// project_release: 2 released on 2024-02-20 and 3 on 2024-03-01, whose texts order the other way (01/03/2024 < 20/02/2024)
+const tReleaseBirthday = new class TReleaseBirthday extends Table<DBConnection, 'TReleaseBirthday'> {
+    id       = this.primaryKey('id', 'int')
+    birthday = this.optionalColumn<Date, 'Birthday'>('released_on', 'customLocalDate', 'Birthday', new DayAsTextTypeAdapter())
+    constructor() { super('project_release') }
+}()
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -133,6 +159,36 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof row, { units: Units; tag: string }>>()
         expect(row).toEqual({ units: 42, tag: '42' })
+    })
+
+    test('docs:column-types/transform-projection-day-as-text', async () => {
+        ctx.mockNext([
+            { id: 2, birthday: '20/02/2024' },
+            { id: 3, birthday: '01/03/2024' },
+        ])
+        const connection = ctx.conn
+        // doc-start
+        const customers = await connection.selectFrom(tReleaseBirthday)
+            .where(tReleaseBirthday.birthday.greaterOrEqual(new Date('2024-02-01')))
+            .select({
+                id: tReleaseBirthday.id,
+                birthday: tReleaseBirthday.birthday,
+            })
+            .orderBy('birthday')
+            .executeSelectMany()
+        // doc-end
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", to_char(released_on, 'DD/MM/YYYY') as "birthday" from project_release where released_on >= :0 order by project_release.released_on"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-02-01T00:00:00.000Z,
+          ]
+        `)
+        assertType<Exact<typeof customers, { id: number; birthday?: Date }[]>>()
+        // A localDate is read as 10:00 UTC of its day
+        expect(customers).toEqual([
+            { id: 2, birthday: new Date('2024-02-20T10:00:00Z') },
+            { id: 3, birthday: new Date('2024-03-01T10:00:00Z') },
+        ])
     })
 
     test('docs:column-types/exact-decimal-kept-as-text', async () => {

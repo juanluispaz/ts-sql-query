@@ -82,15 +82,17 @@ temporal values and UTC applies to the other databases.
 
 ### Reading
 
-0. The SQL builder writes each column of the result of the outermost select, and the value of `executeFunction`, with
+0. The SQL builder writes each column of the result of the outermost select, of the returning of an insert, an update
+   or a delete (the `output` of SQL Server, the `returning … into` of Oracle), and the value of `executeFunction`, with
    the `transformProjection` of its type adapter, which receives the connection as `next`, or the connection's
    (`_appendResultColumnProjection`, `sqlBuilders/AbstractSqlBuilder.ts`). By default it is the conversion of the
    library (the `transformProjection` of the connection): the identity, and on SQL Server `convert(nvarchar(41), …)` of a decimal (`SqlServerConnection.transformProjection`). The
    group by, the having, the order by and the subqueries keep the SQL of the value: a compound select, or a distinct
    select ordered by a converted column, is wrapped in a select that converts the columns (`_needsResultConversionWrap`,
    `_needsSelectOrderByWrap`), and the order by of a converted column writes the value (`_appendOrderByColumnAlias`).
-   The returning of an insert, an update or a delete gets the conversion of the library only
-   (`_appendResultColumnConversion`).
+   On Oracle, the OUT bind of a converted returning column is a text (`addOutParam` with the `string` type and
+   category), whatever the type of the column. The id the library reads by itself in an insert without a returning of
+   the query (`returning id`, `output inserted.id`, Oracle's `returning id into`) keeps its SQL.
 1. The runner executes with its per-query options (§3.1) and returns rows as plain objects keyed by the column alias.
    The one-column / one-value methods take the only own property of the row and throw `ONLY_ONE_COLUMN_EXPECTED` if
    there are more (`queryRunners/AbstractQueryRunner.ts:25-240`).

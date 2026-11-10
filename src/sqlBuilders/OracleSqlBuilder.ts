@@ -1182,7 +1182,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             if (requireComma) {
                 result += ', '
             }
-            result += this._appendSql(columns[property]!, params, false)
+            result += this._appendResultColumnProjection(columns[property]!, this._appendSql(columns[property]!, params, false), params)
             requireComma = true
         }
         if (result) {
@@ -1193,8 +1193,16 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             if (requireComma) {
                 result += ', '
             }
-            const columnPrivate = __getValueSourcePrivate(columns[property]!)
-            const placeholder = this._queryRunner.addOutParam(params, property, columnPrivate.__valueTypeName, __typeCategoryOf(columnPrivate.__valueType), false)
+            const column = columns[property]!
+            let placeholder
+            if (this._isConvertedResultColumn(column, params)) {
+                // The value is returned as the SQL its transformProjection writes, which is not of the type of the
+                // column: it is received as a text
+                placeholder = this._queryRunner.addOutParam(params, property, 'string', 'string', false)
+            } else {
+                const columnPrivate = __getValueSourcePrivate(column)
+                placeholder = this._queryRunner.addOutParam(params, property, columnPrivate.__valueTypeName, __typeCategoryOf(columnPrivate.__valueType), false)
+            }
             result += placeholder
             requireComma = true
         }

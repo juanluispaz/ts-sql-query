@@ -518,7 +518,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             if (requireComma) {
                 result += ', '
             }
-            result += this._appendResultColumnConversion(columns[property]!, this._appendSql(columns[property]!, params, false), params)
+            result += this._appendResultColumnProjection(columns[property]!, this._appendSql(columns[property]!, params, false), params)
             if (property) {
                 result += ' as ' + this._appendColumnAlias(property, params)
             }

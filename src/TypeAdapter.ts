@@ -17,7 +17,8 @@ export type TypeCategory = 'boolean'
 
 /**
  * Where a value leaves the database, given to `transformProjection`: `'resultColumn'` is a column of the result of the
- * query (a column of the outermost select, or the value of a function called with `executeFunction`).
+ * query (a column of the outermost select, of the returning of an insert, an update or a delete, or the value of a
+ * function called with `executeFunction`).
  * `'aggregatedArrayValue'` is a value inside the JSON of an aggregated array; the library doesn't ask for it yet.
  */
 export type ProjectionOutput = 'resultColumn' | 'aggregatedArrayValue'

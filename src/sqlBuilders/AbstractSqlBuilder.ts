@@ -732,21 +732,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return sql
     }
     /**
-     * A column of the result written with the conversion of the connection (its `transformProjection`, the default
-     * type adapter), without the `transformProjection` of the type adapter of the value: the returning of an insert,
-     * an update or a delete.
-     */
-    _appendResultColumnConversion(value: AnyValueSource, sql: string, _params: any[]): string {
-        if (!isValueSource(value)) {
-            return sql
-        }
-        const valueSourcePrivate = __getValueSourcePrivate(value)
-        return this._defaultTypeAdapter.transformProjection(sql, valueSourcePrivate.__valueTypeName, __typeCategoryOf(valueSourcePrivate.__valueType), 'resultColumn')
-    }
-    /**
-     * A column of the result of the outermost query, as it leaves the database: the `transformProjection` of the type
-     * adapter of the value, or the conversion of the library. The column keeps its SQL in the group by, the having and
-     * the order by, which compare and order the value, not its converted form.
+     * A column of the result of the outermost query (also of the returning of an insert, an update or a delete), as it
+     * leaves the database: the `transformProjection` of the type adapter of the value, or the conversion of the library.
+     * The column keeps its SQL in the group by, the having and the order by, which compare and order the value, not its
+     * converted form.
      */
     _appendResultColumnProjection(value: AnyValueSource, sql: string, _params: any[]): string {
         if (!isValueSource(value)) {
@@ -2582,7 +2571,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 result += ', '
             }
             const columnSql = this._appendColumnValue(columns[property]!, params, isOutermostQuery)
-            result += isOutermostQuery ? this._appendResultColumnConversion(columns[property]!, columnSql, params) : columnSql
+            result += isOutermostQuery ? this._appendResultColumnProjection(columns[property]!, columnSql, params) : columnSql
             if (property) {
                 result += ' as ' + this._appendColumnAlias(property, params)
             }

@@ -91,10 +91,9 @@ describe(ctx.label, () => {
                 t:  ts.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from :0) as "y", extract(month from :1) - 1 as "mo", extract(hour from :2) as "h", (cast(:3 as date) - date '1970-01-01') * 86400000 + to_number(to_char(:4, 'FF3')) as "t" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from :0) as "y", extract(month from :1) - 1 as "mo", extract(hour from :2) as "h", (trunc(timestamp '1970-01-01 00:00:00' + (:3 - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (:3 - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')) as "t" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2024-01-15T12:34:56.000Z,
             2024-01-15T12:34:56.000Z,
             2024-01-15T12:34:56.000Z,
             2024-01-15T12:34:56.000Z,
@@ -125,16 +124,12 @@ describe(ctx.label, () => {
                 far: far.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (cast(:0 as date) - date '1970-01-01') * 86400000 + to_number(to_char(:1, 'FF3')) as "pre", (cast(:2 as date) - date '1970-01-01') * 86400000 + to_number(to_char(:3, 'FF3')) as "eve", (cast(:4 as date) - date '1970-01-01') * 86400000 + to_number(to_char(:5, 'FF3')) as "sub", (cast(:6 as date) - date '1970-01-01') * 86400000 + to_number(to_char(:7, 'FF3')) as "far" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (trunc(timestamp '1970-01-01 00:00:00' + (:0 - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (:0 - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')) as "pre", (trunc(timestamp '1970-01-01 00:00:00' + (:1 - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (:1 - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')) as "eve", (trunc(timestamp '1970-01-01 00:00:00' + (:2 - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (:2 - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')) as "sub", (trunc(timestamp '1970-01-01 00:00:00' + (:3 - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (:3 - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')) as "far" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1969-12-30T12:00:00.000Z,
-            1969-12-30T12:00:00.000Z,
-            1969-12-31T12:00:00.000Z,
             1969-12-31T12:00:00.000Z,
             1969-12-30T12:00:00.500Z,
-            1969-12-30T12:00:00.500Z,
-            3002-01-01T00:00:00.000Z,
             3002-01-01T00:00:00.000Z,
           ]
         `)
@@ -454,10 +449,9 @@ describe(ctx.label, () => {
                 t:   ts.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from :0) as "y", extract(month from :1) - 1 as "mo", extract(day from :2) as "d", mod(trunc(:3) - trunc(:4, 'IW') + 1, 7) as "dow", extract(hour from :5) as "h", extract(minute from :6) as "m", trunc(extract(second from :7)) as "s", to_number(to_char(:8, 'FF3')) as "ms", (cast(:9 as date) - date '1970-01-01') * 86400000 + to_number(to_char(:10, 'FF3')) as "t" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from :0) as "y", extract(month from :1) - 1 as "mo", extract(day from :2) as "d", mod(trunc(:3) - trunc(:4, 'IW') + 1, 7) as "dow", extract(hour from :5) as "h", extract(minute from :6) as "m", trunc(extract(second from :7)) as "s", to_number(to_char(:8, 'FF3')) as "ms", (trunc(timestamp '1970-01-01 00:00:00' + (:9 - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (:9 - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')) as "t" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2024-01-15T12:34:56.000Z,
             2024-01-15T12:34:56.000Z,
             2024-01-15T12:34:56.000Z,
             2024-01-15T12:34:56.000Z,

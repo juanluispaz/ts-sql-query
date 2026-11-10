@@ -359,10 +359,9 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(hour from nvl(:0, starts_at)) as "hours", trunc(extract(second from nvl(:1, starts_at))) as "seconds", to_number(to_char(nvl(:2, starts_at), 'FF3')) as "milliseconds", (cast(nvl(:3, starts_at) as date) - date '1970-01-01') * 86400000 + to_number(to_char(nvl(:4, starts_at), 'FF3')) as "time" from standup_meeting where id = :5"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(hour from nvl(:0, starts_at)) as "hours", trunc(extract(second from nvl(:1, starts_at))) as "seconds", to_number(to_char(nvl(:2, starts_at), 'FF3')) as "milliseconds", (trunc(timestamp '1970-01-01 00:00:00' + (nvl(:3, starts_at) - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (nvl(:3, starts_at) - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')) as "time" from standup_meeting where id = :4"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            null,
             null,
             null,
             null,
@@ -400,10 +399,9 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", extract(hour from nvl(cast(ends_at as timestamp), :0)) as "hours", trunc(extract(second from nvl(cast(ends_at as timestamp), :1))) as "seconds", to_number(to_char(nvl(cast(ends_at as timestamp), :2), 'FF3')) as "milliseconds", (cast(nvl(cast(ends_at as timestamp), :3) as date) - date '1970-01-01') * 86400000 + to_number(to_char(nvl(cast(ends_at as timestamp), :4), 'FF3')) as "time" from standup_meeting order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", extract(hour from nvl(cast(ends_at as timestamp), :0)) as "hours", trunc(extract(second from nvl(cast(ends_at as timestamp), :1))) as "seconds", to_number(to_char(nvl(cast(ends_at as timestamp), :2), 'FF3')) as "milliseconds", (trunc(timestamp '1970-01-01 00:00:00' + (nvl(cast(ends_at as timestamp), :3) - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (nvl(cast(ends_at as timestamp), :3) - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')) as "time" from standup_meeting order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2024-01-01T00:00:00.123Z,
             2024-01-01T00:00:00.123Z,
             2024-01-01T00:00:00.123Z,
             2024-01-01T00:00:00.123Z,

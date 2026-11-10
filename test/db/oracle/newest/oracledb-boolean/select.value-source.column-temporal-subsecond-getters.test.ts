@@ -53,7 +53,7 @@ describe(ctx.label, () => {
                 t: tTemporalPrecision.microStamp.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (cast(micro_stamp as date) - date '1970-01-01') * 86400000 + to_number(to_char(micro_stamp, 'FF3')) as "t" from temporal_precision where id = :0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (trunc(timestamp '1970-01-01 00:00:00' + (micro_stamp - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (micro_stamp - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')) as "t" from temporal_precision where id = :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -90,7 +90,7 @@ describe(ctx.label, () => {
                 t:   tReleaseDraft.shiftedStamp.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from shifted_stamp) as "y", extract(month from shifted_stamp) - 1 as "mo", extract(day from shifted_stamp) as "d", mod(trunc(shifted_stamp) - trunc(shifted_stamp, 'IW') + 1, 7) as "dow", extract(hour from shifted_stamp) as "h", extract(minute from shifted_stamp) as "m", trunc(extract(second from shifted_stamp)) as "s", to_number(to_char(shifted_stamp, 'FF3')) as "ms", (cast(shifted_stamp as date) - date '1970-01-01') * 86400000 + to_number(to_char(shifted_stamp, 'FF3')) as "t" from release_draft where id = :0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from shifted_stamp) as "y", extract(month from shifted_stamp) - 1 as "mo", extract(day from shifted_stamp) as "d", mod(trunc(shifted_stamp) - trunc(shifted_stamp, 'IW') + 1, 7) as "dow", extract(hour from shifted_stamp) as "h", extract(minute from shifted_stamp) as "m", trunc(extract(second from shifted_stamp)) as "s", to_number(to_char(shifted_stamp, 'FF3')) as "ms", (trunc(timestamp '1970-01-01 00:00:00' + (shifted_stamp - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (shifted_stamp - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')) as "t" from release_draft where id = :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

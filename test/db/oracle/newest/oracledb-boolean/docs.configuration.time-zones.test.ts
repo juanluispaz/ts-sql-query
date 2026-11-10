@@ -28,7 +28,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select signed_off_at as "value", (cast(signed_off_at as date) - date '1970-01-01') * 86400000 + to_number(to_char(signed_off_at, 'FF3')) as "epoch" from project_release where id = :0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select signed_off_at as "value", (trunc(timestamp '1970-01-01 00:00:00' + (signed_off_at - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (signed_off_at - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')) as "epoch" from project_release where id = :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

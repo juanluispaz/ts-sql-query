@@ -1347,23 +1347,19 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return super._substr(params, valueSource, value, value2, columnType, columnTypeName, typeAdapter)
     }
     override _getTime(params: any[], valueSource: ToSql): string {
-        // Date subtraction yields a SIGNED fractional day count, which is what makes this
-        // correct below the epoch. The previous form added a signed day count to an
-        // always-positive time-of-day, so pre-1970 instants came out a day off and, within
-        // the last day before the epoch, with the sign flipped. The sub-second term always
-        // adds forward in time, which is correct on both sides of the epoch.
-        //
-        // Without `sys_extract_utc` it is also independent of the session time zone for a DATE or
-        // a TIMESTAMP: the digits are counted as UTC, as the library reads a value without zone,
-        // so `getTime()` agrees with the Date read in any zone of the process. A TIMESTAMP WITH
-        // LOCAL TIME ZONE still depends on the session zone (see docs/configuration/time-zones.md).
         if (this._isDateReadAsTimestamp(valueSource)) {
             // A DATE has no fraction of a second: the day count is the whole time. A value made from the column may
             // not be a DATE (nullif with a timestamp gives a TIMESTAMP, and a TIMESTAMP minus a DATE is an interval)
             const date = isColumn(valueSource) ? this._appendSql(valueSource, params, false) : 'cast(' + this._appendSql(valueSource, params, false) + ' as date)'
             return "(" + date + " - date '1970-01-01') * 86400000"
         }
-        return "(cast(" + this._appendSql(valueSource, params, false) + " as date) - date '1970-01-01') * 86400000 + to_number(to_char(" + this._appendSql(valueSource, params, false) + ", 'FF3'))"
+        // The value as a TIMESTAMP with the UTC digits of its instant: the epoch without zone plus the interval from it.
+        // A DATE or a TIMESTAMP has no zone and none takes part; a value with zone (an offset, a region, or a local time
+        // zone) is compared with the epoch in the session zone, UTC (see requireOracleSessionInUtc), which gives its
+        // instant. Whole days from trunc, the seconds since midnight and the milliseconds from 'SSSSSFF3' (FF3
+        // truncates, like a Date): the time of day is always forward, so it is exact before 1970 too
+        const utc = "timestamp '1970-01-01 00:00:00' + (" + this._appendSql(valueSource, params, false) + " - timestamp '1970-01-01 00:00:00')"
+        return "(trunc(" + utc + ") - date '1970-01-01') * 86400000 + to_number(to_char(" + utc + ", 'SSSSSFF3'))"
     }
     override _getFullYear(params: any[], valueSource: ToSql): string {
         return 'extract(year from ' + this._appendSql(valueSource, params, false) + ')'

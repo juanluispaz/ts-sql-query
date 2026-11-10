@@ -45,10 +45,10 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
     }
 
     test('an-in-bind-of-a-declared-type-name', async () => {
-        // A local date and time goes as a TIMESTAMP WITH TIME ZONE, unless its type name is declared as a DATE
-        expect(await dumpOf(runner!, 'Day')).toMatch(/^Typ=181 /)
+        // A local date and time goes as a TIMESTAMP, unless its type name is declared as a DATE
+        expect(await dumpOf(runner!, 'Day')).toMatch(/^Typ=180 /)
         expect(await dumpOf(declared!, 'Day')).toMatch(/^Typ=12 /)
-        expect(await dumpOf(declared!, 'SignOffStamp')).toMatch(/^Typ=181 /)
+        expect(await dumpOf(declared!, 'SignOffStamp')).toMatch(/^Typ=180 /)
     })
 
     test('a-null-in-bind-of-a-declared-type-name', async () => {
@@ -83,6 +83,55 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
         } finally {
             await pool.close(0)
         }
+    })
+})
+
+// A date or a time compared with a column: bound as a DATE or a TIMESTAMP, the column compares as it is, and its index
+// is used. Bound as a TIMESTAMP WITH TIME ZONE, Oracle would convert a DATE or a TIMESTAMP column
+// (SYS_EXTRACT_UTC(INTERNAL_FUNCTION(column))), and read the whole table.
+describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('OracleDBQueryRunner: a date or a time compared with an indexed column', () => {
+    let db: Awaited<ReturnType<typeof acquireRunnerTestDatabase>> | undefined
+    let connection: oracledb.Connection | undefined
+    let runner: QueryRunner | undefined
+
+    beforeAll(async () => {
+        db = await acquireRunnerTestDatabase()
+        connection = await oracledb.getConnection({ user: db.user, password: db.password, connectString: db.connectString })
+        runner = new OracleDBQueryRunner(connection)
+        await runner.executeDatabaseSchemaModification("begin execute immediate 'drop table rt_indexed'; exception when others then if sqlcode != -942 then raise; end if; end;")
+        await runner.executeDatabaseSchemaModification('create table rt_indexed (id number(10) primary key, d date, ts timestamp(3), tstz timestamp(3) with time zone, tl timestamp(3) with local time zone)')
+        // An hour per row from 2024-01-01 00:00:00.123: row 10 is 2024-01-01 10:00:00.123
+        await runner.executeDatabaseSchemaModification("insert into rt_indexed select level, date '2024-01-01' + level, timestamp '2024-01-01 00:00:00.123' + numtodsinterval(level, 'HOUR'), from_tz(timestamp '2024-01-01 00:00:00.123' + numtodsinterval(level, 'HOUR'), 'UTC'), timestamp '2024-01-01 00:00:00.123' + numtodsinterval(level, 'HOUR') from dual connect by level <= 2000")
+        for (const column of ['d', 'ts', 'tstz', 'tl']) {
+            await runner.executeDatabaseSchemaModification(`create index rt_indexed_${column} on rt_indexed(${column})`)
+        }
+        await runner.executeDatabaseSchemaModification("begin dbms_stats.gather_table_stats(user, 'RT_INDEXED'); end;")
+    }, 300_000)
+    afterAll(async () => {
+        await runner?.executeDatabaseSchemaModification('drop table rt_indexed')
+        await connection?.close()
+        await db?.release()
+    }, 300_000)
+
+    async function idsAndPlan(column: string, value: Date, type: 'localDate' | 'localDateTime'): Promise<{ ids: unknown, index: boolean }> {
+        const params: any[] = []
+        const placeholder = runner!.addParam(params, value, type, type, false)
+        const sql = `select id as "id" from rt_indexed where ${column} = ${placeholder}`
+        const ids = (await runner!.executeSelectManyRows(sql, params)).map(row => row['id'])
+        await runner!.executeUpdate('explain plan for ' + sql, params)
+        const plan = await runner!.executeSelectOneColumnManyRows("select plan_table_output from table(dbms_xplan.display(null, null, 'BASIC'))", [])
+        return { ids, index: plan.some(line => String(line).includes('INDEX RANGE SCAN') && String(line).toUpperCase().includes('RT_INDEXED_' + column.toUpperCase())) }
+    }
+
+    test('a-local-date-time-uses-the-index-of-a-timestamp-column', async () => {
+        const value = new Date('2024-01-01T10:00:00.123Z')
+        expect(await idsAndPlan('ts', value, 'localDateTime')).toEqual({ ids: [10], index: true })
+        expect(await idsAndPlan('tl', value, 'localDateTime')).toEqual({ ids: [10], index: true })
+        expect(await idsAndPlan('tstz', value, 'localDateTime')).toEqual({ ids: [10], index: true })
+    })
+
+    test('a-local-date-uses-the-index-of-a-date-column', async () => {
+        expect(await idsAndPlan('d', new Date('2024-01-11T10:00:00.000Z'), 'localDate')).toEqual({ ids: [10], index: true })
     })
 })
 

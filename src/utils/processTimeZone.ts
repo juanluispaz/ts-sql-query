@@ -16,17 +16,27 @@ export function isUtcTimeZoneName(name: string): boolean {
     return utcZoneNames.has((trimmed.startsWith(':') ? trimmed.slice(1) : trimmed).toUpperCase())
 }
 
+// The value of process.env.TZ isProcessInUtc last computed its answer for (null: never), and that answer
+let lastTz: string | undefined | null = null
+let lastInUtc = false
+
 /**
  * Whether the process runs in UTC: by `process.env.TZ` when it is set, otherwise by the zone the runtime resolves.
- * Never by the current offset, which is 0 in some zones only part of the year.
+ * Never by the current offset, which is 0 in some zones only part of the year. Node and Bun change the zone of the
+ * process when `process.env.TZ` is assigned, so the answer is computed again only when its value changes.
  */
 export function isProcessInUtc(): boolean {
     const tz = globalThis.process?.env?.['TZ']
-    if (tz) {
-        return isUtcTimeZoneName(tz)
+    if (tz !== lastTz) {
+        if (tz) {
+            lastInUtc = isUtcTimeZoneName(tz)
+        } else {
+            const resolved = Intl.DateTimeFormat().resolvedOptions().timeZone
+            lastInUtc = !!resolved && isUtcTimeZoneName(resolved)
+        }
+        lastTz = tz
     }
-    const resolved = Intl.DateTimeFormat().resolvedOptions().timeZone
-    return !!resolved && isUtcTimeZoneName(resolved)
+    return lastInUtc
 }
 
 /**

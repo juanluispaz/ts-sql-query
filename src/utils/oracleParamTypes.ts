@@ -18,23 +18,42 @@ export function checkOracleParam(index: number, value: unknown, type: string, ty
 }
 
 /**
- * The Date a localDate, a localTime or a localDateTime that is a Date is bound with by every query runner of Oracle,
- * as a timestamp with time zone (oracledb's DB_TYPE_TIMESTAMP_TZ), which oracledb writes with the UTC getters, where a
- * timestamp or a date (the bind it gives a Date) is written with the local ones. The values are in UTC, and Oracle
- * converts that bind with the zone of the session (UTC, see requireOracleSessionInDatabaseZone) where it is compared with or
- * stored in a date or a timestamp. A localDate is bound at the start of its UTC day, so it equals the value of a date
- * column with that day. Undefined for any other value, which is bound as it is. The params of the query don't change.
+ * A Date whose local getters give its UTC digits. oracledb writes a DATE or a TIMESTAMP bind with the local getters of
+ * the Date it receives, which it doesn't copy (in Thin, `writeOracleDate` of lib/impl/datahandlers/buffer.js; the
+ * fraction from getUTCMilliseconds), so with this one Oracle receives the UTC digits whatever the zone of the process,
+ * also a time that the zone of the process skips. Only in the binds given to oracledb, never in the params.
  */
-export function oracleUtcTimestampBindValue(value: unknown, type: string | undefined, typeCategory: TypeCategory | undefined): Date | undefined {
+class OracleUtcDigitsDate extends Date {
+    override getFullYear(): number { return this.getUTCFullYear() }
+    override getMonth(): number { return this.getUTCMonth() }
+    override getDate(): number { return this.getUTCDate() }
+    override getHours(): number { return this.getUTCHours() }
+    override getMinutes(): number { return this.getUTCMinutes() }
+    override getSeconds(): number { return this.getUTCSeconds() }
+    // Thick reads the fraction with this one
+    override getMilliseconds(): number { return this.getUTCMilliseconds() }
+}
+
+/**
+ * The bind every query runner of Oracle gives a localDate, a localTime or a localDateTime that is a Date: a DATE (a
+ * localDate, at the start of its UTC day) or a TIMESTAMP with the digits of its UTC getters, so a date or a timestamp
+ * column compares with it as it is, and its index can be used (compared with a timestamp with time zone, Oracle converts
+ * the column: SYS_EXTRACT_UTC(INTERNAL_FUNCTION(column))). In a process in UTC the local getters are the UTC ones and the
+ * Date goes as it is; otherwise a copy whose local getters are the UTC ones. Undefined for any other value, which is
+ * bound as it is. Called when the query is executed: the params of the query don't change.
+ */
+export function oracleTemporalBind(value: unknown, type: string | undefined, typeCategory: TypeCategory | undefined, processInUtc: boolean): { val: Date, type: 'date' | 'timestamp' } | undefined {
     if (!(value instanceof Date) || isNaN(value.getTime()) || type === undefined) {
         return undefined
     }
     switch (__conversionType(type, typeCategory)) {
-        case 'localDate':
-            return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()))
+        case 'localDate': {
+            const day = Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate())
+            return { val: processInUtc ? new Date(day) : new OracleUtcDigitsDate(day), type: 'date' }
+        }
         case 'localTime':
         case 'localDateTime':
-            return value
+            return { val: processInUtc ? value : new OracleUtcDigitsDate(value.getTime()), type: 'timestamp' }
         default:
             return undefined
     }

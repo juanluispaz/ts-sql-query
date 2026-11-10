@@ -7,10 +7,10 @@ import { getOracleDBErrorReason, isOracleDBError } from './connectorErrorMappers
 import { getParamTypeAt, getParamTypeCategoryAt, getQueryConnectionConfigurationOf } from '../utils/queryParamsMetadata.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { getQueryResultColumns, setQueryParamType } from './QueryRunner.js'
-import { requireOracleSessionInDatabaseZone } from '../utils/processTimeZone.js'
+import { isProcessInUtc, requireOracleSessionInDatabaseZone } from '../utils/processTimeZone.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { __isDecimalCategory } from '../utils/typeCategory.js'
-import { oracleUtcTimestampBindValue } from '../utils/oracleParamTypes.js'
+import { oracleTemporalBind } from '../utils/oracleParamTypes.js'
 
 export interface OracleDBQueryRunnerConfig {
     /** The connection is in a transaction that something else manages, and that something else ends: the statements don't commit, and none begins, commits or rolls back through this query runner */
@@ -154,6 +154,8 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         // With booleanStorage 'boolean' (Oracle 23ai) a boolean is bound as a BOOLEAN, as in a procedure
         const nativeBoolean = getQueryConnectionConfigurationOf(params)?.booleanStorage === 'boolean'
         const result: Record<string, any> = {}
+        // oracledb writes a date or a timestamp with the zone the process has when it binds
+        const processInUtc = isProcessInUtc()
         for (let i = 0, length = params.length; i < length; i++) {
             const value = params[i]
             const typeName = getParamTypeAt(params, i)
@@ -186,10 +188,10 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
                 result[i] = { val: value === null || value === undefined ? null : !!value, type: oracleDb.DB_TYPE_BOOLEAN }
                 continue
             }
-            // A localDate, a localTime or a localDateTime is bound as a timestamp with time zone in UTC
-            const utcTimestamp = oracleUtcTimestampBindValue(value, typeName, getParamTypeCategoryAt(params, i))
-            if (utcTimestamp) {
-                result[i] = { val: utcTimestamp, type: oracleDb.DB_TYPE_TIMESTAMP_TZ }
+            // A localDate is bound as a date, a localTime or a localDateTime as a timestamp, with their UTC digits
+            const temporal = oracleTemporalBind(value, typeName, getParamTypeCategoryAt(params, i), processInUtc)
+            if (temporal) {
+                result[i] = { val: temporal.val, type: temporal.type === 'date' ? oracleDb.DB_TYPE_DATE : oracleDb.DB_TYPE_TIMESTAMP }
                 continue
             }
             if (value === null || value === undefined) {

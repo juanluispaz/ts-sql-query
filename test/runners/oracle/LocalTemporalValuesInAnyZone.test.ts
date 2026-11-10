@@ -31,8 +31,8 @@ function oracleLimitOf(zone: string, caseName: string): string | undefined {
         return 'Oracle computes the dates before 1582-10-15 in the Julian calendar'
     }
     const gap = springForwardGapOf[zone]
-    if (gap && /^(read|round trip equals|round trip update set) \| (dt|dtx) /.test(caseName) && caseName.includes('(' + gap + ')')) {
-        return 'oracledb moves a stored time that does not exist in the zone of the process'
+    if (gap && /^(read|round trip equals|round trip update set|send const in the select list) \| (dt|dtx) /.test(caseName) && caseName.includes('(' + gap + ')')) {
+        return 'oracledb moves a time (stored, or a constant of the select list, a TIMESTAMP) that does not exist in the zone of the process'
     }
     return undefined
 }

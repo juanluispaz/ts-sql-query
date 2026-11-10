@@ -235,8 +235,17 @@ changes:
 - **SQLite** `sqliteDriverParams` (`utils/sqliteParamTypes.ts:6-19`): a boolean as `1` / `0`, the value SQLite stores
   for it. Used by better-sqlite3, node:sqlite and sqlite-wasm, which reject a JavaScript boolean; bun:sqlite and Bun SQL
   SQLite take the params as they are and bind a boolean as `1` / `0` themselves.
-- **Oracle** `oracleUtcTimestampBindValue` (`utils/oracleParamTypes.ts:28-41`): a valid `Date` of a temporal
-  conversion type is bound as `DB_TYPE_TIMESTAMP_TZ` in UTC, a `localDate` at 00:00 UTC of its UTC day.
+- **Oracle** `oracleTemporalBind` (`utils/oracleParamTypes.ts:37-60`; `OracleDBQueryRunner.ts:192`): a valid `Date`
+  of a temporal conversion type is bound as `DB_TYPE_DATE` (a `localDate`, at 00:00 UTC of its UTC day) or
+  `DB_TYPE_TIMESTAMP` (a `localTime`, a `localDateTime`) with its UTC digits, so a `DATE` or `TIMESTAMP` column compares
+  with it as it is and its index is used (a `TIMESTAMP WITH TIME ZONE` bind made Oracle convert the column,
+  `SYS_EXTRACT_UTC(INTERNAL_FUNCTION(column))`, and read the whole table; measured on 23). oracledb writes a `DATE` or
+  `TIMESTAMP` bind with the local getters of the `Date` it receives, without copying it (Thin: `writeOracleDate`,
+  `lib/impl/datahandlers/buffer.js`; `lib/transformer.js` passes the `Date` as it is), with the zone the process has
+  when it binds: read at each execution, in a process in UTC the `Date` goes as it is, otherwise a copy, `OracleUtcDigitsDate` (`:26-35`), whose local getters give the UTC ones, also for a
+  time the zone of the process skips. This relies on how oracledb reads the `Date`: the `send …` cases of
+  `test/runners/oracle/LocalTemporalValuesInAnyZone.test.ts`, with the process in Madrid and New York, check the stored
+  text and fail if it changes (621 fail with a plain `Date`). Thick isn't covered by the tests.
 
 | Runner | What the driver receives | `typesByName` | Source |
 |---|---|---|---|
@@ -272,9 +281,9 @@ After `transformValueToDB` without adapter, the binding and the work of executio
 | stringDecimal, customDecimal | text; forced: `numeric` | text, `cast(? as decimal(p,s))` outside a column value | `NVarChar`, `cast(@N as decimal(p,s))` outside a column value | text; null → `DB_TYPE_NUMBER` | text (the SQL around it per `decimalStrategy`) |
 | string | text; forced: `text` | text | `NVarChar` | text | text |
 | uuid, customUuid | text; forced: `uuid` | text | `UniqueIdentifier` | text | text |
-| localDate | `YYYY-MM-DD` (UTC day); forced: `date` | `YYYY-MM-DD` (UTC day) | the Date, `Date` | TSTZ at 00:00 UTC of the UTC day | per `SqliteDateTimeFormat` |
-| localTime | `HH:MM:SS.mmm` (UTC); forced: `time` | `HH:MM:SS.mmm` (UTC) | the Date on 1970-01-01 UTC, `Time` | TSTZ on 1970-01-01 UTC | per format |
-| localDateTime | `YYYY-MM-DD HH:MM:SS.mmm+00`; forced: `timestamp` | `YYYY-MM-DD HH:MM:SS.mmm` (UTC) | the Date, `DateTime2` | TSTZ, the instant | per format |
+| localDate | `YYYY-MM-DD` (UTC day); forced: `date` | `YYYY-MM-DD` (UTC day) | the Date, `Date` | `DATE` of the UTC day | per `SqliteDateTimeFormat` |
+| localTime | `HH:MM:SS.mmm` (UTC); forced: `time` | `HH:MM:SS.mmm` (UTC) | the Date on 1970-01-01 UTC, `Time` | `TIMESTAMP` on 1970-01-01, the UTC digits | per format |
+| localDateTime | `YYYY-MM-DD HH:MM:SS.mmm+00`; forced: `timestamp` | `YYYY-MM-DD HH:MM:SS.mmm` (UTC) | the Date, `DateTime2` | `TIMESTAMP`, the UTC digits | per format |
 | enum, custom, customComparable | as given; forced: type of the JS value or none | as given | a string `NVarChar`, otherwise inferred from the value | as given | as given (a boolean `1`/`0`, except bun:sqlite and Bun SQL) |
 | null of a known category | forced: the category's cast/OID | null | the category's type | typed by category (number, timestamp), otherwise untyped | null |
 
@@ -428,12 +437,14 @@ instance). For what that configuration could change in the library's queries:
 Read only from the driver object the runner holds or the environment; thrown in the constructor. "Process in UTC" is
 `isProcessInUtc()`: `process.env.TZ` when set, else `Intl.DateTimeFormat().resolvedOptions().timeZone`, matched against
 a fixed list of UTC names (`UTC`, `UTC0`, `Etc/UTC`, `UCT`, `GMT`, `GMT0`, `GMT±0`, `Etc/GMT…`, `Universal`, `Zulu`,
-`Greenwich`, …, case-insensitive, a leading `:` ignored); never the current offset (`utils/processTimeZone.ts:7-30`).
+`Greenwich`, …, case-insensitive, a leading `:` ignored); never the current offset; computed again only when the
+value of `process.env.TZ` changes, since Node and Bun change the zone of the process when it is assigned
+(`utils/processTimeZone.ts:7-40`; `test/runners/general/ProcessTimeZone.test.ts`).
 
 | Runner | `name` | Rejected when | Source / test |
 |---|---|---|---|
 | `PgQueryRunner`, `PgPoolQueryRunner` | `binary` | `client.binary === true` or `pool.options.binary === true`. A pool client in binary mode (`pg.defaults.binary`) is rejected when the pool gives it, and released | `utils/pgConfiguration.ts:8-13`; `PgQueryRunner.ts:34`; `PgPoolQueryRunner.ts:26,48-58`; `test/runners/postgres/DriverConfiguration.test.ts` (`pg-in-binary-mode-is-rejected`) |
-| `PgQueryRunner`, `PgPoolQueryRunner` | `options` | the session is put in a zone that isn't UTC (§7.3, "The checks"): a `TimeZone` in `client.connectionParameters.options` (the configuration, the `options` of the connection string, `PGOPTIONS`, `pg.defaults.options`) or in `pool.options.options`, read as the server reads its command-line options (`-c TimeZone=…`, `--timezone=…`, the last wins) and accepted as a UTC name or a zero offset (`+00:00`, `00:00`, `+00`; measured on PostgreSQL 17). What a pool adds from its connection string or `PGOPTIONS` is seen in the client it gives, rejected and released as for `binary` | `utils/pgConfiguration.ts:21-25`; `utils/processTimeZone.ts:36-105`; `PgQueryRunner.ts:35`; `PgPoolQueryRunner.ts:27`; same test file (`a-session-in-another-zone-than-the-database-is-rejected`, `a-pool-whose-connection-string-puts-the-session-in-another-zone-is-rejected-at-its-first-query`) |
+| `PgQueryRunner`, `PgPoolQueryRunner` | `options` | the session is put in a zone that isn't UTC (§7.3, "The checks"): a `TimeZone` in `client.connectionParameters.options` (the configuration, the `options` of the connection string, `PGOPTIONS`, `pg.defaults.options`) or in `pool.options.options`, read as the server reads its command-line options (`-c TimeZone=…`, `--timezone=…`, the last wins) and accepted as a UTC name or a zero offset (`+00:00`, `00:00`, `+00`; measured on PostgreSQL 17). What a pool adds from its connection string or `PGOPTIONS` is seen in the client it gives, rejected and released as for `binary` | `utils/pgConfiguration.ts:21-25`; `utils/processTimeZone.ts:46-115`; `PgQueryRunner.ts:35`; `PgPoolQueryRunner.ts:27`; same test file (`a-session-in-another-zone-than-the-database-is-rejected`, `a-pool-whose-connection-string-puts-the-session-in-another-zone-is-rejected-at-its-first-query`) |
 | `PostgresQueryRunner` | `transform` | `sql.options.transform.column.from`, `.value.from` or `.row.from` is set | `PostgresQueryRunner.ts:297-302`; same test file (`a-postgres-js-transform-of-the-results-is-rejected`) |
 | `PostgresQueryRunner` | `connection` | the session is put in a zone that isn't UTC: an entry `timezone` (in any case) of `sql.options.connection`, which also holds the parameters of the URL that aren't options of postgres.js, or a `TimeZone` in its `options` entry, read as pg's | `PostgresQueryRunner.ts:303-313`; same test file (`a-session-in-another-zone-than-the-database-is-rejected`) |
 | `PostgresQueryRunner` | `infer` | `sql.options.infer === true` and the process isn't in UTC | `PostgresQueryRunner.ts:314-316` |
@@ -444,7 +455,7 @@ a fixed list of UTC names (`UTC`, `UTC0`, `Etc/UTC`, `UCT`, `GMT`, `GMT0`, `GMT�
 | `MssqlPoolQueryRunner` (and the per-pool runner `MssqlPoolPromiseQueryRunner` creates, so it rejects its first query) | `useUTC` | `pool.config.options.useUTC === false` and the process isn't in UTC (a `Transaction` gives its pool's config) | `MssqlPoolQueryRunner.ts:42-46`; `MssqlPoolPromiseQueryRunner.ts:49` |
 | `MssqlPoolQueryRunner` | `textsize` | `pool.config.options.textsize` is a number below `2147483647`, the default of tedious (a longer text of a `max` type would be cut without an error) | `MssqlPoolQueryRunner.ts:47-51`; `test/runners/sqlserver/DriverConfiguration.test.ts` (`a-pool-with-a-textsize-below-the-default-is-rejected`) |
 | `MssqlPoolQueryRunner` | `camelCaseColumns`, `columnNameReplacer` | `camelCaseColumns === true` or a `columnNameReplacer` in `pool.config.options` | `MssqlPoolQueryRunner.ts:52-56`; same test file (`a-pool-that-renames-the-columns-is-rejected`) |
-| `OracleDB*QueryRunner` | `ORA_SDTZ` | the session isn't in UTC: `process.env.ORA_SDTZ` set and neither a UTC name nor a zero offset (`LOCAL` and `DBTIMEZONE` included, whose zone isn't known without a query), or unset with the process outside UTC | `utils/processTimeZone.ts:113-123`; `OracleDBQueryRunner.ts:47`; `OracleDBPoolQueryRunner.ts:27`; `OracleDBPoolPromiseQueryRunner.ts:27`; `test/runners/oracle/LocalTemporalValuesInAnyZone.test.ts` |
+| `OracleDB*QueryRunner` | `ORA_SDTZ` | the session isn't in UTC: `process.env.ORA_SDTZ` set and neither a UTC name nor a zero offset (`LOCAL` and `DBTIMEZONE` included, whose zone isn't known without a query), or unset with the process outside UTC | `utils/processTimeZone.ts:123-133`; `OracleDBQueryRunner.ts:47`; `OracleDBPoolQueryRunner.ts:27`; `OracleDBPoolPromiseQueryRunner.ts:27`; `test/runners/oracle/LocalTemporalValuesInAnyZone.test.ts` |
 | mysql2, mariadb, PGlite, better-sqlite3, bun:sqlite, node:sqlite, sqlite-wasm | — | nothing (what they could change is isolated per query) | — |
 
 Other `INVALID_CONFIGURATION`: `registerSqliteFunctions` on a Node without `function`/`aggregate`
@@ -523,8 +534,8 @@ writes a `Date` with its UTC methods only, so it does no zone arithmetic, and a 
 zone from end to end: the `Date` holds its digits in its UTC fields, and nothing adds a zone to them.
 
 The problem goes one way. A `Date` is anchored to a moment, so sending it is precise: the runner states that moment,
-with its offset (the `…+00` text of PostgreSQL, the `TIMESTAMP WITH TIME ZONE` in UTC of Oracle) or as its UTC digits
-(MySQL, MariaDB, SQL Server). Once stored in a column without zone, those digits mean that moment only when the database
+with its offset (the `…+00` text of PostgreSQL) or as its UTC digits (MySQL, MariaDB, SQL Server, and Oracle's `DATE`
+or `TIMESTAMP` bind). Once stored in a column without zone, those digits mean that moment only when the database
 is in UTC (§7.3). The missing information is on the way back: a value the database holds without zone isn't anchored
 to a moment, and it has to fit in a `Date`, which is; what is missing is the zone it is completed with. Sending a value
 that the user means as unanchored (a wall clock of their own, one day a Temporal value) takes the user declaring that

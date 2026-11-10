@@ -181,6 +181,37 @@ const tCustomer = new class TCustomer extends Table<DBConnection, 'TCustomer'> {
     }
 }()
 
+// The adapter and the table of the example of `transformProjection` in docs/configuration/column-types.md, used by the
+// examples after it on that page
+class DayAsTextTypeAdapter implements TypeAdapter {
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+        const parts = typeof value === 'string' ? /^(\d\d)\/(\d\d)\/(\d{4})$/.exec(value) : null
+        if (parts) {
+            return next.transformValueFromDB(parts[3] + '-' + parts[2] + '-' + parts[1], type, typeCategory)
+        }
+        return next.transformValueFromDB(value, type, typeCategory)
+    }
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+        return next.transformValueToDB(value, type, typeCategory)
+    }
+    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string {
+        if (output === 'resultColumn' || output === 'aggregatedArrayValue') {
+            return "to_char(" + sql + ", 'DD/MM/YYYY')"
+        }
+        return next.transformProjection(sql, type, typeCategory, output)
+    }
+}
+
+const tCustomerBirthday = new class TCustomerBirthday extends Table<DBConnection, 'TCustomerBirthday'> {
+    id = this.primaryKey('id', 'int')
+    birthday = this.optionalColumn<Date, 'Birthday'>('birthday', 'customLocalDate', 'Birthday', new DayAsTextTypeAdapter())
+    companyId = this.column('company_id', 'int')
+    constructor() {
+        super('customer')
+    }
+}()
+void tCustomerBirthday;
+
 const vCustomerAndCompany = new class VCustomerAndCompany extends View<DBConnection, 'VCustomerAndCompany'> {
     companyId = this.column('company_id', 'int')
     companyName = this.column('company_name', 'string')

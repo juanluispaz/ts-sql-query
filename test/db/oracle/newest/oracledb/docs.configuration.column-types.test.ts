@@ -93,7 +93,7 @@ class DayAsTextTypeAdapter implements TypeAdapter {
         return next.transformValueToDB(value, type, typeCategory)
     }
     transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string {
-        if (output === 'resultColumn') {
+        if (output === 'resultColumn' || output === 'aggregatedArrayValue') {
             return "to_char(" + sql + ", 'DD/MM/YYYY')"
         }
         return next.transformProjection(sql, type, typeCategory, output)
@@ -104,6 +104,7 @@ class DayAsTextTypeAdapter implements TypeAdapter {
 const tReleaseBirthday = new class TReleaseBirthday extends Table<DBConnection, 'TReleaseBirthday'> {
     id       = this.primaryKey('id', 'int')
     birthday = this.optionalColumn<Date, 'Birthday'>('released_on', 'customLocalDate', 'Birthday', new DayAsTextTypeAdapter())
+    companyId = this.column('project_id', 'int')
     constructor() { super('project_release') }
 }()
 
@@ -188,6 +189,41 @@ describe(ctx.label, () => {
         expect(customers).toEqual([
             { id: 2, birthday: new Date('2024-02-20T10:00:00Z') },
             { id: 3, birthday: new Date('2024-03-01T10:00:00Z') },
+        ])
+    })
+
+    test('docs:column-types/transform-projection-day-as-text-inside-json', async () => {
+        // project_release: 1 and 2 of project 1, released on 2024-01-15 and 2024-02-20; 3 of project 2, on 2024-03-01
+        ctx.mockNext([
+            { companyId: 1, customers: JSON.stringify([{ id: 1, birthday: '15/01/2024' }, { id: 2, birthday: '20/02/2024' }]) },
+            { companyId: 2, customers: JSON.stringify([{ id: 3, birthday: '01/03/2024' }]) },
+        ])
+        const connection = ctx.conn
+        // doc-start
+        const companies = await connection.selectFrom(tReleaseBirthday)
+            .select({
+                companyId: tReleaseBirthday.companyId,
+                customers: connection.aggregateAsArray({
+                    id: tReleaseBirthday.id,
+                    birthday: tReleaseBirthday.birthday,
+                }),
+            })
+            .groupBy('companyId')
+            .executeSelectMany()
+        // doc-end
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "companyId", json_arrayagg(json_object('id' value id, 'birthday' value to_char(released_on, 'DD/MM/YYYY'))) as "customers" from project_release group by project_id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof companies, { companyId: number; customers: { id: number; birthday?: Date }[] }[]>>()
+        // A localDate is read as 10:00 UTC of its day; the groups and the array have no order
+        const sorted = [...companies]
+            .sort((a, b) => a.companyId - b.companyId)
+            .map(company => ({ ...company, customers: [...company.customers].sort((a, b) => a.id - b.id) }))
+        expect(sorted).toEqual([
+            { companyId: 1, customers: [
+                { id: 1, birthday: new Date('2024-01-15T10:00:00Z') },
+                { id: 2, birthday: new Date('2024-02-20T10:00:00Z') },
+            ] },
+            { companyId: 2, customers: [{ id: 3, birthday: new Date('2024-03-01T10:00:00Z') }] },
         ])
     })
 

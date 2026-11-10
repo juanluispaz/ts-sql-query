@@ -177,9 +177,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _resultConversionInnerAlias(property: string): string {
         return property + '_tsq_raw'
     }
-    /** The column is converted in the outermost query (`_appendResultColumnConversion` changes it) */
+    /** The column is converted in the outermost query (`_appendResultColumnProjection` changes it) */
     _isConvertedResultColumn(value: AnyValueSource, params: any[]): boolean {
-        return this._appendResultColumnConversion(value, '', params) !== ''
+        return this._appendResultColumnProjection(value, '', params) !== ''
     }
     /** A select of the query, or of one of its compound queries, adds columns of its own (`beforeColumns`) */
     _hasCustomizedColumns(query: SelectData): boolean {
@@ -732,19 +732,51 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return sql
     }
     /**
-     * A column of the result of the outermost query, written so the driver returns its value without loss. The
-     * identity by default; the column keeps its SQL in the group by, the having and the order by, which compare and
-     * order the value, not its converted form.
+     * A column of the result written with the conversion of the connection (its `transformProjection`, the default
+     * type adapter), without the `transformProjection` of the type adapter of the value: the returning of an insert,
+     * an update or a delete.
      */
-    _appendResultColumnConversion(_value: AnyValueSource, sql: string, _params: any[]): string {
-        return sql
+    _appendResultColumnConversion(value: AnyValueSource, sql: string, _params: any[]): string {
+        if (!isValueSource(value)) {
+            return sql
+        }
+        const valueSourcePrivate = __getValueSourcePrivate(value)
+        return this._defaultTypeAdapter.transformProjection(sql, valueSourcePrivate.__valueTypeName, __typeCategoryOf(valueSourcePrivate.__valueType), 'resultColumn')
     }
     /**
-     * The outermost query must be wrapped in a select that converts its columns (`_appendResultColumnConversion`),
-     * because the conversion can't be written in the query itself: in the arms of a compound, a conversion would
-     * change how the rows are compared and ordered. False by default.
+     * A column of the result of the outermost query, as it leaves the database: the `transformProjection` of the type
+     * adapter of the value, or the conversion of the library. The column keeps its SQL in the group by, the having and
+     * the order by, which compare and order the value, not its converted form.
      */
-    _needsResultConversionWrap(_query: SelectData, _params: any[]): boolean {
+    _appendResultColumnProjection(value: AnyValueSource, sql: string, _params: any[]): string {
+        if (!isValueSource(value)) {
+            return sql
+        }
+        const valueSourcePrivate = __getValueSourcePrivate(value)
+        const typeAdapter = valueSourcePrivate.__typeAdapter
+        const typeCategory = __typeCategoryOf(valueSourcePrivate.__valueType)
+        if (typeAdapter && typeAdapter.transformProjection) {
+            return typeAdapter.transformProjection(sql, valueSourcePrivate.__valueTypeName, typeCategory, 'resultColumn', this._defaultTypeAdapter)
+        }
+        return this._defaultTypeAdapter.transformProjection(sql, valueSourcePrivate.__valueTypeName, typeCategory, 'resultColumn')
+    }
+    /**
+     * The outermost query must be wrapped in a select that converts its columns (`_appendResultColumnProjection`),
+     * because the conversion can't be written in the query itself: in the arms of a compound, a conversion would
+     * change how the rows are compared and ordered. True when a column of the query is converted.
+     */
+    _needsResultConversionWrap(query: SelectData, params: any[]): boolean {
+        const queryColumns = query.__columns
+        if (!queryColumns) {
+            return false
+        }
+        const columns: FlatQueryColumns = {}
+        flattenQueryColumns(queryColumns, columns, '')
+        for (const property in columns) {
+            if (this._isConvertedResultColumn(columns[property]!, params)) {
+                return true
+            }
+        }
         return false
     }
     /**
@@ -760,14 +792,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
             const alias = this._appendColumnAlias(property, params)
             if (withAllColumns) {
                 if (this._isConvertedResultColumn(columns[property]!, params)) {
-                    result += (result ? ', ' : '') + this._appendResultColumnConversion(columns[property]!, wrapperAlias + '.' + this._appendColumnAlias(this._resultConversionInnerAlias(property), params), params) + ' as ' + alias
+                    result += (result ? ', ' : '') + this._appendResultColumnProjection(columns[property]!, wrapperAlias + '.' + this._appendColumnAlias(this._resultConversionInnerAlias(property), params), params) + ' as ' + alias
                 }
                 continue
             }
             if (result) {
                 result += ', '
             }
-            result += this._appendResultColumnConversion(columns[property]!, wrapperAlias + '.' + alias, params) + ' as ' + alias
+            result += this._appendResultColumnProjection(columns[property]!, wrapperAlias + '.' + alias, params) + ' as ' + alias
         }
         if (withAllColumns) {
             result += (result ? ', ' : '') + wrapperAlias + '.*'
@@ -1276,7 +1308,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     selectColumnsSql.set(columns[property]!, { sql: columnSql, name: property, position, paramsStart, paramsEnd: params.length })
                 }
                 if (convertColumns && !columnForInsert) {
-                    selectQuery += this._appendResultColumnConversion(columns[property]!, columnSql, params)
+                    selectQuery += this._appendResultColumnProjection(columns[property]!, columnSql, params)
                 } else {
                     selectQuery += columnSql
                 }
@@ -1518,7 +1550,37 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _appendOrderByEntryTerms(_entry: OrderByEntry, _query: SelectData, _params: any[]): string | undefined {
         return undefined
     }
+    /**
+     * The order by names a column of the select that is converted in the outermost query
+     * (`_isConvertedResultColumn`): a bare alias would order by the converted value
+     */
+    _isConvertedOrderByAlias(entry: OrderByEntry, query: SelectData, params: any[]): boolean {
+        const expression = entry.expression
+        if (typeof expression !== 'string') {
+            return false
+        }
+        const column = getQueryColumn(query.__columns, expression)
+        return !!column && this._isConvertedResultColumn(column, params)
+    }
     _appendOrderByColumnAlias(entry: OrderByEntry, query: SelectData, params: any[]): string {
+        if (this._isConvertedOrderByAlias(entry, query, params)) {
+            const wrapperAlias = this._getResultConversionWrapperAlias(params)
+            if (wrapperAlias) {
+                // Over the query that wraps the select, the column of the wrapped query, not the converted one
+                const name = entry.expression as string
+                return wrapperAlias + '.' + this._appendColumnAlias(this._isResultConversionWithAllColumns(params) ? this._resultConversionInnerAlias(name) : name, params)
+            }
+            if (query.__type === 'plain' && !this._isOrderByOnWrapper(params) && !this._isResultConversionDeferred(params) && this._isCurrentRootQuery(query, params)) {
+                // The expression of the column before converting it. An expression with parameters is written as the select
+                // list writes it, with the same parameters; otherwise it is written qualified, because a bare column with
+                // the name of the alias would be the alias
+                const selectColumn = this._getOrderBySelectColumnWithParams(entry, query, params)
+                if (selectColumn) {
+                    return this._appendOrderBySelectColumnWithParams(selectColumn, entry, query, params)
+                }
+                return this._appendOrderByColumnExpression(entry, query, params)
+            }
+        }
         const expression = entry.expression
         const columns = query.__columns
         if (typeof expression === 'string') {
@@ -1609,8 +1671,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * Whether the order by must be written over a query that wraps the select (`select * from (<select>) order by
      * ...`), because no way of writing it over the select itself is right
      */
-    _needsSelectOrderByWrap(_query: SelectData, _params: any[]): boolean {
-        return false
+    _needsSelectOrderByWrap(query: SelectData, params: any[]): boolean {
+        // A distinct select can only order by what it selects, and the converted column is another value: the order by
+        // goes over a query that wraps the select, which converts the columns
+        if (query.__type !== 'plain' || !query.__distinct || !query.__orderBy || this._isResultConversionDeferred(params) || !this._isCurrentRootQuery(query, params)) {
+            return false
+        }
+        return query.__orderBy.some(entry => this._isConvertedOrderByAlias(entry, query, params))
     }
     _appendHavingCondition(having: IAnyBooleanValueSource<any, any>, params: any[]): string {
         return this._appendCondition(having, params)
@@ -4304,7 +4371,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * are sent in the form it's stored
      */
     _buildCallFunction(params: any[], functionCall: AnyValueSource): string {
-        return 'select ' + this._appendResultColumnConversion(functionCall, this._appendColumnValue(functionCall, params, true), params)
+        return 'select ' + this._appendResultColumnProjection(functionCall, this._appendColumnValue(functionCall, params, true), params)
     }
     _appendFunctionCall(params: any[], functionName: string, functionParams: AnyValueSource[]): string {
         const forceTypeCast = this._forceTypeCastInCallArguments()

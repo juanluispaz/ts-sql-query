@@ -15,11 +15,24 @@ export type TypeCategory = 'boolean'
     | 'enum' | 'custom' | 'customComparable'
     | ''
 
+/**
+ * Where a value leaves the database, given to `transformProjection`: `'resultColumn'` is a column of the result of the
+ * query (a column of the outermost select, or the value of a function called with `executeFunction`).
+ * `'aggregatedArrayValue'` is a value inside the JSON of an aggregated array; the library doesn't ask for it yet.
+ */
+export type ProjectionOutput = 'resultColumn' | 'aggregatedArrayValue'
+
 export interface DefaultTypeAdapter {
     transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
     transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
     transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown): string
     forceTypeCast(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean): boolean
+    /**
+     * The SQL of a value as it leaves the database, with the conversion of the library: SQL Server writes a decimal of
+     * a column of the result as its text (`convert(nvarchar(41), <sql>)`); every other value, and every value on the
+     * other databases, keeps the SQL it receives
+     */
+    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput): string
 }
 
 export interface TypeAdapter {
@@ -32,6 +45,16 @@ export interface TypeAdapter {
      * parameter is written, and returns the one to use
      */
     forceTypeCast?(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean, next: DefaultTypeAdapter): boolean
+    /**
+     * The SQL of a value as it leaves the database, the pair of `transformValueFromDB`, which reads what it gives:
+     * `sql` is the value as the library writes it, and the SQL returned is what the database returns in `output`.
+     * `next.transformProjection(...)` applies the conversion of the library (on SQL Server, a decimal of a column of
+     * the result is written as its text). The value keeps its SQL everywhere else in the query: the arms of a compound
+     * query compare the values, the order by of a column of the select orders by the value, and a subquery, a `with`,
+     * the group by and the having use the value. It only writes SQL: it adds no parameter, and when it doesn't convert
+     * the value it returns the SQL it receives (an empty `sql` gives an empty text)
+     */
+    transformProjection?(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string
 }
 
 export class CustomBooleanTypeAdapter implements TypeAdapter {

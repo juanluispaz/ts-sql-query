@@ -1,4 +1,4 @@
-import type { DefaultTypeAdapter, TypeAdapter, TypeCategory } from '../TypeAdapter.js'
+import type { DefaultTypeAdapter, ProjectionOutput, TypeAdapter, TypeCategory } from '../TypeAdapter.js'
 
 export class ProxyTypeAdapter implements TypeAdapter {
     typeAdapter: TypeAdapter
@@ -27,6 +27,13 @@ export class ProxyTypeAdapter implements TypeAdapter {
             return this.typeAdapter.forceTypeCast(type, typeCategory, valueSentToDB, forceTypeCast, next)
         }
         return next.forceTypeCast(type, typeCategory, valueSentToDB, forceTypeCast)
+    }
+
+    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string {
+        if (this.typeAdapter.transformProjection) {
+            return this.typeAdapter.transformProjection(sql, type, typeCategory, output, next)
+        }
+        return next.transformProjection(sql, type, typeCategory, output)
     }
 }
 

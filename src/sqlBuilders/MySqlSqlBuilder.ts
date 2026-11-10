@@ -236,6 +236,9 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         // MySQL doesn't take it as the grouped column (not in GROUP BY); written as its alias, MySQL takes a column of
         // the from with the same name before it. Over a query that wraps the select, the alias is the only column with
         // that name
+        if (super._needsSelectOrderByWrap(query, params)) {
+            return true
+        }
         if (query.__type !== 'plain') {
             return false
         }

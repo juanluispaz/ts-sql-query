@@ -15,7 +15,7 @@ import { deepOmit, deepPick, type DeepOmit, type DeepPick, type DeepPickPaths } 
 import { sync } from '../../../../../src/extras/sync.js'
 import { Table } from '../../../../../src/Table.js'
 import { QueryExecutionSource, TsSqlError, TsSqlProcessingError, TsSqlQueryExecutionError, type TsSqlDatabaseErrorCode, type TsSqlDatabaseErrorNumber, type TsSqlErrorReason, type TsSqlInternalErrorReason } from '../../../../../src/TsSqlError.js'
-import { CustomBooleanTypeAdapter, ForceTypeCast, type DefaultTypeAdapter, type TypeAdapter, type TypeCategory } from '../../../../../src/TypeAdapter.js'
+import { CustomBooleanTypeAdapter, ForceTypeCast, type DefaultTypeAdapter, type TypeAdapter, type ProjectionOutput, type TypeCategory } from '../../../../../src/TypeAdapter.js'
 import { Values, type OpaqueValues } from '../../../../../src/Values.js'
 import { View } from '../../../../../src/View.js'
 import { type DBConnection, tCountry, tIssue, tOrganization } from '../../domain/connection.js'
@@ -52,6 +52,10 @@ class RecordingAdapter implements DefaultTypeAdapter {
     forceTypeCast(type: string, _typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean): boolean {
         this.calls.push(JSON.stringify(['forceTypeCast', type, valueSentToDB, forceTypeCast]))
         return forceTypeCast
+    }
+    transformProjection(sql: string, type: string, _typeCategory: TypeCategory, output: ProjectionOutput): string {
+        this.calls.push(JSON.stringify(['projection', sql, type, output]))
+        return sql
     }
 }
 
@@ -105,6 +109,7 @@ describe(ctx.label, () => {
         assertType<Exact<root.TransactionIsolationLevel<Db>, TransactionIsolationLevel<Db>>>()
         assertType<Exact<root.DefaultTypeAdapter, DefaultTypeAdapter>>()
         assertType<Exact<root.TypeAdapter, TypeAdapter>>()
+        assertType<Exact<root.ProjectionOutput, ProjectionOutput>>()
         assertType<Exact<root.OpaqueValues, OpaqueValues>>()
         assertType<Exact<root.TsSqlDatabaseErrorCode, TsSqlDatabaseErrorCode>>()
         assertType<Exact<root.TsSqlDatabaseErrorNumber, TsSqlDatabaseErrorNumber>>()
@@ -282,6 +287,7 @@ describe(ctx.label, () => {
         const asTypeAdapter: TypeAdapter = byString
         expect(asTypeAdapter.transformPlaceholder).toBeUndefined()
         expect(asTypeAdapter.forceTypeCast).toBeUndefined()
+        expect(asTypeAdapter.transformProjection).toBeUndefined()
     })
 
     test('force-type-cast-delegates-and-forces-the-cast', () => {

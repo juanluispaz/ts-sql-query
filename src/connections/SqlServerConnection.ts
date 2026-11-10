@@ -4,9 +4,22 @@ import { SqlServerSqlBuilder } from '../sqlBuilders/SqlServerSqlBuilder.js'
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
 import type { TransactionIsolationLevel } from './AbstractConnection.js'
 import type { Default } from '../expressions/Default.js'
+import type { ProjectionOutput, TypeCategory } from '../TypeAdapter.js'
+import { __isDecimalCategory } from '../utils/typeCategory.js'
 import { DefaultImpl } from '../expressions/Default.js'
 
 export abstract class SqlServerConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'sqlServer', NAME>> {
+
+    /**
+     * The driver gives a decimal as a JavaScript number, which loses digits and the scale; the text of a decimal in a
+     * column of the result keeps every digit of a decimal(38): 38 digits, the sign and the point
+     */
+    protected override transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput): string {
+        if (output === 'resultColumn' && __isDecimalCategory(typeCategory)) {
+            return 'convert(nvarchar(41), ' + sql + ')'
+        }
+        return super.transformProjection(sql, type, typeCategory, output)
+    }
 
     /**
      * Minimum SQL Server version the generated SQL must support, encoded as

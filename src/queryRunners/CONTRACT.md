@@ -18,7 +18,7 @@ Three places own the work. What decides where a thing goes is **whether it condi
 
 | Place | Owns |
 |---|---|
-| **The connection** (`connections/AbstractConnection.ts` and each per-database subclass), with the **SQL builder** (`sqlBuilders/*`) | The semantics: which values a data type accepts and promises (`transformValueToDB` / `transformValueFromDB`), the SQL around the values, the SQL of the result columns, and **the form of a value that the SQL it writes depends on**. It hands that form to the runner and reads it back |
+| **The connection** (`connections/AbstractConnection.ts` and each per-database subclass), with the **SQL builder** (`sqlBuilders/*`) | The semantics: which values a data type accepts and promises (`transformValueToDB` / `transformValueFromDB`), the SQL around the values, the SQL of the result columns (the conversion of the library is the `transformProjection` of the connection, the `next` of a type adapter's), and **the form of a value that the SQL it writes depends on**. It hands that form to the runner and reads it back |
 | **The runner's binding** (`addParam`, one binding per runner in `utils/queryRunnerParams.ts`, with one module per database in `utils/<db>ParamTypes.ts`) | How the database interprets each parameter as the type it is: the placeholder, the cast in it, and the checks of the final value (a `customDecimal` too wide for the database) |
 | **The runner at execution** (`queryRunners/*`) | What is specific to its driver: how the driver must receive a value the database already handles (the UTC text of a `Date`, `1`/`0` for a boolean the driver can't bind, a driver type, an OID, a bind type), the per-query options that make the driver deliver without loss, and the shape of the rows |
 
@@ -82,6 +82,15 @@ temporal values and UTC applies to the other databases.
 
 ### Reading
 
+0. The SQL builder writes each column of the result of the outermost select, and the value of `executeFunction`, with
+   the `transformProjection` of its type adapter, which receives the connection as `next`, or the connection's
+   (`_appendResultColumnProjection`, `sqlBuilders/AbstractSqlBuilder.ts`). By default it is the conversion of the
+   library (the `transformProjection` of the connection): the identity, and on SQL Server `convert(nvarchar(41), …)` of a decimal (`SqlServerConnection.transformProjection`). The
+   group by, the having, the order by and the subqueries keep the SQL of the value: a compound select, or a distinct
+   select ordered by a converted column, is wrapped in a select that converts the columns (`_needsResultConversionWrap`,
+   `_needsSelectOrderByWrap`), and the order by of a converted column writes the value (`_appendOrderByColumnAlias`).
+   The returning of an insert, an update or a delete gets the conversion of the library only
+   (`_appendResultColumnConversion`).
 1. The runner executes with its per-query options (§3.1) and returns rows as plain objects keyed by the column alias.
    The one-column / one-value methods take the only own property of the row and throw `ONLY_ONE_COLUMN_EXPECTED` if
    there are more (`queryRunners/AbstractQueryRunner.ts:25-240`).
@@ -264,7 +273,7 @@ their own queries.
 | `BunSqlPostgresQueryRunner`, `BunSqlMySqlQueryRunner`, `BunSqlSqliteQueryRunner` | nothing | Bun SQL defaults: UTC Dates (MySQL: [inferred] Bun sets the session at `+00:00`), text for times | `AbstractBunSqlQueryRunner.ts:63-74`; the `LocalTemporalValuesInAnyZone` tests of PostgreSQL and MySQL |
 | `MySql2QueryRunner`, `MySql2PoolQueryRunner` | `dateStrings: true`, `supportBigNumbers: true`, `bigNumberStrings: true`, `rowsAsArray: false`; and its own `typeCast` (DECIMAL/NEWDECIMAL → `field.string('ascii')`, else `next()`) when the connection has a `typeCast` function, `typeCast: false` or `decimalNumbers: true`, since a typeCast given with the query replaces the connection's | DATE/DATETIME/TIMESTAMP/TIME as text; BIGINT and DECIMAL as exact text; objects | `MySql2QueryRunner.ts:29,159-193`; `test/runners/mysql/DriverConfiguration.test.ts` (`a-connection-with-type-cast-false-doesnt-change-the-queries-of-the-runner`) |
 | `MariaDBQueryRunner`, `MariaDBPoolQueryRunner` | `dateStrings: true`, `supportBigNumbers: false`, `bigIntAsNumber: false`, `decimalAsNumber: false`, `insertIdAsNumber: false`, `rowsAsArray: false`, `metaAsArray: false`, `nestTables: false`, `typeCast: undefined` (each replaces the connection's) | dates as text; BIGINT and insert id as `bigint`; DECIMAL as text; objects | `MariaDBQueryRunner.ts:11-34,83-97`; `test/runners/mariadb/DriverConfiguration.test.ts` |
-| `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner` | `request.arrayRowMode = false` | tedious defaults [inferred]: BIGINT as text, DECIMAL as a number (the SQL builder converts decimal result columns to `nvarchar(41)`, `SqlServerSqlBuilder.ts:52-57`); dates with the UTC getters (`useUTC`), instant for `datetimeoffset` | `MssqlPoolQueryRunner.ts:286-292`; `test/runners/sqlserver/DriverConfiguration.test.ts` (`the-rows-are-objects-with-array-row-mode-on-the-pool`) |
+| `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner` | `request.arrayRowMode = false` | tedious defaults [inferred]: BIGINT as text, DECIMAL as a number (the connection converts decimal result columns to `nvarchar(41)`, `SqlServerConnection.transformProjection`); dates with the UTC getters (`useUTC`), instant for `datetimeoffset` | `MssqlPoolQueryRunner.ts:286-292`; `test/runners/sqlserver/DriverConfiguration.test.ts` (`the-rows-are-objects-with-array-row-mode-on-the-pool`) |
 | `OracleDB*QueryRunner` | `outFormat: OUT_FORMAT_OBJECT`, `maxRows: 0`, `fetchTypeHandler` answering every column: a result column of category stringDecimal/customDecimal/bigint/customBigint (by name, or the only column of an unnamed one-value result) → `DB_TYPE_VARCHAR`; `DATE`/`TIMESTAMP` → converter rebuilding the Date with its local getters as UTC (`utcDateOfLocalGetters`); CLOB/NCLOB → string; BLOB → Buffer; else its own type | decimals/bigints as text; DATE/TIMESTAMP as UTC Date (exact except a wall clock skipped by DST in the process zone, and years < 100 built as 19xx); NUMBER as number; RETURNING OUT binds as in §2.4 | `OracleDBQueryRunner.ts:71-118,406-431` |
 | `BetterSqlite3QueryRunner`, `BunSqliteQueryRunner` | nothing (`safeIntegers` not forced) | numbers, or `bigint` with the driver's big-integer mode; text; dates as stored per format | the lines of §2.4 |
 | `NodeSqliteQueryRunner` | `statement.setReturnArrays?.(false)` per statement (the method exists since Node 22.16 and 24); `readBigInts` not forced | objects even on a database opened with `returnArrays: true`; numbers, or `bigint` with `readBigInts` | `NodeSqliteQueryRunner.ts:50-64`; `test/runners/sqlite/NodeSqliteQueryRunner.test.ts` (`the-rows-are-objects-with-return-arrays-on-the-database`) |
@@ -505,7 +514,7 @@ give the parts in UTC"). SQLite has its own strategies (§0) and `sqliteRunsInAp
 
 So the drivers deliver a kind-4 column as kind 3. A runner can't recover the zone: in Oracle and SQL Server a value
 with its zone exists only if the SQL formats it (`to_char(x, '…TZH:TZM')` / `TZR`, `convert(nvarchar(40), x, 126)`),
-which is the user's SQL (a fragment) and never the runner's (§0). Writing a `Date` stores it in UTC (`+00:00`).
+which is the user's SQL (a fragment, or the `transformProjection` of a type adapter or of the connection) and never the runner's (§0). Writing a `Date` stores it in UTC (`+00:00`).
 
 ### 7.3 The ladder
 

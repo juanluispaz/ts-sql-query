@@ -93,6 +93,14 @@ temporal values and UTC applies to the other databases.
    On Oracle, the OUT bind of a converted returning column is a text (`addOutParam` with the `string` type and
    category), whatever the type of the column. The id the library reads by itself in an insert without a returning of
    the query (`returning id`, `output inserted.id`, Oracle's `returning id into`) keeps its SQL.
+   Each value inside the JSON of an aggregated array is written the same way with `'aggregatedArrayValue'`
+   (`_appendAggregatedArrayValueProjection`): a converted value is the SQL of a text, which the JSON function of the
+   database writes as a string (SQL Server's JSON written by the library: `'"' + string_escape(convert(nvarchar(max),
+   …), 'json') + '"'`); by default it is the identity, and the value keeps the encoding the library gives it in the JSON
+   (§3.2). The leaf is written outside the select whose distinct, order by and limit use the value (over the wrapped
+   select `a_N_`, or in an aggregate without them); on SQL Server a select of objects with a converted leaf isn't
+   written with `for json path`. The distinct of `aggregateAsArrayDistinct` / `aggregateAsArrayOfOneColumnDistinct`
+   is inside the aggregate and compares what goes in the JSON.
 1. The runner executes with its per-query options (§3.1) and returns rows as plain objects keyed by the column alias.
    The one-column / one-value methods take the only own property of the row and throw `ONLY_ONE_COLUMN_EXPECTED` if
    there are more (`queryRunners/AbstractQueryRunner.ts:25-240`).
@@ -101,7 +109,8 @@ temporal values and UTC applies to the other databases.
    runner must prevent them (§3.1, §5).
 3. An aggregated array arriving as text is parsed with `parseJsonPreservingNumbers`, which turns every JSON number into
    its source text (`queryBuilders/AbstractQueryBuilder.ts:158-215,592`); a value that is already an array (a driver
-   that decoded the JSON) is used as it is. Each leaf then goes through `transformValueFromDB` of its type.
+   that decoded the JSON) is used as it is. Each leaf then goes through `transformValueFromDB` of its type (of its type
+   adapter, which receives the text of a converted leaf).
 4. `__transformValueFromDB` (`queryBuilders/AbstractQueryBuilder.ts:74-95`) calls the adapter (with the connection as
    `next`) or the connection's `transformValueFromDB`; an error that isn't of the library becomes
    `INVALID_VALUE_RECEIVED_FROM_DATABASE`.

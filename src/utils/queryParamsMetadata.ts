@@ -95,42 +95,56 @@ export function isSelectPageCountQueryParams(params: any[]): boolean {
     return !!getHiddenParamsProperty(params, '$isSelectPageCountQuery')
 }
 
+// The information of each parameter, at its index of the params: one object per parameter, whose keys are symbols, so
+// what the library keeps and what anyone else adds can't collide. Hidden in the params array under a symbol too.
+const paramsInfoKey = Symbol('paramsInfo')
+const typeKey = Symbol('type')
+const typeCategoryKey = Symbol('typeCategory')
+const forceTypeCastKey = Symbol('forceTypeCast')
+const valueForColumnKey = Symbol('valueForColumn')
+
+type ParamInfo = { [key: symbol]: unknown }
+
+function paramInfoAt(params: any[], index: number): ParamInfo | undefined {
+    return ((params as any)[paramsInfoKey] as ParamInfo[] | undefined)?.[index]
+}
+
+function writableParamInfoAt(params: any[], index: number): ParamInfo {
+    let paramsInfo = (params as any)[paramsInfoKey] as ParamInfo[] | undefined
+    if (!paramsInfo) {
+        paramsInfo = []
+        Object.defineProperty(params, paramsInfoKey, { value: paramsInfo, writable: true, enumerable: false, configurable: true })
+    }
+    let info = paramsInfo[index]
+    if (!info) {
+        info = {}
+        paramsInfo[index] = info
+    }
+    return info
+}
+
 /**
  * The type name, the type category and whether the query builder asked for the type of the parameter to be given to
  * the database (its forceTypeCast), of the parameter at that index of the params, kept by the query runner when it
- * adds the parameter, in three arrays aligned with the params. A parameter added without them leaves a hole.
+ * adds the parameter. A parameter added without them has none.
  */
 export function setParamTypeAt(params: any[], index: number, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): void {
-    let types = getHiddenParamsProperty<string[]>(params, '$paramTypes')
-    if (!types) {
-        types = []
-        defineHiddenParamsProperty(params, '$paramTypes', types)
-    }
-    let typeCategories = getHiddenParamsProperty<TypeCategory[]>(params, '$paramTypeCategories')
-    if (!typeCategories) {
-        typeCategories = []
-        defineHiddenParamsProperty(params, '$paramTypeCategories', typeCategories)
-    }
-    let forceTypeCasts = getHiddenParamsProperty<boolean[]>(params, '$paramForceTypeCasts')
-    if (!forceTypeCasts) {
-        forceTypeCasts = []
-        defineHiddenParamsProperty(params, '$paramForceTypeCasts', forceTypeCasts)
-    }
-    types[index] = type
-    typeCategories[index] = typeCategory
-    forceTypeCasts[index] = forceTypeCast
+    const info = writableParamInfoAt(params, index)
+    info[typeKey] = type
+    info[typeCategoryKey] = typeCategory
+    info[forceTypeCastKey] = forceTypeCast
 }
 
 export function getParamTypeAt(params: any[], index: number): string | undefined {
-    return getHiddenParamsProperty<string[]>(params, '$paramTypes')?.[index]
+    return paramInfoAt(params, index)?.[typeKey] as string | undefined
 }
 
 export function getParamTypeCategoryAt(params: any[], index: number): TypeCategory | undefined {
-    return getHiddenParamsProperty<TypeCategory[]>(params, '$paramTypeCategories')?.[index]
+    return paramInfoAt(params, index)?.[typeCategoryKey] as TypeCategory | undefined
 }
 
 export function getParamForceTypeCastAt(params: any[], index: number): boolean | undefined {
-    return getHiddenParamsProperty<boolean[]>(params, '$paramForceTypeCasts')?.[index]
+    return paramInfoAt(params, index)?.[forceTypeCastKey] as boolean | undefined
 }
 
 /**
@@ -139,16 +153,11 @@ export function getParamForceTypeCastAt(params: any[], index: number): boolean |
  * parameter; a parameter elsewhere has no mark.
  */
 export function setParamValueForColumnAt(params: any[], index: number): void {
-    let valuesForColumn = getHiddenParamsProperty<boolean[]>(params, '$paramValuesForColumn')
-    if (!valuesForColumn) {
-        valuesForColumn = []
-        defineHiddenParamsProperty(params, '$paramValuesForColumn', valuesForColumn)
-    }
-    valuesForColumn[index] = true
+    writableParamInfoAt(params, index)[valueForColumnKey] = true
 }
 
 export function isParamValueForColumnAt(params: any[], index: number): boolean {
-    return getHiddenParamsProperty<boolean[]>(params, '$paramValuesForColumn')?.[index] === true
+    return paramInfoAt(params, index)?.[valueForColumnKey] === true
 }
 
 /**

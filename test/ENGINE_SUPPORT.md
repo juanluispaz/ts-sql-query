@@ -562,6 +562,31 @@ reactivating.
 
 
 
+### MariaDB doesn't see a column of the outer query inside a derived table
+
+A derived table (a select in the `from`) can't refer to a column of the
+query around it: measured on MariaDB 13.0.2 and 10.5.29,
+
+```sql
+select id, (select json_arrayagg(date_format(a_1_.result, '%m/%Y'))
+            from (select distinct work_date as result from issue_worklog
+                  where issue_worklog.issue_id = issue.id) as a_1_) as months
+from issue where id = 1
+```
+
+fails with error 1054 (`Unknown column 'issue.id' in 'WHERE'`, `… in 'where
+clause'` on 10.5), while the same query without the correlation runs, and
+PostgreSQL 18 and SQLite 3.51 run both. So for a value whose
+`projectionComparison` is `'none'`, the library doesn't write the distinct of
+`aggregateAsArrayDistinct` / `aggregateAsArrayOfOneColumnDistinct` over a
+select of the distinct values on MariaDB (it does on PostgreSQL and SQLite):
+the distinct stays inside `json_arrayagg` and compares the converted texts.
+The MariaDB cells of
+`select.type-adapter.transform-projection-aggregated-array` assert that form
+and its rows (`the-distinct-of-an-aggregate-function-alone-compares-the-values`,
+`…-of-objects-alone-…`, `the-distinct-of-a-correlated-aggregate-function-…`).
+Re-probe the correlated query before changing it.
+
 ### MySQL 5.7: recursive CTEs and the `VALUES` row constructor are refused (`compatibilityVersion < 8_000_000`)
 
 At `compatibilityVersion < 8_000_000` (targeting MySQL 5.x) the builder enters "MySql

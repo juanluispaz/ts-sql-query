@@ -87,9 +87,14 @@ temporal values and UTC applies to the other databases.
    the `transformProjection` of its type adapter, which receives the connection as `next`, or the connection's
    (`_appendResultColumnProjection`, `sqlBuilders/AbstractSqlBuilder.ts`). By default it is the conversion of the
    library (the `transformProjection` of the connection): the identity, and on SQL Server `convert(nvarchar(41), …)` of a decimal (`SqlServerConnection.transformProjection`). The
-   group by, the having, the order by and the subqueries keep the SQL of the value: a compound select, or a distinct
-   select ordered by a converted column, is wrapped in a select that converts the columns (`_needsResultConversionWrap`,
-   `_needsSelectOrderByWrap`), and the order by of a converted column writes the value (`_appendOrderByColumnAlias`).
+   group by, the having and the subqueries keep the SQL of the value. Where the query compares or orders the column,
+   the `projectionComparison` of the same adapter (or of the connection, which answers `'value'`, and `'columnEquality'` for a
+   SQL Server decimal) decides (`_projectionComparison`): with `'value'` the converted SQL stays in place; when it isn't
+   `'value'` the order by of the column writes the value (`_isOrderByAliasNeedingTheValue`, `_appendOrderByColumnAlias`),
+   and a distinct or a compound select ordered by it is wrapped in a select that converts the columns
+   (`_needsSelectOrderByWrap`, `_needsResultConversionWrap`); with `'columnEquality'` (equal only among the values of
+   one column) a compound select is always wrapped (`_needsResultConversionWrap`), and with `'none'` a distinct select
+   too (`_needsDistinctConversionWrap`).
    On Oracle, the OUT bind of a converted returning column is a text (`addOutParam` with the `string` type and
    category), whatever the type of the column. The id the library reads by itself in an insert without a returning of
    the query (`returning id`, `output inserted.id`, Oracle's `returning id into`) keeps its SQL.
@@ -98,9 +103,13 @@ temporal values and UTC applies to the other databases.
    database writes as a string (SQL Server's JSON written by the library: `'"' + string_escape(convert(nvarchar(max),
    …), 'json') + '"'`); by default it is the identity, and the value keeps the encoding the library gives it in the JSON
    (§3.2). The leaf is written outside the select whose distinct, order by and limit use the value (over the wrapped
-   select `a_N_`, or in an aggregate without them); on SQL Server a select of objects with a converted leaf isn't
-   written with `for json path`. The distinct of `aggregateAsArrayDistinct` / `aggregateAsArrayOfOneColumnDistinct`
-   is inside the aggregate and compares what goes in the JSON.
+   select `a_N_`, or in an aggregate without them); on SQL Server a select of objects is written with `for json path`,
+   its leaves converted in place (`_isSelectOfAggregatedArrayValues`), unless a leaf is `'none'` or another converted leaf
+   is named by the order by (`_isForJsonPathAggregatedArray`). The distinct of `aggregateAsArrayDistinct` /
+   `aggregateAsArrayOfOneColumnDistinct` is inside the aggregate and compares what goes in the JSON, except for a
+   `'none'` value when the aggregate is the only column of a select without group by, having or order by: the select
+   is written as the aggregate over a select of the distinct values (`_getDistinctAggregatedArrayToWrap`); MariaDB
+   never does it, because it doesn't see a column of the outer query in a derived table (error 1054).
 1. The runner executes with its per-query options (§3.1) and returns rows as plain objects keyed by the column alias.
    The one-column / one-value methods take the only own property of the row and throw `ONLY_ONE_COLUMN_EXPECTED` if
    there are more (`queryRunners/AbstractQueryRunner.ts:25-240`).
@@ -532,7 +541,8 @@ the text sent (`to_timestamp_tz(:0, 'YYYY-MM-DD"T"HH24:MI:SS.FF TZR')`, `cast(@0
 text. A `customComparable` (or a `custom`) text is sent as text; a `customLocalDateTime` is bound by its category, on SQL
 Server as a `datetime2`, which tedious makes from a `Date`: the offset and the digits below the millisecond are lost
 (measured on SQL Server 2019). Everywhere else the column keeps its SQL, so the
-where and the order by compare instants. `test/db/oracle/*/*/column.oracle-zoned-date-time-as-text.test.ts`,
+where and the order by compare instants; its `projectionComparison` is `'none'`, so a union and a distinct compare
+instants too (Oracle and SQL Server compare these values by instant). `test/db/oracle/*/*/column.oracle-zoned-date-time-as-text.test.ts`,
 `test/db/sqlserver/*/mssql/column.sqlserver-zoned-date-time-as-text.test.ts` (real on Oracle 21 and 23, SQL Server 2019,
 2022 and 2025).
 

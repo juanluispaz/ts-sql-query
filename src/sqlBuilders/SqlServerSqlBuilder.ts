@@ -221,7 +221,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return 'with'
     }
     override _buildWithValues(withValues: WithValuesData, params: any[]) {
-        let result = withValues.__name
+        let result = this._escape(withValues.__name, false)
         result += ' as (select * from (values '
 
         const values = withValues.__values
@@ -246,7 +246,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
         result += valuesSql
         result += ') as '
-        result += withValues.__name
+        result += this._escape(withValues.__name, false)
 
         let columns = ''
         for (const columnName of __columnPathsOf(withValues.__getTableOrView())) {

@@ -631,7 +631,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             valuesSql += 'select ' + valueSql + ' from dual'
         }
 
-        return withValues.__name + '(' + columns + ') as (' + valuesSql + ')'
+        return this._escape(withValues.__name, false) + '(' + columns + ') as (' + valuesSql + ')'
     }
     override _appendWithColumns(withData: WithSelectData, params: any[]): string {
         if (withData.__selectData.__type === 'plain') {

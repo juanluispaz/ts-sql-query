@@ -186,7 +186,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         return true
     }
     override _buildWithValues(withValues: WithValuesData, params: any[]) {
-        let result = withValues.__name
+        let result = this._escape(withValues.__name, false)
         let columns = ''
         for (const columnName of __columnPathsOf(withValues.__getTableOrView())) {
             const column = __getColumnOfObject(withValues.__getTableOrView(), columnName)

@@ -1043,7 +1043,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (result) {
                 result += ', '
             }
-            result += withView.__name
+            result += this._escape(withView.__name, false)
             result += this._appendWithColumns(withView, params)
             result += ' as '
             if (customization && customization.beforeWithQuery) {
@@ -1061,7 +1061,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return this._appendWithKeyword(recursive) + ' ' + result + ' '
     }
     _buildWithValues(withValues: WithValuesData, params: any[]) {
-        let result = withValues.__name
+        let result = this._escape(withValues.__name, false)
         let columns = ''
         for (const columnName of __columnPathsOf(withValues.__getTableOrView())) {
             const column = __getColumnOfObject(withValues.__getTableOrView(), columnName)

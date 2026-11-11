@@ -1,8 +1,9 @@
-import { isSelectPageCountQuery, setQueryParamType } from './QueryRunner.js'
+import { isSelectPageCountQuery } from './QueryRunner.js'
 import { databaseParamBinding } from '../utils/queryRunnerParams.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, PromiseProvider, QueryRunner, RollbackOpts } from './QueryRunner.js'
 import { TsSqlError, type TsSqlErrorReason } from '../TsSqlError.js';
+import { queryParamForceTypeCast, queryParamType, queryParamTypeCategory, setParamMetadata } from '../utils/metadataSymbols.js'
 
 export interface NoopQueryRunnerConfig {
     database?: DatabaseType
@@ -142,7 +143,9 @@ export class NoopQueryRunner implements QueryRunner {
         return databaseParamBinding(this.database)(params, value, type, typeCategory, forceTypeCast)
     }
     addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
-        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
+        setParamMetadata(params, params.length, queryParamType, type)
+        setParamMetadata(params, params.length, queryParamTypeCategory, typeCategory)
+        setParamMetadata(params, params.length, queryParamForceTypeCast, forceTypeCast)
         const index = params.length
         params.push({ out_param_with_name: name })
         return ':' + index

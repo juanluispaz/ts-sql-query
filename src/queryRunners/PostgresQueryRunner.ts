@@ -6,10 +6,10 @@ import type { BeginTransactionOpts, DatabaseType, QueryRunner } from './QueryRun
 import type { Sql, ReservedSql, TransactionSql, Parameter } from 'postgres'
 import { getPostgresJsErrorReason, isPostgresJsError } from './connectorErrorMappers/PostgresErrorMapper.js'
 import type { TypeCategory } from '../TypeAdapter.js'
-import { getParamForceTypeCastAt, getParamTypeAt, getParamTypeCategoryAt } from '../utils/queryParamsMetadata.js'
 import { isPostgreSqlZonedParam, postgreSqlDriverParams, postgreSqlParamType } from '../utils/postgreSqlParamTypes.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { isProcessInUtc, postgreSqlOptionsTimeZone, rejectSessionNotInDatabaseZone, type SessionTimeZone } from '../utils/processTimeZone.js'
+import { getParamMetadata, queryParamForceTypeCast, queryParamType, queryParamTypeCategory } from '../utils/metadataSymbols.js'
 
 export interface PostgresQueryRunnerConfig {
     /**
@@ -80,15 +80,15 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
         let result: any[] | undefined = values === params ? undefined : values
         for (let i = 0, length = params.length; i < length; i++) {
             const value = values[i]
-            const type = getParamTypeAt(params, i)
+            const type = getParamMetadata<string>(params, i, queryParamType)
             const declared = typesByName && type !== undefined && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
             let typed: Parameter<any> | undefined
             if (typeof declared === 'function') {
                 typed = declared(value)
             } else if (declared !== undefined) {
                 typed = sql.typed(value, declared)
-            } else if (getParamForceTypeCastAt(params, i)) {
-                const paramType = postgreSqlParamType(type, getParamTypeCategoryAt(params, i), value, isPostgreSqlZonedParam(params, i))
+            } else if (getParamMetadata<boolean>(params, i, queryParamForceTypeCast)) {
+                const paramType = postgreSqlParamType(type, getParamMetadata<TypeCategory>(params, i, queryParamTypeCategory), value, isPostgreSqlZonedParam(params, i))
                 if (paramType) {
                     typed = sql.typed(value, paramType.oid)
                 }

@@ -4,14 +4,13 @@ import oracleDb from 'oracledb'
 import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getOracleDBErrorReason, isOracleDBError } from './connectorErrorMappers/OracleDBErrorMapper.js'
-import { getParamMetadataAt, getParamTypeAt, getParamTypeCategoryAt, getQueryConnectionConfigurationOf } from '../utils/queryParamsMetadata.js'
 import type { TypeCategory } from '../TypeAdapter.js'
-import { getQueryResultColumns, setQueryParamType } from './QueryRunner.js'
+import { getQueryResultColumns, type ConnectionConfiguration } from './QueryRunner.js'
 import { isProcessInUtc, oracleSessionTimeZone, rejectSessionNotInDatabaseZone, type SessionTimeZone } from '../utils/processTimeZone.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { __isDecimalCategory } from '../utils/typeCategory.js'
 import { isOracleZonedParam, oracleTemporalBind } from '../utils/oracleParamTypes.js'
-import { oracleDateParam } from '../utils/valueSymbols.js'
+import { getMetadata, getParamMetadata, oracleDateParam, queryConnectionConfiguration, queryParamForceTypeCast, queryParamType, queryParamTypeCategory, setParamMetadata } from '../utils/metadataSymbols.js'
 
 export interface OracleDBQueryRunnerConfig {
     /** The connection is in a transaction that something else manages, and that something else ends: the statements don't commit, and none begins, commits or rolls back through this query runner */
@@ -171,18 +170,18 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     protected bindParams(params: any[], resolveOutBinds: boolean = false, procedure: boolean = false): Record<string, any> {
         const typesByName = this.config?.typesByName
         // With booleanStorage 'boolean' (Oracle 23ai) a boolean is bound as a BOOLEAN, as in a procedure
-        const nativeBoolean = getQueryConnectionConfigurationOf(params)?.booleanStorage === 'boolean'
+        const nativeBoolean = getMetadata<ConnectionConfiguration>(params, queryConnectionConfiguration)?.booleanStorage === 'boolean'
         const result: Record<string, any> = {}
         // oracledb writes a date or a timestamp with the zone the process has when it binds
         const processInUtc = isProcessInUtc()
         for (let i = 0, length = params.length; i < length; i++) {
             const value = params[i]
-            const typeName = getParamTypeAt(params, i)
+            const typeName = getParamMetadata<string>(params, i, queryParamType)
             const declaredBind = typesByName && typeName !== undefined && Object.hasOwn(typesByName, typeName) ? typesByName[typeName] : undefined
             const declared = isOracleDBBindType(declaredBind) ? declaredBind.type : declaredBind
             if (resolveOutBinds && value && typeof value === 'object' && value.dir === oracleDb.BIND_OUT) {
                 // Each RETURNING OUT bind keeps the category of the type of its column (addOutParam)
-                const category = getParamTypeCategoryAt(params, i)
+                const category = getParamMetadata<TypeCategory>(params, i, queryParamTypeCategory)
                 // A date or a time is returned as a timestamp with time zone: Oracle converts the value of a date or a
                 // timestamp column with the zone of the session (the zone of the database, see oracleSessionTimeZone), and oracledb
                 // gives it as its instant, where it builds a date or a timestamp with the zone of the process
@@ -203,7 +202,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
                 result[i] = { val: value, type: declared }
                 continue
             }
-            if ((procedure || nativeBoolean) && getParamTypeCategoryAt(params, i) === 'boolean' && (value === 1 || value === 0 || value === null || value === undefined || typeof value === 'boolean')) {
+            if ((procedure || nativeBoolean) && getParamMetadata<TypeCategory>(params, i, queryParamTypeCategory) === 'boolean' && (value === 1 || value === 0 || value === null || value === undefined || typeof value === 'boolean')) {
                 result[i] = { val: value === null || value === undefined ? null : !!value, type: oracleDb.DB_TYPE_BOOLEAN }
                 continue
             }
@@ -215,7 +214,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
                 continue
             }
             // A localDate is bound as a date, a localTime or a localDateTime as a timestamp, with their UTC digits
-            const temporal = oracleTemporalBind(value, typeName, getParamTypeCategoryAt(params, i), processInUtc, getParamMetadataAt(params, i, oracleDateParam) === true)
+            const temporal = oracleTemporalBind(value, typeName, getParamMetadata<TypeCategory>(params, i, queryParamTypeCategory), processInUtc, getParamMetadata(params, i, oracleDateParam) === true)
             if (temporal) {
                 result[i] = { val: temporal.val, type: temporal.type === 'date' ? oracleDb.DB_TYPE_DATE : oracleDb.DB_TYPE_TIMESTAMP }
                 continue
@@ -224,7 +223,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
                 // oracledb binds a null without a type Oracle can use where nothing else gives it one: a row of a
                 // union (ORA-01790) or a `case :0 when 1` (ORA-00932). A null of a number, a date or a time is bound
                 // with its type: a DATE for a parameter of a DATE column (oracleDateParam).
-                const type = getParamMetadataAt(params, i, oracleDateParam) === true ? oracleDb.DB_TYPE_DATE : this.oracleDbType(getParamTypeCategoryAt(params, i), nativeBoolean)
+                const type = getParamMetadata(params, i, oracleDateParam) === true ? oracleDb.DB_TYPE_DATE : this.oracleDbType(getParamMetadata<TypeCategory>(params, i, queryParamTypeCategory), nativeBoolean)
                 if (type !== undefined) {
                     result[i] = { val: null, type: type }
                     continue
@@ -301,7 +300,9 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         return queryRunnerParamBindings.OracleDBQueryRunner(params, value, type, typeCategory, forceTypeCast)
     }
     override addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
-        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
+        setParamMetadata(params, params.length, queryParamType, type)
+        setParamMetadata(params, params.length, queryParamTypeCategory, typeCategory)
+        setParamMetadata(params, params.length, queryParamForceTypeCast, forceTypeCast)
         const index = params.length
         if (name) {
             params.push({dir: oracleDb.BIND_OUT, as: name})

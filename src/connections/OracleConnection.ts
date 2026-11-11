@@ -10,9 +10,9 @@ import { AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource } fro
 import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
-import { setQueryParamMetadata, type ProjectionOutput, type TypeCategory } from '../TypeAdapter.js'
+import type { ProjectionOutput, TypeCategory } from '../TypeAdapter.js'
 import { __conversionType } from '../utils/typeCategory.js'
-import { oracleZonedParam } from '../utils/valueSymbols.js'
+import { oracleZonedParam, setParamMetadata } from '../utils/metadataSymbols.js'
 
 export abstract class OracleConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'oracle', NAME>> {
 
@@ -173,7 +173,7 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
         if (this.isDatabaseOutsideUtc()) {
             const conversionType = __conversionType(type, typeCategory)
             if (conversionType === 'localDateTime' || conversionType === 'localTime') {
-                setQueryParamMetadata(params, index, oracleZonedParam, true)
+                setParamMetadata(params, index, oracleZonedParam, true)
             }
         }
     }

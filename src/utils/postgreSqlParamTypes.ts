@@ -1,8 +1,7 @@
 import type { TypeCategory } from '../TypeAdapter.js'
-import { getParamMetadataAt, getParamTypeAt, getParamTypeCategoryAt } from './queryParamsMetadata.js'
-import { postgreSqlZonedParam } from './valueSymbols.js'
 import { __conversionType } from './typeCategory.js'
 import { utcDateText, utcTimeText } from './utcDateTimeText.js'
+import { getParamMetadata, postgreSqlZonedParam, queryParamType, queryParamTypeCategory } from './metadataSymbols.js'
 
 /**
  * The PostgreSQL type a parameter is given where the position it is written in doesn't give it one (forceTypeCast):
@@ -32,7 +31,7 @@ const timestamptz: PostgreSqlParamType = { cast: 'timestamptz', oid: 1184 }
  * session, in the zone of the database, where it is compared with or stored in a timestamp or a time
  */
 export function isPostgreSqlZonedParam(params: any[], index: number): boolean {
-    return getParamMetadataAt(params, index, postgreSqlZonedParam) === true
+    return getParamMetadata(params, index, postgreSqlZonedParam) === true
 }
 
 const byConversionType: { [conversionType: string]: PostgreSqlParamType } = {
@@ -145,14 +144,14 @@ export function postgreSqlDriverParams(params: any[]): any[] {
     let result: any[] | undefined = undefined
     for (let i = 0, length = params.length; i < length; i++) {
         const value = params[i]
-        const type = getParamTypeAt(params, i)
+        const type = getParamMetadata<string>(params, i, queryParamType)
         if (!(value instanceof Date) || type === undefined) {
             continue
         }
         if (!result) {
             result = params.slice()
         }
-        result[i] = postgreSqlParamValue(value, type, getParamTypeCategoryAt(params, i), isPostgreSqlZonedParam(params, i))
+        result[i] = postgreSqlParamValue(value, type, getParamMetadata<TypeCategory>(params, i, queryParamTypeCategory), isPostgreSqlZonedParam(params, i))
     }
     return result ?? params
 }

@@ -5,8 +5,8 @@ import { OracleDBQueryRunner, type OracleDBQueryRunnerConfig } from './OracleDBQ
 import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
 import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import type { TypeCategory } from '../TypeAdapter.js'
-import { setQueryParamType } from './QueryRunner.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
+import { queryParamForceTypeCast, queryParamType, queryParamTypeCategory, setParamMetadata } from '../utils/metadataSymbols.js'
 
 export interface OracleDBPoolQueryRunnerConfig {
     /** See OracleDBQueryRunnerConfig */
@@ -44,7 +44,9 @@ export class OracleDBPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
         return queryRunnerParamBindings.OracleDBPoolQueryRunner(params, value, type, typeCategory, forceTypeCast)
     }
     override addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
-        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
+        setParamMetadata(params, params.length, queryParamType, type)
+        setParamMetadata(params, params.length, queryParamTypeCategory, typeCategory)
+        setParamMetadata(params, params.length, queryParamForceTypeCast, forceTypeCast)
         const index = params.length
         if (name) {
             params.push({dir: oracledb.BIND_OUT, as: name})

@@ -9,7 +9,7 @@ import { TsSqlProcessingError } from '../TsSqlError.js'
 import { checkOracleParam, oraclePlaceholder } from './oracleParamTypes.js'
 import { mySqlPlaceholder } from './mySqlParamTypes.js'
 import { isPostgreSqlZonedParam, postgreSqlPlaceholder, postgreSqlZonedTimeCast } from './postgreSqlParamTypes.js'
-import { setParamTypeAt } from './queryParamsMetadata.js'
+import { queryParamForceTypeCast, queryParamType, queryParamTypeCategory, setParamMetadata } from './metadataSymbols.js'
 import { sqlServerPlaceholder } from './sqlServerParamTypes.js'
 
 /** The PostgreSQL type, by type name, written as the cast of a parameter (the typesByName of pg and Bun SQL) */
@@ -20,7 +20,9 @@ export type ParamBinding = (params: any[], value: any, type: string, typeCategor
 
 function add(params: any[], value: unknown, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): number {
     const index = params.length
-    setParamTypeAt(params, index, type, typeCategory, forceTypeCast)
+    setParamMetadata(params, index, queryParamType, type)
+    setParamMetadata(params, index, queryParamTypeCategory, typeCategory)
+    setParamMetadata(params, index, queryParamForceTypeCast, forceTypeCast)
     params.push(value)
     return index
 }

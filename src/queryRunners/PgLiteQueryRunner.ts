@@ -5,10 +5,10 @@ import { PostgresTransactionOutcome } from '../utils/postgresTransactionOutcome.
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getPgLiteErrorReason, isPgLiteError } from './connectorErrorMappers/PgLiteErrorMapper.js'
 import type { TypeCategory } from '../TypeAdapter.js'
-import { getParamForceTypeCastAt, getParamTypeAt, getParamTypeCategoryAt } from '../utils/queryParamsMetadata.js'
 import { isPostgreSqlZonedParam, postgreSqlDriverParams, postgreSqlParamType } from '../utils/postgreSqlParamTypes.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { parseUtcDateTimeTextOrKeepIt } from '../utils/utcDateTimeText.js'
+import { getParamMetadata, queryParamForceTypeCast, queryParamType, queryParamTypeCategory } from '../utils/metadataSymbols.js'
 
 export interface PgLiteQueryRunnerConfig {
     allowNestedTransactions?: boolean | undefined
@@ -64,10 +64,10 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
         const typesByName = this.config?.typesByName
         let paramTypes: number[] | undefined = undefined
         for (let i = 0, length = params.length; i < length; i++) {
-            const type = getParamTypeAt(params, i)
+            const type = getParamMetadata<string>(params, i, queryParamType)
             let oid = typesByName && type !== undefined && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
-            if (oid === undefined && getParamForceTypeCastAt(params, i)) {
-                oid = postgreSqlParamType(type, getParamTypeCategoryAt(params, i), params[i], isPostgreSqlZonedParam(params, i))?.oid
+            if (oid === undefined && getParamMetadata<boolean>(params, i, queryParamForceTypeCast)) {
+                oid = postgreSqlParamType(type, getParamMetadata<TypeCategory>(params, i, queryParamTypeCategory), params[i], isPostgreSqlZonedParam(params, i))?.oid
             }
             if (oid !== undefined) {
                 if (!paramTypes) {

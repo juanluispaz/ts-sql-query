@@ -6,10 +6,10 @@ import { ManagedTransactionQueryRunner } from './ManagedTransactionQueryRunner.j
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from "../TsSqlError.js"
 import { getMssqlErrorReason, isMssqlError } from './connectorErrorMappers/MssqlErrorMapper.js'
 import { databaseIsolationLevel } from '../utils/transactionIsolationLevel.js'
-import { getParamTypeAt, getParamTypeCategoryAt } from '../utils/queryParamsMetadata.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { isProcessInUtc } from '../utils/processTimeZone.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
+import { getParamMetadata, queryParamType, queryParamTypeCategory } from '../utils/metadataSymbols.js'
 
 const { TYPES, ISOLATION_LEVEL } = mssql
 
@@ -316,7 +316,7 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     // The type the parameter is bound with: the one declared in typesByName for its type name, or the one getType gives
     private getInputType(params: any[], index: number): ISqlType {
         const typesByName = this.config?.typesByName
-        const type = getParamTypeAt(params, index)
+        const type = getParamMetadata<string>(params, index, queryParamType)
         const declared = typesByName && type !== undefined && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
         if (declared) {
             if (typeof declared === 'function') {
@@ -332,8 +332,8 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     protected getType(params: any[], index: number): ISqlTypeFactory {
         // The category of the type decides the type of the parameter, then its name; a parameter added without them,
         // like one of a query written by hand, gets a type inferred from its value
-        const typeCategory = getParamTypeCategoryAt(params, index)
-        const type = getParamTypeAt(params, index)
+        const typeCategory = getParamMetadata<TypeCategory>(params, index, queryParamTypeCategory)
+        const type = getParamMetadata<string>(params, index, queryParamType)
         if (typeCategory || type) {
             const byCategory = typeCategory && Object.hasOwn(this.predefinedTypes, typeCategory) ? this.predefinedTypes[typeCategory] : undefined
             if (byCategory) {

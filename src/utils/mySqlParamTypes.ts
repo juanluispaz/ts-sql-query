@@ -1,8 +1,8 @@
 import type { TypeCategory } from '../TypeAdapter.js'
 import { customDecimalDigitsOf, rejectCustomDecimalParam } from './customDecimalParams.js'
-import { getParamTypeAt, getParamTypeCategoryAt, isParamValueForColumnAt } from './queryParamsMetadata.js'
 import { __conversionType, __isDecimalCategory } from './typeCategory.js'
 import { utcDateText, utcTimeText } from './utcDateTimeText.js'
+import { getParamMetadata, queryParamType, queryParamTypeCategory, queryParamValueForColumn } from './metadataSymbols.js'
 
 /**
  * The placeholder of a parameter on MySQL and MariaDB, for every query runner of them. A customDecimal is sent as
@@ -23,7 +23,7 @@ export function mySqlPlaceholder(placeholder: string, params: any[], index: numb
     if (digits.precision > 65 || digits.scale > 30) {
         rejectCustomDecimalParam(value, type, index, 'decimal(65, 30)')
     }
-    if (isParamValueForColumnAt(params, index)) {
+    if ((getParamMetadata(params, index, queryParamValueForColumn) === true)) {
         return placeholder
     }
     return 'cast(' + placeholder + ' as decimal(' + digits.precision + ', ' + digits.scale + '))'
@@ -62,14 +62,14 @@ export function mySqlDriverParams(params: any[]): any[] {
     let result: any[] | undefined = undefined
     for (let i = 0, length = params.length; i < length; i++) {
         const value = params[i]
-        const type = getParamTypeAt(params, i)
+        const type = getParamMetadata<string>(params, i, queryParamType)
         if (!(value instanceof Date) || type === undefined) {
             continue
         }
         if (!result) {
             result = params.slice()
         }
-        result[i] = mySqlParamValue(value, type, getParamTypeCategoryAt(params, i))
+        result[i] = mySqlParamValue(value, type, getParamMetadata<TypeCategory>(params, i, queryParamTypeCategory))
     }
     return result ?? params
 }

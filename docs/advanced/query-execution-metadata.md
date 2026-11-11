@@ -18,7 +18,7 @@ A query runner receives a query as its text and its parameters. To log or monito
 | The category of the type of a parameter | `getQueryParamTypeCategory` | A `TypeCategory`, like `'customInt'`, or `undefined` |
 | Whether the database must receive the type of a parameter | `getQueryParamForceTypeCast` | A `boolean`, or `undefined` |
 | Whether a parameter is the value given to a column in an insert or an update | `isQueryParamValueForColumn` | A `boolean` |
-| What a type adapter kept for a parameter, under a `symbol` | `getQueryParamMetadata` | The value, or `undefined` |
+| What a type adapter kept for a parameter, under a `symbol` | `getQueryParamMetadata`, in `ts-sql-query/QueryMetadata` | The value, or `undefined` |
 | The columns of the result, with the type of each one | `getQueryResultColumns` | An array of `QueryResultColumn`, or `undefined` |
 | One column of the result, by its name in the row | `getQueryResultColumn` | A `QueryResultColumn`, or `undefined` |
 | The configuration of the connection that executes the query | `getQueryConnectionConfiguration` | The connection, as a `ConnectionConfiguration`, or `undefined` |
@@ -383,9 +383,9 @@ In `select $1::int4 as i from customer where id = $2`, with the parameters `[ 7,
 
 `isQueryParamValueForColumn(query, params, index)` says whether the parameter is the value given to a column of a table, in the values of an insert or in the set of an update, where the column gives it its type: in `insert into customer (first_name, company_id) values ($1, $2)` both are `true`; in a `where`, or anywhere else, `false`. The query runners of MariaDB, MySQL and SQL Server use it to leave a `stringDecimal` or a `customDecimal` without the cast they write elsewhere.
 
-`getQueryParamMetadata(query, params, index, key)` reads what a type adapter kept for the parameter with `setQueryParamMetadata`, in its `addQueryParamMetadata` (see [Type adapters API](../api/type-adapters.md)), under the `symbol` the adapter defines; `undefined` when it kept nothing. The query runners of Oracle read the mark `OracleDateAsTimestampTypeAdapter` keeps to send its parameters as a `DATE`.
+`getQueryParamMetadata(params, index, key)`, from `ts-sql-query/QueryMetadata` (or `ts-sql-query`), reads what a type adapter kept for the parameter with `setQueryParamMetadata`, in its `addQueryParamMetadata` (see [Type adapters API](../api/type-adapters.md)), under the `symbol` the adapter defines; `undefined` when it kept nothing. The query runners of Oracle read the mark `OracleDateAsTimestampTypeAdapter` keeps to send its parameters as a `DATE`.
 
-A query runner of your own that adds the parameters keeps this information. Its `addParam(params, value, type, typeCategory, forceTypeCast)` adds the value to `params`, calls `setQueryParamType(params, index, type, typeCategory, forceTypeCast)` from `ts-sql-query/queryRunners/QueryRunner` with the index of the value, and returns the placeholder as it is written in the SQL, with the cast if it writes one; `addOutParam(params, name, type, typeCategory, forceTypeCast)` does the same for an out parameter. A query runner that wraps another passes all of them on to it.
+A query runner of your own that adds the parameters keeps this information. Its `addParam(params, value, type, typeCategory, forceTypeCast)` adds the value to `params`, keeps them with `setQueryParamMetadata(params, index, key, value)` from `ts-sql-query/QueryMetadata`, at the index of the value, under the keys `queryParamType`, `queryParamTypeCategory` and `queryParamForceTypeCast` of the same module, and returns the placeholder as it is written in the SQL, with the cast if it writes one; `addOutParam(params, name, type, typeCategory, forceTypeCast)` does the same for an out parameter. A query runner that wraps another passes all of them on to it.
 
 ## Get the type of each column of the result
 

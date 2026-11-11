@@ -1,8 +1,7 @@
 import type { TypeCategory } from '../TypeAdapter.js'
 import { customDecimalDigitsOf, rejectCustomDecimalParam } from './customDecimalParams.js'
-import { getParamMetadataAt, isParamValueForColumnAt } from './queryParamsMetadata.js'
 import { __conversionType, __isDecimalCategory } from './typeCategory.js'
-import { oracleDateParam, oracleZonedParam } from './valueSymbols.js'
+import { getParamMetadata, oracleDateParam, oracleZonedParam, queryParamValueForColumn } from './metadataSymbols.js'
 
 /**
  * Checks a parameter on Oracle, for every query runner of it: the number of the database keeps 38 significant
@@ -56,7 +55,7 @@ export function oracleTemporalBind(value: unknown, type: string | undefined, typ
         }
         case 'localTime':
         case 'localDateTime':
-            // Of a DATE (oracleDateParam of valueSymbols.ts), a value of whole seconds is a DATE, which the column compares with as it
+            // Of a DATE (oracleDateParam of metadataSymbols.ts), a value of whole seconds is a DATE, which the column compares with as it
             // is; one with a fraction stays a TIMESTAMP, which keeps it (10:00:00.500 is after a DATE of 10:00:00)
             return { val: processInUtc ? value : new OracleUtcDigitsDate(value.getTime()), type: ofDate && value.getUTCMilliseconds() === 0 ? 'date' : 'timestamp' }
         default:
@@ -66,7 +65,7 @@ export function oracleTemporalBind(value: unknown, type: string | undefined, typ
 
 /** Whether the parameter at that index is a localDateTime or a localTime of a database outside UTC (oracleZonedParam) */
 export function isOracleZonedParam(params: any[], index: number): boolean {
-    return getParamMetadataAt(params, index, oracleZonedParam) === true
+    return getParamMetadata(params, index, oracleZonedParam) === true
 }
 
 /**
@@ -78,9 +77,9 @@ export function isOracleZonedParam(params: any[], index: number): boolean {
  * column (oracleDateParam). A null, or any other parameter, keeps the bare placeholder.
  */
 export function oraclePlaceholder(placeholder: string, params: any[], index: number, value: unknown): string {
-    if (!(value instanceof Date) || !isOracleZonedParam(params, index) || isParamValueForColumnAt(params, index)) {
+    if (!(value instanceof Date) || !isOracleZonedParam(params, index) || (getParamMetadata(params, index, queryParamValueForColumn) === true)) {
         return placeholder
     }
-    const ofDate = getParamMetadataAt(params, index, oracleDateParam) === true && value.getUTCMilliseconds() === 0
+    const ofDate = getParamMetadata(params, index, oracleDateParam) === true && value.getUTCMilliseconds() === 0
     return 'cast(' + placeholder + (ofDate ? ' as date)' : ' as timestamp)')
 }

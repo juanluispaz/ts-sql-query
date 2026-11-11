@@ -68,14 +68,15 @@ temporal values and UTC applies to the other databases.
    - asks the adapter / connection `forceTypeCast(type, category, valueSentToDB, forceTypeCast)`
      (`connections/AbstractConnection.ts:1476-1478`: unchanged by default). `forceTypeCast` is true where the position
      of the parameter gives the database no type;
-   - marks the parameter as the value of a column (`setParamValueForColumnAt`) inside the values of an insert or the
+   - marks the parameter as the value of a column (`queryParamValueForColumn`) inside the values of an insert or the
      set of an update;
+   - calls `addQueryParamMetadata` of the type adapter, or of the connection, for what it keeps of the parameter;
    - calls `queryRunner.addParam(params, value, typeName, typeCategory, forceTypeCast)`;
    - passes the placeholder through `transformPlaceholder` (`connections/AbstractConnection.ts:1467-1469`: identity).
 3. `addParam` of every runner that talks to a database delegates to one binding of `utils/queryRunnerParams.ts:67-88`
    (the same function `MockQueryRunner` calls to imitate it, `queryRunners/MockQueryRunner.ts:90-112,530-532`). The
-   binding records the type name, category and forceTypeCast of the param (`setParamTypeAt`,
-   `utils/queryParamsMetadata.ts:103-122`), pushes the value and returns the placeholder.
+   binding records the type name, category and forceTypeCast of the param (`queryParamType`, `queryParamTypeCategory`,
+   `queryParamForceTypeCast`, `utils/metadataSymbols.ts`), pushes the value and returns the placeholder.
 4. At execution the runner reads that metadata (§4) and builds what its driver receives (a copy of the params with
    some values written as the driver needs them, a typed bind, an OID, a type of the driver). The params array itself
    is not changed.
@@ -216,7 +217,7 @@ casts). A `Date` reads well: its `toISOString()` shows the UTC digits (`2024-01-
   mock.
 - A `MockQueryRunner` with `queryRunner: '<name>'` receives the SQL and params that runner builds (same binding);
   without a name, those of the database's binding. It doesn't execute, so it never sees the adjustments of execution.
-- The params also carry the hidden metadata (§4) as non-enumerable properties (`utils/queryParamsMetadata.ts:12-19`):
+- The params also carry the hidden metadata (§4) as non-enumerable properties keyed by symbols (`utils/metadataSymbols.ts`):
   `JSON.stringify` and a spread don't include them.
 
 ### 2.4 At execution: what each runner gives its driver
@@ -399,24 +400,29 @@ calendar check, used by `SqliteConnection` before its strategies.
 
 ## 4. The hidden params metadata
 
-Non-enumerable properties on the params array (`utils/queryParamsMetadata.ts`): they travel with the params and are
-never sent. What belongs to each parameter is one object per parameter, at its index, in a single array hidden under a
-symbol (`queryParamsInfo`, `utils/valueSymbols.ts`, the symbols that are keys of values, unlike `utils/symbols.ts`); its
-keys are symbols too, so what the library keeps and what anyone else adds can't collide. Every write goes through the
-public `setQueryParamMetadata` (`TypeAdapter.ts:115-132`); the library's own keys are private to
-`queryParamsMetadata.ts` (`:99-105`). A runner reads them through the public functions of `queryRunners/QueryRunner.ts`; all are optional extra
-information, so a runner must still work with params built by hand (no metadata: `undefined`).
+The library hangs on the params of a query what the query runner may read besides the SQL and the params: it travels
+with the params and is never sent. Each value is kept under a symbol of `utils/metadataSymbols.ts`, as a hidden
+property (out of a listing, a spread and `JSON.stringify`) of the object it belongs to: the params array for what
+belongs to the query, and, for what belongs to each parameter, one object per parameter, at its index, in an array
+hidden in the params under `queryParamsInfo`. `metadataSymbols.ts` has the internal functions that write and read
+them: `setMetadata` / `getMetadata` on any object, and `setParamMetadata` / `getParamMetadata` for a parameter. The
+public ones are in `QueryMetadata.ts`: `setQueryParamMetadata` / `getQueryParamMetadata`, with a symbol of whoever
+sets it (a type adapter in its `addQueryParamMetadata`, a query runner of the user in its `addParam`), so the keys
+can't collide, and the keys of the type of a parameter, `queryParamType`, `queryParamTypeCategory` and
+`queryParamForceTypeCast`, which a query runner of the user keeps in `addParam` and `addOutParam`. A runner of the
+library reads them with the symbols; the user, through the readers of `queryRunners/QueryRunner.ts`. All are optional
+extra information, so a runner must still work with params built by hand (no metadata: `undefined`).
 
-| Property | Written by | Public reader | What it is for |
-|---|---|---|---|
-| the type name, type category and forceTypeCast of each parameter | the binding, through `setParamTypeAt` (`queryParamsMetadata.ts:114-119`); `setQueryParamType` (`QueryRunner.ts:121-123`) for a runner of its own, also for OUT params | `getQueryParamType`, `getQueryParamTypeCategory`, `getQueryParamForceTypeCast` (`QueryRunner.ts:125-141`) | the type of each param at execution: the UTC text of a `Date` (PostgreSQL, MySQL/MariaDB), OIDs (postgres.js, PGlite), mssql types, Oracle bind types, `typesByName` lookups. A param added without them leaves a hole, and is sent as it is |
-| whether a parameter is the value of a column | the SQL builder before `addParam`, inside an insert's values or an update's set (`AbstractSqlBuilder.ts:703-705`; `queryParamsMetadata.ts:138-144`) | `isQueryParamValueForColumn` (`QueryRunner.ts:147-150`) | the column gives the type: no decimal cast on MySQL/MariaDB and SQL Server (`mySqlParamTypes.ts:26-28`, `sqlServerParamTypes.ts:24-26`) |
-| what a type adapter keeps for a parameter, under a symbol of its own | the type adapter's `addQueryParamMetadata`, which the SQL builder calls before `addParam`, also for a `null` (`AbstractSqlBuilder.ts:706-712`), through `setQueryParamMetadata` | `getQueryParamMetadata` (`QueryRunner.ts:151-155`) | `OracleDateAsTimestampTypeAdapter` marks its `localDateTime`/`localTime` parameters with `oracleDateParam` (`TypeAdapter.ts:173-180`): the Oracle runners bind one of whole seconds as a `DATE`, and a `null` as a `DATE` (§2.4) |
-| `$resultColumns` | `__setQueryMetadata` (`queryBuilders/AbstractQueryBuilder.ts:560`), from `__resultColumnsOf` / `__unnamedResultColumn` (`:533-558`) | `getQueryResultColumns`, `getQueryResultColumn` (`QueryRunner.ts:226-234`) | the expected type of each result column (`name` = key in the row, `path`, `type`, `typeCategory`; `''` for an aggregated array): Oracle fetches decimals and bigints as text (`OracleDBQueryRunner.ts:94-118`). `[]` when the query returns no columns, `undefined` for a query the library didn't build |
-| `$connectionConfiguration` | `__setQueryMetadata` | `getQueryConnectionConfiguration` (`QueryRunner.ts:239-242`) | the connection's settings (`ConnectionConfiguration`, `QueryRunner.ts:156-204`: `allowEmptyString`, `compatibilityVersion`, `uuidStrategy`, `decimalStrategy`, SQLite date formats, …), read live from the connection |
-| `$source`, `$metadata` | `__setQueryMetadata` | `getQueryExecutionSource`, `getQueryExecutionStack`, `getFunctionExecutingQuery`, `getQueryExecutionName`, `getQueryExecutionMetadata` (`QueryRunner.ts:243-302`) | logging and errors |
-| `$isSelectPageCountQuery` | `executeSelectPage` | `isSelectPageCountQuery` (`QueryRunner.ts:303-306`) | tells the count query apart |
-| `_containsInsertReturningClause`, `_containsMutationReturningClause`, `_forcedAffectedRowCount` | SQL builder | internal (`AbstractQueryRunner.containsInsertReturningClause`, `executeMutationReturning`, `getForcedAffectedRowCount`) | whether to read rows or the insert id; Oracle's multi-row insert count |
+| Symbol | Of | Written by | Public reader | What it is for |
+|---|---|---|---|---|
+| `queryParamType`, `queryParamTypeCategory`, `queryParamForceTypeCast` | each parameter | the binding (`add` of `queryRunnerParams.ts`), and each runner's `addOutParam`; a runner of the user with `setQueryParamMetadata` | `getQueryParamType`, `getQueryParamTypeCategory`, `getQueryParamForceTypeCast` | the type of each param at execution: the UTC text of a `Date` (PostgreSQL, MySQL/MariaDB), OIDs (postgres.js, PGlite), mssql types, Oracle bind types, `typesByName` lookups. A param added without them leaves a hole, and is sent as it is |
+| `queryParamValueForColumn` | each parameter | the SQL builder before `addParam`, inside an insert's values or an update's set (`AbstractSqlBuilder._appendValue…`) | `isQueryParamValueForColumn` | the column gives the type: no decimal cast on MySQL/MariaDB and SQL Server (`mySqlParamTypes.ts`, `sqlServerParamTypes.ts`); the bare placeholder of a zoned Oracle value (`oracleParamTypes.ts`) |
+| a symbol of a type adapter or of the connection (`oracleDateParam`, `postgreSqlZonedParam`, `oracleZonedParam`) | each parameter | `addQueryParamMetadata` of the type adapter and of the connection, which the SQL builder calls before `addParam`, also for a `null` | `getQueryParamMetadata` | `OracleDateAsTimestampTypeAdapter` marks its `localDateTime`/`localTime` parameters (`oracleDateParam`): the Oracle runners bind one of whole seconds as a `DATE`, and a `null` as a `DATE` (§2.4); a database outside UTC (§7.3) |
+| `queryResultColumns` | the query | `__setQueryMetadata` (`queryBuilders/AbstractQueryBuilder.ts`), from `__resultColumnsOf` / `__unnamedResultColumn` | `getQueryResultColumns`, `getQueryResultColumn` | the expected type of each result column (`name` = key in the row, `path`, `type`, `typeCategory`; `''` for an aggregated array): Oracle fetches decimals and bigints as text (`OracleDBQueryRunner.fetchTypeHandlerFor`). `[]` when the query returns no columns, `undefined` for a query the library didn't build |
+| `queryConnectionConfiguration` | the query | `__setQueryMetadata` | `getQueryConnectionConfiguration` | the connection's settings (`ConnectionConfiguration`, `QueryRunner.ts`: `allowEmptyString`, `compatibilityVersion`, `uuidStrategy`, `decimalStrategy`, `databaseTimeZone`, SQLite date formats, …), read live from the connection |
+| `queryExecutionSource`, `queryExecutionMetadata` | the query | `__setQueryMetadata` | `getQueryExecutionSource`, `getQueryExecutionStack`, `getFunctionExecutingQuery`, `getQueryExecutionName`, `getQueryExecutionMetadata` | logging and errors |
+| `querySelectPageCount` | the query | `executeSelectPage` | `isSelectPageCountQuery` | tells the count query apart |
+| `queryContainsInsertReturningClause`, `queryContainsMutationReturningClause`, `queryForcedAffectedRowCount` | the query | SQL builder | internal (`AbstractQueryRunner.containsInsertReturningClause`, `executeMutationReturning`, `getForcedAffectedRowCount`) | whether to read rows or the insert id; Oracle's multi-row insert count |
 
 ## 5. The driver object: what the runner checks, isolates, and leaves to the user
 

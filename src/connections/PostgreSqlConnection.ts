@@ -1,9 +1,8 @@
 import type { NAggregate, NConnection, NNotNestedAggregate, NSource } from '../utils/sourceName.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { PostgreSqlSqlBuilder, postgreSqlZonedValueSql } from '../sqlBuilders/PostgreSqlSqlBuilder.js'
-import { setQueryParamMetadata, type ProjectionOutput, type TypeCategory } from '../TypeAdapter.js'
+import type { ProjectionOutput, TypeCategory } from '../TypeAdapter.js'
 import { __conversionType } from '../utils/typeCategory.js'
-import { postgreSqlZonedParam } from '../utils/valueSymbols.js'
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
 import type { AggregatedArrayColumns, SourceOfAggregatedArray, TransactionIsolationLevel } from './AbstractConnection.js'
 import type { AggregatedArrayValueSource, AggregatedArrayValueSourceProjectableAsNullable, IStringValueSource, IValueSource, StringValueSource, ValueSourceOf , RemapValueSourceTypeWithOptionalType} from '../expressions/values.js'
@@ -16,6 +15,7 @@ import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
+import { postgreSqlZonedParam, setParamMetadata } from '../utils/metadataSymbols.js'
 
 export abstract class PostgreSqlConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'postgreSql', NAME>> {
 
@@ -45,7 +45,7 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
         if (this.isDatabaseOutsideUtc()) {
             const conversionType = __conversionType(type, typeCategory)
             if (conversionType === 'localDateTime' || conversionType === 'localTime') {
-                setQueryParamMetadata(params, index, postgreSqlZonedParam, true)
+                setParamMetadata(params, index, postgreSqlZonedParam, true)
             }
         }
     }

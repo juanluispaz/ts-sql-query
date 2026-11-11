@@ -8,7 +8,7 @@ import type { AnyTableOrView, IWithView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate, __registerRequiredColumn } from '../utils/ITableOrView.js'
 import type { QueryExecutionSource } from '../TsSqlError.js'
 import { TsSqlError, TsSqlProcessingError, TsSqlQueryExecutionError } from '../TsSqlError.js'
-import { setQueryConnectionConfiguration, setQueryExecutionMetadata, setQueryExecutionSource, setQueryResultColumns, setSelectPageCountQuery } from '../utils/queryParamsMetadata.js'
+import { queryConnectionConfiguration, queryExecutionMetadata, queryExecutionSource, queryResultColumns, querySelectPageCount, setMetadata } from '../utils/metadataSymbols.js'
 import type { QueryResultColumn } from '../queryRunners/QueryRunner.js'
 import { __typeCategoryOf } from '../utils/typeCategory.js'
 
@@ -559,14 +559,14 @@ export function __unnamedResultColumn(valueSource: AnyValueSource): QueryResultC
  */
 export function  __setQueryMetadata(source: Error, params: any[], sqlBuilder: SqlBuilder, resultColumns: readonly QueryResultColumn[], queryMetadata?: {queryExecutionName?: string,  queryExecutionMetadata?: any} | undefined, isSelectPageCountQuery?: boolean) {
     sqlBuilder._checkConnectionConfiguration()
-    setQueryExecutionSource(params, source)
-    setQueryResultColumns(params, resultColumns)
-    setQueryConnectionConfiguration(params, sqlBuilder._connectionConfiguration)
+    setMetadata(params, queryExecutionSource, source)
+    setMetadata(params, queryResultColumns, resultColumns)
+    setMetadata(params, queryConnectionConfiguration, sqlBuilder._connectionConfiguration)
     if (queryMetadata) {
-        setQueryExecutionMetadata(params, queryMetadata)
+        setMetadata(params, queryExecutionMetadata, queryMetadata)
     }
     if (isSelectPageCountQuery) {
-        setSelectPageCountQuery(params)
+        setMetadata(params, querySelectPageCount, true)
     }
 }
 

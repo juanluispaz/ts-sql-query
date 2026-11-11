@@ -22,7 +22,7 @@ import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { RawFragment } from '../utils/RawFragment.js'
 import { TsSqlError, TsSqlProcessingError } from '../TsSqlError.js'
 import { isUtcTimeZoneName } from '../utils/processTimeZone.js'
-import { getContainsInsertReturningClause, setContainsInsertReturningClause, setContainsMutationReturningClause, setForcedAffectedRowCount, setParamValueForColumnAt } from '../utils/queryParamsMetadata.js'
+import { getMetadata, queryContainsInsertReturningClause, queryContainsMutationReturningClause, queryForcedAffectedRowCount, queryParamValueForColumn, setMetadata, setParamMetadata } from '../utils/metadataSymbols.js'
 import { __typeCategoryOf } from '../utils/typeCategory.js'
 import { __isDecimalCategory } from '../utils/typeCategory.js'
 
@@ -316,10 +316,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     // Read in the query runner
     _getContainsInsertReturningClause(params: any[]): boolean | undefined {
-        return getContainsInsertReturningClause(params)
+        return getMetadata<boolean>(params, queryContainsInsertReturningClause)
     }
     _setContainsInsertReturningClause(params: any[], value: boolean | undefined): void {
-        setContainsInsertReturningClause(params, value)
+        setMetadata(params, queryContainsInsertReturningClause, value)
     }
     // Read in the query runner (AbstractQueryRunner.executeMutationReturning).
     // Set to `false` when the outermost mutation's returning projection collapses
@@ -330,7 +330,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     // instead of rows (mysql2, mariadb). Only set for the outermost query, whose
     // statement is the one actually executed.
     _setContainsMutationReturningClause(params: any[], value: boolean | undefined): void {
-        setContainsMutationReturningClause(params, value)
+        setMetadata(params, queryContainsMutationReturningClause, value)
     }
     // Read in the query runner (see AbstractQueryRunner.getForcedAffectedRowCount).
     // Set when the affected-row count is known while building the query but the
@@ -339,7 +339,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     // rowsAffected for PL/SQL blocks). The query runner returns this value as the
     // affected-row count instead of the driver's (absent) one.
     _setForcedAffectedRowCount(params: any[], value: number | undefined): void {
-        setForcedAffectedRowCount(params, value)
+        setMetadata(params, queryForcedAffectedRowCount, value)
     }
     _ensureRootQuery(query: SelectData | InsertData | UpdateData | DeleteData, params: any[]) {
         const rootQuery = (params as any)._rootQuery
@@ -702,7 +702,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             forceTypeCast = this._defaultTypeAdapter.forceTypeCast(columnTypeName, typeCategory, value, forceTypeCast)
         }
         if (this._isAssigningValueToColumn(params)) {
-            setParamValueForColumnAt(params, params.length)
+            setParamMetadata(params, params.length, queryParamValueForColumn, true)
         }
         // What the type adapter or the connection keeps for the query runner, before the parameter is added
         if (typeAdapter && typeAdapter.addQueryParamMetadata) {

@@ -1,19 +1,20 @@
 // The functions src/queryRunners/QueryRunner.ts exports for a query runner to
-// read what the query builders recorded on the params of a query.
+// read what the query builders recorded on the params of a query, and the
+// metadata of a parameter (src/QueryMetadata.ts), kept under a symbol.
 
 import { describe, expect, test } from '../../lib/testRunner.js'
 import {
     getFunctionExecutingQuery, getQueryExecutionMetadata, getQueryExecutionName, getQueryExecutionSource,
     getQueryExecutionStack, getQueryParamForceTypeCast, getQueryParamType, getQueryParamTypeCategory, isSelectPageCountQuery,
-    setQueryParamType,
 } from '../../../src/queryRunners/QueryRunner.js'
-import { setQueryExecutionMetadata, setQueryExecutionSource, setSelectPageCountQuery } from '../../../src/utils/queryParamsMetadata.js'
+import { getQueryParamMetadata, queryParamForceTypeCast, queryParamType, queryParamTypeCategory, setQueryParamMetadata } from '../../../src/QueryMetadata.js'
+import { queryExecutionMetadata, queryExecutionSource, querySelectPageCount, setMetadata } from '../../../src/utils/metadataSymbols.js'
 
 function paramsBuiltAt(stack: string): any[] {
     const source = new Error('source')
     source.stack = stack
     const params: any[] = [1]
-    setQueryExecutionSource(params, source)
+    setMetadata(params, queryExecutionSource, source)
     return params
 }
 
@@ -30,7 +31,7 @@ describe('QueryRunner functions', () => {
 
     test('execution-name-and-metadata', () => {
         const params: any[] = []
-        setQueryExecutionMetadata(params, { queryExecutionName: 'load users', queryExecutionMetadata: { tag: 1 } })
+        setMetadata(params, queryExecutionMetadata, { queryExecutionName: 'load users', queryExecutionMetadata: { tag: 1 } })
         expect(getQueryExecutionName('q', params)).toBe('load users')
         expect(getQueryExecutionMetadata('q', params)).toEqual({ tag: 1 })
         expect(Object.keys(params)).toEqual([])
@@ -38,8 +39,13 @@ describe('QueryRunner functions', () => {
 
     test('param-types', () => {
         const params: any[] = [1, 'a', null]
-        setQueryParamType(params, 0, 'int', 'int', true)
-        setQueryParamType(params, 2, 'Money', 'customDouble', false)
+        const setType = (index: number, type: string, typeCategory: 'int' | 'customDouble', forceTypeCast: boolean) => {
+            setQueryParamMetadata(params, index, queryParamType, type)
+            setQueryParamMetadata(params, index, queryParamTypeCategory, typeCategory)
+            setQueryParamMetadata(params, index, queryParamForceTypeCast, forceTypeCast)
+        }
+        setType(0, 'int', 'int', true)
+        setType(2, 'Money', 'customDouble', false)
         expect([0, 1, 2].map(index => [getQueryParamType('q', params, index), getQueryParamTypeCategory('q', params, index), getQueryParamForceTypeCast('q', params, index)])).toEqual([
             ['int', 'int', true],
             [undefined, undefined, undefined],
@@ -48,9 +54,20 @@ describe('QueryRunner functions', () => {
         expect(Object.keys(params)).toEqual(['0', '1', '2'])
     })
 
+    test('param-metadata-of-its-own-symbol', () => {
+        const params: any[] = [1, 2]
+        const mark = Symbol('mark')
+        setQueryParamMetadata(params, 1, mark, 'kept')
+        expect([getQueryParamMetadata(params, 0, mark), getQueryParamMetadata(params, 1, mark)]).toEqual([undefined, 'kept'])
+        expect(getQueryParamMetadata(params, 1, queryParamType)).toBeUndefined()
+        expect(Object.keys(params)).toEqual(['0', '1'])
+        expect(JSON.stringify(params)).toBe('[1,2]')
+        expect([...params]).toEqual([1, 2])
+    })
+
     test('page-count-query', () => {
         const params: any[] = []
-        setSelectPageCountQuery(params)
+        setMetadata(params, querySelectPageCount, true)
         expect(isSelectPageCountQuery('q', params)).toBe(true)
     })
 

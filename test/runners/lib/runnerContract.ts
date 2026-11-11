@@ -9,7 +9,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../l
 import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
 import { QueryExecutionSource, TsSqlError, TsSqlProcessingError, TsSqlQueryExecutionError } from '../../../src/TsSqlError.js'
 import { ChainedQueryRunner } from '../../../src/queryRunners/ChainedQueryRunner.js'
-import { setContainsMutationReturningClause } from '../../../src/utils/queryParamsMetadata.js'
+import { queryContainsMutationReturningClause, setMetadata } from '../../../src/utils/metadataSymbols.js'
 import type { RunnerDialect } from './dialects.js'
 import { CONNECTION_FAILURES, ERROR_SCENARIOS } from './errorScenarios.js'
 import { DRIVER_NAMED_ERROR_NUMBERS, raisedErrors } from './raisedErrors.js'
@@ -299,7 +299,7 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
             // reports no returned rows.
             const p: any[] = []
             const sql = `update rt_probe set name = ${r().addParam(p, 'plain', 'string', 'string', false)} where id = ${r().addParam(p, 1, 'int', 'int', false)}`
-            setContainsMutationReturningClause(p, false)
+            setMetadata(p, queryContainsMutationReturningClause, false)
             const rows = await r().executeUpdateReturningManyRows(sql, p)
             expect(rows).toEqual([])
             const p2: any[] = []

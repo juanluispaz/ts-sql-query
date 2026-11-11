@@ -1,4 +1,4 @@
-import { oracleDateParam, queryParamsInfo } from './utils/valueSymbols.js'
+import { oracleDateParam, setParamMetadata } from './utils/metadataSymbols.js'
 import { __conversionType } from './utils/typeCategory.js'
 
 /**
@@ -71,7 +71,7 @@ export interface TypeAdapter {
     forceTypeCast?(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean, next: DefaultTypeAdapter): boolean
     /**
      * Keeps, for the query runner, what the adapter knows of the parameter at `index` of the params, which is about to
-     * be added (also a `null`): `setQueryParamMetadata(params, index, key, value)`, under a symbol of its own. Called
+     * be added (also a `null`): `setQueryParamMetadata(params, index, key, value)` (`ts-sql-query/QueryMetadata`), under a symbol of its own. Called
      * after `transformValueToDB`, with the value sent; `next.addQueryParamMetadata(...)` keeps the one of the connection
      */
     addQueryParamMetadata?(params: any[], index: number, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, next: DefaultTypeAdapter): void
@@ -110,25 +110,6 @@ export interface TypeAdapter {
      * `transformProjection` doesn't convert the value
      */
     projectionComparison?(type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): ProjectionComparison
-}
-
-/**
- * Keeps a value of the parameter at that index of the params for the query runner, which reads it with
- * `getQueryParamMetadata`, under a symbol of whoever sets it: a type adapter in its `addQueryParamMetadata`. Each one
- * defines its own symbol, so they can't collide. Hidden: it isn't a param, and it isn't listed nor serialised.
- */
-export function setQueryParamMetadata(params: any[], index: number, key: symbol, value: unknown): void {
-    let paramsInfo = (params as any)[queryParamsInfo] as Array<{ [key: symbol]: unknown }> | undefined
-    if (!paramsInfo) {
-        paramsInfo = []
-        Object.defineProperty(params, queryParamsInfo, { value: paramsInfo, writable: true, enumerable: false, configurable: true })
-    }
-    let info = paramsInfo[index]
-    if (!info) {
-        info = {}
-        paramsInfo[index] = info
-    }
-    info[key] = value
 }
 
 export class CustomBooleanTypeAdapter implements TypeAdapter {
@@ -175,7 +156,7 @@ export class OracleDateAsTimestampTypeAdapter implements TypeAdapter {
         next.addQueryParamMetadata(params, index, type, typeCategory, valueSentToDB)
         const conversionType = __conversionType(type, typeCategory)
         if (conversionType === 'localDateTime' || conversionType === 'localTime') {
-            setQueryParamMetadata(params, index, oracleDateParam, true)
+            setParamMetadata(params, index, oracleDateParam, true)
         }
     }
 }

@@ -9,7 +9,7 @@ import { afterAll, beforeAll, describe, expect, test } from '../../lib/testRunne
 import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
 import type { TypeCategory } from '../../../src/TypeAdapter.js'
 import { OracleDBQueryRunner } from '../../../src/queryRunners/OracleDBQueryRunner.js'
-import { setForcedAffectedRowCount } from '../../../src/utils/queryParamsMetadata.js'
+import { queryForcedAffectedRowCount, setMetadata } from '../../../src/utils/metadataSymbols.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/oracle/runners.js'
 
@@ -80,7 +80,7 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
 
     test('a-pl-sql-block-reports-the-affected-rows-the-builder-recorded', async () => {
         const params: any[] = []
-        setForcedAffectedRowCount(params, 2)
+        setMetadata(params, queryForcedAffectedRowCount, 2)
         const inserted = await r().executeInsert('begin insert into rt_moment (d) values (sysdate); insert into rt_moment (d) values (sysdate); end;', params)
         expect(inserted).toBe(2)
     })

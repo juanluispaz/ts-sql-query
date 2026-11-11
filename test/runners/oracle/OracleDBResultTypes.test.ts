@@ -8,7 +8,7 @@ import oracledb from 'oracledb'
 import { afterAll, beforeAll, describe, expect, test } from '../../lib/testRunner.js'
 import type { QueryResultColumn, QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
 import { OracleDBQueryRunner } from '../../../src/queryRunners/OracleDBQueryRunner.js'
-import { setQueryResultColumns } from '../../../src/utils/queryParamsMetadata.js'
+import { queryResultColumns, setMetadata } from '../../../src/utils/metadataSymbols.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/oracle/runners.js'
 
@@ -33,7 +33,7 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
 
     function paramsExpecting(columns: QueryResultColumn[]): any[] {
         const params: any[] = []
-        setQueryResultColumns(params, columns)
+        setMetadata(params, queryResultColumns, columns)
         return params
     }
 

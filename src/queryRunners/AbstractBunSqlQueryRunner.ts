@@ -6,7 +6,7 @@ import { getGivenSqlConnection, type GivenSqlConnection } from '../utils/givenSq
 import type { BeginTransactionOpts, DatabaseType, QueryRunner } from './QueryRunner.js'
 import type { SQL, TransactionSQL, ReservedSQL } from 'bun'
 import type { TypeCategory } from '../TypeAdapter.js'
-import { setQueryParamType } from './QueryRunner.js'
+import { queryParamForceTypeCast, queryParamType, queryParamTypeCategory, setParamMetadata } from '../utils/metadataSymbols.js'
 
 export abstract class AbstractBunSqlQueryRunner extends SqlTransactionQueryRunner {
     database: DatabaseType
@@ -166,7 +166,9 @@ export abstract class AbstractBunSqlQueryRunner extends SqlTransactionQueryRunne
         return !!this.transaction || !!this.lowLevelTransaction || super.isTransactionActive()
     }
     addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
-        setQueryParamType(params, params.length, type, typeCategory, forceTypeCast)
+        setParamMetadata(params, params.length, queryParamType, type)
+        setParamMetadata(params, params.length, queryParamTypeCategory, typeCategory)
+        setParamMetadata(params, params.length, queryParamForceTypeCast, forceTypeCast)
         params.push(value)
         return '$' + params.length
     }

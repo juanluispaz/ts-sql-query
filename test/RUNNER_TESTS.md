@@ -150,11 +150,11 @@ type of each parameter and whether the database must receive its type
 them; Oracle declares a RETURNING OUT bind with them; postgres.js and PGlite send
 a parameter typed with them), whether a mutation
 carries a returning clause, a forced affected-row count, the query execution
-name and metadata. Those are set and read through
-[`src/utils/queryParamsMetadata.ts`](../src/utils/queryParamsMetadata.ts), and
+name and metadata. Each is kept under a symbol of
+[`src/utils/metadataSymbols.ts`](../src/utils/metadataSymbols.ts), and
 the runner tests build the params the library would with `addParam` and
-`addOutParam` (`addTypedParam` in the contract),
-`setContainsMutationReturningClause` and `setForcedAffectedRowCount`.
+`addOutParam` (`addTypedParam` in the contract), and `setMetadata` with
+`queryContainsMutationReturningClause` or `queryForcedAffectedRowCount`.
 
 ## Running them
 

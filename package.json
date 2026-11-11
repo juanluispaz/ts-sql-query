@@ -36,6 +36,10 @@
             "types": "./TypeAdapter.d.ts",
             "default": "./TypeAdapter.js"
         },
+        "./QueryMetadata": {
+            "types": "./QueryMetadata.d.ts",
+            "default": "./QueryMetadata.js"
+        },
         "./Values": {
             "types": "./Values.d.ts",
             "default": "./Values.js"

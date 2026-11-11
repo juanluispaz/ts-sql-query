@@ -288,6 +288,7 @@ export interface SqlBuilder extends SqlOperation {
     _resultColumnKey(name: string): string
     _isReservedKeyword(word: string): boolean
     _forceAsIdentifier(identifier: string): string
+    _isQuotedIdentifier(identifier: string): boolean
     _appendColumnName(column: DBColumn, params: any[]): string
     _appendColumnNameForCondition(column: DBColumn, params: any[]): string
     _buildSelect(query: SelectData, params: any[]): string

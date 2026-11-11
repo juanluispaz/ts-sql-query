@@ -656,6 +656,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return 'with'
     }
     override _appendColumnAlias(name: string, params: any[]): string {
+        if (this._isQuotedIdentifier(name)) {
+            // Already quoted by the user, the way the database quotes one
+            return name
+        }
         if (!this._isWithGeneratedFinished(params)) {
             // Avoid quote identifiers when the with clause is generated
             return this._escape(name, true)

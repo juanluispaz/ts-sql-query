@@ -396,6 +396,23 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _forceAsIdentifier(identifier: string): string {
         return '"' + identifier + '"'
     }
+    /** The identifier is already quoted the way the database quotes one (`_forceAsIdentifier`): it is written as it is */
+    _isQuotedIdentifier(identifier: string): boolean {
+        const quotes = this._forceAsIdentifier('')
+        return identifier.length > quotes.length && identifier.startsWith(quotes.slice(0, quotes.length / 2)) && identifier.endsWith(quotes.slice(quotes.length / 2))
+    }
+    /**
+     * The name of an identifier without the quotes of the database, to compose another identifier with it (the alias
+     * `<table>__<column>` of the old values of an update): `"plan"` is `plan`, `[s].[t]` is `s.t`
+     */
+    _identifierWithoutQuotes(identifier: string): string {
+        const quotes = this._forceAsIdentifier('')
+        let result = identifier
+        for (const quote of new Set(quotes)) {
+            result = result.split(quote).join('')
+        }
+        return result
+    }
     _escape(identifier: string, strict: boolean, allowReservedKeyword?: boolean): string {
         return this._connectionConfiguration.escape(identifier, strict, allowReservedKeyword)
     }
@@ -457,9 +474,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         if (fakeNamesOf && fakeNamesOf.has(tableOrView)) {
             if (tablePrivate.__as) {
-                return this._escape('_old_', true) + '.' + this._escape(tablePrivate.__as + '__' + columnPrivate.__name, true)
+                return this._escape('_old_', true) + '.' + this._escape(this._identifierWithoutQuotes(tablePrivate.__as + '__' + columnPrivate.__name), true)
             } else {
-                return this._escape('_old_', true) + '.' + this._escape(tablePrivate.__name + '__' + columnPrivate.__name, true)
+                return this._escape('_old_', true) + '.' + this._escape(this._identifierWithoutQuotes(tablePrivate.__name + '__' + columnPrivate.__name), true)
             }
         }
 
@@ -3323,9 +3340,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 const columnPrivate = __getColumnPrivate(column)
                 const tablePrivate = __getTableOrViewPrivate(columnPrivate.__tableOrView)
                 if (tablePrivate.__as) {
-                    from += this._escape(tablePrivate.__as + '__' + columnPrivate.__name, true)
+                    from += this._escape(this._identifierWithoutQuotes(tablePrivate.__as + '__' + columnPrivate.__name), true)
                 } else {
-                    from += this._escape(tablePrivate.__name + '__' + columnPrivate.__name, true)
+                    from += this._escape(this._identifierWithoutQuotes(tablePrivate.__name + '__' + columnPrivate.__name), true)
                 }
             }
         }

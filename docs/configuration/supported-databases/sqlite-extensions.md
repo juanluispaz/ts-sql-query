@@ -121,7 +121,7 @@ Load the extensions when you open the database, before `registerSqliteFunctions`
 
     ```ts
     import Database from "better-sqlite3";
-    import { registerSqliteFunctions } from "ts-sql-query/queryRunners/BetterSqlite3QueryRunner";
+    import { registerSqliteFunctions } from "ts-sql-query/sqlite/bun-sqlite";
 
     const db = new Database('foobar.db');
     db.loadExtension('/path/to/decimal.dylib');
@@ -133,7 +133,7 @@ Load the extensions when you open the database, before `registerSqliteFunctions`
 
     ```ts
     import { DatabaseSync } from "node:sqlite";
-    import { registerSqliteFunctions } from "ts-sql-query/queryRunners/NodeSqliteQueryRunner";
+    import { registerSqliteFunctions } from "ts-sql-query/sqlite/bun-sqlite";
 
     const db = new DatabaseSync('foobar.db', { allowExtension: true });
     db.loadExtension('/path/to/decimal.dylib');
@@ -147,7 +147,7 @@ Load the extensions when you open the database, before `registerSqliteFunctions`
 
     ```ts
     import { Database } from "bun:sqlite";
-    import { registerSqliteFunctions } from "ts-sql-query/queryRunners/BunSqliteQueryRunner";
+    import { registerSqliteFunctions } from "ts-sql-query/sqlite/bun-sqlite";
 
     // On macOS only, before the first Database of the process
     Database.setCustomSQLite('/opt/homebrew/opt/sqlite/lib/libsqlite3.dylib');

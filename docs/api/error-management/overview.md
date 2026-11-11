@@ -11,7 +11,7 @@ When a query fails, `ts-sql-query` gives you an error with a `reason` that says 
 Catch `TsSqlQueryExecutionError`, and read `errorReason.reason`. TypeScript narrows the rest of the fields of `errorReason` from it:
 
 ```ts
-import { TsSqlQueryExecutionError } from 'ts-sql-query'; // or 'ts-sql-query/TsSqlError'
+import { TsSqlQueryExecutionError } from 'ts-sql-query';
 
 try {
     await connection.insertInto(tCustomer).set({ firstName: 'John', lastName: 'Smith', companyId: 10 }).executeInsert();

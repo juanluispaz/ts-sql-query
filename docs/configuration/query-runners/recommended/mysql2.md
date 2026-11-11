@@ -30,7 +30,7 @@ The query runner uses the callback API of the driver: create the pool with `mysq
 
 ```ts
 import { createPool } from "mysql2";
-import { MySql2PoolQueryRunner } from "ts-sql-query/queryRunners/MySql2PoolQueryRunner";
+import { MySql2PoolQueryRunner } from "ts-sql-query/mysql/mysql2";
 
 const pool = createPool({
   host: 'localhost',
@@ -55,7 +55,7 @@ Every statement runs on the connection you give the query runner: one taken from
 
 ```ts
 import { createPool } from "mysql2";
-import { MySql2QueryRunner } from "ts-sql-query/queryRunners/MySql2QueryRunner";
+import { MySql2QueryRunner } from "ts-sql-query/mysql/mysql2";
 
 const pool = createPool({
   host: 'localhost',
@@ -110,7 +110,7 @@ For `ts-sql-query` there is no transaction open, so `executeAfterNextCommit`, th
 
 ```ts
 import type { Connection } from 'mysql2';
-import { MySql2QueryRunner } from "ts-sql-query/queryRunners/MySql2QueryRunner";
+import { MySql2QueryRunner } from "ts-sql-query/mysql/mysql2";
 
 async function main(mysql2Connection: Connection) {
     const connection = new DBConnection(new MySql2QueryRunner(mysql2Connection, { forUseInTransaction: true }));
@@ -121,7 +121,7 @@ async function main(mysql2Connection: Connection) {
 
 ## Options of the query runner
 
-The second argument of `MySql2QueryRunner`, optional, is the name of the database or an object of type `MySql2QueryRunnerConfig`, exported from `ts-sql-query/queryRunners/MySql2QueryRunner`:
+The second argument of `MySql2QueryRunner`, optional, is the name of the database or an object of type `MySql2QueryRunnerConfig`, exported from `ts-sql-query/mysql/mysql2`:
 
 - **`database`**: the database to write the SQL for, `'mariaDB'` or `'mySql'`. A connection sets it to its own database when you create it, so you only need it to use the query runner without a connection.
 - **`forUseInTransaction`**: the connection is already in a transaction that something else began and ends; see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages).

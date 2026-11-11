@@ -15,7 +15,7 @@ You build one map, usually called `availableFields`: each key is a name the call
 | The order | `OrderByForModel<Row>[]`, where `Row` is the type of a whole row | `.orderByFromStringArrayIfValue(orderBy)` |
 | The rows returned | `PickValuesPath<typeof availableFields, FIELDS>[]` | `expandTypeFromDynamicPickPaths(availableFields, fields, rows, ['id'])` |
 
-The types and the functions can be imported from the root `ts-sql-query`, or from `ts-sql-query/dynamic/condition`, `ts-sql-query/dynamic/pick` and `ts-sql-query/dynamic/orderBy`. Each section below is a complete function you can copy, and the last one has the three together.
+The types and the functions are imported from `ts-sql-query`. Each section below is a complete function you can copy, and the last one has the three together.
 
 ## From the columns or from an interface
 
@@ -36,7 +36,7 @@ Choose the columns when the function and its callers live with the tables, or wh
 `DynamicCondition<typeof availableFields>` is the type of the filter: each key of the map can be used with the operators of its column. You pass the filter to `dynamicConditionFor(availableFields).withValues(...)`. [Dynamic filters](../caller-decides/filters.md) explains what a filter can do.
 
 ```ts
-import { DynamicCondition } from "ts-sql-query" // or "ts-sql-query/dynamic/condition"
+import { DynamicCondition } from "ts-sql-query"
 
 const availableFields = {
     id: tCustomer.id,
@@ -152,7 +152,7 @@ The caller says which columns come back, with a list of names. A property inside
 | `expandTypeFromDynamicPickPaths(availableFields, fields, rows, ['id'])` | Gives the rows that type, and returns them as they are |
 
 ```ts
-import { dynamicPickPaths, expandTypeFromDynamicPickPaths, DynamicPickPaths, PickValuesPath } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
+import { dynamicPickPaths, expandTypeFromDynamicPickPaths, DynamicPickPaths, PickValuesPath } from "ts-sql-query"
 
 const company = tCompany.forUseInLeftJoinAs('company')
 
@@ -261,8 +261,8 @@ The type of the order receives the type of a row, not the map, so first compute 
 `OrderByForModel<Row>` is one clause: the path of a property, which may be followed by a mode, like `'name'`, `'name insensitive'` or `'company.name desc nulls last'`. An order by several columns is an array of clauses. A group alone, like `company`, or an array property can't be a clause. The modes are `asc`, `desc`, each with `nulls first` or `nulls last`, and any of these, or none, followed by `insensitive`. They are exported as the type [`OrderByMode`](../helper-types/order-by.md#orderbymode).
 
 ```ts
-import type { OrderByForModel } from "ts-sql-query" // or "ts-sql-query/dynamic/orderBy"
-import type { DynamicPickPaths, PickValuesPath } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
+import type { OrderByForModel } from "ts-sql-query"
+import type { DynamicPickPaths, PickValuesPath } from "ts-sql-query"
 
 const availableFields = {
     id: tCustomer.id,
@@ -362,9 +362,9 @@ The parameters are: `[ ' ' ]`
 The types of `fields`, `filter`, `orderBy` and of the rows returned all come from the same map:
 
 ```ts
-import { dynamicPickPaths, expandTypeFromDynamicPickPaths, DynamicPickPaths, PickValuesPath } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
-import { DynamicCondition } from "ts-sql-query" // or "ts-sql-query/dynamic/condition"
-import type { OrderByForModel } from "ts-sql-query" // or "ts-sql-query/dynamic/orderBy"
+import { dynamicPickPaths, expandTypeFromDynamicPickPaths, DynamicPickPaths, PickValuesPath } from "ts-sql-query"
+import { DynamicCondition } from "ts-sql-query"
+import type { OrderByForModel } from "ts-sql-query"
 
 const company = tCompany.forUseInLeftJoinAs('company')
 

@@ -22,7 +22,7 @@ A query runner that takes the place of the database in a test: your function rec
 ## Creating it
 
 ```ts
-import { MockQueryRunner } from "ts-sql-query/queryRunners/MockQueryRunner";
+import { MockQueryRunner } from "ts-sql-query";
 
 async function main() {
     const connection = new DBConnection(new MockQueryRunner(
@@ -36,7 +36,7 @@ async function main() {
 }
 ```
 
-The function, of type `MockQueryExecutor` (exported from `ts-sql-query/queryRunners/MockQueryRunner`), receives these arguments, and what it returns is the result of the statement:
+The function, of type `MockQueryExecutor` (exported from `ts-sql-query`), receives these arguments, and what it returns is the result of the statement:
 
 - **`type: QueryType`**: type of the query to be executed. The `QueryType` is defined as:
 

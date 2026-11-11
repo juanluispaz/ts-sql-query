@@ -4,7 +4,7 @@ search:
 ---
 # Deep utilities
 
-These are the versions for nested objects of the built-in `Pick<Type, Keys>`, `Omit<Type, Keys>` and `keyof Type`: they work with **dotted paths**, like `'company.name'`, instead of top-level keys. They are in `ts-sql-query/extras/deepUtilities`, and also in the root `ts-sql-query`.
+These are the versions for nested objects of the built-in `Pick<Type, Keys>`, `Omit<Type, Keys>` and `keyof Type`: they work with **dotted paths**, like `'company.name'`, instead of top-level keys. They are exported from `ts-sql-query`.
 
 You use them when you work with a nested plain object. In this library, the usual case is typing a function that makes a [dynamic pick](../dynamic/helper-types/picks.md) from your own nested business model, without a cast, but they work on any plain object.
 
@@ -27,7 +27,7 @@ A path can name a whole object (`'company'`), which is kept or dropped as it is,
 The union of every valid path of `Model`, like `keyof Model` for nested objects. For a nested object it has the path of the whole object and the path of each property inside it.
 
 ```ts
-import type { DeepPickPaths } from 'ts-sql-query' // or 'ts-sql-query/extras/deepUtilities';
+import type { DeepPickPaths } from 'ts-sql-query'
 
 interface CustomerWithCompany {
     id: number;
@@ -50,7 +50,7 @@ type CustomerPaths = DeepPickPaths<CustomerWithCompany>;
 `Model` with only the selected `Paths`, like `Pick<Model, Keys>` for nested objects.
 
 ```ts
-import type { DeepPick } from 'ts-sql-query' // or 'ts-sql-query/extras/deepUtilities';
+import type { DeepPick } from 'ts-sql-query'
 
 interface CustomerWithCompany {
     id: number;
@@ -73,7 +73,7 @@ type PickedCustomer = DeepPick<CustomerWithCompany, 'firstName' | 'company.name'
 `Model` without the selected `Paths`, like `Omit<Model, Keys>` for nested objects. Omitting a whole object (`'company'`) drops it; omitting a property inside it (`'company.id'`) keeps the object without that property.
 
 ```ts
-import type { DeepOmit } from 'ts-sql-query' // or 'ts-sql-query/extras/deepUtilities';
+import type { DeepOmit } from 'ts-sql-query'
 
 interface CustomerWithCompany {
     id: number;
@@ -100,7 +100,7 @@ Returns a new object with only the properties of `obj` selected by `paths`. Its 
 The objects on the way to a property are created as needed. If one of them is `null`, the `null` is kept, and if it's `undefined` or absent, that path is skipped.
 
 ```ts
-import { deepPick } from 'ts-sql-query' // or 'ts-sql-query/extras/deepUtilities';
+import { deepPick } from 'ts-sql-query'
 
 const customer = {
     id: 1,
@@ -123,7 +123,7 @@ To always include some paths, whatever the caller selects, add them to the array
 Returns a copy of `obj` without the properties selected by `paths`. Its type is `DeepOmit`. Omitting a path inside an object copies that object, so `obj` doesn't change. The values no path touches are the same ones, not copies.
 
 ```ts
-import { deepOmit } from 'ts-sql-query' // or 'ts-sql-query/extras/deepUtilities';
+import { deepOmit } from 'ts-sql-query'
 
 const customer = {
     id: 1,

@@ -15,7 +15,7 @@ The function still builds a map of its columns, usually called `availableFields`
 | The order | `OrderByForModel<Model>[]` | `.orderByFromStringArrayIfValue(orderBy)` |
 | The rows returned | `DeepPick<Model, FIELDS>[]` | `expandTypeFromDynamicPickPaths(availableFields, fields, rows, ['id'])` |
 
-The types and the functions can be imported from the root `ts-sql-query`, or from `ts-sql-query/dynamic/condition`, `ts-sql-query/dynamic/pick`, `ts-sql-query/dynamic/orderBy` and `ts-sql-query/extras/deepUtilities`. Each section below is a complete function you can copy, and the last one has the three together.
+The types and the functions are imported from `ts-sql-query`. Each section below is a complete function you can copy, and the last one has the three together.
 
 ## What an interface costs
 
@@ -28,7 +28,7 @@ The compiler helps with that. The rows have to fit the interface when the functi
 `DynamicConditionForModel<Model>` is the type of the filter: each property of the interface can be used with the operators of its TypeScript type. You pass the filter to `dynamicConditionFor(availableFields).withValues(...)`. [Dynamic filters](../caller-decides/filters.md) explains what a filter can do.
 
 ```ts
-import { DynamicConditionForModel } from "ts-sql-query" // or "ts-sql-query/dynamic/condition"
+import { DynamicConditionForModel } from "ts-sql-query"
 
 interface CustomerFilterRow {
     id: number
@@ -159,8 +159,8 @@ The caller says which columns come back, with a list of names. A property inside
 | `expandTypeFromDynamicPickPaths(availableFields, fields, rows, ['id'])` | Gives the rows a type that fits `DeepPick` without a cast, and returns them as they are |
 
 ```ts
-import { dynamicPickPaths, expandTypeFromDynamicPickPaths } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
-import type { DeepPick, DeepPickPaths } from "ts-sql-query" // or "ts-sql-query/extras/deepUtilities"
+import { dynamicPickPaths, expandTypeFromDynamicPickPaths } from "ts-sql-query"
+import type { DeepPick, DeepPickPaths } from "ts-sql-query"
 
 interface CustomerPickRow {
     id: number
@@ -264,7 +264,7 @@ When the interface has no groups, the built-in `keyof` and `Pick<Model, K>` are 
 `OrderByForModel<Model>` is one clause: the path of a property, which may be followed by a mode, like `'name'`, `'name insensitive'` or `'company.name desc nulls last'`. An order by several columns is an array of clauses. A group alone, like `company`, or an array property can't be a clause. The modes are `asc`, `desc`, each with `nulls first` or `nulls last`, and any of these, or none, followed by `insensitive`. They are exported as the type [`OrderByMode`](../helper-types/order-by.md#orderbymode).
 
 ```ts
-import type { OrderByForModel } from "ts-sql-query" // or "ts-sql-query/dynamic/orderBy"
+import type { OrderByForModel } from "ts-sql-query"
 
 interface CustomerSortRow {
     id: number
@@ -367,10 +367,10 @@ The parameters are: `[ ' ' ]`
 The types of `fields`, `filter`, `orderBy` and of the rows returned all come from the same interface:
 
 ```ts
-import { dynamicPickPaths, expandTypeFromDynamicPickPaths } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
-import { DynamicConditionForModel } from "ts-sql-query" // or "ts-sql-query/dynamic/condition"
-import type { OrderByForModel } from "ts-sql-query" // or "ts-sql-query/dynamic/orderBy"
-import type { DeepPick, DeepPickPaths } from "ts-sql-query" // or "ts-sql-query/extras/deepUtilities"
+import { dynamicPickPaths, expandTypeFromDynamicPickPaths } from "ts-sql-query"
+import { DynamicConditionForModel } from "ts-sql-query"
+import type { OrderByForModel } from "ts-sql-query"
+import type { DeepPick, DeepPickPaths } from "ts-sql-query"
 
 interface CustomerDirectoryRow {
     id: number
@@ -537,7 +537,7 @@ A branded `bigint`, `boolean` or `Date` keeps the operators of its base type.
 To give a property the filter of its column, take it out of the interface and name its type. `DynamicDefinitionForModel<Model>` is the list of types that `DynamicConditionForModel` builds from, and it can be combined with [names of types](../../api/dynamic-conditions.md):
 
 ```ts
-import { DynamicCondition, DynamicDefinitionForModel } from "ts-sql-query" // or "ts-sql-query/dynamic/condition"
+import { DynamicCondition, DynamicDefinitionForModel } from "ts-sql-query"
 
 type Money = number & { readonly brand: 'Money' }
 

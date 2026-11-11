@@ -10,7 +10,7 @@ This page has what is particular to MySQL: what it offers and what it doesn't, h
 ## Defining the connection
 
 ```ts
-import { MySqlConnection } from "ts-sql-query/connections/MySqlConnection";
+import { MySqlConnection } from "ts-sql-query/mysql";
 
 class DBConnection extends MySqlConnection<'DBConnection'> { }
 ```
@@ -53,7 +53,7 @@ Recognised breakpoints (with the default `Number.POSITIVE_INFINITY` every breakp
 - `< 8_000_000`: target MySQL 5. The `WITH` clause is not emitted — the inner query is inlined in the `FROM` instead — and the legacy `VALUES(col)` reference is used inside `ON DUPLICATE KEY UPDATE`. A recursive query, or one with a [`Values`](../mapping.md#mapping-constant-values-as-view) source, can't be written for that version: its promise is rejected with the error `UNSUPPORTED_QUERY`, and nothing is sent to the database.
 
 ```ts
-import { MySqlConnection } from "ts-sql-query/connections/MySqlConnection";
+import { MySqlConnection } from "ts-sql-query/mysql";
 
 class DBConnection extends MySqlConnection<'DBConnection'> {
     protected override compatibilityVersion = 5_007_000
@@ -109,7 +109,7 @@ MySQL's default collation (`utf8mb4_0900_ai_ci`) is case- **and accent-insensiti
 You can configure the strategy by overriding the `uuidStrategy` field in your connection class:
 
 ```ts
-import { MySqlConnection } from "ts-sql-query/connections/MySqlConnection";
+import { MySqlConnection } from "ts-sql-query/mysql";
 
 class DBConnection extends MySqlConnection<'DBConnection'> {
     protected override uuidStrategy = 'string' as const
@@ -152,7 +152,7 @@ For example, `tIssue.priority.divide(2).round()` (where `priority = 1`) yields `
 If you prefer MySQL's native `round(<double>)` semantics — typically because your application is single-dialect and you want the IEEE 754 round-to-even tie-breaking common on modern systems, or because existing queries depend on that result — set `usePlatformDependentRound = true` on your connection:
 
 ```ts
-import { MySqlConnection } from "ts-sql-query/connections/MySqlConnection";
+import { MySqlConnection } from "ts-sql-query/mysql";
 
 class DBConnection extends MySqlConnection<'DBConnection'> {
     protected override usePlatformDependentRound = true

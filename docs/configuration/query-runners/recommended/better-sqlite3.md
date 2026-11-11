@@ -30,7 +30,7 @@ This runner provides integration with the [better-sqlite3](https://www.npmjs.com
 Every statement runs on the database object you give the query runner.
 
 ```ts
-import { BetterSqlite3QueryRunner } from "ts-sql-query/queryRunners/BetterSqlite3QueryRunner";
+import { BetterSqlite3QueryRunner } from "ts-sql-query/sqlite/better-sqlite3";
 import Database from "better-sqlite3";
 
 const db = new Database('foobar.db', options);
@@ -52,7 +52,8 @@ Some settings of the connection make the library write SQL functions that SQLite
 
 ```ts
 import Database from "better-sqlite3";
-import { BetterSqlite3QueryRunner, registerSqliteFunctions } from "ts-sql-query/queryRunners/BetterSqlite3QueryRunner";
+import { BetterSqlite3QueryRunner } from "ts-sql-query/sqlite/better-sqlite3";
+import { registerSqliteFunctions } from "ts-sql-query/sqlite/bun-sqlite";
 
 const db = new Database('foobar.db', options);
 registerSqliteFunctions(db);
@@ -80,7 +81,7 @@ When the connection is already in a transaction that something else began and en
 For `ts-sql-query` there is no transaction open, so `executeAfterNextCommit`, the other end-of-transaction functions and `getTransactionMetadata()` throw `NOT_IN_TRANSACTION`.
 
 ```ts
-import { BetterSqlite3QueryRunner } from "ts-sql-query/queryRunners/BetterSqlite3QueryRunner";
+import { BetterSqlite3QueryRunner } from "ts-sql-query/sqlite/better-sqlite3";
 import Database from "better-sqlite3";
 
 const db = new Database('foobar.db', options);
@@ -94,7 +95,7 @@ async function main() {
 
 ## Options of the query runner
 
-The second argument of `BetterSqlite3QueryRunner`, optional, is an object of type `BetterSqlite3QueryRunnerConfig`, exported from `ts-sql-query/queryRunners/BetterSqlite3QueryRunner`:
+The second argument of `BetterSqlite3QueryRunner`, optional, is an object of type `BetterSqlite3QueryRunnerConfig`, exported from `ts-sql-query/sqlite/better-sqlite3`:
 
 - **`promise`**: another `Promise` provider, for [synchronous query execution](../../../advanced/synchronous-query-runners.md).
 - **`forUseInTransaction`**: the connection is already in a transaction that something else began and ends; see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages).

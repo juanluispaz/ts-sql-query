@@ -27,7 +27,7 @@ Nothing that comes from the request becomes SQL text: the values go as parameter
 The frontend sends the filters the user filled in, the column clicked and the page. The table also needs the total, to show its page controls, and [`executeSelectPage`](../../queries/select-page.md) gives it:
 
 ```ts
-import { DynamicCondition } from "ts-sql-query" // or "ts-sql-query/dynamic/condition"
+import { DynamicCondition } from "ts-sql-query"
 
 type CustomerFilter = DynamicCondition<{
     firstName: 'string',
@@ -250,7 +250,7 @@ The empty filter of `firstName`, a box nobody filled in, adds no condition: see 
 The query has the same parts, and what changes is who is on the other side: you don't control their code, and they can be written in any language.
 
 ```ts
-import { DynamicCondition } from "ts-sql-query" // or "ts-sql-query/dynamic/condition"
+import { DynamicCondition } from "ts-sql-query"
 
 type CustomerQueryFilter = DynamicCondition<{
     id: 'int',
@@ -406,7 +406,7 @@ The request can be wrong, and it's an error of the caller and not of your server
 The first ones are raised while the query is written, and the last one when it's executed. An `await` inside a `try` receives them all:
 
 ```ts
-import { TsSqlError } from "ts-sql-query" // or "ts-sql-query/TsSqlError"
+import { TsSqlError } from "ts-sql-query"
 
 const badRequestReasons = [
     'DYNAMIC_CONDITION_UNKNOWN_COLUMN',

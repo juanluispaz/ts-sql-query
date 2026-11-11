@@ -24,7 +24,7 @@ It's the condition of a table in a user interface, or of a query API for other s
 The operators of each type are listed in the [Dynamic conditions API](../../api/dynamic-conditions.md).
 
 ```ts
-import { DynamicCondition } from "ts-sql-query" // or "ts-sql-query/dynamic/condition"
+import { DynamicCondition } from "ts-sql-query"
 
 const selectFields = {
     id: tCustomer.id,
@@ -213,7 +213,7 @@ const customersWithDynamicCondition: Promise<{
 }[]>
 ```
 
-`DynamicCondition`, from `ts-sql-query/dynamic/condition`, is the type of the filter. It's built from type names, as in the example, or from the map of fields. See [Dynamic conditions](../../api/dynamic-conditions.md), the [types of a dynamic condition](../helper-types/conditions.md), and [from a business model](../own-function/from-business-model.md) to build it from your own types.
+`DynamicCondition`, from `ts-sql-query`, is the type of the filter. It's built from type names, as in the example, or from the map of fields. See [Dynamic conditions](../../api/dynamic-conditions.md), the [types of a dynamic condition](../helper-types/conditions.md), and [from a business model](../own-function/from-business-model.md) to build it from your own types.
 
 With an empty filter there is no condition: a select returns all the rows, and an update or delete with no other condition is rejected with `MISSING_WHERE`.
 
@@ -262,7 +262,7 @@ To add a rule that no column can express, like "there is a customer whose name c
 When the select returns [nested objects](../../queries/complex-projections.md), the filter has the same shape: a field inside a group is inside the same group in the filter, which can have its own `and`, `or` and `not`. The order uses the path of the property, like `company.name`.
 
 ```ts
-import { DynamicCondition } from "ts-sql-query" // or "ts-sql-query/dynamic/condition"
+import { DynamicCondition } from "ts-sql-query"
 
 type QueryFilterType = DynamicCondition<{
     id: 'int',

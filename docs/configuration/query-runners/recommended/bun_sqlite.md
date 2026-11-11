@@ -30,7 +30,7 @@ This runner provides integration with the [Bun Sqlite](https://bun.com/docs/runt
 Every statement runs on the database object you give the query runner.
 
 ```ts
-import { BunSqliteQueryRunner } from "ts-sql-query/queryRunners/BunSqliteQueryRunner";
+import { BunSqliteQueryRunner } from "ts-sql-query/sqlite/bun-sqlite";
 import { Database } from "bun:sqlite";
 
 const db = new Database('foobar.db', options);
@@ -52,7 +52,7 @@ Some settings of the connection make the library write SQL functions that SQLite
 
 ```ts
 import { Database } from "bun:sqlite";
-import { BunSqliteQueryRunner, registerSqliteFunctions } from "ts-sql-query/queryRunners/BunSqliteQueryRunner";
+import { BunSqliteQueryRunner, registerSqliteFunctions } from "ts-sql-query/sqlite/bun-sqlite";
 
 const db = new Database('foobar.db');
 registerSqliteFunctions(db);
@@ -80,7 +80,7 @@ When the connection is already in a transaction that something else began and en
 For `ts-sql-query` there is no transaction open, so `executeAfterNextCommit`, the other end-of-transaction functions and `getTransactionMetadata()` throw `NOT_IN_TRANSACTION`.
 
 ```ts
-import { BunSqliteQueryRunner } from "ts-sql-query/queryRunners/BunSqliteQueryRunner";
+import { BunSqliteQueryRunner } from "ts-sql-query/sqlite/bun-sqlite";
 import { Database } from "bun:sqlite";
 
 const db = new Database('foobar.db', options);
@@ -94,7 +94,7 @@ async function main() {
 
 ## Options of the query runner
 
-The second argument of `BunSqliteQueryRunner`, optional, is an object of type `BunSqliteQueryRunnerConfig`, exported from `ts-sql-query/queryRunners/BunSqliteQueryRunner`:
+The second argument of `BunSqliteQueryRunner`, optional, is an object of type `BunSqliteQueryRunnerConfig`, exported from `ts-sql-query/sqlite/bun-sqlite`:
 
 - **`promise`**: another `Promise` provider, for [synchronous query execution](../../../advanced/synchronous-query-runners.md).
 - **`forUseInTransaction`**: the connection is already in a transaction that something else began and ends; see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages).

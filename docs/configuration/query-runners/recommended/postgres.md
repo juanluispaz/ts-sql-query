@@ -27,7 +27,7 @@ The `sql` object of postgres.js is a pool of connections: give it to the query r
 
 ```ts
 import postgres from 'postgres'
-import { PostgresQueryRunner } from 'ts-sql-query/queryRunners/PostgresQueryRunner';
+import { PostgresQueryRunner } from 'ts-sql-query/postgresql/postgres';
 
 const sql = postgres({
     user: 'dbuser',
@@ -50,7 +50,7 @@ The query runner can also be created with a connection you reserved from the poo
 
 ```ts
 import postgres from 'postgres'
-import { PostgresQueryRunner } from 'ts-sql-query/queryRunners/PostgresQueryRunner';
+import { PostgresQueryRunner } from 'ts-sql-query/postgresql/postgres';
 
 const sql = postgres(/* configuration */);
 
@@ -87,7 +87,7 @@ For `ts-sql-query` there is no transaction open, so `executeAfterNextCommit`, th
 
 ```ts
 import postgres from 'postgres'
-import { PostgresQueryRunner } from 'ts-sql-query/queryRunners/PostgresQueryRunner';
+import { PostgresQueryRunner } from 'ts-sql-query/postgresql/postgres';
 
 const sql = postgres(/* configuration */);
 
@@ -104,11 +104,11 @@ async function main() {
 
 Where PostgreSQL can't work out the type of a parameter, like a constant selected on its own, the query runner sends the parameter with the type of [the category of its type](../../column-types.md#how-a-value-is-sent-to-the-database), and the SQL has no cast: `select $1 as result`, with the parameter sent as an `int4`.
 
-The second argument of `PostgresQueryRunner`, optional, is an object of type `PostgresQueryRunnerConfig`, exported from `ts-sql-query/queryRunners/PostgresQueryRunner`, with one option, `typesByName`. It maps the name of a type, the one you give a custom type or a built-in one like `'int'`, to the type every parameter of that name is sent with, wherever it is written: the oid of a PostgreSQL type, like `1700` for `numeric`, or a function that gives the parameter, like `value => sql.typed.money(value)` for a type declared in the `types` option of postgres.js.
+The second argument of `PostgresQueryRunner`, optional, is an object of type `PostgresQueryRunnerConfig`, exported from `ts-sql-query/postgresql/postgres`, with one option, `typesByName`. It maps the name of a type, the one you give a custom type or a built-in one like `'int'`, to the type every parameter of that name is sent with, wherever it is written: the oid of a PostgreSQL type, like `1700` for `numeric`, or a function that gives the parameter, like `value => sql.typed.money(value)` for a type declared in the `types` option of postgres.js.
 
 ```ts
 import postgres from 'postgres'
-import { PostgresQueryRunner } from 'ts-sql-query/queryRunners/PostgresQueryRunner';
+import { PostgresQueryRunner } from 'ts-sql-query/postgresql/postgres';
 
 const sql = postgres(/* configuration */);
 

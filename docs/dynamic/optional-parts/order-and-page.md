@@ -226,7 +226,7 @@ The values in `column` and `ordering` are in lower case, because the text is con
 Unlike the errors of an execution, these two don't arrive through the promise: the call to `orderByFromString` throws them while the query is being written, so a `.catch` on `executeSelectMany()` doesn't see them. When the order comes from a request, wrap the whole query in a `try` and answer with an error for the request:
 
 ```ts
-import { TsSqlError } from "ts-sql-query" // or "ts-sql-query/TsSqlError"
+import { TsSqlError } from "ts-sql-query"
 
 const orderBy: string = 'firstName sideways';
 

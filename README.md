@@ -174,49 +174,40 @@ Install in [Bun](https://bun.com):
 $ bun install ts-sql-query
 ```
 
-ts-sql-query is an ESM-only package and requires Node.js 22 or newer. The public API is the **enumerated** list of subpaths declared in the package's `exports` map. Any path not in that list — including abstract base classes, internal utilities, and helpers used to build custom runners — fails with `ERR_PACKAGE_PATH_NOT_EXPORTED`.
-
-**Root entry (aggregated, cross-database use)**: a single `import 'ts-sql-query'` re-exports the cross-database surface: the entry points listed below (except where noted), the `extras/types` and `extras/utils` symbols, and the dynamic-condition helpers. Database-specific symbols (per-database `Connection`s, every `QueryRunner` implementation, and `IDEncrypter`) are intentionally **not** included in the root entry — you import them directly from their subpath, which keeps the import line database-aware.
+ts-sql-query is an ESM-only package and requires Node.js 22 or newer. You import from the paths of its `exports` map, organized by what they offer; any other path fails with `ERR_PACKAGE_PATH_NOT_EXPORTED`. Each name is exported by one path.
 
 ```ts
-// Cross-database, from the root entry
-import { Table, Values, CustomBooleanTypeAdapter, dynamicPick,
+// What works the same on every database
+import { Table, Values, CustomBooleanTypeAdapter, dynamicPick, MockQueryRunner,
          extractColumnsFrom, type Connection, type SelectedRow } from 'ts-sql-query'
 
-// Database-specific, from the subpath
-import { PostgreSqlConnection } from 'ts-sql-query/connections/PostgreSqlConnection'
-import { PgPoolQueryRunner }    from 'ts-sql-query/queryRunners/PgPoolQueryRunner'
+// What is specific to a database
+import { PostgreSqlConnection } from 'ts-sql-query/postgresql'
+
+// The query runners of a driver for that database
+import { PgPoolQueryRunner } from 'ts-sql-query/postgresql/pg'
 ```
 
-**Subpath entry points** (also available individually):
+| Path | What it has |
+|---|---|
+| `ts-sql-query` | Tables, views, values, the connection types, the type adapters, the errors, the dynamic queries, the helper types, and the query runners that need no driver (`MockQueryRunner`, `NoopQueryRunner`, `ConsoleLogQueryRunner`, `ConsoleLogNoopQueryRunner`, `InterceptorQueryRunner`, `LoggingQueryRunner`) with the `QueryRunner` interface |
+| `ts-sql-query/mariadb` | `MariaDBConnection` |
+| `ts-sql-query/mariadb/mariadb`, `ts-sql-query/mariadb/mysql2`, `ts-sql-query/mariadb/bun-sql` | The query runners of `mariadb`, `mysql2` and Bun SQL, for MariaDB |
+| `ts-sql-query/mysql` | `MySqlConnection` |
+| `ts-sql-query/mysql/mysql2`, `ts-sql-query/mysql/bun-sql` | The query runners of `mysql2` and Bun SQL, for MySQL |
+| `ts-sql-query/oracle` | `OracleConnection`, `OracleDateAsTimestampTypeAdapter` |
+| `ts-sql-query/oracle/oracledb` | The query runners of `oracledb` |
+| `ts-sql-query/postgresql` | `PostgreSqlConnection` |
+| `ts-sql-query/postgresql/pg`, `ts-sql-query/postgresql/postgres`, `ts-sql-query/postgresql/pglite`, `ts-sql-query/postgresql/bun-sql` | The query runners of `pg`, postgres.js, PGlite and Bun SQL |
+| `ts-sql-query/sqlite` | `SqliteConnection` and the types of its configuration (`SqliteDateTimeFormat`, …) |
+| `ts-sql-query/sqlite/better-sqlite3`, `ts-sql-query/sqlite/node-sqlite`, `ts-sql-query/sqlite/bun-sqlite`, `ts-sql-query/sqlite/bun-sql`, `ts-sql-query/sqlite/sqlite-wasm` | The query runners of `better-sqlite3`, `node:sqlite`, `bun:sqlite`, Bun SQL and the official SQLite WASM build |
+| `ts-sql-query/sqlserver` | `SqlServerConnection` |
+| `ts-sql-query/sqlserver/mssql` | The query runners of `mssql` |
+| `ts-sql-query/IDEncrypter` | `IDEncrypter` and `isValidEncryptedID` |
 
-- `ts-sql-query/Connection`
-- `ts-sql-query/Table`
-- `ts-sql-query/View`
-- `ts-sql-query/TypeAdapter`
-- `ts-sql-query/Values`
-- `ts-sql-query/TsSqlError`
-- `ts-sql-query/dynamicCondition`
+The paths of version 1 (`ts-sql-query/connections/PostgreSqlConnection`, `ts-sql-query/queryRunners/PgPoolQueryRunner`, `ts-sql-query/extras/types`, …) still work, so code written for it keeps compiling: each name they export is marked deprecated, with the path to import it from now. See [Migrating from v1](https://ts-sql-query.readthedocs.io/en/latest/about/changelog/migrating-from-v1/).
 
-**Public connections** (one per supported database, plus `SqliteConfiguration`, which exports the `SqliteDateTimeFormat` and `SqliteDateTimeFormatType` type literals used to declare how SQLite stores dates/times — see [docs/configuration/supported-databases/sqlite.md](docs/configuration/supported-databases/sqlite.md)):
-
-- `ts-sql-query/connections/MariaDBConnection`
-- `ts-sql-query/connections/MySqlConnection`
-- `ts-sql-query/connections/OracleConnection`
-- `ts-sql-query/connections/PostgreSqlConnection`
-- `ts-sql-query/connections/SqlServerConnection`
-- `ts-sql-query/connections/SqliteConfiguration`
-- `ts-sql-query/connections/SqliteConnection`
-
-**Public query runners** (one subpath per file in `src/queryRunners/` that has its own documentation page — covers every supported driver plus the general-purpose runners `MockQueryRunner`, `NoopQueryRunner`, `ConsoleLogQueryRunner`, `ConsoleLogNoopQueryRunner`, `InterceptorQueryRunner`, `LoggingQueryRunner`, and the `QueryRunner` interface module). The full list is in the [`exports` field of `package.json`](package.json).
-
-**Public extras:**
-
-- `ts-sql-query/extras/IDEncrypter`
-- `ts-sql-query/extras/types`
-- `ts-sql-query/extras/utils`
-
-TypeScript consumers must use `moduleResolution: "node16"`, `"nodenext"` or `"bundler"` for these subpaths to resolve.
+TypeScript consumers must use `moduleResolution: "node16"`, `"nodenext"` or `"bundler"` for these paths to resolve.
 
 ### Escape hatch for advanced use cases
 
@@ -224,7 +215,7 @@ If you need to reach into anything that isn't on the public list — abstract ba
 
 ```ts
 // Public, stable
-import { Table } from 'ts-sql-query' // or 'ts-sql-query/Table'
+import { Table } from 'ts-sql-query'
 
 // Unsupported, no stability guarantees
 import { AbstractSqlBuilder } from 'ts-sql-query/__UNSUPPORTED__/sqlBuilders/AbstractSqlBuilder'

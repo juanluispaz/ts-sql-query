@@ -152,7 +152,7 @@ You can pick the collation at **three different levels**. This table is the whol
 Two of the query options are **methods on a string value source** (a column, a `const`, any string expression); the rest are **properties you set by subclassing your `Connection`**, exactly like every other connection option:
 
 ```typescriptreact
-import { SqlServerConnection } from "ts-sql-query/connections/SqlServerConnection";
+import { SqlServerConnection } from "ts-sql-query/sqlserver";
 
 class DBConnection extends SqlServerConnection<'DBConnection'> {
     override insensitiveCollation = 'Latin1_General_CI_AI'
@@ -199,7 +199,7 @@ Three states:
     So it's the way to use a nondeterministic collation in every operation. PostgreSQL accepts `like` with one from version 18; PostgreSQL 17 rejects it, as it does `ilike`.
 
     ```typescriptreact
-    import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
+    import { PostgreSqlConnection } from "ts-sql-query/postgresql";
 
     class DBConnection extends PostgreSqlConnection<'DBConnection'> {
         protected override insensitiveCollation = 'case_insensitive'
@@ -279,7 +279,7 @@ Oracle:      replace(<src> collate BINARY,              <from> collate BINARY,  
 **`replaceCollation`** is a property on `SqlServerConnection` / `OracleConnection`. It defaults to `Latin1_General_BIN2` (SQL Server) / `BINARY` (Oracle), so `replaceAll` is code-point exact whatever the database collation. Set it to another collation name to force a different one, or to the **empty string** `''` to opt out entirely and emit the bare native `replace(...)`:
 
 ```typescriptreact
-import { SqlServerConnection } from "ts-sql-query/connections/SqlServerConnection";
+import { SqlServerConnection } from "ts-sql-query/sqlserver";
 
 class DBConnection extends SqlServerConnection<'DBConnection'> {
     override replaceCollation = '' // opt out — follow the database collation (case-insensitive by default)
@@ -317,7 +317,7 @@ On **Oracle** the forced collation is fully configurable: `insensitiveCollation`
 SQLite has no case-insensitive `REPLACE` and no built-in `regexp_replace`. Set **`replaceAllInsensitiveFunction`** on `SqliteConnection` to the name of a scalar function you register, and the builder emits `<name>(src, from, to)`; leave it unset and `replaceAllInsensitive` falls back to a plain, **case-sensitive** `replace(src, from, to)` — documented, never an error.
 
 ```typescriptreact
-import { SqliteConnection } from "ts-sql-query/connections/SqliteConnection";
+import { SqliteConnection } from "ts-sql-query/sqlite";
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
     override replaceAllInsensitiveFunction = 'ci_replace'

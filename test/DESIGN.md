@@ -699,17 +699,19 @@ rejects an API your test wants to call, pick the right reason marker
 
 ## Public surface only
 
-Test imports must resolve to a path enumerated in the `exports` map of
-[the root `package.json`](../package.json). The `./__UNSUPPORTED__/*`
-wildcard escape hatch is **not** part of the public surface for the tests:
-if a test needs something only reachable through `__UNSUPPORTED__/`, the
-right answer is to open up the API, not to import via that escape.
-
-Concretely, the imports the suite uses (`src/Table.ts`,
-`src/connections/PostgreSqlConnection.ts`, `src/queryRunners/*.ts`,
-`src/TypeAdapter.ts`, `src/dynamicCondition.ts`, …) all match entries
-enumerated in `exports`. If you have to write a path that does not appear
-there, stop and reconsider.
+Test imports must be of names the package exports: the paths of the
+`exports` map of [the root `package.json`](../package.json) are the
+re-export files of `src/exports/` (see
+[`runners/general/PackageExports.test.ts`](runners/general/PackageExports.test.ts)),
+and a test imports a name from the module those files re-export it from
+(`src/Table.ts`, `src/connections/PostgreSqlConnection.ts`,
+`src/queryRunners/*.ts`, `src/TypeAdapter.ts`, …), or from the entry file
+itself when what it checks is the entry (`types.public-surface`). The
+`./__UNSUPPORTED__/*` wildcard escape hatch is **not** part of the public
+surface for the tests: if a test needs something only reachable through
+`__UNSUPPORTED__/`, the right answer is to open up the API, not to import
+via that escape. If you have to import a name no file of `src/exports/v2`
+re-exports, stop and reconsider.
 
 One forward-looking exception: `src/experimental/*` is a staging area for
 surface that is already meant for tests to consume but is not yet in the

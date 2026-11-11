@@ -10,7 +10,7 @@ This page has what is particular to MariaDB: what it offers and what it doesn't,
 ## Defining the connection
 
 ```ts
-import { MariaDBConnection } from "ts-sql-query/connections/MariaDBConnection";
+import { MariaDBConnection } from "ts-sql-query/mariadb";
 
 class DBConnection extends MariaDBConnection<'DBConnection'> { }
 ```
@@ -51,7 +51,7 @@ Recognised breakpoints (with the default `Number.POSITIVE_INFINITY` every breakp
 - `>= 10_003_003`: target MariaDB 10.3.3+. The `VALUE(col)` function — added in MariaDB 10.3.3 ([MDEV-12172](https://jira.mariadb.org/browse/MDEV-12172)) as a rename of `VALUES(col)`, to avoid the name clash with the standard Table Value Constructors syntax introduced in the same release — is emitted inside `ON DUPLICATE KEY UPDATE` to reference the values being inserted. The 10.3 line went GA at 10.3.7, so every stable 10.3 release is past this breakpoint. Below it the legacy `VALUES(col)` name is emitted instead — it remains accepted by every modern MariaDB version, so generated SQL stays runnable.
 
 ```ts
-import { MariaDBConnection } from "ts-sql-query/connections/MariaDBConnection";
+import { MariaDBConnection } from "ts-sql-query/mariadb";
 
 class DBConnection extends MariaDBConnection<'DBConnection'> {
     protected override compatibilityVersion = 10_004_000
@@ -128,7 +128,7 @@ MariaDB's default collation (`utf8mb4_uca1400_ai_ci`) is case- **and accent-inse
 You can configure the strategy by overriding the `uuidStrategy` field in your connection class:
 
 ```ts
-import { MariaDBConnection } from "ts-sql-query/connections/MariaDBConnection";
+import { MariaDBConnection } from "ts-sql-query/mariadb";
 
 class DBConnection extends MariaDBConnection<'DBConnection'> {
     protected override uuidStrategy = 'string' as const
@@ -154,7 +154,7 @@ For example, `tIssue.priority.divide(2).round()` (where `priority = 1`) yields `
 If you prefer MariaDB's native `round(<double>)` semantics — typically because your application is single-dialect and you want the IEEE 754 round-to-even tie-breaking common on modern systems, or because existing queries depend on that result — set `usePlatformDependentRound = true` on your connection:
 
 ```ts
-import { MariaDBConnection } from "ts-sql-query/connections/MariaDBConnection";
+import { MariaDBConnection } from "ts-sql-query/mariadb";
 
 class DBConnection extends MariaDBConnection<'DBConnection'> {
     protected override usePlatformDependentRound = true

@@ -33,7 +33,7 @@ It must use the PostgreSQL adapter: with another one, the constructor of the que
 
 ```ts
 import { SQL } from "bun";
-import { BunSqlPostgresQueryRunner } from "ts-sql-query/queryRunners/BunSqlPostgresQueryRunner";
+import { BunSqlPostgresQueryRunner } from "ts-sql-query/postgresql/bun-sql";
 
 const sql = new SQL({
     adapter: 'postgres',
@@ -57,7 +57,7 @@ The query runner can also be created with a connection you reserved from the poo
 
 ```ts
 import { SQL } from "bun";
-import { BunSqlPostgresQueryRunner } from "ts-sql-query/queryRunners/BunSqlPostgresQueryRunner";
+import { BunSqlPostgresQueryRunner } from "ts-sql-query/postgresql/bun-sql";
 
 const sql = new SQL({ adapter: 'postgres' /* , configuration */ });
 
@@ -90,7 +90,7 @@ For `ts-sql-query` there is no transaction open, so `executeAfterNextCommit`, th
 
 ```ts
 import { SQL, type TransactionSQL } from "bun";
-import { BunSqlPostgresQueryRunner } from "ts-sql-query/queryRunners/BunSqlPostgresQueryRunner";
+import { BunSqlPostgresQueryRunner } from "ts-sql-query/postgresql/bun-sql";
 
 const sql = new SQL({ adapter: 'postgres' /* , configuration */ });
 
@@ -109,11 +109,11 @@ A statement that fails leaves a PostgreSQL transaction failed, even if its error
 
 ## The type of the parameters
 
-Where PostgreSQL can't work out the type of a parameter, like a constant selected on its own, the query runner writes it as a cast in the SQL, `$1::int4`, from [the category of its type](../../column-types.md#how-a-value-is-sent-to-the-database): Bun SQL can't send a parameter with its type. The second argument of `BunSqlPostgresQueryRunner`, optional, is an object of type `BunSqlPostgresQueryRunnerConfig`, exported from `ts-sql-query/queryRunners/BunSqlPostgresQueryRunner`, with one option, `typesByName`: it maps the name of a type, the one you give a custom type or a built-in one like `'int'`, to the cast written instead, for example `numeric` for an exact decimal kept as text:
+Where PostgreSQL can't work out the type of a parameter, like a constant selected on its own, the query runner writes it as a cast in the SQL, `$1::int4`, from [the category of its type](../../column-types.md#how-a-value-is-sent-to-the-database): Bun SQL can't send a parameter with its type. The second argument of `BunSqlPostgresQueryRunner`, optional, is an object of type `BunSqlPostgresQueryRunnerConfig`, exported from `ts-sql-query/postgresql/bun-sql`, with one option, `typesByName`: it maps the name of a type, the one you give a custom type or a built-in one like `'int'`, to the cast written instead, for example `numeric` for an exact decimal kept as text:
 
 ```ts
 import { SQL } from "bun";
-import { BunSqlPostgresQueryRunner } from "ts-sql-query/queryRunners/BunSqlPostgresQueryRunner";
+import { BunSqlPostgresQueryRunner } from "ts-sql-query/postgresql/bun-sql";
 
 const sql = new SQL({ adapter: 'postgres' /* , configuration */ });
 

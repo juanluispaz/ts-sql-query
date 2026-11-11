@@ -4,8 +4,8 @@
 // `@ts-expect-error` line.
 
 import { test, expect } from '../../../lib/testRunner.js'
-import * as root from '../../../../src/index.js'
-import * as compat from '../../../../src/dynamicCondition.js'
+import * as root from '../../../../src/exports/v2/index.js'
+import * as compat from '../../../../src/exports/v1/dynamicCondition.js'
 import { deepOmit, deepPick, type DeepPick, type DeepOmit } from '../../../../src/extras/deepUtilities.js'
 import { sync } from '../../../../src/extras/sync.js'
 import { extractColumnNamesFrom, extractColumnsFrom } from '../../../../src/extras/utils.js'
@@ -25,8 +25,10 @@ function _typeNegatives() {
         // @ts-expect-error the configuration of the connection is read-only
         configuration.compatibilityVersion = 1
     }
-    // @ts-expect-error the readers of the query runner are not exported by the root entry
+    // The readers of the query runner are exported by the root entry; what is specific to a database is not
     void root.getQueryConnectionConfiguration
+    // @ts-expect-error the connection of a database is exported by the entry of that database
+    void root.MySqlConnection
 
     // Rule: what a query runner reads of the result columns is read-only.
     const resultColumn: QueryResultColumn = { name: 'id', path: 'id', type: 'int', typeCategory: 'int' }

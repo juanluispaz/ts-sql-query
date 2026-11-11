@@ -10,7 +10,7 @@ This page has what is particular to SQL Server: what it offers and what it doesn
 ## Defining the connection
 
 ```ts
-import { SqlServerConnection } from "ts-sql-query/connections/SqlServerConnection";
+import { SqlServerConnection } from "ts-sql-query/sqlserver";
 
 class DBConnection extends SqlServerConnection<'DBConnection'> { }
 ```
@@ -56,7 +56,7 @@ Recognized breakpoints:
 On older SQL Server versions, set `compatibilityVersion` to your actual version so the right emulation is chosen automatically. It is recommended to keep this value in sync with your real database version so future ts-sql-query releases that gate additional features on it pick the right behavior automatically.
 
 ```ts
-import { SqlServerConnection } from "ts-sql-query/connections/SqlServerConnection";
+import { SqlServerConnection } from "ts-sql-query/sqlserver";
 
 class DBConnection extends SqlServerConnection<'DBConnection'> {
     protected override compatibilityVersion = 16_000_000
@@ -93,7 +93,7 @@ replace('ABCabc' collate Latin1_General_BIN2, 'abc' collate Latin1_General_BIN2,
 To prevent that, ts-sql-query forces a binary / code-point collation on the match operands **by default** (`Latin1_General_BIN2`) and resets the result to `DATABASE_DEFAULT` so the forced collation does not leak into a chained comparison. `replaceAll` is therefore case-sensitive whatever the database collation. The collation is controlled by the **`replaceCollation`** property:
 
 ```typescriptreact
-import { SqlServerConnection } from "ts-sql-query/connections/SqlServerConnection";
+import { SqlServerConnection } from "ts-sql-query/sqlserver";
 
 class DBConnection extends SqlServerConnection<'DBConnection'> {
     override replaceCollation = '' // opt out — follow the database collation (case-insensitive by default)
@@ -107,8 +107,8 @@ Set it to another collation name to force a different one, or to the empty strin
 In SQL Server, UUIDs are stored in columns of type `uniqueidentifier`, which preserve values in uppercase. If you prefer to convert them to lowercase during projection, you can override the `transformValueFromDB` method as shown below:
 
 ```ts
-import { SqlServerConnection } from "ts-sql-query/connections/SqlServerConnection";
-import type { TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
+import { SqlServerConnection } from "ts-sql-query/sqlserver";
+import type { TypeCategory } from "ts-sql-query"
 
 class DBConnection extends SqlServerConnection<'DBConnection'> { 
     protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
@@ -138,7 +138,7 @@ The column is a `customComparable` of `string`: it can be compared and ordered, 
 
 <!-- doc-code-snippet-template: sqlserver -->
 ```ts
-import type { DefaultTypeAdapter, ProjectionComparison, ProjectionOutput, TypeAdapter, TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
+import type { DefaultTypeAdapter, ProjectionComparison, ProjectionOutput, TypeAdapter, TypeCategory } from "ts-sql-query"
 
 // A date and time with the offset it was written with, as text, like '2024-07-01T10:30:15.1234567+09:00'
 type ZonedDateTime = string
@@ -259,7 +259,7 @@ Read back, the value is `'2024-07-01T10:30:15.1230000+09:00'`. A value assigned 
 If your SQL Server columns hold max-length values and your data does not depend on trailing blanks, set `excludeTrailingBlanksInLength = true` to emit the bare native `len(<x>)` instead:
 
 ```ts
-import { SqlServerConnection } from "ts-sql-query/connections/SqlServerConnection";
+import { SqlServerConnection } from "ts-sql-query/sqlserver";
 
 class DBConnection extends SqlServerConnection<'DBConnection'> {
     protected override excludeTrailingBlanksInLength = true

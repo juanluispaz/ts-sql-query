@@ -4,7 +4,7 @@ search:
 ---
 # Dynamic conditions
 
-A dynamic filter is a condition that arrives as data, and [Dynamic filters](../caller-decides/filters.md) explains how it works. This page is the reference of the types in `ts-sql-query/dynamic/condition`, which are also exported from the root `ts-sql-query`. They describe the object that `connection.dynamicConditionFor(fields).withValues(filter)` receives. They exist only for TypeScript and don't change the query.
+A dynamic filter is a condition that arrives as data, and [Dynamic filters](../caller-decides/filters.md) explains how it works. This page is the reference of these types, exported from `ts-sql-query`. They describe the object that `connection.dynamicConditionFor(fields).withValues(filter)` receives. They exist only for TypeScript and don't change the query.
 
 | Type | What it's for | Where it's used |
 |---|---|---|
@@ -18,7 +18,7 @@ A dynamic filter is a condition that arrives as data, and [Dynamic filters](../c
 `DynamicCondition<Definition, Extension?>` is the type of a filter. `Definition` has one key for each field the filter can use, and each value can be the name of a type, a column or expression, or a nested object of them.
 
 ```ts
-import { DynamicCondition } from "ts-sql-query" // or "ts-sql-query/dynamic/condition"
+import { DynamicCondition } from "ts-sql-query"
 
 type CustomerFilter = DynamicCondition<{
     id: 'int'
@@ -144,7 +144,7 @@ Besides its fields, a filter has `and` and `or`, which receive an array of filte
 The value of a field in a filter is an object with the operators of its type. These types are exported, so your code can use them when it builds a filter in parts:
 
 ```ts
-import { DynamicCondition, StringFilter } from "ts-sql-query" // or "ts-sql-query/dynamic/condition"
+import { DynamicCondition, StringFilter } from "ts-sql-query"
 
 type CustomerFilter = DynamicCondition<{
     firstName: 'string'
@@ -286,7 +286,7 @@ The [Dynamic conditions API](../../api/dynamic-conditions.md) lists the definiti
 A property can be optional or nullable: the filter is the same.
 
 ```ts
-import { DynamicConditionForModel, DynamicDefinitionForModel } from "ts-sql-query" // or "ts-sql-query/dynamic/condition"
+import { DynamicConditionForModel, DynamicDefinitionForModel } from "ts-sql-query"
 
 interface Customer {
     id: number
@@ -328,7 +328,7 @@ An interface has only TypeScript types, so it doesn't say how the column is defi
 `DynamicDefinitionForModel<Model>` is the definition that `DynamicConditionForModel` builds from the interface, following the table above. It's exported to add fields that aren't in the interface, like one that only the filter uses:
 
 ```ts
-import { DynamicCondition, DynamicDefinitionForModel } from "ts-sql-query" // or "ts-sql-query/dynamic/condition"
+import { DynamicCondition, DynamicDefinitionForModel } from "ts-sql-query"
 
 interface Customer {
     id: number

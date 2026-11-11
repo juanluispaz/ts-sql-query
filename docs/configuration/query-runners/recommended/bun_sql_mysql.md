@@ -36,7 +36,7 @@ The `SQL` object is a pool of connections: give it to the query runner, and each
 
 ```ts
 import { SQL } from "bun";
-import { BunSqlMySqlQueryRunner } from "ts-sql-query/queryRunners/BunSqlMySqlQueryRunner";
+import { BunSqlMySqlQueryRunner } from "ts-sql-query/mysql/bun-sql";
 
 const sql = new SQL({
     adapter: 'mysql',
@@ -81,7 +81,7 @@ For `ts-sql-query` there is no transaction open, so `executeAfterNextCommit`, th
 
 ```ts
 import { SQL, type TransactionSQL } from "bun";
-import { BunSqlMySqlQueryRunner } from "ts-sql-query/queryRunners/BunSqlMySqlQueryRunner";
+import { BunSqlMySqlQueryRunner } from "ts-sql-query/mysql/bun-sql";
 
 const sql = new SQL({ adapter: 'mysql', foundRows: true /* , configuration */ });
 

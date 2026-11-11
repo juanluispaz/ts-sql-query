@@ -4,7 +4,7 @@ search:
 ---
 # Dynamic picks
 
-Picking columns dynamically lets the caller choose which columns a query returns, and [Picking columns dynamically](../caller-decides/picks.md) explains how it works and shows it with its queries. This page is the reference of what `ts-sql-query/dynamic/pick` exports, which is also exported from the root `ts-sql-query`.
+Picking columns dynamically lets the caller choose which columns a query returns, and [Picking columns dynamically](../caller-decides/picks.md) explains how it works and shows it with its queries. This page is the reference of the functions and types to pick columns, exported from `ts-sql-query`.
 
 | Export | What it's for | Where it's used |
 |---|---|---|
@@ -23,7 +23,7 @@ Picking columns dynamically lets the caller choose which columns a query returns
 `dynamicPick(availableFields, fieldsToPick, alwaysIncluded?)` returns a new object with the properties of `availableFields` whose value in `fieldsToPick` is `true`. For a nested object, `{ company: true }` picks all of it, and `{ company: { name: true } }` picks one property.
 
 ```ts
-import { dynamicPick } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
+import { dynamicPick } from 'ts-sql-query'
 
 const availableFields = {
     id: tCustomer.id,
@@ -47,7 +47,7 @@ const pickedFields = dynamicPick(availableFields, fieldsToPick, ['id']);
 `dynamicPickPaths(availableFields, pathsToPick, alwaysIncluded?)` does the same from a list of names. A nested object is `'company'` for all of it, and `'company.name'` for one property. `alwaysIncluded` works as in `dynamicPick`.
 
 ```ts
-import { dynamicPickPaths } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
+import { dynamicPickPaths } from 'ts-sql-query'
 
 const pickedFields = dynamicPickPaths(availableFields, ['firstName', 'birthday'], ['id'])
 ```
@@ -59,7 +59,7 @@ const pickedFields = dynamicPickPaths(availableFields, ['firstName', 'birthday']
 `DynamicPick<Type, MandatoryFields?>` is the type of the object that `dynamicPick` receives. Each property is an optional `boolean`. A nested object accepts `true` for all of it, or an object with its shape. `MandatoryFields` lists the ones that are always included, which aren't offered.
 
 ```ts
-import type { DynamicPick } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
+import type { DynamicPick } from 'ts-sql-query'
 
 type FieldsToPick = DynamicPick<typeof availableFields, 'id'>
 ```
@@ -69,7 +69,7 @@ type FieldsToPick = DynamicPick<typeof availableFields, 'id'>
 `DynamicPickPaths<Type, MandatoryPaths?>` is the type of one name that `dynamicPickPaths` receives: a union with the name of each property and each nested object, and the path of what is inside them, like `'company' | 'company.name'`. `MandatoryPaths` lists the ones that are always included, which aren't offered.
 
 ```ts
-import type { DynamicPickPaths } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
+import type { DynamicPickPaths } from 'ts-sql-query'
 
 type FieldsToPickList = DynamicPickPaths<typeof availableFields, 'id'>
 ```
@@ -79,7 +79,7 @@ type FieldsToPickList = DynamicPickPaths<typeof availableFields, 'id'>
 `Pickable` is the type that all the maps of available fields fit: an object whose values are columns, expressions, or nested objects of them. Use it to write a function that receives the map as a type parameter:
 
 ```ts
-import { dynamicPickPaths, DynamicPickPaths, Pickable } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
+import { dynamicPickPaths, DynamicPickPaths, Pickable } from 'ts-sql-query'
 
 function pickFields<FIELDS extends Pickable>(fields: FIELDS, paths: DynamicPickPaths<FIELDS>[]) {
     return dynamicPickPaths(fields, paths)
@@ -102,7 +102,7 @@ These types give the type of a row from the map of available fields and the name
 Use `PickValuesPath` for a type with only what was picked, and `PickValuesPathWithAllProperties` when the callers expect all the properties to exist in the type, as the result of `select` with a pick has them. Use a `ProjectedAsNullable` twin when the query calls [`projectingOptionalValuesAsNullable`](../../queries/basic-query-structure.md#projecting-optional-values).
 
 ```ts
-import type { PickValuesPath, PickValuesPathWithAllProperties, PickValuesPathProjectedAsNullable, PickValuesPathWithAllPropertiesProjectedAsNullable } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
+import type { PickValuesPath, PickValuesPathWithAllProperties, PickValuesPathProjectedAsNullable, PickValuesPathWithAllPropertiesProjectedAsNullable } from 'ts-sql-query'
 
 type OnlyPicked = PickValuesPath<typeof availableFields, 'firstName' | 'birthday'>
 type AllProperties = PickValuesPathWithAllProperties<typeof availableFields, 'firstName' | 'birthday'>
@@ -130,7 +130,7 @@ The value it returns can be returned from your function as any of these types, w
 | `DeepPick<Model, FIELDS \| 'id'>` | An interface of yours, and the names can reach inside nested objects, like `'company.name'` | [Typing from a business model](../own-function/from-business-model.md#picking-columns-dynamicpickpaths-deeppick), and [Deep utilities](../../advanced/deep-utilities.md) for `DeepPick` and `DeepPickPaths` |
 
 ```ts
-import { dynamicPickPaths, expandTypeFromDynamicPickPaths } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
+import { dynamicPickPaths, expandTypeFromDynamicPickPaths } from "ts-sql-query"
 
 interface CustomerInformation {
     id: number;
@@ -220,7 +220,7 @@ The parameters are: `[]`
 The third argument can also be a page of results. The function then returns `data` with the type of what was picked, and the rest as it was:
 
 ```ts
-import { dynamicPickPaths, expandTypeFromDynamicPickPaths, DynamicPickPaths } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
+import { dynamicPickPaths, expandTypeFromDynamicPickPaths, DynamicPickPaths } from 'ts-sql-query'
 
 const customerFields = {
     id: tCustomer.id,
@@ -347,7 +347,7 @@ And its parameters are: `[]`
 When the query calls [`projectingOptionalValuesAsNullable`](../../queries/basic-query-structure.md#projecting-optional-values), use `expandTypeProjectedAsNullableFromDynamicPickPaths`, which has the same arguments. Its result can be returned as `PickValuesPathProjectedAsNullable`:
 
 ```ts
-import { dynamicPickPaths, expandTypeProjectedAsNullableFromDynamicPickPaths, DynamicPickPaths, PickValuesPathProjectedAsNullable } from 'ts-sql-query' // or 'ts-sql-query/dynamic/pick';
+import { dynamicPickPaths, expandTypeProjectedAsNullableFromDynamicPickPaths, DynamicPickPaths, PickValuesPathProjectedAsNullable } from 'ts-sql-query'
 
 const customerFields = {
     id: tCustomer.id,

@@ -16,21 +16,32 @@ This page lists what to change in an application that runs on `ts-sql-query` v1.
 - **ESM only.** The CommonJS build is gone. Move your application to ESM, or load the library with a dynamic `import()`.
 - **Node.js 22 or newer** (or [Bun](../../index.md)).
 - **TypeScript**: `moduleResolution` must be `"node16"`, `"nodenext"` or `"bundler"`, because of the `exports` map.
-- **Only what the `exports` map lists can be imported.** Anything else fails with `ERR_PACKAGE_PATH_NOT_EXPORTED`. The paths the v1 documentation showed keep working, except for what this page says is removed. What was never documented doesn't:
+- **The paths of v1 keep working, and say where each name is now.** The connections, the query runners, `Connection`, `Table`, `View`, `TypeAdapter`, `Values`, `dynamicCondition`, `extras/types`, `extras/utils` and `extras/IDEncrypter` are imported from the same paths as in v1, and so are the filter types of a dynamic condition, from `ts-sql-query/expressions/dynamicConditionUsingFilters`, and `PromiseProvider`, from `ts-sql-query/utils/PromiseProvider`. Each name they export is marked deprecated, and your editor shows the path to import it from in v2:
+
+    | v1 path | v2 path |
+    |---|---|
+    | `ts-sql-query/Connection`, `Table`, `View`, `TypeAdapter`, `Values`, `dynamicCondition`, `extras/types`, `extras/utils`, `expressions/dynamicConditionUsingFilters`, `utils/PromiseProvider` | `ts-sql-query` |
+    | `ts-sql-query/connections/PostgreSqlConnection`, `MySqlConnection`, ... | `ts-sql-query/postgresql`, `ts-sql-query/mysql`, ...: the path of the database |
+    | `ts-sql-query/connections/SqliteConfiguration` | `ts-sql-query/sqlite` |
+    | `ts-sql-query/queryRunners/PgPoolQueryRunner`, `MySql2QueryRunner`, ... | `ts-sql-query/postgresql/pg`, `ts-sql-query/mysql/mysql2` (or `ts-sql-query/mariadb/mysql2` for MariaDB), ...: the path of the database and the driver |
+    | `ts-sql-query/queryRunners/MockQueryRunner`, `NoopQueryRunner`, `ConsoleLogQueryRunner`, `ConsoleLogNoopQueryRunner`, `InterceptorQueryRunner`, `LoggingQueryRunner`, `QueryRunner` | `ts-sql-query` |
+    | `ts-sql-query/extras/IDEncrypter` | `ts-sql-query/IDEncrypter` |
+
+    The paths of v1 will be removed in the next major version. See [the paths of v2](../../index.md#install) for the full list.
+
+- **What v1 didn't publish can't be imported.** Anything outside the `exports` map fails with `ERR_PACKAGE_PATH_NOT_EXPORTED`:
 
     | v1 import | v2 |
     |---|---|
     | `ts-sql-query/connections/AbstractConnection`, `AbstractAdvancedConnection`, `Abstract<database>Connection` | Extend the connection of your database, like `PostgreSqlConnection` |
     | `ts-sql-query/connections/NoopDBConnection` | `ts-sql-query/__UNSUPPORTED__/connections/NoopDBConnection` |
     | `ts-sql-query/queryRunners/AbstractQueryRunner`, `AbstractPoolQueryRunner`, `ChainedQueryRunner`, `SqlTransactionQueryRunner`, `ManagedTransactionQueryRunner`, `ManagedTransactionPoolQueryRunner` | `ts-sql-query/__UNSUPPORTED__/queryRunners/...` |
-    | `ts-sql-query/expressions/*`, `utils/*`, `internal/*`, `queryBuilders/*`, `sqlBuilders/*` | `ts-sql-query/__UNSUPPORTED__/expressions/*`, ... Some of what was only there is now public, like the filter types of a dynamic condition (`StringFilter`, `NumberFilter`, ...) of `expressions/dynamicConditionUsingFilters`, in `ts-sql-query/dynamic/condition` and `ts-sql-query` |
+    | `ts-sql-query/expressions/*` (but `expressions/dynamicConditionUsingFilters`), `utils/*` (but `utils/PromiseProvider`), `internal/*`, `queryBuilders/*`, `sqlBuilders/*` | `ts-sql-query/__UNSUPPORTED__/expressions/*`, ... |
     | `ts-sql-query/typeMarks/*`, `ts-sql-query/databases` | Removed |
     | `ts-sql-query/queryRunners/PromiseBasedQueryRunner`, `PromiseBasedWithSqlTransactionQueryRunner`, `PromiseBasedPoolQueryRunner`, `PromiseBasedAbstractQueryRunner`, `OracleUtils` | Removed. Extend `ManagedTransactionQueryRunner`, `SqlTransactionQueryRunner`, `ManagedTransactionPoolQueryRunner` or `AbstractQueryRunner`, from `__UNSUPPORTED__`; see [your own query runner](#your-own-query-runner-and-the-connection-of-the-driver) |
-    | `ts-sql-query/utils/PromiseProvider` | `PromiseProvider` from `ts-sql-query/queryRunners/QueryRunner` |
 
     `__UNSUPPORTED__` reaches the internals of the library, with no stability guarantee.
 
-- **New paths, optional.** `ts-sql-query/dynamicCondition` keeps working, except for the names [renamed](#renamed) or [removed](#removed-connections-and-query-runners) below, and the same names are also in `ts-sql-query/dynamic/pick` and `ts-sql-query/dynamic/condition`. The cross-database symbols can also be imported from the root, `ts-sql-query`. The connections, the query runners and `IDEncrypter` stay on their own path.
 - **Dependencies.** `chained-error` and `ts-extended-types` are gone: remove any import of them from your code. The page of each query runner ([pg](../../configuration/query-runners/recommended/pg.md), for example) says which driver versions it is tested on, so check yours before updating.
 
 ## What stops compiling
@@ -53,8 +64,10 @@ The compiler finds all of these. This section is what to write instead.
 | `mergeType(...)` | `connection.dynamicBooleanExpressionUsing(...)` |
 | `PickValuesPathWitAllProperties`, `PickValuesPathWitAllPropertiesProjectedAsNullable` | `PickValuesPathWithAllProperties`, `PickValuesPathWithAllPropertiesProjectedAsNullable` |
 | `queryRunner.getCurrentNativeTransaction()` | `queryRunner.getCurrentNativeConnection()` |
-| `QueryExecutor` from `MockQueryRunner` | `MockQueryExecutor`, same path |
-| `QueryType` from `MockQueryRunner`, `InterceptorQueryRunner` or `LoggingQueryRunner` | `QueryType` from `ts-sql-query/queryRunners/QueryRunner` |
+| `QueryExecutor` from `MockQueryRunner` | `MockQueryExecutor`, from `ts-sql-query` |
+| `QueryType` from `MockQueryRunner`, `InterceptorQueryRunner` or `LoggingQueryRunner` | `QueryType` from `ts-sql-query` |
+
+The renamed types (`PickValuesPathWit...`, `QueryExecutor`, `QueryType` from a query runner) keep compiling when you import them from their path of v1, marked deprecated, until you rename them; so do `TyeSafeConnection`, `TyeUnsafeConnection` and `TypeSafeDynamicCondition`, below.
 
 The rules of a [dynamic condition](../../dynamic/helper-types/conditions.md) were renamed in the same way, but [they may not stop compiling](#dynamic-conditions-coming-from-outside).
 
@@ -63,7 +76,7 @@ The rules of a [dynamic condition](../../dynamic/helper-types/conditions.md) wer
 | v1 | v2 |
 |---|---|
 | `TypeSafePostgreSqlConnection`, `TypeSafeMySqlConnection`, ... | The connection without the prefix, like `PostgreSqlConnection`. Values are plain `number`, `string` and `Date`, not the `int`, `double`, `uuid`, `LocalDate`, ... of `ts-extended-types` |
-| `TyeSafeConnection`, `TyeUnsafeConnection` from `ts-sql-query/Connection`; `TypeSafeDynamicCondition` from `ts-sql-query/dynamicCondition` | `Connection`, same path; `DynamicCondition`, same path |
+| `TyeSafeConnection`, `TyeUnsafeConnection` from `ts-sql-query/Connection`; `TypeSafeDynamicCondition` from `ts-sql-query/dynamicCondition` | `Connection`, `DynamicCondition`, from `ts-sql-query` |
 | `AnyDBQueryRunner`, `AnyDBPoolQueryRunner`, `LoopBackQueryRunner` | The query runner of your driver |
 | `MsNodeSqlV8QueryRunner`, `TediousQueryRunner`, `TediousPoolQueryRunner` | [`MssqlPoolQueryRunner`](../../configuration/query-runners/recommended/mssql.md) |
 | `MySqlQueryRunner`, `MySqlPoolQueryRunner` | [`MySql2QueryRunner`, `MySql2PoolQueryRunner`](../../configuration/query-runners/recommended/mysql2.md) |
@@ -174,7 +187,7 @@ protected override transformValueToDB(value: unknown, type: string): unknown {
 In v2:
 
 ```ts
-import type { TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
+import type { TypeCategory } from "ts-sql-query"
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
         if (type === 'MyIntTypeName') {
@@ -187,7 +200,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
 `transformPlaceholder` no longer receives `forceTypeCast`: it is `transformPlaceholder(placeholder, type, typeCategory, valueSentToDB)` in the connection, with `next` at the end in a type adapter, and it receives the placeholder as the query runner wrote it, with the cast when there is one. To decide whether the database must receive the type of a parameter, implement `forceTypeCast(type, typeCategory, valueSentToDB, forceTypeCast)`; an override that cast every parameter on PostgreSQL is no longer needed, the library gives the type where PostgreSQL needs it (see [The type of a parameter](../../configuration/supported-databases/postgresql.md#the-type-of-a-parameter)).
 
-A rule like this one, that only sends a `customInt` to `int`, is no longer needed: a custom type is converted as the type of its category (see [Custom types are converted as their category](#custom-types-are-converted-as-their-category)). `TypeCategory` is exported from `ts-sql-query` and from `ts-sql-query/TypeAdapter`.
+A rule like this one, that only sends a `customInt` to `int`, is no longer needed: a custom type is converted as the type of its category (see [Custom types are converted as their category](#custom-types-are-converted-as-their-category)). `TypeCategory` is exported from `ts-sql-query`.
 
 ### Your own query runner, and the connection of the driver
 
@@ -196,7 +209,7 @@ A rule like this one, that only sends a `customInt` to `int`, is no longer neede
 - `executeInTransaction(fn, ...)` no longer accepts a function returning an array, and `executeBeginTransaction`, `executeCommit`, `executeRollback` and `executeInTransaction` receive an optional `opts` at the end.
 - To log or intercept queries, prefer [`InterceptorQueryRunner`](../../configuration/query-runners/general-purpose/InterceptorQueryRunner.md), which is public and needs no changes beyond the import of `QueryType`.
 - `MockQueryRunner` no longer calls your function with `'isTransactionActive'`. A branch for that value doesn't compile: remove it.
-- `addParam(params, value, type, typeCategory, forceTypeCast)` and `addOutParam(params, name, type, typeCategory, forceTypeCast)` receive the name of the type, its category and whether the database must receive the type of the parameter, and return the placeholder as it is written in the SQL. A query runner that forwards them to another doesn't compile until it passes them on, and neither does code that calls them to build its own SQL. A query runner that adds the value keeps them with `setQueryParamMetadata(params, index, key, value)`, under the keys `queryParamType`, `queryParamTypeCategory` and `queryParamForceTypeCast`, all from `ts-sql-query/QueryMetadata`, so that `getQueryParamType`, `getQueryParamTypeCategory` and `getQueryParamForceTypeCast` can read them (see [Get the type of each parameter](../../advanced/query-execution-metadata.md#get-the-type-of-each-parameter)).
+- `addParam(params, value, type, typeCategory, forceTypeCast)` and `addOutParam(params, name, type, typeCategory, forceTypeCast)` receive the name of the type, its category and whether the database must receive the type of the parameter, and return the placeholder as it is written in the SQL. A query runner that forwards them to another doesn't compile until it passes them on, and neither does code that calls them to build its own SQL. A query runner that adds the value keeps them with `setQueryParamMetadata(params, index, key, value)`, under the keys `queryParamType`, `queryParamTypeCategory` and `queryParamForceTypeCast`, all from `ts-sql-query`, so that `getQueryParamType`, `getQueryParamTypeCategory` and `getQueryParamForceTypeCast` can read them (see [Get the type of each parameter](../../advanced/query-execution-metadata.md#get-the-type-of-each-parameter)).
 
 ## What changes silently at runtime
 

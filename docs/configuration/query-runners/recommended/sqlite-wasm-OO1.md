@@ -31,7 +31,7 @@ Every statement runs on the database object you give the query runner. `new sqli
 
 ```ts
 import sqlite3InitModule from "@sqlite.org/sqlite-wasm";
-import { Sqlite3WasmOO1QueryRunner } from "ts-sql-query/queryRunners/Sqlite3WasmOO1QueryRunner";
+import { Sqlite3WasmOO1QueryRunner } from "ts-sql-query/sqlite/sqlite-wasm";
 import type { Database } from "@sqlite.org/sqlite-wasm";
 
 async function main() {
@@ -49,7 +49,8 @@ Some settings of the connection make the library write SQL functions that SQLite
 
 ```ts
 import sqlite3InitModule from "@sqlite.org/sqlite-wasm";
-import { Sqlite3WasmOO1QueryRunner, registerSqliteFunctions } from "ts-sql-query/queryRunners/Sqlite3WasmOO1QueryRunner";
+import { Sqlite3WasmOO1QueryRunner } from "ts-sql-query/sqlite/sqlite-wasm";
+import { registerSqliteFunctions } from "ts-sql-query/sqlite/bun-sqlite";
 
 const sqlite3 = await sqlite3InitModule();
 const db = new sqlite3.oo1.DB('foobar.db', 'c');
@@ -82,7 +83,7 @@ For `ts-sql-query` there is no transaction open, so `executeAfterNextCommit`, th
 
 ```ts
 import type { Database } from "@sqlite.org/sqlite-wasm";
-import { Sqlite3WasmOO1QueryRunner } from "ts-sql-query/queryRunners/Sqlite3WasmOO1QueryRunner";
+import { Sqlite3WasmOO1QueryRunner } from "ts-sql-query/sqlite/sqlite-wasm";
 
 async function main(db: Database) {
     const connection = new DBConnection(new Sqlite3WasmOO1QueryRunner(db, { forUseInTransaction: true }));
@@ -93,7 +94,7 @@ async function main(db: Database) {
 
 ## Options of the query runner
 
-The second argument of `Sqlite3WasmOO1QueryRunner`, optional, is an object of type `Sqlite3WasmOO1QueryRunnerConfig`, exported from `ts-sql-query/queryRunners/Sqlite3WasmOO1QueryRunner`:
+The second argument of `Sqlite3WasmOO1QueryRunner`, optional, is an object of type `Sqlite3WasmOO1QueryRunnerConfig`, exported from `ts-sql-query/sqlite/sqlite-wasm`:
 
 - **`promise`**: another `Promise` provider, for [synchronous query execution](../../../advanced/synchronous-query-runners.md).
 - **`forUseInTransaction`**: the connection is already in a transaction that something else began and ends; see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages).

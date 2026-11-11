@@ -139,7 +139,7 @@ When the select returns nested objects, the filter has the same shape: see [the 
 The caller chooses which columns come back, as in GraphQL. You write all the columns that can be returned, and the query has only those that were picked:
 
 ```ts
-import { dynamicPickPaths } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
+import { dynamicPickPaths } from "ts-sql-query"
 
 const availableFields = {
     id: tCustomer.id,

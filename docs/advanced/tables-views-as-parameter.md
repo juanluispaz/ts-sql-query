@@ -19,7 +19,7 @@ These types are only a reference: they don't have the columns. To reach them, `f
 
 <!-- doc-code-snippet-result: { id: 10, name: 'ACME', numberOfCustomers: 3 } -->
 ```ts
-import { fromRef, type TableOrViewOf } from 'ts-sql-query' // or 'ts-sql-query/extras/types';
+import { fromRef, type TableOrViewOf } from 'ts-sql-query'
 
 function buildNumberOfCustomersSubquery<COMPANY extends TableOrViewOf<typeof tCompany, 'company'>>(connection: DBConnection, companyRef: COMPANY) {
     const company = fromRef(tCompany, companyRef);
@@ -108,7 +108,7 @@ The parameters are: `[ 10 ]`
 With `TableOrViewLeftJoinOf`, the columns that `fromRef` returns are optional, as in any [left join](../queries/select.md#select-with-left-join):
 
 ```ts
-import { fromRef, type TableOrViewLeftJoinOf } from 'ts-sql-query' // or 'ts-sql-query/extras/types';
+import { fromRef, type TableOrViewLeftJoinOf } from 'ts-sql-query'
 
 function buildCompanyProjection<COMPANY extends TableOrViewLeftJoinOf<typeof tCompany, 'company'>>(companyRef: COMPANY) {
     const company = fromRef(tCompany, companyRef);

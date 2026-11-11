@@ -10,7 +10,7 @@ This page has what is particular to SQLite: what it offers and what it doesn't, 
 ## Defining the connection
 
 ```ts
-import { SqliteConnection } from "ts-sql-query/connections/SqliteConnection";
+import { SqliteConnection } from "ts-sql-query/sqlite";
 
 class DBConnection extends SqliteConnection<'DBConnection'> { }
 ```
@@ -46,8 +46,8 @@ What isn't offered doesn't compile on this connection. On a version older than t
 `ts-sql-query` provides multiple strategies to handle date and time that are compatible with [SQLite’s date and time functions](https://www.sqlite.org/lang_datefunc.html). To define the strategy to be used, you must overwrite the `getDateTimeFormat` function; this function receives as an argument the type of date to handle (`date`, `time`, `dateTime`) and returns the strategy to use for that specific case. In addition, there are three properties (`treatUnexpectedIntegerDateTimeAsJulian`, `treatUnexpectedStringDateTimeAsUTC`, and `unexpectedUnixDateTimeAreMilliseconds`) that allow controlling how unexpected formats are interpreted. Example:
 
 ```ts
-import { SqliteConnection } from "ts-sql-query/connections/SqliteConnection";
-import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from "ts-sql-query/connections/SqliteConfiguration";
+import { SqliteConnection } from "ts-sql-query/sqlite";
+import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from "ts-sql-query/sqlite";
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
     protected override getDateTimeFormat(type: SqliteDateTimeFormatType): SqliteDateTimeFormat {
@@ -165,7 +165,7 @@ These are the results with the process in `Europe/Madrid`, for the value `2024-0
 The option says that SQLite runs in the same zone as your application:
 
 ```ts
-import { SqliteConnection } from "ts-sql-query/connections/SqliteConnection";
+import { SqliteConnection } from "ts-sql-query/sqlite";
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
     protected override sqliteRunsInApplicationTimeZone = true
@@ -246,7 +246,7 @@ Note that `.length()` is **not** affected: it counts characters correctly on SQL
 You can configure the strategy by overriding the `uuidStrategy` field in your connection class:
 
 ```ts
-import { SqliteConnection } from "ts-sql-query/connections/SqliteConnection";
+import { SqliteConnection } from "ts-sql-query/sqlite";
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
     protected override uuidStrategy = 'string' as const
@@ -323,7 +323,7 @@ A group of numbers equal with different scales (`1.5` and `1.50`), in a strategy
 You can change the strategy by overriding the `decimalStrategy` field in your connection class:
 
 ```ts
-import { SqliteConnection } from "ts-sql-query/connections/SqliteConnection";
+import { SqliteConnection } from "ts-sql-query/sqlite";
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
     protected override decimalStrategy = 'decimal-functions with canonical text' as const
@@ -376,7 +376,7 @@ Recognised breakpoints (with the default `Number.POSITIVE_INFINITY` every breakp
 - `< 3_030_000`: target SQLite 3.29 or older. `NULLS FIRST` / `NULLS LAST` ordering is emulated. The `RETURNING` clause is not emitted on `INSERT`; `last_insert_rowid()` is used to retrieve the inserted ID instead.
 
 ```ts
-import { SqliteConnection } from "ts-sql-query/connections/SqliteConnection";
+import { SqliteConnection } from "ts-sql-query/sqlite";
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
     protected override compatibilityVersion = 3_029_000

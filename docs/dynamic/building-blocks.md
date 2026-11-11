@@ -167,7 +167,7 @@ See [Order and page from a request](optional-parts/order-and-page.md).
 Instead of one parameter per condition, the caller sends an object that says which fields to compare and how, with `and`, `or` and `not` if it needs them. You list the fields it can use, and your own conditions stay in the code, where the filter can't remove them:
 
 ```ts
-import { DynamicCondition } from "ts-sql-query" // or "ts-sql-query/dynamic/condition"
+import { DynamicCondition } from "ts-sql-query"
 
 const filterableFields = {
     firstName: tCustomer.firstName,
@@ -264,7 +264,7 @@ See [Dynamic filters](caller-decides/filters.md).
 You write every column that can be returned, and the query has only those that were picked. A table that nothing needs isn't joined:
 
 ```ts
-import { dynamicPickPaths } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
+import { dynamicPickPaths } from "ts-sql-query"
 
 const availableFields = {
     id: tCustomer.id,
@@ -333,8 +333,8 @@ With `['firstName']`, the query reads only the id and the first name of `custome
 All of that fits in a function of your own, and the type of its result has only the columns the caller asked for:
 
 ```ts
-import { dynamicPickPaths, expandTypeFromDynamicPickPaths, DynamicPickPaths, PickValuesPath } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
-import { DynamicCondition } from "ts-sql-query" // or "ts-sql-query/dynamic/condition"
+import { dynamicPickPaths, expandTypeFromDynamicPickPaths, DynamicPickPaths, PickValuesPath } from "ts-sql-query"
+import { DynamicCondition } from "ts-sql-query"
 
 const availableFields = {
     id: tCustomer.id,

@@ -22,7 +22,7 @@ A query runner that takes the place of the database: it sends nothing, and alway
 ## Creating it
 
 ```ts
-import { NoopQueryRunner } from "ts-sql-query/queryRunners/NoopQueryRunner";
+import { NoopQueryRunner } from "ts-sql-query";
 
 async function main() {
     const connection = new DBConnection(new NoopQueryRunner());
@@ -44,7 +44,7 @@ async function main() {
 
 ## Options
 
-The constructor receives the name of a database, or an object of type `NoopQueryRunnerConfig`, exported from `ts-sql-query/queryRunners/NoopQueryRunner`, with these options:
+The constructor receives the name of a database, or an object of type `NoopQueryRunnerConfig`, exported from `ts-sql-query`, with these options:
 
 - **`database`**: the database to write the SQL for. A connection sets it to its own database when you create it, so you only need this to use the query runner without a connection.
 - **`promise`**: another `Promise` provider, for [synchronous query execution](../../../advanced/synchronous-query-runners.md).

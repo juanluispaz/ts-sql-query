@@ -27,7 +27,7 @@ Give the query runner the promise that `connect()` returns, without waiting for 
 
 ```ts
 import mssql from 'mssql'
-import { MssqlPoolPromiseQueryRunner } from "ts-sql-query/queryRunners/MssqlPoolPromiseQueryRunner";
+import { MssqlPoolPromiseQueryRunner } from "ts-sql-query/sqlserver/mssql";
 
 const { ConnectionPool } = mssql
 
@@ -51,7 +51,7 @@ The same, when you already have the pool connected.
 
 ```ts
 import mssql from 'mssql'
-import { MssqlPoolQueryRunner } from "ts-sql-query/queryRunners/MssqlPoolQueryRunner";
+import { MssqlPoolQueryRunner } from "ts-sql-query/sqlserver/mssql";
 
 const { ConnectionPool } = mssql
 
@@ -90,7 +90,7 @@ For `ts-sql-query` there is no transaction open, so `executeAfterNextCommit`, th
 
 ```ts
 import mssql from 'mssql'
-import { MssqlPoolQueryRunner } from "ts-sql-query/queryRunners/MssqlPoolQueryRunner";
+import { MssqlPoolQueryRunner } from "ts-sql-query/sqlserver/mssql";
 
 async function main(mssqlPool: mssql.ConnectionPool) {
     const transaction = mssqlPool.transaction();
@@ -108,7 +108,7 @@ Each parameter is sent with the SQL Server type of [the category of its type](..
 
 ```ts
 import mssql from 'mssql'
-import { MssqlPoolPromiseQueryRunner } from "ts-sql-query/queryRunners/MssqlPoolPromiseQueryRunner";
+import { MssqlPoolPromiseQueryRunner } from "ts-sql-query/sqlserver/mssql";
 
 const { ConnectionPool, TYPES } = mssql
 

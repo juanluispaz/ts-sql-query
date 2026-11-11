@@ -22,7 +22,7 @@ A query runner that takes the place of the database: it writes each statement on
 ## Creating it
 
 ```ts
-import { ConsoleLogNoopQueryRunner } from "ts-sql-query/queryRunners/ConsoleLogNoopQueryRunner";
+import { ConsoleLogNoopQueryRunner } from "ts-sql-query";
 
 async function main() {
     const connection = new DBConnection(new ConsoleLogNoopQueryRunner());
@@ -31,4 +31,4 @@ async function main() {
 }
 ```
 
-The constructor receives the name of a database, or an object of type `ConsoleLogNoopQueryRunnerConfig`, exported from `ts-sql-query/queryRunners/ConsoleLogNoopQueryRunner`, with `database` and `promise`: see the [options of `NoopQueryRunner`](NoopQueryRunner.md#options).
+The constructor receives the name of a database, or an object of type `ConsoleLogNoopQueryRunnerConfig`, exported from `ts-sql-query`, with `database` and `promise`: see the [options of `NoopQueryRunner`](NoopQueryRunner.md#options).

@@ -811,7 +811,7 @@ A condition can be left with nothing written in it: a `dynamicWhere()` without a
 The error in a delete or an update protects you from a filter that arrives empty by mistake, and that would otherwise change the whole table:
 
 ```ts
-import { TsSqlError } from "ts-sql-query" // or "ts-sql-query/TsSqlError"
+import { TsSqlError } from "ts-sql-query"
 
 const customerId: number | null = null;
 

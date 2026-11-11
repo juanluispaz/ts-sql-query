@@ -443,7 +443,7 @@ If no `if` adds anything, the condition stays neutral and the query has no `wher
 A condition is a value, so a function can build it and any query can use it. When the query uses an alias of the table, the function has to receive that alias: `TableOrViewOf` is the type of the parameter, and `fromRef` gives back the columns of the table, as [Passing tables and views as parameter](../../advanced/tables-views-as-parameter.md) explains.
 
 ```ts
-import { fromRef, type TableOrViewOf } from 'ts-sql-query' // or 'ts-sql-query/extras/types'
+import { fromRef, type TableOrViewOf } from 'ts-sql-query'
 
 function nameContains<CUSTOMER extends TableOrViewOf<typeof tCustomer, 'customer'>>(customerRef: CUSTOMER, text: string | null | undefined) {
     const customer = fromRef(tCustomer, customerRef);

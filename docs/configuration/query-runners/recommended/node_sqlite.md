@@ -44,7 +44,7 @@ Every statement runs on the database object you give the query runner.
 
 ```ts
 import { DatabaseSync } from "node:sqlite";
-import { NodeSqliteQueryRunner } from "ts-sql-query/queryRunners/NodeSqliteQueryRunner";
+import { NodeSqliteQueryRunner } from "ts-sql-query/sqlite/node-sqlite";
 
 const db = new DatabaseSync('foobar.db', options);
 
@@ -69,7 +69,8 @@ Some settings of the connection make the library write SQL functions that SQLite
 
 ```ts
 import { DatabaseSync } from "node:sqlite";
-import { NodeSqliteQueryRunner, registerSqliteFunctions } from "ts-sql-query/queryRunners/NodeSqliteQueryRunner";
+import { NodeSqliteQueryRunner } from "ts-sql-query/sqlite/node-sqlite";
+import { registerSqliteFunctions } from "ts-sql-query/sqlite/bun-sqlite";
 
 const db = new DatabaseSync('foobar.db');
 registerSqliteFunctions(db);
@@ -100,7 +101,7 @@ For `ts-sql-query` there is no transaction open, so `executeAfterNextCommit`, th
 
 ```ts
 import { DatabaseSync } from "node:sqlite";
-import { NodeSqliteQueryRunner } from "ts-sql-query/queryRunners/NodeSqliteQueryRunner";
+import { NodeSqliteQueryRunner } from "ts-sql-query/sqlite/node-sqlite";
 
 const db = new DatabaseSync('foobar.db', options);
 
@@ -113,7 +114,7 @@ async function main() {
 
 ## Options of the query runner
 
-The second argument of `NodeSqliteQueryRunner`, optional, is an object of type `NodeSqliteQueryRunnerConfig`, exported from `ts-sql-query/queryRunners/NodeSqliteQueryRunner`:
+The second argument of `NodeSqliteQueryRunner`, optional, is an object of type `NodeSqliteQueryRunnerConfig`, exported from `ts-sql-query/sqlite/node-sqlite`:
 
 - **`promise`**: another `Promise` provider, for [synchronous query execution](../../../advanced/synchronous-query-runners.md).
 - **`forUseInTransaction`**: the connection is already in a transaction that something else began and ends; see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages).

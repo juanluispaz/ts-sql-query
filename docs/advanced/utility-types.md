@@ -4,7 +4,7 @@ search:
 ---
 # Utility types
 
-These types give you, from a table or a view, the type of what you read and write, so you don't have to write it by hand: the parameter of a function that inserts a customer, or the return type of one that reads it. They are in `ts-sql-query/extras/types`, and also in the root `ts-sql-query`.
+These types give you, from a table or a view, the type of what you read and write, so you don't have to write it by hand: the parameter of a function that inserts a customer, or the return type of one that reads it. They are exported from `ts-sql-query`.
 
 | You need the type of | Use | With a [shape](../queries/shapes.md) |
 |---|---|---|
@@ -29,7 +29,7 @@ In the writing types, the difference between `Values` and `Row` is what a proper
 The type of a row returned by a select on a table or view that includes all its columns.
 
 ```ts
-import { SelectedValues } from 'ts-sql-query' // or 'ts-sql-query/extras/types';
+import { SelectedValues } from 'ts-sql-query'
 
 type Company = SelectedValues<typeof tCompany>;
 ```
@@ -43,7 +43,7 @@ type Company = SelectedValues<typeof tCompany>;
 The same type as `SelectedValues`, with the name that matches the other `Row` types.
 
 ```ts
-import { SelectedRow } from 'ts-sql-query' // or 'ts-sql-query/extras/types';
+import { SelectedRow } from 'ts-sql-query'
 
 type CompanyRow = SelectedRow<typeof tCompany>;
 ```
@@ -59,7 +59,7 @@ type CompanyRow = SelectedRow<typeof tCompany>;
 The values that can be used in an insert into the table. A required column without a default value is a required property; the rest are optional.
 
 ```ts
-import { InsertableValues } from 'ts-sql-query' // or 'ts-sql-query/extras/types';
+import { InsertableValues } from 'ts-sql-query'
 
 type InsertableCompany = InsertableValues<typeof tCompany>;
 ```
@@ -67,7 +67,7 @@ type InsertableCompany = InsertableValues<typeof tCompany>;
 If your query uses a [shape](../queries/shapes.md), use:
 
 ```ts
-import { InsertableValuesShapedAs } from 'ts-sql-query' // or 'ts-sql-query/extras/types';
+import { InsertableValuesShapedAs } from 'ts-sql-query'
 
 const myCustomerShape = {
     newFirstName: 'firstName',
@@ -82,7 +82,7 @@ type InsertableShapedCustomer = InsertableValuesShapedAs<typeof tCustomer, typeo
 What `set` expects in an insert: like `InsertableValues`, and each value can also be an expression of the query.
 
 ```ts
-import { InsertableRow } from 'ts-sql-query' // or 'ts-sql-query/extras/types';
+import { InsertableRow } from 'ts-sql-query'
 
 type InsertableCompanyRow = InsertableRow<typeof tCompany>;
 ```
@@ -90,7 +90,7 @@ type InsertableCompanyRow = InsertableRow<typeof tCompany>;
 If your query uses a [shape](../queries/shapes.md), use:
 
 ```ts
-import { InsertableRowShapedAs } from 'ts-sql-query' // or 'ts-sql-query/extras/types';
+import { InsertableRowShapedAs } from 'ts-sql-query'
 
 const myCustomerShape = {
     newFirstName: 'firstName',
@@ -105,7 +105,7 @@ type InsertableShapedCustomerRow = InsertableRowShapedAs<typeof tCustomer, typeo
 The values that can be used in the `onConflictDoUpdateSet` of an insert into the table. See [Insert on conflict](../queries/insert-on-conflict.md).
 
 ```ts
-import { UpdatableOnInsertConflictValues } from 'ts-sql-query' // or 'ts-sql-query/extras/types';
+import { UpdatableOnInsertConflictValues } from 'ts-sql-query'
 
 type UpdatableCompanyOnInsertConflict = UpdatableOnInsertConflictValues<typeof tCompany>;
 ```
@@ -113,7 +113,7 @@ type UpdatableCompanyOnInsertConflict = UpdatableOnInsertConflictValues<typeof t
 If your query uses a [shape](../queries/shapes.md), use:
 
 ```ts
-import { UpdatableOnInsertConflictValuesShapedAs } from 'ts-sql-query' // or 'ts-sql-query/extras/types';
+import { UpdatableOnInsertConflictValuesShapedAs } from 'ts-sql-query'
 
 const myCustomerShape = {
     newFirstName: 'firstName',
@@ -128,7 +128,7 @@ type UpdatableShapedCustomerOnInsertConflict = UpdatableOnInsertConflictValuesSh
 What `onConflictDoUpdateSet` expects in an insert: like `UpdatableOnInsertConflictValues`, and each value can also be an expression of the query.
 
 ```ts
-import { UpdatableOnInsertConflictRow } from 'ts-sql-query' // or 'ts-sql-query/extras/types';
+import { UpdatableOnInsertConflictRow } from 'ts-sql-query'
 
 type UpdatableCompanyOnInsertConflictRow = UpdatableOnInsertConflictRow<typeof tCompany>;
 ```
@@ -136,7 +136,7 @@ type UpdatableCompanyOnInsertConflictRow = UpdatableOnInsertConflictRow<typeof t
 If your query uses a [shape](../queries/shapes.md), use:
 
 ```ts
-import { UpdatableOnInsertConflictRowShapedAs } from 'ts-sql-query' // or 'ts-sql-query/extras/types';
+import { UpdatableOnInsertConflictRowShapedAs } from 'ts-sql-query'
 
 const myCustomerShape = {
     newFirstName: 'firstName',
@@ -153,7 +153,7 @@ type UpdatableShapedCustomerOnInsertConflictRow = UpdatableOnInsertConflictRowSh
 The values that can be used in an update of the table. All of them are optional.
 
 ```ts
-import { UpdatableValues } from 'ts-sql-query' // or 'ts-sql-query/extras/types';
+import { UpdatableValues } from 'ts-sql-query'
 
 type UpdatableCompany = UpdatableValues<typeof tCompany>;
 ```
@@ -161,7 +161,7 @@ type UpdatableCompany = UpdatableValues<typeof tCompany>;
 If your query uses a [shape](../queries/shapes.md), use:
 
 ```ts
-import { UpdatableValuesShapedAs } from 'ts-sql-query' // or 'ts-sql-query/extras/types';
+import { UpdatableValuesShapedAs } from 'ts-sql-query'
 
 const myCustomerShape = {
     newFirstName: 'firstName',
@@ -176,7 +176,7 @@ type UpdatableShapedCustomer = UpdatableValuesShapedAs<typeof tCustomer, typeof 
 What `set` expects in an update: like `UpdatableValues`, and each value can also be an expression of the query.
 
 ```ts
-import { UpdatableRow } from 'ts-sql-query' // or 'ts-sql-query/extras/types';
+import { UpdatableRow } from 'ts-sql-query'
 
 type UpdatableCompanyRow = UpdatableRow<typeof tCompany>;
 ```
@@ -184,7 +184,7 @@ type UpdatableCompanyRow = UpdatableRow<typeof tCompany>;
 If your query uses a [shape](../queries/shapes.md), use:
 
 ```ts
-import { UpdatableRowShapedAs } from 'ts-sql-query' // or 'ts-sql-query/extras/types';
+import { UpdatableRowShapedAs } from 'ts-sql-query'
 
 const myCustomerShape = {
     newFirstName: 'firstName',
@@ -203,7 +203,7 @@ These types give the names of properties. A column in a [group](../configuration
 The names of the properties that are columns in an object, such as a table or a view.
 
 ```ts
-import { ColumnKeys } from 'ts-sql-query' // or 'ts-sql-query/extras/types';
+import { ColumnKeys } from 'ts-sql-query'
 
 // Alias to type tCustomerColumns = "id" | "firstName" | "lastName" | "companyId" | "birthday" | "name" | "age"
 type tCustomerColumns = ColumnKeys<typeof tCustomer>;
@@ -214,7 +214,7 @@ type tCustomerColumns = ColumnKeys<typeof tCustomer>;
 The names of the columns that can be used in an insert or an update: like `ColumnKeys`, leaving out computed and virtual columns.
 
 ```ts
-import { WritableColumnKeys } from 'ts-sql-query' // or 'ts-sql-query/extras/types';
+import { WritableColumnKeys } from 'ts-sql-query'
 
 // Alias to type tCustomerWritableColumns = "id" | "firstName" | "lastName" | "companyId" | "birthday"
 type tCustomerWritableColumns = WritableColumnKeys<typeof tCustomer>;
@@ -225,7 +225,7 @@ type tCustomerWritableColumns = WritableColumnKeys<typeof tCustomer>;
 The type of a shape for an insert or an update where each property of the values has the name of its column, like `{ firstName: 'firstName' }`. It's what [`extractWritableShapeFrom`](columns-from-object.md#extract-writable-shape) returns.
 
 ```ts
-import { WritableShapeFor } from 'ts-sql-query' // or 'ts-sql-query/extras/types';
+import { WritableShapeFor } from 'ts-sql-query'
 
 type WritableCompanyShape = WritableShapeFor<typeof tCompany>;
 ```
@@ -235,7 +235,7 @@ type WritableCompanyShape = WritableShapeFor<typeof tCompany>;
 The names of the columns of the primary key.
 
 ```ts
-import { IdColumnKeys } from 'ts-sql-query' // or 'ts-sql-query/extras/types';
+import { IdColumnKeys } from 'ts-sql-query'
 
 // Alias to type tCustomerIdColumns = "id"
 type tCustomerIdColumns = IdColumnKeys<typeof tCustomer>;
@@ -246,7 +246,7 @@ type tCustomerIdColumns = IdColumnKeys<typeof tCustomer>;
 The names of the columns of the primary key marked as autogenerated.
 
 ```ts
-import { AutogeneratedIdColumnKeys } from 'ts-sql-query' // or 'ts-sql-query/extras/types';
+import { AutogeneratedIdColumnKeys } from 'ts-sql-query'
 
 // Alias to type tCustomerAutogeneratedIdColumns = "id"
 type tCustomerAutogeneratedIdColumns = AutogeneratedIdColumnKeys<typeof tCustomer>;
@@ -257,7 +257,7 @@ type tCustomerAutogeneratedIdColumns = AutogeneratedIdColumnKeys<typeof tCustome
 The names of the columns of the primary key not marked as autogenerated, whose value your code provides.
 
 ```ts
-import { ProvidedIdColumnKeys } from 'ts-sql-query' // or 'ts-sql-query/extras/types';
+import { ProvidedIdColumnKeys } from 'ts-sql-query'
 
 // In case tCustomer were not using an autogenerated primary key this will be an alias to type tCustomerProvidedIdColumns = "id"
 type tCustomerProvidedIdColumns = ProvidedIdColumnKeys<typeof tCustomer>;
@@ -265,7 +265,7 @@ type tCustomerProvidedIdColumns = ProvidedIdColumnKeys<typeof tCustomer>;
 
 ### Types of the extract functions
 
-These appear in the signature of the [extract functions](columns-from-object.md), and you only need them to write a function of your own around one of those. They are in `ts-sql-query/extras/types`, and also in the root `ts-sql-query`.
+These appear in the signature of the [extract functions](columns-from-object.md), and you only need them to write a function of your own around one of those. They are exported from `ts-sql-query`.
 
 | Type | What it is |
 |---|---|

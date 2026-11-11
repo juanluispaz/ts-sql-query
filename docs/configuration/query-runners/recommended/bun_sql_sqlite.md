@@ -43,7 +43,7 @@ Every statement runs on the `SQL` object you give the query runner. It must be c
 
 ```ts
 import { SQL } from "bun";
-import { BunSqlSqliteQueryRunner } from "ts-sql-query/queryRunners/BunSqlSqliteQueryRunner";
+import { BunSqlSqliteQueryRunner } from "ts-sql-query/sqlite/bun-sql";
 
 const sql = new SQL({
     adapter: 'sqlite',
@@ -77,7 +77,7 @@ To work with [UUIDs in SQLite](../../supported-databases/sqlite.md#uuid-strategi
 Bun SQL can't register the functions the [decimal strategies](../../supported-databases/sqlite.md#exact-decimals-the-decimal-strategies) with functions write, the default included: use the `canonical text` strategy, which compares, orders and groups a [`customDecimal`](../../column-types.md#exact-decimals) exactly and rejects its arithmetic, or [bun:sqlite](bun_sqlite.md).
 
 ```ts
-import { SqliteConnection } from "ts-sql-query/connections/SqliteConnection";
+import { SqliteConnection } from "ts-sql-query/sqlite";
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
     protected override decimalStrategy = 'canonical text' as const
@@ -92,7 +92,7 @@ For `ts-sql-query` there is no transaction open, so `executeAfterNextCommit`, th
 
 ```ts
 import { SQL, type TransactionSQL } from "bun";
-import { BunSqlSqliteQueryRunner } from "ts-sql-query/queryRunners/BunSqlSqliteQueryRunner";
+import { BunSqlSqliteQueryRunner } from "ts-sql-query/sqlite/bun-sql";
 
 const sql = new SQL({ adapter: 'sqlite', filename: './foobar.db' });
 

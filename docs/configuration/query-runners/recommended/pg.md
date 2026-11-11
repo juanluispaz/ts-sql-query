@@ -27,7 +27,7 @@ For each statement the query runner takes a connection from the pool and gives i
 
 ```ts
 import { Pool } from 'pg';
-import { PgPoolQueryRunner } from "ts-sql-query/queryRunners/PgPoolQueryRunner";
+import { PgPoolQueryRunner } from "ts-sql-query/postgresql/pg";
 
 const pool = new Pool({
     user: 'dbuser',
@@ -50,7 +50,7 @@ Every statement runs on the connection you give the query runner: one taken from
 
 ```ts
 import { Pool } from 'pg';
-import { PgQueryRunner } from "ts-sql-query/queryRunners/PgQueryRunner";
+import { PgQueryRunner } from "ts-sql-query/postgresql/pg";
 
 const pool = new Pool({
     user: 'dbuser',
@@ -111,7 +111,7 @@ For `ts-sql-query` there is no transaction open, so `executeAfterNextCommit`, th
 
 ```ts
 import type { PoolClient } from 'pg';
-import { PgQueryRunner } from "ts-sql-query/queryRunners/PgQueryRunner";
+import { PgQueryRunner } from "ts-sql-query/postgresql/pg";
 
 async function main(pgConnection: PoolClient) {
     const connection = new DBConnection(new PgQueryRunner(pgConnection, { forUseInTransaction: true }));
@@ -132,7 +132,7 @@ Where PostgreSQL can't work out the type of a parameter, like a constant selecte
 
 ```ts
 import { Pool } from 'pg';
-import { PgPoolQueryRunner } from "ts-sql-query/queryRunners/PgPoolQueryRunner";
+import { PgPoolQueryRunner } from "ts-sql-query/postgresql/pg";
 
 const pool = new Pool(/* configuration */);
 
@@ -149,5 +149,5 @@ The cast is written only where the query needs a type, as without the option; el
 
 The second argument of the query runners, optional, is an object of options:
 
-- `PgPoolQueryRunner` takes a `PgPoolQueryRunnerConfig`, exported from `ts-sql-query/queryRunners/PgPoolQueryRunner`, with **`allowNestedTransactions`** (see [Nested transactions](#nested-transactions)) and **`typesByName`** (see [The type of the parameters](#the-type-of-the-parameters)).
-- `PgQueryRunner` takes a `PgQueryRunnerConfig`, exported from `ts-sql-query/queryRunners/PgQueryRunner`, with **`allowNestedTransactions`**, **`typesByName`** and **`forUseInTransaction`** (see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages)).
+- `PgPoolQueryRunner` takes a `PgPoolQueryRunnerConfig`, exported from `ts-sql-query/postgresql/pg`, with **`allowNestedTransactions`** (see [Nested transactions](#nested-transactions)) and **`typesByName`** (see [The type of the parameters](#the-type-of-the-parameters)).
+- `PgQueryRunner` takes a `PgQueryRunnerConfig`, exported from `ts-sql-query/postgresql/pg`, with **`allowNestedTransactions`**, **`typesByName`** and **`forUseInTransaction`** (see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages)).

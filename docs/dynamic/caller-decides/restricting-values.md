@@ -81,7 +81,7 @@ customers.catch((e) => {
 In this example the restricted column isn't picked, so the query runs:
 
 ```ts
-import { dynamicPick, dynamicPickPaths } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
+import { dynamicPick, dynamicPickPaths } from "ts-sql-query"
 
 const birthdayVisible = false
 

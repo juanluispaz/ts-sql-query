@@ -56,7 +56,7 @@ Create a query runner over the connection the other library gives you, for the t
 
 ```ts
 import type { PoolClient } from 'pg';
-import { PgQueryRunner } from "ts-sql-query/queryRunners/PgQueryRunner";
+import { PgQueryRunner } from "ts-sql-query/postgresql/pg";
 
 async function main(client: PoolClient) {
     const connection = new DBConnection(new PgQueryRunner(client));
@@ -88,7 +88,7 @@ Its `send` takes a `db` option, an object with an `executeSql` function, to run 
 ```ts
 import { Pool, type PoolClient } from 'pg';
 import { PgBoss } from 'pg-boss';
-import { PgPoolQueryRunner } from "ts-sql-query/queryRunners/PgPoolQueryRunner";
+import { PgPoolQueryRunner } from "ts-sql-query/postgresql/pg";
 
 const pool = new Pool(/* configuration */);
 const boss = new PgBoss(/* configuration */);
@@ -126,7 +126,7 @@ Closing the Prisma client doesn't close a pool you gave it.
 ```ts
 import { Pool } from 'pg';
 import prismaPostgres from '@prisma/orm-postgres/runtime';
-import { PgPoolQueryRunner } from "ts-sql-query/queryRunners/PgPoolQueryRunner";
+import { PgPoolQueryRunner } from "ts-sql-query/postgresql/pg";
 
 const pool = new Pool(/* configuration */);
 const db = prismaPostgres({ contract, pg: pool });
@@ -147,7 +147,7 @@ Create the Prisma client over the connection of the transaction:
 ```ts
 import { Pool, type PoolClient } from 'pg';
 import prismaPostgres from '@prisma/orm-postgres/runtime';
-import { PgPoolQueryRunner } from "ts-sql-query/queryRunners/PgPoolQueryRunner";
+import { PgPoolQueryRunner } from "ts-sql-query/postgresql/pg";
 
 const pool = new Pool(/* configuration */);
 
@@ -178,7 +178,7 @@ Take a connection from the pool, create the Prisma client over it, and inside th
 ```ts
 import { Pool } from 'pg';
 import prismaPostgres from '@prisma/orm-postgres/runtime';
-import { PgQueryRunner } from "ts-sql-query/queryRunners/PgQueryRunner";
+import { PgQueryRunner } from "ts-sql-query/postgresql/pg";
 
 const pool = new Pool(/* configuration */);
 

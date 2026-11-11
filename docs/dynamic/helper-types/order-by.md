@@ -4,7 +4,7 @@ search:
 ---
 # Dynamic order by
 
-An order that arrives from outside is received by `orderByFromString` and its variants, explained in [Order and page from a request](../optional-parts/order-and-page.md). They receive a plain `string`, so a wrong order is found only when the code runs. This page is the reference of the types in `ts-sql-query/dynamic/orderBy`, which are also exported from the root `ts-sql-query`, and which let the compiler check that text. Using them is optional, and they don't change the query.
+An order that arrives from outside is received by `orderByFromString` and its variants, explained in [Order and page from a request](../optional-parts/order-and-page.md). They receive a plain `string`, so a wrong order is found only when the code runs. This page is the reference of the types, exported from `ts-sql-query`, which let the compiler check that text. Using them is optional, and they don't change the query.
 
 | Type | What it's for | Where it's used |
 |---|---|---|
@@ -16,7 +16,7 @@ An order that arrives from outside is received by `orderByFromString` and its va
 `OrderByForModel<Model>` is one clause of an order: the path of a property of the model, optionally followed by a mode.
 
 ```ts
-import type { OrderByForModel } from "ts-sql-query" // or "ts-sql-query/dynamic/orderBy"
+import type { OrderByForModel } from "ts-sql-query"
 
 interface Customer {
     id: number
@@ -38,7 +38,7 @@ Only the properties that hold a value can be ordered by, as in `orderByFromStrin
 For an order with several columns, use an array of clauses, with `orderByFromStringArray`, or with `orderByFromStringArrayIfValue` if the array or its elements can be missing:
 
 ```ts
-import type { OrderByForModel } from "ts-sql-query" // or "ts-sql-query/dynamic/orderBy"
+import type { OrderByForModel } from "ts-sql-query"
 
 interface Customer {
     id: number
@@ -165,7 +165,7 @@ The type is checked against the model, and the name is checked against the selec
 Use the type when the mode is apart from the name of the column, like in a variable or an argument of your function:
 
 ```ts
-import type { OrderByMode } from "ts-sql-query" // or "ts-sql-query/dynamic/orderBy"
+import type { OrderByMode } from "ts-sql-query"
 
 const mode: OrderByMode = 'desc nulls last'
 

@@ -132,7 +132,7 @@ The SQL type a parameter is sent with comes from [its category](#how-a-value-is-
 For example, a `customDouble` kept as text, so that no digit is lost: it's read as the text the database gives, and sent as it is. A [`customDecimal`](#exact-decimals) does this without a conversion of your own:
 
 ```ts
-import type { TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
+import type { TypeCategory } from "ts-sql-query"
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory) {
         if (type === 'ExactDecimal' && value !== null && value !== undefined) {
@@ -153,7 +153,7 @@ On PostgreSQL, its parameter must have the type `numeric`, not the `float8` of a
 
 ```ts
 import { Pool } from 'pg';
-import { PgPoolQueryRunner } from "ts-sql-query/queryRunners/PgPoolQueryRunner";
+import { PgPoolQueryRunner } from "ts-sql-query/postgresql/pg";
 
 const pool = new Pool({ /* … */ });
 
@@ -171,7 +171,7 @@ On SQL Server, a `customDouble` is sent as a `float`, which loses digits too. De
 <!-- doc-code-snippet-template: sqlserver -->
 ```ts
 import mssql from 'mssql'
-import { MssqlPoolPromiseQueryRunner } from "ts-sql-query/queryRunners/MssqlPoolPromiseQueryRunner";
+import { MssqlPoolPromiseQueryRunner } from "ts-sql-query/sqlserver/mssql";
 
 const { ConnectionPool, TYPES } = mssql
 
@@ -355,7 +355,7 @@ A type adapter controls how the value of one column is sent to the database and 
 For example, to store an RGB colour as three bytes in the database and handle it in your application as an object with the properties `r`, `g` and `b`:
 
 ```ts
-import { type DefaultTypeAdapter, type TypeAdapter, type TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
+import { type DefaultTypeAdapter, type TypeAdapter, type TypeCategory } from "ts-sql-query"
 
 interface RgbColor {r: number, g: number, b: number}
 
@@ -426,7 +426,7 @@ It receives the SQL of the value as the library writes it, the name of the type,
 For example, on PostgreSQL, an adapter that has the database give a day as the text `DD/MM/YYYY` and reads that text as the day:
 
 ```ts
-import { type DefaultTypeAdapter, type ProjectionComparison, type ProjectionOutput, type TypeAdapter, type TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
+import { type DefaultTypeAdapter, type ProjectionComparison, type ProjectionOutput, type TypeAdapter, type TypeCategory } from "ts-sql-query"
 
 class DayAsTextTypeAdapter implements TypeAdapter {
     transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
@@ -581,7 +581,7 @@ const companies: Promise<{
 When the same conversion applies to every column of a type, write it in the connection object, so it isn't repeated in each column definition:
 
 ```ts
-import type { TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
+import type { TypeCategory } from "ts-sql-query"
 interface RgbColor {r: number, g: number, b: number}
 
 function isRgbColor(value: any): value is RgbColor {
@@ -629,7 +629,7 @@ this.column<RgbColor, 'RgbColor'>('ColumnName', 'custom', 'RgbColor')
 The connection's `transformProjection` and `projectionComparison` are overridden the same way. They're the `next` of the type adapters, so they convert every column of the type, unless the type adapter of the column writes its SQL without calling `next`. Call `super.transformProjection(...)` and `super.projectionComparison(...)` for the values it doesn't convert:
 
 ```ts
-import type { ProjectionComparison, ProjectionOutput, TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
+import type { ProjectionComparison, ProjectionOutput, TypeCategory } from "ts-sql-query"
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     protected override transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput): string {

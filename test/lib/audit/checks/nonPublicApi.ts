@@ -9,8 +9,9 @@
 //
 // Two arms, one rule:
 //   - **non-public `src/`** — what a consumer may import is exactly the
-//     `exports` map in [`package.json`](../../../../package.json); a relative
-//     reach into any src module that is NOT one of those entries (everything
+//     `exports` map in [`package.json`](../../../../package.json), whose entries
+//     re-export from the modules that declare each name; a relative reach into
+//     any src module that is neither an entry nor one of those (everything
 //     reachable only via the `./__UNSUPPORTED__/*` escape hatch — `internal`,
 //     `queryBuilders`, `sqlBuilders`, `expressions`, …) is forbidden even
 //     though it *is* a relative import (the cheat the rule name calls out). The
@@ -34,17 +35,24 @@ import { readFileSync } from 'node:fs'
 import type { Finding } from '../types.js'
 import { lineOf } from '../ast.js'
 
-// The public src surface = the `package.json` `exports` keys, mapped to their
-// src module path (`.` → `index`, `./connections/Foo` → `connections/Foo`),
-// minus `./package.json` and the `./__UNSUPPORTED__/*` escape-hatch wildcard.
+// The public src surface = the entry files the `package.json` `exports` map points at (the re-export files of
+// `src/exports/`, minus `./package.json` and the `./__UNSUPPORTED__/*` escape-hatch wildcard), and every module those
+// files re-export from: a test imports a public name from the module that declares it, or the entry itself.
 const PUBLIC_SRC: ReadonlySet<string> = loadPublicSrc()
 
 function loadPublicSrc(): Set<string> {
-    const pkg = JSON.parse(readFileSync(new URL('../../../../package.json', import.meta.url), 'utf8'))
+    const root = new URL('../../../../', import.meta.url).pathname
+    const pkg = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'))
     const set = new Set<string>()
-    for (const key of Object.keys(pkg.exports ?? {})) {
-        if (key === './package.json' || key.includes('*')) continue
-        set.add(key === '.' ? 'index' : key.replace(/^\.\//, ''))
+    for (const [key, value] of Object.entries<{ default?: string }>(pkg.exports ?? {})) {
+        if (key === './package.json' || key.includes('*') || !value.default) continue
+        const entry = value.default.replace(/^\.\//, '').replace(/\.js$/, '')
+        set.add(entry)
+        const text = readFileSync(resolve(root, 'src', entry + '.ts'), 'utf8')
+        for (const match of text.matchAll(/from '([^']+)'/g)) {
+            const target = resolve(dirname(resolve(root, 'src', entry)), match[1]!)
+            set.add(target.slice(resolve(root, 'src').length + 1).replace(/\.js$/, ''))
+        }
     }
     return set
 }

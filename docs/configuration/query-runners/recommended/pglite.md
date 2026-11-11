@@ -27,7 +27,7 @@ Every statement runs on the session of the PGlite instance you give the query ru
 
 ```ts
 import { PGlite } from '@electric-sql/pglite'
-import { PgLiteQueryRunner } from 'ts-sql-query/queryRunners/PgLiteQueryRunner'
+import { PgLiteQueryRunner } from 'ts-sql-query/postgresql/pglite'
 
 const db = await PGlite.create('memory://', { postgresqlconf: ["timezone = 'UTC'"] })
 
@@ -59,7 +59,7 @@ For `ts-sql-query` there is no transaction open, so `executeAfterNextCommit`, th
 
 ```ts
 import { PGlite } from '@electric-sql/pglite'
-import { PgLiteQueryRunner } from 'ts-sql-query/queryRunners/PgLiteQueryRunner'
+import { PgLiteQueryRunner } from 'ts-sql-query/postgresql/pglite'
 
 const db = await PGlite.create('memory://', { postgresqlconf: ["timezone = 'UTC'"] })
 
@@ -84,7 +84,7 @@ Where PostgreSQL can't work out the type of a parameter, like a constant selecte
 
 ## Options of the query runner
 
-The second argument of `PgLiteQueryRunner`, optional, is an object of type `PgLiteQueryRunnerConfig`, exported from `ts-sql-query/queryRunners/PgLiteQueryRunner`:
+The second argument of `PgLiteQueryRunner`, optional, is an object of type `PgLiteQueryRunnerConfig`, exported from `ts-sql-query/postgresql/pglite`:
 
 - **`allowNestedTransactions`**: see [Nested transactions](#nested-transactions).
 - **`typesByName`**: see [The type of the parameters](#the-type-of-the-parameters).

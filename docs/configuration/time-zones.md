@@ -155,7 +155,7 @@ A database that has always been in the zone it was installed in, like `Europe/Ma
 
 === "Oracle"
     ```ts
-    import { OracleConnection } from "ts-sql-query/connections/OracleConnection";
+    import { OracleConnection } from "ts-sql-query/oracle";
 
     class DBConnection extends OracleConnection<'DBConnection'> {
         protected override databaseTimeZone = 'Europe/Madrid'
@@ -164,7 +164,7 @@ A database that has always been in the zone it was installed in, like `Europe/Ma
 
 ===+ "PostgreSQL"
     ```ts
-    import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
+    import { PostgreSqlConnection } from "ts-sql-query/postgresql";
 
     class DBConnection extends PostgreSqlConnection<'DBConnection'> {
         protected override databaseTimeZone = 'Europe/Madrid'

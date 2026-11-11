@@ -9,16 +9,7 @@ This page has the declarations to use when you handle an error in your code. Wha
 ## Imports
 
 ```typescriptreact
-import {
-  QueryExecutionSource,
-  TsSqlDatabaseErrorCode,
-  TsSqlDatabaseErrorNumber,
-  TsSqlError,
-  TsSqlErrorReason,
-  TsSqlInternalErrorReason,
-  TsSqlProcessingError,
-  TsSqlQueryExecutionError,
-} from "ts-sql-query" // or "ts-sql-query/TsSqlError";
+import { QueryExecutionSource, TsSqlDatabaseErrorCode, TsSqlDatabaseErrorNumber, TsSqlError, TsSqlErrorReason, TsSqlInternalErrorReason, TsSqlProcessingError, TsSqlQueryExecutionError } from "ts-sql-query"
 ```
 
 ## Database Error Metadata Types

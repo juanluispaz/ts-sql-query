@@ -11,19 +11,19 @@ A connection object is what you run your queries with. You define one class for 
 You define a class that extends the connection class of your database. It receives one generic argument: a name for the database in your system, which the types use to tie your tables and your queries to this connection.
 
 ```ts
-import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
+import { PostgreSqlConnection } from "ts-sql-query/postgresql";
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> { }
 ```
 
 | Database | Class to extend | Imported from |
 |---|---|---|
-| [MariaDB](supported-databases/mariadb.md) | `MariaDBConnection` | `ts-sql-query/connections/MariaDBConnection` |
-| [MySQL](supported-databases/mysql.md) | `MySqlConnection` | `ts-sql-query/connections/MySqlConnection` |
-| [Oracle](supported-databases/oracle.md) | `OracleConnection` | `ts-sql-query/connections/OracleConnection` |
-| [PostgreSQL](supported-databases/postgresql.md) | `PostgreSqlConnection` | `ts-sql-query/connections/PostgreSqlConnection` |
-| [SQLite](supported-databases/sqlite.md) | `SqliteConnection` | `ts-sql-query/connections/SqliteConnection` |
-| [SQL Server](supported-databases/sqlserver.md) | `SqlServerConnection` | `ts-sql-query/connections/SqlServerConnection` |
+| [MariaDB](supported-databases/mariadb.md) | `MariaDBConnection` | `ts-sql-query/mariadb` |
+| [MySQL](supported-databases/mysql.md) | `MySqlConnection` | `ts-sql-query/mysql` |
+| [Oracle](supported-databases/oracle.md) | `OracleConnection` | `ts-sql-query/oracle` |
+| [PostgreSQL](supported-databases/postgresql.md) | `PostgreSqlConnection` | `ts-sql-query/postgresql` |
+| [SQLite](supported-databases/sqlite.md) | `SqliteConnection` | `ts-sql-query/sqlite` |
+| [SQL Server](supported-databases/sqlserver.md) | `SqlServerConnection` | `ts-sql-query/sqlserver` |
 
 The class is also the place for what your whole application shares:
 
@@ -38,7 +38,7 @@ The connection receives a [query runner](query-runners/index.md), which connects
 
 ```ts
 import { Pool } from 'pg';
-import { PgPoolQueryRunner } from "ts-sql-query/queryRunners/PgPoolQueryRunner";
+import { PgPoolQueryRunner } from "ts-sql-query/postgresql/pg";
 
 const pool = new Pool();
 
@@ -74,7 +74,7 @@ async function main() {
 A mock takes the place of the database in a unit test: your function receives each query, checks it and decides its result, and nothing reaches a database. [MockQueryRunner](query-runners/general-purpose/MockQueryRunner.md) has the details.
 
 ```ts
-import { MockQueryRunner } from "ts-sql-query/queryRunners/MockQueryRunner";
+import { MockQueryRunner } from "ts-sql-query";
 
 test('my db test', () => {
     const connection = new DBConnection(new MockQueryRunner(
@@ -113,7 +113,7 @@ By default, the empty string is treated as having no value, on every database:
 To send and receive empty strings, set the `allowEmptyString` property of the connection to `true`. Oracle is different whatever the property says: it doesn't keep `''` in a text column, it stores `null`.
 
 ```ts
-import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
+import { PostgreSqlConnection } from "ts-sql-query/postgresql";
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> { 
     protected override allowEmptyString = true
@@ -127,7 +127,7 @@ Decide this at the beginning of the project: changing it later changes the SQL o
 An insensitive operation, like `startsWithInsensitive`, compares text without distinguishing upper and lower case. By default it's written calling the function `lower` on both sides, except the operations that use `like` on PostgreSQL, which are written with `ilike`. Setting **`insensitiveCollation`** on the connection adds a `… collate <name>` clause instead, which can also ignore accents or follow the rules of a language, by naming a collation of your database. Choose one for the language your users write in.
 
 ```typescriptreact
-import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
+import { PostgreSqlConnection } from "ts-sql-query/postgresql";
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> { 
     override insensitiveCollation = 'insensitive'
@@ -151,7 +151,7 @@ The names of the tables, views and columns are written as they are, and quoted o
 A table or a column whose name you declare already quoted the way the database quotes an identifier is written as it is: `"Plan"` on PostgreSQL, Oracle and SQLite, `` `Plan` `` on MariaDB and MySQL, `[Plan]` on SQL Server. Declare it so when the table or the column was created quoted, with a name the database would otherwise change: with upper case on PostgreSQL, which lower-cases an unquoted name, or with lower case on Oracle, which upper-cases it:
 
 ```ts
-import { Table } from "ts-sql-query"; // or "ts-sql-query/Table"
+import { Table } from "ts-sql-query";
 
 class TOrganization extends Table<DBConnection, 'TOrganization'> {
     id = this.autogeneratedPrimaryKey('id', 'int');
@@ -167,7 +167,7 @@ A select of the plan of an organization is then written `select "Plan" as plan f
 To quote every identifier, override `escape`:
 
 ```typescriptreact
-import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
+import { PostgreSqlConnection } from "ts-sql-query/postgresql";
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> { 
     protected override escape(identifier: string, strict: boolean, allowReservedKeyword?: boolean): string {

@@ -316,7 +316,7 @@ const query = connection.update(tGroupedCompany)
 [`extractWritableShapeFrom`](../advanced/columns-from-object.md#extract-writable-shape) gives a shape with all the columns that can be written, each one with its own name. It's useful when the properties already have the names of the columns and you only want to limit what is written: the second argument lists the columns to leave out. Groups of columns stay as groups, with the paths of their columns.
 
 ```ts
-import { extractWritableShapeFrom } from "ts-sql-query" // or "ts-sql-query/extras/utils";
+import { extractWritableShapeFrom } from "ts-sql-query"
 
 const customerData = {
     firstName: 'John',
@@ -403,7 +403,7 @@ The [utility types](../advanced/utility-types.md) give the type of the values th
 The shape must be declared `as const`, so the type knows the columns:
 
 ```ts
-import { UpdatableValuesShapedAs } from 'ts-sql-query' // or 'ts-sql-query/extras/types';
+import { UpdatableValuesShapedAs } from 'ts-sql-query'
 
 const customerShape = {
     newFirstName: 'firstName',

@@ -8,7 +8,7 @@ A query runner is the piece between the library and your database driver. The co
 
 ```ts
 import { Pool } from 'pg';
-import { PgPoolQueryRunner } from "ts-sql-query/queryRunners/PgPoolQueryRunner";
+import { PgPoolQueryRunner } from "ts-sql-query/postgresql/pg";
 
 const pool = new Pool();
 
@@ -65,8 +65,8 @@ The ones that receive another query runner can be chained:
 
 ```ts
 import { Pool } from 'pg';
-import { ConsoleLogQueryRunner } from "ts-sql-query/queryRunners/ConsoleLogQueryRunner";
-import { PgPoolQueryRunner } from "ts-sql-query/queryRunners/PgPoolQueryRunner";
+import { ConsoleLogQueryRunner } from "ts-sql-query";
+import { PgPoolQueryRunner } from "ts-sql-query/postgresql/pg";
 
 const pool = new Pool();
 

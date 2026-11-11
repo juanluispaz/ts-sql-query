@@ -171,7 +171,7 @@ await connection.transaction(async () => {
 A deadlock, or a transaction [refused](#how-each-database-refuses) at `snapshot` or `serializable`, doesn't say anything is wrong with your data: running the whole transaction again usually works. The errors to look for are the `TRANSACTION_ERROR` of type `deadlock` and `serialization failure`:
 
 ```ts
-import { TsSqlQueryExecutionError } from 'ts-sql-query'; // or 'ts-sql-query/TsSqlError'
+import { TsSqlQueryExecutionError } from 'ts-sql-query';
 
 async function transactionWithRetry<T>(fn: () => Promise<T>, attempts: number): Promise<T> {
     for (let attempt = 1; ; attempt++) {

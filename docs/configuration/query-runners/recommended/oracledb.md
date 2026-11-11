@@ -31,7 +31,7 @@ Give the query runner the promise that `createPool` returns, without waiting for
 
 ```ts
 import oracledb from 'oracledb';
-import { OracleDBPoolPromiseQueryRunner } from "ts-sql-query/queryRunners/OracleDBPoolPromiseQueryRunner";
+import { OracleDBPoolPromiseQueryRunner } from "ts-sql-query/oracle/oracledb";
 
 const poolPromise = oracledb.createPool({
     user: 'user',
@@ -67,7 +67,7 @@ The same, when you already have the pool.
 
 ```ts
 import oracledb from 'oracledb';
-import { OracleDBPoolQueryRunner } from "ts-sql-query/queryRunners/OracleDBPoolQueryRunner";
+import { OracleDBPoolQueryRunner } from "ts-sql-query/oracle/oracledb";
 
 const poolPromise = oracledb.createPool({
     user: 'user',
@@ -104,7 +104,7 @@ Every statement runs on the connection you give the query runner. You close it, 
 
 ```ts
 import oracledb from 'oracledb';
-import { OracleDBQueryRunner } from "ts-sql-query/queryRunners/OracleDBQueryRunner";
+import { OracleDBQueryRunner } from "ts-sql-query/oracle/oracledb";
 
 async function init() {
     try {
@@ -217,7 +217,7 @@ For `ts-sql-query` there is no transaction open, so `executeAfterNextCommit`, th
 
 ```ts
 import oracledb from 'oracledb';
-import { OracleDBQueryRunner } from "ts-sql-query/queryRunners/OracleDBQueryRunner";
+import { OracleDBQueryRunner } from "ts-sql-query/oracle/oracledb";
 
 async function main(oracleConnection: oracledb.Connection) {
     const connection = new DBConnection(new OracleDBQueryRunner(oracleConnection, { forUseInTransaction: true }));
@@ -229,7 +229,7 @@ async function main(oracleConnection: oracledb.Connection) {
 
 ## Options of the query runner
 
-The second argument of `OracleDBQueryRunner`, optional, is an object of type `OracleDBQueryRunnerConfig`, exported from `ts-sql-query/queryRunners/OracleDBQueryRunner`:
+The second argument of `OracleDBQueryRunner`, optional, is an object of type `OracleDBQueryRunnerConfig`, exported from `ts-sql-query/oracle/oracledb`:
 
 - **`forUseInTransaction`**: the connection is in a transaction that something else manages; see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages).
 - **`typesByName`**: the type each parameter of a type name is bound with; see [The type of the parameters](#the-type-of-the-parameters).
@@ -243,7 +243,7 @@ oracledb binds each value with the type it gives a JavaScript value; the query r
 
 ```ts
 import oracledb from 'oracledb';
-import { OracleDBPoolQueryRunner } from "ts-sql-query/queryRunners/OracleDBPoolQueryRunner";
+import { OracleDBPoolQueryRunner } from "ts-sql-query/oracle/oracledb";
 
 async function main(pool: oracledb.Pool) {
     // A value of the type Day is bound as a DATE, not as a TIMESTAMP
@@ -260,7 +260,7 @@ Oracle returns a `CLOB` column as text only up to 4000 bytes (`ORA-22835` beyond
 
 ```ts
 import oracledb from 'oracledb';
-import { OracleDBPoolQueryRunner } from "ts-sql-query/queryRunners/OracleDBPoolQueryRunner";
+import { OracleDBPoolQueryRunner } from "ts-sql-query/oracle/oracledb";
 
 async function main(pool: oracledb.Pool) {
     // Texts returned up to 4000 bytes; a value of the type LongText, from a CLOB column, of any length

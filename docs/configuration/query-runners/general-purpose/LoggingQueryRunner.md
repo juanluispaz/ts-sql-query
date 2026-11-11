@@ -22,7 +22,7 @@ A query runner that calls your logger with each statement and its result or erro
 ## Creating it
 
 ```ts
-import { LoggingQueryRunner } from "ts-sql-query/queryRunners/LoggingQueryRunner";
+import { LoggingQueryRunner } from "ts-sql-query";
 
 async function main() {
     const connection = new DBConnection(new LoggingQueryRunner({
@@ -48,7 +48,7 @@ async function main() {
 
     The statement has already run when `onQueryResult` is called. If it throws, the promise of the query rejects with the reason `UNKNOWN`, although the statement went through and an insert has written its row. Handle your errors inside the logger.
 
-The first argument of the constructor is an object of type `QueryLogger` (exported from `ts-sql-query/queryRunners/LoggingQueryRunner`) that can define these functions, all of them optional:
+The first argument of the constructor is an object of type `QueryLogger` (exported from `ts-sql-query`) that can define these functions, all of them optional:
 
 - **`onQuery`**: Executed before the query.
 - **`onQueryResult`**: Executed after the successful execution of the query.
@@ -70,7 +70,7 @@ type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | '
 ```
 
 - **`query: string`**: the SQL to be executed. It's empty for `beginTransaction`, `commit` and `rollback`.
-- **`params: any[]`**: parameters received by the query. For `beginTransaction`, `commit` and `rollback` they're the options of the transaction: for `beginTransaction`, a `BeginTransactionOpts`, `[isolationLevel, accessMode]`, as the query runner receives them (the level is `undefined` when only the access mode is given, and the array is empty without either); for `commit` and `rollback`, a `CommitOpts` or `RollbackOpts`, empty after `connection.beginTransaction()`, and with the same values as the begin inside `connection.transaction(fn, level)`. These types are exported from `ts-sql-query/queryRunners/QueryRunner`.
+- **`params: any[]`**: parameters received by the query. For `beginTransaction`, `commit` and `rollback` they're the options of the transaction: for `beginTransaction`, a `BeginTransactionOpts`, `[isolationLevel, accessMode]`, as the query runner receives them (the level is `undefined` when only the access mode is given, and the array is empty without either); for `commit` and `rollback`, a `CommitOpts` or `RollbackOpts`, empty after `connection.beginTransaction()`, and with the same values as the begin inside `connection.transaction(fn, level)`. These types are exported from `ts-sql-query`.
 - **`result: any`**: (only in `onQueryResult`) result of the execution of the query.
 - **`error: any`**: (only in `onQueryError`) error that happened executing the query.
 - **`timestamps`**: an object with `startedAt`, the time before the execution, and in `onQueryResult` and `onQueryError` also `endedAt`, the time after it. Both are a `bigint` in nanoseconds, counted from an arbitrary starting point: `endedAt - startedAt` is the duration.

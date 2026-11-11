@@ -10,7 +10,7 @@ This page has what is particular to Oracle: what it offers and what it doesn't, 
 ## Defining the connection
 
 ```ts
-import { OracleConnection } from "ts-sql-query/connections/OracleConnection";
+import { OracleConnection } from "ts-sql-query/oracle";
 
 class DBConnection extends OracleConnection<'DBConnection'> { }
 ```
@@ -48,7 +48,7 @@ Recognized breakpoints:
 On older Oracle versions, set `compatibilityVersion` to your actual version so the right emulation is chosen automatically. It is recommended to keep this value in sync with your real database version so future ts-sql-query releases that gate additional features on it pick the right behavior automatically.
 
 ```ts
-import { OracleConnection } from "ts-sql-query/connections/OracleConnection";
+import { OracleConnection } from "ts-sql-query/oracle";
 
 class DBConnection extends OracleConnection<'DBConnection'> {
     protected override compatibilityVersion = 23_009_000
@@ -69,7 +69,7 @@ Oracle has a `BOOLEAN` type only from Oracle 23ai. The `booleanStorage` property
 | `'boolean'` | `BOOLEAN` | `true`, `false` | As in the SQL standard: a condition is a value, and a boolean column is a condition. Oracle 23.4 or later |
 
 ```ts
-import { OracleConnection } from "ts-sql-query/connections/OracleConnection";
+import { OracleConnection } from "ts-sql-query/oracle";
 
 class DBConnection extends OracleConnection<'DBConnection'> {
     protected override booleanStorage: 'number' | 'boolean' = 'boolean'
@@ -91,7 +91,7 @@ An Oracle `DATE` holds a date and a time to the second, with no fraction of a se
 Declare that column with an `OracleDateAsTimestampTypeAdapter`, as the third argument of the column, on a `localDateTime` or a `localTime`, required or optional:
 
 ```ts
-import { OracleDateAsTimestampTypeAdapter } from "ts-sql-query/TypeAdapter";
+import { OracleDateAsTimestampTypeAdapter } from "ts-sql-query/oracle";
 
 const tMeeting = new class TMeeting extends Table<DBConnection, 'TMeeting'> {
     id = this.primaryKey('id', 'int')
@@ -166,7 +166,7 @@ The column is a `customComparable` of `string`: it can be compared and ordered, 
 
 <!-- doc-code-snippet-template: oracle -->
 ```ts
-import type { DefaultTypeAdapter, ProjectionComparison, ProjectionOutput, TypeAdapter, TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
+import type { DefaultTypeAdapter, ProjectionComparison, ProjectionOutput, TypeAdapter, TypeCategory } from "ts-sql-query"
 
 // A date and time with the zone it was written with, as text, like '2024-07-01T10:30:15.123456000+09:00'
 type ZonedDateTime = string
@@ -324,7 +324,7 @@ Only the leanest check the build-time optionality needs is emitted: a concatenat
 If you prefer Oracle's own semantics — a NULL operand read as the empty string rather than propagated — set `ignoreNullInConcat = true`:
 
 ```typescriptreact
-import { OracleConnection } from "ts-sql-query/connections/OracleConnection";
+import { OracleConnection } from "ts-sql-query/oracle";
 
 class DBConnection extends OracleConnection<'DBConnection'> {
     protected override ignoreNullInConcat = true
@@ -338,7 +338,7 @@ class DBConnection extends OracleConnection<'DBConnection'> {
 The default `CASE` repeats each optional operand (once in the null check, once in `||`) — free for a column, but not for an expensive value-source receiver. Set `concatFunction` to the name of a null-propagating function you created and **every** concatenation the builder emits — `concat` and the affix patterns alike — goes through `func(a, b)` instead, each operand appearing once:
 
 ```typescriptreact
-import { OracleConnection } from "ts-sql-query/connections/OracleConnection";
+import { OracleConnection } from "ts-sql-query/oracle";
 
 class DBConnection extends OracleConnection<'DBConnection'> {
     protected override concatFunction = 'string_util.concat_strict'
@@ -412,7 +412,7 @@ replace('ABCabc' collate BINARY, 'abc' collate BINARY, 'X') collate USING_NLS_CO
 To prevent that, ts-sql-query forces a binary / code-point collation on the match operands **by default** (`BINARY`) and resets the result to `USING_NLS_COMP` so the forced collation does not leak into a chained comparison. `replaceAll` is therefore code-point exact whatever the session collation. The collation is controlled by the **`replaceCollation`** property:
 
 ```typescriptreact
-import { OracleConnection } from "ts-sql-query/connections/OracleConnection";
+import { OracleConnection } from "ts-sql-query/oracle";
 
 class DBConnection extends OracleConnection<'DBConnection'> {
     override replaceCollation = '' // opt out — follow the session collation
@@ -424,7 +424,7 @@ Set it to another collation name to force a different one, or to the empty strin
 For a deliberately **case-insensitive** replace, use [`.replaceAllInsensitive(...)`](../collations.md#replaceallinsensitive-the-insensitive-twin) instead. Because Oracle's default is case-sensitive, it forces a case-insensitive collation on the operands: `insensitiveCollation` when it names one, otherwise the **`replaceInsensitiveCollation`** property, which defaults to Oracle's neutral `BINARY_CI`:
 
 ```ts
-import { OracleConnection } from "ts-sql-query/connections/OracleConnection";
+import { OracleConnection } from "ts-sql-query/oracle";
 
 class DBConnection extends OracleConnection<'DBConnection'> {
     protected override replaceInsensitiveCollation = 'BINARY_AI' // also fold accents; '' opts out
@@ -444,7 +444,7 @@ Set `replaceInsensitiveCollation` (or `insensitiveCollation`) to `''` to opt out
 You can configure the strategy by overriding the `uuidStrategy` field in your connection class:
 
 ```typescriptreact
-import { OracleConnection } from "ts-sql-query/connections/OracleConnection";
+import { OracleConnection } from "ts-sql-query/oracle";
 
 class DBConnection extends OracleConnection<'DBConnection'> {
     protected override uuidStrategy = 'string' as const

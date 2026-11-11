@@ -685,11 +685,12 @@ library API reaches into internals with a relative import
 Two arms, one rule (built in [`checks/nonPublicApi.ts`](./checks/nonPublicApi.ts),
 AST-only so comment links to internal files don't count):
 
-- **non-public `src/`** — what may be imported is **exactly the
-  [`package.json`](../../../package.json) `exports`** (per project decision),
-  mapped to its src module path, minus `./package.json` and the
-  `./__UNSUPPORTED__/*` escape-hatch wildcard. The public set is *derived from
-  `package.json`* so it never drifts from what ships; a reach into anything else
+- **non-public `src/`** — what may be imported is **exactly what the
+  [`package.json`](../../../package.json) `exports` ship** (per project decision):
+  the re-export files of `src/exports/` the map points at, minus `./package.json`
+  and the `./__UNSUPPORTED__/*` escape-hatch wildcard, and every module those
+  files re-export from. The public set is *derived from `package.json` and those
+  files* so it never drifts from what ships; a reach into anything else
   (`internal`, `queryBuilders`, `sqlBuilders`, `expressions`, …) is flagged. The
   one exception is `src/experimental/*` — a staging area for surface not yet in
   the `exports` map but already meant for tests to consume, so a relative reach

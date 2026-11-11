@@ -4,7 +4,7 @@ search:
 ---
 # Query execution metadata
 
-A query runner receives a query as its text and its parameters. To log or monitor it, you may want to know more: which query it is, or where in your code it was executed. These functions, in `ts-sql-query/queryRunners/QueryRunner`, receive the text and the parameters and give that information. You call them in a query runner of your own, typically an [`InterceptorQueryRunner`](../configuration/query-runners/general-purpose/InterceptorQueryRunner.md).
+A query runner receives a query as its text and its parameters. To log or monitor it, you may want to know more: which query it is, or where in your code it was executed. These functions, exported from `ts-sql-query`, receive the text and the parameters and give that information. You call them in a query runner of your own, typically an [`InterceptorQueryRunner`](../configuration/query-runners/general-purpose/InterceptorQueryRunner.md).
 
 | You want | Use | Returns |
 |---|---|---|
@@ -18,7 +18,7 @@ A query runner receives a query as its text and its parameters. To log or monito
 | The category of the type of a parameter | `getQueryParamTypeCategory` | A `TypeCategory`, like `'customInt'`, or `undefined` |
 | Whether the database must receive the type of a parameter | `getQueryParamForceTypeCast` | A `boolean`, or `undefined` |
 | Whether a parameter is the value given to a column in an insert or an update | `isQueryParamValueForColumn` | A `boolean` |
-| What a type adapter kept for a parameter, under a `symbol` | `getQueryParamMetadata`, in `ts-sql-query/QueryMetadata` | The value, or `undefined` |
+| What a type adapter kept for a parameter, under a `symbol` | `getQueryParamMetadata`, from `ts-sql-query` | The value, or `undefined` |
 | The columns of the result, with the type of each one | `getQueryResultColumns` | An array of `QueryResultColumn`, or `undefined` |
 | One column of the result, by its name in the row | `getQueryResultColumn` | A `QueryResultColumn`, or `undefined` |
 | The configuration of the connection that executes the query | `getQueryConnectionConfiguration` | The connection, as a `ConnectionConfiguration`, or `undefined` |
@@ -29,9 +29,9 @@ A query runner receives a query as its text and its parameters. To log or monito
 With `customizeQuery`, you can give a query a name in the property `queryExecutionName`. It doesn't change the SQL. `getQueryExecutionName` returns that name, or `undefined` if the query has none. Selects, inserts, updates and deletes have this option, and in a select page, both queries get the name.
 
 ```ts
-import { getQueryExecutionName } from 'ts-sql-query/queryRunners/QueryRunner';
-import { InterceptorQueryRunner } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
-import type { QueryType } from "ts-sql-query/queryRunners/QueryRunner";
+import { getQueryExecutionName } from 'ts-sql-query';
+import { InterceptorQueryRunner } from "ts-sql-query";
+import type { QueryType } from "ts-sql-query";
 
 class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
     onQuery(queryType: QueryType, query: string, params: any[]): void {
@@ -135,9 +135,9 @@ The parameters are: `[ 10 ]`
 With `customizeQuery`, you can also give a query any data you want in the property `queryExecutionMetadata`, for example the area of your application it belongs to. `getQueryExecutionMetadata` returns that data, or `undefined` if the query has none.
 
 ```ts
-import { getQueryExecutionMetadata } from 'ts-sql-query/queryRunners/QueryRunner';
-import { InterceptorQueryRunner } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
-import type { QueryType } from "ts-sql-query/queryRunners/QueryRunner";
+import { getQueryExecutionMetadata } from 'ts-sql-query';
+import { InterceptorQueryRunner } from "ts-sql-query";
+import type { QueryType } from "ts-sql-query";
 
 class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
     onQuery(queryType: QueryType, query: string, params: any[]): void {
@@ -241,9 +241,9 @@ The parameters are: `[ 10 ]`
 `getQueryExecutionStack` returns a string with the stack trace of the place where the query was executed, or `undefined` if the information is unavailable.
 
 ```ts
-import { getQueryExecutionStack } from 'ts-sql-query/queryRunners/QueryRunner';
-import { InterceptorQueryRunner } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
-import type { QueryType } from "ts-sql-query/queryRunners/QueryRunner";
+import { getQueryExecutionStack } from 'ts-sql-query';
+import { InterceptorQueryRunner } from "ts-sql-query";
+import type { QueryType } from "ts-sql-query";
 
 class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
     onQuery(queryType: QueryType, query: string, params: any[]): void {
@@ -274,7 +274,7 @@ Query executed at
 `getQueryExecutionSource` gives the same information as an object: a [`QueryExecutionSource`](../api/error-management/typescript-types.md), an `Error` whose `stack` is that stack trace. It's the same object that a [`TsSqlQueryExecutionError`](../api/error-management/typescript-types.md) has in its `source` property, and it's useful to give it to a tool that expects an error:
 
 ```ts
-import { getQueryExecutionSource } from 'ts-sql-query/queryRunners/QueryRunner';
+import { getQueryExecutionSource } from 'ts-sql-query';
 
 function logQuerySource(query: string, params: any[]) {
     const source: Error | undefined = getQueryExecutionSource(query, params)
@@ -287,9 +287,9 @@ function logQuerySource(query: string, params: any[]) {
 `getFunctionExecutingQuery` returns an object with the function that executed the query and its position, taken from the stack trace, or `undefined` if the information is unavailable. Each property can be `undefined` too.
 
 ```ts
-import { getFunctionExecutingQuery, FunctionExecutingQueryInformation } from 'ts-sql-query/queryRunners/QueryRunner';
-import { InterceptorQueryRunner } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
-import type { QueryType } from "ts-sql-query/queryRunners/QueryRunner";
+import { getFunctionExecutingQuery, FunctionExecutingQueryInformation } from 'ts-sql-query';
+import { InterceptorQueryRunner } from "ts-sql-query";
+import type { QueryType } from "ts-sql-query";
 
 class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
     onQuery(queryType: QueryType, query: string, params: any[]): void {
@@ -329,9 +329,9 @@ class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
 A [select page](../queries/select-page.md) executes a second query to get the count of rows. `isSelectPageCountQuery` returns `true` for that query, for example to log it separately.
 
 ```ts
-import { isSelectPageCountQuery } from 'ts-sql-query/queryRunners/QueryRunner';
-import { InterceptorQueryRunner } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
-import type { QueryType } from "ts-sql-query/queryRunners/QueryRunner";
+import { isSelectPageCountQuery } from 'ts-sql-query';
+import { InterceptorQueryRunner } from "ts-sql-query";
+import type { QueryType } from "ts-sql-query";
 
 class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
     onQuery(queryType: QueryType, query: string, params: any[]): void {
@@ -354,10 +354,10 @@ class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
 Each parameter of a query goes with the name of its type, the category of that type (the first argument of the column, like `'customInt'`), and whether the database must receive its type because the position where it's written gives it none (the query runners of PostgreSQL then write a cast or send the parameter with its type). `getQueryParamType`, `getQueryParamTypeCategory` and `getQueryParamForceTypeCast` read them for the parameter at an index, or return `undefined` for a parameter added without them, like one of a statement you run through the query runner yourself.
 
 ```ts
-import { getQueryParamType, getQueryParamTypeCategory, getQueryParamForceTypeCast } from 'ts-sql-query/queryRunners/QueryRunner';
-import { InterceptorQueryRunner } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
-import type { QueryType } from "ts-sql-query/queryRunners/QueryRunner";
-import type { TypeCategory } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
+import { getQueryParamType, getQueryParamTypeCategory, getQueryParamForceTypeCast } from 'ts-sql-query';
+import { InterceptorQueryRunner } from "ts-sql-query";
+import type { QueryType } from "ts-sql-query";
+import type { TypeCategory } from "ts-sql-query"
 
 class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
     onQuery(queryType: QueryType, query: string, params: any[]): void {
@@ -383,9 +383,9 @@ In `select $1::int4 as i from customer where id = $2`, with the parameters `[ 7,
 
 `isQueryParamValueForColumn(query, params, index)` says whether the parameter is the value given to a column of a table, in the values of an insert or in the set of an update, where the column gives it its type: in `insert into customer (first_name, company_id) values ($1, $2)` both are `true`; in a `where`, or anywhere else, `false`. The query runners of MariaDB, MySQL and SQL Server use it to leave a `stringDecimal` or a `customDecimal` without the cast they write elsewhere.
 
-`getQueryParamMetadata(params, index, key)`, from `ts-sql-query/QueryMetadata` (or `ts-sql-query`), reads what a type adapter kept for the parameter with `setQueryParamMetadata`, in its `addQueryParamMetadata` (see [Type adapters API](../api/type-adapters.md)), under the `symbol` the adapter defines; `undefined` when it kept nothing. The query runners of Oracle read the mark `OracleDateAsTimestampTypeAdapter` keeps to send its parameters as a `DATE`.
+`getQueryParamMetadata(params, index, key)`, from `ts-sql-query`, reads what a type adapter kept for the parameter with `setQueryParamMetadata`, in its `addQueryParamMetadata` (see [Type adapters API](../api/type-adapters.md)), under the `symbol` the adapter defines; `undefined` when it kept nothing. The query runners of Oracle read the mark `OracleDateAsTimestampTypeAdapter` keeps to send its parameters as a `DATE`.
 
-A query runner of your own that adds the parameters keeps this information. Its `addParam(params, value, type, typeCategory, forceTypeCast)` adds the value to `params`, keeps them with `setQueryParamMetadata(params, index, key, value)` from `ts-sql-query/QueryMetadata`, at the index of the value, under the keys `queryParamType`, `queryParamTypeCategory` and `queryParamForceTypeCast` of the same module, and returns the placeholder as it is written in the SQL, with the cast if it writes one; `addOutParam(params, name, type, typeCategory, forceTypeCast)` does the same for an out parameter. A query runner that wraps another passes all of them on to it.
+A query runner of your own that adds the parameters keeps this information. Its `addParam(params, value, type, typeCategory, forceTypeCast)` adds the value to `params`, keeps them with `setQueryParamMetadata(params, index, key, value)` from `ts-sql-query`, at the index of the value, under the keys `queryParamType`, `queryParamTypeCategory` and `queryParamForceTypeCast`, also from `ts-sql-query`, and returns the placeholder as it is written in the SQL, with the cast if it writes one; `addOutParam(params, name, type, typeCategory, forceTypeCast)` does the same for an out parameter. A query runner that wraps another passes all of them on to it.
 
 ## Get the type of each column of the result
 
@@ -401,9 +401,9 @@ Each query the library builds also goes with the columns of its result, in the o
 The array is empty for a query that returns no columns: an insert, update or delete without returning, a procedure, and the statements of a transaction. `getQueryResultColumns` returns `undefined` for a statement you run through the query runner yourself. `getQueryResultColumn` finds one column by its `name`.
 
 ```ts
-import { getQueryResultColumns } from 'ts-sql-query/queryRunners/QueryRunner';
-import { InterceptorQueryRunner } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
-import type { QueryType, QueryResultColumn } from "ts-sql-query/queryRunners/QueryRunner";
+import { getQueryResultColumns } from 'ts-sql-query';
+import { InterceptorQueryRunner } from "ts-sql-query";
+import type { QueryType, QueryResultColumn } from "ts-sql-query";
 
 class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
     onQuery(queryType: QueryType, query: string, params: any[]): void {
@@ -429,7 +429,7 @@ A row can have more keys than the columns, when a `customizeQuery({ beforeColumn
 
 ## Get the configuration of the connection
 
-Each query the library builds also goes with the connection that executes it, so a query runner can read its configuration. `getQueryConnectionConfiguration` returns that connection, typed as `ConnectionConfiguration` (from `ts-sql-query/queryRunners/QueryRunner`), or `undefined` for a statement you run through the query runner yourself. `ConnectionConfiguration` has every setting of the connection, like `allowEmptyString` or `insensitiveCollation`; a setting a database doesn't have is `undefined` on its connections. The ones that say what the database receives and returns are:
+Each query the library builds also goes with the connection that executes it, so a query runner can read its configuration. `getQueryConnectionConfiguration` returns that connection, typed as `ConnectionConfiguration` (from `ts-sql-query`), or `undefined` for a statement you run through the query runner yourself. `ConnectionConfiguration` has every setting of the connection, like `allowEmptyString` or `insensitiveCollation`; a setting a database doesn't have is `undefined` on its connections. The ones that say what the database receives and returns are:
 
 | Property | What it is |
 |---|---|
@@ -441,9 +441,9 @@ Each query the library builds also goes with the connection that executes it, so
 The values are read from the connection when you read them, so a connection whose class sets `compatibilityVersion` in a field gives that value. All the queries of a connection give the same object: the connection.
 
 ```ts
-import { getQueryConnectionConfiguration } from 'ts-sql-query/queryRunners/QueryRunner';
-import { InterceptorQueryRunner } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
-import type { QueryType, ConnectionConfiguration } from "ts-sql-query/queryRunners/QueryRunner";
+import { getQueryConnectionConfiguration } from 'ts-sql-query';
+import { InterceptorQueryRunner } from "ts-sql-query";
+import type { QueryType, ConnectionConfiguration } from "ts-sql-query";
 
 class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
     onQuery(queryType: QueryType, query: string, params: any[]): void {

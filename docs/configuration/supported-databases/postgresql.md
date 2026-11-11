@@ -10,7 +10,7 @@ This page has what is particular to PostgreSQL: what it offers and what it doesn
 ## Defining the connection
 
 ```ts
-import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
+import { PostgreSqlConnection } from "ts-sql-query/postgresql";
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> { }
 ```
@@ -49,7 +49,7 @@ Recognised breakpoints (with the default `Number.POSITIVE_INFINITY` every breakp
 - `< 18_000_000`: target PostgreSQL 17 or older. The `FROM (subquery FOR NO KEY UPDATE)` trick is emitted to capture pre-update values and join them back into the `UPDATE` via the primary key; the updated table is aliased as `_new_` and `.oldValues()` references emit as `_old_.col`.
 
 ```ts
-import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
+import { PostgreSqlConnection } from "ts-sql-query/postgresql";
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     protected override compatibilityVersion = 17_000_000
@@ -87,7 +87,7 @@ PostgreSQL can't work out the type of a parameter in some positions, like a cons
 Inside a SQL fragment of your own, the library doesn't know what the position needs. For example, `to_char` has a version for each type, and with a parameter without a type PostgreSQL rejects the query: `function to_char(unknown, unknown) is not unique`. The type adapter `ForceTypeCast` gives that value its type:
 
 ```ts
-import { ForceTypeCast } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
+import { ForceTypeCast } from "ts-sql-query"
 
 const amount = connection.const(10, 'int', new ForceTypeCast())
 
@@ -128,7 +128,7 @@ PostgreSQL's default collation is case- and accent-**sensitive** (deterministic)
 The insensitive operations with a pattern, like `containsInsensitive`, are written with `ilike` by default. PostgreSQL rejects `ilike` with a nondeterministic collation, so to use one in those operations set `useLikeInsteadOfIlike` on the connection, which writes them with `like` (PostgreSQL accepts it from version 18):
 
 ```typescriptreact
-import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
+import { PostgreSqlConnection } from "ts-sql-query/postgresql";
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     protected override insensitiveCollation = 'case_insensitive'
@@ -155,7 +155,7 @@ For example, `tIssue.priority.divide(2).round()` (where `priority = 1`) yields `
 If you prefer PostgreSQL's native `round(double precision)` semantics — typically because your application is single-dialect and you want the IEEE 754 round-to-even tie-breaking common on modern systems, or because existing queries depend on that result — set `usePlatformDependentRound = true` on your connection:
 
 ```ts
-import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
+import { PostgreSqlConnection } from "ts-sql-query/postgresql";
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     protected override usePlatformDependentRound = true
@@ -186,7 +186,7 @@ Only the leanest check the build-time optionality needs is emitted: two **requir
 If you prefer PostgreSQL's native behavior — a NULL operand ignored rather than propagated — set `ignoreNullInMinAndMaxValue = true`:
 
 ```ts
-import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
+import { PostgreSqlConnection } from "ts-sql-query/postgresql";
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     protected override ignoreNullInMinAndMaxValue = true

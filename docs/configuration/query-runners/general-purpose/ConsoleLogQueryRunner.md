@@ -22,7 +22,7 @@ A query runner that writes each statement on the standard output with `console.l
 ## Creating it
 
 ```ts
-import { ConsoleLogQueryRunner } from "ts-sql-query/queryRunners/ConsoleLogQueryRunner";
+import { ConsoleLogQueryRunner } from "ts-sql-query";
 
 async function main() {
     const connection = new DBConnection(new ConsoleLogQueryRunner(otherQueryRunner));
@@ -48,7 +48,7 @@ interface ConsoleLogQueryRunnerOpts {
 }
 ```
 
-`ConsoleLogQueryRunnerOpts` and `TimeGranularity`, the type of `timeGranularity`, are exported from `ts-sql-query/queryRunners/ConsoleLogQueryRunner`.
+`ConsoleLogQueryRunnerOpts` and `TimeGranularity`, the type of `timeGranularity`, are exported from `ts-sql-query`.
 
 !!! info
 

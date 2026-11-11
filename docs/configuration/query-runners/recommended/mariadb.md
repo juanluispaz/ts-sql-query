@@ -30,7 +30,7 @@ The query runner uses the promise API of the driver: create the pool with `maria
 
 ```ts
 import { createPool } from "mariadb";
-import { MariaDBPoolQueryRunner } from "ts-sql-query/queryRunners/MariaDBPoolQueryRunner";
+import { MariaDBPoolQueryRunner } from "ts-sql-query/mariadb/mariadb";
 
 const pool = createPool({
     host: 'mydb.com', 
@@ -53,7 +53,7 @@ Every statement runs on the connection you give the query runner: one taken from
 
 ```ts
 import { createPool } from "mariadb";
-import { MariaDBQueryRunner } from "ts-sql-query/queryRunners/MariaDBQueryRunner";
+import { MariaDBQueryRunner } from "ts-sql-query/mariadb/mariadb";
 
 const pool = createPool({
     host: 'mydb.com', 
@@ -95,7 +95,7 @@ For `ts-sql-query` there is no transaction open, so `executeAfterNextCommit`, th
 
 ```ts
 import type { Connection } from 'mariadb';
-import { MariaDBQueryRunner } from "ts-sql-query/queryRunners/MariaDBQueryRunner";
+import { MariaDBQueryRunner } from "ts-sql-query/mariadb/mariadb";
 
 async function main(mariaDBConnection: Connection) {
     const connection = new DBConnection(new MariaDBQueryRunner(mariaDBConnection, { forUseInTransaction: true }));
@@ -106,7 +106,7 @@ async function main(mariaDBConnection: Connection) {
 
 ## Options of the query runner
 
-The second argument of `MariaDBQueryRunner`, optional, is the name of the database or an object of type `MariaDBQueryRunnerConfig`, exported from `ts-sql-query/queryRunners/MariaDBQueryRunner`:
+The second argument of `MariaDBQueryRunner`, optional, is the name of the database or an object of type `MariaDBQueryRunnerConfig`, exported from `ts-sql-query/mariadb/mariadb`:
 
 - **`database`**: the database to write the SQL for, `'mariaDB'` or `'mySql'`. A connection sets it to its own database when you create it, so you only need it to use the query runner without a connection.
 - **`forUseInTransaction`**: the connection is already in a transaction that something else began and ends; see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages).

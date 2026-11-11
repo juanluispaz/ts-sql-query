@@ -11,7 +11,7 @@ The caller chooses which columns come back, as in GraphQL. You write all the col
     Columns that come and go make a query harder to reason about. If the caller can work with the same columns and no value in some of them, prefer [`onlyWhenOrNull`](restricting-values.md#hide-a-value-keeping-the-column).
 
 ```ts
-import { dynamicPick, dynamicPickPaths } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
+import { dynamicPick, dynamicPickPaths } from "ts-sql-query"
 
 const availableFields = {
     firstName: tCustomer.firstName,
@@ -119,7 +119,7 @@ To return a type with only the picked properties, see [Expanding result types](.
 An endpoint like `GET /customers?fields=firstName,lastName` receives the names as text. Split them, and cast them to the type of the available names, with `DynamicPickPaths`. The cast checks nothing at run time, but it isn't a risk for the query: only the columns of your map can be selected, and any other name is ignored.
 
 ```ts
-import { dynamicPickPaths, type DynamicPickPaths } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
+import { dynamicPickPaths, type DynamicPickPaths } from "ts-sql-query"
 
 const availableFields = {
     id: tCustomer.id,
@@ -198,7 +198,7 @@ The client can ask for any column of the map. If some of them need a permission,
 An [optional join](../optional-parts/optional-joins.md) goes in the query only when the query uses the joined table. Together with a pick, what the caller asks for decides the join: if no column of `tCompany` is picked, and no condition uses it, the query doesn't join it.
 
 ```ts
-import { dynamicPick, dynamicPickPaths } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
+import { dynamicPick, dynamicPickPaths } from "ts-sql-query"
 
 const availableFields = {
     id: tCustomer.id,
@@ -299,7 +299,7 @@ const customerWithOptionalCompany: Promise<{
 
 But when a column provided by the join is picked, like with this `fieldsToPick`, the join is in the query:
 ```ts
-import { dynamicPick, dynamicPickPaths } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
+import { dynamicPick, dynamicPickPaths } from "ts-sql-query"
 
 const availableFields = {
     id: tCustomer.id,
@@ -408,7 +408,7 @@ The parameters are: `[ 12 ]`
 With [nested objects](../../queries/complex-projections.md), the pick has the same shape as the select. A group with nothing picked isn't in the query, and in the result type each group and its properties are optional.
 
 ```ts
-import { dynamicPick } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
+import { dynamicPick } from "ts-sql-query"
 
 const availableFields = {
     id: tCustomer.id,
@@ -517,7 +517,7 @@ const customerWithOptionalCompany: Promise<{
 
 But when a column provided by the join is picked, like with this `fieldsToPick`, the join is in the query:
 ```ts
-import { dynamicPick } from "ts-sql-query" // or "ts-sql-query/dynamic/pick"
+import { dynamicPick } from "ts-sql-query"
 
 const availableFields = {
     id: tCustomer.id,

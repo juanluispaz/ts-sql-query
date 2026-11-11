@@ -29,7 +29,7 @@ A query normally returns a `Promise`. Some drivers run the query synchronously, 
 `sync` gets the result of a synchronous promise, as `await` does with a regular one.
 
 ```ts
-import { sync } from 'ts-sql-query' // or 'ts-sql-query/extras/sync';
+import { sync } from 'ts-sql-query'
 ```
 
 The promise must be truly synchronous: it must have been resolved or rejected by the time `.then(...)` returns. If it hasn't, `sync` throws a `TsSqlProcessingError` with the reason `SYNCHRONOUS_PROMISE_EXPECTED`. If the promise is rejected, `sync` throws its error.
@@ -39,7 +39,7 @@ The promise must be truly synchronous: it must have been resolved or rejected by
 Give the query runner the `Promise` implementation with its `promise` option. The general purpose query runners that wrap another one use that of the wrapped query runner.
 
 ```ts
-import { BetterSqlite3QueryRunner } from "ts-sql-query/queryRunners/BetterSqlite3QueryRunner";
+import { BetterSqlite3QueryRunner } from "ts-sql-query/sqlite/better-sqlite3";
 import Database from "better-sqlite3";
 import { SynchronousPromise } from "synchronous-promise";
 
@@ -51,7 +51,7 @@ const connection = new DBConnection(new BetterSqlite3QueryRunner(db, { promise: 
 Then surround each query with `sync`:
 
 ```ts
-import { sync } from "ts-sql-query"; // or "ts-sql-query/extras/sync"
+import { sync } from "ts-sql-query";
 
 const selectCompanies = sync(
     connection.selectFrom(tCompany)
@@ -67,7 +67,7 @@ const selectCompanies = sync(
 In a transaction, the function you pass to `transaction` doesn't need to be `async`. If it throws, the transaction is rolled back and `sync` throws the error:
 
 ```ts
-import { sync } from "ts-sql-query"; // or "ts-sql-query/extras/sync"
+import { sync } from "ts-sql-query";
 
 const updatedCompanies = sync(connection.transaction(() => {
     return sync(

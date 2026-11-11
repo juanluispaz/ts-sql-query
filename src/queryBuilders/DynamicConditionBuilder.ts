@@ -152,7 +152,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
 
             // A rule of version 1 that version 2 renamed is still applied, with its name of version 2
             const operation = Object.hasOwn(renamedOperations, key) ? renamedOperations[key]! : key
-            if (allowedOpreations[operation] !== true || valueSourcePrivate.__aggregatedArrayColumns) { // keep the strict true comparison to avoid false positives
+            if (allowedOperations[operation] !== true || valueSourcePrivate.__aggregatedArrayColumns) { // keep the strict true comparison to avoid false positives
                 // aggregated arrays doesn't allows to use any operation
                 throw new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_UNKNOWN_OPERATION', path: column, name: key }, 'Unknown operation with name "' + key + '" for the column "' + column + '" provided as dynamic filter condition')
             }
@@ -267,7 +267,7 @@ const renamedOperations: { readonly [operation: string]: string | undefined } = 
     greaterOrEqualsIfValue: 'greaterOrEqualIfValue',
 })
 
-const allowedOpreations: { [operation: string]: true | undefined } = {
+const allowedOperations: { [operation: string]: true | undefined } = {
     isNull: true,
     isNotNull: true,
     equalsIfValue: true,

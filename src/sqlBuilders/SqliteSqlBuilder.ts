@@ -1277,7 +1277,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         }
         return 'uuid_str(' + this._appendSql(valueSource, context, false) + ')'
     }
-    override _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, context: SqlBuildContext, _query: SelectData | undefined): string {
+    override _appendAggregateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, context: SqlBuildContext, _query: SelectData | undefined): string {
         const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         if (isValueSource(aggregatedArrayColumns)) {
             if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._getUuidStrategy() === 'uuid-extension') {
@@ -1312,7 +1312,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             return 'json_group_array(' + distict + 'json_object(' + result + '))'
         }
     }
-    override _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _context: SqlBuildContext, aggregateId: number): string {
+    override _appendAggregateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _context: SqlBuildContext, aggregateId: number): string {
         if (isValueSource(aggregatedArrayColumns)) {
             if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._getUuidStrategy() === 'uuid-extension') {
                 return 'json_group_array(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'uuid_str(a_' + aggregateId + '_.result)') + ')'

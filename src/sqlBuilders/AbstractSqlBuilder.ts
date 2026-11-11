@@ -356,7 +356,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return this._appendCondition(condition, context)
     }
-    _appendConditionParenthesisExcuding(condition: IAnyBooleanValueSource<any, any>, context: SqlBuildContext, excluding: keyof SqlOperation): string {
+    _appendConditionParenthesisExcluding(condition: IAnyBooleanValueSource<any, any>, context: SqlBuildContext, excluding: keyof SqlOperation): string {
         if (this._needParenthesisExcluding(condition, excluding)) {
             return '(' + this._appendCondition(condition, context) + ')'
         }
@@ -1059,16 +1059,16 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const oldAggregateArrayWrapped = context.aggregateArrayWrapped
 
         const customization = query.__customization
-        const needAgggregateArrayWrapper = this._needAgggregateArrayWrapper(query, context)
-        const aggregateId = needAgggregateArrayWrapper ? context.generateUnique() : 0
+        const needAggregateArrayWrapper = this._needAggregateArrayWrapper(query, context)
+        const aggregateId = needAggregateArrayWrapper ? context.generateUnique() : 0
 
         if (query.__type === 'compound') {
             this._setSafeTableOrView(context, undefined)
 
             let selectQuery = ''
 
-            if (needAgggregateArrayWrapper) {
-                selectQuery += this._appendAggragateArrayWrapperBegin(query, context, aggregateId)
+            if (needAggregateArrayWrapper) {
+                selectQuery += this._appendAggregateArrayWrapperBegin(query, context, aggregateId)
                 context.aggregateArrayWrapped = true
             }
 
@@ -1130,8 +1130,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 selectQuery += ' ' + this._appendRawFragment(customization.afterQuery, context)
             }
 
-            if (needAgggregateArrayWrapper) {
-                selectQuery += this._appendAggragateArrayWrapperEnd(query, context, aggregateId)
+            if (needAggregateArrayWrapper) {
+                selectQuery += this._appendAggregateArrayWrapperEnd(query, context, aggregateId)
             }
 
             this._setSafeTableOrView(context, oldSafeTableOrView)
@@ -1190,8 +1190,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         let selectQuery = ''
 
-        if (needAgggregateArrayWrapper) {
-            selectQuery += this._appendAggragateArrayWrapperBegin(query, context, aggregateId)
+        if (needAggregateArrayWrapper) {
+            selectQuery += this._appendAggregateArrayWrapperBegin(query, context, aggregateId)
             context.aggregateArrayWrapped = true
         }
 
@@ -1225,8 +1225,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // An order by written over a query that wraps the select; the columns of the outermost select are converted
         // there when they can't be converted in the select itself
         const emitOrderBy = !query.__asInlineAggregatedArrayValue || !this._supportOrderByWhenAggregateArray || context.aggregateArrayWrapped
-        const distinctConversionWrap = isOutermostQuery && !needAgggregateArrayWrapper && this._needsDistinctConversionWrap(query, context)
-        const conversionOnWrapper = distinctConversionWrap || (isOutermostQuery && !context.resultConversionDeferred && this._hasConvertedResultColumn(query, context) && emitOrderBy && !needAgggregateArrayWrapper && this._needsSelectOrderByWrap(query, context))
+        const distinctConversionWrap = isOutermostQuery && !needAggregateArrayWrapper && this._needsDistinctConversionWrap(query, context)
+        const conversionOnWrapper = distinctConversionWrap || (isOutermostQuery && !context.resultConversionDeferred && this._hasConvertedResultColumn(query, context) && emitOrderBy && !needAggregateArrayWrapper && this._needsSelectOrderByWrap(query, context))
         const convertColumns = isOutermostQuery && !conversionOnWrapper && !context.resultConversionDeferred
         const oldResultConversionWithAllColumns = context.resultConversionWithAllColumns
         if (conversionOnWrapper) {
@@ -1241,7 +1241,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const selectColumnsSql = new Map<AnyValueSource, SelectColumnSql>()
         if (distinctAggregatedArray) {
             selectQuery += this._appendDistinctAggregatedArrayValues(distinctAggregatedArray.__aggregatedArrayColumns, context)
-        } else if (needAgggregateArrayWrapper || !this._needAgggregateArrayColumnsTransformation(query, context)) {
+        } else if (needAggregateArrayWrapper || !this._needAggregateArrayColumnsTransformation(query, context)) {
             let requireComma = false
             let position = 0
             for (const property in columns) {
@@ -1278,7 +1278,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             } else {
                 aggregatedArrayColumns = query.__columns
             }
-            selectQuery += this._appendAggragateArrayColumns(aggregatedArrayColumns, false, context, query)
+            selectQuery += this._appendAggregateArrayColumns(aggregatedArrayColumns, false, context, query)
         }
 
         if (tablesLength <= 0) {
@@ -1346,7 +1346,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             const aggregateId = context.generateUnique()
             const wrapperAlias = 'a_' + aggregateId + '_'
             const property = distinctAggregatedArray.property
-            let aggregate = this._appendAggragateArrayWrappedColumns(distinctAggregatedArray.__aggregatedArrayColumns, context, aggregateId)
+            let aggregate = this._appendAggregateArrayWrappedColumns(distinctAggregatedArray.__aggregatedArrayColumns, context, aggregateId)
             if (isOutermostQuery) {
                 aggregate = this._finalizeAggregatedArrayResult(aggregate)
                 if (convertColumns) {
@@ -1366,7 +1366,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             this._setSafeTableOrView(context, undefined)
             context.orderBySafeTableOrView = oldSafeTableOrViewInOrderBy
             context.selectColumnsSql = selectColumnsSql
-            if (distinctConversionWrap || (!needAgggregateArrayWrapper && this._needsSelectOrderByWrap(query, context))) {
+            if (distinctConversionWrap || (!needAggregateArrayWrapper && this._needsSelectOrderByWrap(query, context))) {
                 // The order by can't be written over the select, or the distinct must compare the values: the select is
                 // wrapped, and the order by is written over the query that wraps it, where the columns of the select are
                 // the columns of the from
@@ -1398,8 +1398,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
             selectQuery += ' ' + this._appendRawFragment(customization.afterQuery, context)
         }
 
-        if (needAgggregateArrayWrapper) {
-            selectQuery += this._appendAggragateArrayWrapperEnd(query, context, aggregateId)
+        if (needAggregateArrayWrapper) {
+            selectQuery += this._appendAggregateArrayWrapperEnd(query, context, aggregateId)
         }
 
         this._setSafeTableOrView(context, oldSafeTableOrView)
@@ -4495,7 +4495,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
         const aggregatedArrayColumns = valueSourcePrivate.__aggregatedArrayColumns!
         const aggregatedArrayDistinct = valueSourcePrivate.__aggregatedArrayDistinct!
-        return this._appendAggragateArrayColumns(aggregatedArrayColumns, aggregatedArrayDistinct, context, undefined)
+        return this._appendAggregateArrayColumns(aggregatedArrayColumns, aggregatedArrayDistinct, context, undefined)
     }
     /**
      * The columns of the select are the values of the JSON of an aggregated array, as the database writes them in the
@@ -4504,12 +4504,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _isSelectOfAggregatedArrayValues(_query: SelectData): boolean {
         return false
     }
-    _needAgggregateArrayColumnsTransformation(query: SelectData, _context: SqlBuildContext): boolean {
+    _needAggregateArrayColumnsTransformation(query: SelectData, _context: SqlBuildContext): boolean {
         return !!query.__asInlineAggregatedArrayValue
     }
     _supportOrderByWhenAggregateArray = false
     _supportLimitWhenAggregateArray = false
-    _needAgggregateArrayWrapper(query: SelectData, _context: SqlBuildContext): boolean {
+    _needAggregateArrayWrapper(query: SelectData, _context: SqlBuildContext): boolean {
         if (!query.__asInlineAggregatedArrayValue) {
             return false
         }
@@ -4543,7 +4543,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _buildSelectAsAggregatedArray(_query: SelectData, _context: SqlBuildContext): string {
         return ''
     }
-    _appendAggragateArrayWrapperBegin(query: SelectData, context: SqlBuildContext, aggregateId: number): string {
+    _appendAggregateArrayWrapperBegin(query: SelectData, context: SqlBuildContext, aggregateId: number): string {
         let aggregatedArrayColumns
         if (query.__oneColumn) {
             aggregatedArrayColumns = query.__columns['result']
@@ -4553,9 +4553,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         } else {
             aggregatedArrayColumns = query.__columns
         }
-        return 'select ' +  this._appendAggragateArrayWrappedColumns(aggregatedArrayColumns, context, aggregateId) + ' from ('
+        return 'select ' +  this._appendAggregateArrayWrappedColumns(aggregatedArrayColumns, context, aggregateId) + ' from ('
     }
-    _appendAggragateArrayWrapperEnd(_query: SelectData, _context: SqlBuildContext, aggregateId: number): string {
+    _appendAggregateArrayWrapperEnd(_query: SelectData, _context: SqlBuildContext, aggregateId: number): string {
         let result =  ')'
         if (this._supportTableAliasWithAs) {
             result += ' as '
@@ -4565,7 +4565,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         result += 'a_' + aggregateId + '_'
         return result
     }
-    _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, context: SqlBuildContext, _query: SelectData | undefined): string {
+    _appendAggregateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, context: SqlBuildContext, _query: SelectData | undefined): string {
         const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         if (isValueSource(aggregatedArrayColumns)) {
             return 'json_agg(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._appendSql(this._typedOperand(aggregatedArrayColumns, []), context, false)) + ')'
@@ -4584,7 +4584,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return 'json_agg(' +  distict + 'json_build_object(' + result + '))'
         }
     }
-    _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _context: SqlBuildContext, aggregateId: number): string {
+    _appendAggregateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _context: SqlBuildContext, aggregateId: number): string {
         if (isValueSource(aggregatedArrayColumns)) {
             return 'json_agg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'a_' + aggregateId + '_.result') + ')'
         } else {

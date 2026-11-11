@@ -280,6 +280,12 @@ export interface DeleteData extends WithQueryData {
     __joins?: Array<JoinData> | undefined
 }
 
+/**
+ * What the value sources, the fragments and the query builders can ask of the SQL builder of the connection: the SQL of
+ * each operation (SqlOperation) and of each query, and what they need to build them. It isn't the full shape of
+ * AbstractSqlBuilder: a method the SQL builder only calls on itself, or that a dialect overrides for itself, stays out;
+ * a method goes here when an expression or a query builder has to call it.
+ */
 export interface SqlBuilder extends SqlOperation {
     _defaultTypeAdapter: DefaultTypeAdapter
     _queryRunner: QueryRunner

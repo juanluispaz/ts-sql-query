@@ -1221,19 +1221,19 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
         return ''
     }
-    override _needAgggregateArrayColumnsTransformation(query: SelectData, _context: SqlBuildContext): boolean {
+    override _needAggregateArrayColumnsTransformation(query: SelectData, _context: SqlBuildContext): boolean {
         if (!query.__asInlineAggregatedArrayValue) {
             return false
         }
         return !this._isForJsonPathAggregatedArray(query)
     }
-    override _needAgggregateArrayWrapper(query: SelectData, context: SqlBuildContext): boolean {
+    override _needAggregateArrayWrapper(query: SelectData, context: SqlBuildContext): boolean {
         if (this._isForJsonPathAggregatedArray(query)) {
             return false
         }
-        return super._needAgggregateArrayWrapper(query, context)
+        return super._needAggregateArrayWrapper(query, context)
     }
-    override _appendAggragateArrayWrapperBegin(query: SelectData, context: SqlBuildContext, aggregateId: number): string {
+    override _appendAggregateArrayWrapperBegin(query: SelectData, context: SqlBuildContext, aggregateId: number): string {
         if (this._useForJsonInAggreagteArrayWhenPossible && query.__type === 'compound' && !query.__oneColumn) {
             const columns = query.__columns
             let requireComma = false
@@ -1253,9 +1253,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             }
             return 'select ' + result + ' from ('
         }
-        return super._appendAggragateArrayWrapperBegin(query, context, aggregateId)
+        return super._appendAggregateArrayWrapperBegin(query, context, aggregateId)
     }
-    override _appendAggragateArrayWrapperEnd(query: SelectData, context: SqlBuildContext, aggregateId: number): string {
+    override _appendAggregateArrayWrapperEnd(query: SelectData, context: SqlBuildContext, aggregateId: number): string {
         if (this._useForJsonInAggreagteArrayWhenPossible && query.__type === 'compound' && !query.__oneColumn) {
             let result =  ')'
             if (this._supportTableAliasWithAs) {
@@ -1266,12 +1266,12 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             result += 'a_' + aggregateId + '_ for json path'
             return result
         }
-        return super._appendAggragateArrayWrapperEnd(query, context, aggregateId)
+        return super._appendAggregateArrayWrapperEnd(query, context, aggregateId)
     }
     _useJsonAggregatesWhenPossible(): boolean {
         return this._connectionConfiguration.compatibilityVersion >= 17_000_000
     }
-    override _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, context: SqlBuildContext, _query: SelectData | undefined): string {
+    override _appendAggregateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, context: SqlBuildContext, _query: SelectData | undefined): string {
         if (this._useJsonAggregatesWhenPossible() && !aggregatedArrayDistinct) {
             if (isValueSource(aggregatedArrayColumns)) {
                 return 'json_arrayagg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._appendSql(aggregatedArrayColumns, context, false)) + ' null on null)'
@@ -1393,7 +1393,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
 
         return result
     }
-    override _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, context: SqlBuildContext, aggregateId: number): string {
+    override _appendAggregateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, context: SqlBuildContext, aggregateId: number): string {
         if (this._useJsonAggregatesWhenPossible()) {
             if (isValueSource(aggregatedArrayColumns)) {
                 return 'json_arrayagg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'a_' + aggregateId + '_.' + this._escape('result', true)) + ' null on null)'

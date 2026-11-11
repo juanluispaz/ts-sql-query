@@ -949,7 +949,7 @@ describe(ctx.label, () => {
     /*
     test('aggregate-of-wrapped-object-with-uuid-column', async () => {
         // WRAPPED-object aggregate whose object carries a uuid column, grouped so the
-        // inline aggregate takes the wrapped path (`_needAgggregateArrayWrapper` wraps
+        // inline aggregate takes the wrapped path (`_needAggregateArrayWrapper` wraps
         // unconditionally on `group by`). On MySQL under the default `binary` uuid
         // strategy the WRAPPED object emits `bin_to_uuid(a_1_.ref)` for the uuid
         // property (the non-wrapped object form is covered separately); other dialects

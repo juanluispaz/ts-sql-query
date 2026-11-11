@@ -86,7 +86,7 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     override _getDistinctAggregatedArrayToWrap(_query: SelectData, _columns: FlatQueryColumns): undefined {
         return undefined
     }
-    override _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, context: SqlBuildContext, query: SelectData | undefined): string {
+    override _appendAggregateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, context: SqlBuildContext, query: SelectData | undefined): string {
         const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         let result = ''
         if (isValueSource(aggregatedArrayColumns)) {

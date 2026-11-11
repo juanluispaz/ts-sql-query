@@ -287,7 +287,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // back the raw JSON string, which `parseJsonPreservingNumbers` then decodes losslessly.
         return '(' + sql + ')::text'
     }
-    override _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, context: SqlBuildContext, query: SelectData | undefined): string {
+    override _appendAggregateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, context: SqlBuildContext, query: SelectData | undefined): string {
         if (aggregatedArrayDistinct && !isValueSource(aggregatedArrayColumns)) {
             // PostgreSQL's `json` type has no equality operator on any
             // version, so the abstract default
@@ -317,7 +317,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
             }
             return 'json_agg(distinct jsonb_build_object(' + result + '))'
         }
-        return super._appendAggragateArrayColumns(aggregatedArrayColumns, aggregatedArrayDistinct, context, query)
+        return super._appendAggregateArrayColumns(aggregatedArrayColumns, aggregatedArrayDistinct, context, query)
     }
     override _appendCustomBooleanRemapForColumnIfRequired(column: DBColumn, value: any, context: SqlBuildContext, forceTypeCast: boolean): string | null {
         const columnPrivate = __getColumnPrivate(column)

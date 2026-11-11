@@ -2,7 +2,7 @@
 // inline aggregate subquery (`forUseAsInlineAggregatedArrayValue()`)
 // also carries `group by`, `having`, a compound operator, or — on
 // engines that don't support `order by` / `limit` inside the aggregate
-// function — those clauses too. `_needAgggregateArrayWrapper` returns
+// function — those clauses too. `_needAggregateArrayWrapper` returns
 // true and the builder wraps the inner select with the dialect's
 // "select aggregate from (subquery)" form.
 //
@@ -91,7 +91,7 @@ describe(ctx.label, () => {
     /*
     test('inline-aggregate-of-object-with-having', async () => {
         // `having` is one of the wrap triggers in
-        // `_needAgggregateArrayWrapper`. A `group by` is required before
+        // `_needAggregateArrayWrapper`. A `group by` is required before
         // a `having` clause, so the query carries both.
         const expected = {
             id: 1, name: 'Acme Corp',

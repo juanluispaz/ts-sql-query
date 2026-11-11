@@ -68,7 +68,7 @@ describe(ctx.label, () => {
 
     test('inline-aggregate-of-object-with-having', async () => {
         // `having` is one of the wrap triggers in
-        // `_needAgggregateArrayWrapper`. A `group by` is required before
+        // `_needAggregateArrayWrapper`. A `group by` is required before
         // a `having` clause, so the query carries both.
         // Only project 1 has more than one issue (count 2), so having count>1
         // leaves a single grouped row.

@@ -1477,7 +1477,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     // the backslash declared by the `escape '\'` clause every affix predicate
     // below emits. The inherited `_escapeLikeWildcard` produces exactly that
     // backslash escaping (`%`->`\%`, `_`->`\_`, `\`->`\\`), so no override.
-    override _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, context: SqlBuildContext, _query: SelectData | undefined): string {
+    override _appendAggregateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, context: SqlBuildContext, _query: SelectData | undefined): string {
         const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         if (isValueSource(aggregatedArrayColumns)) {
             if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._uuidUsesRawFunctions()) {
@@ -1505,7 +1505,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return 'json_arrayagg(' + distict + 'json_object(' + result + '))'
         }
     }
-    override _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _context: SqlBuildContext, aggregateId: number): string {
+    override _appendAggregateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _context: SqlBuildContext, aggregateId: number): string {
         if (isValueSource(aggregatedArrayColumns)) {
             if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._uuidUsesRawFunctions()) {
                 return 'json_arrayagg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'raw_to_uuid(a_' + aggregateId + '_.result)') + ')'

@@ -150,27 +150,29 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                 continue
             }
 
-            if (allowedOpreations[key] !== true || valueSourcePrivate.__aggregatedArrayColumns) { // keep the strict true comparison to avoid false positives
+            // A rule of version 1 that version 2 renamed is still applied, with its name of version 2
+            const operation = Object.hasOwn(renamedOperations, key) ? renamedOperations[key]! : key
+            if (allowedOpreations[operation] !== true || valueSourcePrivate.__aggregatedArrayColumns) { // keep the strict true comparison to avoid false positives
                 // aggregated arrays doesn't allows to use any operation
                 throw new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_UNKNOWN_OPERATION', path: column, name: key }, 'Unknown operation with name "' + key + '" for the column "' + column + '" provided as dynamic filter condition')
             }
 
             if (!this.sqlBuilder._isValue(value)) {
-                if (key !== 'is' && key !== 'isNot' && !key.endsWith('IfValue')) {
+                if (operation !== 'is' && operation !== 'isNot' && !operation.endsWith('IfValue')) {
                     continue
                 }
             }
             let condition: BooleanValueSource<any, any>
-            if (key === 'isNull' || key === 'isNotNull') {
-                condition = valueSource[key]()
+            if (operation === 'isNull' || operation === 'isNotNull') {
+                condition = valueSource[operation]()
                 if (!value) {
                     condition = condition.negate()
                 }
             } else {
-                if (__isUuidValueSource(valueSourcePrivate) && useAsStringInUuid[key]) {
-                    condition = valueSource.asString()[key](value)
+                if (__isUuidValueSource(valueSourcePrivate) && useAsStringInUuid[operation]) {
+                    condition = valueSource.asString()[operation](value)
                 } else {
-                    condition = valueSource[key](value)
+                    condition = valueSource[operation](value)
                 }
             }
             result = result.and(condition)
@@ -244,6 +246,26 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
         return result
     }
 }
+
+/**
+ * The rules of a column filter of version 1 that version 2 renamed, with their name of version 2: they are still
+ * applied, so a filter written for version 1, like one sent by another system, keeps working. The types don't declare
+ * them: a filter written in code uses the names of version 2
+ */
+const renamedOperations: { readonly [operation: string]: string | undefined } = Object.freeze({
+    smaller: 'lessThan',
+    smallerIfValue: 'lessThanIfValue',
+    larger: 'greaterThan',
+    largerIfValue: 'greaterThanIfValue',
+    smallAs: 'lessOrEqual',
+    smallAsIfValue: 'lessOrEqualIfValue',
+    largeAs: 'greaterOrEqual',
+    largeAsIfValue: 'greaterOrEqualIfValue',
+    lessOrEquals: 'lessOrEqual',
+    lessOrEqualsIfValue: 'lessOrEqualIfValue',
+    greaterOrEquals: 'greaterOrEqual',
+    greaterOrEqualsIfValue: 'greaterOrEqualIfValue',
+})
 
 const allowedOpreations: { [operation: string]: true | undefined } = {
     isNull: true,

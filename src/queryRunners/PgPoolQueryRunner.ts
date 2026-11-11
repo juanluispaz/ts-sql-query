@@ -1,7 +1,7 @@
 import type { DatabaseType, QueryRunner } from './QueryRunner.js'
 import type { Pool, PoolClient } from 'pg'
 import { PgQueryRunner } from './PgQueryRunner.js'
-import { requirePgTextMode } from '../utils/pgConfiguration.js'
+import { requirePgTextMode } from '../utils/postgreSql/pgConfiguration.js'
 import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
 import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import type { TypeCategory } from '../TypeAdapter.js'

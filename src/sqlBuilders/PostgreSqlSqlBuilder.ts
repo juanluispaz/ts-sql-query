@@ -11,7 +11,7 @@ import { __getValueSourcePrivate, __isBooleanValueSource, isValueSource } from '
 import { isDefault } from '../expressions/Default.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __conversionType, __typeCategoryOf } from '../utils/typeCategory.js'
-import { postgreSqlParamType } from '../utils/postgreSqlParamTypes.js'
+import { postgreSqlParamType } from '../utils/postgreSql/postgreSqlParamTypes.js'
 
 export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     postgreSql: true = true

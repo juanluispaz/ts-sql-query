@@ -1,5 +1,5 @@
-import type { TsSqlError } from '../TsSqlError.js'
-import { TransactionOutcome } from './transactionOutcome.js'
+import type { TsSqlError } from '../../TsSqlError.js'
+import { TransactionOutcome } from '../transactionOutcome.js'
 
 /**
  * PostgreSQL leaves a transaction failed when one of its statements fails, even if the error is caught: the statements

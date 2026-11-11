@@ -1,8 +1,8 @@
-import type { TypeCategory } from '../TypeAdapter.js'
-import { customDecimalDigitsOf, rejectCustomDecimalParam } from './customDecimalParams.js'
-import { __conversionType, __isDecimalCategory } from './typeCategory.js'
-import { utcDateText, utcTimeText } from './utcDateTimeText.js'
-import { getParamMetadata, queryParamType, queryParamTypeCategory, queryParamValueForColumn } from './metadataSymbols.js'
+import type { TypeCategory } from '../../TypeAdapter.js'
+import { customDecimalDigitsOf, rejectCustomDecimalParam } from '../customDecimalParams.js'
+import { __conversionType, __isDecimalCategory } from '../typeCategory.js'
+import { utcDateText, utcTimeText } from '../utcDateTimeText.js'
+import { getParamMetadata, queryParamType, queryParamTypeCategory, queryParamValueForColumn } from '../metadataSymbols.js'
 
 /**
  * The placeholder of a parameter on MySQL and MariaDB, for every query runner of them. A customDecimal is sent as

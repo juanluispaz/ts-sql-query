@@ -5,9 +5,9 @@ import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSq
 import { getSqlite3WasmOO1ErrorReason, isSqlite3WasmOO1Error } from './connectorErrorMappers/Sqlite3WasmOO1ErrorMapper.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
-import { sqliteFunctionListQuery, sqliteFunctionsToRegister } from '../utils/sqliteFunctions.js'
+import { sqliteFunctionListQuery, sqliteFunctionsToRegister } from '../utils/sqlite/sqliteFunctions.js'
 import type { SqliteFunctionsOptions } from '../connections/SqliteConfiguration.js'
-import { sqliteDriverParams } from '../utils/sqliteParamTypes.js'
+import { sqliteDriverParams } from '../utils/sqlite/sqliteParamTypes.js'
 
 export interface Sqlite3WasmOO1QueryRunnerConfig {
     promise?: PromiseProvider | undefined

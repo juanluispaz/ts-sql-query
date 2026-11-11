@@ -164,8 +164,8 @@ Tests: `test/db/<db>/<version>/<connector>/marshalling.transform-validation.test
 (it only calls it through `next` if it wants, `sqlBuilders/AbstractSqlBuilder.ts:655-656`), and its result is not
 validated again. So a runner receives the forms above for the built-in types without adapter, and anything for a value
 with an adapter or of `enum`/`custom`/`customComparable`. The modules of each database are written for that: at
-execution they convert only a valid `Date` with type metadata (`utils/postgreSqlParamTypes.ts:94-97,118-132`,
-`utils/mySqlParamTypes.ts:40-43,61-75`, `utils/oracleParamTypes.ts:28-31`), and the binding checks a decimal only
+execution they convert only a valid `Date` with type metadata (`utils/postgreSql/postgreSqlParamTypes.ts:94-97,118-132`,
+`utils/mySql/mySqlParamTypes.ts:40-43,61-75`, `utils/oracle/oracleParamTypes.ts:28-31`), and the binding checks a decimal only
 when it is plain decimal text (`utils/customDecimalParams.ts:8-17`); anything else is sent as it is.
 
 ### 2.2 The bindings: placeholder, cast, checks
@@ -188,7 +188,7 @@ cast in the placeholder.
 
 A rejected decimal is `INVALID_VALUE_TO_SEND_TO_DATABASE` with its `paramIndex`. The digits of a decimal
 (`utils/customDecimalParams.ts:8-17`): `-0012.50` is `decimal(4, 2)`, `0.0120` has 2 significant digits. The type of
-a PostgreSQL param by conversion type (`utils/postgreSqlParamTypes.ts:27-39`): `bool`/16, `int4`/23, `int8`/20,
+a PostgreSQL param by conversion type (`utils/postgreSql/postgreSqlParamTypes.ts:27-39`): `bool`/16, `int4`/23, `int8`/20,
 `float8`/701, `numeric`/1700 (stringDecimal, customDecimal), `text`/25, `uuid`/2950, `date`/1082, `time`/1083,
 `timestamp`/1114; for `enum`/`custom`/`customComparable`/no category it comes from the JS value: a bigint `int8`, an
 integer number `int4` or `int8` by range, another number `float8`, anything else none (`:47-67`). Tests:
@@ -225,18 +225,18 @@ casts). A `Date` reads well: its `toISOString()` shows the UTC digits (`2024-01-
 The modules of each database give the params as the drivers of that database receive them, as a copy when a value
 changes:
 
-- **PostgreSQL** `postgreSqlDriverParams` (`utils/postgreSqlParamTypes.ts:94-132`): a valid `Date` with type metadata,
+- **PostgreSQL** `postgreSqlDriverParams` (`utils/postgreSql/postgreSqlParamTypes.ts:94-132`): a valid `Date` with type metadata,
   of conversion type `localDate` → `YYYY-MM-DD`, `localTime` → `HH:MM:SS.mmm`, `localDateTime` →
   `YYYY-MM-DD HH:MM:SS.mmm+00`, from the UTC getters; a year < 1 is written `0044-03-15 BC`. Used by pg, PgLite,
   postgres.js (inside its own `driverParams`) and Bun SQL PostgreSQL (through the `driverParams` hook of
   `AbstractBunSqlQueryRunner`).
-- **MySQL / MariaDB** `mySqlDriverParams` (`utils/mySqlParamTypes.ts:40-75`): the same for a `Date` of a temporal
+- **MySQL / MariaDB** `mySqlDriverParams` (`utils/mySql/mySqlParamTypes.ts:40-75`): the same for a `Date` of a temporal
   conversion type, `YYYY-MM-DD`, `HH:MM:SS.mmm`, `YYYY-MM-DD HH:MM:SS.mmm`, with a space and no offset. Used by
   mysql2, mariadb and Bun SQL MySQL.
-- **SQLite** `sqliteDriverParams` (`utils/sqliteParamTypes.ts:6-19`): a boolean as `1` / `0`, the value SQLite stores
+- **SQLite** `sqliteDriverParams` (`utils/sqlite/sqliteParamTypes.ts:6-19`): a boolean as `1` / `0`, the value SQLite stores
   for it. Used by better-sqlite3, node:sqlite and sqlite-wasm, which reject a JavaScript boolean; bun:sqlite and Bun SQL
   SQLite take the params as they are and bind a boolean as `1` / `0` themselves.
-- **Oracle** `oracleTemporalBind` (`utils/oracleParamTypes.ts:31-50`; `OracleDBQueryRunner.ts:193`): a valid `Date`
+- **Oracle** `oracleTemporalBind` (`utils/oracle/oracleParamTypes.ts:31-50`; `OracleDBQueryRunner.ts:193`): a valid `Date`
   of a temporal conversion type is bound as `DB_TYPE_DATE` (a `localDate`, at 00:00 UTC of its UTC day; a `localTime`
   or `localDateTime` of whole seconds marked `oracleDateParam`, §4) or `DB_TYPE_TIMESTAMP` (a `localTime`, a
   `localDateTime`, also a marked one with a fraction, which a `DATE` would lose in a comparison) with its UTC digits;
@@ -456,8 +456,8 @@ value of `process.env.TZ` changes, since Node and Bun change the zone of the pro
 
 | Runner | `name` | Rejected when | Source / test |
 |---|---|---|---|
-| `PgQueryRunner`, `PgPoolQueryRunner` | `binary` | `client.binary === true` or `pool.options.binary === true`. A pool client in binary mode (`pg.defaults.binary`) is rejected when the pool gives it, and released | `utils/pgConfiguration.ts:8-13`; `PgQueryRunner.ts:34`; `PgPoolQueryRunner.ts:26,48-58`; `test/runners/postgres/DriverConfiguration.test.ts` (`pg-in-binary-mode-is-rejected`) |
-| `PgQueryRunner`, `PgPoolQueryRunner` | `options` | at each query, not in the constructor (§7.3, "The checks"): the session is put in a zone that isn't the `databaseTimeZone` of the connection (UTC by default): a `TimeZone` in `client.connectionParameters.options` (the configuration, the `options` of the connection string, `PGOPTIONS`, `pg.defaults.options`; a client of a pool too), read as the server reads its command-line options (`-c TimeZone=…`, `--timezone=…`, the last wins) and accepted, with the database in UTC, as a UTC name or a zero offset (`+00:00`, `00:00`, `+00`; measured on PostgreSQL 17), with another zone as the same name. A pool is checked by the runner of each client it gives | `utils/pgConfiguration.ts` (`pgSessionTimeZone`); `utils/processTimeZone.ts` (`rejectSessionNotInDatabaseZone`); `PgQueryRunner.ts`; same test file (`a-session-in-another-zone-than-the-database-is-rejected`, `a-pool-whose-connection-string-puts-the-session-in-another-zone-is-rejected-at-its-first-query`) |
+| `PgQueryRunner`, `PgPoolQueryRunner` | `binary` | `client.binary === true` or `pool.options.binary === true`. A pool client in binary mode (`pg.defaults.binary`) is rejected when the pool gives it, and released | `utils/postgreSql/pgConfiguration.ts:8-13`; `PgQueryRunner.ts:34`; `PgPoolQueryRunner.ts:26,48-58`; `test/runners/postgres/DriverConfiguration.test.ts` (`pg-in-binary-mode-is-rejected`) |
+| `PgQueryRunner`, `PgPoolQueryRunner` | `options` | at each query, not in the constructor (§7.3, "The checks"): the session is put in a zone that isn't the `databaseTimeZone` of the connection (UTC by default): a `TimeZone` in `client.connectionParameters.options` (the configuration, the `options` of the connection string, `PGOPTIONS`, `pg.defaults.options`; a client of a pool too), read as the server reads its command-line options (`-c TimeZone=…`, `--timezone=…`, the last wins) and accepted, with the database in UTC, as a UTC name or a zero offset (`+00:00`, `00:00`, `+00`; measured on PostgreSQL 17), with another zone as the same name. A pool is checked by the runner of each client it gives | `utils/postgreSql/pgConfiguration.ts` (`pgSessionTimeZone`); `utils/processTimeZone.ts` (`rejectSessionNotInDatabaseZone`); `PgQueryRunner.ts`; same test file (`a-session-in-another-zone-than-the-database-is-rejected`, `a-pool-whose-connection-string-puts-the-session-in-another-zone-is-rejected-at-its-first-query`) |
 | `PostgresQueryRunner` | `transform` | `sql.options.transform.column.from`, `.value.from` or `.row.from` is set | `PostgresQueryRunner.ts:297-302`; same test file (`a-postgres-js-transform-of-the-results-is-rejected`) |
 | `PostgresQueryRunner` | `connection` | at each query, not in the constructor: the session is put in a zone that isn't the `databaseTimeZone` (UTC by default): an entry `timezone` (in any case) of `sql.options.connection`, which also holds the parameters of the URL that aren't options of postgres.js, or a `TimeZone` in its `options` entry, read as pg's | `PostgresQueryRunner.ts:303-313`; same test file (`a-session-in-another-zone-than-the-database-is-rejected`) |
 | `PostgresQueryRunner` | `infer` | `sql.options.infer === true` and the process isn't in UTC | `PostgresQueryRunner.ts:314-316` |

@@ -45,7 +45,7 @@
  *   from the library's generator, which keeps it.
  */
 
-import type { SqliteFunctionsOptions } from '../connections/SqliteConfiguration.js'
+import type { SqliteFunctionsOptions } from '../../connections/SqliteConfiguration.js'
 
 /** A scalar SQL function */
 export interface SqliteScalarFunction {

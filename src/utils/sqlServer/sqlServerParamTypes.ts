@@ -1,7 +1,7 @@
-import type { TypeCategory } from '../TypeAdapter.js'
-import { customDecimalDigitsOf, rejectCustomDecimalParam } from './customDecimalParams.js'
-import { __isDecimalCategory } from './typeCategory.js'
-import { getParamMetadata, queryParamValueForColumn } from './metadataSymbols.js'
+import type { TypeCategory } from '../../TypeAdapter.js'
+import { customDecimalDigitsOf, rejectCustomDecimalParam } from '../customDecimalParams.js'
+import { __isDecimalCategory } from '../typeCategory.js'
+import { getParamMetadata, queryParamValueForColumn } from '../metadataSymbols.js'
 
 /**
  * The placeholder of a parameter on SQL Server, for every query runner of it. A customDecimal is sent as an nvarchar:

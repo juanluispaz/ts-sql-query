@@ -6,10 +6,11 @@ import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSq
 import { getOracleDBErrorReason, isOracleDBError } from './connectorErrorMappers/OracleDBErrorMapper.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { getQueryResultColumns, type ConnectionConfiguration } from './QueryRunner.js'
-import { isProcessInUtc, oracleSessionTimeZone, rejectSessionNotInDatabaseZone, type SessionTimeZone } from '../utils/processTimeZone.js'
+import { isProcessInUtc, rejectSessionNotInDatabaseZone, type SessionTimeZone } from '../utils/processTimeZone.js'
+import { oracleSessionTimeZone } from '../utils/oracle/oracleSessionTimeZone.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { __isDecimalCategory } from '../utils/typeCategory.js'
-import { isOracleZonedParam, oracleTemporalBind } from '../utils/oracleParamTypes.js'
+import { isOracleZonedParam, oracleTemporalBind } from '../utils/oracle/oracleParamTypes.js'
 import { getMetadata, getParamMetadata, oracleDateParam, queryConnectionConfiguration, queryParamForceTypeCast, queryParamType, queryParamTypeCategory, setParamMetadata } from '../utils/metadataSymbols.js'
 
 export interface OracleDBQueryRunnerConfig {

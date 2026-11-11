@@ -7,7 +7,7 @@ import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from "../TsSq
 import { getBunSqliteErrorReason, isBunSqliteError } from './connectorErrorMappers/BunSqliteErrorMapper.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
-import { sqliteFunctionListQuery, sqliteFunctionsToRegister } from '../utils/sqliteFunctions.js'
+import { sqliteFunctionListQuery, sqliteFunctionsToRegister } from '../utils/sqlite/sqliteFunctions.js'
 import type { SqliteFunctionsOptions } from '../connections/SqliteConfiguration.js'
 
 export interface BunSqliteQueryRunnerConfig {

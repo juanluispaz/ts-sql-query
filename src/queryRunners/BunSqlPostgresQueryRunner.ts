@@ -3,11 +3,11 @@
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { AbstractBunSqlQueryRunner } from './AbstractBunSqlQueryRunner.js'
 import { SQL } from 'bun'
-import { PostgresTransactionOutcome } from '../utils/postgresTransactionOutcome.js'
+import { PostgresTransactionOutcome } from '../utils/postgreSql/postgresTransactionOutcome.js'
 import { getBunSqlPostgresErrorReason, isBunSqlPostgresError } from './connectorErrorMappers/BunSqlPostgresErrorMapper.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
-import { postgreSqlDriverParams } from '../utils/postgreSqlParamTypes.js'
+import { postgreSqlDriverParams } from '../utils/postgreSql/postgreSqlParamTypes.js'
 
 export interface BunSqlPostgresQueryRunnerConfig {
     /**

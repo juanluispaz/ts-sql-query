@@ -3,10 +3,10 @@ import type { Connection, QueryOptions } from 'mariadb'
 import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getMariaDbErrorReason, isMariaDbError } from './connectorErrorMappers/MariaDBErrorMapper.js'
-import { isTransactionOpenAfterMySqlError } from '../utils/mySqlTransactionRollback.js'
+import { isTransactionOpenAfterMySqlError } from '../utils/mySql/mySqlTransactionRollback.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
-import { mySqlDriverParams } from '../utils/mySqlParamTypes.js'
+import { mySqlDriverParams } from '../utils/mySql/mySqlParamTypes.js'
 
 /**
  * The options the mariadb connector is given with every query of the library, which replace the ones of the

@@ -6,11 +6,11 @@ import type { DatabaseType } from '../queryRunners/QueryRunner.js'
 import type { QueryRunnerName } from '../queryRunners/MockQueryRunner.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import { checkOracleParam, oraclePlaceholder } from './oracleParamTypes.js'
-import { mySqlPlaceholder } from './mySqlParamTypes.js'
-import { isPostgreSqlZonedParam, postgreSqlPlaceholder, postgreSqlZonedTimeCast } from './postgreSqlParamTypes.js'
+import { checkOracleParam, oraclePlaceholder } from './oracle/oracleParamTypes.js'
+import { mySqlPlaceholder } from './mySql/mySqlParamTypes.js'
+import { isPostgreSqlZonedParam, postgreSqlPlaceholder, postgreSqlZonedTimeCast } from './postgreSql/postgreSqlParamTypes.js'
 import { queryParamForceTypeCast, queryParamType, queryParamTypeCategory, setParamMetadata } from './metadataSymbols.js'
-import { sqlServerPlaceholder } from './sqlServerParamTypes.js'
+import { sqlServerPlaceholder } from './sqlServer/sqlServerParamTypes.js'
 
 /** The PostgreSQL type, by type name, written as the cast of a parameter (the typesByName of pg and Bun SQL) */
 export type CastTypesByName = { readonly [typeName: string]: string }

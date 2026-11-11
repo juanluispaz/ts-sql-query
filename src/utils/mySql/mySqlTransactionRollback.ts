@@ -1,4 +1,4 @@
-import type { TsSqlErrorReason } from '../TsSqlError.js'
+import type { TsSqlErrorReason } from '../../TsSqlError.js'
 
 /**
  * Whether MySQL or MariaDB keep the transaction open after a statement of it failed for the reason given: the victim

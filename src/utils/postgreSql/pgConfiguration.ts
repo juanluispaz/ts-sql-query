@@ -1,5 +1,6 @@
-import { TsSqlProcessingError } from '../TsSqlError.js'
-import { postgreSqlOptionsTimeZone, type SessionTimeZone } from './processTimeZone.js'
+import { TsSqlProcessingError } from '../../TsSqlError.js'
+import type { SessionTimeZone } from '../processTimeZone.js'
+import { postgreSqlOptionsTimeZone } from './postgreSqlSessionTimeZone.js'
 
 /**
  * pg must receive the values as text: in its binary mode (`binary: true`, of the client or of the pool) a numeric is

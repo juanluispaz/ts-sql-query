@@ -1,15 +1,15 @@
 import type { BeginTransactionOpts, DatabaseType } from './QueryRunner.js'
 import type { ClientBase, CustomTypesConfig } from 'pg'
 import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
-import { PostgresTransactionOutcome } from '../utils/postgresTransactionOutcome.js'
+import { PostgresTransactionOutcome } from '../utils/postgreSql/postgresTransactionOutcome.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getPgErrorReason, isPgError } from './connectorErrorMappers/PgErrorMapper.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { parseUtcDateTimeTextOrKeepIt } from '../utils/utcDateTimeText.js'
-import { pgSessionTimeZone, requirePgTextMode } from '../utils/pgConfiguration.js'
+import { pgSessionTimeZone, requirePgTextMode } from '../utils/postgreSql/pgConfiguration.js'
 import { rejectSessionNotInDatabaseZone, type SessionTimeZone } from '../utils/processTimeZone.js'
-import { postgreSqlDriverParams } from '../utils/postgreSqlParamTypes.js'
+import { postgreSqlDriverParams } from '../utils/postgreSql/postgreSqlParamTypes.js'
 
 export interface PgQueryRunnerConfig {
     allowNestedTransactions?: boolean | undefined

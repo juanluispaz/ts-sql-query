@@ -5,9 +5,9 @@ import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSq
 import { getNodeSqliteErrorReason, isNodeSqliteError } from './connectorErrorMappers/NodeSqliteErrorMapper.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
-import { sqliteFunctionListQuery, sqliteFunctionsToRegister } from '../utils/sqliteFunctions.js'
+import { sqliteFunctionListQuery, sqliteFunctionsToRegister } from '../utils/sqlite/sqliteFunctions.js'
 import type { SqliteFunctionsOptions } from '../connections/SqliteConfiguration.js'
-import { sqliteDriverParams } from '../utils/sqliteParamTypes.js'
+import { sqliteDriverParams } from '../utils/sqlite/sqliteParamTypes.js'
 
 export interface NodeSqliteQueryRunnerConfig {
     promise?: PromiseProvider | undefined

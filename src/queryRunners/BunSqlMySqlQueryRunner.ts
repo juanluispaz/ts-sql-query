@@ -5,10 +5,10 @@ import { AbstractBunSqlQueryRunner } from './AbstractBunSqlQueryRunner.js'
 import type { BeginTransactionOpts, DatabaseType } from './QueryRunner.js'
 import { SQL, type TransactionSQL } from 'bun'
 import { getBunSqlMySqlErrorReason, isBunSqlMySqlAnyError } from './connectorErrorMappers/BunSqlMySqlErrorMapper.js'
-import { isTransactionOpenAfterMySqlError } from '../utils/mySqlTransactionRollback.js'
+import { isTransactionOpenAfterMySqlError } from '../utils/mySql/mySqlTransactionRollback.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
-import { mySqlDriverParams } from '../utils/mySqlParamTypes.js'
+import { mySqlDriverParams } from '../utils/mySql/mySqlParamTypes.js'
 
 export class BunSqlMySqlQueryRunner extends AbstractBunSqlQueryRunner {
     constructor(connection: SQL, database: 'mySql' | 'mariaDB' = 'mySql') {

@@ -3,10 +3,10 @@ import type { Connection, QueryError, ResultSetHeader, RowDataPacket } from 'mys
 import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getMySql2ErrorReason, isMySql2Error } from './connectorErrorMappers/MySql2ErrorMapper.js'
-import { isTransactionOpenAfterMySqlError } from '../utils/mySqlTransactionRollback.js'
+import { isTransactionOpenAfterMySqlError } from '../utils/mySql/mySqlTransactionRollback.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
-import { mySqlDriverParams } from '../utils/mySqlParamTypes.js'
+import { mySqlDriverParams } from '../utils/mySql/mySqlParamTypes.js'
 
 
 export interface MySql2QueryRunnerConfig {

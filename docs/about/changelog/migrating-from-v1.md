@@ -50,26 +50,45 @@ The compiler finds all of these. This section is what to write instead.
 
 ### Renamed
 
-| v1 | v2 |
-|---|---|
-| `.smaller(...)`, `.smallerIfValue(...)` | `.lessThan(...)`, `.lessThanIfValue(...)` |
-| `.larger(...)`, `.largerIfValue(...)` | `.greaterThan(...)`, `.greaterThanIfValue(...)` |
-| `.smallAs(...)`, `.lessOrEquals(...)`, and their `IfValue` | `.lessOrEqual(...)`, `.lessOrEqualIfValue(...)` |
-| `.largeAs(...)`, `.greaterOrEquals(...)`, and their `IfValue` | `.greaterOrEqual(...)`, `.greaterOrEqualIfValue(...)` |
-| `.substract(...)` | `.subtract(...)` |
-| `.mod(...)` | `.modulo(...)` |
-| `.lower()`, `.upper()` | `.toLowerCase()`, `.toUpperCase()` |
-| `.ltrim()`, `.rtrim()` | `.trimLeft()`, `.trimRight()` |
-| `.replace(...)`, `.replaceIfValue(...)` | `.replaceAll(...)`, `.replaceAllIfValue(...)` |
-| `mergeType(...)` | `connection.dynamicBooleanExpressionUsing(...)` |
-| `PickValuesPathWitAllProperties`, `PickValuesPathWitAllPropertiesProjectedAsNullable` | `PickValuesPathWithAllProperties`, `PickValuesPathWithAllPropertiesProjectedAsNullable` |
-| `queryRunner.getCurrentNativeTransaction()` | `queryRunner.getCurrentNativeConnection()` |
-| `QueryExecutor` from `MockQueryRunner` | `MockQueryExecutor`, from `ts-sql-query` |
-| `QueryType` from `MockQueryRunner`, `InterceptorQueryRunner` or `LoggingQueryRunner` | `QueryType` from `ts-sql-query` |
+Most of these names were already deprecated in v1, which kept them working and showed the new name in your editor; the last column says since which version. `smaller`, `larger`, `smallAs` and `largeAs` have been deprecated since v1.15.0, released on 3 Oct 2021.
+
+| v1 | v2 | Deprecated in v1 since |
+|---|---|---|
+| `.smaller(...)`, `.smallerIfValue(...)` | `.lessThan(...)`, `.lessThanIfValue(...)` | v1.15.0, 3 Oct 2021 |
+| `.larger(...)`, `.largerIfValue(...)` | `.greaterThan(...)`, `.greaterThanIfValue(...)` | v1.15.0, 3 Oct 2021 |
+| `.smallAs(...)`, `.smallAsIfValue(...)` | `.lessOrEqual(...)`, `.lessOrEqualIfValue(...)` | v1.15.0, 3 Oct 2021 |
+| `.largeAs(...)`, `.largeAsIfValue(...)` | `.greaterOrEqual(...)`, `.greaterOrEqualIfValue(...)` | v1.15.0, 3 Oct 2021 |
+| `.lessOrEquals(...)`, `.lessOrEqualsIfValue(...)` | `.lessOrEqual(...)`, `.lessOrEqualIfValue(...)` | v1.68.0, 14 Jun 2026, for a typo in the name |
+| `.greaterOrEquals(...)`, `.greaterOrEqualsIfValue(...)` | `.greaterOrEqual(...)`, `.greaterOrEqualIfValue(...)` | v1.68.0, 14 Jun 2026, for a typo in the name |
+| `.substract(...)` | `.subtract(...)` | v1.68.0, 14 Jun 2026, for a typo in the name |
+| `.mod(...)` | `.modulo(...)` | v1.15.0, 3 Oct 2021 |
+| `.lower()`, `.upper()` | `.toLowerCase()`, `.toUpperCase()` | v1.15.0, 3 Oct 2021 |
+| `.ltrim()`, `.rtrim()` | `.trimLeft()`, `.trimRight()` | v1.15.0, 3 Oct 2021 |
+| `.replace(...)`, `.replaceIfValue(...)` | `.replaceAll(...)`, `.replaceAllIfValue(...)` | v1.22.0, 24 Oct 2021 |
+| `mergeType(...)` | `connection.dynamicBooleanExpressionUsing(...)` | v1.61.0, 2 Mar 2024 |
+| `PickValuesPathWitAllProperties`, `PickValuesPathWitAllPropertiesProjectedAsNullable` | `PickValuesPathWithAllProperties`, `PickValuesPathWithAllPropertiesProjectedAsNullable` | v1.69.0, the last version of v1, for a typo in the name |
+| `QueryExecutor` from `MockQueryRunner` | `MockQueryExecutor`, from `ts-sql-query` | v1.69.0, the last version of v1 |
+| `queryRunner.getCurrentNativeTransaction()` | `queryRunner.getCurrentNativeConnection()` | Not deprecated |
+| `QueryType` from `MockQueryRunner`, `InterceptorQueryRunner` or `LoggingQueryRunner` | `QueryType` from `ts-sql-query` | Not deprecated; v1.69.0 also exports it from `ts-sql-query/queryRunners/QueryRunner` |
 
 The renamed types (`PickValuesPathWit...`, `QueryExecutor`, `QueryType` from a query runner) keep compiling when you import them from their path of v1, marked deprecated, until you rename them; so do `TyeSafeConnection`, `TyeUnsafeConnection` and `TypeSafeDynamicCondition`, below.
 
-The rules of a [dynamic condition](../../dynamic/helper-types/conditions.md) were renamed in the same way, but [they may not stop compiling](#dynamic-conditions-coming-from-outside).
+The rules of a [dynamic condition](../../dynamic/helper-types/conditions.md) were renamed in the same way: see [the rules of a dynamic condition](#the-rules-of-a-dynamic-condition).
+
+### The rules of a dynamic condition
+
+The rules of a [dynamic condition](../../dynamic/helper-types/conditions.md) were renamed in the same way. A filter written in your code with an old name doesn't compile: write the new one. A filter that comes from a request or another system, which has no type, keeps working: `withValues` applies an old name as its new one, so the systems that send them don't have to change at the same time as your application.
+
+| v1 rule | v2 rule | Deprecated in v1 since |
+|---|---|---|
+| `smaller`, `smallerIfValue` | `lessThan`, `lessThanIfValue` | v1.15.0, 3 Oct 2021 |
+| `larger`, `largerIfValue` | `greaterThan`, `greaterThanIfValue` | v1.15.0, 3 Oct 2021 |
+| `smallAs`, `smallAsIfValue` | `lessOrEqual`, `lessOrEqualIfValue` | v1.15.0, 3 Oct 2021 |
+| `largeAs`, `largeAsIfValue` | `greaterOrEqual`, `greaterOrEqualIfValue` | v1.15.0, 3 Oct 2021 |
+| `lessOrEquals`, `lessOrEqualsIfValue` | `lessOrEqual`, `lessOrEqualIfValue` | v1.69.0, the last version of v1, for a typo in the name |
+| `greaterOrEquals`, `greaterOrEqualsIfValue` | `greaterOrEqual`, `greaterOrEqualIfValue` | v1.69.0, the last version of v1, for a typo in the name |
+
+`smaller`, `larger`, `smallAs` and `largeAs` have been deprecated since 2021. `lessOrEquals` and `greaterOrEquals` are different: until v1.68.0 they were the only names of these rules in a dynamic condition, since `lessOrEqual` and `greaterOrEqual` only arrive there in v1.69.0, so a filter written for v1 is likely to use them.
 
 ### Removed connections and query runners
 
@@ -222,10 +241,9 @@ Everything in this section compiles. These are the changes that alter a result, 
 5. **Your `catch` stops matching.** An error of your own crosses a transaction unwrapped, and the classes and messages are others. [Errors](#errors).
 6. **`NULL` is handled differently**, in `minValue`, `maxValue` and, on Oracle, in `concat` and `contains`; `replaceAll` and `length` also change. [Values, with a way back](#values-with-a-way-back).
 7. **Corrected functions give another value.** [Values, corrected](#values-corrected).
-8. **A filter coming from JSON with an old rule fails.** [Dynamic conditions](#dynamic-conditions-coming-from-outside).
-9. **An old property in your connection class is ignored.** [Properties](#properties-of-the-connection-that-no-longer-exist).
-10. **A custom type without its conversion arrives converted.** [Custom types are converted as their category](#custom-types-are-converted-as-their-category).
-11. **Outside UTC, the dates and times move.** With the process in another zone, a date and time without zone is read and written in UTC, and a query runner can reject the connection. [Dates and times in a process outside UTC](#dates-and-times-in-a-process-outside-utc).
+8. **An old property in your connection class is ignored.** [Properties](#properties-of-the-connection-that-no-longer-exist).
+9. **A custom type without its conversion arrives converted.** [Custom types are converted as their category](#custom-types-are-converted-as-their-category).
+10. **Outside UTC, the dates and times move.** With the process in another zone, a date and time without zone is read and written in UTC, and a query runner can reject the connection. [Dates and times in a process outside UTC](#dates-and-times-in-a-process-outside-utc).
 
 ### Set the version of your database
 
@@ -521,25 +539,6 @@ update my_table set my_column = substr(my_column, 1, 8) || 'Z' where length(my_c
 The same statements work with the space and with the `T` separator. Columns with a `localDate` don't change, and neither do the numeric strategies. If the schema or a trigger writes the value, like a `default current_timestamp`, use the expression of your strategy: see [Values generated by the database](../../configuration/supported-databases/sqlite.md#values-generated-by-the-database).
 
 Choose `seconds` if other code writes in those columns with SQLite's own functions, which have no decimals: `UTC seconds as text` is the text of `current_timestamp`.
-
-### Dynamic conditions coming from outside
-
-The rules of a dynamic condition were renamed. In TypeScript the compiler tells you, but **a filter that comes from a request or a JSON has no type**: it now fails at runtime with `DYNAMIC_CONDITION_UNKNOWN_OPERATION`. Accept the old names at the edge of your API if your clients send them.
-
-| v1 rule | v2 rule |
-|---|---|
-| `smaller`, `smallerIfValue` | `lessThan`, `lessThanIfValue` |
-| `larger`, `largerIfValue` | `greaterThan`, `greaterThanIfValue` |
-| `smallAs`, `lessOrEquals`, and their `IfValue` | `lessOrEqual`, `lessOrEqualIfValue` |
-| `largeAs`, `greaterOrEquals`, and their `IfValue` | `greaterOrEqual`, `greaterOrEqualIfValue` |
-
-```ts
-const birthdayFrom = new Date('2000-01-01')
-
-const dynamicWhere = connection
-    .dynamicConditionFor({ birthday: tCustomer.birthday })
-    .withValues({ birthday: { greaterOrEqual: birthdayFrom } })
-```
 
 ### Properties of the connection that no longer exist
 
